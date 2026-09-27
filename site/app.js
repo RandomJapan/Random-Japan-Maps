@@ -212,6 +212,8 @@ const map = new maplibregl.Map({
   maxPitch: 72,
   maxBounds: [[108, 12], [170, 58]],
   renderWorldCopies: false,
+  // Les téléphones ont souvent 3 pixels par point : dessiner en ×2 suffit et évite ~2× plus de calcul.
+  pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
   attributionControl: false,
   style: {
     version: 8,
@@ -296,6 +298,28 @@ window.carte = map; // pratique pour inspecter la carte depuis la console du nav
 
 // Hauteur du relief et taille des épingles selon le zoom
 let exagActuelle = null;
+let tailleActuelle = null;
+
+/**
+ * Change la hauteur du relief. map.setTerrain() détruit et reconstruit tout le relief 3D (maillages,
+ * textures) : appelé à chaque cran de zoom, il faisait saccader la carte. On change donc juste le
+ * nombre dans le relief existant (internes de MapLibre 6.11, version figée dans index.html),
+ * et on ne passe par setTerrain() que si ces internes n'existent pas.
+ */
+function changerRelief(e) {
+  const relief = map.terrain;
+  if (relief && typeof relief.exaggeration === 'number' && map._camera?.applyTerrainChange) {
+    relief.exaggeration = e;
+    relief.options = { ...relief.options, exaggeration: e };
+    relief.resetElevationCache?.();
+    map.painter?.markTerrainDepthDirty?.();
+    map._camera.applyTerrainChange(); // recale la caméra sur le sol à sa nouvelle hauteur
+    map.triggerRepaint();
+    return;
+  }
+  map.setTerrain({ source: 'relief', exaggeration: e });
+}
+
 function majSelonZoom() {
   const z = map.getZoom();
   const e = Math.round(exageration(z) * 10) / 10;
@@ -303,14 +327,19 @@ function majSelonZoom() {
   // vers un lieu), et le relief gardait alors l'exagération ×30 de la vue lointaine.
   if (e !== exagActuelle) {
     try {
-      map.setTerrain({ source: 'relief', exaggeration: e });
+      changerRelief(e);
       exagActuelle = e;
     } catch {
       // style pas encore prêt au tout début : le relief de départ est déjà dans le style
     }
   }
-  const taille = Math.min(1, Math.max(0.7, 0.7 + (z - 4.5) * 0.1));
-  map.getContainer().style.setProperty('--t', taille.toFixed(2));
+  // Taille des épingles par paliers (0,7 · 0,8 · 0,9 · 1) : la changer à chaque image de zoom
+  // obligeait le navigateur à redessiner les 123 épingles en continu.
+  const taille = Math.min(1, Math.max(0.7, Math.round((0.7 + (z - 4.5) * 0.1) * 10) / 10));
+  if (taille !== tailleActuelle) {
+    tailleActuelle = taille;
+    map.getContainer().style.setProperty('--t', String(taille));
+  }
 }
 map.on('zoom', majSelonZoom);
 
@@ -499,7 +528,7 @@ function ouvrirLieu(lieu, { voler = true } = {}) {
     map.flyTo({
       center: [lieu.lng, lieu.lat],
       zoom: Math.max(map.getZoom(), 10.5),
-      pitch: 62,
+      pitch: estTelephone() ? 56 : 62, // moins incliné sur téléphone : moins de relief lointain à charger
       bearing: map.getBearing(),
       padding: paddingFiche(),
       duration: 2600,
@@ -511,7 +540,7 @@ function ouvrirLieu(lieu, { voler = true } = {}) {
 function fermerFiche() {
   const fiche = $('fiche');
   if (!fiche.classList.contains('ouverte')) return;
-  fiche.classList.remove('ouverte');
+  fiche.classList.remove('ouverte', 'agrandie');
   fiche.setAttribute('aria-hidden', 'true');
   $('fiche-media').innerHTML = '';
   lieuActif?.el.classList.remove('actif');
@@ -584,6 +613,60 @@ function afficherMessage(texte) {
   minuterieMessage = setTimeout(() => el.classList.remove('visible'), 2000);
 }
 
+/**
+ * Téléphone : la barre en haut de la fiche se tire comme un tiroir.
+ * Vers le haut = fiche en grand ; vers le bas = taille normale, puis fermeture. Un simple appui bascule.
+ */
+function brancherPoignee() {
+  const fiche = $('fiche');
+  const poignee = $('fiche-poignee');
+  let geste = null;
+
+  poignee.addEventListener('pointerdown', (e) => {
+    if (!estTelephone()) return;
+    geste = { y: e.clientY, h: fiche.getBoundingClientRect().height, t: performance.now(), bouge: false };
+    poignee.setPointerCapture(e.pointerId);
+    fiche.classList.add('glisse');
+  });
+
+  poignee.addEventListener('pointermove', (e) => {
+    if (!geste) return;
+    const dy = e.clientY - geste.y;
+    if (Math.abs(dy) > 6) geste.bouge = true;
+    if (!geste.bouge) return;
+    const max = innerHeight - 70;
+    fiche.style.height = `${Math.round(Math.min(max, Math.max(60, geste.h - dy)))}px`;
+  });
+
+  const lacher = (e) => {
+    if (!geste) return;
+    const { bouge } = geste;
+    const dy = e.clientY - geste.y;
+    const h = geste.h - dy;
+    const vitesse = dy / Math.max(1, performance.now() - geste.t); // px/ms, > 0 = vers le bas
+    const etaitGrande = fiche.classList.contains('agrandie');
+    geste = null;
+    fiche.classList.remove('glisse');
+    const normale = innerHeight * 0.64;
+    if (bouge && (h < normale * 0.6 || (vitesse > 0.6 && !etaitGrande))) {
+      // on garde la hauteur tirée pendant que la fiche descend, sinon elle regrandit en partant
+      fermerFiche();
+      setTimeout(() => { fiche.style.height = ''; }, 400);
+      return;
+    }
+    fiche.style.height = '';
+    if (!bouge) {
+      fiche.classList.toggle('agrandie');
+    } else if (vitesse > 0.6) {
+      fiche.classList.remove('agrandie');
+    } else {
+      fiche.classList.toggle('agrandie', vitesse < -0.6 || h > (normale + innerHeight - 70) / 2);
+    }
+  };
+  poignee.addEventListener('pointerup', lacher);
+  poignee.addEventListener('pointercancel', lacher);
+}
+
 function ouvrirDepuisAdresse() {
   const id = decodeURIComponent(location.hash.slice(1));
   const lieu = id && lieux.find((l) => l.id === id);
@@ -641,6 +724,7 @@ function brancherBoutons() {
   $('btn-tout').addEventListener('click', () => toutCocher(true));
   $('btn-rien').addEventListener('click', () => toutCocher(false));
   $('fiche-fermer').addEventListener('click', fermerFiche);
+  brancherPoignee();
   $('btn-recentrer').addEventListener('click', () => {
     fermerFiche();
     map.flyTo({ ...vueDepart(), padding: { top: 0, bottom: 0, left: 0, right: 0 }, duration: 2200 });

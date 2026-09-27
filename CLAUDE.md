@@ -58,8 +58,14 @@ The TikTok embedded player shows "Player error" in headless Edge (codec issue). 
   - a `color-relief` hypsometric palette;
   - `hillshade`;
   - a GeoJSON mask that paints the neighbouring countries in the sea color, so Japan floats alone.
-- Terrain exaggeration and the pin scale (`--t` CSS var) change with zoom in `majSelonZoom`. The relief curve lives in `CONFIG.relief`.
-- Only call `setTerrain` when `map.isStyleLoaded()` is true.
+- Terrain exaggeration and the pin scale change with zoom in `majSelonZoom`. The relief curve lives in `CONFIG.relief`.
+  - The pin scale is the `--t` CSS var. It moves in 0.1 steps only, because changing it every frame re-lays out all the pins.
+- **Do not call `map.setTerrain()` to change exaggeration.** It destroys and rebuilds the whole terrain, which made zooming stutter badly. Use `changerRelief()` instead. It mutates `map.terrain.exaggeration`, then calls `map._camera.applyTerrainChange()`. These are MapLibre 6.11.2 internals (the version is pinned in the CDN URLs), so re-check `changerRelief` if you upgrade MapLibre. It falls back to `setTerrain` if the internals are missing.
+- Do not guard terrain updates with `map.isStyleLoaded()`. It stays false while tiles load, which left the ×30 exaggeration stuck after flying to a place.
+- Phone performance choices:
+  - `pixelRatio` is capped at 2;
+  - `.panneau` panels have no `backdrop-filter` (the blur was recomputed every frame);
+  - place flights use a lower pitch.
 - Places are HTML `Marker`s with `opacityWhenCovered`. Hiding a category removes its markers from the map (`appliquerFiltres`).
 - The start-up camera is different for desktop and phone (`CONFIG.camera`, with `estTelephone()` at ≤720px). A turntable rotation runs until the first user interaction.
 
@@ -67,7 +73,8 @@ The TikTok embedded player shows "Player error" in headless Edge (codec issue). 
 
 - The categories menu is `construireMenu`. Each row has a checkbox (show/hide on the map) and a button that unfolds the list of its places. Unfolded state is kept on the category object (`c.deplie`), because the menu is rebuilt on every language change and filter change.
 - Search results and sub-list items both go through `allerAuLieu()`.
-- The place card (`ouvrirLieu` / `remplirFiche`) is a side panel on desktop and a bottom sheet on phones. `paddingFiche()` keeps the place in view: it accounts for the card, and for the categories menu when that is open on desktop.
+- The place card (`ouvrirLieu` / `remplirFiche`) is a side panel on desktop and a bottom sheet on phones.
+  - On phones, its handle can be dragged (`brancherPoignee`). The sheet has three states: normal (`64dvh`), `.agrandie`, and closed. `paddingFiche()` keeps the place in view: it accounts for the card, and for the categories menu when that is open on desktop.
 - If the `Photo` cell is empty, the card uses the TikTok oEmbed thumbnail. The video is the TikTok `player/v1/{id}` iframe, loaded on demand.
 - All UI strings are in `TEXTES` (en/fr/ja) in `config.js`. `config.js` is also the only settings file meant for hand editing.
 
