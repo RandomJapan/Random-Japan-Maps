@@ -91,4 +91,5 @@ These scripts built the initial Sheet:
 
 - Photos hosted by Google My Maps cannot be shown cross-site (CORP), so they are kept as local files in `site/photos/`.
 - Noto Sans JP renders `ō`/`ū` with a misplaced macron. `--police` therefore lists `Noto Sans` first for Latin text.
-- `og:image` must be an absolute URL for social previews. Set it once the GitHub Pages address is known.
+- The live site is https://randomjapan.github.io/Random-Japan-Maps/ (repo `RandomJapan/Random-Japan-Maps`, Pages build type "workflow"). `og:url` and `og:image` in `index.html` are absolute URLs to that address: update them if the address changes.
+- Commit as `RandomJapan <334664814+RandomJapan@users.noreply.github.com>` (already set in the repo's local git config) so the owner's personal email never lands in public history.
