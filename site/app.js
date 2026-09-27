@@ -230,12 +230,17 @@ const map = new maplibregl.Map({
         type: 'color-relief',
         source: 'ombrage',
         paint: {
+          // La mer vaut 0 m pile. Beaucoup de téléphones lisent l'altitude avec ~0,5 m d'erreur
+          // (texture filtrée en float16), alors que les paliers ci-dessous restent exacts : avec des
+          // paliers serrés autour de 0 (±0,02 m), la mer y tombait dans le vert des terres sous
+          // le niveau de la mer. D'où une marge d'environ 1 m autour de 0 (pas plus : les polders
+          // comme Hachirōgata, à -4 m, doivent rester verts).
           'color-relief-color': [
             'interpolate', ['linear'], ['elevation'],
-            -50, '#2f7d5c',
-            -0.02, '#2f7d5c',
-            0, MER,
-            0.02, '#1d6d74',
+            -2.5, '#2f7d5c',
+            -1.2, MER,
+            0.6, MER,
+            2, '#1d6d74',
             30, '#23806a',
             120, '#3d9255',
             300, '#76a346',
