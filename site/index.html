@@ -36,12 +36,34 @@
   </header>
 
   <div class="filtres">
-    <button class="bouton-categories panneau" id="btn-categories" aria-expanded="false" aria-controls="menu-categories">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 5h18v2H3zm3 6h12v2H6zm3 6h6v2H9z"/></svg>
-      <span id="txt-categories">Categories</span>
-      <span class="compteur" id="compteur"></span>
-      <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
-    </button>
+    <div class="filtres-boutons">
+      <button class="bouton-categories panneau" id="btn-categories" aria-expanded="false" aria-controls="menu-categories">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 5h18v2H3zm3 6h12v2H6zm3 6h6v2H9z"/></svg>
+        <span id="txt-categories">Categories</span>
+        <span class="compteur" id="compteur"></span>
+        <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <button class="bouton-categories bouton-hasard panneau" id="btn-hasard" aria-expanded="false" aria-controls="panneau-hasard">
+        <svg class="de" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.6" fill="currentColor"/></svg>
+        <span id="txt-hasard">Random</span>
+      </button>
+    </div>
+    <div class="menu panneau hasard" id="panneau-hasard" hidden>
+      <p class="hasard-titre" id="hasard-titre"></p>
+      <label class="champ-hasard">
+        <span id="txt-region"></span>
+        <select id="choix-region"></select>
+      </label>
+      <label class="champ-hasard">
+        <span id="txt-type"></span>
+        <select id="choix-type"></select>
+      </label>
+      <button type="button" class="btn-lancer" id="btn-lancer">
+        <svg class="de" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.6" fill="currentColor"/></svg>
+        <span id="txt-lancer"></span>
+      </button>
+      <p class="hasard-info" id="hasard-info"></p>
+    </div>
     <div class="menu panneau" id="menu-categories" hidden>
       <label class="recherche">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="m20 20-4.5-4.5M17 10.5a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0Z"/></svg>
@@ -78,6 +100,10 @@
 
   <aside class="fiche" id="fiche" aria-hidden="true">
     <div class="fiche-poignee" id="fiche-poignee" aria-hidden="true"></div>
+    <button type="button" class="fiche-autre" id="fiche-autre" hidden>
+      <svg class="de" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.6" fill="currentColor"/></svg>
+      <span id="txt-autre"></span>
+    </button>
     <button type="button" class="fiche-fermer" id="fiche-fermer">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M6 6l12 12M18 6 6 18"/></svg>
     </button>

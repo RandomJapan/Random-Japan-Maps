@@ -5,6 +5,7 @@
 import * as maplibregl from 'https://cdn.jsdelivr.net/npm/maplibre-gl@6.11.2/dist/maplibre-gl.mjs';
 import { CONFIG, TEXTES } from './config.js';
 import { iconeHTML } from './icons.js';
+import { PREFECTURES, REGIONS, chargerPrefectures, regionDe } from './regions.js';
 
 const $ = (id) => document.getElementById(id);
 const estTelephone = () => matchMedia('(max-width: 720px)').matches;
@@ -17,6 +18,7 @@ const SVG = {
   route: '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5" fill="currentColor"/></svg>',
   lien: '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M10 14a4 4 0 0 0 5.7 0l3.5-3.5a4 4 0 0 0-5.7-5.7L12 6.3M14 10a4 4 0 0 0-5.7 0l-3.5 3.5a4 4 0 0 0 5.7 5.7l1.5-1.5"/></svg>',
   partager: '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 3v12M7.5 7.5 12 3l4.5 4.5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>',
+  de: '<svg class="de" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.6" fill="currentColor"/></svg>',
   chevron: '<svg class="chevron-cat" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>',
 };
 const PALETTE = ['#e5483b', '#8e24aa', '#1e88e5', '#43a047', '#fb8c00', '#00acc1', '#6d4c41', '#d81b60', '#5e35b1', '#7cb342'];
@@ -439,11 +441,11 @@ function construireMenu() {
   }
 }
 
-/** Depuis le menu (recherche ou liste d'une catégorie) : vole vers le lieu et ouvre sa fiche. */
-function allerAuLieu(l) {
+/** Depuis un menu (recherche, liste d'une catégorie, dé) : vole vers le lieu et ouvre sa fiche. */
+function allerAuLieu(l, options = {}) {
   if (!l.cat.visible) { l.cat.visible = true; construireMenu(); appliquerFiltres(); }
-  if (estTelephone()) ouvrirMenu(false);
-  ouvrirLieu(l);
+  if (estTelephone()) { ouvrirMenu(false); ouvrirHasard(false); }
+  ouvrirLieu(l, options);
 }
 
 function marquerDansMenu() {
@@ -461,7 +463,101 @@ function toutCocher(visible) {
 function ouvrirMenu(ouvrir) {
   $('menu-categories').hidden = !ouvrir;
   $('btn-categories').setAttribute('aria-expanded', String(ouvrir));
+  if (ouvrir) ouvrirHasard(false);
   if (ouvrir && !estTelephone()) $('recherche').focus();
+}
+
+// ---------------------------------------------------------------- Lieu au hasard (le dé)
+let prefecturesPretes = null; // promesse : une fois tenue, chaque lieu a son numéro de préfecture
+let tirageActif = false; // la fiche ouverte vient du dé → bouton « Un autre »
+
+/** Charge les contours des préfectures (une seule fois) et trouve celle de chaque lieu. */
+function preparerPrefectures() {
+  prefecturesPretes ??= chargerPrefectures('data/prefectures.geojson')
+    .then((trouver) => { for (const l of lieux) l.prefecture = trouver(l.lng, l.lat); })
+    .catch((e) => { prefecturesPretes = null; throw e; });
+  return prefecturesPretes;
+}
+
+/** region = '' (partout), 'r:kyushu' (une grande région) ou 'p:40' (une préfecture) ; type = clé de catégorie ou ''. */
+function correspond(l, region, type) {
+  if (type && l.cat.cle !== type) return false;
+  if (!region) return true;
+  const [genre, valeur] = region.split(':');
+  if (genre === 'p') return l.prefecture === Number(valeur);
+  return regionDe(l.prefecture)?.cle === valeur;
+}
+
+const candidats = (region, type) => lieux.filter((l) => correspond(l, region, type));
+
+/** Remplit les deux listes déroulantes, avec le nombre de lieux possibles pour chaque choix. */
+function construireHasard() {
+  const selRegion = $('choix-region');
+  const selType = $('choix-type');
+  const region = selRegion.value;
+  const type = selType.value;
+  const option = (valeur, texte, n, choisi) => {
+    const o = new Option(`${texte} (${n})`, valeur);
+    o.disabled = n === 0 && valeur !== choisi;
+    return o;
+  };
+
+  selRegion.replaceChildren(option('', t('partout'), candidats('', type).length, region));
+  for (const r of REGIONS) {
+    const prefs = r.prefectures.filter((p) => lieux.some((l) => l.prefecture === p));
+    if (!prefs.length) continue;
+    const toute = option(`r:${r.cle}`, r.prefectures.length > 1 ? t('toutLaRegion', enLangue(r.nom)) : enLangue(r.nom),
+      candidats(`r:${r.cle}`, type).length, region);
+    if (r.prefectures.length === 1) { selRegion.append(toute); continue; }
+    const groupe = document.createElement('optgroup');
+    groupe.label = enLangue(r.nom);
+    groupe.append(toute);
+    for (const p of prefs) groupe.append(option(`p:${p}`, enLangue(PREFECTURES[p]), candidats(`p:${p}`, type).length, region));
+    selRegion.append(groupe);
+  }
+  selRegion.value = region;
+  if (selRegion.value !== region) selRegion.value = '';
+
+  selType.replaceChildren(option('', t('tousTypes'), candidats(selRegion.value, '').length, type));
+  for (const c of categories) selType.append(option(c.cle, enLangue(c.nom), candidats(selRegion.value, c.cle).length, type));
+  selType.value = type;
+  if (selType.value !== type) selType.value = '';
+
+  const n = candidats(selRegion.value, selType.value).length;
+  $('hasard-info').textContent = n ? t('possibles', n) : t('aucunPossible');
+  $('btn-lancer').disabled = n === 0;
+}
+
+async function ouvrirHasard(ouvrir) {
+  $('panneau-hasard').hidden = !ouvrir;
+  $('btn-hasard').setAttribute('aria-expanded', String(ouvrir));
+  if (!ouvrir) return;
+  ouvrirMenu(false);
+  if (!$('choix-region').options.length) {
+    $('hasard-info').textContent = '…';
+    $('btn-lancer').disabled = true;
+  }
+  try {
+    await preparerPrefectures();
+    construireHasard();
+  } catch (e) {
+    console.warn('Contours des préfectures indisponibles', e);
+    $('hasard-info').textContent = 'Oops! Please try again.';
+  }
+}
+
+function lancerDe() {
+  const liste = candidats($('choix-region').value, $('choix-type').value);
+  if (!liste.length) return;
+  let choix;
+  do choix = liste[Math.floor(Math.random() * liste.length)];
+  while (liste.length > 1 && choix === lieuActif); // jamais deux fois de suite le même lieu
+  for (const de of document.querySelectorAll('.de')) {
+    de.classList.remove('roule');
+    void de.getBoundingClientRect(); // relance l'animation
+    de.classList.add('roule');
+  }
+  allerAuLieu(choix, { hasard: true });
 }
 
 function rechercher() {
@@ -509,13 +605,15 @@ const idVideo = (url) => (String(url).match(/video\/(\d+)/) || [])[1] || '';
 function paddingFiche() {
   if (estTelephone()) return { top: 90, bottom: Math.round(innerHeight * 0.62), left: 0, right: 0 };
   // Sur ordinateur, le menu des catégories peut rester ouvert à gauche : on centre le lieu dans l'espace libre.
-  return { top: 0, bottom: 0, left: $('menu-categories').hidden ? 0 : 360, right: 424 };
+  const menuOuvert = !$('menu-categories').hidden || !$('panneau-hasard').hidden;
+  return { top: 0, bottom: 0, left: menuOuvert ? 360 : 0, right: 424 };
 }
 
-function ouvrirLieu(lieu, { voler = true } = {}) {
+function ouvrirLieu(lieu, { voler = true, hasard = false } = {}) {
   arreterRotation();
   lieuActif?.el.classList.remove('actif');
   lieuActif = lieu;
+  tirageActif = hasard;
   lieu.el.classList.add('actif');
   marquerDansMenu();
   remplirFiche(lieu);
@@ -571,10 +669,8 @@ async function remplirFiche(l) {
   else vignette.disabled = true;
   vignette.addEventListener('click', () => lancerVideo(video));
   media.append(vignette);
-  const photo = l.photo ? photoAllegee(l.photo) : await miniatureTiktok(l.tiktok);
-  if (lieuActif === l && photo) vignette.style.backgroundImage = `url("${photo.replace(/"/g, '%22')}")`;
 
-  // Boutons
+  // Boutons (avant d'attendre la photo : sinon un lieu ouvert juste avant pourrait écrire ses boutons après)
   const boutons = [];
   if (l.tiktok) boutons.push(`<a class="principal" href="${esc(l.tiktok)}" target="_blank" rel="noopener">${SVG.tiktok}${esc(t('voirTiktok'))}</a>`);
   boutons.push(`<a href="https://www.google.com/maps/dir/?api=1&destination=${l.lat},${l.lng}" target="_blank" rel="noopener">${SVG.route}${esc(t('itineraire'))}</a>`);
@@ -583,6 +679,12 @@ async function remplirFiche(l) {
   boutons.push(`<button type="button" id="btn-partager">${partage ? SVG.partager : SVG.lien}${esc(t(partage ? 'partager' : 'copierLien'))}</button>`);
   $('fiche-boutons').innerHTML = boutons.join('');
   $('btn-partager').addEventListener('click', () => partager(l, partage));
+  // Fiche ouverte par le dé : bouton « Un autre » en haut de la photo, pour relancer d'un doigt
+  $('fiche-autre').hidden = !tirageActif;
+  $('txt-autre').textContent = t('unAutre');
+
+  const photo = l.photo ? photoAllegee(l.photo) : await miniatureTiktok(l.tiktok);
+  if (lieuActif === l && photo) vignette.style.backgroundImage = `url("${photo.replace(/"/g, '%22')}")`;
 }
 
 function lancerVideo(id) {
@@ -690,6 +792,12 @@ function appliquerLangue() {
   $('txt-chargement').textContent = t('chargement');
   $('aide').textContent = t('aide');
   $('lien-profil').title = t('suivre');
+  $('txt-hasard').textContent = t('hasard');
+  $('hasard-titre').textContent = t('hasardTitre');
+  $('txt-region').textContent = t('region');
+  $('txt-type').textContent = t('type');
+  $('txt-lancer').textContent = t('lancer');
+  if ($('choix-region').options.length) construireHasard();
   for (const b of document.querySelectorAll('[data-langue]')) {
     b.setAttribute('aria-pressed', String(b.dataset.langue === langue));
   }
@@ -719,7 +827,16 @@ function brancherBoutons() {
     ouvrirMenu($('menu-categories').hidden);
   });
   $('menu-categories').addEventListener('click', (e) => e.stopPropagation());
-  document.addEventListener('click', () => ouvrirMenu(false));
+  $('btn-hasard').addEventListener('click', (e) => {
+    e.stopPropagation();
+    ouvrirHasard($('panneau-hasard').hidden);
+  });
+  $('panneau-hasard').addEventListener('click', (e) => e.stopPropagation());
+  $('choix-region').addEventListener('change', construireHasard);
+  $('choix-type').addEventListener('change', construireHasard);
+  $('btn-lancer').addEventListener('click', lancerDe);
+  $('fiche-autre').addEventListener('click', lancerDe);
+  document.addEventListener('click', () => { ouvrirMenu(false); ouvrirHasard(false); });
   $('recherche').addEventListener('input', rechercher);
   $('btn-tout').addEventListener('click', () => toutCocher(true));
   $('btn-rien').addEventListener('click', () => toutCocher(false));
@@ -734,6 +851,7 @@ function brancherBoutons() {
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     if (!$('menu-categories').hidden) ouvrirMenu(false);
+    else if (!$('panneau-hasard').hidden) ouvrirHasard(false);
     else fermerFiche();
   });
   window.addEventListener('hashchange', ouvrirDepuisAdresse);
@@ -760,6 +878,8 @@ async function demarrer() {
     $('chargement').classList.add('fini');
     if (location.hash.length > 1) ouvrirDepuisAdresse();
     else if (rotation) setTimeout(() => requestAnimationFrame(tourner), 600);
+    // Contours des préfectures (116 Ko) chargés en avance, sans gêner le démarrage : le dé s'ouvre tout de suite.
+    setTimeout(() => preparerPrefectures().catch(() => {}), 3000);
   };
   if (map.loaded()) pret();
   else map.once('load', pret);

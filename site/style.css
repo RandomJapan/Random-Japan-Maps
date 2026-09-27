@@ -83,6 +83,38 @@ svg { display: block; }
 .bouton-categories .chevron { transition: transform .25s; opacity: .7; }
 .bouton-categories[aria-expanded="true"] .chevron { transform: rotate(180deg); }
 .compteur { background: rgba(255, 255, 255, 0.1); color: var(--texte-2); padding: 1px 8px; border-radius: 999px; font-size: 12px; }
+/* Un menu ouvert passe devant la fiche (sur téléphone, elle occupe le bas de l'écran) */
+.filtres:has(> .menu:not([hidden])) { z-index: 9; }
+.filtres-boutons { display: flex; align-items: center; gap: 8px; }
+.bouton-hasard .de { color: var(--accent-clair); }
+.bouton-hasard[aria-expanded="true"] { border-color: rgba(229, 72, 59, 0.6); }
+
+/* ---------- Lieu au hasard (le dé) ---------- */
+.hasard-titre { margin: 2px 4px 12px; font-family: var(--police-titre); font-weight: 800; font-size: 16px; }
+.champ-hasard { display: block; margin-bottom: 12px; }
+.champ-hasard > span {
+  display: block; margin: 0 4px 6px; font-size: 11.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--texte-3);
+}
+.champ-hasard select {
+  width: 100%; appearance: none; -webkit-appearance: none; cursor: pointer;
+  font: inherit; font-size: 15px; color: var(--papier);
+  padding: 11px 40px 11px 12px; border: 1px solid var(--bord); border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='%23a9b5c0' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round' d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 12px center / 16px;
+}
+.champ-hasard select:focus-visible { outline: none; border-color: rgba(229, 72, 59, 0.6); }
+.champ-hasard option, .champ-hasard optgroup { background: var(--panneau-plein); color: var(--papier); }
+.btn-lancer {
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 4px;
+  padding: 14px; border: 0; border-radius: 12px; background: var(--accent); color: #fff;
+  font-weight: 700; font-size: 16px; letter-spacing: 0.02em; box-shadow: 0 8px 24px rgba(229, 72, 59, 0.3);
+  transition: background .15s;
+}
+.btn-lancer:hover { background: var(--accent-clair); }
+.btn-lancer:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; background: var(--accent); }
+.btn-lancer .de { width: 22px; height: 22px; }
+.hasard-info { margin: 10px 4px 2px; text-align: center; font-size: 12.5px; color: var(--texte-3); }
+.de.roule { animation: roule .6s cubic-bezier(.3, .7, .4, 1); }
+@keyframes roule { 40% { transform: rotate(200deg) scale(1.3); } 100% { transform: rotate(360deg); } }
 
 .menu {
   margin-top: 8px; padding: 10px; background: var(--panneau-plein);
@@ -232,6 +264,15 @@ svg { display: block; }
 }
 .fiche-fermer svg { width: 18px; height: 18px; }
 .fiche-fermer:hover { background: rgba(8, 15, 22, 0.95); }
+/* « Un autre ! » : relancer le dé, en haut à gauche de la photo (au-dessus de la zone de la poignée) */
+.fiche-autre {
+  position: absolute; top: 10px; left: 10px; z-index: 4; height: 38px; padding: 0 14px 0 11px;
+  display: flex; align-items: center; gap: 7px; border: 0; border-radius: 999px;
+  background: var(--accent); color: #fff; font-weight: 700; font-size: 14px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+}
+.fiche-autre:hover { background: var(--accent-clair); }
+.fiche-autre .de { width: 18px; height: 18px; }
 
 .fiche-media { position: relative; background: #0a131b; }
 .fiche-media .vignette {
