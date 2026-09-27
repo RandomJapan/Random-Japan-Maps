@@ -1,0 +1,24 @@
+Catégorie,Icône,Couleur,Nom EN,Nom FR,Nom 日本語,Ordre
+Shrines,torii,#D63A2F,Shrines,Sanctuaires,神社,1
+Temples,temple,#8E2A5B,Temples,Temples,寺院,2
+Castles,castle,#1E6FB8,Castles,Châteaux,城,3
+Mountains,mountain,#4E7D2B,Mountains & Volcanoes,Montagnes & volcans,山・火山,4
+Waterfalls,waterfall,#1596A8,Waterfalls & Gorges,Cascades & gorges,滝・渓谷,5
+Lakes & Ponds,lake,#2B6FD6,Lakes & Ponds,Lacs & étangs,湖・池,6
+Bridges,bridge,#7B3FB0,Bridges,Ponts,橋,7
+Statues,statue,#C98A12,Statues & Monuments,Statues & monuments,像・モニュメント,8
+Villages,village,#8A5A3C,Villages,Villages,集落,9
+Theme Parks,themepark,#D6457E,Theme Parks,Parcs à thème,テーマパーク,10
+Nature & Caves,cave,#5E6B3A,Nature & Caves,Nature & grottes,自然・洞窟,11
+Islands,island,#12897A,Islands,Îles,島,12
+Capes & Lighthouses,lighthouse,#C24A2C,Capes & Lighthouses,Caps & phares,岬・灯台,13
+Flowers,flower,#D96BA0,Flowers,Fleurs,花,14
+Coast & Beaches,coast,#1B8FC2,Coast & Beaches,Côtes & plages,海岸・ビーチ,15
+Onsen,onsen,#D9622B,Hot Springs,Sources chaudes,温泉,16
+Gardens,garden,#3F8F4A,Parks & Gardens,Parcs & jardins,公園・庭園,17
+Trains & Railways,train,#4A55B5,Trains & Railways,Trains & chemins de fer,鉄道,18
+Viewpoints,viewpoint,#2E86AB,Viewpoints,Points de vue,展望スポット,19
+Historic Sites,museum,#7A6450,Historic Sites,Sites historiques,史跡,20
+Churches,church,#6A5AA8,Churches,Églises,教会,21
+Festivals,festival,#E0712B,Festivals,Festivals,祭り・イベント,22
+Cities,city,#5B6C7D,Cities,Villes,街,23

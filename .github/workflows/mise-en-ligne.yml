@@ -1,0 +1,49 @@
+# Met le site en ligne sur GitHub Pages.
+# - à chaque modification du site (git push)
+# - chaque nuit : recopie d'abord le tableau Google Sheets dans la copie de secours
+# - à la main : onglet « Actions » de GitHub > « Mise en ligne » > « Run workflow »
+name: Mise en ligne
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Copie de secours du tableau Google Sheets
+        if: github.event_name != 'push'
+        run: |
+          python3 outils/sauvegarder_tableau.py
+          if [ -n "$(git status --porcelain site/data)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add site/data
+            git commit -m "Copie de secours du tableau"
+            git push
+          fi
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v4

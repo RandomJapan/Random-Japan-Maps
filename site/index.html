@@ -1,0 +1,103 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Random Japan Place · 3D Map of Japan</title>
+  <meta name="description" content="Every place from the Random Japan Place TikToks on an interactive 3D map of Japan: shrines, temples, castles, mountains, waterfalls and more.">
+  <meta name="theme-color" content="#0c1823">
+  <meta property="og:title" content="Random Japan Place · 3D Map of Japan">
+  <meta property="og:description" content="Every place from my TikToks on an interactive 3D map of Japan.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="img/partage.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" type="image/png" href="img/favicon.png">
+  <link rel="apple-touch-icon" href="img/icone-180.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&family=Shippori+Mincho+B1:wght@600;800&display=swap">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@6.11.2/dist/maplibre-gl.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="carte" aria-label="3D map of Japan"></div>
+
+  <header class="entete panneau">
+    <a class="marque" id="lien-profil" target="_blank" rel="noopener">
+      <img class="logo" id="logo" alt="" width="44" height="44">
+      <span class="marque-textes">
+        <span class="titre" id="titre">Random Japan Place</span>
+        <span class="sous-titre" id="sous-titre"></span>
+      </span>
+    </a>
+  </header>
+
+  <div class="filtres">
+    <button class="bouton-categories panneau" id="btn-categories" aria-expanded="false" aria-controls="menu-categories">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 5h18v2H3zm3 6h12v2H6zm3 6h6v2H9z"/></svg>
+      <span id="txt-categories">Categories</span>
+      <span class="compteur" id="compteur"></span>
+      <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
+    </button>
+    <div class="menu panneau" id="menu-categories" hidden>
+      <label class="recherche">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="m20 20-4.5-4.5M17 10.5a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0Z"/></svg>
+        <input type="search" id="recherche" autocomplete="off" spellcheck="false">
+      </label>
+      <ul class="resultats" id="resultats" hidden></ul>
+      <div class="menu-actions" id="menu-actions">
+        <button type="button" id="btn-tout"></button>
+        <button type="button" id="btn-rien"></button>
+      </div>
+      <ul class="liste-categories" id="liste-categories"></ul>
+    </div>
+  </div>
+
+  <nav class="langues panneau" id="langues" aria-label="Language">
+    <button type="button" data-langue="en">EN</button>
+    <button type="button" data-langue="fr">FR</button>
+    <button type="button" data-langue="ja">日本語</button>
+  </nav>
+
+  <div class="controles">
+    <button type="button" class="panneau" id="btn-recentrer">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/></svg>
+    </button>
+    <button type="button" class="panneau" id="btn-plus" aria-label="Zoom in">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>
+    </button>
+    <button type="button" class="panneau" id="btn-moins" aria-label="Zoom out">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M5 12h14"/></svg>
+    </button>
+  </div>
+
+  <p class="aide" id="aide"></p>
+
+  <aside class="fiche" id="fiche" aria-hidden="true">
+    <div class="fiche-poignee" id="fiche-poignee" aria-hidden="true"></div>
+    <button type="button" class="fiche-fermer" id="fiche-fermer">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M6 6l12 12M18 6 6 18"/></svg>
+    </button>
+    <div class="fiche-defil" id="fiche-defil">
+      <div class="fiche-media" id="fiche-media"></div>
+      <div class="fiche-corps">
+        <div class="fiche-categorie" id="fiche-categorie"></div>
+        <h2 class="fiche-nom" id="fiche-nom"></h2>
+        <p class="fiche-nom-jp" id="fiche-nom-jp"></p>
+        <p class="fiche-description" id="fiche-description"></p>
+        <div class="fiche-boutons" id="fiche-boutons"></div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="chargement" id="chargement">
+    <img class="chargement-logo" src="img/logo.jpg" alt="" width="128" height="128">
+    <p id="txt-chargement">Loading the map…</p>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

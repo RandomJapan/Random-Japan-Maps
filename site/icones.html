@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Galerie d'icônes · Random Japan Place</title>
+  <meta name="robots" content="noindex">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap">
+  <style>
+    body { margin: 0; padding: 24px 16px 48px; background: #0c1823; color: #f4efe4; font-family: "Noto Sans JP", system-ui, sans-serif; }
+    h1 { font-size: 22px; margin: 0 0 6px; }
+    p { color: #a9b5c0; margin: 0 0 22px; max-width: 640px; line-height: 1.6; }
+    code { background: rgba(255,255,255,.1); padding: 1px 6px; border-radius: 5px; color: #fff; }
+    .grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+    .carte { background: #111f2c; border: 1px solid rgba(255,255,255,.08); border-radius: 14px; padding: 16px 10px 12px; text-align: center; }
+    .gros { width: 56px; height: 56px; margin: 0 auto 12px; color: #f4efe4; }
+    .gros svg { width: 100%; height: 100%; }
+    .epingle { position: relative; width: 34px; height: 34px; margin: 0 auto 10px; display: grid; place-items: center; }
+    .epingle::before { content: ""; position: absolute; inset: 0; background: var(--c); border-radius: 50% 50% 50% 0; transform: rotate(-45deg); border: 2px solid #fff; }
+    .epingle svg { position: relative; width: 19px; height: 19px; color: #fff; margin-bottom: 2px; }
+    .nom { font-weight: 700; font-size: 15px; }
+    .desc { color: #75828f; font-size: 12.5px; }
+  </style>
+</head>
+<body>
+  <h1>Galerie d'icônes</h1>
+  <p>Pour changer l'icône d'une catégorie : dans le tableau Google Sheets, onglet <b>Catégories</b>, colonne <b>Icône</b>,
+     choisis un des noms ci-dessous (ex. <code>torii</code>). Tu peux aussi coller directement un emoji (ex. 🍜).</p>
+  <div class="grille" id="grille"></div>
+  <script type="module">
+    import { ICONES, iconeHTML } from './icons.js';
+    const desc = {
+      torii: 'Portail de sanctuaire', temple: 'Temple', pagoda: 'Pagode', castle: 'Château', mountain: 'Montagne',
+      volcano: 'Volcan', bridge: 'Pont', waterfall: 'Cascade', lake: 'Lac', coast: 'Côte / plage', island: 'Île',
+      lighthouse: 'Phare / cap', onsen: 'Source chaude', garden: 'Jardin', flower: 'Fleurs', forest: 'Forêt',
+      village: 'Village', city: 'Ville', statue: 'Statue', cave: 'Grotte', viewpoint: 'Point de vue',
+      festival: 'Festival / lanterne', train: 'Train', snow: 'Neige', themepark: 'Parc à thème', food: 'Nourriture',
+      museum: 'Musée / site historique', hotel: 'Hôtel', church: 'Église', camera: 'Photo', star: 'Étoile', pin: 'Épingle simple',
+    };
+    const couleurs = ['#D63A2F', '#8E2A5B', '#1E6FB8', '#4E7D2B', '#1596A8', '#2B6FD6', '#7B3FB0', '#C98A12'];
+    document.getElementById('grille').innerHTML = Object.keys(ICONES).map((nom, i) => `
+      <div class="carte">
+        <div class="gros">${iconeHTML(nom)}</div>
+        <div class="epingle" style="--c:${couleurs[i % couleurs.length]}">${iconeHTML(nom)}</div>
+        <div class="nom">${nom}</div>
+        <div class="desc">${desc[nom] || ''}</div>
+      </div>`).join('');
+  </script>
+</body>
+</html>
