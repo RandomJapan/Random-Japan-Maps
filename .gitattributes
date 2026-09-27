@@ -1,0 +1,3 @@
+# Copies de secours du tableau : garder exactement ce que Google envoie (fins de ligne CRLF),
+# sinon la sauvegarde de nuit croit voir un changement et Git signale de faux fichiers modifiés.
+site/data/*.csv -text

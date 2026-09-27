@@ -294,9 +294,15 @@ let exagActuelle = null;
 function majSelonZoom() {
   const z = map.getZoom();
   const e = Math.round(exageration(z) * 10) / 10;
-  if (e !== exagActuelle && map.isStyleLoaded()) {
-    exagActuelle = e;
-    map.setTerrain({ source: 'relief', exaggeration: e });
+  // Pas de garde isStyleLoaded() : elle reste fausse tant que des tuiles chargent (pendant un vol
+  // vers un lieu), et le relief gardait alors l'exagération ×30 de la vue lointaine.
+  if (e !== exagActuelle) {
+    try {
+      map.setTerrain({ source: 'relief', exaggeration: e });
+      exagActuelle = e;
+    } catch {
+      // style pas encore prêt au tout début : le relief de départ est déjà dans le style
+    }
   }
   const taille = Math.min(1, Math.max(0.7, 0.7 + (z - 4.5) * 0.1));
   map.getContainer().style.setProperty('--t', taille.toFixed(2));
