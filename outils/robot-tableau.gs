@@ -1,5 +1,4 @@
 /**
- * @OnlyCurrentDoc
  * ================================================================
  *  ROBOT DE LA CARTE « Random Japan Place »  (Google Apps Script)
  *
@@ -9,11 +8,13 @@
  *  puis colore la ligne en jaune « À vérifier ».
  *
  *  La colonne « Robot » montre ce qu'il fait, ses doutes et ses erreurs.
+ *  La clé IA se range dans Paramètres du projet → Propriétés du script → CLE_CLAUDE.
  *  Copie de référence de ce code : outils/robot-tableau.gs (dépôt GitHub).
  * ================================================================
  */
 
 // --- Réglages ---------------------------------------------------------
+const ID_TABLEAU = '1stIWJ2Vi8nV8wHAv4RDGdY3-xiTiNVLprGIPFA9g-mo'; // « Random Japan Place - Lieux de la carte »
 const MODELE = 'claude-opus-5'; // IA utilisée. Moins chère (~2,5×) mais un peu moins fiable : 'claude-sonnet-5'
 const EFFORT = 'medium'; // réflexion de l'IA : 'low' | 'medium' | 'high'
 const RECHERCHES_WEB_MAX = 4; // recherches web par vidéo (1 cent chacune)
@@ -27,45 +28,26 @@ const COLONNE_ROBOT = 'Robot';
 const COLONNES_OBLIGATOIRES = ['Nom (EN)', 'Nom (FR)', 'Nom (日本語)', 'Catégorie', 'Coordonnées GPS', 'Lien TikTok',
   'Description (EN)', 'Description (FR)', 'Description (日本語)', 'Afficher ?', 'À vérifier'];
 
-// --- Menu et installation ----------------------------------------------
-function onOpen() {
-  SpreadsheetApp.getUi().createMenu('🗾 Robot carte')
-    .addItem('Remplir les nouveaux liens maintenant', 'robotCarte')
-    .addSeparator()
-    .addItem('Enregistrer la clé IA (Claude)', 'enregistrerCle')
-    .addItem('Installer / réparer le robot', 'installerRobot')
-    .addToUi();
-}
-
+// --- Installation ----------------------------------------------------------
 /** À lancer une fois : le robot passe toutes les 10 minutes, et tout de suite quand on colle un lien TikTok. */
 function installerRobot() {
   for (const d of ScriptApp.getProjectTriggers()) ScriptApp.deleteTrigger(d);
   ScriptApp.newTrigger('robotCarte').timeBased().everyMinutes(10).create();
-  ScriptApp.newTrigger('quandModifie').forSpreadsheet(SpreadsheetApp.getActive()).onEdit().create();
+  ScriptApp.newTrigger('quandModifie').forSpreadsheet(ID_TABLEAU).onEdit().create();
   colonnes_(feuilleLieux_());
-  const cle = PropertiesService.getScriptProperties().getProperty('CLE_CLAUDE');
-  informer_('Robot installé ✅' + (cle ? '' : '\n\nDernière étape : menu « 🗾 Robot carte » → « Enregistrer la clé IA (Claude) ».'));
+  console.log('Robot installé ✅');
+  verifierCle();
 }
 
-function enregistrerCle() {
-  const ui = SpreadsheetApp.getUi();
-  const rep = ui.prompt('Clé IA (Claude)',
-    'Colle ici ta clé API Anthropic (elle commence par « sk-ant- »).\nElle reste cachée : elle n\'est pas écrite dans le tableau.',
-    ui.ButtonSet.OK_CANCEL);
-  if (rep.getSelectedButton() !== ui.Button.OK) return;
-  const cle = rep.getResponseText().trim();
-  if (!/^sk-ant-/.test(cle)) {
-    ui.alert('Ça ne ressemble pas à une clé Claude : elle doit commencer par « sk-ant- ».');
-    return;
-  }
-  PropertiesService.getScriptProperties().setProperty('CLE_CLAUDE', cle);
-  // Vérification gratuite : la liste des modèles ne consomme pas de crédit
+/** Vérifie (gratuitement) la clé rangée dans Propriétés du script → CLE_CLAUDE. */
+function verifierCle() {
+  const cle = PropertiesService.getScriptProperties().getProperty('CLE_CLAUDE');
+  if (!cle) { console.log('Pas encore de clé IA : Paramètres du projet → Propriétés du script → CLE_CLAUDE.'); return false; }
   const test = UrlFetchApp.fetch('https://api.anthropic.com/v1/models', {
-    headers: { 'x-api-key': cle, 'anthropic-version': '2023-06-01' }, muteHttpExceptions: true,
+    headers: { 'x-api-key': cle.trim(), 'anthropic-version': '2023-06-01' }, muteHttpExceptions: true,
   });
-  ui.alert(test.getResponseCode() === 200
-    ? 'Clé enregistrée et vérifiée ✅\nTu peux coller un lien TikTok dans l\'onglet « Lieux ».'
-    : `Clé enregistrée, mais Anthropic la refuse (code ${test.getResponseCode()}). Vérifie-la et recommence.`);
+  console.log(test.getResponseCode() === 200 ? 'Clé IA vérifiée ✅' : `Clé IA refusée par Anthropic (code ${test.getResponseCode()}).`);
+  return test.getResponseCode() === 200;
 }
 
 /** Déclencheur « à la modification » : si on vient de coller un lien TikTok dans « Lieux », on lance le robot. */
@@ -243,7 +225,7 @@ function outilLieu_(categories) {
 
 function demanderIA_(video, categories) {
   const cle = PropertiesService.getScriptProperties().getProperty('CLE_CLAUDE');
-  if (!cle) throw erreur_('Pas de clé IA : menu « 🗾 Robot carte » → « Enregistrer la clé IA (Claude) ».');
+  if (!cle) throw erreur_('Pas de clé IA : dans le projet « Robot carte », Paramètres du projet → Propriétés du script → CLE_CLAUDE.');
   const liste = categories.map((c) => `- ${c.cle} (${c.fr})`).join('\n');
   const messages = [{
     role: 'user',
@@ -262,7 +244,7 @@ function demanderIA_(video, categories) {
     tool_choice: { type: 'auto' },
     messages,
   };
-  const entetes = { 'x-api-key': cle, 'anthropic-version': '2023-06-01' };
+  const entetes = { 'x-api-key': cle.trim(), 'anthropic-version': '2023-06-01' };
   if (/^claude-(opus-5|fable)/.test(MODELE)) { // si l'IA refuse par prudence, Anthropic relance sur un autre modèle
     corps.fallbacks = 'default';
     entetes['anthropic-beta'] = 'server-side-fallback-2026-07-01';
@@ -298,7 +280,7 @@ function appelerClaude_(corps, entetes) {
   try { json = JSON.parse(r.getContentText()); } catch (e) { /* réponse vide */ }
   if (code === 200) return json;
   const detail = (json.error && json.error.message) || r.getContentText().slice(0, 200);
-  if (code === 401) throw erreur_('Clé IA refusée : enregistre-la de nouveau (menu « 🗾 Robot carte »).');
+  if (code === 401) throw erreur_('Clé IA refusée : vérifie CLE_CLAUDE dans les Propriétés du script du projet « Robot carte ».');
   if (/credit balance/i.test(detail)) throw erreur_('Plus de crédit sur ton compte Anthropic : recharge-le sur console.anthropic.com.');
   throw erreur_(`Erreur de l'IA (${code} : ${detail}).`, code === 429 || code >= 500);
 }
@@ -336,8 +318,10 @@ function distanceKm_(a, b) {
 }
 
 // --- Tableau ------------------------------------------------------------------
+const tableau_ = () => SpreadsheetApp.openById(ID_TABLEAU);
+
 function feuilleLieux_() {
-  const f = SpreadsheetApp.getActive().getSheetByName(ONGLET_LIEUX);
+  const f = tableau_().getSheetByName(ONGLET_LIEUX);
   if (!f) throw new Error(`Onglet « ${ONGLET_LIEUX} » introuvable.`);
   return f;
 }
@@ -360,7 +344,7 @@ function colonnes_(feuille) {
 }
 
 function lireCategories_() {
-  const valeurs = SpreadsheetApp.getActive().getSheetByName(ONGLET_CATEGORIES).getDataRange().getValues();
+  const valeurs = tableau_().getSheetByName(ONGLET_CATEGORIES).getDataRange().getValues();
   const categories = valeurs.slice(1)
     .filter((l) => String(l[0]).trim())
     .map((l) => ({ cle: String(l[0]).trim(), fr: String(l[4] || l[3] || l[0]).trim() }));
@@ -369,7 +353,7 @@ function lireCategories_() {
 }
 
 function versATrier_(video, ia) {
-  const f = SpreadsheetApp.getActive().getSheetByName(ONGLET_A_TRIER);
+  const f = tableau_().getSheetByName(ONGLET_A_TRIER);
   const pourquoi = ia.type_video === 'compilation' ? 'Compilation : plusieurs lieux (ajoutée par le robot)' : 'Pas un lieu précis (ajoutée par le robot)';
   f.appendRow([video.url, video.legende, ia.remarque ? `${pourquoi}. ${ia.remarque}` : pourquoi, '']);
 }
@@ -379,14 +363,6 @@ function erreur_(message, reessayer) {
   const e = new Error(message);
   e.reessayer = !!reessayer;
   return e;
-}
-
-function informer_(message) {
-  try {
-    SpreadsheetApp.getUi().alert(message);
-  } catch (e) {
-    console.log(message); // lancé depuis l'éditeur : pas de fenêtre
-  }
 }
 
 /** Test sans IA ni écriture : lien court/long → légende TikTok, puis Google Maps. Résultat dans le journal d'exécution. */
