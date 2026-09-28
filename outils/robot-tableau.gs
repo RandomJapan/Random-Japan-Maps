@@ -4,20 +4,24 @@
  *
  *  Colle le lien d'une vidéo TikTok dans une ligne vide de l'onglet « Lieux »
  *  (colonne « Nom (EN) » ou « Lien TikTok ») : le robot remplit tout le reste
- *  (noms, GPS, catégorie, descriptions en 3 langues) grâce à l'IA Claude,
- *  puis colore la ligne en jaune « À vérifier ».
+ *  (noms, GPS, catégorie, descriptions en 3 langues), puis colore la ligne
+ *  en jaune « À vérifier ». La colonne « Robot » montre ce qu'il fait,
+ *  ses doutes et ses erreurs.
  *
- *  La colonne « Robot » montre ce qu'il fait, ses doutes et ses erreurs.
- *  La clé IA se range dans Paramètres du projet → Propriétés du script → CLE_CLAUDE.
+ *  IA : Gemini de Google, version gratuite. Elle ne fait pas de recherche web,
+ *  alors le robot cherche lui-même dans Wikipédia et Google Maps, puis donne
+ *  ces informations à Gemini pour écrire la fiche.
+ *  Clé IA : Paramètres du projet → Propriétés du script → CLE_GEMINI.
  *  Copie de référence de ce code : outils/robot-tableau.gs (dépôt GitHub).
  * ================================================================
  */
 
 // --- Réglages ---------------------------------------------------------
 const ID_TABLEAU = '1stIWJ2Vi8nV8wHAv4RDGdY3-xiTiNVLprGIPFA9g-mo'; // « Random Japan Place - Lieux de la carte »
-const MODELE = 'claude-opus-5'; // IA utilisée. Moins chère (~2,5×) mais un peu moins fiable : 'claude-sonnet-5'
-const EFFORT = 'medium'; // réflexion de l'IA : 'low' | 'medium' | 'high'
-const RECHERCHES_WEB_MAX = 4; // recherches web par vidéo (1 cent chacune)
+// Modèles essayés dans l'ordre (si le quota gratuit du 1er est épuisé, on passe au suivant)
+const MODELES_IDENTIFIER = ['gemini-3.5-flash-lite', 'gemini-3.8-flash']; // 1re question : quel lieu ?
+const MODELES_REDIGER = ['gemini-3.8-flash', 'gemini-3.5-flash-lite']; // 2e question : écrire la fiche
+const AGENT = 'RandomJapanPlaceRobot/1.0 (https://randomjapan.github.io/Random-Japan-Maps/)';
 const LIGNES_PAR_PASSAGE = 3;
 const ESSAIS_MAX = 2;
 const COULEUR_A_VERIFIER = '#FFF2CC';
@@ -39,15 +43,24 @@ function installerRobot() {
   verifierCle();
 }
 
-/** Vérifie (gratuitement) la clé rangée dans Propriétés du script → CLE_CLAUDE. */
+/** Vérifie la clé rangée dans Propriétés du script → CLE_GEMINI, et liste les modèles Gemini utilisables. */
 function verifierCle() {
-  const cle = PropertiesService.getScriptProperties().getProperty('CLE_CLAUDE');
-  if (!cle) { console.log('Pas encore de clé IA : Paramètres du projet → Propriétés du script → CLE_CLAUDE.'); return false; }
-  const test = UrlFetchApp.fetch('https://api.anthropic.com/v1/models', {
-    headers: { 'x-api-key': cle.trim(), 'anthropic-version': '2023-06-01' }, muteHttpExceptions: true,
+  const cle = (PropertiesService.getScriptProperties().getProperty('CLE_GEMINI') || '').trim();
+  if (!cle) {
+    console.log('Pas encore de clé IA : Paramètres du projet → Propriétés du script → CLE_GEMINI.');
+    return false;
+  }
+  const r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200', {
+    headers: { 'x-goog-api-key': cle }, muteHttpExceptions: true,
   });
-  console.log(test.getResponseCode() === 200 ? 'Clé IA vérifiée ✅' : `Clé IA refusée par Anthropic (code ${test.getResponseCode()}).`);
-  return test.getResponseCode() === 200;
+  if (r.getResponseCode() !== 200) {
+    console.log(`Clé IA refusée par Google (code ${r.getResponseCode()}) : ${r.getContentText().slice(0, 200)}`);
+    return false;
+  }
+  const dispo = (JSON.parse(r.getContentText()).models || []).map((m) => m.name.replace('models/', ''));
+  const voulus = [...new Set(MODELES_IDENTIFIER.concat(MODELES_REDIGER))];
+  console.log('Clé IA vérifiée ✅ Modèles du robot : ' + voulus.map((m) => `${m} ${dispo.includes(m) ? '✅' : '❌ absent'}`).join(', '));
+  return true;
 }
 
 /** Déclencheur « à la modification » : si on vient de coller un lien TikTok dans « Lieux », on lance le robot. */
@@ -105,31 +118,34 @@ function traiterLigne_(feuille, col, tache, donnees) {
       return false;
     }
     ecrire('Lien TikTok', video.url);
-    const ia = demanderIA_(video, lireCategories_());
-    if (ia.type_video !== 'lieu_unique') {
-      versATrier_(video, ia);
+    const r = preparerFiche_(video, lireCategories_());
+    if (r.aTrier) {
+      versATrier_(video, r.identification);
       feuille.deleteRow(tache.ligne);
       return true;
     }
-    const gps = choisirGPS_(ia);
+    const { fiche, gps, wikipedia } = r;
     const largeur = feuille.getLastColumn();
     const plage = feuille.getRange(tache.ligne, 1, 1, largeur);
     const ligne = plage.getValues()[0];
-    const mettre = (nomCol, valeur) => { ligne[col[nomCol] - 1] = valeur; };
-    mettre('Nom (EN)', ia.nom_en);
-    mettre('Nom (FR)', ia.nom_fr);
-    mettre('Nom (日本語)', ia.nom_ja);
-    mettre('Catégorie', ia.categorie);
-    mettre('Coordonnées GPS', `${gps.lat.toFixed(5)}, ${gps.lng.toFixed(5)}`);
+    const mettre = (nomCol, valeur) => { if (col[nomCol]) ligne[col[nomCol] - 1] = valeur; };
+    mettre('Nom (EN)', fiche.nom_en);
+    mettre('Nom (FR)', fiche.nom_fr);
+    mettre('Nom (日本語)', fiche.nom_ja);
+    mettre('Catégorie', fiche.categorie);
+    mettre('Coordonnées GPS', gps ? `${gps.lat.toFixed(5)}, ${gps.lng.toFixed(5)}` : '');
     mettre('Lien TikTok', video.url);
-    mettre('Description (EN)', ia.description_en);
-    mettre('Description (FR)', ia.description_fr);
-    mettre('Description (日本語)', ia.description_ja);
+    mettre('Description (EN)', fiche.description_en);
+    mettre('Description (FR)', fiche.description_fr);
+    mettre('Description (日本語)', fiche.description_ja);
+    if (wikipedia && !String(ligne[col['Autre lien'] - 1] || '').trim()) mettre('Autre lien', wikipedia);
     mettre('Afficher ?', 'Oui');
     mettre('À vérifier', 'Oui');
-    const notes = [`🤖 Rempli par le robot (confiance : ${ia.confiance}, position : ${gps.source}).`];
-    if (gps.approx) notes.push('Position GPS approximative : vérifie-la sur Google Maps.');
-    if (ia.remarque) notes.push(ia.remarque);
+    const notes = [`🤖 Rempli par le robot (confiance : ${fiche.confiance || '?'}${gps ? `, position : ${gps.source}` : ''}).`];
+    if (!gps) notes.push('Position GPS introuvable : colle les coordonnées (clic droit sur le lieu dans Google Maps), sinon le lieu n\'apparaît pas sur la carte.');
+    else if (gps.approx) notes.push('Position GPS approximative : vérifie-la sur Google Maps.');
+    if (!fiche.categorie) notes.push('Catégorie à choisir.');
+    if (fiche.remarque) notes.push(fiche.remarque);
     mettre(COLONNE_ROBOT, notes.join(' '));
     plage.setValues([ligne]);
     plage.setBackground(COULEUR_A_VERIFIER);
@@ -143,6 +159,24 @@ function traiterLigne_(feuille, col, tache, donnees) {
     console.error(err);
     return false;
   }
+}
+
+/** Toute la réflexion, sans rien écrire : identifier le lieu, chercher des infos, rédiger la fiche, choisir le GPS. */
+function preparerFiche_(video, categories) {
+  const identification = identifierLieu_(video);
+  if (identification.type_video !== 'lieu_unique') return { aTrier: true, identification };
+  const sources = []
+    .concat(chercherWikipedia_('en', identification.recherche_wikipedia_en, 3))
+    .concat(chercherWikipedia_('ja', identification.recherche_wikipedia_ja, 2));
+  const carte = chercherCarte_(identification.recherche_carte);
+  if (carte) sources.push(carte);
+  const fiche = redigerFiche_(video, identification, sources, categories);
+  const choisie = sources.find((s) => s.id === fiche.source_gps);
+  return {
+    identification, sources, fiche,
+    gps: choisirGPS_(choisie, carte),
+    wikipedia: choisie && choisie.url && choisie.id.startsWith('wikipedia') ? choisie.url : '',
+  };
 }
 
 // --- La vidéo TikTok ------------------------------------------------------
@@ -180,131 +214,178 @@ function trouverDoublon_(donnees, col, id, ligneCourante) {
   return 0;
 }
 
-// --- L'IA Claude -----------------------------------------------------------
-const CONSIGNES = `You fill in one row of the place list behind an interactive 3D map of Japan that shows every place featured in the TikTok videos of the travel account @random_japan_place. From the video caption, identify the exact place, confirm it with web search, then call the enregistrer_lieu tool exactly once.
-
-- type_video: "lieu_unique" when the video is about one specific place (most videos; captions often look like "Udo Inari shrine | Miyazaki 📍"). "compilation" when it shows several places (a top 5, "hotels that…", a season across Japan…). "pas_un_lieu" otherwise. For compilation and pas_un_lieu, set the other text fields to "", the coordinates to 0, and explain briefly in remarque.
-- nom_en: the English name travellers use ("Kegon Falls", "Himeji Castle", "Udo Inari Shrine"). nom_fr: the French name in the map's style ("Sanctuaire Udo Inari", "Temple Nanzoin", "Cascade de Kegon", "Château de Himeji", "Lac Tazawa"; keep famous Japanese names such as "Kinkaku-ji" as they are). nom_ja: the official Japanese name (for example 鵜戸稲荷神社).
-- description_en, description_fr, description_ja: the same 2 or 3 sentences in each language, factual and warm, in a travel-guide tone. Start with where it is (town, prefecture), then what makes it special. Natural Japanese in です/ます style. Example: "Located in Kami Town, Hyogo Prefecture, Choraku-ji is a temple famously home to the Tajima Daibutsu: three monumental golden Buddha statues set within a vast main hall. Surrounded by tranquil mountain scenery, the complex also features a tall wooden five-story pagoda and thousands of smaller gilded Buddhist figures along its walls."
-- categorie: the single best key from the allowed list.
-- latitude, longitude: the exact spot, with 5 decimals, taken from a source when you found one.
-- recherche_carte: a Japanese query that Google Maps resolves to exactly this place: name, municipality and prefecture (for example "鵜戸稲荷神社 宮崎県日南市").
-- confiance: "haute" when the caption names the place and sources confirm it, "moyenne" when you are fairly sure, "basse" when you had to guess.
-- remarque: one short sentence in French for the channel owner when something is uncertain (which place exactly, approximate position…), otherwise "".
-Only state facts you could verify; leave out anything you are unsure of.`;
-
-function outilLieu_(categories) {
-  const texte = (description) => ({ type: 'string', description });
-  return {
-    name: 'enregistrer_lieu',
-    description: 'Records the place featured in the TikTok video as a new row of the map. Call it exactly once, at the end.',
-    strict: true,
-    input_schema: {
-      type: 'object',
-      additionalProperties: false,
-      required: ['type_video', 'nom_en', 'nom_fr', 'nom_ja', 'categorie', 'recherche_carte', 'latitude', 'longitude',
-        'description_en', 'description_fr', 'description_ja', 'confiance', 'remarque'],
-      properties: {
-        type_video: { type: 'string', enum: ['lieu_unique', 'compilation', 'pas_un_lieu'] },
-        nom_en: texte('English name of the place'),
-        nom_fr: texte('French name of the place'),
-        nom_ja: texte('Official Japanese name of the place'),
-        categorie: { type: 'string', enum: categories.map((c) => c.cle), description: 'Category key' },
-        recherche_carte: texte('Japanese Google Maps query for this exact place'),
-        latitude: { type: 'number' },
-        longitude: { type: 'number' },
-        description_en: texte('2-3 sentences in English'),
-        description_fr: texte('The same 2-3 sentences in French'),
-        description_ja: texte('The same 2-3 sentences in Japanese'),
-        confiance: { type: 'string', enum: ['haute', 'moyenne', 'basse'] },
-        remarque: texte('Short note in French for the owner, or ""'),
-      },
-    },
-  };
-}
-
-function demanderIA_(video, categories) {
-  const cle = PropertiesService.getScriptProperties().getProperty('CLE_CLAUDE');
-  if (!cle) throw erreur_('Pas de clé IA : dans le projet « Robot carte », Paramètres du projet → Propriétés du script → CLE_CLAUDE.');
-  const liste = categories.map((c) => `- ${c.cle} (${c.fr})`).join('\n');
-  const messages = [{
-    role: 'user',
-    content: `TikTok video: ${video.url}\nAccount: @${video.auteur}\nCaption: ${JSON.stringify(video.legende)}\n\nAllowed categories (key, French name):\n${liste}`,
-  }];
-  const corps = {
-    model: MODELE,
-    max_tokens: 16000,
-    thinking: { type: 'adaptive' },
-    output_config: { effort: EFFORT },
-    system: CONSIGNES,
-    tools: [
-      { type: 'web_search_20260209', name: 'web_search', max_uses: RECHERCHES_WEB_MAX },
-      outilLieu_(categories),
-    ],
-    tool_choice: { type: 'auto' },
-    messages,
-  };
-  const entetes = { 'x-api-key': cle.trim(), 'anthropic-version': '2023-06-01' };
-  if (/^claude-(opus-5|fable)/.test(MODELE)) { // si l'IA refuse par prudence, Anthropic relance sur un autre modèle
-    corps.fallbacks = 'default';
-    entetes['anthropic-beta'] = 'server-side-fallback-2026-07-01';
-  }
-
-  for (let tour = 0; tour < 4; tour++) {
-    const reponse = appelerClaude_(corps, entetes);
-    if (reponse.stop_reason === 'refusal') throw erreur_('L\'IA a refusé de traiter cette vidéo.');
-    const appel = (reponse.content || []).find((b) => b.type === 'tool_use' && b.name === 'enregistrer_lieu');
-    if (appel) return appel.input;
-    // pause_turn : les recherches web ne sont pas finies, on renvoie la réponse telle quelle pour qu'elle continue.
-    // end_turn sans résultat : on lui rappelle d'enregistrer le lieu.
-    messages.push({ role: 'assistant', content: reponse.content });
-    if (reponse.stop_reason !== 'pause_turn') {
-      messages.push({ role: 'user', content: 'Call the enregistrer_lieu tool now with your answer.' });
-    }
-  }
-  throw erreur_('L\'IA n\'a pas donné de réponse complète.', true);
-}
-
-function appelerClaude_(corps, entetes) {
-  let r;
+// --- Recherches gratuites : Wikipédia et Google Maps ------------------------
+/** Les meilleurs articles Wikipédia pour cette recherche : résumé, coordonnées, titre dans l'autre langue. */
+function chercherWikipedia_(langue, recherche, combien) {
+  if (!recherche) return [];
+  const autre = langue === 'en' ? 'ja' : 'en';
+  const url = `https://${langue}.wikipedia.org/w/api.php?` + [
+    'action=query', 'format=json', 'formatversion=2', 'redirects=1',
+    'generator=search', 'gsrsearch=' + encodeURIComponent(recherche), 'gsrlimit=' + combien,
+    'prop=extracts%7Ccoordinates%7Clanglinks%7Cinfo', 'exintro=1', 'explaintext=1', 'exlimit=max',
+    'inprop=url', 'lllang=' + autre, 'lllimit=max',
+  ].join('&');
   try {
-    r = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
-      method: 'post', contentType: 'application/json', headers: entetes,
-      payload: JSON.stringify(corps), muteHttpExceptions: true,
-    });
+    const r = UrlFetchApp.fetch(url, { muteHttpExceptions: true, headers: { 'User-Agent': AGENT } });
+    if (r.getResponseCode() !== 200) return [];
+    const pages = ((JSON.parse(r.getContentText()).query || {}).pages || []).sort((a, b) => a.index - b.index);
+    return pages.map((p, i) => ({
+      id: `wikipedia_${langue}_${i + 1}`,
+      titre: p.title,
+      titreAutreLangue: p.langlinks && p.langlinks.length ? p.langlinks[0].title : '',
+      extrait: String(p.extract || '').slice(0, 1500),
+      lat: p.coordinates ? p.coordinates[0].lat : null,
+      lng: p.coordinates ? p.coordinates[0].lon : null,
+      url: p.fullurl || '',
+    }));
   } catch (e) {
-    throw erreur_(`L'IA met trop de temps à répondre (${e.message}).`, true);
+    console.warn('Wikipédia indisponible', e);
+    return [];
   }
-  const code = r.getResponseCode();
-  let json = {};
-  try { json = JSON.parse(r.getContentText()); } catch (e) { /* réponse vide */ }
-  if (code === 200) return json;
-  const detail = (json.error && json.error.message) || r.getContentText().slice(0, 200);
-  if (code === 401) throw erreur_('Clé IA refusée : vérifie CLE_CLAUDE dans les Propriétés du script du projet « Robot carte ».');
-  if (/credit balance/i.test(detail)) throw erreur_('Plus de crédit sur ton compte Anthropic : recharge-le sur console.anthropic.com.');
-  throw erreur_(`Erreur de l'IA (${code} : ${detail}).`, code === 429 || code >= 500);
+}
+
+/** Google Maps (gratuit dans Apps Script) : adresse et position du lieu. */
+function chercherCarte_(recherche) {
+  if (!recherche) return null;
+  try {
+    const g = Maps.newGeocoder().setRegion('jp').setLanguage('ja').geocode(recherche);
+    if (!g || g.status !== 'OK' || !g.results.length) return null;
+    const res = g.results[0];
+    const vague = (res.types || []).some((t) => /^(locality|sublocality|administrative_area|political|country|postal_code|route)/.test(t));
+    return {
+      id: 'google_maps', titre: res.formatted_address, extrait: `Adresse trouvée par Google Maps : ${res.formatted_address}`,
+      lat: res.geometry.location.lat, lng: res.geometry.location.lng, precis: !vague, url: '',
+    };
+  } catch (e) {
+    console.warn('Google Maps indisponible', e);
+    return null;
+  }
+}
+
+// --- L'IA Gemini ---------------------------------------------------------------
+const CONSIGNES_IDENTIFIER = `You help a robot add places to an interactive map of Japan from the TikTok captions of the travel account @random_japan_place. Reply with a single JSON object and nothing else:
+{"type_video": "lieu_unique" | "compilation" | "pas_un_lieu", "nom_en": string, "nom_ja": string, "prefecture_en": string, "recherche_wikipedia_en": string, "recherche_wikipedia_ja": string, "recherche_carte": string, "remarque": string}
+- type_video: "lieu_unique" when the video is about one specific place (most videos; captions often look like "Udo Inari shrine | Miyazaki 📍"). "compilation" when it shows several places (a top 5, "hotels that…", a season across Japan…). "pas_un_lieu" otherwise.
+- Use your knowledge of Japan to recognise the place even when the caption spelling is unusual. nom_ja: its official Japanese name if you know it.
+- recherche_wikipedia_en: a short query to find its English Wikipedia article (for example "Udo Shrine Nichinan"). recherche_wikipedia_ja: the same for Japanese Wikipedia, usually the Japanese name (for example "鵜戸神宮"). recherche_carte: a Japanese Google Maps query with name, municipality and prefecture (for example "鵜戸稲荷神社 宮崎県日南市").
+- remarque: one short sentence in French when you are unsure or when it is not a single place, otherwise "".`;
+
+const CONSIGNES_REDIGER = `You write one entry of an interactive map of Japan that lists every place featured in the TikTok videos of the travel account @random_japan_place. You receive the video caption, a first guess, search results from Wikipedia and Google Maps (each with an id) and the allowed categories. Reply with a single JSON object and nothing else:
+{"source_gps": string, "nom_en": string, "nom_fr": string, "nom_ja": string, "categorie": string, "description_en": string, "description_fr": string, "description_ja": string, "confiance": "haute" | "moyenne" | "basse", "remarque": string}
+- source_gps: the id of the search result that really is this place and gives its position (for example "wikipedia_en_1" or "google_maps"), or "aucune" when none matches. A result about the town or a different place does not match.
+- nom_en: the English name travellers use ("Kegon Falls", "Himeji Castle", "Udo Inari Shrine"). nom_fr: the French name in the map's style ("Sanctuaire Udo Inari", "Temple Nanzoin", "Cascade de Kegon", "Château de Himeji", "Lac Tazawa"; famous Japanese names such as "Kinkaku-ji" stay as they are). nom_ja: the official Japanese name (the Japanese Wikipedia title when it matches).
+- categorie: exactly one key from the allowed categories.
+- description_en, description_fr, description_ja: the same 2 or 3 sentences in each language, factual and warm, in a travel-guide tone, written in your own words (never copy sentences from the sources). Start with where it is (town, prefecture), then what makes it special. Natural Japanese in です/ます style. Example: "Located in Kami Town, Hyogo Prefecture, Choraku-ji is a temple famously home to the Tajima Daibutsu: three monumental golden Buddha statues set within a vast main hall. Surrounded by tranquil mountain scenery, the complex also features a tall wooden five-story pagoda and thousands of smaller gilded Buddhist figures along its walls."
+- Only use facts from the search results or facts you are certain of. If the results say little, write a shorter description rather than guessing.
+- confiance: "haute" when the caption and a matching source agree, "moyenne" when fairly sure, "basse" when you had to guess.
+- remarque: one short sentence in French for the channel owner when something is uncertain, otherwise "".`;
+
+function identifierLieu_(video) {
+  const r = demanderGemini_(MODELES_IDENTIFIER, CONSIGNES_IDENTIFIER,
+    `TikTok video: ${video.url}\nCaption: ${JSON.stringify(video.legende)}`);
+  if (!['lieu_unique', 'compilation', 'pas_un_lieu'].includes(r.type_video)) r.type_video = 'lieu_unique';
+  return r;
+}
+
+function redigerFiche_(video, identification, sources, categories) {
+  const blocs = sources.map((s) => [
+    `[${s.id}] ${s.titre}${s.titreAutreLangue ? ` (${s.titreAutreLangue})` : ''}` +
+      (s.lat != null ? ` — GPS ${s.lat.toFixed(4)}, ${s.lng.toFixed(4)}` : ' — pas de GPS'),
+    s.extrait,
+  ].join('\n'));
+  const texte = [
+    `Caption: ${JSON.stringify(video.legende)}`,
+    `First guess: ${identification.nom_en} (${identification.nom_ja}), ${identification.prefecture_en}`,
+    '',
+    'Search results:',
+    blocs.length ? blocs.join('\n\n') : '(none)',
+    '',
+    'Allowed categories (key, French name):',
+    categories.map((c) => `- ${c.cle} (${c.fr})`).join('\n'),
+  ].join('\n');
+  const f = demanderGemini_(MODELES_REDIGER, CONSIGNES_REDIGER, texte);
+  // Vérifications : catégorie connue, textes présents
+  const cat = categories.find((c) => c.cle.toLowerCase() === String(f.categorie || '').trim().toLowerCase());
+  f.categorie = cat ? cat.cle : '';
+  for (const k of ['nom_en', 'nom_fr', 'nom_ja', 'description_en', 'description_fr', 'description_ja', 'remarque', 'confiance', 'source_gps']) {
+    f[k] = String(f[k] == null ? '' : f[k]).trim();
+  }
+  f.nom_en = f.nom_en || identification.nom_en;
+  f.nom_ja = f.nom_ja || identification.nom_ja || '';
+  if (!f.nom_en || !f.description_en) throw erreur_('L\'IA n\'a pas rempli la fiche.', true);
+  return f;
+}
+
+/** Pose une question à Gemini (réponse JSON). Si un modèle n'a plus de quota gratuit, on essaie le suivant. */
+function demanderGemini_(modeles, consignes, texte) {
+  const cle = (PropertiesService.getScriptProperties().getProperty('CLE_GEMINI') || '').trim();
+  if (!cle) throw erreur_('Pas de clé IA : dans le projet « Robot carte », Paramètres du projet → Propriétés du script → CLE_GEMINI.');
+  let derniere = null;
+  for (const modele of modeles) {
+    let r;
+    try {
+      r = UrlFetchApp.fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modele}:generateContent`, {
+        method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+        headers: { 'x-goog-api-key': cle },
+        payload: JSON.stringify({
+          systemInstruction: { parts: [{ text: consignes }] },
+          contents: [{ role: 'user', parts: [{ text: texte }] }],
+          generationConfig: { responseMimeType: 'application/json' },
+        }),
+      });
+    } catch (e) {
+      derniere = erreur_(`Gemini ne répond pas (${e.message}).`, true);
+      continue;
+    }
+    const code = r.getResponseCode();
+    const corps = r.getContentText();
+    if (code === 200) {
+      const j = JSON.parse(corps);
+      const candidat = (j.candidates || [])[0];
+      const reponse = candidat && candidat.content ? (candidat.content.parts || []).map((p) => p.text || '').join('') : '';
+      try {
+        return lireJSON_(reponse);
+      } catch (e) {
+        derniere = erreur_(`Réponse de Gemini illisible (${candidat ? candidat.finishReason : 'vide'}).`, true);
+        continue;
+      }
+    }
+    let detail = corps.slice(0, 300);
+    try { detail = JSON.parse(corps).error.message; } catch (e) { /* pas du JSON */ }
+    if (/API key|API_KEY/i.test(detail) && (code === 400 || code === 401 || code === 403)) {
+      throw erreur_('Clé IA refusée : vérifie CLE_GEMINI dans les Propriétés du script du projet « Robot carte ».');
+    }
+    console.warn(`Gemini ${modele} : ${code} ${detail}`);
+    derniere = erreur_(code === 429 ? 'Quota gratuit de Gemini atteint pour aujourd\'hui.' : `Erreur de Gemini (${code} : ${detail}).`,
+      code === 429 || code >= 500);
+    if (code === 429 || code === 404 || code >= 500) continue; // modèle suivant
+    throw derniere;
+  }
+  throw derniere || erreur_('Aucun modèle Gemini disponible.', true);
+}
+
+function lireJSON_(texte) {
+  const t = String(texte || '').replace(/```(?:json)?/g, '');
+  const debut = t.indexOf('{');
+  const fin = t.lastIndexOf('}');
+  if (debut < 0 || fin < debut) throw new Error('pas de JSON');
+  return JSON.parse(t.slice(debut, fin + 1));
 }
 
 // --- Position GPS -------------------------------------------------------------
-/** Google Maps (précis pour les lieux connus) si ça concorde avec l'estimation de l'IA, sinon l'estimation de l'IA. */
-function choisirGPS_(ia) {
-  const estimation = { lat: Number(ia.latitude), lng: Number(ia.longitude) };
-  let trouve = null;
-  try {
-    const g = Maps.newGeocoder().setRegion('jp').setLanguage('ja').geocode(ia.recherche_carte);
-    if (g && g.status === 'OK' && g.results.length) trouve = g.results[0];
-  } catch (e) {
-    console.warn('Google Maps indisponible', e);
+/** La source choisie par l'IA (Wikipédia a des coordonnées précises), ou Google Maps si c'est plus sûr. */
+function choisirGPS_(choisie, carte) {
+  const ok = (s) => s && s.lat != null && auJapon_(s);
+  if (ok(choisie)) {
+    // Google Maps précis et tout proche : on le préfère (il pointe le bâtiment lui-même)
+    if (choisie.id !== 'google_maps' && ok(carte) && carte.precis && distanceKm_(carte, choisie) < 3) {
+      return { lat: carte.lat, lng: carte.lng, source: 'Google Maps' };
+    }
+    return { lat: choisie.lat, lng: choisie.lng, source: choisie.id === 'google_maps' ? 'Google Maps' : 'Wikipédia',
+      approx: choisie.id === 'google_maps' && !choisie.precis };
   }
-  if (trouve) {
-    const p = trouve.geometry.location;
-    const vague = (trouve.types || []).some((t) => /^(locality|sublocality|administrative_area|political|country|postal_code)/.test(t));
-    const concorde = !auJapon_(estimation) || distanceKm_(p, estimation) < 25;
-    if (auJapon_(p) && concorde && !vague) return { lat: p.lat, lng: p.lng, source: 'Google Maps' };
-  }
-  if (auJapon_(estimation)) return { ...estimation, source: 'IA', approx: !trouve };
-  if (trouve && auJapon_(trouve.geometry.location)) return { ...trouve.geometry.location, source: 'Google Maps', approx: true };
-  throw erreur_('Je ne trouve pas la position GPS de ce lieu : remplis « Coordonnées GPS » à la main.');
+  if (ok(carte)) return { lat: carte.lat, lng: carte.lng, source: 'Google Maps', approx: !carte.precis };
+  return null;
 }
 
 const auJapon_ = (p) => p.lat > 20 && p.lat < 46.5 && p.lng > 122 && p.lng < 154.5;
@@ -352,10 +433,11 @@ function lireCategories_() {
   return categories;
 }
 
-function versATrier_(video, ia) {
+function versATrier_(video, identification) {
   const f = tableau_().getSheetByName(ONGLET_A_TRIER);
-  const pourquoi = ia.type_video === 'compilation' ? 'Compilation : plusieurs lieux (ajoutée par le robot)' : 'Pas un lieu précis (ajoutée par le robot)';
-  f.appendRow([video.url, video.legende, ia.remarque ? `${pourquoi}. ${ia.remarque}` : pourquoi, '']);
+  const pourquoi = identification.type_video === 'compilation'
+    ? 'Compilation : plusieurs lieux (ajoutée par le robot)' : 'Pas un lieu précis (ajoutée par le robot)';
+  f.appendRow([video.url, video.legende, identification.remarque ? `${pourquoi}. ${identification.remarque}` : pourquoi, '']);
 }
 
 // --- Petits outils ----------------------------------------------------------
@@ -365,19 +447,23 @@ function erreur_(message, reessayer) {
   return e;
 }
 
-/** Test sans IA ni écriture : lien court/long → légende TikTok, puis Google Maps. Résultat dans le journal d'exécution. */
+// --- Tests (résultat dans le « Journal d'exécution », rien n'est écrit dans le tableau) ---
+const LIEN_TEST = 'https://www.tiktok.com/@random_japan_place/video/7641332794487999766'; // Udo Inari Shrine
+
+/** Sans IA : légende TikTok, Wikipédia, Google Maps. */
 function testerSansIA() {
-  const video = lireVideo_('https://www.tiktok.com/@random_japan_place/video/7641332794487999766');
+  const video = lireVideo_(LIEN_TEST);
   console.log(JSON.stringify(video));
-  const g = Maps.newGeocoder().setRegion('jp').setLanguage('ja').geocode('鵜戸稲荷神社 宮崎県日南市');
-  console.log(g.status, JSON.stringify(g.results[0] && { lieu: g.results[0].formatted_address, types: g.results[0].types, gps: g.results[0].geometry.location }));
+  console.log(JSON.stringify(chercherWikipedia_('en', 'Udo Inari Shrine Miyazaki', 2).map((s) => [s.id, s.titre, s.titreAutreLangue, s.lat, s.lng])));
+  console.log(JSON.stringify(chercherCarte_('鵜戸稲荷神社 宮崎県日南市')));
 }
 
-/** Test complet sur une vidéo, sans rien écrire dans le tableau (coûte quelques centimes). */
+/** Test complet sur une vidéo, sans rien écrire (2 questions à Gemini). */
 function testerAvecIA() {
   const debut = Date.now();
-  const video = lireVideo_('https://www.tiktok.com/@random_japan_place/video/7641332794487999766');
-  const ia = demanderIA_(video, lireCategories_());
-  console.log(JSON.stringify(ia, null, 1));
-  console.log(JSON.stringify(choisirGPS_(ia)), `durée : ${Math.round((Date.now() - debut) / 1000)} s`);
+  const r = preparerFiche_(lireVideo_(LIEN_TEST), lireCategories_());
+  console.log(JSON.stringify(r.identification, null, 1));
+  console.log(JSON.stringify((r.sources || []).map((s) => [s.id, s.titre, s.lat, s.lng])));
+  console.log(JSON.stringify(r.fiche, null, 1));
+  console.log(JSON.stringify(r.gps), r.wikipedia, `durée : ${Math.round((Date.now() - debut) / 1000)} s`);
 }
