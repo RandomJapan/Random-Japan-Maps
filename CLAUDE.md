@@ -94,6 +94,32 @@ The "Au hasard" button opens `#panneau-hasard`: a region `<select>` (all Japan, 
 
 The same icon names are listed in `ICONES` in `outils/fabriquer_tableau.py`, and in the Sheet's `Icônes` tab, which feeds the Sheet's dropdown. Keep all three in sync when you add an icon. `site/icones.html` is a gallery page for the owner.
 
+### The Sheet robot (`outils/robot-tableau.gs`)
+
+The robot is a Google Apps Script. The owner pastes a TikTok link into an empty row of `Lieux` (in `Nom (EN)`, or in `Lien TikTok` with an empty name), and the robot fills the whole row.
+- **Where it runs.** It is a *standalone* Apps Script project, "Robot carte" (`https://script.google.com/home/projects/1MXTOIbdJ85kVtWstryW6DnIrialyZOHZDgt5x0LnENphuMCl20Jit97q/edit`). It opens the Sheet by `ID_TABLEAU`. The repo file is only a reference copy.
+- **Updating it.** Push the file, then load it into the editor:
+  1. Get the raw GitHub URL at the commit sha. The pinned sha avoids raw's cache.
+  2. In the editor tab, run `monaco.editor.getModels()[0].setValue(code)`.
+  3. Click the "Enregistrer le projet dans Drive" button. Ctrl+S does not save.
+  - If the Chrome window is minimized, dispatch mouse events on the aria-labelled buttons from JS.
+- **Triggers.** `installerRobot()` creates two: `robotCarte` every 10 min, and an installable onEdit (`quandModifie`) for the Sheet.
+  - `robotCarte` takes a script lock and handles at most 3 rows per pass.
+  - Its status and doubts go in a `Robot` column: ⏳ = retry, ❌ = the robot waits until the owner erases the message.
+- **Pipeline** (`preparerFiche_`):
+  1. TikTok oEmbed gives the caption.
+  2. Gemini call 1 (`identifierLieu_`) returns the place name plus search queries. Compilations are moved to the `À trier` tab.
+  3. It searches Wikipedia (en + ja) and runs the Apps Script `Maps.newGeocoder()`. Both are free and keyless.
+  4. Gemini call 2 (`redigerFiche_`) writes `nom_fr`, the category and the 3 descriptions, and picks a GPS source.
+  5. `choisirGPS_` prefers a precise Google Maps hit within 3 km.
+  - **The EN/JA names always come from call 1, in code.** With the name left to call 2, Gemini (especially flash-lite) renamed Udo Inari Shrine to its famous neighbour Udo Jingū, because Wikipedia only covers the latter.
+- **AI.** It uses the free Gemini API tier (`CLE_GEMINI` in Script properties; the owner created that key and it must never pass through us). The Anthropic API was rejected because it is paid.
+  - The free tier has no Google Search grounding on 3.x models.
+  - `demanderGemini_` falls through the model list on 429, 404 or 5xx. `gemini-3.8-flash` often returns 503 "high demand", so flash-lite does much of the work.
+  - `verifierCle()` lists which configured models exist.
+- **Tests.** `testerSansIA()` and `testerAvecIA()` run on `LIEN_TEST` (Udo Inari) without writing to the Sheet. A full run takes about 6 to 40 s.
+- Rows the robot fills get `Afficher ? = Oui`, `À vérifier = Oui` and a yellow background, so they are live on the map before the owner reviews them.
+
 ### `outils/` (one-off data pipeline)
 
 These scripts built the initial Sheet:

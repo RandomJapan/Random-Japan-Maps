@@ -4,6 +4,31 @@
 
 Tout se passe dans le tableau **Google Sheets « Random Japan Place - Lieux de la carte »** (dans ton Google Drive).
 
+### La méthode rapide : le robot 🤖
+
+1. Sur TikTok, fais **Partager → Copier le lien** de ta nouvelle vidéo.
+2. Dans l'onglet **Lieux**, colle ce lien dans la case **Nom (EN)** de la première ligne vide.
+3. Attends environ une minute. Le robot remplit toute la ligne : noms en 3 langues, catégorie, GPS, descriptions en 3 langues. Il la colore ensuite en **jaune** (« À vérifier »).
+4. Relis la ligne jaune. Corrige si besoin, puis efface le « Oui » de **À vérifier** et remets le fond en blanc.
+
+Le lieu apparaît sur la carte dès que le robot a fini, en environ 5 minutes.
+
+**La colonne « Robot »** (tout à droite) dit ce que fait le robot :
+| Message | Ça veut dire… |
+|---|---|
+| ⏳ Le robot travaille… | Il est en train de remplir la ligne. |
+| ⏳ Petit souci… | Google ou TikTok n'a pas répondu. Le robot réessaie tout seul 10 minutes plus tard. |
+| 🤖 Rempli par le robot… | C'est fini. Lis la suite du message : il y note ses doutes (par exemple « position approximative »). |
+| ❌ … | Il n'y arrive pas. Lis le message. **Efface-le** pour qu'il réessaie, ou remplis la ligne à la main. |
+
+- **Vidéo avec plusieurs lieux** (un top 5, « Winter in Japan »…) : le robot l'enlève de **Lieux** et la range dans l'onglet **À trier**.
+- **Vidéo déjà sur la carte** : le robot te le dit dans la colonne Robot. Tu peux supprimer la ligne.
+- **Gratuit** : le robot utilise l'IA Gemini de Google en version gratuite. Elle a une limite par jour, bien au-delà de quelques vidéos. Si elle est atteinte, le robot le dit et réessaie plus tard.
+- **Où est le robot ?** Dans le projet **« Robot carte »** sur [script.google.com](https://script.google.com). La clé de l'IA y est rangée dans ⚙️ **Paramètres du projet → Propriétés du script → `CLE_GEMINI`**. Ne la donne à personne.
+- Le robot passe aussi tout seul **toutes les 10 minutes**, au cas où il aurait raté un lien.
+
+### La méthode à la main
+
 1. Onglet **Lieux** : descends jusqu'à la première ligne vide.
 2. **Nom (EN)** : le nom du lieu en anglais. Le français et le japonais se remplissent tout seuls.
 3. **Catégorie** : choisis-la dans le menu déroulant.
@@ -49,4 +74,5 @@ Le programme fabrique :
 - `site/` contient le site : la page (`index.html`), l'apparence (`style.css`), les **réglages** (`config.js`), le programme de la carte (`app.js`) et les icônes (`icons.js`).
 - La carte lit le tableau Google Sheets à chaque visite. Si Google ne répond pas, elle utilise la copie de secours `site/data/secours-*.csv`. Cette copie est mise à jour automatiquement chaque nuit par GitHub.
 - `outils/` contient les petits programmes qui ont servi à tout préparer : import depuis Google My Maps, traductions, photos, masque des pays voisins.
+- `outils/robot-tableau.gs` est une copie du programme du robot (celui qui tourne vraiment est dans le projet « Robot carte » sur script.google.com). Le robot lit la légende de la vidéo TikTok et demande à Gemini de quel lieu il s'agit. Il cherche ensuite ce lieu dans Wikipédia et Google Maps, puis Gemini rédige la fiche à partir de ce qu'il a trouvé.
 - Le relief vient de **Mapterhorn** (gratuit) et le contour des pays de **Natural Earth** (domaine public).
