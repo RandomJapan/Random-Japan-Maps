@@ -139,11 +139,12 @@ function traiterLigne_(feuille, col, tache, donnees) {
     mettre('Description (FR)', fiche.description_fr);
     mettre('Description (日本語)', fiche.description_ja);
     if (wikipedia && !String(ligne[col['Autre lien'] - 1] || '').trim()) mettre('Autre lien', wikipedia);
-    mettre('Afficher ?', 'Oui');
+    // Position pas sûre : on cache le lieu plutôt que de mettre une épingle au mauvais endroit sur la carte publique
+    mettre('Afficher ?', gps && gps.approx ? 'Non' : 'Oui');
     mettre('À vérifier', 'Oui');
     const notes = [`🤖 Rempli par le robot (confiance : ${fiche.confiance || '?'}${gps ? `, position : ${gps.source}` : ''}).`];
     if (!gps) notes.push('Position GPS introuvable : colle les coordonnées (clic droit sur le lieu dans Google Maps), sinon le lieu n\'apparaît pas sur la carte.');
-    else if (gps.approx) notes.push('Position GPS approximative : vérifie-la sur Google Maps.');
+    else if (gps.approx) notes.push('Position GPS pas sûre, alors le lieu est caché de la carte : vérifie-la sur Google Maps (corrige-la si besoin), puis mets « Oui » dans Afficher ?.');
     if (!fiche.categorie) notes.push('Catégorie à choisir.');
     if (fiche.remarque) notes.push(fiche.remarque);
     mettre(COLONNE_ROBOT, notes.join(' '));
@@ -163,20 +164,34 @@ function traiterLigne_(feuille, col, tache, donnees) {
 
 /** Toute la réflexion, sans rien écrire : identifier le lieu, chercher des infos, rédiger la fiche, choisir le GPS. */
 function preparerFiche_(video, categories) {
-  const identification = identifierLieu_(video);
+  // D'abord Google Maps avec le nom écrit dans la légende : les noms des vidéos viennent souvent de Google Maps,
+  // et l'adresse trouvée aide l'IA à reconnaître le lieu (« Ibuki Tree Art Sculpture » est sur l'île d'Ibuki).
+  const carteLegende = chercherCarte_(nomDansLegende_(video.legende), 'google_maps_legende');
+  const identification = identifierLieu_(video, carteLegende);
   if (identification.type_video !== 'lieu_unique') return { aTrier: true, identification };
   const sources = []
     .concat(chercherWikipedia_('en', identification.recherche_wikipedia_en, 3))
     .concat(chercherWikipedia_('ja', identification.recherche_wikipedia_ja, 2));
-  const carte = chercherCarte_(identification.recherche_carte);
-  if (carte) sources.push(carte);
+  const carte = chercherCarte_(identification.recherche_carte, 'google_maps');
+  const cartes = [carteLegende, carte].filter(Boolean);
+  sources.push(...cartes);
   const fiche = redigerFiche_(video, identification, sources, categories);
   const choisie = sources.find((s) => s.id === fiche.source_gps);
   return {
     identification, sources, fiche,
-    gps: choisirGPS_(choisie, carte),
+    gps: choisirGPS_(choisie, cartes),
     wikipedia: choisie && choisie.url && choisie.id.startsWith('wikipedia') ? choisie.url : '',
   };
+}
+
+/** Le nom du lieu tel qu'il est écrit dans la légende : « Udo Inari shrine | Miyazaki 📍 #japan » → « Udo Inari shrine, Miyazaki ». */
+function nomDansLegende_(legende) {
+  return String(legende || '').split('#')[0]
+    .split(/\s*(?:\||｜|📍|\n)\s*/u)
+    .map((s) => s.replace(/[^\p{L}\p{N}\s,.'’&()-]/gu, '').trim())
+    .filter(Boolean)
+    .slice(0, 2)
+    .join(', ');
 }
 
 // --- La vidéo TikTok ------------------------------------------------------
@@ -245,15 +260,18 @@ function chercherWikipedia_(langue, recherche, combien) {
 }
 
 /** Google Maps (gratuit dans Apps Script) : adresse et position du lieu. */
-function chercherCarte_(recherche) {
+function chercherCarte_(recherche, id) {
   if (!recherche) return null;
   try {
     const g = Maps.newGeocoder().setRegion('jp').setLanguage('ja').geocode(recherche);
     if (!g || g.status !== 'OK' || !g.results.length) return null;
     const res = g.results[0];
-    const vague = (res.types || []).some((t) => /^(locality|sublocality|administrative_area|political|country|postal_code|route)/.test(t));
+    const types = res.types || [];
+    const vague = types.some((t) => /^(locality|sublocality|administrative_area|political|country|postal_code|route)/.test(t));
     return {
-      id: 'google_maps', titre: res.formatted_address, extrait: `Adresse trouvée par Google Maps : ${res.formatted_address}`,
+      id, titre: res.formatted_address,
+      extrait: `Google Maps result for "${recherche}": ${res.formatted_address} — ` +
+        (vague ? 'only an area, not the place itself.' : `a precise place (${types.join(', ')}).`),
       lat: res.geometry.location.lat, lng: res.geometry.location.lng, precis: !vague, url: '',
     };
   } catch (e) {
@@ -268,13 +286,14 @@ const CONSIGNES_IDENTIFIER = `You help a robot add places to an interactive map 
 - type_video: "lieu_unique" when the video is about one specific place (most videos; captions often look like "Udo Inari shrine | Miyazaki 📍"). "compilation" when it shows several places (a top 5, "hotels that…", a season across Japan…). "pas_un_lieu" otherwise.
 - Use your knowledge of Japan to recognise the place even when the caption spelling is unusual. nom_en: the English name travellers use, with clean spelling and capitals ("Kegon Falls", "Himeji Castle", "Udo Inari Shrine"). nom_ja: its official Japanese name if you know it, otherwise "".
 - The place is the one the caption names. When it is a small place next to a more famous one (a small shrine beside a big shrine, a waterfall inside a famous gorge…), keep the small place: never swap it for the famous neighbour.
+- You may also get the Google Maps result for the name written in the caption. The account names its places after Google Maps, so when that result is a precise place (tourist attraction, shrine, park…), it is very likely the right place: use its address (town, island, district) to recognise the place and to write the searches. Words in the name can be place names: "Ibuki" in "Ibuki Tree Art Sculpture" is Ibuki Island (伊吹島), not the ibuki juniper tree.
 - recherche_wikipedia_en: a short query to find its English Wikipedia article (for example "Kegon Falls Nikko"). recherche_wikipedia_ja: the same for Japanese Wikipedia, usually the Japanese name (for example "華厳滝"). recherche_carte: a Japanese Google Maps query with name, municipality and prefecture (for example "華厳滝 栃木県日光市"). All three look for the place the caption names.
 - remarque: one short sentence in French when you are unsure or when it is not a single place, otherwise "".`;
 
 const CONSIGNES_REDIGER = `You write one entry of an interactive map of Japan that lists every place featured in the TikTok videos of the travel account @random_japan_place. You receive the place (its name is already decided from the video caption), the caption, search results from Wikipedia and Google Maps (each with an id) and the allowed categories. Reply with a single JSON object and nothing else:
 {"source_gps": string, "nom_fr": string, "categorie": string, "description_en": string, "description_fr": string, "description_ja": string, "confiance": "haute" | "moyenne" | "basse", "remarque": string}
 - The entry is about the given place, under its given name. Search results can be about another place, often a more famous neighbour (for example the main shrine next to a small shrine): use them only for the surroundings, and never describe that other place as if it were this one.
-- source_gps: the id of the search result that is exactly this place and gives its position (for example "wikipedia_en_1" or "google_maps"), or "aucune". A result about the town or a neighbouring place does not count.
+- source_gps: the id of the search result that is exactly this place and gives its position (for example "wikipedia_en_1" or "google_maps_legende"), or "aucune". A result about the town or a neighbouring place does not count. "google_maps_legende" is Google Maps' answer for the exact name written in the caption: when it is a precise place, it is usually the right one. Use its address to say where the place is.
 - nom_fr: the French name of the given place in the map's style ("Sanctuaire Udo Inari", "Temple Nanzoin", "Cascade de Kegon", "Château de Himeji", "Lac Tazawa"; famous Japanese names such as "Kinkaku-ji" stay as they are).
 - categorie: exactly one key from the allowed categories.
 - description_en, description_fr, description_ja: the same 2 or 3 sentences in each language, factual and warm, in a travel-guide tone, written in your own words (never copy sentences from the sources). Start with where it is (town, prefecture), then what makes it special. Natural Japanese in です/ます style. Example: "Located in Kami Town, Hyogo Prefecture, Choraku-ji is a temple famously home to the Tajima Daibutsu: three monumental golden Buddha statues set within a vast main hall. Surrounded by tranquil mountain scenery, the complex also features a tall wooden five-story pagoda and thousands of smaller gilded Buddhist figures along its walls."
@@ -282,9 +301,10 @@ const CONSIGNES_REDIGER = `You write one entry of an interactive map of Japan th
 - confiance: "haute" when a search result is exactly this place and agrees with the caption, "moyenne" when fairly sure, "basse" when the results were about other places and you relied on the caption.
 - remarque: one short sentence in French for the channel owner when something is uncertain, otherwise "".`;
 
-function identifierLieu_(video) {
+function identifierLieu_(video, carteLegende) {
   const r = demanderGemini_(MODELES_IDENTIFIER, CONSIGNES_IDENTIFIER,
-    `TikTok video: ${video.url}\nCaption: ${JSON.stringify(video.legende)}`);
+    `TikTok video: ${video.url}\nCaption: ${JSON.stringify(video.legende)}` +
+    (carteLegende ? `\n${carteLegende.extrait}` : ''));
   if (!['lieu_unique', 'compilation', 'pas_un_lieu'].includes(r.type_video)) r.type_video = 'lieu_unique';
   return r;
 }
@@ -376,19 +396,23 @@ function lireJSON_(texte) {
 }
 
 // --- Position GPS -------------------------------------------------------------
-/** La source choisie par l'IA (Wikipédia a des coordonnées précises), ou Google Maps si c'est plus sûr. */
-function choisirGPS_(choisie, carte) {
+/**
+ * La source choisie par l'IA, ou Google Maps si c'est plus sûr.
+ * approx = position pas sûre (Google Maps n'a trouvé que la ville, ou Wikipédia et Google Maps ne sont pas d'accord).
+ */
+function choisirGPS_(choisie, cartes) {
   const ok = (s) => s && s.lat != null && auJapon_(s);
-  if (ok(choisie)) {
-    // Google Maps précis et tout proche : on le préfère (il pointe le bâtiment lui-même)
-    if (choisie.id !== 'google_maps' && ok(carte) && carte.precis && distanceKm_(carte, choisie) < 3) {
-      return { lat: carte.lat, lng: carte.lng, source: 'Google Maps' };
-    }
-    return { lat: choisie.lat, lng: choisie.lng, source: choisie.id === 'google_maps' ? 'Google Maps' : 'Wikipédia',
-      approx: choisie.id === 'google_maps' && !choisie.precis };
+  const precises = cartes.filter((c) => ok(c) && c.precis);
+  const depuis = (s, approx) => ({ lat: s.lat, lng: s.lng, source: s.id.startsWith('google_maps') ? 'Google Maps' : 'Wikipédia', approx });
+  if (!ok(choisie)) {
+    const repli = precises[0] || cartes.find(ok);
+    return repli ? depuis(repli, !repli.precis) : null;
   }
-  if (ok(carte)) return { lat: carte.lat, lng: carte.lng, source: 'Google Maps', approx: !carte.precis };
-  return null;
+  if (choisie.id.startsWith('google_maps')) return depuis(choisie, !choisie.precis);
+  // Google Maps précis et tout proche : on le préfère (il pointe le bâtiment lui-même)
+  const proche = precises.find((c) => distanceKm_(c, choisie) < 3);
+  if (proche) return depuis(proche, false);
+  return depuis(choisie, precises.length > 0);
 }
 
 const auJapon_ = (p) => p.lat > 20 && p.lat < 46.5 && p.lng > 122 && p.lng < 154.5;
@@ -451,22 +475,30 @@ function erreur_(message, reessayer) {
 }
 
 // --- Tests (résultat dans le « Journal d'exécution », rien n'est écrit dans le tableau) ---
-const LIEN_TEST = 'https://www.tiktok.com/@random_japan_place/video/7641332794487999766'; // Udo Inari Shrine
+const LIENS_TEST = [
+  'https://www.tiktok.com/@random_japan_place/video/7641332794487999766', // Udo Inari Shrine (petit sanctuaire à côté du célèbre Udo Jingū)
+  'https://www.tiktok.com/@random_japan_place/video/7691039736739269910', // Ibuki Tree Art Sculpture (œuvre d'art sur l'île d'Ibuki, 34.1302, 133.5345)
+];
 
-/** Sans IA : légende TikTok, Wikipédia, Google Maps. */
+/** Sans IA : légende TikTok, nom lu dans la légende, Google Maps, Wikipédia. */
 function testerSansIA() {
-  const video = lireVideo_(LIEN_TEST);
-  console.log(JSON.stringify(video));
-  console.log(JSON.stringify(chercherWikipedia_('en', 'Udo Inari Shrine Miyazaki', 2).map((s) => [s.id, s.titre, s.titreAutreLangue, s.lat, s.lng])));
-  console.log(JSON.stringify(chercherCarte_('鵜戸稲荷神社 宮崎県日南市')));
+  for (const lien of LIENS_TEST) {
+    const video = lireVideo_(lien);
+    const nom = nomDansLegende_(video.legende);
+    console.log(JSON.stringify(video.legende), '→', nom);
+    console.log(JSON.stringify(chercherCarte_(nom, 'google_maps_legende')));
+    console.log(JSON.stringify(chercherWikipedia_('en', nom, 2).map((s) => [s.id, s.titre, s.titreAutreLangue, s.lat, s.lng])));
+  }
 }
 
-/** Test complet sur une vidéo, sans rien écrire (2 questions à Gemini). */
+/** Test complet sur chaque vidéo, sans rien écrire (2 questions à Gemini par vidéo). */
 function testerAvecIA() {
-  const debut = Date.now();
-  const r = preparerFiche_(lireVideo_(LIEN_TEST), lireCategories_());
-  console.log(JSON.stringify(r.identification, null, 1));
-  console.log(JSON.stringify((r.sources || []).map((s) => [s.id, s.titre, s.lat, s.lng])));
-  console.log(JSON.stringify(r.fiche, null, 1));
-  console.log(JSON.stringify(r.gps), r.wikipedia, `durée : ${Math.round((Date.now() - debut) / 1000)} s`);
+  for (const lien of LIENS_TEST) {
+    const debut = Date.now();
+    const r = preparerFiche_(lireVideo_(lien), lireCategories_());
+    console.log(JSON.stringify(r.identification, null, 1));
+    console.log(JSON.stringify((r.sources || []).map((s) => [s.id, s.titre, s.lat, s.lng])));
+    console.log(JSON.stringify(r.fiche, null, 1));
+    console.log(JSON.stringify(r.gps), r.wikipedia, `durée : ${Math.round((Date.now() - debut) / 1000)} s`);
+  }
 }
