@@ -178,11 +178,28 @@ function preparerFiche_(video, categories) {
   sources.push(...cartes);
   const fiche = redigerFiche_(video, identification, sources, categories);
   const choisie = sources.find((s) => s.id === fiche.source_gps);
+  const gps = choisirGPS_(choisie, cartes);
+  fiche.nom_ja = corrigerNomJa_(fiche.nom_ja, sources, gps);
   return {
-    identification, sources, fiche,
-    gps: choisirGPS_(choisie, cartes),
+    identification, sources, fiche, gps,
     wikipedia: choisie && choisie.url && choisie.id.startsWith('wikipedia') ? choisie.url : '',
   };
+}
+
+/**
+ * Faute de frappe dans le nom japonais (l'IA a écrit 七宝隆寺 pour 七宝瀧寺) : si un article Wikipédia situé
+ * à moins de 1 km porte le même nom à un caractère près, on prend son titre. La distance évite de confondre
+ * deux lieux différents aux noms proches (東大寺 et 西大寺 sont à 4 km l'un de l'autre).
+ */
+function corrigerNomJa_(nomJa, sources, gps) {
+  const nom = [...String(nomJa || '')];
+  if (nom.length < 3 || !gps) return nomJa;
+  for (const s of sources) {
+    if (!s.id.startsWith('wikipedia') || s.lat == null || distanceKm_(s, gps) > 1) continue;
+    const titre = [...String(s.id.startsWith('wikipedia_ja') ? s.titre : s.titreAutreLangue || '').replace(/[（(].*?[)）]/g, '').trim()];
+    if (titre.length === nom.length && titre.filter((c, i) => c !== nom[i]).length === 1) return titre.join('');
+  }
+  return nomJa;
 }
 
 /** Le nom du lieu tel qu'il est écrit dans la légende : « Udo Inari shrine | Miyazaki 📍 #japan » → « Udo Inari shrine, Miyazaki ». */
@@ -479,6 +496,7 @@ function erreur_(message, reessayer) {
 const LIENS_TEST = [
   'https://www.tiktok.com/@random_japan_place/video/7641332794487999766', // Udo Inari Shrine (petit sanctuaire à côté du célèbre Udo Jingū)
   'https://www.tiktok.com/@random_japan_place/video/7691039736739269910', // Ibuki Tree Art Sculpture (œuvre d'art sur l'île d'Ibuki, 34.1302, 133.5345)
+  'https://www.tiktok.com/@random_japan_place/video/7690679785537703190', // Shipporyu-ji : nom japonais 七宝瀧寺 (l'IA écrivait 七宝隆寺)
 ];
 
 /** Sans IA : légende TikTok, nom lu dans la légende, Google Maps, Wikipédia. */
