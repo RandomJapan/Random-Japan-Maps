@@ -118,13 +118,17 @@ The robot is a Google Apps Script. The owner pastes a TikTok link into an empty 
   6. `choisirGPS_` prefers a precise Google Maps hit within 3 km. It flags `approx` when Maps only found an area, or when Wikipedia and precise Maps disagree.
   - An `approx` row gets `Afficher ? = Non`, so no wrong pin goes public.
   - **The EN/JA names always come from call 1, in code.** With the name left to call 2, Gemini (especially flash-lite) renamed Udo Inari Shrine to its famous neighbour Udo Jingū, because Wikipedia only covers the latter.
+  - Because the names are locked to call 1, a kanji typo from it would stick (it wrote 七宝隆寺 for 七宝瀧寺). `corrigerNomJa_` fixes that case: it takes the title of a Wikipedia article located within 1 km of the chosen GPS when that title is the same length and differs by exactly one character. The 1 km check keeps 東大寺 and 西大寺 apart.
   - The free sources don't describe obscure places (for example the artwork 伊吹の樹 on Ibuki Island). The prompts forbid inventing details and made-up Japanese names, so expect short, general descriptions there.
 - **AI.** It uses the free Gemini API tier (`CLE_GEMINI` in Script properties; the owner created that key and it must never pass through us). The Anthropic API was rejected because it is paid.
   - The free tier has no Google Search grounding on 3.x models.
   - `demanderGemini_` falls through the model list on 429, 404 or 5xx. `gemini-3.8-flash` often returns 503 "high demand", so flash-lite does much of the work.
   - `verifierCle()` lists which configured models exist.
-- **Tests.** `testerSansIA()` and `testerAvecIA()` run on `LIENS_TEST` without writing to the Sheet. There are two test cases: Udo Inari (a famous-neighbour trap) and Ibuki Tree Art Sculpture (whose exact spot is 34.1302, 133.5345).
-  - A full run takes about 5 to 40 s per video.
+- **Tests.** `testerSansIA()` and `testerAvecIA()` run on `LIENS_TEST` without writing to the Sheet. There are three test cases:
+  - Udo Inari: a famous-neighbour trap;
+  - Ibuki Tree Art Sculpture: its exact spot is 34.1302, 133.5345;
+  - Shipporyu-ji: its correct Japanese name is 七宝瀧寺, and call 1 gets that kanji wrong.
+  - A full run takes about 5 to 55 s per video. It is slower when `gemini-3.8-flash` answers 503.
   - To choose the function to run, use real clicks on the dropdown. Synthetic JS events do not select an option.
 - Rows the robot fills get `Afficher ? = Oui`, `À vérifier = Oui` and a yellow background, so they are live on the map before the owner reviews them.
 
