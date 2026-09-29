@@ -266,20 +266,20 @@ function chercherCarte_(recherche) {
 const CONSIGNES_IDENTIFIER = `You help a robot add places to an interactive map of Japan from the TikTok captions of the travel account @random_japan_place. Reply with a single JSON object and nothing else:
 {"type_video": "lieu_unique" | "compilation" | "pas_un_lieu", "nom_en": string, "nom_ja": string, "prefecture_en": string, "recherche_wikipedia_en": string, "recherche_wikipedia_ja": string, "recherche_carte": string, "remarque": string}
 - type_video: "lieu_unique" when the video is about one specific place (most videos; captions often look like "Udo Inari shrine | Miyazaki 📍"). "compilation" when it shows several places (a top 5, "hotels that…", a season across Japan…). "pas_un_lieu" otherwise.
-- Use your knowledge of Japan to recognise the place even when the caption spelling is unusual. nom_ja: its official Japanese name if you know it.
+- Use your knowledge of Japan to recognise the place even when the caption spelling is unusual. nom_en: the English name travellers use, with clean spelling and capitals ("Kegon Falls", "Himeji Castle", "Udo Inari Shrine"). nom_ja: its official Japanese name if you know it, otherwise "".
 - The place is the one the caption names. When it is a small place next to a more famous one (a small shrine beside a big shrine, a waterfall inside a famous gorge…), keep the small place: never swap it for the famous neighbour.
 - recherche_wikipedia_en: a short query to find its English Wikipedia article (for example "Kegon Falls Nikko"). recherche_wikipedia_ja: the same for Japanese Wikipedia, usually the Japanese name (for example "華厳滝"). recherche_carte: a Japanese Google Maps query with name, municipality and prefecture (for example "華厳滝 栃木県日光市"). All three look for the place the caption names.
 - remarque: one short sentence in French when you are unsure or when it is not a single place, otherwise "".`;
 
-const CONSIGNES_REDIGER = `You write one entry of an interactive map of Japan that lists every place featured in the TikTok videos of the travel account @random_japan_place. You receive the video caption, a first guess, search results from Wikipedia and Google Maps (each with an id) and the allowed categories. Reply with a single JSON object and nothing else:
-{"source_gps": string, "nom_en": string, "nom_fr": string, "nom_ja": string, "categorie": string, "description_en": string, "description_fr": string, "description_ja": string, "confiance": "haute" | "moyenne" | "basse", "remarque": string}
-- The place is the one the caption names: keep that place and that name (only fix spelling and capitalisation). A search result about a different place, even a famous neighbour in the same area, is not this place: never take its name, its position or its description. Then describe the caption's place only with what you are sure of, and say it in remarque.
-- source_gps: the id of the search result that really is this place and gives its position (for example "wikipedia_en_1" or "google_maps"), or "aucune" when none matches. A result about the town or a different place does not match.
-- nom_en: the English name travellers use ("Kegon Falls", "Himeji Castle", "Udo Inari Shrine"). nom_fr: the French name in the map's style ("Sanctuaire Udo Inari", "Temple Nanzoin", "Cascade de Kegon", "Château de Himeji", "Lac Tazawa"; famous Japanese names such as "Kinkaku-ji" stay as they are). nom_ja: the official Japanese name (the Japanese Wikipedia title when it matches).
+const CONSIGNES_REDIGER = `You write one entry of an interactive map of Japan that lists every place featured in the TikTok videos of the travel account @random_japan_place. You receive the place (its name is already decided from the video caption), the caption, search results from Wikipedia and Google Maps (each with an id) and the allowed categories. Reply with a single JSON object and nothing else:
+{"source_gps": string, "nom_fr": string, "categorie": string, "description_en": string, "description_fr": string, "description_ja": string, "confiance": "haute" | "moyenne" | "basse", "remarque": string}
+- The entry is about the given place, under its given name. Search results can be about another place, often a more famous neighbour (for example the main shrine next to a small shrine): use them only for the surroundings, and never describe that other place as if it were this one.
+- source_gps: the id of the search result that is exactly this place and gives its position (for example "wikipedia_en_1" or "google_maps"), or "aucune". A result about the town or a neighbouring place does not count.
+- nom_fr: the French name of the given place in the map's style ("Sanctuaire Udo Inari", "Temple Nanzoin", "Cascade de Kegon", "Château de Himeji", "Lac Tazawa"; famous Japanese names such as "Kinkaku-ji" stay as they are).
 - categorie: exactly one key from the allowed categories.
 - description_en, description_fr, description_ja: the same 2 or 3 sentences in each language, factual and warm, in a travel-guide tone, written in your own words (never copy sentences from the sources). Start with where it is (town, prefecture), then what makes it special. Natural Japanese in です/ます style. Example: "Located in Kami Town, Hyogo Prefecture, Choraku-ji is a temple famously home to the Tajima Daibutsu: three monumental golden Buddha statues set within a vast main hall. Surrounded by tranquil mountain scenery, the complex also features a tall wooden five-story pagoda and thousands of smaller gilded Buddhist figures along its walls."
 - Only use facts from the search results or facts you are certain of. If the results say little, write a shorter description rather than guessing.
-- confiance: "haute" when the caption and a matching source agree, "moyenne" when fairly sure, "basse" when you had to guess.
+- confiance: "haute" when a search result is exactly this place and agrees with the caption, "moyenne" when fairly sure, "basse" when the results were about other places and you relied on the caption.
 - remarque: one short sentence in French for the channel owner when something is uncertain, otherwise "".`;
 
 function identifierLieu_(video) {
@@ -296,8 +296,8 @@ function redigerFiche_(video, identification, sources, categories) {
     s.extrait,
   ].join('\n'));
   const texte = [
+    `Place: ${identification.nom_en}${identification.nom_ja ? ` (${identification.nom_ja})` : ''}, ${identification.prefecture_en} Prefecture`,
     `Caption: ${JSON.stringify(video.legende)}`,
-    `First guess: ${identification.nom_en} (${identification.nom_ja}), ${identification.prefecture_en}`,
     '',
     'Search results:',
     blocs.length ? blocs.join('\n\n') : '(none)',
@@ -309,11 +309,12 @@ function redigerFiche_(video, identification, sources, categories) {
   // Vérifications : catégorie connue, textes présents
   const cat = categories.find((c) => c.cle.toLowerCase() === String(f.categorie || '').trim().toLowerCase());
   f.categorie = cat ? cat.cle : '';
-  for (const k of ['nom_en', 'nom_fr', 'nom_ja', 'description_en', 'description_fr', 'description_ja', 'remarque', 'confiance', 'source_gps']) {
+  for (const k of ['nom_fr', 'description_en', 'description_fr', 'description_ja', 'remarque', 'confiance', 'source_gps']) {
     f[k] = String(f[k] == null ? '' : f[k]).trim();
   }
-  f.nom_en = f.nom_en || identification.nom_en;
-  f.nom_ja = f.nom_ja || identification.nom_ja || '';
+  // Le nom vient toujours de la légende (1re question) : l'IA ne peut pas le remplacer par un lieu voisin plus connu
+  f.nom_en = String(identification.nom_en || '').trim();
+  f.nom_ja = String(identification.nom_ja || '').trim();
   if (!f.nom_en || !f.description_en) throw erreur_('L\'IA n\'a pas rempli la fiche.', true);
   return f;
 }
