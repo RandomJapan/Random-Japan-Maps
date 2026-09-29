@@ -145,6 +145,7 @@ function traiterLigne_(feuille, col, tache, donnees) {
     const notes = [`🤖 Rempli par le robot (confiance : ${fiche.confiance || '?'}${gps ? `, position : ${gps.source}` : ''}).`];
     if (!gps) notes.push('Position GPS introuvable : colle les coordonnées (clic droit sur le lieu dans Google Maps), sinon le lieu n\'apparaît pas sur la carte.');
     else if (gps.approx) notes.push('Position GPS pas sûre, alors le lieu est caché de la carte : vérifie-la sur Google Maps (corrige-la si besoin), puis mets « Oui » dans Afficher ?.');
+    if (fiche.confiance === 'basse') notes.push('Description à compléter : aucune source ne décrit vraiment ce lieu.');
     if (!fiche.categorie) notes.push('Catégorie à choisir.');
     if (fiche.remarque) notes.push(fiche.remarque);
     mettre(COLONNE_ROBOT, notes.join(' '));
@@ -284,7 +285,7 @@ function chercherCarte_(recherche, id) {
 const CONSIGNES_IDENTIFIER = `You help a robot add places to an interactive map of Japan from the TikTok captions of the travel account @random_japan_place. Reply with a single JSON object and nothing else:
 {"type_video": "lieu_unique" | "compilation" | "pas_un_lieu", "nom_en": string, "nom_ja": string, "prefecture_en": string, "recherche_wikipedia_en": string, "recherche_wikipedia_ja": string, "recherche_carte": string, "remarque": string}
 - type_video: "lieu_unique" when the video is about one specific place (most videos; captions often look like "Udo Inari shrine | Miyazaki 📍"). "compilation" when it shows several places (a top 5, "hotels that…", a season across Japan…). "pas_un_lieu" otherwise.
-- Use your knowledge of Japan to recognise the place even when the caption spelling is unusual. nom_en: the English name travellers use, with clean spelling and capitals ("Kegon Falls", "Himeji Castle", "Udo Inari Shrine"). nom_ja: its official Japanese name if you know it, otherwise "".
+- Use your knowledge of Japan to recognise the place even when the caption spelling is unusual. nom_en: the English name travellers use, with clean spelling and capitals ("Kegon Falls", "Himeji Castle", "Udo Inari Shrine"). nom_ja: its official Japanese name only if you really know it, otherwise "" (never make one up).
 - The place is the one the caption names. When it is a small place next to a more famous one (a small shrine beside a big shrine, a waterfall inside a famous gorge…), keep the small place: never swap it for the famous neighbour.
 - You may also get the Google Maps result for the name written in the caption. The account names its places after Google Maps, so when that result is a precise place (tourist attraction, shrine, park…), it is very likely the right place: use its address (town, island, district) to recognise the place and to write the searches. Words in the name can be place names: "Ibuki" in "Ibuki Tree Art Sculpture" is Ibuki Island (伊吹島), not the ibuki juniper tree.
 - recherche_wikipedia_en: a short query to find its English Wikipedia article (for example "Kegon Falls Nikko"). recherche_wikipedia_ja: the same for Japanese Wikipedia, usually the Japanese name (for example "華厳滝"). recherche_carte: a Japanese Google Maps query with name, municipality and prefecture (for example "華厳滝 栃木県日光市"). All three look for the place the caption names.
@@ -297,8 +298,8 @@ const CONSIGNES_REDIGER = `You write one entry of an interactive map of Japan th
 - nom_fr: the French name of the given place in the map's style ("Sanctuaire Udo Inari", "Temple Nanzoin", "Cascade de Kegon", "Château de Himeji", "Lac Tazawa"; famous Japanese names such as "Kinkaku-ji" stay as they are).
 - categorie: exactly one key from the allowed categories.
 - description_en, description_fr, description_ja: the same 2 or 3 sentences in each language, factual and warm, in a travel-guide tone, written in your own words (never copy sentences from the sources). Start with where it is (town, prefecture), then what makes it special. Natural Japanese in です/ます style. Example: "Located in Kami Town, Hyogo Prefecture, Choraku-ji is a temple famously home to the Tajima Daibutsu: three monumental golden Buddha statues set within a vast main hall. Surrounded by tranquil mountain scenery, the complex also features a tall wooden five-story pagoda and thousands of smaller gilded Buddhist figures along its walls."
-- Only use facts from the search results or facts you are certain of. If the results say little, write a shorter description rather than guessing.
-- confiance: "haute" when a search result is exactly this place and agrees with the caption, "moyenne" when fairly sure, "basse" when the results were about other places and you relied on the caption.
+- Only use facts from the search results or facts you are certain of. When no search result describes the place itself (only its town, island or a neighbour), do not invent what it looks like, what it is made of or its history: in 2 short sentences, say where it is and what kind of place the caption says it is.
+- confiance: "haute" only when a search result describes this exact place, "moyenne" when you are fairly sure of the description, "basse" when no source describes the place itself.
 - remarque: one short sentence in French for the channel owner when something is uncertain, otherwise "".`;
 
 function identifierLieu_(video, carteLegende) {
