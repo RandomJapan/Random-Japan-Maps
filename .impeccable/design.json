@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-29T22:30:00Z",
+  "title": "Design System: Random Japan Place",
+  "extensions": {
+    "colorMeta": {
+      "prussian-sea": { "role": "neutral", "displayName": "Prussian Sea" },
+      "aizome-indigo": { "role": "neutral", "displayName": "Aizome Indigo" },
+      "kinari-paper": { "role": "neutral", "displayName": "Kinari Paper" },
+      "sumi-ink": { "role": "neutral", "displayName": "Sumi Ink" },
+      "shu-vermilion": { "role": "primary", "displayName": "Shu Vermilion" },
+      "yamabuki-gold": { "role": "secondary", "displayName": "Yamabuki Gold" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Place name on the card (Zen Antique, Meiji letterpress)." },
+      "title": { "displayName": "Title", "purpose": "Site name and dice panel title." },
+      "body": { "displayName": "Body", "purpose": "Place descriptions, max 65ch." },
+      "label": { "displayName": "Label", "purpose": "Buttons, menu rows, form labels; sentence case." }
+    },
+    "shadows": [
+      { "name": "panel", "value": "0 6px 18px rgba(4, 10, 24, 0.45)", "purpose": "Every floating panel and button." },
+      { "name": "sheet", "value": "0 18px 50px rgba(4, 10, 24, 0.6)", "purpose": "The place card." },
+      { "name": "crest", "value": "0 3px 8px rgba(4, 10, 24, 0.5)", "purpose": "Place markers." }
+    ],
+    "motion": [
+      { "name": "ease-print", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Card slide, menus, the cartouche unrolling." },
+      { "name": "cartouche-unroll", "value": "clip-path inset 100% → 0, 0.6s, delay 0.15s", "purpose": "Signature moment when a place opens." }
+    ],
+    "breakpoints": [ { "name": "phone", "value": "720px" } ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Actions only: Watch on TikTok, Roll the dice.",
+      "html": "<button class=\"ds-btn-primary\">Voir sur TikTok</button>",
+      "css": ".ds-btn-primary { background: #b83523; color: #f1e8d6; border: 1px solid #b83523; border-radius: 4px; padding: 8px 12px; font: 600 13.5px 'Noto Sans', sans-serif; transition: background .2s; } .ds-btn-primary:hover { background: #a42d1d; border-color: #a42d1d; } .ds-btn-primary:focus-visible { outline: 2px solid #e3b04b; outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Other actions (Directions).",
+      "html": "<button class=\"ds-btn-secondary\">Itinéraire</button>",
+      "css": ".ds-btn-secondary { background: #21345a; color: #f1e8d6; border: 1px solid #33486e; border-radius: 4px; padding: 8px 12px; font: 500 13.5px 'Noto Sans', sans-serif; transition: border-color .2s; } .ds-btn-secondary:hover { border-color: #8d9bb6; } .ds-btn-secondary:focus-visible { outline: 2px solid #e3b04b; outline-offset: 2px; }"
+    },
+    {
+      "name": "Title Cartouche",
+      "kind": "custom",
+      "refersTo": "cartouche",
+      "description": "Japanese place name set vertically on paper over the photo, like a print's title block.",
+      "html": "<span class=\"ds-cartouche\" lang=\"ja\">姫路城</span>",
+      "css": ".ds-cartouche { display: inline-block; writing-mode: vertical-rl; text-orientation: upright; font: 20px/1 'Zen Antique', serif; letter-spacing: .14em; color: #1d1a1c; background: #f1e8d6; padding: 12px 8px 10px; outline: 1px solid #1d1a1c; outline-offset: -4px; box-shadow: 0 4px 12px rgba(4,10,24,.4); }"
+    },
+    {
+      "name": "Place Crest",
+      "kind": "custom",
+      "refersTo": "panel",
+      "description": "Map marker: category colour softened toward indigo, paper ring.",
+      "html": "<span class=\"ds-crest\" style=\"--c:#D63A2F\"></span>",
+      "css": ".ds-crest { display: inline-block; width: 32px; height: 32px; border-radius: 50%; background: color-mix(in oklab, var(--c) 82%, #1b2238); border: 2px solid #f1e8d6; box-shadow: 0 3px 8px rgba(4,10,24,.5); }"
+    },
+    {
+      "name": "Search Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Search in the categories panel.",
+      "html": "<input class=\"ds-input\" placeholder=\"Chercher un lieu…\">",
+      "css": ".ds-input { background: #21345a; color: #f1e8d6; border: 1px solid #33486e; border-radius: 4px; padding: 10px 12px; font: 15px 'Noto Sans', sans-serif; caret-color: #e3b04b; } .ds-input::placeholder { color: #8d9bb6; } .ds-input:focus { outline: none; border-color: #8d9bb6; }"
+    },
+    {
+      "name": "Map Label",
+      "kind": "chip",
+      "refersTo": "map-label",
+      "description": "Place name on hover and for the selected place.",
+      "html": "<span class=\"ds-label\">Château de Himeji</span>",
+      "css": ".ds-label { background: #f1e8d6; color: #1d1a1c; border-radius: 2px; padding: 4px 9px; font: 600 12.5px 'Noto Sans', sans-serif; box-shadow: 0 2px 6px rgba(4,10,24,.4); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Meisho: the famous views",
+    "overview": "The map is a woodblock print of Japan, in the spirit of Hiroshige's series of \"famous places\" (meisho). Every place from the TikToks is one of those views. The sea is Prussian blue. The land is inked in the pigments of a print (sage, ochre, brown, white peaks) with indigo shadows, and the sky fades from deep indigo to a pale ochre horizon. The interface is cloth and paper: panels of indigo-dyed cotton (aizome), labels and title cartouches of ecru paper in sumi ink. Vermilion (shu) is reserved for the things you do.",
+    "keyCharacteristics": [
+      "Prussian-blue sea, print-pigment relief, bokashi sky and a bokashi band at the top of the screen",
+      "Flat indigo panels, no blur or glass",
+      "Near-square corners (2–6px): paper and cloth, not pills",
+      "Places drawn as kamon-like crests; from far away, small coloured dots",
+      "The place title shown as a vertical Japanese cartouche on the photo"
+    ],
+    "rules": [
+      { "name": "The Vermilion Is a Verb Rule", "body": "Vermilion only marks something the visitor can do or has chosen. Never use it as decoration.", "section": "colors" },
+      { "name": "The Sheet Owns the Hues Rule", "body": "Category colours come from the owner's Google Sheet. The site softens each one toward indigo so any colour the owner picks sits in the print. Do not hard-code category colours.", "section": "colors" },
+      { "name": "The Letterpress Is for Names Rule", "body": "Zen Antique only sets names and titles. Buttons, labels, counts and reading text are always Noto Sans.", "section": "typography" },
+      { "name": "The No Glass Rule", "body": "No backdrop-filter anywhere. It is recomputed every frame while the map moves and made phones stutter; panels are solid indigo cloth.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep panels solid Aizome Indigo (#16243d) with a 1px Indigo Thread border.",
+      "Do set place names and titles in Zen Antique, and everything else in Noto Sans.",
+      "Do put text on paper (#f1e8d6) in Sumi Ink (#1d1a1c).",
+      "Do use Shu Vermilion (#b83523) only for actions and chosen states.",
+      "Do show category and prefecture on a line under the place name."
+    ],
+    "donts": [
+      "Don't use backdrop-filter, glass or blur on panels.",
+      "Don't put a category label or kicker above a heading.",
+      "Don't use pill shapes (999px radius) or uppercase tracked labels.",
+      "Don't use teardrop map pins.",
+      "Don't use bright saturated category colours unsoftened; always pass them through the indigo mix."
+    ]
+  }
+}

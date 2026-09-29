@@ -17,11 +17,15 @@ const SVG = {
   tiktok: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M16.6 3c.4 2.1 1.8 3.6 4 3.9v3.2c-1.5 0-2.9-.4-4-1.2v6.3a6 6 0 1 1-6-6h.6v3.3a2.8 2.8 0 1 0 2.2 2.7V3Z"/></svg>',
   route: '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5" fill="currentColor"/></svg>',
   lien: '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M10 14a4 4 0 0 0 5.7 0l3.5-3.5a4 4 0 0 0-5.7-5.7L12 6.3M14 10a4 4 0 0 0-5.7 0l-3.5 3.5a4 4 0 0 0 5.7 5.7l1.5-1.5"/></svg>',
+  sortie: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M14 5h5v5M19 5l-8 8M17 14v4a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1h4"/></svg>',
   partager: '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 3v12M7.5 7.5 12 3l4.5 4.5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>',
   de: '<svg class="de" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.6" fill="currentColor"/></svg>',
   chevron: '<svg class="chevron-cat" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>',
 };
-const PALETTE = ['#e5483b', '#8e24aa', '#1e88e5', '#43a047', '#fb8c00', '#00acc1', '#6d4c41', '#d81b60', '#5e35b1', '#7cb342'];
+// Couleurs de secours (catégorie inconnue de l'onglet Catégories) : les pigments des estampes
+const PALETTE = ['#c23b27', '#3b5b92', '#5f7f3a', '#c8912a', '#7b4a8c', '#2f7d7a', '#8a5a3b', '#b3486b', '#4a5d7e', '#6f8f3e'];
+// En dessous de ce zoom (tout le Japon), les lieux sont de petits points : on voit le relief
+const ZOOM_POINTS = 6.2;
 
 // ---------------------------------------------------------------- Langue
 const LANGUES = ['en', 'fr', 'ja'];
@@ -239,21 +243,22 @@ const map = new maplibregl.Map({
           // paliers serrés autour de 0 (±0,02 m), la mer y tombait dans le vert des terres sous
           // le niveau de la mer. D'où une marge d'environ 1 m autour de 0 (pas plus : les polders
           // comme Hachirōgata, à -4 m, doivent rester verts).
+          // Couleurs d'estampe : vert sauge des plaines, ocre des collines, brun des montagnes, blanc des sommets.
           'color-relief-color': [
             'interpolate', ['linear'], ['elevation'],
-            -2.5, '#2f7d5c',
+            -2.5, '#84a06d',
             -1.2, MER,
             0.6, MER,
-            2, '#1d6d74',
-            30, '#23806a',
-            120, '#3d9255',
-            300, '#76a346',
-            600, '#b1ab4c',
-            1000, '#c08d4a',
-            1600, '#94603a',
-            2300, '#6f4b37',
-            2900, '#a99a8b',
-            3500, '#f4f1ec',
+            2, '#78966a',
+            30, '#83a26b',
+            120, '#97ad66',
+            300, '#b3ac60',
+            600, '#c9a057',
+            1000, '#ad7c4d',
+            1600, '#7e5c45',
+            2300, '#5e4f4b',
+            2900, '#a29c94',
+            3500, '#f3eee2',
           ],
         },
       },
@@ -265,9 +270,10 @@ const map = new maplibregl.Map({
           'hillshade-exaggeration': 0.6,
           'hillshade-illumination-anchor': 'map',
           'hillshade-illumination-direction': 315,
-          'hillshade-shadow-color': 'rgba(8, 14, 20, 0.85)',
-          'hillshade-highlight-color': 'rgba(255, 246, 225, 0.35)',
-          'hillshade-accent-color': 'rgba(40, 28, 18, 0.5)',
+          // ombres à l'indigo, lumières couleur papier, comme les encres d'une estampe
+          'hillshade-shadow-color': 'rgba(16, 28, 56, 0.76)',
+          'hillshade-highlight-color': 'rgba(255, 244, 218, 0.32)',
+          'hillshade-accent-color': 'rgba(64, 42, 30, 0.45)',
         },
       },
       { id: 'voisins', type: 'fill', source: 'voisins', paint: { 'fill-color': MER } },
@@ -283,13 +289,14 @@ const map = new maplibregl.Map({
       },
     ],
     terrain: { source: 'relief', exaggeration: exageration(vueDepart().zoom) },
+    // Ciel en dégradé « bokashi » : indigo en haut, ocre pâle à l'horizon, terres lointaines voilées de bleu
     sky: {
       'sky-color': CONFIG.couleurs.ciel,
-      'horizon-color': '#24405a',
-      'fog-color': MER,
-      'fog-ground-blend': 0.25,
-      'horizon-fog-blend': 0.8,
-      'sky-horizon-blend': 0.7,
+      'horizon-color': CONFIG.couleurs.horizon,
+      'fog-color': CONFIG.couleurs.brume,
+      'fog-ground-blend': 0.35,
+      'horizon-fog-blend': 0.6,
+      'sky-horizon-blend': 0.85,
       'atmosphere-blend': 0,
     },
   },
@@ -301,6 +308,7 @@ window.carte = map; // pratique pour inspecter la carte depuis la console du nav
 // Hauteur du relief et taille des épingles selon le zoom
 let exagActuelle = null;
 let tailleActuelle = null;
+let vueLointaine = null; // tout le Japon à l'écran : les lieux sont de petits points
 
 /**
  * Change la hauteur du relief. map.setTerrain() détruit et reconstruit tout le relief 3D (maillages,
@@ -342,6 +350,11 @@ function majSelonZoom() {
     tailleActuelle = taille;
     map.getContainer().style.setProperty('--t', String(taille));
   }
+  const loin = z < ZOOM_POINTS;
+  if (loin !== vueLointaine) {
+    vueLointaine = loin;
+    map.getContainer().classList.toggle('loin', loin);
+  }
 }
 map.on('zoom', majSelonZoom);
 
@@ -356,7 +369,13 @@ function tourner(temps) {
 }
 function arreterRotation() {
   rotation = false;
+  cacherAide();
+}
+
+/** Le petit mot d'accueil n'apparaît qu'à la première visite : on s'en souvient dès qu'il disparaît. */
+function cacherAide() {
   $('aide').classList.add('cachee');
+  try { localStorage.setItem('aideVue', '1'); } catch { /* pas grave */ }
 }
 for (const ev of ['mousedown', 'touchstart', 'wheel']) {
   map.getCanvasContainer().addEventListener(ev, arreterRotation, { passive: true });
@@ -648,13 +667,22 @@ function fermerFiche() {
   map.easeTo({ padding: { top: 0, bottom: 0, left: 0, right: 0 }, duration: 500 });
 }
 
-async function remplirFiche(l) {
+/** Catégorie et préfecture sous le nom : « Châteaux · Hyōgo ». La préfecture arrive dès que les contours sont chargés. */
+function remplirInfos(l) {
   const c = l.cat;
-  $('fiche-categorie').innerHTML = `<span class="pastille" style="--c:${c.couleur}">${iconeHTML(c.icone)}</span><span>${esc(enLangue(c.nom))}</span>`;
+  const pref = l.prefecture ? ` · ${esc(enLangue(PREFECTURES[l.prefecture]))}` : '';
+  $('fiche-categorie').innerHTML = `<span class="pastille" style="--c:${c.couleur}">${iconeHTML(c.icone)}</span><span>${esc(enLangue(c.nom))}${pref}</span>`;
+  if (!l.prefecture) {
+    preparerPrefectures().then(() => { if (lieuActif === l && l.prefecture) remplirInfos(l); }).catch(() => {});
+  }
+}
+
+async function remplirFiche(l) {
   const nom = enLangue(l.nom);
   $('fiche-nom').textContent = nom;
-  const second = langue === 'ja' ? l.nom.en : l.nom.ja;
-  $('fiche-nom-jp').textContent = second && second !== nom ? second : '';
+  // Le nom japonais est dans le cartouche de la photo ; en japonais, on rappelle le nom anglais sous le titre.
+  $('fiche-nom-jp').textContent = langue === 'ja' && l.nom.en !== nom ? l.nom.en : '';
+  remplirInfos(l);
   $('fiche-description').textContent = enLangue(l.description);
 
   // Photo + bouton pour lire la vidéo TikTok directement dans la fiche
@@ -670,15 +698,32 @@ async function remplirFiche(l) {
   vignette.addEventListener('click', () => lancerVideo(video));
   media.append(vignette);
 
-  // Boutons (avant d'attendre la photo : sinon un lieu ouvert juste avant pourrait écrire ses boutons après)
+  // Cartouche de titre, comme sur une estampe : le nom japonais écrit de haut en bas
+  if (l.nom.ja) {
+    const cartouche = document.createElement('span');
+    cartouche.className = 'cartouche';
+    cartouche.lang = 'ja';
+    cartouche.textContent = l.nom.ja;
+    const n = [...l.nom.ja].length;
+    if (n > 6) cartouche.style.fontSize = `${n <= 8 ? 16 : n <= 10 ? 14 : 12}px`;
+    if (langue === 'ja') cartouche.setAttribute('aria-hidden', 'true'); // déjà le titre de la fiche
+    media.append(cartouche);
+  }
+
+  // Boutons (avant d'attendre la photo : sinon un lieu ouvert juste avant pourrait écrire ses boutons après).
+  // Deux boutons seulement, pour tenir sur une ligne ; partager est une icône sur la photo, « Plus d'infos » un lien après le texte.
   const boutons = [];
   if (l.tiktok) boutons.push(`<a class="principal" href="${esc(l.tiktok)}" target="_blank" rel="noopener">${SVG.tiktok}${esc(t('voirTiktok'))}</a>`);
   boutons.push(`<a href="https://www.google.com/maps/dir/?api=1&destination=${l.lat},${l.lng}" target="_blank" rel="noopener">${SVG.route}${esc(t('itineraire'))}</a>`);
-  if (/^https?:\/\//.test(l.autreLien)) boutons.push(`<a href="${esc(l.autreLien)}" target="_blank" rel="noopener">${SVG.lien}${esc(t('autreLien'))}</a>`);
-  const partage = navigator.share && estTelephone();
-  boutons.push(`<button type="button" id="btn-partager">${partage ? SVG.partager : SVG.lien}${esc(t(partage ? 'partager' : 'copierLien'))}</button>`);
   $('fiche-boutons').innerHTML = boutons.join('');
-  $('btn-partager').addEventListener('click', () => partager(l, partage));
+  $('fiche-plus').innerHTML = /^https?:\/\//.test(l.autreLien)
+    ? `<a href="${esc(l.autreLien)}" target="_blank" rel="noopener">${esc(t('autreLien'))} ${SVG.sortie}</a>` : '';
+  const partage = navigator.share && estTelephone();
+  const btnPartager = $('fiche-partager');
+  btnPartager.innerHTML = partage ? SVG.partager : SVG.lien;
+  btnPartager.title = t(partage ? 'partager' : 'copierLien');
+  btnPartager.setAttribute('aria-label', btnPartager.title);
+  btnPartager.onclick = () => partager(l, partage);
   // Fiche ouverte par le dé : bouton « Un autre » en haut de la photo, pour relancer d'un doigt
   $('fiche-autre').hidden = !tirageActif;
   $('txt-autre').textContent = t('unAutre');
@@ -790,7 +835,7 @@ function appliquerLangue() {
   $('btn-recentrer').setAttribute('aria-label', t('recentrer'));
   $('fiche-fermer').setAttribute('aria-label', t('fermer'));
   $('txt-chargement').textContent = t('chargement');
-  $('aide').textContent = t('aide');
+  $('aide').textContent = t(estTelephone() ? 'aideTel' : 'aide');
   $('lien-profil').title = t('suivre');
   $('txt-hasard').textContent = t('hasard');
   $('hasard-titre').textContent = t('hasardTitre');
@@ -855,7 +900,10 @@ function brancherBoutons() {
     else fermerFiche();
   });
   window.addEventListener('hashchange', ouvrirDepuisAdresse);
-  setTimeout(() => $('aide').classList.add('cachee'), 9000);
+  let aideVue = false;
+  try { aideVue = localStorage.getItem('aideVue') === '1'; } catch { /* pas grave */ }
+  if (aideVue || location.hash.length > 1) $('aide').classList.add('cachee');
+  else setTimeout(cacherAide, 10000);
 }
 
 async function demarrer() {

@@ -78,6 +78,22 @@ The TikTok embedded player shows "Player error" in headless Edge (codec issue). 
 - If the `Photo` cell is empty, the card uses the TikTok oEmbed thumbnail. The video is the TikTok `player/v1/{id}` iframe, loaded on demand.
 - All UI strings are in `TEXTES` (en/fr/ja) in `config.js`. `config.js` is also the only settings file meant for hand editing.
 
+### Visual design ("Estampe", the ukiyo-e print world)
+
+The owner chose this world on 2026-09-29. **`DESIGN.md` is the design system**: read it before any visual change. `PRODUCT.md` holds the product context. `.impeccable/brief-carte.md` holds the direction contract; it is dev-only and must never be copied into `site/`.
+
+The redesign was done with the Impeccable skill (`~/.claude/skills/impeccable`, installed without its binary launcher or hooks). The key mechanics:
+- **Palette.** Map inks (the relief ramp, hillshade colours, sky/horizon/fog) live in `app.js` and in `CONFIG.couleurs`. UI tokens are CSS vars in `style.css` (`--ai`, `--kinari`, `--sumi`, `--shu`, `--yamabuki`).
+- **Category colours.** They come from the Sheet and are softened toward indigo in CSS with `color-mix(in oklab, var(--c) 82%, #1b2238)`, both for markers and for `.pastille`.
+- **Far view.** Below zoom `ZOOM_POINTS` (6.2), `majSelonZoom` adds `.loin` on the map container, and markers turn into 11px dots so the relief shows.
+- **Place card.**
+  - The Japanese name is a vertical `.cartouche` over the photo. It is appended to `#fiche-media`, so it disappears when the video plays.
+  - Category · prefecture sits under the title. The prefecture fills in asynchronously via `preparerPrefectures()`.
+  - Share is an icon button on the photo (`#fiche-partager`), and "More info" is a link after the description (`#fiche-plus`). That leaves two action buttons, which fit on one line.
+- **First-visit hint.** `#aide` shows `aideTel` on phones and `aide` on desktop. It is shown once: a `localStorage` flag (`aideVue`) is set when it hides.
+- **Phone camera.** The start-up camera is rotated (`orientation: 38`) so Japan stands upright on the tall screen.
+- **`.bokashi`.** A fixed top gradient band that echoes the print sky. It is static and cheap.
+
 ### Random place (the dice)
 
 The "Au hasard" button opens `#panneau-hasard`: a region `<select>` (all Japan, 8 regions with `optgroup`s, or one prefecture), a type `<select>` (categories) and a roll button.
@@ -146,6 +162,6 @@ These scripts built the initial Sheet:
 
 - Photos hosted by Google My Maps cannot be shown cross-site (CORP), so they are kept as local files in `site/photos/`.
 - `color-relief` palette: many mobile GPUs read the filtered DEM texture as float16, so the sea (exactly 0 m) decodes to about −0.5 m. The palette stops are read exactly, though. So never put stops within about 1 m of 0: stops at ±0.02 m once turned the whole sea green on phones. Headless Edge screenshots (SwiftShader) cannot catch this, because they decode exactly.
-- Noto Sans JP renders `ō`/`ū` with a misplaced macron. `--police` therefore lists `Noto Sans` first for Latin text.
+- Noto Sans JP renders `ō`/`ū` with a misplaced macron. `--police` therefore lists `Noto Sans` first for Latin text. The display face Zen Antique (`--police-titre`) renders them correctly.
 - The live site is https://randomjapan.github.io/Random-Japan-Maps/ (repo `RandomJapan/Random-Japan-Maps`, Pages build type "workflow"). `og:url` and `og:image` in `index.html` are absolute URLs to that address: update them if the address changes.
 - Commit as `RandomJapan <334664814+RandomJapan@users.noreply.github.com>` (already set in the repo's local git config) so the owner's personal email never lands in public history.

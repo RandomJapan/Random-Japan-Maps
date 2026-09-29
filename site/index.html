@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Random Japan Place · 3D Map of Japan</title>
   <meta name="description" content="Every place from the Random Japan Place TikToks on an interactive 3D map of Japan: shrines, temples, castles, mountains, waterfalls and more.">
-  <meta name="theme-color" content="#0c1823">
+  <meta name="theme-color" content="#16243d">
   <meta property="og:title" content="Random Japan Place · 3D Map of Japan">
   <meta property="og:description" content="Every place from my TikToks on an interactive 3D map of Japan.">
   <meta property="og:type" content="website">
@@ -18,12 +18,13 @@
   <link rel="apple-touch-icon" href="img/icone-180.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;700&family=Noto+Sans+JP:wght@400;500;700&family=Shippori+Mincho+B1:wght@600;800&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&family=Zen+Antique&display=swap">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@6.11.2/dist/maplibre-gl.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div id="carte" aria-label="3D map of Japan"></div>
+  <div class="bokashi" aria-hidden="true"></div>
 
   <header class="entete panneau">
     <a class="marque" id="lien-profil" target="_blank" rel="noopener">
@@ -104,17 +105,19 @@
       <svg class="de" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.6" fill="currentColor"/></svg>
       <span id="txt-autre"></span>
     </button>
+    <button type="button" class="fiche-partager" id="fiche-partager"></button>
     <button type="button" class="fiche-fermer" id="fiche-fermer">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M6 6l12 12M18 6 6 18"/></svg>
     </button>
     <div class="fiche-defil" id="fiche-defil">
       <div class="fiche-media" id="fiche-media"></div>
       <div class="fiche-corps">
-        <div class="fiche-categorie" id="fiche-categorie"></div>
         <h2 class="fiche-nom" id="fiche-nom"></h2>
         <p class="fiche-nom-jp" id="fiche-nom-jp"></p>
-        <p class="fiche-description" id="fiche-description"></p>
+        <p class="fiche-categorie" id="fiche-categorie"></p>
         <div class="fiche-boutons" id="fiche-boutons"></div>
+        <p class="fiche-description" id="fiche-description"></p>
+        <p class="fiche-plus" id="fiche-plus"></p>
       </div>
     </div>
   </aside>

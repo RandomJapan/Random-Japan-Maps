@@ -24,8 +24,10 @@ export const CONFIG = {
   // --- Caméra au démarrage -------------------------------------------
   camera: {
     ordinateur: { centre: [137.3, 36.7], zoom: 5.05, inclinaison: 52, orientation: -45 },
-    telephone: { centre: [136.0, 35.6], zoom: 4.0, inclinaison: 42, orientation: -12 },
-    // centre = [longitude, latitude] ; inclinaison : 0 = vu du dessus, 70 = presque à l'horizontale
+    // Sur téléphone, le Japon est tourné pour tenir debout dans l'écran (du Kyūshū en bas à Hokkaidō en haut)
+    telephone: { centre: [137.6, 37.3], zoom: 4.5, inclinaison: 40, orientation: 38 },
+    // centre = [longitude, latitude] ; inclinaison : 0 = vu du dessus, 70 = presque à l'horizontale ;
+    // orientation : direction de la boussole en haut de l'écran (0 = le nord)
     tourneToutSeul: true, // la carte tourne doucement au démarrage
     vitesseRotation: 2, // degrés par seconde
   },
@@ -42,10 +44,12 @@ export const CONFIG = {
     [12, 1.5],
   ],
 
-  // --- Couleurs --------------------------------------------------------
+  // --- Couleurs (celles d'une estampe japonaise) -------------------------
   couleurs: {
-    mer: '#0c1823',
-    ciel: '#1d3244',
+    mer: '#15355a', // bleu de Prusse des estampes d'Hiroshige et d'Hokusai
+    ciel: '#0e2140', // haut du ciel : indigo profond…
+    horizon: '#d9c59c', // …qui se fond en ocre pâle à l'horizon (dégradé « bokashi »)
+    brume: '#6f8aa0', // voile bleuté sur les terres lointaines
   },
 };
 
@@ -75,7 +79,8 @@ export const TEXTES = {
     fermer: 'Close',
     chargement: 'Loading the map…',
     suivre: 'Follow on TikTok',
-    aide: 'Drag to move · Right-click or 2 fingers to rotate & tilt',
+    aide: 'Click a place to watch its video · Right-click to rotate & tilt',
+    aideTel: 'Tap a place to watch its video',
     hasard: 'Random',
     hasardTitre: 'Let the dice pick your next place',
     region: 'Region',
@@ -110,7 +115,8 @@ export const TEXTES = {
     fermer: 'Fermer',
     chargement: 'Chargement de la carte…',
     suivre: 'Suivre sur TikTok',
-    aide: 'Glisser pour bouger · Clic droit ou 2 doigts pour tourner et incliner',
+    aide: 'Clique sur un lieu pour voir sa vidéo · Clic droit pour tourner et incliner',
+    aideTel: 'Touche un lieu pour voir sa vidéo',
     hasard: 'Au hasard',
     hasardTitre: 'Laisse le dé choisir ton prochain lieu',
     region: 'Région',
@@ -145,7 +151,8 @@ export const TEXTES = {
     fermer: '閉じる',
     chargement: '地図を読み込み中…',
     suivre: 'TikTokをフォロー',
-    aide: 'ドラッグで移動・右クリックまたは2本指で回転と傾き',
+    aide: '場所をクリックして動画を見よう・右クリックで回転と傾き',
+    aideTel: '場所をタップして動画を見よう',
     hasard: 'ランダム',
     hasardTitre: 'サイコロで次の行き先を決めよう',
     region: '地域',
