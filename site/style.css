@@ -1,59 +1,71 @@
 /* ================================================================
-   Apparence du site : une estampe japonaise (ukiyo-e), comme les
-   « lieux célèbres » d'Hiroshige. Panneaux en coton teint à l'indigo,
-   papier écru, encre sumi, vermillon pour les actions.
+   Apparence du site : une vieille carte du Japon en relief.
+   Mer turquoise passée, relief sépia, papier vieilli ; panneaux en
+   parchemin cerclés d'un double filet d'encre ; rouge de cartographe
+   pour les actions.
    ================================================================ */
 :root {
-  --ai: #16243d;          /* indigo teint (aizome) : les panneaux */
-  --ai-clair: #21345a;    /* champs, survol */
-  --ai-bord: #33486e;     /* traits des panneaux */
-  --kinari: #f1e8d6;      /* papier écru : texte principal, cartouches */
-  --texte-2: #b9c3d6;     /* texte secondaire, teinté d'indigo */
-  --texte-3: #8d9bb6;
-  --sumi: #1d1a1c;        /* encre noire */
-  --shu: #b83523;         /* vermillon : les actions (texte écru lisible dessus : contraste 4,8) */
-  --shu-survol: #a42d1d;
-  --yamabuki: #e3b04b;    /* jaune d'or des estampes : lieu choisi, nom en second */
-  --ombre: 0 6px 18px rgba(4, 10, 24, 0.45);
-  --rayon: 4px;
+  --papier: #efe4c8;        /* parchemin : panneaux, fiche */
+  --papier-clair: #f6eedb;  /* papier neuf : anneau des blasons, texte sur le rouge */
+  --papier-fonce: #e4d5b1;  /* champs, survol */
+  --trait: #8a6b45;         /* filets d'encre des panneaux */
+  --encre: #35251a;         /* encre sépia : texte principal */
+  --encre-2: #5b432d;       /* texte secondaire */
+  --encre-3: #6e533a;       /* texte discret (contraste ≥ 4,5 même sur --papier-fonce) */
+  --rouge: #a8321f;         /* rouge de cartographe : les actions (texte papier dessus : contraste 5,8) */
+  --rouge-survol: #8f2716;
+  --sarcelle: #1d5652;      /* encre bleu-vert : focus, liens, nom anglais en japonais */
+  --mer: #8fbab2;
+  --ombre: 0 4px 14px rgba(52, 36, 18, 0.28);
+  --filet: inset 0 0 0 3px var(--papier), inset 0 0 0 4px rgba(138, 107, 69, 0.5); /* double filet des cartouches */
+  --rayon: 2px;
   /* Noto Sans d'abord : Noto Sans JP dessine mal ō / ū (trait décalé) ; le japonais passe à Noto Sans JP */
   --police: "Noto Sans", "Noto Sans JP", system-ui, -apple-system, "Segoe UI", sans-serif;
   /* Zen Antique : caractères d'imprimerie japonaise de l'ère Meiji (latin et japonais) */
   --police-titre: "Zen Antique", "Noto Serif JP", Georgia, serif;
+  /* IM Fell : les caractères des imprimeurs du XVIIe siècle, pour les écritures de la carte */
+  --police-carte: "IM Fell English", "Zen Antique", Georgia, serif;
   --haut: max(12px, env(safe-area-inset-top));
   --bas: max(12px, env(safe-area-inset-bottom));
   --largeur-fiche: 400px;
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  /* Grain du papier (petit motif répété) et grandes taches de vieillissement */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .33 0 0 0 0 .22 0 0 0 0 .11 .6 0 0 0 -.26'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  --taches: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='900'%3E%3Cfilter id='t'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.005' numOctaves='4' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .3 0 0 0 0 .12 .8 0 0 0 -.34'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23t)'/%3E%3C/svg%3E");
 }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
 body {
-  background: var(--ai);
-  color: var(--kinari);
+  background: var(--mer);
+  color: var(--encre);
   font-family: var(--police);
   font-size: 15px;
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
 }
-::selection { background: var(--yamabuki); color: var(--sumi); }
+::selection { background: var(--sarcelle); color: var(--papier-clair); }
 button { font: inherit; color: inherit; cursor: pointer; }
 svg { display: block; }
 [hidden] { display: none !important; }
-:focus-visible { outline: 2px solid var(--yamabuki); outline-offset: 2px; }
+:focus-visible { outline: 2px solid var(--sarcelle); outline-offset: 2px; }
 
 #carte { position: fixed; inset: 0; }
 
-/* Bande de dégradé en haut de l'écran, comme l'« ichimonji bokashi » en haut du ciel des estampes */
-.bokashi {
-  position: fixed; top: 0; left: 0; right: 0; height: 190px; z-index: 1; pointer-events: none;
-  background: linear-gradient(to bottom, rgba(8, 20, 44, 0.9) 0%, rgba(12, 30, 60, 0.5) 42%, rgba(21, 53, 90, 0) 100%);
+/* Papier vieilli posé sur toute la carte (app.js le glisse sous les lieux) : bords brunis, taches, grain.
+   Une image fixe, sans flou ni mélange de couleurs : rien n'est recalculé quand la carte bouge. */
+.papier {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 82% 78% at 50% 50%, rgba(92, 60, 28, 0) 56%, rgba(92, 60, 28, 0.34) 100%),
+    var(--taches) center / cover,
+    var(--grain) 0 0 / 240px 240px;
 }
 
-/* Panneau en coton indigo : plein, sans flou (le flou coûte cher quand la carte bouge) */
+/* Panneau en parchemin : plein, sans flou (le flou coûte cher quand la carte bouge) */
 .panneau {
-  background: var(--ai);
-  border: 1px solid var(--ai-bord);
+  background: var(--grain) 0 0 / 240px 240px, var(--papier);
+  border: 1px solid var(--trait);
   border-radius: var(--rayon);
   box-shadow: var(--ombre);
 }
@@ -65,11 +77,11 @@ svg { display: block; }
   max-width: calc(100vw - 24px - 150px);
 }
 .marque { display: flex; align-items: center; gap: 10px; color: inherit; text-decoration: none; }
-.logo { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex: none; border: 2px solid var(--kinari); background: var(--ai-clair); }
+.logo { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex: none; border: 1.5px solid var(--encre); background: var(--papier-fonce); }
 .logo[src=""], .logo:not([src]) { display: none; }
 .marque-textes { display: flex; flex-direction: column; min-width: 0; }
 .titre { font-family: var(--police-titre); font-size: 19px; letter-spacing: 0.01em; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.sous-titre { font-size: 12px; color: var(--texte-2); line-height: 1.35; }
+.sous-titre { font-size: 12px; color: var(--encre-2); line-height: 1.35; }
 
 /* ---------- Langues ---------- */
 .langues {
@@ -78,10 +90,10 @@ svg { display: block; }
 }
 .langues button {
   border: 0; background: transparent; padding: 7px 10px; border-radius: 2px;
-  font-size: 13px; font-weight: 500; color: var(--texte-2); transition: background .2s, color .2s;
+  font-size: 13px; font-weight: 500; color: var(--encre-2); transition: background .2s, color .2s;
 }
-.langues button:hover { color: var(--kinari); background: var(--ai-clair); }
-.langues button[aria-pressed="true"] { background: var(--shu); color: var(--kinari); }
+.langues button:hover { color: var(--encre); background: var(--papier-fonce); }
+.langues button[aria-pressed="true"] { background: var(--rouge); color: var(--papier-clair); }
 
 /* ---------- Boutons Catégories / Au hasard ---------- */
 .filtres { position: fixed; top: calc(var(--haut) + 64px); left: 12px; z-index: 6; width: min(340px, calc(100vw - 24px)); }
@@ -89,67 +101,68 @@ svg { display: block; }
   display: flex; align-items: center; gap: 8px; padding: 9px 13px;
   font-weight: 500; font-size: 14px; transition: background .2s;
 }
-.bouton-categories:hover { background: var(--ai-clair); }
+.bouton-categories:hover { background-color: var(--papier-fonce); }
 .bouton-categories > svg { width: 18px; height: 18px; }
 .bouton-categories .chevron { transition: transform .25s var(--ease); opacity: .7; }
 .bouton-categories[aria-expanded="true"] .chevron { transform: rotate(180deg); }
-.compteur { background: var(--ai-clair); color: var(--texte-2); padding: 1px 7px; border-radius: 2px; font-size: 12px; font-variant-numeric: tabular-nums; }
+.compteur { background: var(--papier-fonce); color: var(--encre-2); padding: 1px 7px; border-radius: 2px; font-size: 12px; font-variant-numeric: tabular-nums; }
 /* Un menu ouvert passe devant la fiche (sur téléphone, elle occupe le bas de l'écran) */
 .filtres:has(> .menu:not([hidden])) { z-index: 9; }
 .filtres-boutons { display: flex; align-items: center; gap: 8px; }
-.bouton-hasard .de { color: var(--yamabuki); }
-.bouton-hasard[aria-expanded="true"], .bouton-categories[aria-expanded="true"] { border-color: var(--texte-3); background: var(--ai-clair); }
+.bouton-hasard .de { color: var(--rouge); }
+.bouton-hasard[aria-expanded="true"], .bouton-categories[aria-expanded="true"] { border-color: var(--encre-2); background-color: var(--papier-fonce); }
 
 /* ---------- Lieu au hasard (le dé) ---------- */
 .hasard-titre { margin: 2px 2px 14px; font-family: var(--police-titre); font-size: 18px; line-height: 1.3; text-wrap: balance; }
 .champ-hasard { display: block; margin-bottom: 12px; }
-.champ-hasard > span { display: block; margin: 0 2px 6px; font-size: 13px; color: var(--texte-2); }
+.champ-hasard > span { display: block; margin: 0 2px 6px; font-size: 13px; color: var(--encre-2); }
 .champ-hasard select {
   width: 100%; appearance: none; -webkit-appearance: none; cursor: pointer;
-  font: inherit; font-size: 15px; color: var(--kinari);
-  padding: 10px 40px 10px 12px; border: 1px solid var(--ai-bord); border-radius: var(--rayon);
-  background: var(--ai-clair) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='%23b9c3d6' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round' d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 12px center / 16px;
+  font: inherit; font-size: 15px; color: var(--encre);
+  padding: 10px 40px 10px 12px; border: 1px solid var(--trait); border-radius: var(--rayon);
+  background: var(--papier-clair) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='%235b432d' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round' d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 12px center / 16px;
 }
-.champ-hasard select:focus-visible { outline: none; border-color: var(--yamabuki); }
-.champ-hasard option, .champ-hasard optgroup { background: var(--ai); color: var(--kinari); }
+.champ-hasard select:focus-visible { outline: none; border-color: var(--sarcelle); box-shadow: 0 0 0 1px var(--sarcelle); }
+.champ-hasard option, .champ-hasard optgroup { background: var(--papier); color: var(--encre); }
 .btn-lancer {
   width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 4px;
-  padding: 13px; border: 0; border-radius: var(--rayon); background: var(--shu); color: var(--kinari);
-  font-weight: 700; font-size: 16px; letter-spacing: 0.02em; box-shadow: 0 4px 12px rgba(4, 10, 24, 0.4);
+  padding: 13px; border: 0; border-radius: var(--rayon); background: var(--rouge); color: var(--papier-clair);
+  font-weight: 700; font-size: 16px; letter-spacing: 0.02em; box-shadow: 0 3px 10px rgba(52, 36, 18, 0.3);
   transition: background .15s;
 }
-.btn-lancer:hover { background: var(--shu-survol); }
-.btn-lancer:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; background: var(--shu); }
+.btn-lancer:hover { background: var(--rouge-survol); }
+.btn-lancer:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; background: var(--rouge); }
 .btn-lancer .de { width: 22px; height: 22px; }
-.hasard-info { margin: 10px 2px 2px; text-align: center; font-size: 13px; color: var(--texte-3); }
+.hasard-info { margin: 10px 2px 2px; text-align: center; font-size: 13px; color: var(--encre-3); }
 .de.roule { animation: roule .6s cubic-bezier(.3, .7, .4, 1); }
 @keyframes roule { 40% { transform: rotate(200deg) scale(1.3); } 100% { transform: rotate(360deg); } }
 
 .menu {
-  margin-top: 8px; padding: 10px;
+  margin-top: 8px; padding: 12px;
   max-height: calc(100dvh - var(--haut) - 140px); overflow: auto; overscroll-behavior: contain;
-  scrollbar-width: thin; scrollbar-color: var(--ai-bord) transparent;
+  scrollbar-width: thin; scrollbar-color: var(--trait) transparent;
+  box-shadow: var(--filet), var(--ombre);
   animation: apparait .2s var(--ease);
 }
 @keyframes apparait { from { opacity: 0; transform: translateY(-6px); } }
 .recherche {
   display: flex; align-items: center; gap: 8px; padding: 0 12px;
-  background: var(--ai-clair); border: 1px solid var(--ai-bord); border-radius: var(--rayon);
+  background: var(--papier-clair); border: 1px solid var(--trait); border-radius: var(--rayon);
 }
-.recherche svg { width: 17px; height: 17px; color: var(--texte-3); flex: none; }
+.recherche svg { width: 17px; height: 17px; color: var(--encre-3); flex: none; }
 .recherche input {
-  flex: 1; min-width: 0; border: 0; background: transparent; color: var(--kinari);
-  font: inherit; padding: 10px 0; outline: none; caret-color: var(--yamabuki);
+  flex: 1; min-width: 0; border: 0; background: transparent; color: var(--encre);
+  font: inherit; padding: 10px 0; outline: none; caret-color: var(--rouge);
 }
-.recherche input::placeholder { color: var(--texte-3); }
-.recherche:focus-within { border-color: var(--texte-3); }
+.recherche input::placeholder { color: var(--encre-3); }
+.recherche:focus-within { border-color: var(--sarcelle); box-shadow: 0 0 0 1px var(--sarcelle); }
 
 .menu-actions { display: flex; gap: 6px; margin: 10px 0 6px; }
 .menu-actions button {
-  flex: 1; border: 1px solid var(--ai-bord); background: transparent;
-  padding: 7px; border-radius: var(--rayon); font-size: 13px; color: var(--texte-2);
+  flex: 1; border: 1px solid var(--trait); background: transparent;
+  padding: 7px; border-radius: var(--rayon); font-size: 13px; color: var(--encre-2);
 }
-.menu-actions button:hover { color: var(--kinari); background: var(--ai-clair); }
+.menu-actions button:hover { color: var(--encre); background: var(--papier-fonce); }
 
 .liste-categories, .resultats { list-style: none; margin: 0; padding: 0; }
 .deplier, .resultats button {
@@ -157,16 +170,16 @@ svg { display: block; }
   padding: 7px 8px; border-radius: var(--rayon); cursor: pointer; text-align: left;
   border: 0; background: transparent;
 }
-.resultats button:hover, .resultats button:focus-visible { background: var(--ai-clair); }
+.resultats button:hover, .resultats button:focus-visible { background: var(--papier-fonce); }
 .ligne-tete { display: flex; align-items: center; border-radius: var(--rayon); }
-.ligne-tete:hover { background: var(--ai-clair); }
+.ligne-tete:hover { background: var(--papier-fonce); }
 .ligne-categorie .case { align-self: stretch; display: grid; place-items: center; padding: 0 3px 0 8px; cursor: pointer; }
 .ligne-categorie .deplier { flex: 1; min-width: 0; padding-left: 8px; }
-.ligne-categorie .deplier:focus-visible { outline: 2px solid var(--yamabuki); outline-offset: -2px; }
+.ligne-categorie .deplier:focus-visible { outline: 2px solid var(--sarcelle); outline-offset: -2px; }
 .ligne-categorie input { position: absolute; opacity: 0; pointer-events: none; }
 .ligne-categorie .nom-cat { flex: 1; min-width: 0; font-size: 14px; }
-.ligne-categorie .nb { color: var(--texte-3); font-size: 12px; font-variant-numeric: tabular-nums; }
-.chevron-cat { width: 16px; height: 16px; flex: none; color: var(--texte-3); transition: transform .2s var(--ease); }
+.ligne-categorie .nb { color: var(--encre-3); font-size: 12px; font-variant-numeric: tabular-nums; }
+.chevron-cat { width: 16px; height: 16px; flex: none; color: var(--encre-3); transition: transform .2s var(--ease); }
 .deplier[aria-expanded="true"] .chevron-cat { transform: rotate(180deg); }
 .ligne-categorie.masquee .pastille, .ligne-categorie.masquee .nom-cat { opacity: .45; }
 
@@ -177,51 +190,86 @@ svg { display: block; }
 }
 .sous-liste button {
   display: block; width: 100%; text-align: left; border: 0; background: transparent;
-  color: var(--texte-2); font-size: 13.5px; line-height: 1.3; padding: 7px 10px; border-radius: var(--rayon);
+  color: var(--encre-2); font-size: 13.5px; line-height: 1.3; padding: 7px 10px; border-radius: var(--rayon);
 }
-.sous-liste button:hover, .sous-liste button:focus-visible { background: var(--ai-clair); color: var(--kinari); outline: none; }
-.sous-liste button.actif { background: color-mix(in srgb, var(--c) 30%, transparent); color: var(--kinari); font-weight: 500; }
+.sous-liste button:hover, .sous-liste button:focus-visible { background: var(--papier-fonce); color: var(--encre); outline: none; }
+.sous-liste button.actif { background: color-mix(in srgb, var(--c) 22%, var(--papier)); color: var(--encre); font-weight: 600; }
 .ligne-categorie .coche {
-  width: 20px; height: 20px; border-radius: 3px; border: 1.5px solid var(--texte-3); flex: none;
+  width: 20px; height: 20px; border-radius: 2px; border: 1.5px solid var(--encre-3); flex: none;
   display: grid; place-items: center; transition: background .15s, border-color .15s;
 }
-.ligne-categorie .coche svg { width: 14px; height: 14px; opacity: 0; color: var(--kinari); }
-.ligne-categorie input:checked ~ .coche { background: var(--shu); border-color: var(--shu); }
+.ligne-categorie .coche svg { width: 14px; height: 14px; opacity: 0; color: var(--papier-clair); }
+.ligne-categorie input:checked ~ .coche { background: var(--rouge); border-color: var(--rouge); }
 .ligne-categorie input:checked ~ .coche svg { opacity: 1; }
-.ligne-categorie input:focus-visible ~ .coche { outline: 2px solid var(--yamabuki); outline-offset: 2px; }
+.ligne-categorie input:focus-visible ~ .coche { outline: 2px solid var(--sarcelle); outline-offset: 2px; }
 
-/* Blason (kamon) d'une catégorie : sa couleur du tableau, adoucie vers l'indigo, cerclée de papier */
+/* Blason d'une catégorie : sa couleur du tableau, vieillie vers le sépia, cerclée de papier et d'encre */
 .pastille {
   width: 28px; height: 28px; border-radius: 50%; flex: none; display: grid; place-items: center;
-  background: color-mix(in oklab, var(--c, #888) 82%, #1b2238); color: var(--kinari);
-  box-shadow: inset 0 0 0 1.5px var(--kinari);
+  background: color-mix(in oklab, var(--c, #888) 78%, #4a3521); color: var(--papier-clair);
+  box-shadow: inset 0 0 0 1.5px var(--papier-clair), 0 0 0 1px rgba(53, 37, 26, 0.6);
 }
 .pastille svg { width: 16px; height: 16px; }
 .pastille .emoji { font-size: 15px; line-height: 1; }
 .resultats { margin-top: 6px; }
 .resultats .nom-res { flex: 1; font-size: 14px; }
-.resultats .cat-res { color: var(--texte-3); font-size: 12px; }
-.resultats .vide { padding: 12px 8px; color: var(--texte-3); font-size: 14px; }
+.resultats .cat-res { color: var(--encre-3); font-size: 12px; }
+.resultats .vide { padding: 12px 8px; color: var(--encre-3); font-size: 14px; }
 
 /* ---------- Boutons de la carte ---------- */
 .controles {
   position: fixed; right: 12px; bottom: calc(var(--bas) + 24px); z-index: 5;
-  display: flex; flex-direction: column; gap: 6px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
 }
-.controles button { width: 42px; height: 42px; display: grid; place-items: center; transition: background .2s; }
-.controles button svg { width: 20px; height: 20px; }
-.controles button:hover { background: var(--ai-clair); }
+.controles .panneau { width: 42px; height: 42px; display: grid; place-items: center; transition: background .2s; }
+.controles .panneau svg { width: 20px; height: 20px; }
+.controles .panneau:hover { background-color: var(--papier-fonce); }
+
+/* Rose des vents : elle tourne avec la carte ; la toucher remet le nord en haut */
+.btn-rose {
+  width: 58px; height: 58px; padding: 0; margin-bottom: 4px; border: 0; border-radius: 50%;
+  background: none; box-shadow: var(--ombre);
+}
+.rose { width: 100%; height: 100%; will-change: transform; }
+.btn-rose:hover .rose circle:first-child { fill: var(--papier-clair); }
+
+/* Bandeau en rouleau « Japan · 日本 · Japon », en bas à gauche, comme le titre des vieilles cartes */
+.bandeau {
+  position: fixed; left: 8px; bottom: calc(var(--bas) + 2px); z-index: 3; width: 240px; height: 72px;
+  pointer-events: none; filter: drop-shadow(0 3px 5px rgba(52, 36, 18, 0.3));
+  transform-origin: left bottom;
+}
+.bandeau-fond { position: absolute; inset: 0; width: 100%; height: 100%; }
+.bandeau-texte {
+  position: absolute; inset: 0 34px; margin: 0; display: flex; align-items: center; justify-content: center; gap: 11px;
+  color: var(--encre); white-space: nowrap;
+}
+.bandeau-texte span { font-family: var(--police-carte); font-style: italic; font-size: 19px; line-height: 1; }
+.bandeau-texte [lang="ja"] { font-family: var(--police-titre); font-style: normal; font-size: 24px; letter-spacing: 0.08em; color: var(--rouge); }
+.maplibregl-ctrl-bottom-left { left: 250px; }
+
+/* Noms des mers : italique d'imprimeur, couchés sur l'eau, visibles seulement de loin */
+.nom-mer {
+  font-family: var(--police-carte); font-style: italic; font-size: 22px; letter-spacing: 0.2em;
+  color: #1c4744; white-space: nowrap; pointer-events: none;
+  text-shadow: 0 0 3px rgba(173, 208, 199, 0.9), 0 0 8px rgba(173, 208, 199, 0.7);
+  opacity: 0.85; transition: opacity .5s;
+}
+.nom-mer.petit { font-size: 16px; letter-spacing: 0.16em; }
+.nom-mer:lang(ja) { font-family: var(--police-titre); font-style: normal; writing-mode: vertical-rl; letter-spacing: 0.4em; font-size: 19px; }
+.nom-mer.petit:lang(ja) { font-size: 15px; }
+#carte:not(.loin) .nom-mer { opacity: 0; }
 
 /* Petit mot d'accueil : un cartouche de papier, affiché à la première visite */
 .aide {
   position: fixed; left: 50%; bottom: calc(var(--bas) + 10px); transform: translateX(-50%);
-  margin: 0; z-index: 4; font-size: 13px; font-weight: 500; color: var(--sumi); white-space: nowrap;
-  background: var(--kinari); padding: 7px 14px; border-radius: 2px; box-shadow: var(--ombre);
+  margin: 0; z-index: 4; font-size: 13px; font-weight: 500; color: var(--encre); white-space: nowrap;
+  background: var(--papier-clair); padding: 7px 14px; border-radius: 2px; border: 1px solid var(--trait); box-shadow: var(--ombre);
   pointer-events: none; transition: opacity .8s;
 }
 .aide.cachee { opacity: 0; }
 
-/* ---------- Repères : blasons ronds, petits points quand on voit tout le Japon ---------- */
+/* ---------- Repères : blasons ronds cerclés d'encre, petits points quand on voit tout le Japon ---------- */
 #carte { --t: 1; }
 .repere {
   position: relative; width: 0; height: 0; border: 0; padding: 0; background: none; cursor: pointer;
@@ -231,36 +279,37 @@ svg { display: block; }
   width: calc(32px * var(--t)); height: calc(32px * var(--t));
   transform: translateX(-50%);
   display: grid; place-items: center; border-radius: 50%;
-  background: color-mix(in oklab, var(--c, #c23b27) 82%, #1b2238);
-  border: 2px solid var(--kinari);
-  box-shadow: inset 0 0 0 1.5px rgba(29, 26, 28, 0.35), 0 3px 8px rgba(4, 10, 24, 0.5);
-  color: var(--kinari);
+  background: color-mix(in oklab, var(--c, #a8321f) 78%, #4a3521);
+  border: 2px solid var(--papier-clair);
+  box-shadow: 0 0 0 1px rgba(53, 37, 26, 0.75), 0 3px 7px rgba(40, 26, 12, 0.4);
+  color: var(--papier-clair);
   transition: transform .15s;
 }
-/* La petite pointe de papier sous le blason, posée sur le lieu */
+/* La petite pointe d'encre sous le blason, posée sur le lieu */
 .repere-tete::before {
-  content: ""; position: absolute; left: 50%; top: 100%; transform: translateX(-50%);
-  border: 5px solid transparent; border-top: 7px solid var(--kinari); border-bottom: 0;
+  content: ""; position: absolute; left: 50%; top: calc(100% + 1px); transform: translateX(-50%);
+  border: 5px solid transparent; border-top: 7px solid var(--encre); border-bottom: 0;
 }
 .repere-tete > * { position: relative; }
 .repere-tete svg { width: 58%; height: 58%; }
 .repere-tete .emoji { font-size: calc(16px * var(--t)); line-height: 1; }
 .repere-nom {
   position: absolute; left: 0; bottom: calc(44px * var(--t) + 2px); transform: translateX(-50%);
-  white-space: nowrap; font-size: 12.5px; font-weight: 600; color: var(--sumi);
-  background: var(--kinari); padding: 4px 9px; border-radius: 2px; box-shadow: 0 2px 6px rgba(4, 10, 24, 0.4);
+  white-space: nowrap; font-size: 12.5px; font-weight: 600; color: var(--encre);
+  background: var(--papier-clair); padding: 4px 9px; border-radius: 2px; border: 1px solid var(--trait);
+  box-shadow: 0 2px 6px rgba(52, 36, 18, 0.3);
   opacity: 0; pointer-events: none; transition: opacity .15s;
 }
 .repere:hover, .repere:focus-visible, .repere.actif { z-index: 3; }
 .repere:hover .repere-nom, .repere:focus-visible .repere-nom, .repere.actif .repere-nom { opacity: 1; }
 .repere:hover .repere-tete { transform: translateX(-50%) scale(1.1); }
-.repere.actif .repere-tete { border-color: var(--yamabuki); box-shadow: 0 0 0 3px rgba(227, 176, 75, 0.4), 0 3px 10px rgba(4, 10, 24, 0.55); }
-.repere.actif .repere-tete::before { border-top-color: var(--yamabuki); }
+.repere.actif .repere-tete { box-shadow: 0 0 0 2.5px var(--rouge), 0 0 0 6px rgba(168, 50, 31, 0.28), 0 3px 10px rgba(40, 26, 12, 0.45); }
+.repere.actif .repere-tete::before { border-top-color: var(--rouge); }
 .repere:focus-visible { outline: none; }
-.repere:focus-visible .repere-tete { box-shadow: 0 0 0 3px var(--yamabuki); }
+.repere:focus-visible .repere-tete { box-shadow: 0 0 0 1px var(--encre), 0 0 0 4px var(--sarcelle); }
 
 /* Vue lointaine : chaque lieu devient un petit point de la couleur de sa catégorie, pour laisser voir le relief */
-#carte.loin .repere-tete { width: 11px; height: 11px; bottom: -5.5px; border-width: 1.5px; box-shadow: 0 1px 3px rgba(4, 10, 24, 0.6); }
+#carte.loin .repere-tete { width: 11px; height: 11px; bottom: -5.5px; border-width: 1.5px; box-shadow: 0 0 0 1px rgba(53, 37, 26, 0.8), 0 1px 3px rgba(40, 26, 12, 0.45); }
 #carte.loin .repere-tete > *, #carte.loin .repere-tete::before { display: none; }
 /* zone à toucher plus grande que le point, pour le doigt */
 #carte.loin .repere-tete::after { content: ""; position: absolute; inset: -10px; border-radius: 50%; }
@@ -271,127 +320,126 @@ svg { display: block; }
 .fiche {
   /* commence sous les boutons de langue, pour pouvoir changer de langue fiche ouverte */
   position: fixed; z-index: 8; top: calc(var(--haut) + 52px); right: 12px; bottom: 12px; width: var(--largeur-fiche);
-  background: var(--ai); border: 1px solid var(--ai-bord); border-radius: 6px;
-  box-shadow: 0 18px 50px rgba(4, 10, 24, 0.6);
+  background: var(--grain) 0 0 / 240px 240px, var(--papier); border: 1px solid var(--trait); border-radius: 3px;
+  box-shadow: var(--filet), 0 16px 44px rgba(52, 36, 18, 0.4);
   transform: translateX(calc(100% + 24px)); transition: transform .4s var(--ease);
   display: flex; flex-direction: column; overflow: hidden;
 }
 .fiche.ouverte { transform: none; }
-.fiche-defil { overflow: auto; overscroll-behavior: contain; flex: 1; scrollbar-width: thin; scrollbar-color: var(--ai-bord) transparent; }
+.fiche-defil { overflow: auto; overscroll-behavior: contain; flex: 1; scrollbar-width: thin; scrollbar-color: var(--trait) transparent; margin: 5px; }
 .fiche-poignee { display: none; }
 .fiche-fermer, .fiche-partager {
   position: absolute; top: 10px; right: 10px; z-index: 2; width: 36px; height: 36px;
-  border: 1px solid rgba(241, 232, 214, 0.25); border-radius: var(--rayon); background: rgba(22, 36, 61, 0.85);
-  display: grid; place-items: center; transition: background .2s;
+  border: 1px solid var(--trait); border-radius: var(--rayon); background: rgba(246, 238, 219, 0.92); color: var(--encre);
+  display: grid; place-items: center; transition: background .2s; box-shadow: 0 2px 6px rgba(40, 26, 12, 0.3);
 }
-.fiche-partager { right: 52px; }
+.fiche-fermer { top: 15px; right: 15px; }
+.fiche-partager { top: 15px; right: 57px; }
 .fiche-fermer svg, .fiche-partager svg { width: 18px; height: 18px; }
-.fiche-fermer:hover, .fiche-partager:hover { background: var(--ai); }
+.fiche-fermer:hover, .fiche-partager:hover { background: var(--papier-clair); }
 /* « Un autre ! » : relancer le dé, en haut à gauche de la photo */
 .fiche-autre {
-  position: absolute; top: 10px; left: 10px; z-index: 4; height: 36px; padding: 0 13px 0 10px;
+  position: absolute; top: 15px; left: 15px; z-index: 4; height: 36px; padding: 0 13px 0 10px;
   display: flex; align-items: center; gap: 7px; border: 0; border-radius: var(--rayon);
-  background: var(--shu); color: var(--kinari); font-weight: 700; font-size: 14px;
-  box-shadow: 0 4px 12px rgba(4, 10, 24, 0.45);
+  background: var(--rouge); color: var(--papier-clair); font-weight: 700; font-size: 14px;
+  box-shadow: 0 3px 10px rgba(40, 26, 12, 0.4);
 }
-.fiche-autre:hover { background: var(--shu-survol); }
+.fiche-autre:hover { background: var(--rouge-survol); }
 .fiche-autre .de { width: 18px; height: 18px; }
 
-.fiche-media { position: relative; background: var(--ai-clair); }
+/* La photo, collée sur la feuille avec un fin filet d'encre */
+.fiche-media { position: relative; background: var(--papier-fonce); outline: 1px solid rgba(53, 37, 26, 0.55); }
 .fiche-media .vignette {
   position: relative; display: block; width: 100%; aspect-ratio: 4 / 3; border: 0; padding: 0;
-  background: var(--ai-clair) center / cover no-repeat;
-}
-.fiche-media .vignette::after {
-  content: ""; position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(to top, var(--ai) 0%, rgba(22, 36, 61, 0) 42%);
+  background: var(--papier-fonce) center / cover no-repeat;
 }
 .fiche-media .lecture {
   position: absolute; z-index: 1; left: 50%; top: 50%; transform: translate(-50%, -50%);
   display: flex; align-items: center; gap: 8px; padding: 11px 18px 11px 14px; border-radius: var(--rayon);
-  background: rgba(22, 36, 61, 0.82); font-weight: 600; font-size: 14px; color: var(--kinari);
-  border: 1px solid rgba(241, 232, 214, 0.35); transition: background .2s, transform .2s;
+  background: rgba(53, 37, 26, 0.82); font-weight: 600; font-size: 14px; color: var(--papier-clair);
+  border: 1px solid rgba(246, 238, 219, 0.4); transition: background .2s, transform .2s;
 }
 .fiche-media .lecture svg { width: 20px; height: 20px; }
-.fiche-media .vignette:hover .lecture { background: var(--shu); border-color: var(--shu); transform: translate(-50%, -50%) scale(1.04); }
+.fiche-media .vignette:hover .lecture { background: var(--rouge); border-color: var(--rouge); transform: translate(-50%, -50%) scale(1.04); }
 .fiche-media .video {
   display: block; width: 100%; aspect-ratio: 9 / 16; max-height: 78vh; border: 0; background: #000;
 }
 .fiche-media .video-cadre { display: flex; justify-content: center; background: #000; }
 
-/* Cartouche du titre, comme sur les estampes : papier, encre, nom japonais écrit de haut en bas.
+/* Cartouche du titre : papier, encre, nom japonais écrit de haut en bas.
    Il se déroule vers le bas à l'ouverture de la fiche. */
 .cartouche {
-  position: absolute; z-index: 1; top: 56px; right: 14px;
+  position: absolute; z-index: 1; top: 60px; right: 14px;
   writing-mode: vertical-rl; text-orientation: upright;
   font-family: var(--police-titre); font-size: 20px; line-height: 1; letter-spacing: 0.14em;
-  color: var(--sumi); background: var(--kinari);
+  color: var(--encre); background: var(--papier-clair);
   padding: 12px 8px 10px; max-height: calc(100% - 70px); overflow: hidden;
-  outline: 1px solid var(--sumi); outline-offset: -4px;
-  box-shadow: 0 4px 12px rgba(4, 10, 24, 0.4);
+  outline: 1px solid var(--encre); outline-offset: -4px;
+  box-shadow: 0 4px 12px rgba(40, 26, 12, 0.4);
   pointer-events: none; /* un appui dessus lance quand même la vidéo */
   animation: deroule .6s var(--ease) .15s both;
 }
 @keyframes deroule { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
 
-.fiche-corps { padding: 4px 22px 24px; }
+.fiche-corps { padding: 6px 18px 20px; }
 .fiche-nom { font-family: var(--police-titre); font-weight: 400; font-size: 27px; line-height: 1.2; margin: 8px 0 4px; text-wrap: balance; }
-.fiche-nom-jp { margin: 0 0 4px; color: var(--yamabuki); font-size: 14px; }
+.fiche-nom-jp { margin: 0 0 4px; color: var(--sarcelle); font-size: 14px; }
 .fiche-nom-jp:empty { display: none; }
-.fiche-categorie { display: flex; align-items: center; gap: 8px; margin: 6px 0 0; font-size: 13.5px; color: var(--texte-2); }
+.fiche-categorie { display: flex; align-items: center; gap: 8px; margin: 6px 0 0; font-size: 13.5px; color: var(--encre-2); }
 .fiche-categorie .pastille { width: 22px; height: 22px; }
 .fiche-categorie .pastille svg { width: 13px; height: 13px; }
 .fiche-boutons { display: flex; flex-wrap: wrap; gap: 7px; margin: 16px 0 18px; }
 .fiche-boutons a, .fiche-boutons button {
   display: inline-flex; align-items: center; gap: 7px; padding: 8px 12px; border-radius: var(--rayon);
-  border: 1px solid var(--ai-bord); background: var(--ai-clair); color: var(--kinari);
+  border: 1px solid var(--trait); background: var(--papier-clair); color: var(--encre);
   text-decoration: none; font-size: 13.5px; font-weight: 500; transition: background .2s, border-color .2s;
 }
-.fiche-boutons a:hover, .fiche-boutons button:hover { border-color: var(--texte-3); }
-.fiche-boutons .principal { background: var(--shu); border-color: var(--shu); color: var(--kinari); font-weight: 600; }
-.fiche-boutons .principal:hover { background: var(--shu-survol); border-color: var(--shu-survol); }
+.fiche-boutons a:hover, .fiche-boutons button:hover { border-color: var(--encre-2); background: var(--papier-fonce); }
+.fiche-boutons .principal { background: var(--rouge); border-color: var(--rouge); color: var(--papier-clair); font-weight: 600; }
+.fiche-boutons .principal:hover { background: var(--rouge-survol); border-color: var(--rouge-survol); }
 .fiche-boutons svg { width: 16px; height: 16px; }
-.fiche-description { color: #d9dfea; line-height: 1.7; font-size: 15px; margin: 0; max-width: 65ch; padding-top: 16px; border-top: 1px solid var(--ai-bord); }
+.fiche-description { color: var(--encre); line-height: 1.7; font-size: 15px; margin: 0; max-width: 65ch; padding-top: 16px; border-top: 1px solid rgba(138, 107, 69, 0.5); }
 .fiche-plus { margin: 12px 0 0; }
 .fiche-plus:empty { display: none; }
-.fiche-plus a { display: inline-flex; align-items: center; gap: 6px; color: var(--yamabuki); font-size: 14px; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
-.fiche-plus a:hover { color: var(--kinari); }
+.fiche-plus a { display: inline-flex; align-items: center; gap: 6px; color: var(--sarcelle); font-size: 14px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+.fiche-plus a:hover { color: var(--encre); }
 .fiche-plus svg { width: 15px; height: 15px; }
 
 /* ---------- Chargement & message ---------- */
-/* Vagues seigaiha (motif classique des tissus et estampes), très discrètes, sur l'écran de chargement */
+/* Vagues seigaiha (le motif des mers sur les vieilles cartes japonaises), très discrètes, sur l'écran de chargement */
 .chargement {
   position: fixed; inset: 0; z-index: 20; display: grid; place-content: center; justify-items: center; gap: 16px;
-  --v: #1c2d4b;
-  background-color: var(--ai);
+  --f: var(--papier); --v: #e3d4ae;
+  background-color: var(--f);
   background-image:
-    radial-gradient(circle at 100% 150%, var(--ai) 24%, var(--v) 25%, var(--v) 28%, var(--ai) 29%, var(--ai) 36%, var(--v) 36%, var(--v) 40%, transparent 40%, transparent),
-    radial-gradient(circle at 0 150%, var(--ai) 24%, var(--v) 25%, var(--v) 28%, var(--ai) 29%, var(--ai) 36%, var(--v) 36%, var(--v) 40%, transparent 40%, transparent),
-    radial-gradient(circle at 50% 100%, var(--v) 10%, var(--ai) 11%, var(--ai) 23%, var(--v) 24%, var(--v) 30%, var(--ai) 31%, var(--ai) 43%, var(--v) 44%, var(--v) 50%, var(--ai) 51%, var(--ai) 63%, var(--v) 64%, var(--v) 71%, transparent 71%, transparent),
-    radial-gradient(circle at 100% 50%, var(--v) 5%, var(--ai) 6%, var(--ai) 15%, var(--v) 16%, var(--v) 20%, var(--ai) 21%, var(--ai) 30%, var(--v) 31%, var(--v) 35%, var(--ai) 36%, var(--ai) 45%, var(--v) 46%, var(--v) 49%, transparent 50%, transparent),
-    radial-gradient(circle at 0 50%, var(--v) 5%, var(--ai) 6%, var(--ai) 15%, var(--v) 16%, var(--v) 20%, var(--ai) 21%, var(--ai) 30%, var(--v) 31%, var(--v) 35%, var(--ai) 36%, var(--ai) 45%, var(--v) 46%, var(--v) 49%, transparent 50%, transparent);
+    radial-gradient(circle at 100% 150%, var(--f) 24%, var(--v) 25%, var(--v) 28%, var(--f) 29%, var(--f) 36%, var(--v) 36%, var(--v) 40%, transparent 40%, transparent),
+    radial-gradient(circle at 0 150%, var(--f) 24%, var(--v) 25%, var(--v) 28%, var(--f) 29%, var(--f) 36%, var(--v) 36%, var(--v) 40%, transparent 40%, transparent),
+    radial-gradient(circle at 50% 100%, var(--v) 10%, var(--f) 11%, var(--f) 23%, var(--v) 24%, var(--v) 30%, var(--f) 31%, var(--f) 43%, var(--v) 44%, var(--v) 50%, var(--f) 51%, var(--f) 63%, var(--v) 64%, var(--v) 71%, transparent 71%, transparent),
+    radial-gradient(circle at 100% 50%, var(--v) 5%, var(--f) 6%, var(--f) 15%, var(--v) 16%, var(--v) 20%, var(--f) 21%, var(--f) 30%, var(--v) 31%, var(--v) 35%, var(--f) 36%, var(--f) 45%, var(--v) 46%, var(--v) 49%, transparent 50%, transparent),
+    radial-gradient(circle at 0 50%, var(--v) 5%, var(--f) 6%, var(--f) 15%, var(--v) 16%, var(--v) 20%, var(--f) 21%, var(--f) 30%, var(--v) 31%, var(--v) 35%, var(--f) 36%, var(--f) 45%, var(--v) 46%, var(--v) 49%, transparent 50%, transparent);
   background-size: 80px 40px;
-  transition: opacity .8s; color: var(--texte-2);
+  transition: opacity .8s; color: var(--encre-2);
 }
 .chargement.fini { opacity: 0; pointer-events: none; }
 .chargement-logo {
   width: 124px; height: 124px; border-radius: 50%; object-fit: cover;
-  border: 3px solid var(--kinari); box-shadow: 0 10px 34px rgba(4, 10, 24, 0.6);
+  border: 2px solid var(--encre); box-shadow: 0 0 0 5px var(--papier), 0 0 0 6px var(--trait), 0 10px 30px rgba(52, 36, 18, 0.35);
   animation: flotte 1.8s ease-in-out infinite;
 }
-.chargement p { margin: 0; font-size: 14px; background: var(--ai); padding: 4px 12px; }
+.chargement p { margin: 0; font-size: 14px; background: var(--papier); padding: 4px 12px; }
 @keyframes flotte { 50% { transform: translateY(-6px); } }
 .toast {
   position: fixed; left: 50%; bottom: calc(var(--bas) + 40px); z-index: 30; transform: translate(-50%, 20px);
-  background: var(--kinari); color: var(--sumi); padding: 9px 16px; border-radius: 2px; font-size: 14px; font-weight: 600;
+  background: var(--encre); color: var(--papier-clair); padding: 9px 16px; border-radius: 2px; font-size: 14px; font-weight: 600;
   box-shadow: var(--ombre); opacity: 0; transition: opacity .25s, transform .25s var(--ease); pointer-events: none;
 }
 .toast.visible { opacity: 1; transform: translate(-50%, 0); }
 
 /* ---------- MapLibre ---------- */
-.maplibregl-ctrl-attrib { background: rgba(22, 36, 61, 0.8) !important; color: var(--texte-3) !important; font-size: 10.5px; }
-.maplibregl-ctrl-attrib a { color: var(--texte-2) !important; }
-.maplibregl-ctrl-attrib-button { filter: invert(1); }
+.maplibregl-ctrl-attrib { background: rgba(246, 238, 219, 0.92) !important; color: var(--encre-3) !important; font-size: 10.5px; }
+.maplibregl-ctrl-attrib.maplibregl-compact, .maplibregl-ctrl-attrib-button { border-radius: 2px !important; }
+.maplibregl-ctrl-attrib.maplibregl-compact-show { border: 1px solid var(--trait); }
+.maplibregl-ctrl-attrib a { color: var(--encre-2) !important; }
 .maplibregl-ctrl-bottom-left { bottom: var(--bas); }
 
 /* ---------- Téléphone ---------- */
@@ -407,14 +455,22 @@ svg { display: block; }
   .filtres { top: calc(var(--haut) + 48px); }
   .bouton-categories { padding: 7px 11px; font-size: 13.5px; gap: 7px; }
   .bouton-categories > svg { width: 16px; height: 16px; }
-  .aide { bottom: calc(var(--bas) + 58px); }
+  .aide { bottom: calc(var(--bas) + 64px); }
   .controles { bottom: calc(var(--bas) + 16px); }
+  .btn-rose { width: 50px; height: 50px; }
+  .bandeau { transform: scale(0.76); left: 6px; }
+  .maplibregl-ctrl-bottom-left { left: 186px; }
+  /* le texte des sources passe sur 2 lignes plutôt que sous le bouton Recentrer */
+  .maplibregl-ctrl-bottom-left .maplibregl-ctrl-attrib.maplibregl-compact { box-sizing: border-box; max-width: calc(100vw - 186px - 72px); }
+  .nom-mer { font-size: 15px; letter-spacing: 0.12em; }
+  .nom-mer.petit, .nom-mer.petit:lang(ja) { font-size: 12.5px; }
+  .nom-mer:lang(ja) { font-size: 16px; }
   .controles #btn-plus, .controles #btn-moins { display: none; }
 
   /* Tiroir en bas de l'écran : hauteur normale, ou agrandie en tirant la barre vers le haut */
   .fiche {
     top: auto; left: 0; right: 0; bottom: 0; width: auto; height: 64dvh;
-    border-radius: 10px 10px 0 0; border-bottom: 0;
+    border-radius: 8px 8px 0 0; border-bottom: 0;
     transform: translateY(105%);
     transition: transform .4s var(--ease), height .3s var(--ease);
   }
@@ -428,12 +484,12 @@ svg { display: block; }
   }
   .fiche-poignee::before {
     content: ""; position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
-    width: 44px; height: 4px; border-radius: 2px; background: var(--kinari);
-    box-shadow: 0 1px 4px rgba(4, 10, 24, 0.6);
+    width: 44px; height: 4px; border-radius: 2px; background: var(--encre);
+    box-shadow: 0 0 0 2px rgba(246, 238, 219, 0.8);
   }
   .fiche-media .vignette { aspect-ratio: 16 / 10; }
   .fiche-media .video { max-height: 70dvh; }
-  .cartouche { top: 54px; right: 12px; }
+  .cartouche { top: 58px; right: 12px; }
   .fiche-nom { font-size: 24px; }
   .fiche-corps { padding: 2px 18px calc(var(--bas) + 12px); }
   .fiche-boutons { gap: 6px; }

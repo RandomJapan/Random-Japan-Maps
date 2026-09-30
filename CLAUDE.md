@@ -20,6 +20,7 @@ This serves the site locally. It is also the `carte-japon` entry in `.claude/lau
 - `python outils/sauvegarder_tableau.py`: refreshes the fallback CSVs from the live Sheet. The nightly GitHub Action runs the same thing.
 - `python outils/preparer_logo.py`: regenerates `site/img/logo.jpg`, `favicon.png`, `icone-180.png` and `partage.jpg` from the images in `outils/logo-source/`. Needs Pillow.
 - `python outils/fabriquer_masque.py`: rebuilds `site/data/masque-voisins.geojson` from Natural Earth.
+- `python outils/fabriquer_cote.py`: rebuilds `site/data/cote-japon.geojson`, the coastline used for the water-lines and the islands' shadow.
 - Deploying means `git push` to `main`. `.github/workflows/mise-en-ligne.yml` publishes `site/` to GitHub Pages. The same workflow also runs nightly and on manual dispatch; in those runs it first commits refreshed `site/data/secours-*.csv`.
 
 On this Windows machine, the shell is PowerShell 5.1. After a winget install, refresh PATH before using `git` or `gh`:
@@ -78,21 +79,33 @@ The TikTok embedded player shows "Player error" in headless Edge (codec issue). 
 - If the `Photo` cell is empty, the card uses the TikTok oEmbed thumbnail. The video is the TikTok `player/v1/{id}` iframe, loaded on demand.
 - All UI strings are in `TEXTES` (en/fr/ja) in `config.js`. `config.js` is also the only settings file meant for hand editing.
 
-### Visual design ("Estampe", the ukiyo-e print world)
+### Visual design ("vieille carte", the antique relief map)
 
-The owner chose this world on 2026-09-29. **`DESIGN.md` is the design system**: read it before any visual change. `PRODUCT.md` holds the product context. `.impeccable/brief-carte.md` holds the direction contract; it is dev-only and must never be copied into `site/`.
+The owner chose this world on 2026-09-30, from three reference images. It replaced the "Estampe" print world of 2026-09-29. **`DESIGN.md` is the design system**: read it before any visual change. `PRODUCT.md` holds the product context. `.impeccable/brief-carte.md` holds the direction contract; it is dev-only and must never be copied into `site/`.
 
-The redesign was done with the Impeccable skill (`~/.claude/skills/impeccable`, installed without its binary launcher or hooks). The key mechanics:
-- **Palette.** Map inks (the relief ramp, hillshade colours, sky/horizon/fog) live in `app.js` and in `CONFIG.couleurs`. UI tokens are CSS vars in `style.css` (`--ai`, `--kinari`, `--sumi`, `--shu`, `--yamabuki`).
-- **Category colours.** They come from the Sheet and are softened toward indigo in CSS with `color-mix(in oklab, var(--c) 82%, #1b2238)`, both for markers and for `.pastille`.
-- **Far view.** Below zoom `ZOOM_POINTS` (6.2), `majSelonZoom` adds `.loin` on the map container, and markers turn into 11px dots so the relief shows.
+The redesigns were done with the Impeccable skill (`~/.claude/skills/impeccable`, installed without its binary launcher or hooks). The key mechanics:
+- **Palette.** Map inks live in `app.js` and in `CONFIG.couleurs`: the sepia relief ramp, the umber hillshade, the sky, horizon and haze, and the sea. UI tokens are CSS vars in `style.css`: `--papier*`, `--encre*`, `--trait`, `--rouge`, `--sarcelle`.
+- **Sea.** The relief's sea stops are **transparent** (the float16 margin rule below still applies). The sea colour is the `background` layer, and three sets of line layers show through from under the relief: `cote-ombre` (the islands' shadow), `lignes-eau-1..3` (engraved water-lines, drawn with `line-gap-width`) and `cote-encre` (the coast ink, over the relief).
+  - Their source is `site/data/cote-japon.geojson`, built by `outils/fabriquer_cote.py` from Natural Earth. It covers Japan's coasts plus the Kurils, since the mask leaves the Kurils visible.
+  - The Natural Earth coast is too coarse to match the relief up close, so these layers fade out between zoom 6.5 and 8.5.
+- **Aged paper.** `#papier` (grain, foxing and vignette: one static background with SVG turbulence, normal alpha) is moved by `app.js` into the map's canvas container, right after the canvas. It therefore sits over the relief and under the markers.
+  - Do not use `mix-blend-mode` or `backdrop-filter` there. Both are recomputed every frame.
+- **Ornaments.**
+  - Sea names are HTML markers in `MERS` (`app.js`), with `pitchAlignment: 'map'` and `rotationAlignment: 'viewport'`. They hide below the `.loin` threshold. Their positions were picked so they fit on the phone start view.
+  - The compass rose `#btn-rose` rotates with `-bearing` on every `rotate` event; a tap eases north up.
+  - The title scroll `.bandeau` (Japan · 日本 · Japon, inline SVG) sits bottom-left. The attribution control is shifted to its right, and wraps on phones.
+- **Category colours.** They come from the Sheet and are aged toward sepia in CSS with `color-mix(in oklab, var(--c) 78%, #4a3521)`, both for markers and for `.pastille`.
+- **Far view.** Below zoom `ZOOM_POINTS` (6.2), `majSelonZoom` adds `.loin` on the map container. Markers then turn into 11px dots so the relief shows, and the sea names show.
 - **Place card.**
   - The Japanese name is a vertical `.cartouche` over the photo. It is appended to `#fiche-media`, so it disappears when the video plays.
   - Category · prefecture sits under the title. The prefecture fills in asynchronously via `preparerPrefectures()`.
-  - Share is an icon button on the photo (`#fiche-partager`), and "More info" is a link after the description (`#fiche-plus`). That leaves two action buttons, which fit on one line.
+  - Share is an icon button on the photo (`#fiche-partager`), and "More info" is a link after the description (`#fiche-plus`).
 - **First-visit hint.** `#aide` shows `aideTel` on phones and `aide` on desktop. It is shown once: a `localStorage` flag (`aideVue`) is set when it hides.
 - **Phone camera.** The start-up camera is rotated (`orientation: 38`) so Japan stands upright on the tall screen.
-- **`.bokashi`.** A fixed top gradient band that echoes the print sky. It is static and cheap.
+- **Fonts.**
+  - Zen Antique sets names and titles.
+  - IM Fell English (italic) sets map lettering only.
+  - Noto Sans sets everything else.
 
 ### Random place (the dice)
 
@@ -163,5 +176,6 @@ These scripts built the initial Sheet:
 - Photos hosted by Google My Maps cannot be shown cross-site (CORP), so they are kept as local files in `site/photos/`.
 - `color-relief` palette: many mobile GPUs read the filtered DEM texture as float16, so the sea (exactly 0 m) decodes to about −0.5 m. The palette stops are read exactly, though. So never put stops within about 1 m of 0: stops at ±0.02 m once turned the whole sea green on phones. Headless Edge screenshots (SwiftShader) cannot catch this, because they decode exactly.
 - Noto Sans JP renders `ō`/`ū` with a misplaced macron. `--police` therefore lists `Noto Sans` first for Latin text. The display face Zen Antique (`--police-titre`) renders them correctly.
+- Mapterhorn returns 404 for some open-ocean DEM tiles. That is expected: the sea colour comes from the background layer, so those areas still render.
 - The live site is https://randomjapan.github.io/Random-Japan-Maps/ (repo `RandomJapan/Random-Japan-Maps`, Pages build type "workflow"). `og:url` and `og:image` in `index.html` are absolute URLs to that address: update them if the address changes.
 - Commit as `RandomJapan <334664814+RandomJapan@users.noreply.github.com>` (already set in the repo's local git config) so the owner's personal email never lands in public history.

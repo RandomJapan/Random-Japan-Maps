@@ -44,12 +44,12 @@ export const CONFIG = {
     [12, 1.5],
   ],
 
-  // --- Couleurs (celles d'une estampe japonaise) -------------------------
+  // --- Couleurs (celles d'une vieille carte en relief) -------------------
   couleurs: {
-    mer: '#15355a', // bleu de Prusse des estampes d'Hiroshige et d'Hokusai
-    ciel: '#0e2140', // haut du ciel : indigo profond…
-    horizon: '#d9c59c', // …qui se fond en ocre pâle à l'horizon (dégradé « bokashi »)
-    brume: '#6f8aa0', // voile bleuté sur les terres lointaines
+    mer: '#8fbab2', // turquoise pâle et un peu passé, comme une vieille carte
+    ciel: '#e9dcbd', // au-dessus de l'horizon : du parchemin…
+    horizon: '#d3d6c0', // …qui pâlit vers l'horizon
+    brume: '#c4d6cc', // voile clair sur la mer et les terres lointaines
   },
 };
 
@@ -76,6 +76,7 @@ export const TEXTES = {
     partager: 'Share',
     lienCopie: 'Link copied!',
     recentrer: 'Reset view',
+    nord: 'Turn north up',
     fermer: 'Close',
     chargement: 'Loading the map…',
     suivre: 'Follow on TikTok',
@@ -112,6 +113,7 @@ export const TEXTES = {
     partager: 'Partager',
     lienCopie: 'Lien copié !',
     recentrer: 'Recentrer',
+    nord: 'Remettre le nord en haut',
     fermer: 'Fermer',
     chargement: 'Chargement de la carte…',
     suivre: 'Suivre sur TikTok',
@@ -148,6 +150,7 @@ export const TEXTES = {
     partager: '共有',
     lienCopie: 'コピーしました！',
     recentrer: '全体表示',
+    nord: '北を上にする',
     fermer: '閉じる',
     chargement: '地図を読み込み中…',
     suivre: 'TikTokをフォロー',

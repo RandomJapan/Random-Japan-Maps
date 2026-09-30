@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Random Japan Place · 3D Map of Japan</title>
   <meta name="description" content="Every place from the Random Japan Place TikToks on an interactive 3D map of Japan: shrines, temples, castles, mountains, waterfalls and more.">
-  <meta name="theme-color" content="#16243d">
+  <meta name="theme-color" content="#efe4c8">
   <meta property="og:title" content="Random Japan Place · 3D Map of Japan">
   <meta property="og:description" content="Every place from my TikToks on an interactive 3D map of Japan.">
   <meta property="og:type" content="website">
@@ -18,13 +18,14 @@
   <link rel="apple-touch-icon" href="img/icone-180.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&family=Zen+Antique&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&family=Zen+Antique&family=IM+Fell+English:ital@0;1&display=swap">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@6.11.2/dist/maplibre-gl.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div id="carte" aria-label="3D map of Japan"></div>
-  <div class="bokashi" aria-hidden="true"></div>
+  <!-- Papier vieilli : app.js le glisse dans la carte, par-dessus le relief mais sous les lieux -->
+  <div class="papier" id="papier" aria-hidden="true"></div>
 
   <header class="entete panneau">
     <a class="marque" id="lien-profil" target="_blank" rel="noopener">
@@ -86,6 +87,16 @@
   </nav>
 
   <div class="controles">
+    <button type="button" class="btn-rose" id="btn-rose">
+      <svg class="rose" id="rose" viewBox="0 0 64 64" aria-hidden="true">
+        <circle cx="32" cy="32" r="30" fill="#efe4c8" fill-opacity=".92" stroke="#35251a" stroke-width="1.1"/>
+        <circle cx="32" cy="32" r="27.2" fill="none" stroke="#35251a" stroke-width=".5"/>
+        <circle cx="32" cy="32" r="18.5" fill="none" stroke="#35251a" stroke-width=".5" stroke-dasharray=".7 2.2"/>
+        <g stroke="#35251a" stroke-width=".6" stroke-linejoin="round"><path d="M32 32 41.9 22.1 32 28.8Z" fill="#f6eedb"/><path d="M32 32 41.9 22.1 35.2 32Z" fill="#35251a"/><path d="M32 32 41.9 41.9 35.2 32Z" fill="#f6eedb"/><path d="M32 32 41.9 41.9 32 35.2Z" fill="#35251a"/><path d="M32 32 22.1 41.9 32 35.2Z" fill="#f6eedb"/><path d="M32 32 22.1 41.9 28.8 32Z" fill="#35251a"/><path d="M32 32 22.1 22.1 28.8 32Z" fill="#f6eedb"/><path d="M32 32 22.1 22.1 32 28.8Z" fill="#35251a"/><path d="M32 32 32 11 28.5 28.5Z" fill="#f6eedb"/><path d="M32 32 32 11 35.5 28.5Z" fill="#a8321f"/><path d="M32 32 53 32 35.5 28.5Z" fill="#f6eedb"/><path d="M32 32 53 32 35.5 35.5Z" fill="#35251a"/><path d="M32 32 32 53 35.5 35.5Z" fill="#f6eedb"/><path d="M32 32 32 53 28.5 35.5Z" fill="#35251a"/><path d="M32 32 11 32 28.5 35.5Z" fill="#f6eedb"/><path d="M32 32 11 32 28.5 28.5Z" fill="#35251a"/></g>
+        <circle cx="32" cy="32" r="1.8" fill="#f6eedb" stroke="#35251a" stroke-width=".7"/>
+        <text x="32" y="8.9" text-anchor="middle" font-family="'IM Fell English', Georgia, serif" font-size="8" fill="#a8321f" stroke="#efe4c8" stroke-width="2.4" paint-order="stroke">N</text>
+      </svg>
+    </button>
     <button type="button" class="panneau" id="btn-recentrer">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/></svg>
     </button>
@@ -95,6 +106,32 @@
     <button type="button" class="panneau" id="btn-moins" aria-label="Zoom out">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M5 12h14"/></svg>
     </button>
+  </div>
+
+  <!-- Bandeau en rouleau, comme le cartouche de titre des vieilles cartes -->
+  <div class="bandeau" aria-hidden="true">
+    <svg class="bandeau-fond" viewBox="0 0 240 72" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="bandeau-papier" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#f4e9cc"/><stop offset="1" stop-color="#e0cca2"/>
+        </linearGradient>
+        <linearGradient id="bandeau-rouleau" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stop-color="#9c7a4e"/><stop offset=".45" stop-color="#f1e3c0"/><stop offset="1" stop-color="#94724a"/>
+        </linearGradient>
+      </defs>
+      <path d="M24 16C70 12.5 170 19.5 216 15.5V57C170 61.5 70 54.5 24 58Z" fill="url(#bandeau-papier)" stroke="#4e3822" stroke-width="1.2"/>
+      <path d="M31 21C75 17.8 168 24.2 209 20.6V52C168 56.2 75 50 31 53Z" fill="none" stroke="#4e3822" stroke-width=".6" opacity=".55"/>
+      <g stroke="#4e3822" stroke-width="1.1">
+        <rect x="10" y="10" width="16" height="54" rx="8" fill="url(#bandeau-rouleau)"/>
+        <rect x="214" y="10" width="16" height="54" rx="8" fill="url(#bandeau-rouleau)"/>
+      </g>
+      <g fill="none" stroke="#4e3822" stroke-width=".8" stroke-linecap="round">
+        <path d="M14.5 15.5c1.5-2.6 5.5-2.8 7.2-.4 1.2 1.8-.2 4-2.2 3.8-1.5-.2-1.9-1.9-.8-2.6"/>
+        <path d="M225.5 58.5c-1.5 2.6-5.5 2.8-7.2.4-1.2-1.8.2-4 2.2-3.8 1.5.2 1.9 1.9.8 2.6"/>
+        <path d="M13 58c3.5 3 8.5 3 12-.2M227 16c-3.5-3-8.5-3-12 .2" opacity=".6"/>
+      </g>
+    </svg>
+    <p class="bandeau-texte"><span lang="en">Japan</span><span lang="ja">日本</span><span lang="fr">Japon</span></p>
   </div>
 
   <p class="aide" id="aide"></p>

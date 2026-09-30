@@ -22,7 +22,7 @@ const SVG = {
   de: '<svg class="de" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.6" fill="currentColor"/></svg>',
   chevron: '<svg class="chevron-cat" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>',
 };
-// Couleurs de secours (catégorie inconnue de l'onglet Catégories) : les pigments des estampes
+// Couleurs de secours (catégorie inconnue de l'onglet Catégories) ; la carte les vieillit vers le sépia
 const PALETTE = ['#c23b27', '#3b5b92', '#5f7f3a', '#c8912a', '#7b4a8c', '#2f7d7a', '#8a5a3b', '#b3486b', '#4a5d7e', '#6f8f3e'];
 // En dessous de ce zoom (tout le Japon), les lieux sont de petits points : on voit le relief
 const ZOOM_POINTS = 6.2;
@@ -209,6 +209,8 @@ const TUILES_RELIEF = {
   encoding: 'terrarium',
 };
 const MER = CONFIG.couleurs.mer;
+const SABLE = '#e3d0a7';
+const SABLE_TRANSPARENT = 'rgba(227, 208, 167, 0)'; // même teinte, pour ne pas tirer vers le noir en fondu
 
 const map = new maplibregl.Map({
   container: 'carte',
@@ -230,9 +232,37 @@ const map = new maplibregl.Map({
         attribution: '<a href="https://mapterhorn.com/attribution" target="_blank" rel="noopener">© Mapterhorn</a> · Natural Earth',
       },
       voisins: { type: 'geojson', data: 'data/masque-voisins.geojson' },
+      cote: { type: 'geojson', data: 'data/cote-japon.geojson' },
     },
     layers: [
       { id: 'fond', type: 'background', paint: { 'background-color': MER } },
+      // Sous le relief (qui cache la moitié côté terre) : l'ombre des îles sur la mer, puis les fines
+      // lignes d'eau parallèles aux côtes des cartes gravées. Vues de loin seulement : le trait de côte
+      // (Natural Earth) est trop simplifié pour coller au relief de près.
+      {
+        id: 'cote-ombre',
+        type: 'line',
+        source: 'cote',
+        paint: {
+          'line-color': '#2c4a43',
+          'line-width': ['interpolate', ['linear'], ['zoom'], 4, 10, 7, 20],
+          'line-blur': ['interpolate', ['linear'], ['zoom'], 4, 9, 7, 18],
+          'line-translate': [6, 7],
+          'line-translate-anchor': 'map', // la lumière vient du nord-ouest, comme l'ombrage du relief
+          'line-opacity': ['interpolate', ['linear'], ['zoom'], 6.5, 0.72, 8.5, 0],
+        },
+      },
+      ...[[3, 7, 0.55], [7, 15, 0.32], [11, 24, 0.18]].map(([pres, loin, opacite], i) => ({
+        id: `lignes-eau-${i + 1}`,
+        type: 'line',
+        source: 'cote',
+        paint: {
+          'line-color': '#3d6b64',
+          'line-width': 0.8,
+          'line-gap-width': ['interpolate', ['linear'], ['zoom'], 4.5, pres * 2, 7, loin * 2],
+          'line-opacity': ['interpolate', ['linear'], ['zoom'], 6.5, opacite, 8.5, 0],
+        },
+      })),
       {
         id: 'couleurs-relief',
         type: 'color-relief',
@@ -240,25 +270,25 @@ const map = new maplibregl.Map({
         paint: {
           // La mer vaut 0 m pile. Beaucoup de téléphones lisent l'altitude avec ~0,5 m d'erreur
           // (texture filtrée en float16), alors que les paliers ci-dessous restent exacts : avec des
-          // paliers serrés autour de 0 (±0,02 m), la mer y tombait dans le vert des terres sous
+          // paliers serrés autour de 0 (±0,02 m), la mer y tombait dans la couleur des terres sous
           // le niveau de la mer. D'où une marge d'environ 1 m autour de 0 (pas plus : les polders
-          // comme Hachirōgata, à -4 m, doivent rester verts).
-          // Couleurs d'estampe : vert sauge des plaines, ocre des collines, brun des montagnes, blanc des sommets.
+          // comme Hachirōgata, à -4 m, doivent rester des terres).
+          // La mer est transparente : on voit dessous le fond turquoise, les lignes d'eau et l'ombre des îles.
+          // Couleurs d'une vieille carte en relief : sable pâle, ocre, terre d'ombre, os blanc des sommets.
           'color-relief-color': [
             'interpolate', ['linear'], ['elevation'],
-            -2.5, '#84a06d',
-            -1.2, MER,
-            0.6, MER,
-            2, '#78966a',
-            30, '#83a26b',
-            120, '#97ad66',
-            300, '#b3ac60',
-            600, '#c9a057',
-            1000, '#ad7c4d',
-            1600, '#7e5c45',
-            2300, '#5e4f4b',
-            2900, '#a29c94',
-            3500, '#f3eee2',
+            -2.5, SABLE,
+            -1.2, SABLE_TRANSPARENT,
+            0.6, SABLE_TRANSPARENT,
+            2, SABLE,
+            60, '#dcc59a',
+            200, '#d1b68a',
+            500, '#c4a47a',
+            900, '#bc9b72',
+            1500, '#a8865f',
+            2200, '#8f6f50',
+            2900, '#a8977f',
+            3500, '#efe7d6',
           ],
         },
       },
@@ -267,13 +297,24 @@ const map = new maplibregl.Map({
         type: 'hillshade',
         source: 'ombrage',
         paint: {
-          'hillshade-exaggeration': 0.6,
+          'hillshade-exaggeration': 0.9,
           'hillshade-illumination-anchor': 'map',
           'hillshade-illumination-direction': 315,
-          // ombres à l'indigo, lumières couleur papier, comme les encres d'une estampe
-          'hillshade-shadow-color': 'rgba(16, 28, 56, 0.76)',
-          'hillshade-highlight-color': 'rgba(255, 244, 218, 0.32)',
-          'hillshade-accent-color': 'rgba(64, 42, 30, 0.45)',
+          // ombres terre d'ombre, lumières couleur de papier : le relief sort de la feuille
+          'hillshade-shadow-color': 'rgba(70, 45, 24, 0.82)',
+          'hillshade-highlight-color': 'rgba(255, 249, 232, 0.55)',
+          'hillshade-accent-color': 'rgba(96, 66, 38, 0.45)',
+        },
+      },
+      // Le trait d'encre des côtes, par-dessus le relief
+      {
+        id: 'cote-encre',
+        type: 'line',
+        source: 'cote',
+        paint: {
+          'line-color': '#4e3822',
+          'line-width': ['interpolate', ['linear'], ['zoom'], 4, 0.6, 7, 1.1],
+          'line-opacity': ['interpolate', ['linear'], ['zoom'], 6, 0.75, 8, 0],
         },
       },
       { id: 'voisins', type: 'fill', source: 'voisins', paint: { 'fill-color': MER } },
@@ -289,7 +330,7 @@ const map = new maplibregl.Map({
       },
     ],
     terrain: { source: 'relief', exaggeration: exageration(vueDepart().zoom) },
-    // Ciel en dégradé « bokashi » : indigo en haut, ocre pâle à l'horizon, terres lointaines voilées de bleu
+    // Au-delà de l'horizon, du parchemin ; au loin, un voile clair, comme sur une vieille gravure
     sky: {
       'sky-color': CONFIG.couleurs.ciel,
       'horizon-color': CONFIG.couleurs.horizon,
@@ -304,6 +345,34 @@ const map = new maplibregl.Map({
 map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
 map.on('error', (e) => console.warn('Carte :', e.error?.message || e));
 window.carte = map; // pratique pour inspecter la carte depuis la console du navigateur
+
+// ---------------------------------------------------------------- Décor de vieille carte
+// Papier vieilli (grain, taches, bords brunis) : glissé juste après l'image de la carte, donc
+// par-dessus le relief mais sous les lieux, qui restent nets.
+map.getCanvasContainer().insertBefore($('papier'), map.getCanvas().nextSibling);
+
+// Noms des mers, écrits à l'ancienne et couchés sur l'eau. Ils s'effacent quand on zoome (voir .loin dans style.css).
+const MERS = [
+  { ou: [135.7, 39.6], nom: { en: 'Sea of Japan', fr: 'Mer du Japon', ja: '日本海' } },
+  { ou: [136.4, 31.2], nom: { en: 'Pacific Ocean', fr: 'Océan Pacifique', ja: '太平洋' } },
+  { ou: [126.8, 30.4], nom: { en: 'East China Sea', fr: 'Mer de Chine orientale', ja: '東シナ海' }, petit: true },
+  { ou: [146.4, 45.8], nom: { en: 'Sea of Okhotsk', fr: "Mer d'Okhotsk", ja: 'オホーツク海' }, petit: true },
+];
+for (const m of MERS) {
+  m.el = document.createElement('div');
+  m.el.className = m.petit ? 'nom-mer petit' : 'nom-mer';
+  m.el.setAttribute('aria-hidden', 'true');
+  new maplibregl.Marker({ element: m.el, pitchAlignment: 'map', rotationAlignment: 'viewport', opacityWhenCovered: '1' })
+    .setLngLat(m.ou)
+    .addTo(map);
+}
+
+// Rose des vents : elle tourne avec la carte (le N montre toujours le nord)
+function tournerRose() {
+  $('rose').style.transform = `rotate(${-map.getBearing()}deg)`;
+}
+map.on('rotate', tournerRose);
+tournerRose();
 
 // Hauteur du relief et taille des épingles selon le zoom
 let exagActuelle = null;
@@ -831,6 +900,12 @@ function appliquerLangue() {
   $('recherche').placeholder = t('chercher');
   $('btn-tout').textContent = t('tout');
   $('btn-rien').textContent = t('rien');
+  $('btn-rose').title = t('nord');
+  $('btn-rose').setAttribute('aria-label', t('nord'));
+  for (const m of MERS) {
+    m.el.lang = langue;
+    m.el.textContent = enLangue(m.nom);
+  }
   $('btn-recentrer').title = t('recentrer');
   $('btn-recentrer').setAttribute('aria-label', t('recentrer'));
   $('fiche-fermer').setAttribute('aria-label', t('fermer'));
@@ -890,6 +965,10 @@ function brancherBoutons() {
   $('btn-recentrer').addEventListener('click', () => {
     fermerFiche();
     map.flyTo({ ...vueDepart(), padding: { top: 0, bottom: 0, left: 0, right: 0 }, duration: 2200 });
+  });
+  $('btn-rose').addEventListener('click', () => {
+    arreterRotation();
+    map.easeTo({ bearing: 0, duration: 1000 });
   });
   $('btn-plus').addEventListener('click', () => map.zoomIn());
   $('btn-moins').addEventListener('click', () => map.zoomOut());

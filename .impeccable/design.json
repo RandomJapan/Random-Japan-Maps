@@ -1,32 +1,372 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-29T22:30:00Z",
+  "generatedAt": "2026-09-30T21:19:37Z",
   "title": "Design System: Random Japan Place",
   "extensions": {
     "colorMeta": {
-      "prussian-sea": { "role": "neutral", "displayName": "Prussian Sea" },
-      "aizome-indigo": { "role": "neutral", "displayName": "Aizome Indigo" },
-      "kinari-paper": { "role": "neutral", "displayName": "Kinari Paper" },
-      "sumi-ink": { "role": "neutral", "displayName": "Sumi Ink" },
-      "shu-vermilion": { "role": "primary", "displayName": "Shu Vermilion" },
-      "yamabuki-gold": { "role": "secondary", "displayName": "Yamabuki Gold" }
+      "aged-turquoise-sea": {
+        "role": "neutral",
+        "displayName": "Aged Turquoise Sea",
+        "canonical": "#8fbab2",
+        "tonalRamp": [
+          "#00100c",
+          "#002c27",
+          "#224a44",
+          "#426a63",
+          "#628c85",
+          "#85afa7",
+          "#a8d4cb",
+          "#cdfaf1"
+        ]
+      },
+      "water-line": {
+        "role": "neutral",
+        "displayName": "Water-line",
+        "canonical": "#3d6b64",
+        "tonalRamp": [
+          "#00100d",
+          "#002c27",
+          "#1c4b45",
+          "#3d6b64",
+          "#5e8d85",
+          "#80b0a8",
+          "#a4d5cc",
+          "#c9fbf2"
+        ]
+      },
+      "island-shadow": {
+        "role": "neutral",
+        "displayName": "Island Shadow",
+        "canonical": "#2c4a43",
+        "tonalRamp": [
+          "#00100b",
+          "#0d2b25",
+          "#2b4942",
+          "#4a6961",
+          "#6a8a82",
+          "#8cada5",
+          "#b0d2c9",
+          "#d5f7ee"
+        ]
+      },
+      "water-name-ink": {
+        "role": "neutral",
+        "displayName": "Water-name Ink",
+        "canonical": "#1c4744",
+        "tonalRamp": [
+          "#000f0e",
+          "#002c2a",
+          "#1f4a47",
+          "#406a67",
+          "#618c88",
+          "#83afab",
+          "#a6d4cf",
+          "#cbf9f5"
+        ]
+      },
+      "parchment-sky": {
+        "role": "neutral",
+        "displayName": "Parchment Sky",
+        "canonical": "#e9dcbd",
+        "tonalRamp": [
+          "#130900",
+          "#2e2409",
+          "#4c4126",
+          "#6c6045",
+          "#8d8165",
+          "#b0a486",
+          "#d5c8aa",
+          "#fbeece"
+        ]
+      },
+      "pale-horizon": {
+        "role": "neutral",
+        "displayName": "Pale Horizon",
+        "canonical": "#d3d6c0",
+        "tonalRamp": [
+          "#0b0c01",
+          "#252716",
+          "#424432",
+          "#616350",
+          "#828570",
+          "#a5a792",
+          "#c9ccb6",
+          "#eef1db"
+        ]
+      },
+      "sea-haze": {
+        "role": "neutral",
+        "displayName": "Sea Haze",
+        "canonical": "#c4d6cc",
+        "tonalRamp": [
+          "#030e08",
+          "#1b2921",
+          "#37463e",
+          "#56665d",
+          "#76877e",
+          "#99aaa0",
+          "#bccec4",
+          "#e1f4ea"
+        ]
+      },
+      "sand-lowland": {
+        "role": "neutral",
+        "displayName": "Sand Lowland",
+        "canonical": "#e3d0a7",
+        "tonalRamp": [
+          "#130900",
+          "#312200",
+          "#50401a",
+          "#705f3a",
+          "#92805a",
+          "#b5a37b",
+          "#dac79e",
+          "#feedc7"
+        ]
+      },
+      "coast-ink": {
+        "role": "neutral",
+        "displayName": "Coast Ink",
+        "canonical": "#4e3822",
+        "tonalRamp": [
+          "#180600",
+          "#34200a",
+          "#533d27",
+          "#745c45",
+          "#967d65",
+          "#baa087",
+          "#dfc4aa",
+          "#ffebd7"
+        ]
+      },
+      "parchment": {
+        "role": "neutral",
+        "displayName": "Parchment",
+        "canonical": "#efe4c8",
+        "tonalRamp": [
+          "#120a00",
+          "#2d240d",
+          "#4a412a",
+          "#6a6048",
+          "#8c8268",
+          "#afa48a",
+          "#d3c8ad",
+          "#f9eed2"
+        ]
+      },
+      "parchment-fresh": {
+        "role": "neutral",
+        "displayName": "Fresh Parchment",
+        "canonical": "#f6eedb",
+        "tonalRamp": [
+          "#100a01",
+          "#2a2416",
+          "#484132",
+          "#686150",
+          "#898271",
+          "#aca493",
+          "#d0c9b6",
+          "#f6eedb"
+        ]
+      },
+      "parchment-worn": {
+        "role": "neutral",
+        "displayName": "Worn Parchment",
+        "canonical": "#e4d5b1",
+        "tonalRamp": [
+          "#130900",
+          "#2f2303",
+          "#4d4021",
+          "#6d603f",
+          "#8f8160",
+          "#b2a481",
+          "#d7c8a4",
+          "#fdedc9"
+        ]
+      },
+      "ink-rule": {
+        "role": "neutral",
+        "displayName": "Ink Rule",
+        "canonical": "#8a6b45",
+        "tonalRamp": [
+          "#170700",
+          "#371f00",
+          "#583b15",
+          "#795b35",
+          "#9c7c55",
+          "#c09f77",
+          "#e5c39a",
+          "#feebd5"
+        ]
+      },
+      "sepia-ink": {
+        "role": "neutral",
+        "displayName": "Sepia Ink",
+        "canonical": "#35251a",
+        "tonalRamp": [
+          "#150701",
+          "#312116",
+          "#4f3e32",
+          "#705d51",
+          "#927e71",
+          "#b5a093",
+          "#dac4b6",
+          "#feeadd"
+        ]
+      },
+      "sepia-ink-soft": {
+        "role": "neutral",
+        "displayName": "Sepia Ink Soft",
+        "canonical": "#5b432d",
+        "tonalRamp": [
+          "#180600",
+          "#351f0a",
+          "#543c27",
+          "#755c45",
+          "#977d65",
+          "#bb9f87",
+          "#e0c3aa",
+          "#feebda"
+        ]
+      },
+      "sepia-ink-quiet": {
+        "role": "neutral",
+        "displayName": "Sepia Ink Quiet",
+        "canonical": "#6e533a",
+        "tonalRamp": [
+          "#190500",
+          "#361f06",
+          "#563c23",
+          "#765b42",
+          "#997c62",
+          "#bd9f84",
+          "#e2c3a7",
+          "#feebda"
+        ]
+      },
+      "cartographer-red": {
+        "role": "primary",
+        "displayName": "Cartographer's Red",
+        "canonical": "#a8321f",
+        "tonalRamp": [
+          "#220000",
+          "#4b0400",
+          "#7c1202",
+          "#a8321f",
+          "#cf5742",
+          "#f77b64",
+          "#fbb6a7",
+          "#fee9e5"
+        ]
+      },
+      "cartographer-red-deep": {
+        "role": "primary",
+        "displayName": "Cartographer's Red Deep",
+        "canonical": "#8f2716",
+        "tonalRamp": [
+          "#230000",
+          "#4c0400",
+          "#7c1201",
+          "#a23a28",
+          "#c95d49",
+          "#f1806b",
+          "#fbb5a7",
+          "#fee9e5"
+        ]
+      },
+      "teal-ink": {
+        "role": "secondary",
+        "displayName": "Teal Ink",
+        "canonical": "#1d5652",
+        "tonalRamp": [
+          "#000f0e",
+          "#002c2a",
+          "#104c48",
+          "#356c68",
+          "#578e89",
+          "#79b1ac",
+          "#9dd6d1",
+          "#c2fcf6"
+        ]
+      }
     },
     "typographyMeta": {
-      "display": { "displayName": "Display", "purpose": "Place name on the card (Zen Antique, Meiji letterpress)." },
-      "title": { "displayName": "Title", "purpose": "Site name and dice panel title." },
-      "body": { "displayName": "Body", "purpose": "Place descriptions, max 65ch." },
-      "label": { "displayName": "Label", "purpose": "Buttons, menu rows, form labels; sentence case." }
+      "display": {
+        "displayName": "Display",
+        "purpose": "Place name on the card (Zen Antique, Meiji letterpress)."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Site name and dice panel title."
+      },
+      "map-lettering": {
+        "displayName": "Map Lettering",
+        "purpose": "Sea names lying on the water and the title scroll (IM Fell English italic; Zen Antique vertical for Japanese)."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Place descriptions, max 65ch."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Buttons, menu rows, form labels; sentence case."
+      }
     },
     "shadows": [
-      { "name": "panel", "value": "0 6px 18px rgba(4, 10, 24, 0.45)", "purpose": "Every floating panel and button." },
-      { "name": "sheet", "value": "0 18px 50px rgba(4, 10, 24, 0.6)", "purpose": "The place card." },
-      { "name": "crest", "value": "0 3px 8px rgba(4, 10, 24, 0.5)", "purpose": "Place markers." }
+      {
+        "name": "plate",
+        "value": "0 4px 14px rgba(52, 36, 18, 0.28)",
+        "purpose": "Every floating panel and button, and the compass rose."
+      },
+      {
+        "name": "card",
+        "value": "0 16px 44px rgba(52, 36, 18, 0.4)",
+        "purpose": "The place card, with the double rule."
+      },
+      {
+        "name": "crest",
+        "value": "0 3px 7px rgba(40, 26, 12, 0.4)",
+        "purpose": "Place markers."
+      },
+      {
+        "name": "double-rule",
+        "value": "inset 0 0 0 3px #efe4c8, inset 0 0 0 4px rgba(138, 107, 69, 0.5)",
+        "purpose": "Inner line of the double ink rule on menus, dice panel and card."
+      },
+      {
+        "name": "island-shadow",
+        "value": "line layer #2c4a43, width 10→20px, blur 9→18px, translate [6, 7] map-anchored, opacity 0.72 fading out by zoom 8.5",
+        "purpose": "The islands casting a shadow onto the sea (far view)."
+      }
     ],
     "motion": [
-      { "name": "ease-print", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Card slide, menus, the cartouche unrolling." },
-      { "name": "cartouche-unroll", "value": "clip-path inset 100% → 0, 0.6s, delay 0.15s", "purpose": "Signature moment when a place opens." }
+      {
+        "name": "ease-print",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Card slide, menus, the cartouche unrolling."
+      },
+      {
+        "name": "cartouche-unroll",
+        "value": "clip-path inset 100% → 0, 0.6s, delay 0.15s",
+        "purpose": "Signature moment when a place opens."
+      },
+      {
+        "name": "rose-turn",
+        "value": "rotate(-bearing) on every map rotate event; tap eases bearing to 0 over 1s",
+        "purpose": "The compass rose turns live with the map."
+      },
+      {
+        "name": "sea-names-fade",
+        "value": "opacity 0.5s at zoom 6.2",
+        "purpose": "Sea names leave when the view closes in."
+      }
     ],
-    "breakpoints": [ { "name": "phone", "value": "720px" } ]
+    "breakpoints": [
+      {
+        "name": "phone",
+        "value": "720px"
+      }
+    ]
   },
   "components": [
     {
@@ -35,7 +375,7 @@
       "refersTo": "button-primary",
       "description": "Actions only: Watch on TikTok, Roll the dice.",
       "html": "<button class=\"ds-btn-primary\">Voir sur TikTok</button>",
-      "css": ".ds-btn-primary { background: #b83523; color: #f1e8d6; border: 1px solid #b83523; border-radius: 4px; padding: 8px 12px; font: 600 13.5px 'Noto Sans', sans-serif; transition: background .2s; } .ds-btn-primary:hover { background: #a42d1d; border-color: #a42d1d; } .ds-btn-primary:focus-visible { outline: 2px solid #e3b04b; outline-offset: 2px; }"
+      "css": ".ds-btn-primary { background: #a8321f; color: #f6eedb; border: 1px solid #a8321f; border-radius: 2px; padding: 8px 12px; font: 600 13.5px 'Noto Sans', sans-serif; transition: background .2s; } .ds-btn-primary:hover { background: #8f2716; border-color: #8f2716; } .ds-btn-primary:focus-visible { outline: 2px solid #1d5652; outline-offset: 2px; }"
     },
     {
       "name": "Secondary Button",
@@ -43,23 +383,15 @@
       "refersTo": "button-secondary",
       "description": "Other actions (Directions).",
       "html": "<button class=\"ds-btn-secondary\">Itinéraire</button>",
-      "css": ".ds-btn-secondary { background: #21345a; color: #f1e8d6; border: 1px solid #33486e; border-radius: 4px; padding: 8px 12px; font: 500 13.5px 'Noto Sans', sans-serif; transition: border-color .2s; } .ds-btn-secondary:hover { border-color: #8d9bb6; } .ds-btn-secondary:focus-visible { outline: 2px solid #e3b04b; outline-offset: 2px; }"
+      "css": ".ds-btn-secondary { background: #f6eedb; color: #35251a; border: 1px solid #8a6b45; border-radius: 2px; padding: 8px 12px; font: 500 13.5px 'Noto Sans', sans-serif; transition: background .2s, border-color .2s; } .ds-btn-secondary:hover { background: #e4d5b1; border-color: #5b432d; } .ds-btn-secondary:focus-visible { outline: 2px solid #1d5652; outline-offset: 2px; }"
     },
     {
-      "name": "Title Cartouche",
-      "kind": "custom",
-      "refersTo": "cartouche",
-      "description": "Japanese place name set vertically on paper over the photo, like a print's title block.",
-      "html": "<span class=\"ds-cartouche\" lang=\"ja\">姫路城</span>",
-      "css": ".ds-cartouche { display: inline-block; writing-mode: vertical-rl; text-orientation: upright; font: 20px/1 'Zen Antique', serif; letter-spacing: .14em; color: #1d1a1c; background: #f1e8d6; padding: 12px 8px 10px; outline: 1px solid #1d1a1c; outline-offset: -4px; box-shadow: 0 4px 12px rgba(4,10,24,.4); }"
-    },
-    {
-      "name": "Place Crest",
-      "kind": "custom",
+      "name": "Parchment Panel",
+      "kind": "card",
       "refersTo": "panel",
-      "description": "Map marker: category colour softened toward indigo, paper ring.",
-      "html": "<span class=\"ds-crest\" style=\"--c:#D63A2F\"></span>",
-      "css": ".ds-crest { display: inline-block; width: 32px; height: 32px; border-radius: 50%; background: color-mix(in oklab, var(--c) 82%, #1b2238); border: 2px solid #f1e8d6; box-shadow: 0 3px 8px rgba(4,10,24,.5); }"
+      "description": "Menus and dice panel: parchment with the double ink rule.",
+      "html": "<div class=\"ds-panel\">Catégories</div>",
+      "css": ".ds-panel { background: #efe4c8; color: #35251a; border: 1px solid #8a6b45; border-radius: 2px; padding: 12px; box-shadow: inset 0 0 0 3px #efe4c8, inset 0 0 0 4px rgba(138,107,69,.5), 0 4px 14px rgba(52,36,18,.28); font: 500 14px 'Noto Sans', sans-serif; }"
     },
     {
       "name": "Search Field",
@@ -67,7 +399,15 @@
       "refersTo": "input",
       "description": "Search in the categories panel.",
       "html": "<input class=\"ds-input\" placeholder=\"Chercher un lieu…\">",
-      "css": ".ds-input { background: #21345a; color: #f1e8d6; border: 1px solid #33486e; border-radius: 4px; padding: 10px 12px; font: 15px 'Noto Sans', sans-serif; caret-color: #e3b04b; } .ds-input::placeholder { color: #8d9bb6; } .ds-input:focus { outline: none; border-color: #8d9bb6; }"
+      "css": ".ds-input { background: #f6eedb; color: #35251a; border: 1px solid #8a6b45; border-radius: 2px; padding: 10px 12px; font: 15px 'Noto Sans', sans-serif; caret-color: #a8321f; } .ds-input::placeholder { color: #6e533a; } .ds-input:focus { outline: none; border-color: #1d5652; box-shadow: 0 0 0 1px #1d5652; }"
+    },
+    {
+      "name": "Place Crest",
+      "kind": "custom",
+      "refersTo": "panel",
+      "description": "Map marker: category colour aged toward sepia, parchment ring, ink outline.",
+      "html": "<span class=\"ds-crest\" style=\"--c:#D63A2F\"></span>",
+      "css": ".ds-crest { display: inline-block; width: 32px; height: 32px; border-radius: 50%; background: color-mix(in oklab, var(--c) 78%, #4a3521); border: 2px solid #f6eedb; box-shadow: 0 0 0 1px rgba(53,37,26,.75), 0 3px 7px rgba(40,26,12,.4); }"
     },
     {
       "name": "Map Label",
@@ -75,38 +415,90 @@
       "refersTo": "map-label",
       "description": "Place name on hover and for the selected place.",
       "html": "<span class=\"ds-label\">Château de Himeji</span>",
-      "css": ".ds-label { background: #f1e8d6; color: #1d1a1c; border-radius: 2px; padding: 4px 9px; font: 600 12.5px 'Noto Sans', sans-serif; box-shadow: 0 2px 6px rgba(4,10,24,.4); }"
+      "css": ".ds-label { background: #f6eedb; color: #35251a; border: 1px solid #8a6b45; border-radius: 2px; padding: 4px 9px; font: 600 12.5px 'Noto Sans', sans-serif; box-shadow: 0 2px 6px rgba(52,36,18,.3); }"
+    },
+    {
+      "name": "Sea Name",
+      "kind": "custom",
+      "refersTo": "map-label",
+      "description": "Italic copperplate sea name lying on the water (far view).",
+      "html": "<span class=\"ds-mer\">Mer du Japon</span>",
+      "css": ".ds-mer { display: inline-block; padding: 12px 16px; background: #8fbab2; font: italic 22px 'IM Fell English', Georgia, serif; letter-spacing: .2em; color: #1c4744; text-shadow: 0 0 3px rgba(173,208,199,.9), 0 0 8px rgba(173,208,199,.7); }"
+    },
+    {
+      "name": "Title Cartouche",
+      "kind": "custom",
+      "refersTo": "cartouche",
+      "description": "Japanese place name set vertically on parchment over the photo.",
+      "html": "<span class=\"ds-cartouche\" lang=\"ja\">姫路城</span>",
+      "css": ".ds-cartouche { display: inline-block; writing-mode: vertical-rl; text-orientation: upright; font: 20px/1 'Zen Antique', serif; letter-spacing: .14em; color: #35251a; background: #f6eedb; padding: 12px 8px 10px; outline: 1px solid #35251a; outline-offset: -4px; box-shadow: 0 4px 12px rgba(40,26,12,.4); }"
+    },
+    {
+      "name": "Compass Rose",
+      "kind": "custom",
+      "refersTo": "panel",
+      "description": "Turns with the map; tap to put north back up.",
+      "html": "<button class=\"ds-rose\" aria-label=\"Remettre le nord en haut\"><svg viewBox=\"0 0 64 64\"><circle cx=\"32\" cy=\"32\" r=\"30\" fill=\"#efe4c8\" stroke=\"#35251a\" stroke-width=\"1.1\"/><circle cx=\"32\" cy=\"32\" r=\"27.2\" fill=\"none\" stroke=\"#35251a\" stroke-width=\".5\"/><g stroke=\"#35251a\" stroke-width=\".6\" stroke-linejoin=\"round\"><path d=\"M32 32 32 11 28.5 28.5Z\" fill=\"#f6eedb\"/><path d=\"M32 32 32 11 35.5 28.5Z\" fill=\"#a8321f\"/><path d=\"M32 32 53 32 35.5 28.5Z\" fill=\"#f6eedb\"/><path d=\"M32 32 53 32 35.5 35.5Z\" fill=\"#35251a\"/><path d=\"M32 32 32 53 35.5 35.5Z\" fill=\"#f6eedb\"/><path d=\"M32 32 32 53 28.5 35.5Z\" fill=\"#35251a\"/><path d=\"M32 32 11 32 28.5 35.5Z\" fill=\"#f6eedb\"/><path d=\"M32 32 11 32 28.5 28.5Z\" fill=\"#35251a\"/></g><text x=\"32\" y=\"8.9\" text-anchor=\"middle\" font-family=\"IM Fell English, Georgia, serif\" font-size=\"8\" fill=\"#a8321f\">N</text></svg></button>",
+      "css": ".ds-rose { width: 58px; height: 58px; padding: 0; border: 0; border-radius: 50%; background: none; box-shadow: 0 4px 14px rgba(52,36,18,.28); cursor: pointer; } .ds-rose svg { width: 100%; height: 100%; transition: transform 1s cubic-bezier(0.16,1,0.3,1); } .ds-rose:hover svg { transform: rotate(-30deg); } .ds-rose:focus-visible { outline: 2px solid #1d5652; outline-offset: 2px; }"
     }
   ],
   "narrative": {
-    "northStar": "Meisho: the famous views",
-    "overview": "The map is a woodblock print of Japan, in the spirit of Hiroshige's series of \"famous places\" (meisho). Every place from the TikToks is one of those views. The sea is Prussian blue. The land is inked in the pigments of a print (sage, ochre, brown, white peaks) with indigo shadows, and the sky fades from deep indigo to a pale ochre horizon. The interface is cloth and paper: panels of indigo-dyed cotton (aizome), labels and title cartouches of ecru paper in sumi ink. Vermilion (shu) is reserved for the things you do.",
+    "northStar": "The old relief map on the table",
+    "overview": "The map is an antique relief map of Japan, the kind engraved and hand-tinted for a study wall. The islands are a shaded sepia model (pale sand on the coasts, ochre-tan hills, umber mountains and bone-white peaks) under a strong umber hillshade lit from the north-west. The sea is an aged, slightly faded turquoise: engraved water-lines hug every coast, and the islands cast a soft shadow onto it, so they stand up from the sheet. A grain, faint foxing and burnt edges lie over the whole sheet. The seas are named in 17th-century italic copperplate, a compass rose turns with the map, and a rolled title scroll reads Japan · 日本 · Japon. The interface is made of parchment plates ruled in sepia ink, and cartographer's red marks what the visitor can do.\n\nThe owner chose this world on 2026-09-30 from three reference images: a parchment map with a scroll and a compass rose, a shaded beige relief on a turquoise sea, and an old geological relief map. It replaced the \"Estampe\" woodblock-print world (dark indigo). The map always leads; the interface stays small, square-cornered and flat.",
     "keyCharacteristics": [
-      "Prussian-blue sea, print-pigment relief, bokashi sky and a bokashi band at the top of the screen",
-      "Flat indigo panels, no blur or glass",
-      "Near-square corners (2–6px): paper and cloth, not pills",
-      "Places drawn as kamon-like crests; from far away, small coloured dots",
-      "The place title shown as a vertical Japanese cartouche on the photo"
+      "Aged turquoise sea with engraved water-lines and island shadows (far view only)",
+      "Sepia shaded relief; parchment sky and haze at the horizon",
+      "Aged-paper overlay (grain, foxing, vignette) between the relief and the places",
+      "Parchment plates with a double ink rule; 2px corners",
+      "Italic copperplate sea names lying on the water; vertical Japanese names in the Japanese UI",
+      "A compass rose that turns with the map, and a Japan · 日本 · Japon scroll bottom-left"
     ],
     "rules": [
-      { "name": "The Vermilion Is a Verb Rule", "body": "Vermilion only marks something the visitor can do or has chosen. Never use it as decoration.", "section": "colors" },
-      { "name": "The Sheet Owns the Hues Rule", "body": "Category colours come from the owner's Google Sheet. The site softens each one toward indigo so any colour the owner picks sits in the print. Do not hard-code category colours.", "section": "colors" },
-      { "name": "The Letterpress Is for Names Rule", "body": "Zen Antique only sets names and titles. Buttons, labels, counts and reading text are always Noto Sans.", "section": "typography" },
-      { "name": "The No Glass Rule", "body": "No backdrop-filter anywhere. It is recomputed every frame while the map moves and made phones stutter; panels are solid indigo cloth.", "section": "elevation" }
+      {
+        "name": "The Red Ink Is a Verb Rule",
+        "body": "Cartographer's red marks only what the visitor can do or has chosen. It has two ornamental uses, both ones a cartographer would make: the north point of the rose (which is itself a button), and the 日本 seal on the title scroll.",
+        "section": "colors"
+      },
+      {
+        "name": "The Sheet Owns the Hues Rule",
+        "body": "Category colours come from the owner's Google Sheet. The site ages each one toward sepia (`color-mix(in oklab, <colour> 78%, #4a3521)`) so any colour the owner picks sits in the engraving. Do not hard-code category colours.",
+        "section": "colors"
+      },
+      {
+        "name": "The Map Lettering Rule",
+        "body": "IM Fell English appears only on the map itself: sea names and the title scroll. Names and titles in the interface are Zen Antique. Buttons, labels, counts and reading text are always Noto Sans.",
+        "section": "typography"
+      },
+      {
+        "name": "The Far View Rule",
+        "body": "The coast ink, water-lines, island shadow and sea names belong to the whole-archipelago view. The line layers fade out between zoom 6.5 and 8.5, because the Natural Earth coastline is too coarse to match the relief close up. The sea names hide at zoom 6.2 and above, together with the switch from dots to crests.",
+        "section": "layout"
+      },
+      {
+        "name": "The Paper Under the Pins Rule",
+        "body": "The aged-paper overlay is inserted right after the map canvas: above the relief, but under the places and sea names, which stay crisp. It is one static image (a gradient plus two SVG turbulence textures) with normal alpha, and nothing in it recomputes while the map moves.",
+        "section": "elevation"
+      },
+      {
+        "name": "The No Glass Rule",
+        "body": "No `backdrop-filter` and no `mix-blend-mode` over the map. Both are recomputed every frame while the map moves, and made phones stutter.",
+        "section": "elevation"
+      }
     ],
     "dos": [
-      "Do keep panels solid Aizome Indigo (#16243d) with a 1px Indigo Thread border.",
-      "Do set place names and titles in Zen Antique, and everything else in Noto Sans.",
-      "Do put text on paper (#f1e8d6) in Sumi Ink (#1d1a1c).",
-      "Do use Shu Vermilion (#b83523) only for actions and chosen states.",
-      "Do show category and prefecture on a line under the place name."
+      "Do keep panels Parchment (#efe4c8) with a 1px Ink Rule (#8a6b45) border and 2px corners, and give the large ones (menus, dice panel, card) the double rule.",
+      "Do set interface names and titles in Zen Antique, map lettering in IM Fell English italic, and everything else in Noto Sans.",
+      "Do write in Sepia Ink (#35251a) on parchment, using its softer steps for secondary text, never grey.",
+      "Do keep the relief's sea stops transparent and paint the sea with the background, so the water-lines and island shadows show beneath.",
+      "Do use Cartographer's Red (#a8321f) only for actions and chosen states (plus the rose's north point and the 日本 seal)."
     ],
     "donts": [
-      "Don't use backdrop-filter, glass or blur on panels.",
-      "Don't put a category label or kicker above a heading.",
-      "Don't use pill shapes (999px radius) or uppercase tracked labels.",
-      "Don't use teardrop map pins.",
-      "Don't use bright saturated category colours unsoftened; always pass them through the indigo mix."
+      "Don't use `backdrop-filter`, glass, blur or `mix-blend-mode` over the map.",
+      "Don't use pill shapes or corners above 3px on plates (circles are only for crests, dots, the rose and the logo).",
+      "Don't put colour-relief stops within about 1 m of 0 m: many phone GPUs read the sea as about −0.5 m.",
+      "Don't show unsoftened Sheet colours: always pass them through the sepia mix.",
+      "Don't draw a decorative border around the screen: the owner chose the scroll, rose, sea names and aged paper, and left the frame out.",
+      "Don't put a category label or kicker above a heading."
     ]
   }
 }

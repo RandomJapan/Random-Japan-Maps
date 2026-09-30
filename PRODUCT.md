@@ -44,7 +44,9 @@ The owner filmed and posted every place on the map, and each place opens its own
 ## Brand Commitments
 
 - **Name and logo.** The name is "Random Japan Place". The owner's logo is a paper-cut diorama of Japan (`site/img/`).
-- **Visual world.** On 2026-09-29 the owner chose an ukiyo-e woodblock print world, in the spirit of Hiroshige's "famous places" (meisho) series, over the previous generic dark map UI.
+- **Visual world.** On 2026-09-30 the owner chose an antique relief-map world from three reference images: a parchment map with a scroll and a compass rose, a shaded beige relief on a turquoise sea, and an old geological relief map.
+  - Their choices were a turquoise sea, the whole interface in parchment and ink, and four ornaments: a title scroll reading Japan in the 3 languages, a compass rose, sea names and aged paper. They did not choose a decorative frame.
+  - This world replaced the ukiyo-e "Estampe" world chosen on 2026-09-29, which the owner found not beautiful enough.
 
 ## Evidence on Hand
 
@@ -61,5 +63,5 @@ The owner filmed and posted every place on the map, and each place opens its own
 ## Accessibility & Inclusion
 
 - Three languages.
-- Readable text on dark surfaces.
+- Readable text: sepia ink on parchment, at 4.5:1 or more.
 - Reduced-motion users get no rotation and no decorative motion.
