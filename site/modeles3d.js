@@ -37,7 +37,7 @@ export function fabriquerModeles(THREE) {
       piece(geo, c, o = {}) {
         const m = new THREE.Matrix4().compose(
           new THREE.Vector3(o.x || 0, o.y || 0, o.z || 0),
-          new THREE.Quaternion().setFromEuler(new THREE.Euler(o.rx || 0, o.ry || 0, o.rz || 0)),
+          new THREE.Quaternion().setFromEuler(new THREE.Euler(o.rx || 0, o.ry || 0, o.rz || 0, o.ordre || 'XYZ')),
           new THREE.Vector3(o.sx ?? o.s ?? 1, o.sy ?? o.s ?? 1, o.sz ?? o.s ?? 1),
         );
         const g = geo.index ? geo.toNonIndexed() : geo;
@@ -76,6 +76,17 @@ export function fabriquerModeles(THREE) {
         a.boule(0.13 * s, C.pinVert, { x, y: y + 0.27 * s, z, sy: 0.55 });
         return a.boule(0.09 * s, C.pinVert, { x: x + 0.04 * s, y: y + 0.36 * s, z: z - 0.02 * s, sy: 0.55 });
       },
+      /** Un bâton (bras, jambe…) tendu entre deux points [x, y, z]. */
+      baton(de, vers, r, c, cotes = 8) {
+        const A = new THREE.Vector3(...de), B = new THREE.Vector3(...vers);
+        const dir = B.clone().sub(A);
+        const g = new THREE.CylinderGeometry(r, r, dir.length(), cotes).toNonIndexed();
+        g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize()));
+        const milieu = A.add(B).multiplyScalar(0.5);
+        return a.piece(g, c, { x: milieu.x, y: milieu.y, z: milieu.z });
+      },
+      /** Un ovoïde (sphère étirée) : corps, jambes, mains… */
+      ovale: (r, c, o, finesse = 12) => a.piece(new THREE.SphereGeometry(r, finesse, Math.max(4, Math.round(finesse * 0.7))), c, o),
       cedre(x, z, h, vert = C.pinVert, neige = null) {
         a.cylindre(0.02, 0.026, h * 0.2, 5, C.brun, { x, y: h * 0.1, z });
         a.cone(h * 0.27, h * 0.55, 7, vert, { x, y: h * 0.2 + h * 0.275, z });
@@ -363,15 +374,64 @@ export function fabriquerModeles(THREE) {
     .cylindre(0.006, 0.01, 0.25, 4, C.rouge, { x: 0.17, y: 0.745, z: -0.12 })
     .fin();
 
-  // Statue : un grand Bouddha de bronze assis
-  M.statue = atelier()
-    .boite(0.5, 0.08, 0.42, C.pierre, { y: 0.04 })
-    .cylindre(0.2, 0.17, 0.08, 10, C.bronze, { y: 0.12 })
-    .boite(0.38, 0.08, 0.22, C.bronze, { y: 0.2, z: 0.05 })
-    .piece(new THREE.SphereGeometry(0.2, 10, 8), C.bronze, { y: 0.34, sy: 1.05, sz: 0.75 })
-    .piece(new THREE.SphereGeometry(0.085, 10, 8), C.bronze, { y: 0.58 })
-    .piece(new THREE.SphereGeometry(0.045, 8, 6), C.bronze, { y: 0.66 })
-    .fin();
+  // Statue : un grand Bouddha de bronze assis en méditation (comme à Kamakura ou à Nara),
+  // sur un trône de lotus, devant un halo doré en forme de flamme
+  {
+    const bronze = '#6f7a66', robe = '#5f6857', peau = '#7d8672', cheveux = '#4f5748', lotus = '#8c8f73';
+    const t = atelier()
+      // piédestal de pierre à huit côtés, puis trône de lotus
+      .cylindre(0.36, 0.4, 0.08, 8, C.pierre, { y: 0.04 })
+      .cylindre(0.3, 0.32, 0.05, 8, C.pierreFonce, { y: 0.105 })
+      .cylindre(0.27, 0.23, 0.05, 16, lotus, { y: 0.155 });
+    for (let i = 0; i < 14; i++) {
+      const ang = (i / 14) * 2 * PI;
+      t.ovale(0.075, i % 2 ? lotus : '#9a9c7e', { x: 0.25 * Math.sin(ang), y: 0.175, z: 0.25 * Math.cos(ang), ry: ang, rx: 0.4, ordre: 'YXZ', sx: 0.75, sy: 0.55, sz: 0.3 }, 6);
+    }
+    // grand halo en forme de flamme (ovale pointu) et auréole de la tête
+    t.piece(new THREE.CylinderGeometry(0.3, 0.3, 0.012, 28), '#b8963a', { y: 0.55, z: -0.14, rx: PI / 2, sz: 1.55 })
+      .piece(new THREE.ConeGeometry(0.2, 0.26, 3, 1), '#b8963a', { y: 0.97, z: -0.145, sz: 0.04 })
+      .piece(new THREE.CylinderGeometry(0.25, 0.25, 0.012, 28), '#caa54a', { y: 0.55, z: -0.132, rx: PI / 2, sz: 1.55 })
+      .piece(new THREE.CylinderGeometry(0.15, 0.15, 0.014, 24), C.or, { y: 0.74, z: -0.13, rx: PI / 2 })
+      .anneau(0.15, 0.012, '#9c7c2c', { y: 0.74, z: -0.125 })
+      // jambes croisées et pieds posés dessus, plante vers le haut
+      .ovale(0.2, robe, { y: 0.245, z: 0.04, sx: 1.25, sy: 0.4, sz: 0.85 })
+      .ovale(0.045, peau, { x: -0.09, y: 0.29, z: 0.12, sx: 1.4, sy: 0.5 }, 8)
+      .ovale(0.045, peau, { x: 0.09, y: 0.29, z: 0.12, sx: 1.4, sy: 0.5 }, 8)
+      // buste, épaules et robe qui tombe
+      .piece(new THREE.CylinderGeometry(0.14, 0.18, 0.3, 14), bronze, { y: 0.43, sz: 0.7 })
+      .ovale(0.16, robe, { y: 0.555, sx: 1.12, sy: 0.5, sz: 0.72 })
+      // bras qui descendent vers les mains jointes sur les genoux
+      .baton([-0.17, 0.54, 0], [-0.21, 0.37, 0.05], 0.05, robe)
+      .baton([0.17, 0.54, 0], [0.21, 0.37, 0.05], 0.05, robe)
+      .ovale(0.05, robe, { x: -0.21, y: 0.37, z: 0.05 }, 8)
+      .ovale(0.05, robe, { x: 0.21, y: 0.37, z: 0.05 }, 8)
+      .baton([-0.21, 0.37, 0.05], [-0.07, 0.31, 0.13], 0.042, robe)
+      .baton([0.21, 0.37, 0.05], [0.07, 0.31, 0.13], 0.042, robe)
+      .ovale(0.07, peau, { y: 0.315, z: 0.14, sx: 1.35, sy: 0.4, sz: 0.75 }, 10)
+      // cou, tête, longs lobes d'oreilles, visage
+      .cylindre(0.05, 0.06, 0.07, 10, peau, { y: 0.625 })
+      .ovale(0.1, peau, { y: 0.72, sx: 0.95, sy: 1.1, sz: 0.95 }, 14)
+      .ovale(0.028, peau, { x: -0.097, y: 0.69, z: -0.005, sx: 0.5, sy: 2.3, sz: 0.8 }, 6)
+      .ovale(0.028, peau, { x: 0.097, y: 0.69, z: -0.005, sx: 0.5, sy: 2.3, sz: 0.8 }, 6)
+      .cone(0.012, 0.035, 4, peau, { y: 0.71, z: 0.097, rx: PI / 2 })
+      .boite(0.03, 0.005, 0.005, cheveux, { x: -0.036, y: 0.735, z: 0.09 })
+      .boite(0.03, 0.005, 0.005, cheveux, { x: 0.036, y: 0.735, z: 0.09 })
+      .boule(0.009, C.or, { y: 0.758, z: 0.092 })
+      .boule(0.055, cheveux, { y: 0.815 }, 1);
+    // cheveux en petites boucles sur le haut de la tête et la bosse du crâne
+    for (let lat = 25; lat <= 85; lat += 15) {
+      const nb = Math.max(1, Math.round(16 * Math.cos((lat * PI) / 180)));
+      for (let j = 0; j < nb; j++) {
+        const phi = (lat * PI) / 180, lon = (j / nb) * 2 * PI + lat;
+        t.boule(0.019, cheveux, { x: 0.095 * Math.cos(phi) * Math.sin(lon), y: 0.73 + 0.105 * Math.sin(phi), z: 0.095 * Math.cos(phi) * Math.cos(lon) });
+      }
+    }
+    // brûle-encens de bronze devant le trône
+    M.statue = t
+      .cylindre(0.045, 0.032, 0.045, 10, bronze, { y: 0.1025, z: 0.32 })
+      .anneau(0.045, 0.008, robe, { y: 0.125, z: 0.32, rx: PI / 2 })
+      .fin();
+  }
 
   // Nature et grottes : un rocher moussu percé d'une grotte
   M.cave = atelier()
