@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-30T21:19:37Z",
+  "generatedAt": "2026-09-30T21:58:45Z",
   "title": "Design System: Random Japan Place",
   "extensions": {
     "colorMeta": {
@@ -451,7 +451,8 @@
       "Aged-paper overlay (grain, foxing, vignette) between the relief and the places",
       "Parchment plates with a double ink rule; 2px corners",
       "Italic copperplate sea names lying on the water; vertical Japanese names in the Japanese UI",
-      "A compass rose that turns with the map, and a Japan · 日本 · Japon scroll bottom-left"
+      "A compass rose that turns with the map, and a Japan · 日本 · Japon scroll bottom-left",
+      "Up close, every place is a small painted low-poly model of its category, standing on a base in the category colour"
     ],
     "rules": [
       {

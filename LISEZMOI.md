@@ -51,9 +51,23 @@ Le lieu apparaît sur la carte dès que le robot a fini, en environ 5 minutes.
 | Créer une catégorie | Onglet **Catégories** : ajoute une ligne (nom, icône, couleur, noms EN/FR/JA, ordre) |
 | Changer une icône | Onglet **Catégories**, colonne **Icône** : un nom de l'onglet **Icônes**, ou un emoji 🍜 |
 | Voir toutes les icônes | Ouvre la page `…/icones.html` de ton site |
+| Voir tous les modèles 3D | Ouvre la page `…/modeles.html` de ton site |
 | Relire ce que Claude a ajouté | Les lignes jaunes ont « À vérifier = Oui ». Corrige si besoin, puis efface le « Oui » |
 
 ⚠️ Ne change pas les titres des colonnes (ligne 1), ni le nom des onglets **Lieux** et **Catégories**.
+
+## Les modèles 3D
+
+Quand on zoome sur la carte, chaque lieu montre un petit modèle 3D posé sur le relief, avec son repère juste au-dessus :
+- un torii pour les sanctuaires, un temple, un château, une montagne, une cascade, etc. ;
+- sur un socle rond de la couleur de sa catégorie.
+
+Un appui sur le modèle ouvre la fiche du lieu, comme un appui sur le repère.
+
+**Le modèle dépend de l'icône de la catégorie**, pas du lieu lui-même : tous les temples ont le même petit temple.
+- Pour changer le modèle d'une catégorie, change son icône dans l'onglet **Catégories**.
+- Une catégorie avec un emoji montre une stèle de pierre.
+- La page `…/modeles.html` de ton site montre tous les modèles.
 
 ## Le dé « Au hasard »
 
@@ -74,8 +88,8 @@ Le programme fabrique :
 
 ## Comment ça marche (pour les curieux)
 
-- `site/` contient le site : la page (`index.html`), l'apparence (`style.css`), les **réglages** (`config.js`), le programme de la carte (`app.js`) et les icônes (`icons.js`).
+- `site/` contient le site : la page (`index.html`), l'apparence (`style.css`), les **réglages** (`config.js`), le programme de la carte (`app.js`), les icônes (`icons.js`) et les modèles 3D (`modeles3d.js`, posés sur la carte par `couche3d.js`).
 - La carte lit le tableau Google Sheets à chaque visite. Si Google ne répond pas, elle utilise la copie de secours `site/data/secours-*.csv`. Cette copie est mise à jour automatiquement chaque nuit par GitHub.
 - `outils/` contient les petits programmes qui ont servi à tout préparer : import depuis Google My Maps, traductions, photos, masque des pays voisins.
 - `outils/robot-tableau.gs` est une copie du programme du robot (celui qui tourne vraiment est dans le projet « Robot carte » sur script.google.com). Le robot lit la légende de la vidéo TikTok et demande à Gemini de quel lieu il s'agit. Il cherche ensuite ce lieu dans Wikipédia et Google Maps, puis Gemini rédige la fiche à partir de ce qu'il a trouvé.
-- Le relief vient de **Mapterhorn** (gratuit) et le contour des pays de **Natural Earth** (domaine public).
+- Le relief vient de **Mapterhorn** (gratuit) et le contour des pays de **Natural Earth** (domaine public). Les modèles 3D sont dessinés avec **three.js** (gratuit), chargé seulement quand on zoome.

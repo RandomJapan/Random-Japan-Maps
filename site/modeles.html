@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Galerie des modèles 3D · Random Japan Place</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" type="image/png" href="img/favicon.png">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;600&family=Zen+Antique&display=swap">
+  <style>
+    :root { --papier: #efe4c8; --papier-clair: #f6eedb; --trait: #8a6b45; --encre: #35251a; --encre-2: #5b432d; }
+    body { margin: 0; padding: 24px 16px 48px; background: var(--papier); color: var(--encre); font-family: "Noto Sans", system-ui, sans-serif; }
+    h1 { font-family: "Zen Antique", Georgia, serif; font-weight: 400; font-size: 26px; margin: 0 0 8px; }
+    p { color: var(--encre-2); margin: 0 0 22px; max-width: 680px; line-height: 1.6; }
+    code { background: var(--papier-clair); border: 1px solid var(--trait); padding: 0 5px; border-radius: 2px; }
+    .grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+    .carte { background: var(--papier-clair); border: 1px solid var(--trait); border-radius: 2px; padding: 8px 8px 12px; text-align: center; }
+    .carte img { width: 100%; aspect-ratio: 1; display: block; }
+    .nom { font-weight: 600; font-size: 15px; }
+    .desc { color: var(--encre-2); font-size: 12.5px; }
+  </style>
+</head>
+<body>
+  <h1>Galerie des modèles 3D</h1>
+  <p>Quand on zoome sur la carte, chaque lieu montre le petit modèle 3D de l'icône de sa catégorie, sur un socle de la
+     couleur de la catégorie. Pour changer le modèle d'une catégorie, change son icône dans le tableau
+     (onglet <b>Catégories</b>, colonne <b>Icône</b>). Une catégorie avec un emoji montre la stèle de pierre.</p>
+  <div class="grille" id="grille"></div>
+  <script type="module">
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.min.js';
+    import { ICONES } from './icons.js';
+    import { fabriquerModeles, modelePour } from './modeles3d.js';
+
+    const desc = {
+      torii: 'Portail de sanctuaire', temple: 'Temple', pagoda: 'Pagode', castle: 'Château', mountain: 'Montagne',
+      volcano: 'Volcan', bridge: 'Pont', waterfall: 'Cascade', lake: 'Lac', coast: 'Côte / plage', island: 'Île',
+      lighthouse: 'Phare / cap', onsen: 'Source chaude', garden: 'Jardin', flower: 'Fleurs', forest: 'Forêt',
+      village: 'Village', city: 'Ville', statue: 'Statue', cave: 'Grotte', viewpoint: 'Point de vue',
+      festival: 'Festival', train: 'Train', snow: 'Neige', themepark: 'Parc à thème', food: 'Nourriture',
+      museum: 'Site historique', hotel: 'Hôtel', church: 'Église', camera: 'Photo (= point de vue)',
+      star: 'Étoile (= stèle)', pin: 'Épingle (= stèle)',
+    };
+    const couleurs = ['#D63A2F', '#8E2A5B', '#1E6FB8', '#4E7D2B', '#1596A8', '#2B6FD6', '#7B3FB0', '#C98A12'];
+
+    const modeles = fabriquerModeles(THREE);
+    const taille = 320;
+    const rendu = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+    rendu.setSize(taille, taille);
+    const scene = new THREE.Scene();
+    const ciel = new THREE.HemisphereLight(0xfff3dc, 0x5a4a38, 1.9);
+    const soleil = new THREE.DirectionalLight(0xfff0d8, 2.2);
+    soleil.position.set(-1.2, 2, 1.4);
+    scene.add(ciel, soleil);
+    const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 20);
+    camera.position.set(1.7, 1.45, 2.3);
+    camera.lookAt(0, 0.42, 0);
+    // le socle rond, comme sur la carte
+    const socle = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.52, 0.2, 24).toNonIndexed(), new THREE.MeshLambertMaterial());
+    socle.geometry.computeVertexNormals();
+    socle.position.y = -0.04;
+    scene.add(socle);
+    const matiere = new THREE.MeshLambertMaterial({ vertexColors: true });
+
+    const grille = document.getElementById('grille');
+    Object.keys(ICONES).forEach((nom, i) => {
+      const m = modeles[modelePour(nom, modeles)];
+      const objet = new THREE.Mesh(m.geometrie, matiere);
+      scene.add(objet);
+      socle.material.color.set(couleurs[i % couleurs.length]).lerp(new THREE.Color('#4a3521'), 0.22);
+      rendu.render(scene, camera);
+      scene.remove(objet);
+      const carte = document.createElement('div');
+      carte.className = 'carte';
+      carte.innerHTML = `<img alt="" src="${rendu.domElement.toDataURL()}"><div class="nom">${nom}</div><div class="desc">${desc[nom] || ''}</div>`;
+      grille.append(carte);
+    });
+  </script>
+</body>
+</html>

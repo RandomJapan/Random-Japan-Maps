@@ -107,6 +107,27 @@ The redesigns were done with the Impeccable skill (`~/.claude/skills/impeccable`
   - IM Fell English (italic) sets map lettering only.
   - Noto Sans sets everything else.
 
+### 3D place models (`site/couche3d.js`, `site/modeles3d.js`)
+
+When the map is zoomed in, every place shows a small low-poly model of its category's **icon**, on a round base in the (sepia-aged) category colour. The HTML marker floats just above its model.
+- **Model set.** `modeles3d.js` builds every model from three.js primitives (no asset files), one per icon name in `ICONES`.
+  - `ALIAS` maps `camera` to `viewpoint`, and `star` and `pin` to `stele`.
+  - Emojis and unknown icons get `stele`.
+  - Each model is about 1 unit tall, fits in a radius-0.5 disc, and is merged into one vertex-coloured geometry.
+  - When you add an icon, add its model too (otherwise it shows the stele). `site/modeles.html` is the owner-facing gallery and the quickest visual check.
+- **Loading.** three.js (pinned `0.186.1`, jsDelivr ESM) is dynamically imported the first time zoom reaches 7, so start-up is unchanged. If it fails to load, the map just has no models.
+- **Rendering.** One MapLibre custom layer, `modeles-3d` (`renderingMode: '3d'`), shares MapLibre's GL context and depth buffer, so terrain hides models behind mountains.
+  - There is one `InstancedMesh` per model plus one for the bases: about 25 draw calls.
+  - Instance matrices are rebuilt every frame, only for places inside the view bounds, relative to the map centre (relative-to-centre, so there is no float32 jitter at zoom 16). The projection is `defaultProjectionData.mainMatrix × translate(centre)`.
+  - The base elevation is `map.queryTerrainElevation()` (exaggeration included). It is cached per place until the exaggeration changes or a `relief` tile arrives.
+- **Pitfalls.**
+  - The model-to-map basis is deliberately a **mirror**: (x, y, z) → (x, z, y). With a proper rotation, the faces rendered inside-out, showing back faces only (dark models, bases seen as arcs).
+  - The models' directional light follows the camera, coming from the viewer's upper left. A fixed north-west light (like the hillshade) left every model backlit, because the camera usually looks north.
+- **Size.** Models appear between zoom 8.6 and 9.6 (they grow out of the ground). Their on-screen height is `62px × 2^((z − 10.5) / 2)`, capped at 170px.
+- **Marker lift.** `couche3d.js` sets `--leve` on the map container: the model's screen height × sin(pitch), in 4px steps, to avoid restyling every marker each frame. Each marker has `--h`, its model's height. `.repere-tete` and `.repere-nom` add `--leve × --h` to their `bottom`.
+- **Clicks.** A tap on a model opens its place (`lieuSous()`, a screen-box test from the drawn places).
+- **Antialiasing.** It is enabled only when `devicePixelRatio < 2` (`canvasContextAttributes`). Phones don't need it and it costs GPU time.
+
 ### Random place (the dice)
 
 The "Au hasard" button opens `#panneau-hasard`: a region `<select>` (all Japan, 8 regions with `optgroup`s, or one prefecture), a type `<select>` (categories) and a roll button.
@@ -121,7 +142,7 @@ The "Au hasard" button opens `#panneau-hasard`: a region `<select>` (all Japan, 
 
 `site/icons.js` exports `ICONES` (hand-made 24×24 SVG paths) and `iconeHTML(nom)`. `iconeHTML` falls back to rendering the text as an emoji, so a Sheet can use 🍜 directly.
 
-The same icon names are listed in `ICONES` in `outils/fabriquer_tableau.py`, and in the Sheet's `Icônes` tab, which feeds the Sheet's dropdown. Keep all three in sync when you add an icon. `site/icones.html` is a gallery page for the owner.
+The same icon names are listed in `ICONES` in `outils/fabriquer_tableau.py`, and in the Sheet's `Icônes` tab, which feeds the Sheet's dropdown. Keep all three in sync when you add an icon, and give the new icon a 3D model in `site/modeles3d.js`. `site/icones.html` is a gallery page for the owner.
 
 ### The Sheet robot (`outils/robot-tableau.gs`)
 

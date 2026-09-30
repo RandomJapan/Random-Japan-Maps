@@ -270,12 +270,14 @@ svg { display: block; }
 .aide.cachee { opacity: 0; }
 
 /* ---------- Repères : blasons ronds cerclés d'encre, petits points quand on voit tout le Japon ---------- */
-#carte { --t: 1; }
+#carte { --t: 1; --leve: 0px; }
 .repere {
   position: relative; width: 0; height: 0; border: 0; padding: 0; background: none; cursor: pointer;
+  /* De près, le repère flotte juste au-dessus du modèle 3D de son lieu (couche3d.js règle --leve, et --h par lieu) */
+  --lift: calc(var(--leve) * var(--h, 1));
 }
 .repere-tete {
-  position: absolute; left: 0; bottom: calc(8px * var(--t));
+  position: absolute; left: 0; bottom: calc(8px * var(--t) + var(--lift));
   width: calc(32px * var(--t)); height: calc(32px * var(--t));
   transform: translateX(-50%);
   display: grid; place-items: center; border-radius: 50%;
@@ -294,7 +296,7 @@ svg { display: block; }
 .repere-tete svg { width: 58%; height: 58%; }
 .repere-tete .emoji { font-size: calc(16px * var(--t)); line-height: 1; }
 .repere-nom {
-  position: absolute; left: 0; bottom: calc(44px * var(--t) + 2px); transform: translateX(-50%);
+  position: absolute; left: 0; bottom: calc(44px * var(--t) + 2px + var(--lift)); transform: translateX(-50%);
   white-space: nowrap; font-size: 12.5px; font-weight: 600; color: var(--encre);
   background: var(--papier-clair); padding: 4px 9px; border-radius: 2px; border: 1px solid var(--trait);
   box-shadow: 0 2px 6px rgba(52, 36, 18, 0.3);

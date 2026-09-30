@@ -6,6 +6,7 @@ import * as maplibregl from 'https://cdn.jsdelivr.net/npm/maplibre-gl@6.11.2/dis
 import { CONFIG, TEXTES } from './config.js';
 import { iconeHTML } from './icons.js';
 import { PREFECTURES, REGIONS, chargerPrefectures, regionDe } from './regions.js';
+import { brancherModeles } from './couche3d.js';
 
 const $ = (id) => document.getElementById(id);
 const estTelephone = () => matchMedia('(max-width: 720px)').matches;
@@ -222,6 +223,8 @@ const map = new maplibregl.Map({
   renderWorldCopies: false,
   // Les téléphones ont souvent 3 pixels par point : dessiner en ×2 suffit et évite ~2× plus de calcul.
   pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
+  // Bords lisses pour les modèles 3D sur les écrans d'ordinateur ; les téléphones (×2) n'en ont pas besoin.
+  canvasContextAttributes: { antialias: (window.devicePixelRatio || 1) < 2 },
   attributionControl: false,
   style: {
     version: 8,
@@ -367,6 +370,9 @@ for (const m of MERS) {
     .addTo(map);
 }
 
+// Petits modèles 3D des lieux (un par icône de catégorie), visibles quand on zoome
+const modeles3d = brancherModeles(map, maplibregl, () => lieux);
+
 // Rose des vents : elle tourne avec la carte (le N montre toujours le nord)
 function tournerRose() {
   $('rose').style.transform = `rotate(${-map.getBearing()}deg)`;
@@ -475,6 +481,7 @@ function appliquerFiltres() {
     if (l.cat.visible) l.epingle.addTo(map);
     else l.epingle.remove();
   }
+  map.triggerRepaint(); // les modèles 3D des catégories masquées disparaissent aussi
   const visibles = lieux.filter((l) => l.cat.visible).length;
   $('compteur').textContent = visibles === lieux.length ? lieux.length : `${visibles}/${lieux.length}`;
 }
@@ -969,6 +976,11 @@ function brancherBoutons() {
   $('btn-rose').addEventListener('click', () => {
     arreterRotation();
     map.easeTo({ bearing: 0, duration: 1000 });
+  });
+  // Un appui sur un modèle 3D ouvre son lieu, comme un appui sur son repère
+  map.on('click', (e) => {
+    const l = modeles3d.lieuSous(e.point);
+    if (l) ouvrirLieu(l);
   });
   $('btn-plus').addEventListener('click', () => map.zoomIn());
   $('btn-moins').addEventListener('click', () => map.zoomOut());
