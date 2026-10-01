@@ -81,6 +81,22 @@ Tout disparaît quand on zoome sur un lieu. Si le téléphone est réglé pour r
 
 **Tu n'as rien à faire pour ça.** C'est dans le fichier `site/mer.js`. Le bateau est aussi dans la page `…/modeles.html`.
 
+## Les légendes cachées
+
+Quand on zoome sur une région, de petits dessins de légendes japonaises apparaissent là où elles se passent : le renard à neuf queues à Nasu, le kappa de Tōno, le tengu du mont Kurama, le serpent à huit têtes d'Izumo… Il y en a 22, cachées dans tout le Japon, comme des œufs de Pâques à chercher :
+- **yokai et créatures** : renard à neuf queues, kappa, tengu, namahage, femme des neiges, korpokkur, kijimunā… ;
+- **héros et guerriers** : Momotarō, Kintarō, l'ogre Shuten-dōji, les crabes samouraïs de Dan-no-ura, la guerre des tanuki… ;
+- **dieux et mythes** : le serpent à huit têtes, la grotte de la déesse du soleil, le géant du lac Biwa, le poisson-chat des séismes, la princesse Kaguya ;
+- **légendes de la mer** : Urashima Tarō, le lapin blanc d'Inaba, Amabie, le vent divin contre les Mongols, la sirène d'Obama.
+
+Pour les visiteurs :
+- un appui sur un dessin ouvre une bulle qui raconte la légende (en anglais, en français ou en japonais) ;
+- dès qu'on en trouve une, un bouton **Légendes** apparaît sous « Catégories », avec le compteur (par exemple 3/22). Il ouvre la liste : les légendes trouvées (un appui y emmène) et, pour les autres, seulement leur région, comme indice ;
+- quand on les a toutes trouvées, un « Bravo ! » s'affiche avec un sceau rouge ;
+- le téléphone (ou l'ordinateur) se souvient des légendes déjà trouvées.
+
+**Tu n'as rien à faire pour ça.** Les textes sont dans `site/legendes.js` et les dessins dans `site/legendes-dessins.js`. Pour ajouter une légende ou changer un texte, demande à Claude.
+
 ## Le dé « Au hasard »
 
 Le bouton **Au hasard** tire un lieu au sort. On peut choisir une région ou une préfecture, un type de lieu, les deux, ou rien du tout.
@@ -100,7 +116,7 @@ Le programme fabrique :
 
 ## Comment ça marche (pour les curieux)
 
-- `site/` contient le site : la page (`index.html`), l'apparence (`style.css`), les **réglages** (`config.js`), le programme de la carte (`app.js`), les icônes (`icons.js`), les modèles 3D (`modeles3d.js`, posés sur la carte par `couche3d.js`) et la mer vivante (`mer.js`).
+- `site/` contient le site : la page (`index.html`), l'apparence (`style.css`), les **réglages** (`config.js`), le programme de la carte (`app.js`), les icônes (`icons.js`), les modèles 3D (`modeles3d.js`, posés sur la carte par `couche3d.js`) la mer vivante (`mer.js`) et les légendes cachées (`legendes.js`).
 - La carte lit le tableau Google Sheets à chaque visite. Si Google ne répond pas, elle utilise la copie de secours `site/data/secours-*.csv`. Cette copie est mise à jour automatiquement chaque nuit par GitHub.
 - `outils/` contient les petits programmes qui ont servi à tout préparer : import depuis Google My Maps, traductions, photos, masque des pays voisins.
 - `outils/robot-tableau.gs` est une copie du programme du robot (celui qui tourne vraiment est dans le projet « Robot carte » sur script.google.com). Le robot lit la légende de la vidéo TikTok et demande à Gemini de quel lieu il s'agit. Il cherche ensuite ce lieu dans Wikipédia et Google Maps, puis Gemini rédige la fiche à partir de ce qu'il a trouvé.

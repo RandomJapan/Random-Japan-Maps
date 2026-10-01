@@ -566,8 +566,33 @@ function toutCocher(visible) {
 function ouvrirMenu(ouvrir) {
   $('menu-categories').hidden = !ouvrir;
   $('btn-categories').setAttribute('aria-expanded', String(ouvrir));
-  if (ouvrir) ouvrirHasard(false);
+  if (ouvrir) { ouvrirHasard(false); ouvrirLegendes(false); }
   if (ouvrir && !estTelephone()) $('recherche').focus();
+}
+
+// ---------------------------------------------------------------- Légendes cachées (legendes.js)
+// De petits dessins de légendes à trouver en zoomant. Le module se charge juste après le démarrage.
+let legendes = null;
+
+function chargerLegendes() {
+  import('./legendes.js')
+    .then(({ brancherLegendes }) => {
+      legendes = brancherLegendes(map, maplibregl, {
+        t, enLangue, langue: () => langue, afficherMessage, fermerFiche,
+        fermerPanneau: () => ouvrirLegendes(false),
+      });
+    })
+    .catch((e) => console.warn('Légendes cachées indisponibles', e));
+}
+
+/** La liste des légendes (bouton « Légendes », visible dès qu'on en a trouvé une). */
+function ouvrirLegendes(ouvrir) {
+  $('panneau-legendes').hidden = !ouvrir;
+  $('btn-legendes').setAttribute('aria-expanded', String(ouvrir));
+  if (!ouvrir) return;
+  ouvrirMenu(false);
+  ouvrirHasard(false);
+  legendes?.remplirPanneau();
 }
 
 // ---------------------------------------------------------------- Lieu au hasard (le dé)
@@ -636,6 +661,7 @@ async function ouvrirHasard(ouvrir) {
   $('btn-hasard').setAttribute('aria-expanded', String(ouvrir));
   if (!ouvrir) return;
   ouvrirMenu(false);
+  ouvrirLegendes(false);
   if (!$('choix-region').options.length) {
     $('hasard-info').textContent = '…';
     $('btn-lancer').disabled = true;
@@ -940,6 +966,7 @@ function appliquerLangue() {
   construireMenu();
   if (!$('resultats').hidden) rechercher();
   if (lieuActif) remplirFiche(lieuActif);
+  legendes?.majLangue();
 }
 
 // ---------------------------------------------------------------- Démarrage
@@ -967,11 +994,16 @@ function brancherBoutons() {
     ouvrirHasard($('panneau-hasard').hidden);
   });
   $('panneau-hasard').addEventListener('click', (e) => e.stopPropagation());
+  $('btn-legendes').addEventListener('click', (e) => {
+    e.stopPropagation();
+    ouvrirLegendes($('panneau-legendes').hidden);
+  });
+  $('panneau-legendes').addEventListener('click', (e) => e.stopPropagation());
   $('choix-region').addEventListener('change', construireHasard);
   $('choix-type').addEventListener('change', construireHasard);
   $('btn-lancer').addEventListener('click', lancerDe);
   $('fiche-autre').addEventListener('click', lancerDe);
-  document.addEventListener('click', () => { ouvrirMenu(false); ouvrirHasard(false); });
+  document.addEventListener('click', () => { ouvrirMenu(false); ouvrirHasard(false); ouvrirLegendes(false); });
   $('recherche').addEventListener('input', rechercher);
   $('btn-tout').addEventListener('click', () => toutCocher(true));
   $('btn-rien').addEventListener('click', () => toutCocher(false));
@@ -996,6 +1028,7 @@ function brancherBoutons() {
     if (e.key !== 'Escape') return;
     if (!$('menu-categories').hidden) ouvrirMenu(false);
     else if (!$('panneau-hasard').hidden) ouvrirHasard(false);
+    else if (!$('panneau-legendes').hidden) ouvrirLegendes(false);
     else fermerFiche();
   });
   window.addEventListener('hashchange', ouvrirDepuisAdresse);
@@ -1027,6 +1060,7 @@ async function demarrer() {
     else if (rotation) setTimeout(() => requestAnimationFrame(tourner), 600);
     // Contours des préfectures (116 Ko) chargés en avance, sans gêner le démarrage : le dé s'ouvre tout de suite.
     setTimeout(() => preparerPrefectures().catch(() => {}), 3000);
+    setTimeout(chargerLegendes, 1500);
   };
   if (map.loaded()) pret();
   else map.once('load', pret);

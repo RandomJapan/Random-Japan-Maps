@@ -160,6 +160,24 @@ In the far view (below `ZOOM_CALME` = 7.2) the sea comes alive. The owner settle
   - no creature appears.
 - **Filming it.** For GIFs, Playwright can slow the page: wrap `requestAnimationFrame` timestamps and set `playbackRate` on `document.getAnimations()` in an init script. Then set the GIF frame times back to real speed.
 
+### Hidden legends (`site/legendes.js`)
+
+On 2026-10-01 the owner asked for easter eggs: references to Japanese legends scattered over the map, in the style of the whale and the serpent. From examples they chose: legends visible only when you zoom into a region, a found counter with a "Bravo" once all are found, all four themes (yokai, heroes and warriors, gods and myths, sea legends), and about twenty of them.
+- **Content.** `LEGENDES` lists 22 legends, north to south. Each has an `id`, a `region` (a `REGIONS` key from `regions.js`), `ou` (where the foot of the drawing stands) and `nom`, `lieu`, `texte` in en/fr/ja.
+  - The drawings are inline SVG in `legendes-dessins.js` (64 × 60, foot at y ≈ 56). Their colours and idle motions are in `legendes.css`. They were generated once by a throwaway script and are kept as literal SVG: edit them by hand.
+  - Some legends belong to a place that has its own pin (Kashima-jingū, Kibitsu-jinja, Amanoiwato-jinja). They are offset by 6 to 12 km so the pin does not cover them.
+- **Loading.** `app.js` imports the module 1.5 s after the map is ready (`chargerLegendes`). If it fails, the map simply has no legends.
+- **Markers.** Each legend is an HTML `Marker`: a `button.legende` with `data-legende=<id>`. It is moved in the DOM to just after `#papier`, so the place pins stay in front of it.
+  - Below `ZOOM_LEGENDES` (6.5) the container gets `.sans-legendes` and the legends are hidden: you have to zoom into a region to find them.
+  - Only the legends inside the view get `.anime` (their idle loop), recomputed on `moveend`. Under reduced motion nothing moves.
+- **The bubble.** A tap opens a MapLibre `Popup` (`.bulle-legende`). It shows the name, a second name (Japanese, or English in the Japanese UI), the place and the story. `garderVisible()` pans the map when the bubble would slide under the top buttons, which happened on phones.
+- **Found legends.** They are kept in `localStorage` (`legendesTrouvees`, this browser only).
+  - The first find reveals `#btn-legendes` with its count, and each find shows a toast.
+  - The button opens `#panneau-legendes`. Found legends show their drawing; a tap flies there and opens the bubble. The others show "Not found yet" and their region, as a hint.
+  - When the last one is found, a "Bravo" card with a red 伝説 seal appears.
+- **Tests.** `(await import('/legendes.js')).ouvrirLegende('kitsune')` opens a bubble as a tap would, and counts the legend as found.
+- **Texts.** The UI strings are in `TEXTES` (`legendes*`, `legendeTrouvee`, `legendeInconnue`, `legendeAria`, `bravo*`).
+
 ### Random place (the dice)
 
 The "Au hasard" button opens `#panneau-hasard`: a region `<select>` (all Japan, 8 regions with `optgroup`s, or one prefecture), a type `<select>` (categories) and a roll button.

@@ -374,6 +374,11 @@
         "name": "ship-voyage",
         "value": "3D bezaisen with a fixed size on the map (40px tall at zoom 5, scaling with zoom): grow in 1.6s, 4px/s at zoom 5 straight to or from a port, roll ±0.07 rad / pitch ±0.035 rad, shrink away 1.6s, fade out between zoom 6.6 and 7.2; max 2, every 7–16s",
         "purpose": "Edo ships crossing the open sea, far from the coasts."
+      },
+      {
+        "name": "legend-idle",
+        "value": "per-vignette CSS loops of 0.5–5s (sway ±2.5°, fan ±11°, bob 1px, ground shake), only for vignettes inside the view; the bubble pans the map over 0.45s if it would sit under the top buttons; the bravo seal stamps in over 0.55s",
+        "purpose": "Hidden legends feel alive without crowding the map."
       }
     ],
     "breakpoints": [
@@ -468,7 +473,8 @@
       "Italic copperplate sea names lying on the water; vertical Japanese names in the Japanese UI",
       "A compass rose that turns with the map, and a Japan · 日本 · Japon scroll bottom-left",
       "Up close, every place is a small painted low-poly model of its category, standing on a base in the category colour",
-      "From afar, a living sea: swell rolling to the shore, a few 3D Edo ships far out at sea, a whale or a sea serpent now and then"
+      "From afar, a living sea: swell rolling to the shore, a few 3D Edo ships far out at sea, a whale or a sea serpent now and then",
+      "Zoomed in, twenty-two hidden legend vignettes to find, each telling its story in a parchment bubble"
     ],
     "rules": [
       {
@@ -510,6 +516,11 @@
         "name": "The Open-Sea Mask Rule",
         "body": "Everything farther than about 70 km from Japan, or nearer a neighbour than Japan, is painted the sea colour (masque-large.geojson), on top of the neighbours mask. Natural Earth misses thousands of tiny foreign islets, and from above they twinkled as sand specks whenever the map moved.",
         "section": "colors"
+      },
+      {
+        "name": "The Hidden Legends Rule",
+        "body": "Legend vignettes appear only from zoom 6.5, where they are found like easter eggs, and sit under the place pins so places stay first. They share the creatures' ink-and-watercolour hand. The found counter appears only after the first find, and the list gives unknown legends' regions as hints, never their positions.",
+        "section": "components"
       }
     ],
     "dos": [
@@ -526,7 +537,8 @@
       "Don't show unsoftened Sheet colours: always pass them through the sepia mix.",
       "Don't draw a decorative border around the screen: the owner chose the scroll, rose, sea names and aged paper, and left the frame out.",
       "Don't put a category label or kicker above a heading.",
-      "Don't animate map layers by changing their paint each frame: with terrain they are baked into tile textures, and every paint change re-bakes them all. Animate in a custom GPU layer or in HTML markers."
+      "Don't animate map layers by changing their paint each frame: with terrain they are baked into tile textures, and every paint change re-bakes them all. Animate in a custom GPU layer or in HTML markers.",
+      "Don't show the legend vignettes in the far view: they are meant to be found by zooming in."
     ]
   }
 }

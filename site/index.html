@@ -21,6 +21,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&family=Zen+Antique&family=IM+Fell+English:ital@0;1&display=swap">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@6.11.2/dist/maplibre-gl.css">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="legendes.css">
 </head>
 <body>
   <div id="carte" aria-label="3D map of Japan"></div>
@@ -49,7 +50,14 @@
         <svg class="de" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.6" fill="currentColor"/></svg>
         <span id="txt-hasard">Random</span>
       </button>
+      <!-- Légendes cachées : le bouton apparaît quand on en a trouvé une (legendes.js) -->
+      <button class="bouton-categories bouton-legendes panneau" id="btn-legendes" aria-expanded="false" aria-controls="panneau-legendes" hidden>
+        <svg class="lanterne" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M9 3h6M9 21h6M7.5 5h9C19 7 19.6 10 19.6 12s-.6 5-3.1 7h-9C5 17 4.4 14 4.4 12S5 7 7.5 5ZM4.6 10h14.8M4.6 14h14.8"/></svg>
+        <span id="txt-legendes">Legends</span>
+        <span class="compteur" id="compteur-legendes"></span>
+      </button>
     </div>
+    <div class="menu panneau" id="panneau-legendes" hidden></div>
     <div class="menu panneau hasard" id="panneau-hasard" hidden>
       <p class="hasard-titre" id="hasard-titre"></p>
       <label class="champ-hasard">

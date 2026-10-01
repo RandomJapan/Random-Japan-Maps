@@ -1,0 +1,417 @@
+/* ================================================================
+   Les légendes cachées (legendes.js) : les dessins sur la carte, la bulle qui raconte la légende,
+   le bouton « Légendes » avec son compteur, la liste et le « Bravo » final.
+   ================================================================ */
+
+/* ---------- Les dessins sur la carte : posés par le pied, sous les épingles des lieux ---------- */
+.legende { position: relative; width: 0; height: 0; padding: 0; border: 0; background: none; cursor: pointer; }
+.legende svg {
+  position: absolute; left: -34px; bottom: -4px; width: 68px; height: 64px; display: block;
+  filter: drop-shadow(0 1px 1.5px rgba(52, 36, 18, 0.35));
+  transform-origin: 50% 94%; transition: opacity .4s, transform .2s var(--ease);
+}
+.legende:hover svg, .legende.ouverte svg { transform: scale(1.1); }
+.legende:focus-visible { outline: none; }
+.legende:focus-visible svg { outline: 2px solid var(--sarcelle); outline-offset: 2px; border-radius: 4px; }
+/* Tout le Japon à l'écran : les légendes se cachent (il faut zoomer sur une région pour les trouver) */
+#carte.sans-legendes .legende { visibility: hidden; transition: visibility 0s .4s; }
+#carte.sans-legendes .legende svg { opacity: 0; }
+
+/* ---------- La bulle ---------- */
+.bulle-legende { z-index: 4; }
+.bulle-legende .maplibregl-popup-content {
+  background: var(--grain) 0 0 / 240px 240px, var(--papier); color: var(--encre);
+  border: 1px solid var(--trait); border-radius: var(--rayon); box-shadow: var(--ombre);
+  padding: 13px 16px 14px; font: 400 13.5px/1.55 var(--police);
+}
+.bulle-legende.maplibregl-popup-anchor-top .maplibregl-popup-tip,
+.bulle-legende.maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
+.bulle-legende.maplibregl-popup-anchor-top-right .maplibregl-popup-tip { border-bottom-color: var(--trait); }
+.bulle-legende.maplibregl-popup-anchor-bottom .maplibregl-popup-tip,
+.bulle-legende.maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip,
+.bulle-legende.maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip { border-top-color: var(--trait); }
+.bulle-legende.maplibregl-popup-anchor-left .maplibregl-popup-tip { border-right-color: var(--trait); }
+.bulle-legende.maplibregl-popup-anchor-right .maplibregl-popup-tip { border-left-color: var(--trait); }
+.bulle-legende .maplibregl-popup-close-button {
+  top: 6px; right: 6px; width: 30px; height: 30px; border-radius: var(--rayon);
+  font-size: 20px; line-height: 1; color: var(--encre-2);
+}
+.bulle-legende .maplibregl-popup-close-button:hover { background: var(--papier-fonce); color: var(--encre); }
+.bulle-titre { margin: 0; padding-right: 22px; font: 400 19px/1.25 var(--police-titre); text-wrap: balance; }
+.bulle-second { margin: 2px 0 0; font: 400 14px/1.3 var(--police-titre); color: var(--sarcelle); letter-spacing: .06em; }
+.bulle-lieu { margin: 3px 0 0; font: italic 14.5px/1.3 var(--police-carte); color: var(--encre-2); }
+.bulle-texte { margin: 8px 0 0; }
+html:lang(ja) .bulle-lieu { font: 400 13px/1.3 var(--police-titre); }
+
+/* ---------- Le bouton « Légendes » (après la première trouvée) et la liste ---------- */
+.filtres-boutons { flex-wrap: wrap; }
+.bouton-legendes[hidden] { display: none; }
+.bouton-legendes .lanterne { color: var(--rouge); }
+.bouton-legendes.nouvelle { animation: tampon .7s var(--ease); }
+@keyframes tampon { 35% { transform: scale(1.1); } }
+.bouton-legendes.complet .compteur { background: var(--rouge); color: var(--papier-clair); }
+.legendes-info { margin: -6px 2px 12px; font-size: 13px; color: var(--encre-2); line-height: 1.45; }
+.liste-legendes { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.legende-ligne {
+  display: flex; align-items: center; gap: 10px; width: 100%; padding: 3px 8px 3px 4px;
+  border: 0; border-radius: var(--rayon); background: none; color: inherit; font: inherit; text-align: left;
+}
+button.legende-ligne { cursor: pointer; transition: background .15s; }
+button.legende-ligne:hover { background: var(--papier-fonce); }
+.legende-mini { flex: none; width: 46px; height: 43px; }
+.legende-mini svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.inconnue .legende-mini {
+  display: grid; place-items: center; width: 34px; height: 34px; margin: 4px 6px;
+  border: 1px dashed var(--trait); border-radius: 50%;
+  font: 400 17px var(--police-titre); color: var(--encre-3);
+}
+.legende-textes { min-width: 0; }
+.legende-textes b { display: block; font-weight: 600; font-size: 14px; line-height: 1.3; }
+.legende-textes small { display: block; font-size: 12.5px; color: var(--encre-3); }
+.inconnue .legende-textes b { font-weight: 500; color: var(--encre-3); }
+
+/* ---------- Toutes trouvées : un sceau rouge et un bravo ---------- */
+.bravo-legendes {
+  position: fixed; inset: 0; z-index: 25; display: grid; place-items: center; padding: 20px;
+  background: rgba(52, 36, 18, 0.35); animation: apparait .3s var(--ease);
+}
+.bravo-carte { width: min(340px, 100%); padding: 24px 24px 20px; text-align: center; }
+.bravo-sceau {
+  width: 68px; height: 68px; margin: 0 auto 12px; display: grid; place-items: center;
+  border: 3px double var(--rouge); border-radius: 6px; color: var(--rouge);
+  background: color-mix(in oklab, var(--rouge) 8%, transparent);
+  font: 400 24px/1 var(--police-titre); writing-mode: vertical-rl; letter-spacing: .08em;
+  transform: rotate(-8deg); animation: sceau .55s .15s cubic-bezier(.3, 1.5, .5, 1) both;
+}
+@keyframes sceau { from { transform: rotate(-8deg) scale(2.4); opacity: 0; } }
+.bravo-carte h2 { margin: 0 0 6px; font: 400 26px/1.2 var(--police-titre); }
+.bravo-carte p { margin: 0 0 18px; font-size: 15px; line-height: 1.5; text-wrap: pretty; }
+
+@media (max-width: 720px) {
+  .legende svg { left: -29px; width: 58px; height: 55px; }
+}
+
+/* ---------- Les dessins (encre et aquarelle) ---------- */
+.lg svg { overflow: visible; }
+.lg .trait { fill: none; stroke: #35251a; stroke-width: .8; stroke-linecap: round; stroke-linejoin: round; }
+.lg .trait-doux { fill: none; stroke: #35251a; stroke-width: .6; opacity: .45; stroke-linecap: round; }
+.lg .noir { fill: #1e1712; }
+.lg .sol { fill: none; stroke: #35251a; stroke-width: .6; opacity: .35; stroke-linecap: round; }
+.lg .herbe { fill: none; stroke: #5f7f44; stroke-width: .8; stroke-linecap: round; }
+.lg .remous { fill: none; stroke: #3d6b64; stroke-width: .9; stroke-linecap: round; opacity: .8; }
+.lg .eau, .lg .ng-eau { fill: none; stroke: #3d6b64; stroke-width: .9; stroke-linecap: round; opacity: .55; }
+.lg .c-peau, .lg .c-blanc, .lg .c-rouge, .lg .c-or, .lg .c-bois, .lg .c-paille, .lg .c-indigo, .lg .c-vert, .lg .c-feuille,
+.lg .c-gris, .lg .pierre, .lg .c-neige, .lg .c-brun { stroke: #35251a; stroke-width: .8; stroke-linejoin: round; }
+.lg .c-peau { fill: #e6bf98; }
+.lg .c-blanc { fill: #f6eedb; }
+.lg .c-rouge { fill: #b23a26; }
+.lg .c-or { fill: #d4a240; }
+.lg .c-bois { fill: #8a6a3e; }
+.lg .c-paille { fill: #cdb06a; stroke: #6b5530; }
+.lg .c-indigo { fill: #3e5a74; }
+.lg .c-vert { fill: #7c9a52; stroke: #2e3a26; }
+.lg .c-feuille { fill: #7aa05a; stroke: #2e3a26; }
+.lg .c-gris, .lg .pierre { fill: #a39f92; }
+.lg .c-neige { fill: #f4f2ec; stroke: #8a8f92; stroke-width: .7; }
+.lg .c-brun { fill: #4a3828; stroke: #1e1712; }
+.lg .corde { fill: none; stroke: #c9a35a; stroke-width: 1.6; stroke-linecap: round; }
+.lg .shide { fill: none; stroke: #f6eedb; stroke-width: 1; stroke-linejoin: round; }
+
+/* Korpokkur */
+.kr-tige { fill: none; stroke: #6d8c48; stroke-width: 1.6; stroke-linecap: round; }
+.kr-nervure { fill: none; stroke: #4f6e3a; stroke-width: .6; stroke-linecap: round; }
+.kr-reflet { fill: none; stroke: #b5cf96; stroke-width: .9; stroke-linecap: round; }
+.motif-ainu { fill: none; stroke: #f2ead8; stroke-width: .7; stroke-linecap: round; }
+.kr-bras { fill: none; stroke: #3e5a74; stroke-width: 2.2; stroke-linecap: round; }
+.kr-bandeau { fill: none; stroke: #a8321f; stroke-width: 1; }
+.kr-feuille { transform-origin: 35px 57px; }
+/* Namahage */
+.nm-brins { fill: none; stroke: #8f7238; stroke-width: .6; stroke-linecap: round; }
+.nm-frange { fill: none; stroke: #6b5530; stroke-width: .8; stroke-linejoin: round; }
+.nm-lame { fill: #cfcabb; stroke: #35251a; stroke-width: .8; stroke-linejoin: round; }
+.nm-poil, .sd-cheveux { fill: #2b2420; stroke: #1e1712; stroke-width: .5; stroke-linejoin: round; }
+.sd-cheveux { fill: #5a2416; }
+.nm-sourcils { fill: none; stroke: #1e1712; stroke-width: 1.3; stroke-linecap: round; }
+.nm-bouche { fill: #4a1a10; stroke: #35251a; stroke-width: .6; }
+.nm-crocs { fill: #f6eedb; }
+.nm-couteau { transform-origin: 46px 32.6px; }
+.nm-tete { transform-origin: 32px 28px; }
+/* Poisson-chat */
+.nz-corps { fill: #6b6a54; stroke: #24261c; stroke-width: .9; stroke-linejoin: round; }
+.nz-ventre { fill: #c9c2a0; }
+.nz-nageoire { fill: #57563f; stroke: #24261c; stroke-width: .7; stroke-linejoin: round; }
+.nz-moustache { fill: none; stroke: #24261c; stroke-width: 1; stroke-linecap: round; }
+.nz-queue { transform-origin: 48px 43.6px; }
+.nz-moustaches { transform-origin: 10px 45px; }
+/* Kintarō */
+.kt-museau { fill: #b08a62; stroke: #1e1712; stroke-width: .7; }
+.kt-oeil { fill: #e6bf98; }
+.kt-joue { fill: #d0705a; opacity: .6; }
+.kt-manche { fill: none; stroke: #6b4a2c; stroke-width: 1.5; stroke-linecap: round; }
+.kt-lame { fill: #cfcabb; stroke: #35251a; stroke-width: .8; stroke-linejoin: round; }
+.kt-bras { fill: none; stroke: #e6bf98; stroke-width: 2.4; stroke-linecap: round; }
+.kt-hache { transform-origin: 36px 27px; }
+/* Kaguya */
+.kg-lune { fill: #f3e6b0; stroke: #8a7a4a; stroke-width: .7; }
+.kg-cratere { fill: none; stroke: #c9b678; stroke-width: 1.6; stroke-linecap: round; }
+.kg-feuille { fill: #6d8c48; stroke: #2e3a26; stroke-width: .5; }
+.kg-halo { fill: #fbe58a; opacity: .5; }
+.kg-halo2 { opacity: .75; }
+.kg-coupe { fill: none; stroke: #2e3a26; stroke-width: .8; }
+.kg-lumiere { fill: #f8eab4; }
+/* Yuki-onna */
+.yo-kimono, .yo-manche { fill: #eef2f2; stroke: #5d6e76; stroke-width: .8; stroke-linejoin: round; }
+.yo-manche { fill: #e2eaed; }
+.yo-pli { fill: none; stroke: #9fb3bb; stroke-width: .6; stroke-linecap: round; }
+.yo-obi { fill: #9fb8c4; stroke: #5d6e76; stroke-width: .6; }
+.yo-col { fill: none; stroke: #5d6e76; stroke-width: .7; }
+.yo-visage { fill: #f6f3ec; stroke: #5d6e76; stroke-width: .7; }
+.yo-levres { fill: #b23a26; }
+.yo-souffle { fill: none; stroke: #8fb6c4; stroke-width: 1.2; stroke-linecap: round; opacity: .9; }
+.yo-flocon { fill: #fff; stroke: #7a8f96; stroke-width: .5; }
+.yo-cheveux { transform-origin: 34px 14px; }
+/* La sirène */
+.ng-ecailles-f { fill: #6f9a8e; stroke: #24352a; stroke-width: .8; stroke-linejoin: round; }
+.ng-ecailles { fill: none; stroke: #c4dcd2; stroke-width: .6; stroke-linecap: round; }
+.ng-col { fill: none; stroke: #a8321f; stroke-width: 1; stroke-linejoin: round; }
+.ng-cheveux { fill: #1e1712; }
+.ng-camelia { fill: #c0392b; stroke: #5a1a10; stroke-width: .6; }
+.ng-queue { transform-origin: 44px 52px; }
+/* Shuten-dōji */
+.sd-tigre { fill: #d9a440; stroke: #35251a; stroke-width: .8; }
+.sd-rayures { fill: none; stroke: #1e1712; stroke-width: 1.1; stroke-linecap: round; }
+.sd-laque { fill: #a8321f; stroke: #35251a; stroke-width: .8; }
+.sd-bord { fill: #c64a30; stroke: #35251a; stroke-width: .7; }
+.sd-sake { fill: #efe2c4; }
+.sd-oni { transform-origin: 32px 53px; }
+/* Urashima */
+.ur-patte { fill: #8a9a62; stroke: #2e3a26; stroke-width: .7; stroke-linejoin: round; }
+.ur-carapace { fill: #6a7a4a; stroke: #2e3a26; stroke-width: .9; }
+.ur-motif { fill: none; stroke: #c9d0a0; stroke-width: .6; stroke-linejoin: round; }
+.ur-boite { fill: #1e1712; stroke: #35251a; stroke-width: .6; }
+.ur-cordon { fill: none; stroke: #c64a30; stroke-width: .8; stroke-linecap: round; }
+.ur-bandeau { fill: none; stroke: #f6eedb; stroke-width: .9; stroke-linecap: round; }
+.ur-nage { transform-origin: 19px 46px; }
+/* Daidarabotchi */
+.dd-rond { fill: none; stroke: #3d6b64; stroke-width: .8; opacity: .55; }
+.dd-peau { fill: #8f9c88; stroke: #35251a; stroke-width: .8; stroke-linejoin: round; stroke-linecap: round; }
+.dd-bras-f { fill: none; stroke: #35251a; stroke-width: 3.8; stroke-linecap: round; }
+.dd-bras { fill: none; stroke: #8f9c88; stroke-width: 2.2; stroke-linecap: round; }
+.dd-pagne { fill: #e3d3ae; stroke: #35251a; stroke-width: .7; }
+.dd-corde { fill: none; stroke: #6b5530; stroke-width: .6; }
+.dd-terre { fill: #8a6a42; stroke: #35251a; stroke-width: .6; }
+.dd-fuji { fill: #7a8aa0; stroke: #35251a; stroke-width: .6; stroke-linejoin: round; }
+.dd-neige { fill: #f6eedb; }
+.dd-perche { fill: none; stroke: #6b4a2c; stroke-width: 1.5; stroke-linecap: round; }
+.dd-cheveux { fill: #2b2420; }
+.dd-panier.g { transform-origin: 11px 22.4px; }
+.dd-panier.d { transform-origin: 53px 22.4px; }
+/* Le lapin blanc */
+.lp-dos { fill: #6e7c80; stroke: #26333a; stroke-width: .8; stroke-linejoin: round; }
+.lp-blanc { fill: #fbf8f0; stroke: #5b5048; stroke-width: .8; stroke-linejoin: round; }
+.lp-oeil { fill: #c0392b; }
+/* Momotarō */
+.mt-peche { fill: #f0a488; stroke: #8a4a3a; stroke-width: .8; }
+.mt-reflet { fill: none; stroke: #fbd6be; stroke-width: 1.2; stroke-linecap: round; }
+.mt-hampe { fill: none; stroke: #6b4a2c; stroke-width: 1.1; stroke-linecap: round; }
+.mt-drapeau { fill: #f6eedb; stroke: #35251a; stroke-width: .7; }
+.mt-texte { font: 400 5px "Zen Antique", "Noto Serif JP", serif; fill: #a8321f; text-anchor: middle; }
+.mt-hakama { fill: #56627a; stroke: #35251a; stroke-width: .8; stroke-linejoin: round; }
+.mt-haori { fill: #c8642c; stroke: #35251a; stroke-width: .8; stroke-linejoin: round; }
+.mt-blason { fill: #f0a488; stroke: #35251a; stroke-width: .5; }
+.mt-sabre { fill: none; stroke: #1e1712; stroke-width: 1.3; stroke-linecap: round; }
+.mt-bandeau { fill: none; stroke: #f6eedb; stroke-width: 1; stroke-linecap: round; }
+.mt-pelage { fill: #f2ead8; stroke: #5b4a3a; stroke-width: .7; stroke-linejoin: round; }
+.mt-banniere { transform-origin: 41px 38px; }
+.mt-queue { transform-origin: 57.6px 47px; }
+/* Crabe des Heike */
+.hk-carapace { fill: #a0522d; stroke: #3a1a10; stroke-width: .9; stroke-linejoin: round; }
+.hk-bras, .hk-pattes { fill: none; stroke: #8a4426; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.hk-tige { fill: none; stroke: #3a1a10; stroke-width: .9; }
+.hk-visage { fill: none; stroke: #3a1a10; stroke-width: 1.1; stroke-linecap: round; }
+.hk-pince.g { transform-origin: 19px 38px; }
+.hk-pince.d { transform-origin: 45px 38px; }
+/* Tanuki */
+.tn-pelage { fill: #8a6a48; stroke: #35251a; stroke-width: .8; stroke-linejoin: round; }
+.tn-ventre { fill: #e3cfa4; }
+.tn-pied, .tn-masque { fill: #3e2e20; }
+.tn-queue { fill: #8a6a48; stroke: #35251a; stroke-width: .8; }
+.tn-rayure { fill: none; stroke: #3e2e20; stroke-width: 1.4; stroke-linecap: round; }
+.tn-casque { fill: #3a3a44; stroke: #1e1712; stroke-width: .8; }
+.tn-shikoro { fill: #4a4a56; stroke: #1e1712; stroke-width: .8; stroke-linejoin: round; }
+.tn-croissant { fill: #d4a240; stroke: #35251a; stroke-width: .6; }
+.tn-hampe { fill: none; stroke: #6b4a2c; stroke-width: 1.1; stroke-linecap: round; }
+.tn-drapeau { fill: #b23a26; stroke: #35251a; stroke-width: .7; }
+.tn-bras.g { transform-origin: 25px 34px; }
+.tn-bras.d { transform-origin: 39px 34px; }
+.tn-ventre-g { transform-origin: 32px 52px; }
+/* Vent divin */
+.kz-mat { fill: none; stroke: #4a3828; stroke-width: 1.2; }
+.kz-voile { fill: #c9a77a; stroke: #35251a; stroke-width: .7; stroke-linejoin: round; }
+.kz-lattes { fill: none; stroke: #6b5530; stroke-width: .6; }
+.kz-vague { fill: none; stroke: #3d6b64; stroke-width: 1.1; stroke-linecap: round; stroke-linejoin: round; }
+.kz-vent { fill: none; stroke: #6f9aa2; stroke-width: 1.2; stroke-linecap: round; stroke-dasharray: 5 3; }
+.kz-sac-f { fill: none; stroke: #35251a; stroke-width: 4.6; stroke-linecap: round; }
+.kz-sac { fill: none; stroke: #e9dcc0; stroke-width: 3; stroke-linecap: round; }
+.kz-nuage { fill: #efe6d2; stroke: #7a6a5a; stroke-width: .7; }
+.kz-spirale { fill: none; stroke: #9a8a76; stroke-width: .6; stroke-linecap: round; }
+.kz-peau { fill: #7aa07a; stroke: #24352a; stroke-width: .8; stroke-linejoin: round; }
+.kz-cheveux { fill: #f2ead8; stroke: #5b4a3a; stroke-width: .6; stroke-linejoin: round; }
+.kz-bouche { fill: #4a1a10; }
+.kz-bras { fill: none; stroke: #7aa07a; stroke-width: 2.4; stroke-linecap: round; }
+.kz-bateau { transform-origin: 47px 47px; }
+/* Amabie */
+.am-halo { fill: #f6e6a0; opacity: .3; }
+.am-halo2 { opacity: .45; }
+.am-meche { fill: #2b2622; stroke: #1e1712; stroke-width: .5; stroke-linejoin: round; }
+.am-trait { fill: none; stroke: #6a625a; stroke-width: .5; stroke-linecap: round; }
+.am-corps { fill: #86ad9e; stroke: #24352a; stroke-width: .8; }
+.am-ecailles { fill: none; stroke: #2f5246; stroke-width: .6; }
+.am-pattes { fill: none; stroke: #2b2622; stroke-width: 1.8; stroke-linecap: round; }
+.am-visage { fill: #f4eedf; stroke: #35251a; stroke-width: .7; }
+.am-cheveux { transform-origin: 32px 12px; }
+/* Grotte du soleil */
+.iw-falaise { fill: #8f8a78; stroke: #35251a; stroke-width: .9; stroke-linejoin: round; }
+.iw-grotte { fill: #2b2420; stroke: #35251a; stroke-width: .8; }
+.iw-lueur { fill: #f3d36b; opacity: .55; }
+.iw-rayon { fill: #f3d36b; opacity: .6; }
+.iw-queue { fill: none; stroke: #1e1712; stroke-width: 1.2; stroke-linecap: round; }
+.iw-tete-coq { transform-origin: 55px 42px; }
+/* Kijimunā */
+.kj-racine { fill: none; stroke: #8a7258; stroke-width: .9; stroke-linecap: round; }
+.kj-tronc { fill: #9a8266; stroke: #35251a; stroke-width: .9; stroke-linejoin: round; }
+.kj-noeud { fill: none; stroke: #5b4a3a; stroke-width: .6; stroke-linecap: round; }
+.kj-branche { fill: none; stroke: #9a8266; stroke-width: 2.8; stroke-linecap: round; }
+.kj-feuillage { fill: #4f7a44; stroke: #24352a; stroke-width: .9; stroke-linejoin: round; }
+.kj-feuilles { fill: none; stroke: #8fb36e; stroke-width: 1.8; stroke-linecap: round; }
+.kj-jambe { fill: none; stroke: #c8642c; stroke-width: 1.8; stroke-linecap: round; }
+.kj-peau { fill: #c8642c; stroke: #35251a; stroke-width: .7; }
+.kj-cheveux { fill: #d0402a; stroke: #5a1a10; stroke-width: .5; stroke-linejoin: round; }
+.kj-ecaille { fill: #9fb4bc; stroke: #35251a; stroke-width: .6; stroke-linejoin: round; }
+.kj-jambes { transform-origin: 46px 31.6px; }
+.kj-poisson { transform-origin: 50px 27px; }
+
+/* Renard, tengu, kappa, serpent (premiers dessins) */
+.vapeur { fill: none; stroke: #b9b5a6; stroke-width: 1.3; stroke-linecap: round; opacity: .85; }
+.k-poil, .k-corps { fill: #e3b86c; stroke: #35251a; stroke-width: .8; stroke-linejoin: round; }
+.k-bout, .k-creme { fill: #f6eedb; }
+.k-rouge { fill: #a8321f; }
+.k-marque { fill: none; stroke: #a8321f; stroke-width: .9; stroke-linecap: round; }
+.k-queue { transform: rotate(var(--a)); }
+.rocher { fill: #a39f92; stroke: #35251a; stroke-width: .9; stroke-linejoin: round; }
+.t-plume { fill: #4a3a2c; stroke: #1e1712; stroke-width: .8; stroke-linejoin: round; }
+.t-rayure { fill: none; stroke: #8a7258; stroke-width: .6; stroke-linecap: round; }
+.t-robe { fill: #ece0c4; stroke: #35251a; stroke-width: .8; stroke-linejoin: round; }
+.t-hakama { fill: #56627a; stroke: #35251a; stroke-width: .8; stroke-linejoin: round; }
+.t-pompon { fill: #c8642c; stroke: #35251a; stroke-width: .5; }
+.t-feuille { fill: #b9893f; stroke: #35251a; stroke-width: .8; }
+.t-nervure { fill: none; stroke: #5b432d; stroke-width: .6; stroke-linecap: round; }
+.t-peau { fill: #c1442b; stroke: #35251a; stroke-width: .8; stroke-linejoin: round; }
+.t-cheveux { fill: #f2ead8; stroke: #35251a; stroke-width: .7; stroke-linejoin: round; }
+.t-sourcil { fill: none; stroke: #1e1712; stroke-width: 1.1; stroke-linecap: round; }
+.t-tokin { fill: #1e1712; }
+.t-eventail { transform-origin: 21.6px 28.8px; transform: rotate(-4deg); }
+.t-aile.g { transform-origin: 30px 31px; }
+.t-aile.d { transform-origin: 34px 31px; }
+.kp-carapace { fill: #8a6a3e; stroke: #35251a; stroke-width: .8; stroke-linejoin: round; }
+.kp-peau { fill: #73945a; stroke: #35251a; stroke-width: .8; stroke-linejoin: round; }
+.kp-peau2 { fill: #62824a; stroke: #35251a; stroke-width: .8; stroke-linejoin: round; }
+.kp-ventre { fill: #c9c98a; opacity: .75; }
+.kp-concombre { fill: #4f7a3a; stroke: #35251a; stroke-width: .7; }
+.kp-pois { fill: none; stroke: #b7cf8e; stroke-width: 1.2; stroke-linecap: round; }
+.kp-bec { fill: #d4a240; stroke: #35251a; stroke-width: .8; stroke-linejoin: round; }
+.kp-cheveux { fill: #2e3a26; stroke: #1e1712; stroke-width: .5; stroke-linejoin: round; }
+.kp-assiette { fill: #d6e2da; stroke: #35251a; stroke-width: .8; }
+.kp-reflet { fill: none; stroke: #fff; stroke-width: .7; stroke-linecap: round; }
+.kp-oeil { fill: #f6eedb; stroke: #35251a; stroke-width: .5; }
+.kp-tete { transform-origin: 30px 30px; }
+.o-fond { fill: none; stroke: #24352a; stroke-width: 4.2; stroke-linecap: round; }
+.o-corps { fill: none; stroke: #5f8358; stroke-width: 2.6; stroke-linecap: round; }
+.o-ecailles { fill: none; stroke: #b3c796; stroke-width: .8; stroke-dasharray: 1 2; }
+.o-tete { fill: #5f8358; stroke: #24352a; stroke-width: .8; stroke-linejoin: round; }
+.o-oeil { fill: #e0b040; stroke: #24352a; stroke-width: .3; }
+.o-langue { fill: none; stroke: #a8321f; stroke-width: .7; stroke-linecap: round; }
+.o-ventre { fill: #4f6e48; stroke: #24352a; stroke-width: .9; }
+.o-rouge { fill: #9b3a26; stroke: #24352a; stroke-width: .7; opacity: .9; }
+.tonneau path:first-child { fill: #b98b52; stroke: #35251a; stroke-width: .7; }
+
+/* ---------- Petites animations : seulement pour les légendes à l'écran (.anime) ---------- */
+.anime .kr-feuille { animation: balance 4.4s ease-in-out infinite; }
+.anime .nm-couteau { animation: nm-couteau 3.2s ease-in-out infinite; }
+.anime .nm-tete { animation: hoche 3.2s ease-in-out infinite; }
+.anime .nz-queue { animation: nz-queue 1.8s ease-in-out infinite; }
+.anime .nz-moustaches { animation: balance 2.6s ease-in-out infinite; }
+.anime .nz-tout { animation: secousse 5s linear infinite; }
+.anime .kt-ours { animation: pas 1.4s ease-in-out infinite; }
+.anime .kt-hache { animation: balance 2.8s ease-in-out infinite; }
+.anime .kg-halo { animation: lueur 3s ease-in-out infinite; }
+.anime .kg-halo2 { animation-delay: -1.5s; }
+.anime .yo-flocon { animation: flocon 4s linear infinite; animation-delay: var(--d); }
+.anime .yo-souffle { animation: souffle 3.6s ease-out infinite; }
+.anime .yo-cheveux { animation: balance 4s ease-in-out infinite; }
+.anime .ng-queue { animation: ng-queue 2.6s ease-in-out infinite; }
+.anime .sd-oni { animation: balance 3.6s ease-in-out infinite; }
+.anime .ur-tortue { animation: flotte 2.4s ease-in-out infinite; }
+.anime .ur-nage { animation: rame 2.4s ease-in-out infinite; }
+.anime .dd-geant { animation: pas 2.2s ease-in-out infinite; }
+.anime .dd-panier { animation: balance 2.2s ease-in-out infinite; }
+.anime .lp-lapin { animation: saut 1.6s cubic-bezier(.3, 0, .4, 1) infinite; }
+.anime .lp-requin { animation: flotte 2.4s ease-in-out infinite; animation-delay: calc(var(--i) * -0.8s); }
+.anime .mt-banniere { animation: balance 3s ease-in-out infinite; }
+.anime .mt-queue { animation: remue .5s ease-in-out infinite alternate; }
+.anime .hk-crabe { animation: crabe 3.4s ease-in-out infinite; }
+.anime .hk-pince.g { animation: pince 1.7s ease-in-out infinite; }
+.anime .hk-pince.d { animation: pince-d 1.7s ease-in-out infinite; animation-delay: -.85s; }
+.anime .tn-bras.g { animation: tambour 1.2s ease-in-out infinite; }
+.anime .tn-bras.d { animation: tambour-d 1.2s ease-in-out infinite; animation-delay: -.6s; }
+.anime .tn-ventre-g { animation: ventre .6s ease-in-out infinite; }
+.anime .kz-vent { animation: vent 1.2s linear infinite; }
+.anime .kz-bateau { animation: tangue 2.6s ease-in-out infinite; }
+.anime .kz-dieu { animation: flotte 3s ease-in-out infinite; }
+.anime .am-halo { animation: lueur 3.2s ease-in-out infinite; }
+.anime .am-halo2 { animation-delay: -1.6s; }
+.anime .am-cheveux { animation: balance 4s ease-in-out infinite; }
+.anime .iw-rayon { animation: lueur 2.6s ease-in-out infinite; animation-delay: calc(var(--i) * -0.37s); }
+.anime .iw-tete-coq { animation: chant 4s ease-in-out infinite; }
+.anime .kj-jambes { animation: balance 1.6s ease-in-out infinite; }
+.anime .kj-poisson { animation: remue .6s ease-in-out infinite alternate; }
+.anime .vapeur { animation: vapeur 3.2s ease-out infinite; }
+.anime .vapeur.v2 { animation-delay: -1.6s; }
+.anime .k-queue { animation: k-queue 3.6s ease-in-out infinite; animation-delay: calc(var(--r) * -1.2s); }
+.anime .t-eventail { animation: t-eventail 2.4s ease-in-out infinite; }
+.anime .t-aile.g { animation: t-aile-g 3s ease-in-out infinite; }
+.anime .t-aile.d { animation: t-aile-d 3s ease-in-out infinite; }
+.anime .kp-tete { animation: kp-tete 4s ease-in-out infinite; }
+.anime .o-cou { animation: o-cou 3.4s ease-in-out infinite; animation-delay: calc(var(--i) * -0.43s); }
+
+@keyframes balance { 0%, 100% { transform: rotate(-2.5deg); } 50% { transform: rotate(2.5deg); } }
+@keyframes hoche { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(3deg); } }
+@keyframes nm-couteau { 0%, 60%, 100% { transform: rotate(0); } 70% { transform: rotate(-12deg); } 80% { transform: rotate(8deg); } 90% { transform: rotate(-6deg); } }
+@keyframes nz-queue { 0%, 100% { transform: rotate(-8deg); } 50% { transform: rotate(8deg); } }
+@keyframes secousse { 0%, 84%, 100% { transform: translate(0); } 86% { transform: translate(-.8px, .3px); } 88% { transform: translate(.8px, -.3px); }
+  90% { transform: translate(-.6px, -.2px); } 92% { transform: translate(.6px, .3px); } 94% { transform: translate(-.3px, 0); } }
+@keyframes pas { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-.8px); } }
+@keyframes lueur { 0%, 100% { opacity: .3; } 50% { opacity: .75; } }
+@keyframes flocon { from { transform: translate(0, -3px); opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } to { transform: translate(-2px, 6px); opacity: 0; } }
+@keyframes souffle { 0%, 40% { opacity: 0; stroke-dasharray: 0 40; } 70% { opacity: .9; stroke-dasharray: 40 0; } 100% { opacity: 0; stroke-dasharray: 40 0; } }
+@keyframes ng-queue { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(6deg); } }
+@keyframes flotte { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1.2px); } }
+@keyframes rame { 0%, 100% { transform: rotate(-10deg); } 50% { transform: rotate(14deg); } }
+@keyframes saut { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-5px) rotate(-6deg); } }
+@keyframes remue { from { transform: rotate(-10deg); } to { transform: rotate(10deg); } }
+@keyframes crabe { 0%, 100% { transform: translateX(-1.5px); } 50% { transform: translateX(1.5px); } }
+@keyframes pince { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-12deg); } }
+@keyframes pince-d { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(12deg); } }
+@keyframes tambour { 0%, 100% { transform: rotate(0); } 30% { transform: rotate(-16deg); } }
+@keyframes tambour-d { 0%, 100% { transform: rotate(0); } 30% { transform: rotate(16deg); } }
+@keyframes ventre { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.02, .985); } }
+@keyframes vent { to { stroke-dashoffset: -16; } }
+@keyframes tangue { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(4deg); } }
+@keyframes chant { 0%, 55%, 100% { transform: rotate(0); } 65%, 85% { transform: rotate(-24deg); } }
+@keyframes vapeur { from { transform: translateY(1px); opacity: 0; } 30% { opacity: .85; } to { transform: translateY(-4px); opacity: 0; } }
+@keyframes k-queue { 0%, 100% { transform: rotate(var(--a)); } 50% { transform: rotate(calc(var(--a) + 6deg)); } }
+@keyframes t-eventail { 0%, 100% { transform: rotate(-10deg); } 50% { transform: rotate(12deg); } }
+@keyframes t-aile-g { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(5deg); } }
+@keyframes t-aile-d { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-5deg); } }
+@keyframes kp-tete { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-5deg); } }
+@keyframes o-cou { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(3deg); } }

@@ -108,6 +108,7 @@ The map is an antique relief map of Japan, the kind engraved and hand-tinted for
 - **The land.** The islands are a shaded sepia model: pale sand on the coasts, ochre-tan hills, umber mountains and bone-white peaks, under a strong umber hillshade lit from the north-west.
 - **The sea.** It is an aged, slightly faded turquoise. Engraved water-lines hug every coast, and the islands cast a soft shadow onto it, so they stand up from the sheet.
 - **The living sea.** Seen from afar, the sea moves a little, the way an old map would if it came alive. The water-lines roll slowly in toward the shore as a swell. Now and then a small 3D Edo trading ship (bezaisen) appears far out at sea, sails toward a port of the period and fades before the coast. A whale blows from time to time, and more rarely a sea serpent rises, as on antique charts. The open sea stays sparse, so the map reads first.
+- **The hidden legends.** Zoom into a region and small ink-and-watercolour vignettes of Japanese legends appear where they happen: the nine-tailed fox on its split stone at Nasu, the kappa of Tōno, the tengu of Kurama, the eight-headed serpent of Izumo. There are twenty-two of them, to be found like easter eggs. A tap tells the legend in a parchment bubble.
 - **The paper.** A grain, faint foxing and burnt edges lie over the whole sheet.
 - **The lettering.** The seas are named in 17th-century italic copperplate.
 - **The ornaments.** A compass rose turns with the map, and a rolled title scroll reads Japan · 日本 · Japon.
@@ -124,6 +125,7 @@ The owner chose this world on 2026-09-30 from three reference images: a parchmen
 - A compass rose that turns with the map, and a Japan · 日本 · Japon scroll bottom-left
 - Up close, every place is a small painted low-poly model of its category, standing on a base in the category colour
 - From afar, a living sea: swell rolling to the shore, a few 3D Edo ships far out at sea, a whale or a sea serpent now and then
+- Zoomed in, twenty-two hidden legend vignettes to find, each telling its story in a parchment bubble
 
 ## Colors
 
@@ -148,13 +150,14 @@ The palette is a hand-tinted engraving: one watercolour wash for the sea, sepia 
 - **Sea life**:
   - the bezaisen (`modeles3d.js`): a timber hull (#7a5232) with high light-wood bulwarks and a dark rail, a sail in alternating parchment strips (#f4ecd8 / #e3d3ae) with the owner's crest, and a red pennant;
   - in `style.css`: a slate whale (#4d6266) with a parchment spout, and a green serpent (#5f8358) with a red crest.
+- **Legend vignettes** (`legendes.css`): the same hand as the creatures. Sepia ink outlines (#35251a, 0.8 units), muted washes (moss #7aa05a, straw #cdb06a, indigo #3e5a74, slate #a39f92, ochre #e3b86c), skin #e6bf98, and a brick red (#b23a26) used as a pigment.
 - **Island Shadow** (#2c4a43): the blurred shadow cast south-east of every coast.
 - **Water-name Ink** (#1c4744): the sea names, with a pale sea halo.
 - **Relief ramp** (`app.js`), from Sand Lowland (#e3d0a7) at the coast through ochre, tan and umber to bone white (#efe7d6) at 3500 m, with umber hillshade shadows and paper-white lights.
 - **Sky** (#e9dcbd, Parchment Sky), **Horizon** (#d3d6c0) and **Haze** (#c4d6cc): past the horizon the map fades into paper.
 - **Coast Ink** (#4e3822): a thin coastline over the relief in the far view.
 
-**The Red Ink Is a Verb Rule.** Cartographer's red marks only what the visitor can do or has chosen. It has two ornamental uses, both ones a cartographer would make: the north point of the rose (which is itself a button), and the 日本 seal on the title scroll.
+**The Red Ink Is a Verb Rule.** Cartographer's red marks only what the visitor can do or has chosen. It has two ornamental uses, both ones a cartographer would make: the north point of the rose (which is itself a button), and the 日本 seal on the title scroll. Drawings (the sea creatures, the legend vignettes and the 伝説 seal of the legends' bravo) may use reds as pigments: the rule is about the interface.
 
 **The Sheet Owns the Hues Rule.** Category colours come from the owner's Google Sheet. The site ages each one toward sepia (`color-mix(in oklab, <colour> 78%, #4a3521)`) so any colour the owner picks sits in the engraving. Do not hard-code category colours.
 
@@ -247,6 +250,12 @@ Depth comes from the relief: the exaggerated terrain, the hillshade, and the isl
 - **Bounds:** everything hides at zoom 7.2 and above, where the place models take over. The clock runs at 15 frames per second and stops when the page is hidden. Under reduced motion nothing moves: the fixed water-lines return, and no ship or creature appears.
 - **Open-sea mask:** everything farther than about 70 km from Japan (or nearer a neighbour) is painted the sea colour. The thousands of tiny foreign islets that Natural Earth misses would otherwise twinkle as sand specks.
 
+### Hidden legends (zoomed in)
+- **Vignettes:** 68px tall (58px on phones), the foot standing on the legend's place, with a soft ink drop shadow. They hide below zoom 6.5 and sit under the place pins. Only the ones on screen play their small idle loop (tails swaying, a fan waving, a catfish making the ground shake). Hover or an open bubble lifts a vignette by 10%.
+- **Bubble:** a parchment popup with the ink rule. The title is Zen Antique 19px, the second name is teal Zen Antique, the place is IM Fell English italic (Zen Antique in the Japanese UI), and the story is Noto Sans 13.5px.
+- **Counter:** a "Legends n/22" button with a red lantern joins the Categories / Random row after the first find. It opens a parchment list: found legends with their vignette (tap to fly there), unknown ones as a dashed "?" circle with their region as a hint. The count turns red when all are found.
+- **Bravo:** a centred parchment card with a red double-ruled 伝説 seal that stamps in, shown when the last legend is found.
+
 ### Compass rose (signature)
 - **Drawing:** an eight-point rose on a parchment disc. Each point's clockwise half is inked; the north point is red, under a red "N".
 - **Behaviour:** it rotates live with the map bearing, including during the start-up turntable. Tapping it stops the turntable and eases north back up.
@@ -293,4 +302,5 @@ A parchment ground printed with a faint seigaiha wave pattern (the sea motif of 
 - **Don't** show unsoftened Sheet colours: always pass them through the sepia mix.
 - **Don't** draw a decorative border around the screen: the owner chose the scroll, rose, sea names and aged paper, and left the frame out.
 - **Don't** put a category label or kicker above a heading.
+- **Don't** show the legend vignettes in the far view: they are meant to be found by zooming in, and the whole-Japan view stays clean.
 - **Don't** animate map layers by changing their paint each frame. With terrain, every line, fill and relief layer is baked into tile textures, and a paint change re-bakes them all. Animate in a custom GPU layer (like the swell and the ships) or in HTML markers (like the whale).
