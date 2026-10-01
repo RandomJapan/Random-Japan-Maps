@@ -25,7 +25,7 @@ export const CONFIG = {
   // Le code de ton compte GoatCounter (le début de l'adresse : « monsite » pour monsite.goatcounter.com).
   // Chaque visite y est comptée, et le total s'affiche en haut de la carte sur ordinateur.
   // Mettre '' pour ne rien compter ni afficher.
-  goatcounter: '',
+  goatcounter: 'randomjapan',
 
   // --- Caméra au démarrage -------------------------------------------
   camera: {
