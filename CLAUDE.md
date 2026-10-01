@@ -21,6 +21,7 @@ This serves the site locally. It is also the `carte-japon` entry in `.claude/lau
 - `python outils/preparer_logo.py`: regenerates `site/img/logo.jpg`, `favicon.png`, `icone-180.png` and `partage.jpg` from the images in `outils/logo-source/`. Needs Pillow.
 - `python outils/fabriquer_masque.py`: rebuilds `site/data/masque-voisins.geojson` from Natural Earth.
 - `python outils/fabriquer_cote.py`: rebuilds `site/data/cote-japon.geojson`, the coastline used for the water-lines and the islands' shadow.
+- `python outils/fabriquer_houle.py`: rebuilds `site/data/distance-cote.png` from that coastline, the distance-to-coast image behind the swell and the wavelet placement. Run it after `fabriquer_cote.py`. Needs numpy and Pillow.
 - Deploying means `git push` to `main`. `.github/workflows/mise-en-ligne.yml` publishes `site/` to GitHub Pages. The same workflow also runs nightly and on manual dispatch; in those runs it first commits refreshed `site/data/secours-*.csv`.
 
 On this Windows machine, the shell is PowerShell 5.1. After a winget install, refresh PATH before using `git` or `gh`:
@@ -85,7 +86,7 @@ The owner chose this world on 2026-09-30, from three reference images. It replac
 
 The redesigns were done with the Impeccable skill (`~/.claude/skills/impeccable`, installed without its binary launcher or hooks). The key mechanics:
 - **Palette.** Map inks live in `app.js` and in `CONFIG.couleurs`: the sepia relief ramp, the umber hillshade, the sky, horizon and haze, and the sea. UI tokens are CSS vars in `style.css`: `--papier*`, `--encre*`, `--trait`, `--rouge`, `--sarcelle`.
-- **Sea.** The relief's sea stops are **transparent** (the float16 margin rule below still applies). The sea colour is the `background` layer, and three sets of line layers show through from under the relief: `cote-ombre` (the islands' shadow), `lignes-eau-1..3` (engraved water-lines, drawn with `line-gap-width`) and `cote-encre` (the coast ink, over the relief).
+- **Sea.** The relief's sea stops are **transparent** (the float16 margin rule below still applies). The sea colour is the `background` layer, and three sets of line layers show through from under the relief: `cote-ombre` (the islands' shadow), `lignes-eau-1..3` (engraved water-lines, drawn with `line-gap-width`; once the animated swell of `mer.js` is ready it replaces them, see Living sea) and `cote-encre` (the coast ink, over the relief).
   - Their source is `site/data/cote-japon.geojson`, built by `outils/fabriquer_cote.py` from Natural Earth. It covers Japan's coasts plus the Kurils, since the mask leaves the Kurils visible.
   - The Natural Earth coast is too coarse to match the relief up close, so these layers fade out between zoom 6.5 and 8.5.
 - **Aged paper.** `#papier` (grain, foxing and vignette: one static background with SVG turbulence, normal alpha) is moved by `app.js` into the map's canvas container, right after the canvas. It therefore sits over the relief and under the markers.
@@ -127,6 +128,26 @@ When the map is zoomed in, every place shows a small low-poly model of its categ
 - **Marker lift.** `couche3d.js` sets `--leve` on the map container: the model's screen height × sin(pitch), in 4px steps, to avoid restyling every marker each frame. Each marker has `--h`, its model's height. `.repere-tete` and `.repere-nom` add `--leve × --h` to their `bottom`.
 - **Clicks.** A tap on a model opens its place (`lieuSous()`, a screen-box test from the drawn places).
 - **Antialiasing.** It is enabled only when `devicePixelRatio < 2` (`canvasContextAttributes`). Phones don't need it and it costs GPU time.
+
+### Living sea (`site/mer.js`)
+
+In the far view (below `ZOOM_CALME` = 7.2) the sea comes alive. The owner chose the parts on 2026-10-01, after comparing filmed examples: engraved wavelets (not Hokusai waves), the coastal swell, Edo ships, a whale and a sea serpent. At 7.2 and above, the container gets `.mer-calme` and every `.vie-marine` element is `display: none`.
+- **Swell.** The fixed `lignes-eau-1..3` layers are hidden once the swell is ready, and a custom layer, `houle`, redraws them as lines rolling in toward the coasts.
+  - The custom layer is raw WebGL2: one quad over `BORNES`, plus a fragment shader that reads `data/distance-cote.png`. That image encodes the distance as `d = (v/255)² × 160` screen px at zoom 5, in Mercator, from Japan's coast only, so the masked neighbours get no swell.
+  - Its GL resources are created in the first `render()`, which MapLibre wraps with `setDirty()`. The layer turns off `POLYGON_OFFSET_FILL` itself, because MapLibre does not track it.
+  - It sits slightly above sea level with a polygon offset, so the relief hides it on land and behind mountains.
+  - If WebGL2 or the image is missing, the fixed lines simply stay.
+- **Why not animate the line layers?** With terrain, MapLibre bakes every line, fill, hillshade and color-relief layer into per-tile textures. Their cache key ignores paint values, and `setPaintProperty` fires a style event that re-bakes every tile. Changing paint every frame would re-render the whole relief every frame. A custom layer only needs `triggerRepaint()`, which redraws the cached textures.
+- **The clock.** One `requestAnimationFrame` loop runs at 15 fps. It moves the ships, schedules the creatures and calls `triggerRepaint()` for the swell. It does nothing while `.mer-calme` is set or the page is hidden.
+- **Wavelets.** 64 HTML markers (`pitchAlignment: 'map'`, `rotationAlignment: 'viewport'`) with CSS motion. They are placed once, with a seeded random generator, from the distance image: at least 22px from the coasts at zoom 5, and clear of the `MERS` names.
+- **Ships.** Four bezaisen move along `ROUTES`, the Edo sea routes, Catmull-Rom smoothed in Mercator.
+  - They move at a constant screen speed, whatever the zoom (`VITESSE_BATEAU` px/s), using `subpixelPositioning` markers.
+  - They flip to face their screen heading (rechecked every 0.3s, since the map rotates), fade out in port and turn back.
+  - The waypoints were pushed offshore with the distance image, so they stay at sea. Straits such as the Inland Sea, Kanmon and Uraga are the exceptions.
+- **Creatures.** `BETES` lists a whale (real whale-watching spots) and a sea serpent (open sea). Each plays a CSS scene when `mer.js` adds `.joue` (scene lengths are in `style.css`). A spot is used only if it is on screen, clear of the sea names, and not behind relief: `map.unproject(map.project(spot))` must land near the spot.
+  - `jouerScene(nom, [lng, lat])` is exported for tests: `(await import('/mer.js')).jouerScene('baleine', [134.4, 33.05])`.
+- **Reduced motion.** The swell is not added (the fixed lines stay), the clock never starts, the CSS animations are off, and no creature appears.
+- **Filming it.** For GIFs, Playwright can slow the page: wrap `requestAnimationFrame` timestamps and set `playbackRate` on `document.getAnimations()` in an init script. Then set the GIF frame times back to real speed.
 
 ### Random place (the dice)
 

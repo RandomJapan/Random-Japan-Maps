@@ -69,6 +69,19 @@ Un appui sur le modèle ouvre la fiche du lieu, comme un appui sur le repère.
 - Une catégorie avec un emoji montre une stèle de pierre.
 - La page `…/modeles.html` de ton site montre tous les modèles.
 
+## La mer vivante
+
+Quand on voit tout le Japon, la mer bouge un peu, comme une vieille carte qui prendrait vie :
+- **la houle** : les lignes d'eau autour des îles avancent doucement vers les plages ;
+- **des vaguelettes** dessinées à l'encre qui ondulent au large ;
+- **4 bateaux de l'époque Edo** (des kitamae-bune, avec leur grande voile à bandes). Ils suivent les vraies routes maritimes de l'époque : d'Osaka à Hokkaidō par la mer du Japon, d'Osaka à Edo (Tokyo), du détroit de Tsugaru à Edo, et de Kagoshima à Okinawa ;
+- **une baleine** qui sort de l'eau et souffle, toutes les 30 à 55 secondes environ, à des endroits connus pour les baleines (Kōchi, Muroto, Okinawa, Ogasawara…) ;
+- **un serpent de mer**, plus rare (toutes les 1 min 30 à 2 min environ), comme sur les cartes anciennes.
+
+Tout disparaît quand on zoome sur un lieu. Si le téléphone est réglé pour réduire les animations, la mer reste immobile.
+
+**Tu n'as rien à faire pour ça.** C'est dans le fichier `site/mer.js`.
+
 ## Le dé « Au hasard »
 
 Le bouton **Au hasard** tire un lieu au sort. On peut choisir une région ou une préfecture, un type de lieu, les deux, ou rien du tout.
@@ -88,7 +101,7 @@ Le programme fabrique :
 
 ## Comment ça marche (pour les curieux)
 
-- `site/` contient le site : la page (`index.html`), l'apparence (`style.css`), les **réglages** (`config.js`), le programme de la carte (`app.js`), les icônes (`icons.js`) et les modèles 3D (`modeles3d.js`, posés sur la carte par `couche3d.js`).
+- `site/` contient le site : la page (`index.html`), l'apparence (`style.css`), les **réglages** (`config.js`), le programme de la carte (`app.js`), les icônes (`icons.js`), les modèles 3D (`modeles3d.js`, posés sur la carte par `couche3d.js`) et la mer vivante (`mer.js`).
 - La carte lit le tableau Google Sheets à chaque visite. Si Google ne répond pas, elle utilise la copie de secours `site/data/secours-*.csv`. Cette copie est mise à jour automatiquement chaque nuit par GitHub.
 - `outils/` contient les petits programmes qui ont servi à tout préparer : import depuis Google My Maps, traductions, photos, masque des pays voisins.
 - `outils/robot-tableau.gs` est une copie du programme du robot (celui qui tourne vraiment est dans le projet « Robot carte » sur script.google.com). Le robot lit la légende de la vidéo TikTok et demande à Gemini de quel lieu il s'agit. Il cherche ensuite ce lieu dans Wikipédia et Google Maps, puis Gemini rédige la fiche à partir de ce qu'il a trouvé.

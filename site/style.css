@@ -260,6 +260,129 @@ svg { display: block; }
 .nom-mer.petit:lang(ja) { font-size: 15px; }
 #carte:not(.loin) .nom-mer { opacity: 0; }
 
+/* ---------- La mer vivante (mer.js) : vagues, bateaux, baleine et serpent de mer, vus de loin ---------- */
+.vie-marine { pointer-events: none; }
+.vie-marine svg { display: block; overflow: visible; }
+#carte.mer-calme .vie-marine { display: none; }
+
+/* Vaguelettes gravées, couchées sur l'eau : elles ondulent doucement */
+.vague-gravee svg {
+  width: 34px; height: 12.5px; fill: none; stroke: #33605a; stroke-width: 1.3; stroke-linecap: round;
+  animation: onduler var(--duree, 7s) ease-in-out var(--delai, 0s) infinite alternate;
+}
+@keyframes onduler {
+  from { transform: translateX(-3px) scaleY(0.8); opacity: 0.4; }
+  to { transform: translateX(3px) scaleY(1.15); opacity: 0.95; }
+}
+
+/* Bateaux (bezaisen) : ils tanguent, se retournent quand ils changent de sens, s'effacent au port */
+.bateau { transition: opacity 1.6s; }
+.bateau.au-port { opacity: 0 !important; }
+.bateau-sens { transition: transform 0.9s var(--ease); }
+.bateau.vers-gauche .bateau-sens { transform: scaleX(-1); }
+.bateau svg {
+  width: 46px; height: 42px; transform-origin: 50% 92%;
+  animation: tanguer 3.6s ease-in-out var(--delai, 0s) infinite;
+}
+@keyframes tanguer {
+  0%, 100% { transform: rotate(-3deg); }
+  50% { transform: rotate(2.5deg) translateY(-1px); }
+}
+.bateau .sillage { fill: none; stroke: #3d6b64; stroke-width: 0.9; stroke-linecap: round; }
+.bateau .cordage { fill: none; stroke: #4e3822; stroke-width: 0.45; }
+.bateau .mat { fill: none; stroke: #35251a; stroke-width: 1.2; }
+.bateau .voile { fill: #f6eedb; stroke: #4e3822; stroke-width: 0.8; stroke-linejoin: round; }
+.bateau .bandes { fill: none; stroke: #8a6b45; stroke-width: 0.55; }
+.bateau .vergue { fill: none; stroke: #35251a; stroke-width: 1; stroke-linecap: round; }
+.bateau .blason { fill: none; stroke: #35251a; stroke-width: 0.7; }
+.bateau .coque { fill: #7a5232; stroke: #35251a; stroke-width: 0.9; stroke-linejoin: round; }
+.bateau .bordage { fill: none; stroke: #4e3822; stroke-width: 0.6; }
+.bateau .flamme { fill: #a8321f; }
+
+/* La baleine et le serpent de mer : cachés, ils jouent leur petite scène quand mer.js leur ajoute .joue */
+.baleine, .monstre { visibility: hidden; }
+.baleine.joue, .monstre.joue { visibility: visible; animation: scene var(--duree-scene) linear; }
+.baleine { --duree-scene: 9s; }
+.monstre { --duree-scene: 11s; }
+@keyframes scene { from { opacity: 1; } to { opacity: 1; } }
+.baleine svg { width: 60px; height: 38px; }
+.monstre svg { width: 78px; height: 41px; }
+.baleine.miroir svg, .monstre.miroir svg { scale: -1 1; }
+.vie-marine .remous { fill: none; stroke: #3d6b64; stroke-width: 0.9; stroke-linecap: round; opacity: 0; }
+.joue .remous { animation: remous var(--duree-scene) ease-in-out both; }
+@keyframes remous { 0% { opacity: 0; } 10%, 85% { opacity: 0.85; } 100% { opacity: 0; } }
+
+.b-corps { fill: #4d6266; stroke: #263537; stroke-width: 0.9; stroke-linejoin: round; }
+.b-reflet { fill: none; stroke: #9db4b2; stroke-width: 0.8; stroke-linecap: round; }
+.b-jet .jet-fond { fill: none; stroke: #3d6b64; stroke-width: 2.6; stroke-linecap: round; }
+.b-jet .jet { fill: none; stroke: #f6eedb; stroke-width: 1.3; stroke-linecap: round; }
+.b-jet .goutte { fill: #f6eedb; stroke: #3d6b64; stroke-width: 0.5; }
+.b-dos { transform: translateY(15px); }
+.b-queue { transform: translateY(20px); }
+.b-jet { opacity: 0; transform-origin: 17px 24px; }
+.joue .b-dos { animation: baleine-dos 9s ease-in-out both; }
+.joue .b-jet { animation: baleine-jet 9s ease-out both; }
+.joue .b-queue { animation: baleine-queue 9s ease-in-out both; }
+@keyframes baleine-dos {
+  0% { transform: translateY(15px); }
+  14%, 48% { transform: translateY(0); }
+  31% { transform: translateY(-0.8px); }
+  62%, 100% { transform: translateY(15px); }
+}
+@keyframes baleine-jet {
+  0%, 16% { opacity: 0; transform: scale(0.2, 0.1); }
+  22% { opacity: 1; transform: scale(1, 1); }
+  36% { opacity: 0.9; transform: translateY(-2px) scale(1.12, 1.08); }
+  46%, 100% { opacity: 0; transform: translateY(-4px) scale(1.2, 1.1); }
+}
+@keyframes baleine-queue {
+  0%, 56% { transform: translateY(20px) rotate(0deg); }
+  70% { transform: translateY(0) rotate(-5deg); }
+  78% { transform: translateY(1px) rotate(3deg); }
+  92%, 100% { transform: translateY(20px) rotate(0deg); }
+}
+.b-queue { transform-origin: 53px 34px; }
+
+.m-fond { fill: none; stroke: #24352a; stroke-width: 6.2; }
+.m-corps { fill: none; stroke: #5f8358; stroke-width: 4.2; }
+.m-ecailles { fill: none; stroke: #b3c796; stroke-width: 1; stroke-dasharray: 1.2 2.4; }
+.m-crete { fill: #a8321f; stroke: #4a1a10; stroke-width: 0.6; stroke-linejoin: round; }
+.m-crane { fill: #5f8358; stroke: #24352a; stroke-width: 0.9; stroke-linejoin: round; }
+.m-oeil { fill: #f6eedb; stroke: #24352a; stroke-width: 0.5; }
+.m-pupille { fill: #24352a; }
+.m-a1 { transform: translateY(12px); }
+.m-a2 { transform: translateY(16px); }
+.m-tete { transform: translateY(32px); transform-origin: 51px 39px; }
+.joue .m-a1 { animation: monstre-a1 11s ease-in-out both; }
+.joue .m-a2 { animation: monstre-a2 11s ease-in-out both; }
+.joue .m-tete { animation: monstre-tete 11s ease-in-out both; }
+@keyframes monstre-a1 {
+  0%, 4% { transform: translateY(12px); }
+  16% { transform: translateY(0); }
+  30% { transform: translateY(1.6px); }
+  44% { transform: translateY(-0.6px); }
+  58% { transform: translateY(1.6px); }
+  70% { transform: translateY(0); }
+  84%, 100% { transform: translateY(12px); }
+}
+@keyframes monstre-a2 {
+  0%, 9% { transform: translateY(16px); }
+  21% { transform: translateY(0); }
+  35% { transform: translateY(1.8px); }
+  49% { transform: translateY(-0.6px); }
+  63% { transform: translateY(1.8px); }
+  74% { transform: translateY(0); }
+  88%, 100% { transform: translateY(16px); }
+}
+@keyframes monstre-tete {
+  0%, 14% { transform: translateY(32px) rotate(0deg); }
+  28% { transform: translateY(0) rotate(-4deg); }
+  42% { transform: translateY(-1px) rotate(5deg); }
+  56% { transform: translateY(0) rotate(-3deg); }
+  70% { transform: translateY(0) rotate(2deg); }
+  92%, 100% { transform: translateY(32px) rotate(0deg); }
+}
+
 /* Petit mot d'accueil : un cartouche de papier, affiché à la première visite */
 .aide {
   position: fixed; left: 50%; bottom: calc(var(--bas) + 10px); transform: translateX(-50%);
@@ -467,6 +590,10 @@ svg { display: block; }
   .nom-mer { font-size: 15px; letter-spacing: 0.12em; }
   .nom-mer.petit, .nom-mer.petit:lang(ja) { font-size: 12.5px; }
   .nom-mer:lang(ja) { font-size: 16px; }
+  .vague-gravee svg { width: 27px; height: 10px; }
+  .bateau svg { width: 36px; height: 33px; }
+  .baleine svg { width: 48px; height: 30px; }
+  .monstre svg { width: 62px; height: 33px; }
   .controles #btn-plus, .controles #btn-moins { display: none; }
 
   /* Tiroir en bas de l'écran : hauteur normale, ou agrandie en tirant la barre vers le haut */

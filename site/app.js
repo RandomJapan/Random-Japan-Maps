@@ -7,6 +7,7 @@ import { CONFIG, TEXTES } from './config.js';
 import { iconeHTML } from './icons.js';
 import { PREFECTURES, REGIONS, chargerPrefectures, regionDe } from './regions.js';
 import { brancherModeles } from './couche3d.js';
+import { animerMer } from './mer.js';
 
 const $ = (id) => document.getElementById(id);
 const estTelephone = () => matchMedia('(max-width: 720px)').matches;
@@ -369,6 +370,9 @@ for (const m of MERS) {
     .setLngLat(m.ou)
     .addTo(map);
 }
+
+// La mer vivante : houle, vagues, bateaux d'époque, baleine et serpent de mer (vus de loin)
+animerMer(map, maplibregl, { mers: MERS.map((m) => m.ou) });
 
 // Petits modèles 3D des lieux (un par icône de catégorie), visibles quand on zoome
 const modeles3d = brancherModeles(map, maplibregl, () => lieux);
