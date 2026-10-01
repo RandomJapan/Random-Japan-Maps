@@ -106,6 +106,16 @@ Quand on zoome, la carte montre le découpage du Japon, comme un vieil atlas col
 
 **Tu n'as rien à faire pour ça.** Les frontières viennent d'OpenStreetMap (le programme `outils/fabriquer_frontieres.py` les prépare) et la place des noms est dans `site/noms-regions.js`. Pour déplacer un nom, demande à Claude.
 
+## Le compteur de visites
+
+Sur ordinateur, le nombre de visites de la carte s'affiche en haut, à droite du titre. À l'ouverture, il défile jusqu'au total, puis ajoute la visite en cours. Les visites sur téléphone sont comptées aussi, mais le compteur ne s'affiche que sur ordinateur.
+
+Il fonctionne avec **GoatCounter**, un site de statistiques gratuit qui ne met pas de cookies.
+- **Tes statistiques détaillées** (visites par jour, pays, d'où viennent les gens, par exemple TikTok) : connecte-toi sur ton adresse GoatCounter.
+- **Le chiffre sur la carte** se met à jour toutes les quelques heures (c'est la règle de GoatCounter). Les chiffres à la minute près sont sur ton tableau de bord.
+- Une visite = une personne qui ouvre la carte. Si elle recharge la page juste après, ça ne compte pas deux fois ; si elle revient plus tard, ça compte à nouveau.
+- Le code de ton compte est écrit dans `site/config.js` (`goatcounter`). Si on le vide, il n'y a plus ni comptage ni compteur.
+
 ## Le dé « Au hasard »
 
 Le bouton **Au hasard** tire un lieu au sort. On peut choisir une région ou une préfecture, un type de lieu, les deux, ou rien du tout.
@@ -125,7 +135,7 @@ Le programme fabrique :
 
 ## Comment ça marche (pour les curieux)
 
-- `site/` contient le site : la page (`index.html`), l'apparence (`style.css`), les **réglages** (`config.js`), le programme de la carte (`app.js`), les icônes (`icons.js`), les modèles 3D (`modeles3d.js`, posés sur la carte par `couche3d.js`) la mer vivante (`mer.js`), les légendes cachées (`legendes.js`) et les noms des régions et des préfectures (`noms-regions.js`).
+- `site/` contient le site : la page (`index.html`), l'apparence (`style.css`), les **réglages** (`config.js`), le programme de la carte (`app.js`), les icônes (`icons.js`), les modèles 3D (`modeles3d.js`, posés sur la carte par `couche3d.js`) la mer vivante (`mer.js`), les légendes cachées (`legendes.js`) et les noms des régions et des préfectures (`noms-regions.js`) et le compteur de visites (`compteur.js`).
 - La carte lit le tableau Google Sheets à chaque visite. Si Google ne répond pas, elle utilise la copie de secours `site/data/secours-*.csv`. Cette copie est mise à jour automatiquement chaque nuit par GitHub.
 - `outils/` contient les petits programmes qui ont servi à tout préparer : import depuis Google My Maps, traductions, photos, masque des pays voisins.
 - `outils/robot-tableau.gs` est une copie du programme du robot (celui qui tourne vraiment est dans le projet « Robot carte » sur script.google.com). Le robot lit la légende de la vidéo TikTok et demande à Gemini de quel lieu il s'agit. Il cherche ensuite ce lieu dans Wikipédia et Google Maps, puis Gemini rédige la fiche à partir de ce qu'il a trouvé.

@@ -194,7 +194,7 @@ The palette is a hand-tinted engraving: one watercolour wash for the sea, sepia 
 ## Layout
 
 The map fills the screen; the interface floats in the corners with a 12px gutter (plus safe areas).
-- **Header.** Top left (logo, name, and a subtitle on desktop only), with the language switch top right. On phones it is one line: 30px logo, 15px title.
+- **Header.** Top left (logo, name, and a subtitle on desktop only), with the language switch top right. On desktop, the visit counter sits at its right end, behind a 1px ink rule: the number in Zen Antique 19px (tabular figures) over "visits" in 12px soft sepia. On phones it is one line: 30px logo, 15px title, and no counter.
 - **Filters.** The Categories and Random buttons sit under the header, and their panels drop below them.
 - **Right column.** From top to bottom: the compass rose (58px, 50px on phone), then Reset view, then zoom + and − on desktop only.
 - **Bottom left.** The title scroll (240 × 72px, scaled to 0.76 on phone). The attribution sits to its right and wraps onto two lines on phone rather than running under the Reset button.

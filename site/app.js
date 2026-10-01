@@ -9,6 +9,7 @@ import { PREFECTURES, REGIONS, chargerPrefectures, regionDe } from './regions.js
 import { brancherModeles } from './couche3d.js';
 import { animerMer } from './mer.js';
 import { brancherNomsRegions } from './noms-regions.js';
+import { brancherCompteur } from './compteur.js';
 
 const $ = (id) => document.getElementById(id);
 const estTelephone = () => matchMedia('(max-width: 720px)').matches;
@@ -1077,6 +1078,7 @@ function appliquerLangue() {
   if (lieuActif) remplirFiche(lieuActif);
   legendes?.majLangue();
   nomsRegions.majLangue(langue);
+  compteur?.majLangue();
 }
 
 // ---------------------------------------------------------------- Démarrage
@@ -1148,7 +1150,12 @@ function brancherBoutons() {
   else setTimeout(cacherAide, 10000);
 }
 
+let compteur = null; // compteur de visites (compteur.js), s'il y a un code GoatCounter dans config.js
+
 async function demarrer() {
+  if (CONFIG.goatcounter) {
+    compteur = brancherCompteur({ code: CONFIG.goatcounter, afficher: !estTelephone(), t, langue: () => langue });
+  }
   brancherBoutons();
   appliquerLangue();
   majSelonZoom();

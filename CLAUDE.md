@@ -199,6 +199,18 @@ On 2026-10-01 the owner asked for easter eggs: references to Japanese legends sc
 - **Tests.** `(await import('/legendes.js')).ouvrirLegende('kitsune')` opens a bubble as a tap would, and counts the legend as found.
 - **Texts.** The UI strings are in `TEXTES` (`legendes*`, `legendeTrouvee`, `legendeInconnue`, `legendeAria`, `bravo*`).
 
+### Visit counter (`site/compteur.js`)
+
+On 2026-10-01 the owner asked for a visitor count on the desktop map. They chose **GoatCounter** (free, cookie-free analytics with a dashboard) over an Apps Script counter or a keyless public counter, and chose to count **every visit**.
+- `CONFIG.goatcounter` in `config.js` is the account code (`code` for `code.goatcounter.com`). While it is empty, nothing is loaded or shown.
+- `brancherCompteur` (called first thing in `demarrer`) injects `gc.zgo.at/count.js` with `data-goatcounter`, so every page load counts, phones included. count.js skips localhost, so local tests never count.
+- On desktop only, it fetches `https://<code>.goatcounter.com/counter/TOTAL.json`. That needs "Allow adding visitor counts on your website" ticked in the GoatCounter site settings; without it the request fails and the counter stays hidden.
+  - `count` is a formatted string ("1 094 100"), so the code keeps the digits only. It counts GoatCounter "visitors", which are sessions: a reload soon after does not count again, a return visit later does.
+  - GoatCounter caches that public total for up to 4 hours. So the counter rolls up from 0 to the total in 1.6 s, then adds the current visit (+1, with a small jump). It re-reads the total every 15 minutes while the tab is visible.
+- The `#visites` box sits in the header, right of the title, behind an ink rule. It is hidden on phones. (Do not reuse `.compteur`/`#compteur`: they are the Categories count badge.)
+- Texts: `visites(n)` and `visitesInfo` (the tooltip) in `TEXTES`.
+- Tests: route `config.js` to set a fake code and fulfil `TOTAL.json` and `count.js` with Playwright (`ctx.route`).
+
 ### Random place (the dice)
 
 The "Au hasard" button opens `#panneau-hasard`: a region `<select>` (all Japan, 8 regions with `optgroup`s, or one prefecture), a type `<select>` (categories) and a roll button.

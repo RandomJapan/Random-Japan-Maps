@@ -73,6 +73,7 @@ svg { display: block; }
 /* ---------- En-tête ---------- */
 .entete {
   position: fixed; top: var(--haut); left: 12px; z-index: 5;
+  display: flex; align-items: center;
   padding: 6px 14px 6px 6px;
   max-width: calc(100vw - 24px - 150px);
 }
@@ -82,6 +83,20 @@ svg { display: block; }
 .marque-textes { display: flex; flex-direction: column; min-width: 0; }
 .titre { font-family: var(--police-titre); font-size: 19px; letter-spacing: 0.01em; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sous-titre { font-size: 12px; color: var(--encre-2); line-height: 1.35; }
+/* Compteur de visites, à droite du titre, séparé par un filet d'encre (ordinateur seulement) */
+.visites {
+  display: flex; flex-direction: column; align-items: center; flex: none;
+  margin-left: 14px; padding-left: 14px; border-left: 1px solid var(--trait); cursor: default;
+}
+.visites[hidden] { display: none; }
+.visites-nombre {
+  font-family: var(--police-titre); font-size: 19px; line-height: 1.15; color: var(--encre);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.visites-mot { font-size: 12px; line-height: 1.35; color: var(--encre-2); }
+/* La visite en cours s'ajoute : le chiffre saute un peu */
+.visites-nombre.plus-un { animation: plus-un .5s ease-out; }
+@keyframes plus-un { 40% { transform: translateY(-3px) scale(1.08); } }
 
 /* ---------- Langues ---------- */
 .langues {
@@ -554,7 +569,7 @@ svg { display: block; }
   .logo { width: 30px; height: 30px; border-width: 1.5px; }
   .marque { gap: 8px; }
   .titre { font-size: 15px; }
-  .sous-titre { display: none; }
+  .sous-titre, .visites { display: none; }
   .langues { padding: 2px; }
   .langues button { padding: 7px 8px; font-size: 12px; }
   .filtres { top: calc(var(--haut) + 48px); }

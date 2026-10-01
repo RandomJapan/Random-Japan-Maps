@@ -21,6 +21,12 @@ export const CONFIG = {
   tiktokProfil: 'https://www.tiktok.com/@random_japan_place',
   logo: 'img/logo.jpg', // ton logo (fabriqué par outils/preparer_logo.py) ; mettre '' pour ne pas en afficher
 
+  // --- Compteur de visites (GoatCounter) ------------------------------
+  // Le code de ton compte GoatCounter (le début de l'adresse : « monsite » pour monsite.goatcounter.com).
+  // Chaque visite y est comptée, et le total s'affiche en haut de la carte sur ordinateur.
+  // Mettre '' pour ne rien compter ni afficher.
+  goatcounter: '',
+
   // --- Caméra au démarrage -------------------------------------------
   camera: {
     ordinateur: { centre: [137.3, 36.7], zoom: 5.05, inclinaison: 52, orientation: -45 },
@@ -103,6 +109,8 @@ export const TEXTES = {
     bravoTitre: 'Well done!',
     bravoTexte: (total) => `You found all ${total} hidden legends of Japan: yokai, heroes, gods and sea monsters.`,
     bravoBouton: 'Thank you!',
+    visites: (n) => (n === 1 ? 'visit' : 'visits'),
+    visitesInfo: 'Visits to the map (the total is updated every few hours)',
   },
   fr: {
     langue: 'Français',
@@ -150,6 +158,8 @@ export const TEXTES = {
     bravoTitre: 'Bravo !',
     bravoTexte: (total) => `Tu as trouvé les ${total} légendes cachées du Japon : yokai, héros, dieux et monstres marins.`,
     bravoBouton: 'Merci !',
+    visites: (n) => (n < 2 ? 'visite' : 'visites'),
+    visitesInfo: 'Visites de la carte (le total se met à jour toutes les quelques heures)',
   },
   ja: {
     langue: '日本語',
@@ -197,5 +207,7 @@ export const TEXTES = {
     bravoTitre: 'おめでとう！',
     bravoTexte: (total) => `日本に隠された${total}の伝説をすべて見つけました。妖怪、英雄、神々、海の怪物たち…`,
     bravoBouton: 'ありがとう！',
+    visites: () => '回の訪問',
+    visitesInfo: '地図の訪問数（数時間ごとに更新）',
   },
 };
