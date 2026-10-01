@@ -199,6 +199,28 @@ On 2026-10-01 the owner asked for easter eggs: references to Japanese legends sc
 - **Tests.** `(await import('/legendes.js')).ouvrirLegende('kitsune')` opens a bubble as a tap would, and counts the legend as found.
 - **Texts.** The UI strings are in `TEXTES` (`legendes*`, `legendeTrouvee`, `legendeInconnue`, `legendeAria`, `bravo*`).
 
+### New places, favorites and the guided tour
+
+The owner asked for these three on 2026-10-02 (ideas 1, 3 and 7 of a list I proposed). The guided tour is meant to help them film the map for TikTok.
+- **"New" badge.** `construireLieux` gives each place a `date`, decoded from its TikTok video id: the top 32 bits are the Unix time (`BigInt(id) >> 32n`). `nouveau` is true when the video is younger than `CONFIG.joursNouveau` (7) days, so nothing is filled in the Sheet.
+  - On the map: a teal "New" tag on the crest (`.repere.nouveau .repere-nouveau`). In the far view, the dot gets a fixed teal ring and a slow pulse (`pouls-nouveau`).
+  - In the menu, `construireNouveautes` adds a "New places" row at the top, newest first, with dates. Category lists and the card show the tag too; the card shows "Video of <date>" for every place.
+  - The tag is teal, not red: red stays for actions and the visitor's own choices.
+- **Favorites (`site/favoris.js`).** A heart button on the card (`#fiche-favori`, next to share) toggles a place. The ids are kept in `localStorage` (`favoris`, this browser only).
+  - Favorite crests carry a small red heart (`.repere.favori`), and a red ring in the far view.
+  - The `#btn-favoris` button appears once there is one favorite. It opens `#panneau-favoris`: the places in travel order, each with a remove button, then Google Maps routes and "Guided tour of my favorites".
+  - Travel order (`ordreDeVoyage`): start from the south-westernmost place, go to the nearest each time, then untangle with 2-opt.
+  - Google Maps URLs accept few waypoints (3 in mobile browsers, 9 elsewhere). `liensItineraire` therefore cuts the trip into routes of 10 places on desktop and 5 on phones, each starting where the previous one ended.
+- **Guided tour (`site/visite.js`).** The `#btn-visite` panel picks places with the same region/type selects as the dice: `remplirChoix` is shared by both, and `candidats` takes an optional base list. It also offers "Only my favorites", the time per place (4, 7 or 11 s) and film mode.
+  - **The tour:** an overview `fitBounds` of all its places, then each place in travel order. Each one gets a `flyTo` (zoom 12, pitch 60), a lower-third title (the Japanese name set vertically, name, category · prefecture) and a slow linear orbit (+18°) during the stay. It ends on the overview with "End of the tour".
+  - **Flight duration:** it follows the distance, `min(8000, 3000 + km × 3.5)` ms. Do not use `maxDuration`: MapLibre jumps instantly when a flight would exceed it.
+  - **Callbacks:** each step waits for `moveend` with a token, and calls `map.stop()` first, so the end of the interrupted orbit is not taken for an arrival.
+  - **Controls:** a bar with previous, pause, next, progress and stop. Keyboard: Space, ← →, Esc (a capture listener, so the app's own Escape handler does not run). Dragging, zooming or rotating the map pauses the tour; resuming flies back to the current place.
+  - **Taps:** markers and legends ignore taps during a tour, and the map's click-to-open is skipped. A tap only brings the bar back.
+  - **Film mode** (`body.mode-film`) hides every button, the header, the toast and the pin labels. The bar moves to the top and fades after 2.5 s without input (`visite-calme` also hides the cursor). The attribution stays visible, as the OSM and Mapterhorn licences ask.
+  - It holds a screen wake lock while it runs.
+- **Layout.** The button row now holds Categories, Random, Tour, Favorites and Legends. `.filtres` has no fixed width any more; its menus are 340px. On phones, Tour and Favorites show only their icon.
+
 ### Visit counter (`site/compteur.js`)
 
 On 2026-10-01 the owner asked for a visitor count on the desktop map. They chose **GoatCounter** (free, cookie-free analytics with a dashboard) over an Apps Script counter or a keyless public counter, and chose to count **every visit**.

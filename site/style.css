@@ -111,7 +111,8 @@ svg { display: block; }
 .langues button[aria-pressed="true"] { background: var(--rouge); color: var(--papier-clair); }
 
 /* ---------- Boutons Catégories / Au hasard ---------- */
-.filtres { position: fixed; top: calc(var(--haut) + 64px); left: 12px; z-index: 6; width: min(340px, calc(100vw - 24px)); }
+.filtres { position: fixed; top: calc(var(--haut) + 64px); left: 12px; z-index: 6; max-width: calc(100vw - 24px); }
+.filtres > .menu { width: min(340px, calc(100vw - 24px)); }
 .bouton-categories {
   display: flex; align-items: center; gap: 8px; padding: 9px 13px;
   font-weight: 500; font-size: 14px; transition: background .2s;
@@ -562,6 +563,133 @@ svg { display: block; }
 .maplibregl-ctrl-attrib a { color: var(--encre-2) !important; }
 .maplibregl-ctrl-bottom-left { bottom: var(--bas); }
 
+/* ---------- Nouveautés : étiquette « Nouveau » (encre bleu-vert ; le rouge reste aux actions et aux choix) ---------- */
+.etiquette-nouveau {
+  display: inline-block; vertical-align: 1px; margin-right: 7px; padding: 0 6px; border-radius: 2px;
+  background: var(--sarcelle); color: var(--papier-clair);
+  font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; line-height: 17px;
+}
+.sous-liste .etiquette-nouveau { margin: 0 0 0 4px; font-size: 9.5px; line-height: 15px; }
+.date-courte { margin-left: 4px; font-size: 12px; color: var(--encre-3); }
+.ligne-nouveaux { --c: var(--sarcelle); }
+.ligne-nouveaux .case { visibility: hidden; cursor: default; }
+.ligne-nouveaux .nom-cat { font-weight: 600; }
+.fiche-date { margin: 6px 0 0; font-size: 13px; color: var(--encre-3); }
+.fiche-date:empty { display: none; }
+
+/* Sur le blason : un petit cœur rouge (favori) et l'étiquette « Nouveau » */
+.repere-tete > .repere-coeur, .repere-tete > .repere-nouveau { position: absolute; display: none; }
+.repere.favori .repere-coeur {
+  display: grid; place-items: center; top: -5px; left: -6px; width: 15px; height: 15px; border-radius: 50%;
+  background: var(--papier-clair); color: var(--rouge); box-shadow: 0 0 0 1px var(--encre);
+}
+.repere-tete .repere-coeur svg { width: 10px; height: 10px; }
+.repere.nouveau .repere-nouveau {
+  display: block; top: -11px; left: 52%; white-space: nowrap; padding: 0 4px;
+  border: 1px solid var(--papier-clair); border-radius: 2px; background: var(--sarcelle); color: var(--papier-clair);
+  font-size: 8.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; line-height: 13px;
+  box-shadow: 0 1px 3px rgba(40, 26, 12, 0.4);
+}
+/* De loin : les nouveaux lieux battent doucement, les favoris ont un anneau rouge */
+#carte.loin .repere.favori .repere-tete { box-shadow: 0 0 0 1.5px var(--rouge), 0 1px 3px rgba(40, 26, 12, 0.45); }
+#carte.loin .repere.nouveau .repere-tete { animation: pouls-nouveau 2.4s ease-out infinite; }
+@keyframes pouls-nouveau {
+  0% { box-shadow: 0 0 0 1px rgba(53, 37, 26, 0.8), 0 0 0 3px #1d5652, 0 0 0 3px rgba(29, 86, 82, 0.8); }
+  70%, 100% { box-shadow: 0 0 0 1px rgba(53, 37, 26, 0.8), 0 0 0 3px #1d5652, 0 0 0 14px rgba(29, 86, 82, 0); }
+}
+
+/* ---------- Favoris ---------- */
+.fiche-favori { right: 99px; }
+.fiche-favori svg { width: 19px; height: 19px; overflow: visible; }
+.fiche-favori path { fill: transparent; stroke: var(--encre); }
+.fiche-favori[aria-pressed="true"] path { fill: var(--rouge); stroke: var(--rouge); }
+.fiche-favori[aria-pressed="true"] svg { animation: bat .45s var(--ease); }
+@keyframes bat { 40% { transform: scale(1.3); } }
+.bouton-favoris .coeur, .bouton-visite .camera { color: var(--rouge); }
+.bouton-favoris.nouvelle { animation: tampon .7s var(--ease); }
+.panneau-info { margin: -6px 2px 12px; font-size: 13px; color: var(--encre-2); line-height: 1.45; }
+.liste-favoris { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 2px; }
+.liste-favoris li { display: flex; align-items: center; gap: 2px; }
+.favori-ligne {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 5px 6px;
+  border: 0; border-radius: var(--rayon); background: none; text-align: left; cursor: pointer;
+}
+.favori-ligne:hover { background: var(--papier-fonce); }
+.favori-num { flex: none; width: 18px; text-align: right; font: 400 15px var(--police-titre); color: var(--encre-3); }
+.favori-textes { min-width: 0; }
+.favori-textes b { display: block; font-weight: 600; font-size: 14px; line-height: 1.3; }
+.favori-textes small { display: block; font-size: 12.5px; color: var(--encre-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.favori-retirer {
+  flex: none; width: 32px; height: 32px; display: grid; place-items: center;
+  border: 0; border-radius: var(--rayon); background: none; color: var(--encre-3);
+}
+.favori-retirer:hover { background: var(--papier-fonce); color: var(--rouge); }
+.favori-retirer svg { width: 16px; height: 16px; }
+.favoris-actions { display: grid; gap: 8px; }
+.btn-itineraire { margin: 0; text-decoration: none; font-size: 15px; }
+.btn-itineraire svg { width: 19px; height: 19px; }
+.btn-secondaire {
+  display: flex; align-items: center; justify-content: center; gap: 9px; width: 100%; padding: 11px;
+  border: 1px solid var(--trait); border-radius: var(--rayon); background: var(--papier-clair);
+  font-weight: 600; font-size: 14.5px; transition: background .15s;
+}
+.btn-secondaire:hover { background: var(--papier-fonce); }
+.btn-secondaire svg { width: 19px; height: 19px; color: var(--rouge); }
+
+/* ---------- Visite guidée (visite.js) ---------- */
+.case-option { display: flex; align-items: center; gap: 9px; margin: 2px 2px 14px; font-size: 14px; cursor: pointer; }
+.case-option input { width: 17px; height: 17px; margin: 0; flex: none; accent-color: var(--rouge); cursor: pointer; }
+.btn-lancer > svg { width: 20px; height: 20px; }
+/* La barre de commandes, en bas au centre */
+.visite-barre {
+  position: fixed; left: 50%; bottom: calc(var(--bas) + 14px); z-index: 12; transform: translateX(-50%);
+  display: none; align-items: center; gap: 4px; padding: 5px; transition: opacity .4s;
+}
+body.en-visite .visite-barre { display: flex; }
+.visite-barre button {
+  width: 40px; height: 40px; display: grid; place-items: center;
+  border: 0; border-radius: var(--rayon); background: none; color: var(--encre); transition: background .15s;
+}
+.visite-barre button:hover { background: var(--papier-fonce); }
+.visite-barre button:disabled { opacity: .35; cursor: default; background: none; }
+.visite-barre svg { width: 20px; height: 20px; }
+.visite-barre .visite-pause { background: var(--rouge); color: var(--papier-clair); }
+.visite-barre .visite-pause:hover { background: var(--rouge-survol); }
+.visite-progres { min-width: 58px; text-align: center; font: 400 15px var(--police-titre); font-variant-numeric: tabular-nums; color: var(--encre-2); }
+.visite-arreter { margin-left: 4px; }
+/* Le nom du lieu, comme le carton d'un documentaire */
+.visite-titre {
+  position: fixed; left: 50%; bottom: calc(var(--bas) + 76px); z-index: 11;
+  display: flex; align-items: stretch; gap: 14px; max-width: min(640px, calc(100vw - 32px));
+  padding: 12px 22px 12px 12px;
+  background: var(--grain) 0 0 / 240px 240px, var(--papier); border: 1px solid var(--trait); border-radius: 3px;
+  box-shadow: var(--filet), 0 10px 30px rgba(52, 36, 18, 0.4);
+  opacity: 0; transform: translate(-50%, 12px); pointer-events: none;
+  transition: opacity .6s var(--ease), transform .6s var(--ease);
+}
+.visite-titre.visible { opacity: 1; transform: translate(-50%, 0); }
+.visite-titre-ja {
+  flex: none; writing-mode: vertical-rl; text-orientation: upright; white-space: nowrap;
+  padding: 9px 6px 7px; background: var(--papier-clair); outline: 1px solid var(--encre); outline-offset: -3px;
+  font: 400 17px/1 var(--police-titre); letter-spacing: .12em;
+}
+.visite-titre-textes { display: flex; flex-direction: column; justify-content: center; min-width: 0; padding-left: 4px; }
+.visite-titre-textes b { font: 400 28px/1.15 var(--police-titre); text-wrap: balance; }
+.visite-titre-textes small { margin-top: 5px; font: italic 16px/1.3 var(--police-carte); color: var(--encre-2); }
+html:lang(ja) .visite-titre-textes small { font: 400 14px/1.3 var(--police-titre); }
+/* Pendant la visite, la fiche reste fermée et le rouleau du titre laisse la place à la barre */
+body.en-visite .bandeau { display: none; }
+body.en-visite .maplibregl-ctrl-bottom-left { left: 8px; }
+/* Pendant la visite, toucher l'écran fait juste revenir la barre : les repères et les légendes ne s'ouvrent pas */
+body.en-visite .repere, body.en-visite .legende { pointer-events: none; }
+/* Mode film : la carte, le nom du lieu et les sources ; la barre revient quand on bouge la souris ou touche l'écran */
+body.mode-film .entete, body.mode-film .filtres, body.mode-film .langues, body.mode-film .controles,
+body.mode-film .aide, body.mode-film .toast, body.mode-film .repere-nom { display: none !important; }
+body.mode-film .visite-titre { bottom: calc(var(--bas) + 40px); }
+body.mode-film .visite-barre { top: calc(var(--haut) + 6px); bottom: auto; }
+body.visite-calme .visite-barre { opacity: 0; pointer-events: none; }
+body.visite-calme, body.visite-calme * { cursor: none !important; }
+
 /* ---------- Téléphone ---------- */
 @media (max-width: 720px) {
   /* En-tête sur une seule ligne, pour laisser la place à la carte */
@@ -575,6 +703,20 @@ svg { display: block; }
   .filtres { top: calc(var(--haut) + 48px); }
   .bouton-categories { padding: 7px 11px; font-size: 13.5px; gap: 7px; }
   .bouton-categories > svg { width: 16px; height: 16px; }
+  /* Visite et Favoris : juste l'icône (et le nombre), pour garder la rangée de boutons courte */
+  .bouton-visite .texte-bouton, .bouton-favoris .texte-bouton { display: none; }
+  .filtres-boutons { gap: 6px; }
+  .bouton-visite, .bouton-favoris { padding: 7px 9px; }
+  /* les sources sur une seule ligne pendant la visite, sous le nom du lieu */
+  body.en-visite .maplibregl-ctrl-bottom-left .maplibregl-ctrl-attrib.maplibregl-compact { max-width: calc(100vw - 24px); }
+  .visite-barre { gap: 2px; padding: 4px; }
+  .visite-barre button { width: 38px; height: 38px; }
+  .visite-progres { min-width: 50px; font-size: 14px; }
+  .visite-titre { bottom: calc(var(--bas) + 66px); gap: 11px; padding: 10px 16px 10px 10px; width: max-content; }
+  .visite-titre-ja { font-size: 15px; padding: 8px 5px 6px; }
+  .visite-titre-textes b { font-size: 22px; }
+  .visite-titre-textes small { font-size: 14.5px; }
+  body.mode-film .visite-titre { bottom: calc(var(--bas) + 56px); }
   .aide { bottom: calc(var(--bas) + 64px); }
   .controles { bottom: calc(var(--bas) + 16px); }
   .btn-rose { width: 50px; height: 50px; }
@@ -623,4 +765,5 @@ svg { display: block; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
+  #carte.loin .repere.nouveau .repere-tete { box-shadow: 0 0 0 1px rgba(53, 37, 26, 0.8), 0 0 0 3px #1d5652; }
 }

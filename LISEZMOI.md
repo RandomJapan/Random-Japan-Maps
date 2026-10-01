@@ -106,6 +106,29 @@ Quand on zoome, la carte montre le découpage du Japon, comme un vieil atlas col
 
 **Tu n'as rien à faire pour ça.** Les frontières viennent d'OpenStreetMap (le programme `outils/fabriquer_frontieres.py` les prépare) et la place des noms est dans `site/noms-regions.js`. Pour déplacer un nom, demande à Claude.
 
+## Les nouveaux lieux
+
+Les lieux de tes vidéos des 7 derniers jours portent une étiquette **« Nouveau »** sur la carte. De loin, ils sont entourés d'un petit anneau qui bat doucement. Ils sont aussi listés en haut du menu « Catégories », du plus récent au plus ancien.
+- **Tu n'as rien à faire :** la date est cachée dans le lien de chaque vidéo TikTok.
+- Pour changer la durée (par exemple 14 jours), change `joursNouveau` dans `site/config.js`.
+
+## Les favoris
+
+Les visiteurs peuvent toucher le **cœur** sur la fiche d'un lieu pour le mettre en favori.
+- Dès le premier, un bouton **❤ Favoris** apparaît sous « Catégories ».
+- Il ouvre la liste, rangée dans l'ordre d'un voyage, avec un bouton **« Itinéraire dans Google Maps »** qui ouvre tout le trajet.
+- Au-delà de 10 lieux (5 sur téléphone), Google Maps n'accepte pas tout d'un coup : le voyage est alors coupé en plusieurs itinéraires.
+- Les favoris restent sur l'appareil du visiteur.
+
+## La visite guidée (pour filmer la carte)
+
+Le bouton **Visite** (la petite caméra) fait voler la caméra toute seule d'un lieu à l'autre, comme un film : d'abord une vue d'ensemble, puis chaque lieu de près avec son nom en bas de l'écran.
+- **Choisir les lieux :** une région ou une préfecture, un type de lieu (par exemple « tous les châteaux » ou « tout le Kyūshū »), ou seulement tes favoris.
+- **Temps sur chaque lieu :** court (4 s), normal (7 s) ou long (11 s).
+- **Mode film** (coché au départ) : tous les boutons disparaissent, il ne reste que la carte et le nom du lieu. Bouge la souris ou touche l'écran pour faire revenir la petite barre (pause, lieu précédent ou suivant, arrêter).
+- **Sur ordinateur :** Espace = pause, flèches = lieu précédent ou suivant, Échap = arrêter.
+- **Pour une vidéo TikTok :** lance la visite sur ton téléphone et filme l'écran avec l'enregistreur du téléphone. L'image est déjà au bon format vertical. L'écran ne s'éteint pas pendant la visite.
+
 ## Le compteur de visites
 
 Sur ordinateur, le nombre de visites de la carte s'affiche en haut, à droite du titre. À l'ouverture, il défile jusqu'au total, puis ajoute la visite en cours. Les visites sur téléphone sont comptées aussi, mais le compteur ne s'affiche que sur ordinateur.
@@ -135,7 +158,7 @@ Le programme fabrique :
 
 ## Comment ça marche (pour les curieux)
 
-- `site/` contient le site : la page (`index.html`), l'apparence (`style.css`), les **réglages** (`config.js`), le programme de la carte (`app.js`), les icônes (`icons.js`), les modèles 3D (`modeles3d.js`, posés sur la carte par `couche3d.js`) la mer vivante (`mer.js`), les légendes cachées (`legendes.js`) et les noms des régions et des préfectures (`noms-regions.js`) et le compteur de visites (`compteur.js`).
+- `site/` contient le site : la page (`index.html`), l'apparence (`style.css`), les **réglages** (`config.js`), le programme de la carte (`app.js`), les icônes (`icons.js`), les modèles 3D (`modeles3d.js`, posés sur la carte par `couche3d.js`) la mer vivante (`mer.js`), les légendes cachées (`legendes.js`) et les noms des régions et des préfectures (`noms-regions.js`) le compteur de visites (`compteur.js`), les favoris (`favoris.js`) et la visite guidée (`visite.js`).
 - La carte lit le tableau Google Sheets à chaque visite. Si Google ne répond pas, elle utilise la copie de secours `site/data/secours-*.csv`. Cette copie est mise à jour automatiquement chaque nuit par GitHub.
 - `outils/` contient les petits programmes qui ont servi à tout préparer : import depuis Google My Maps, traductions, photos, masque des pays voisins.
 - `outils/robot-tableau.gs` est une copie du programme du robot (celui qui tourne vraiment est dans le projet « Robot carte » sur script.google.com). Le robot lit la légende de la vidéo TikTok et demande à Gemini de quel lieu il s'agit. Il cherche ensuite ce lieu dans Wikipédia et Google Maps, puis Gemini rédige la fiche à partir de ce qu'il a trouvé.

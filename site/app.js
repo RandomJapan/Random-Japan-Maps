@@ -10,6 +10,8 @@ import { brancherModeles } from './couche3d.js';
 import { animerMer } from './mer.js';
 import { brancherNomsRegions } from './noms-regions.js';
 import { brancherCompteur } from './compteur.js';
+import { lireFavoris, ecrireFavoris, ordreDeVoyage, liensItineraire } from './favoris.js';
+import { brancherVisite } from './visite.js';
 
 const $ = (id) => document.getElementById(id);
 const estTelephone = () => matchMedia('(max-width: 720px)').matches;
@@ -25,6 +27,10 @@ const SVG = {
   partager: '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 3v12M7.5 7.5 12 3l4.5 4.5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>',
   de: '<svg class="de" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.6" fill="currentColor"/></svg>',
   chevron: '<svg class="chevron-cat" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>',
+  coeur: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 20.3s-7.4-4.5-9.2-9.1C1.5 7.8 3.7 4.6 7 4.6c2 0 3.6 1.1 5 2.9 1.4-1.8 3-2.9 5-2.9 3.3 0 5.5 3.2 4.2 6.6-1.8 4.6-9.2 9.1-9.2 9.1Z"/></svg>',
+  croix: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M7 7l10 10M17 7 7 17"/></svg>',
+  etoile: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m12 2.8 2.6 6 6.5.6-4.9 4.3 1.5 6.4L12 16.8l-5.7 3.3 1.5-6.4-4.9-4.3 6.5-.6Z"/></svg>',
+  camera: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M3 7.5h11.5v9H3zM14.5 10.5l6-3v9l-6-3"/></svg>',
 };
 // Couleurs de secours (catégorie inconnue de l'onglet Catégories) ; la carte les vieillit vers le sépia
 const PALETTE = ['#c23b27', '#3b5b92', '#5f7f3a', '#c8912a', '#7b4a8c', '#2f7d7a', '#8a5a3b', '#b3486b', '#4a5d7e', '#6f8f3e'];
@@ -148,7 +154,24 @@ function construireLieux(lignes) {
       autreLien: champ(r, ['autrelien', 'lien', 'link']),
     });
   });
+  // Nouveau : la vidéo a moins de CONFIG.joursNouveau jours
+  for (const l of lieux) {
+    l.date = dateVideo(l.tiktok);
+    l.nouveau = !!l.date && Date.now() - l.date < (CONFIG.joursNouveau ?? 7) * 86400000;
+  }
   return lieux;
+}
+
+/** Date de publication d'une vidéo TikTok : elle est cachée dans son numéro (les 32 premiers bits = secondes depuis 1970). */
+function dateVideo(lien) {
+  const id = (String(lien).match(/video\/(\d+)/) || [])[1];
+  if (!id) return null;
+  try {
+    const d = new Date(Number(BigInt(id) >> 32n) * 1000);
+    return d.getFullYear() > 2015 ? d : null;
+  } catch {
+    return null;
+  }
 }
 
 function couleurValide(c) {
@@ -578,13 +601,17 @@ for (const ev of ['mousedown', 'touchstart', 'wheel']) {
 let lieux = [];
 let categories = [];
 let lieuActif = null;
+const favoris = lireFavoris(); // identifiants des lieux mis en favoris (favoris.js)
+let deplieNouveaux = true; // la ligne « Nouveaux lieux » du menu est dépliée
 
 function creerEpingle(lieu) {
   const el = document.createElement('button');
   el.type = 'button';
   el.className = 'repere';
   el.style.setProperty('--c', lieu.cat.couleur);
-  el.innerHTML = `<span class="repere-tete">${iconeHTML(lieu.cat.icone)}</span><span class="repere-nom"></span>`;
+  el.innerHTML = `<span class="repere-tete">${iconeHTML(lieu.cat.icone)}<span class="repere-coeur">${SVG.coeur}</span><span class="repere-nouveau"></span></span><span class="repere-nom"></span>`;
+  el.classList.toggle('nouveau', lieu.nouveau);
+  el.classList.toggle('favori', favoris.has(lieu.id));
   el.addEventListener('click', (e) => {
     e.stopPropagation();
     ouvrirLieu(lieu);
@@ -609,6 +636,7 @@ function appliquerFiltres() {
 function construireMenu() {
   const ul = $('liste-categories');
   ul.innerHTML = '';
+  construireNouveautes(ul);
   for (const c of categories) {
     const li = document.createElement('li');
     li.className = 'ligne-categorie';
@@ -635,6 +663,7 @@ function construireMenu() {
       b.type = 'button';
       b.dataset.lieu = l.id;
       b.textContent = enLangue(l.nom);
+      if (l.nouveau) b.insertAdjacentHTML('beforeend', ` <span class="etiquette-nouveau">${esc(t('nouveau'))}</span>`);
       b.classList.toggle('actif', l === lieuActif);
       b.addEventListener('click', () => allerAuLieu(l));
       item.append(b);
@@ -654,10 +683,47 @@ function construireMenu() {
   }
 }
 
+/** En tête du menu : les lieux des vidéos récentes, du plus récent au plus ancien, avec leur date. */
+function construireNouveautes(ul) {
+  const nouveaux = lieux.filter((l) => l.nouveau).sort((a, b) => b.date - a.date);
+  if (!nouveaux.length) return;
+  const li = document.createElement('li');
+  li.className = 'ligne-categorie ligne-nouveaux';
+  li.innerHTML = `<div class="ligne-tete">
+      <span class="case" aria-hidden="true"><span class="coche">${SVG.coche}</span></span>
+      <button type="button" class="deplier" aria-expanded="${deplieNouveaux}">
+        <span class="pastille">${SVG.etoile}</span>
+        <span class="nom-cat">${esc(t('nouveautes'))}</span>
+        <span class="nb">${nouveaux.length}</span>
+        ${SVG.chevron}
+      </button>
+    </div>
+    <ul class="sous-liste" ${deplieNouveaux ? '' : 'hidden'}></ul>`;
+  const sousListe = li.querySelector('.sous-liste');
+  const jour = new Intl.DateTimeFormat(langue, { day: 'numeric', month: 'short' });
+  for (const l of nouveaux) {
+    const item = document.createElement('li');
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.dataset.lieu = l.id;
+    b.innerHTML = `${esc(enLangue(l.nom))} <span class="date-courte">${esc(jour.format(l.date))}</span>`;
+    b.classList.toggle('actif', l === lieuActif);
+    b.addEventListener('click', () => allerAuLieu(l));
+    item.append(b);
+    sousListe.append(item);
+  }
+  li.querySelector('.deplier').addEventListener('click', (e) => {
+    deplieNouveaux = !deplieNouveaux;
+    e.currentTarget.setAttribute('aria-expanded', String(deplieNouveaux));
+    sousListe.hidden = !deplieNouveaux;
+  });
+  ul.append(li);
+}
+
 /** Depuis un menu (recherche, liste d'une catégorie, dé) : vole vers le lieu et ouvre sa fiche. */
 function allerAuLieu(l, options = {}) {
   if (!l.cat.visible) { l.cat.visible = true; construireMenu(); appliquerFiltres(); }
-  if (estTelephone()) { ouvrirMenu(false); ouvrirHasard(false); }
+  if (estTelephone()) { ouvrirMenu(false); ouvrirHasard(false); ouvrirFavoris(false); ouvrirVisite(false); }
   ouvrirLieu(l, options);
 }
 
@@ -676,7 +742,7 @@ function toutCocher(visible) {
 function ouvrirMenu(ouvrir) {
   $('menu-categories').hidden = !ouvrir;
   $('btn-categories').setAttribute('aria-expanded', String(ouvrir));
-  if (ouvrir) { ouvrirHasard(false); ouvrirLegendes(false); }
+  if (ouvrir) { ouvrirHasard(false); ouvrirLegendes(false); ouvrirFavoris(false); ouvrirVisite(false); }
   if (ouvrir && !estTelephone()) $('recherche').focus();
 }
 
@@ -702,6 +768,8 @@ function ouvrirLegendes(ouvrir) {
   if (!ouvrir) return;
   ouvrirMenu(false);
   ouvrirHasard(false);
+  ouvrirFavoris(false);
+  ouvrirVisite(false);
   legendes?.remplirPanneau();
 }
 
@@ -726,12 +794,21 @@ function correspond(l, region, type) {
   return regionDe(l.prefecture)?.cle === valeur;
 }
 
-const candidats = (region, type) => lieux.filter((l) => correspond(l, region, type));
+const candidats = (region, type, base = lieux) => base.filter((l) => correspond(l, region, type));
 
-/** Remplit les deux listes déroulantes, avec le nombre de lieux possibles pour chaque choix. */
+/** Le dé : remplit ses deux listes et dit combien de lieux sont possibles. */
 function construireHasard() {
-  const selRegion = $('choix-region');
-  const selType = $('choix-type');
+  const n = remplirChoix($('choix-region'), $('choix-type'), lieux);
+  $('hasard-info').textContent = n ? t('possibles', n) : t('aucunPossible');
+  $('btn-lancer').disabled = n === 0;
+}
+
+/**
+ * Remplit une paire de listes déroulantes (région, type) avec le nombre de lieux possibles pour chaque
+ * choix, parmi « base ». Renvoie le nombre de lieux qui correspondent aux deux choix.
+ */
+function remplirChoix(selRegion, selType, base) {
+  const candidats = (region, type) => base.filter((l) => correspond(l, region, type));
   const region = selRegion.value;
   const type = selType.value;
   const option = (valeur, texte, n, choisi) => {
@@ -761,9 +838,7 @@ function construireHasard() {
   selType.value = type;
   if (selType.value !== type) selType.value = '';
 
-  const n = candidats(selRegion.value, selType.value).length;
-  $('hasard-info').textContent = n ? t('possibles', n) : t('aucunPossible');
-  $('btn-lancer').disabled = n === 0;
+  return candidats(selRegion.value, selType.value).length;
 }
 
 async function ouvrirHasard(ouvrir) {
@@ -772,6 +847,8 @@ async function ouvrirHasard(ouvrir) {
   if (!ouvrir) return;
   ouvrirMenu(false);
   ouvrirLegendes(false);
+  ouvrirFavoris(false);
+  ouvrirVisite(false);
   if (!$('choix-region').options.length) {
     $('hasard-info').textContent = '…';
     $('btn-lancer').disabled = true;
@@ -797,6 +874,140 @@ function lancerDe() {
     de.classList.add('roule');
   }
   allerAuLieu(choix, { hasard: true });
+}
+
+// ---------------------------------------------------------------- Favoris (favoris.js)
+const estFavori = (l) => favoris.has(l.id);
+
+/** Met ou enlève un lieu des favoris ; renvoie vrai s'il est maintenant favori. */
+function basculerFavori(l) {
+  if (favoris.has(l.id)) favoris.delete(l.id);
+  else favoris.add(l.id);
+  ecrireFavoris(favoris);
+  l.el.classList.toggle('favori', favoris.has(l.id));
+  majFavoris();
+  return favoris.has(l.id);
+}
+
+/** Le cœur de la fiche, le bouton « Favoris » (caché tant qu'il n'y en a pas) et les listes ouvertes. */
+function majFavoris() {
+  const n = lieux.filter(estFavori).length;
+  $('btn-favoris').hidden = n === 0 && $('panneau-favoris').hidden;
+  $('compteur-favoris').textContent = n;
+  if (lieuActif) majCoeur(lieuActif);
+  if (!$('panneau-favoris').hidden) remplirFavoris();
+  if ($('visite-region').options.length) construireVisite();
+}
+
+function majCoeur(l) {
+  const b = $('fiche-favori');
+  const oui = estFavori(l);
+  b.setAttribute('aria-pressed', String(oui));
+  b.title = t(oui ? 'retirerFavori' : 'ajouterFavori');
+  b.setAttribute('aria-label', b.title);
+}
+
+/** La liste des favoris, dans l'ordre du voyage, avec l'itinéraire Google Maps et la visite guidée. */
+function remplirFavoris() {
+  const panneau = $('panneau-favoris');
+  const liste = ordreDeVoyage(lieux.filter(estFavori));
+  const titre = `<p class="hasard-titre">${esc(t('favorisTitre'))}</p>`;
+  if (!liste.length) {
+    panneau.innerHTML = `${titre}<p class="panneau-info">${esc(t('favorisVide'))}</p>`;
+    return;
+  }
+  const lignes = liste.map((l, i) => `<li>
+      <button type="button" class="favori-ligne" data-lieu="${esc(l.id)}">
+        <span class="favori-num">${i + 1}</span>
+        <span class="pastille" style="--c:${l.cat.couleur}">${iconeHTML(l.cat.icone)}</span>
+        <span class="favori-textes"><b>${esc(enLangue(l.nom))}</b><small>${esc(infosLieu(l))}</small></span>
+      </button>
+      <button type="button" class="favori-retirer" data-retirer="${esc(l.id)}" title="${esc(t('retirer'))}" aria-label="${esc(`${t('retirer')} : ${enLangue(l.nom)}`)}">${SVG.croix}</button>
+    </li>`).join('');
+  const liens = liensItineraire(liste, estTelephone() ? 5 : 10);
+  const itineraires = liens.map((x) => `<a class="btn-lancer btn-itineraire" href="${esc(x.url)}" target="_blank" rel="noopener">${SVG.route}<span>${esc(liens.length > 1 ? t('itinerairePartie', x.de, x.a) : t('itineraireFavoris'))}</span></a>`).join('');
+  panneau.innerHTML = `${titre}<p class="panneau-info">${esc(t('favorisInfo', liste.length))}</p>
+    <ol class="liste-favoris">${lignes}</ol>
+    <div class="favoris-actions">${itineraires}
+      <button type="button" class="btn-secondaire" data-visite>${SVG.camera}<span>${esc(t('visiteFavoris'))}</span></button>
+    </div>`;
+  // La préfecture de chaque lieu arrive avec les contours (une seule fois)
+  if (liste.some((l) => !l.prefecture)) {
+    preparerPrefectures().then(() => { if (!panneau.hidden && liste.every((l) => l.prefecture)) remplirFavoris(); }).catch(() => {});
+  }
+}
+
+function ouvrirFavoris(ouvrir) {
+  $('panneau-favoris').hidden = !ouvrir;
+  $('btn-favoris').setAttribute('aria-expanded', String(ouvrir));
+  if (!ouvrir) {
+    $('btn-favoris').hidden = !lieux.some(estFavori);
+    return;
+  }
+  ouvrirMenu(false);
+  ouvrirHasard(false);
+  ouvrirLegendes(false);
+  ouvrirVisite(false);
+  remplirFavoris();
+}
+
+// ---------------------------------------------------------------- Visite guidée (visite.js)
+const infosLieu = (l) => [enLangue(l.cat.nom), l.prefecture && enLangue(PREFECTURES[l.prefecture])].filter(Boolean).join(' · ');
+
+const visite = brancherVisite(map, {
+  t, enLangue, infos: infosLieu, estTelephone,
+  avant: () => {
+    arreterRotation();
+    fermerFiche();
+    ouvrirMenu(false);
+    ouvrirHasard(false);
+    ouvrirLegendes(false);
+    ouvrirFavoris(false);
+    ouvrirVisite(false);
+  },
+  apres: () => {},
+});
+
+/** Lieux proposés à la visite : tous, ou seulement les favoris si la case est cochée. */
+const baseVisite = () => (!$('ligne-visite-favoris').hidden && $('visite-favoris').checked ? lieux.filter(estFavori) : lieux);
+
+function construireVisite() {
+  $('ligne-visite-favoris').hidden = !lieux.some(estFavori);
+  const n = remplirChoix($('visite-region'), $('visite-type'), baseVisite());
+  $('txt-visite-lancer').textContent = t('visiteLancer', n);
+  $('btn-visite-lancer').disabled = n === 0;
+}
+
+async function ouvrirVisite(ouvrir) {
+  $('panneau-visite').hidden = !ouvrir;
+  $('btn-visite').setAttribute('aria-expanded', String(ouvrir));
+  if (!ouvrir) return;
+  ouvrirMenu(false);
+  ouvrirHasard(false);
+  ouvrirLegendes(false);
+  ouvrirFavoris(false);
+  if (!$('visite-region').options.length) {
+    $('txt-visite-lancer').textContent = '…';
+    $('btn-visite-lancer').disabled = true;
+  }
+  try {
+    await preparerPrefectures();
+    construireVisite();
+  } catch (e) {
+    console.warn('Contours des préfectures indisponibles', e);
+  }
+}
+
+async function lancerVisite(liste) {
+  if (!liste.length) return;
+  await preparerPrefectures().catch(() => {}); // pour écrire la préfecture sous le nom de chaque lieu
+  // Les catégories cachées de la visite réapparaissent, sinon on survolerait des lieux sans repère
+  if (liste.some((l) => !l.cat.visible)) {
+    for (const l of liste) l.cat.visible = true;
+    construireMenu();
+    appliquerFiltres();
+  }
+  visite.lancer(liste, { duree: Number($('visite-duree').value) || 7000, film: $('visite-film').checked });
 }
 
 function rechercher() {
@@ -844,11 +1055,12 @@ const idVideo = (url) => (String(url).match(/video\/(\d+)/) || [])[1] || '';
 function paddingFiche() {
   if (estTelephone()) return { top: 90, bottom: Math.round(innerHeight * 0.62), left: 0, right: 0 };
   // Sur ordinateur, le menu des catégories peut rester ouvert à gauche : on centre le lieu dans l'espace libre.
-  const menuOuvert = !$('menu-categories').hidden || !$('panneau-hasard').hidden;
+  const menuOuvert = ['menu-categories', 'panneau-hasard', 'panneau-favoris', 'panneau-visite'].some((id) => !$(id).hidden);
   return { top: 0, bottom: 0, left: menuOuvert ? 360 : 0, right: 424 };
 }
 
 function ouvrirLieu(lieu, { voler = true, hasard = false } = {}) {
+  if (visite.enCours()) visite.arreter();
   arreterRotation();
   lieuActif?.el.classList.remove('actif');
   lieuActif = lieu;
@@ -903,6 +1115,10 @@ async function remplirFiche(l) {
   // Le nom japonais est dans le cartouche de la photo ; en japonais, on rappelle le nom anglais sous le titre.
   $('fiche-nom-jp').textContent = langue === 'ja' && l.nom.en !== nom ? l.nom.en : '';
   remplirInfos(l);
+  majCoeur(l);
+  const date = l.date ? new Intl.DateTimeFormat(langue, { day: 'numeric', month: 'long', year: 'numeric' }).format(l.date) : '';
+  $('fiche-date').innerHTML = date
+    ? `${l.nouveau ? `<span class="etiquette-nouveau">${esc(t('nouveau'))}</span>` : ''}${esc(t('videoDu', date))}` : '';
   $('fiche-description').textContent = enLangue(l.description);
 
   // Photo + bouton pour lire la vidéo TikTok directement dans la fiche
@@ -1072,7 +1288,26 @@ function appliquerLangue() {
   for (const b of document.querySelectorAll('[data-langue]')) {
     b.setAttribute('aria-pressed', String(b.dataset.langue === langue));
   }
-  for (const l of lieux) l.el.querySelector('.repere-nom').textContent = enLangue(l.nom);
+  for (const l of lieux) {
+    l.el.querySelector('.repere-nom').textContent = enLangue(l.nom);
+    if (l.nouveau) l.el.querySelector('.repere-nouveau').textContent = t('nouveau');
+  }
+  $('txt-favoris').textContent = t('favoris');
+  $('btn-favoris').title = t('favorisTitre');
+  $('txt-visite').textContent = t('visite');
+  $('btn-visite').title = t('visiteTitre');
+  $('visite-titre-panneau').textContent = t('visiteTitre');
+  $('visite-info').textContent = t('visiteInfo');
+  $('txt-visite-region').textContent = t('region');
+  $('txt-visite-type').textContent = t('type');
+  $('txt-visite-favoris').textContent = t('visiteSeulementFavoris');
+  $('txt-visite-duree').textContent = t('visiteDuree');
+  $('duree-courte').textContent = t('dureeCourte');
+  $('duree-normale').textContent = t('dureeNormale');
+  $('duree-longue').textContent = t('dureeLongue');
+  $('txt-visite-film').textContent = t('visiteFilm');
+  majFavoris();
+  visite.majLangue();
   construireMenu();
   if (!$('resultats').hidden) rechercher();
   if (lieuActif) remplirFiche(lieuActif);
@@ -1111,11 +1346,53 @@ function brancherBoutons() {
     ouvrirLegendes($('panneau-legendes').hidden);
   });
   $('panneau-legendes').addEventListener('click', (e) => e.stopPropagation());
+  $('btn-favoris').addEventListener('click', (e) => {
+    e.stopPropagation();
+    ouvrirFavoris($('panneau-favoris').hidden);
+  });
+  $('panneau-favoris').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const retirer = e.target.closest('[data-retirer]');
+    const ligne = e.target.closest('[data-lieu]');
+    const trouver = (id) => lieux.find((l) => l.id === id);
+    if (retirer) basculerFavori(trouver(retirer.dataset.retirer));
+    else if (ligne) allerAuLieu(trouver(ligne.dataset.lieu));
+    else if (e.target.closest('[data-visite]')) lancerVisite(lieux.filter(estFavori));
+  });
+  $('fiche-favori').addEventListener('click', () => {
+    if (!lieuActif) return;
+    const premier = !lieux.some(estFavori);
+    const oui = basculerFavori(lieuActif);
+    afficherMessage(t(oui ? 'favoriAjoute' : 'favoriRetire'));
+    const bouton = $('btn-favoris');
+    if (oui && premier) {
+      bouton.classList.remove('nouvelle');
+      void bouton.offsetWidth; // relance la petite animation du bouton qui apparaît
+      bouton.classList.add('nouvelle');
+    }
+  });
+  $('btn-visite').addEventListener('click', (e) => {
+    e.stopPropagation();
+    ouvrirVisite($('panneau-visite').hidden);
+  });
+  $('panneau-visite').addEventListener('click', (e) => e.stopPropagation());
+  $('visite-region').addEventListener('change', construireVisite);
+  $('visite-type').addEventListener('change', construireVisite);
+  $('visite-favoris').addEventListener('change', construireVisite);
+  $('btn-visite-lancer').addEventListener('click', () => {
+    lancerVisite(candidats($('visite-region').value, $('visite-type').value, baseVisite()));
+  });
   $('choix-region').addEventListener('change', construireHasard);
   $('choix-type').addEventListener('change', construireHasard);
   $('btn-lancer').addEventListener('click', lancerDe);
   $('fiche-autre').addEventListener('click', lancerDe);
-  document.addEventListener('click', () => { ouvrirMenu(false); ouvrirHasard(false); ouvrirLegendes(false); });
+  document.addEventListener('click', () => {
+    ouvrirMenu(false);
+    ouvrirHasard(false);
+    ouvrirLegendes(false);
+    ouvrirFavoris(false);
+    ouvrirVisite(false);
+  });
   $('recherche').addEventListener('input', rechercher);
   $('btn-tout').addEventListener('click', () => toutCocher(true));
   $('btn-rien').addEventListener('click', () => toutCocher(false));
@@ -1131,6 +1408,7 @@ function brancherBoutons() {
   });
   // Un appui sur un modèle 3D ouvre son lieu, comme un appui sur son repère
   map.on('click', (e) => {
+    if (visite.enCours()) return; // pendant la visite, un appui fait juste revenir la barre
     const l = modeles3d.lieuSous(e.point);
     if (l) ouvrirLieu(l);
   });
@@ -1141,6 +1419,8 @@ function brancherBoutons() {
     if (!$('menu-categories').hidden) ouvrirMenu(false);
     else if (!$('panneau-hasard').hidden) ouvrirHasard(false);
     else if (!$('panneau-legendes').hidden) ouvrirLegendes(false);
+    else if (!$('panneau-favoris').hidden) ouvrirFavoris(false);
+    else if (!$('panneau-visite').hidden) ouvrirVisite(false);
     else fermerFiche();
   });
   window.addEventListener('hashchange', ouvrirDepuisAdresse);

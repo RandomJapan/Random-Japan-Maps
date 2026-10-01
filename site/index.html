@@ -55,6 +55,17 @@
         <svg class="de" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.6" fill="currentColor"/></svg>
         <span id="txt-hasard">Random</span>
       </button>
+      <!-- Visite guidée (visite.js) -->
+      <button class="bouton-categories bouton-visite panneau" id="btn-visite" aria-expanded="false" aria-controls="panneau-visite">
+        <svg class="camera" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M3 7.5h11.5v9H3zM14.5 10.5l6-3v9l-6-3"/></svg>
+        <span class="texte-bouton" id="txt-visite">Tour</span>
+      </button>
+      <!-- Favoris : le bouton apparaît dès qu'on a mis un cœur sur un lieu -->
+      <button class="bouton-categories bouton-favoris panneau" id="btn-favoris" aria-expanded="false" aria-controls="panneau-favoris" hidden>
+        <svg class="coeur" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 20.3s-7.4-4.5-9.2-9.1C1.5 7.8 3.7 4.6 7 4.6c2 0 3.6 1.1 5 2.9 1.4-1.8 3-2.9 5-2.9 3.3 0 5.5 3.2 4.2 6.6-1.8 4.6-9.2 9.1-9.2 9.1Z"/></svg>
+        <span class="texte-bouton" id="txt-favoris">Favorites</span>
+        <span class="compteur" id="compteur-favoris"></span>
+      </button>
       <!-- Légendes cachées : le bouton apparaît quand on en a trouvé une (legendes.js) -->
       <button class="bouton-categories bouton-legendes panneau" id="btn-legendes" aria-expanded="false" aria-controls="panneau-legendes" hidden>
         <svg class="lanterne" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M9 3h6M9 21h6M7.5 5h9C19 7 19.6 10 19.6 12s-.6 5-3.1 7h-9C5 17 4.4 14 4.4 12S5 7 7.5 5ZM4.6 10h14.8M4.6 14h14.8"/></svg>
@@ -63,6 +74,39 @@
       </button>
     </div>
     <div class="menu panneau" id="panneau-legendes" hidden></div>
+    <div class="menu panneau" id="panneau-favoris" hidden></div>
+    <div class="menu panneau hasard" id="panneau-visite" hidden>
+      <p class="hasard-titre" id="visite-titre-panneau"></p>
+      <p class="panneau-info" id="visite-info"></p>
+      <label class="champ-hasard">
+        <span id="txt-visite-region"></span>
+        <select id="visite-region"></select>
+      </label>
+      <label class="champ-hasard">
+        <span id="txt-visite-type"></span>
+        <select id="visite-type"></select>
+      </label>
+      <label class="case-option" id="ligne-visite-favoris" hidden>
+        <input type="checkbox" id="visite-favoris">
+        <span id="txt-visite-favoris"></span>
+      </label>
+      <label class="champ-hasard">
+        <span id="txt-visite-duree"></span>
+        <select id="visite-duree">
+          <option value="4000" id="duree-courte"></option>
+          <option value="7000" id="duree-normale" selected></option>
+          <option value="11000" id="duree-longue"></option>
+        </select>
+      </label>
+      <label class="case-option">
+        <input type="checkbox" id="visite-film" checked>
+        <span id="txt-visite-film"></span>
+      </label>
+      <button type="button" class="btn-lancer" id="btn-visite-lancer">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5.5v13a1 1 0 0 0 1.5.9l10.5-6.5a1 1 0 0 0 0-1.8L9.5 4.6A1 1 0 0 0 8 5.5Z"/></svg>
+        <span id="txt-visite-lancer"></span>
+      </button>
+    </div>
     <div class="menu panneau hasard" id="panneau-hasard" hidden>
       <p class="hasard-titre" id="hasard-titre"></p>
       <label class="champ-hasard">
@@ -156,6 +200,9 @@
       <span id="txt-autre"></span>
     </button>
     <button type="button" class="fiche-partager" id="fiche-partager"></button>
+    <button type="button" class="fiche-partager fiche-favori" id="fiche-favori" aria-pressed="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M12 20.3s-7.4-4.5-9.2-9.1C1.5 7.8 3.7 4.6 7 4.6c2 0 3.6 1.1 5 2.9 1.4-1.8 3-2.9 5-2.9 3.3 0 5.5 3.2 4.2 6.6-1.8 4.6-9.2 9.1-9.2 9.1Z"/></svg>
+    </button>
     <button type="button" class="fiche-fermer" id="fiche-fermer">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M6 6l12 12M18 6 6 18"/></svg>
     </button>
@@ -165,6 +212,7 @@
         <h2 class="fiche-nom" id="fiche-nom"></h2>
         <p class="fiche-nom-jp" id="fiche-nom-jp"></p>
         <p class="fiche-categorie" id="fiche-categorie"></p>
+        <p class="fiche-date" id="fiche-date"></p>
         <div class="fiche-boutons" id="fiche-boutons"></div>
         <p class="fiche-description" id="fiche-description"></p>
         <p class="fiche-plus" id="fiche-plus"></p>

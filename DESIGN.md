@@ -195,7 +195,7 @@ The palette is a hand-tinted engraving: one watercolour wash for the sea, sepia 
 
 The map fills the screen; the interface floats in the corners with a 12px gutter (plus safe areas).
 - **Header.** Top left (logo, name, and a subtitle on desktop only), with the language switch top right. On desktop, the visit counter sits at its right end, behind a 1px ink rule: the number in Zen Antique 19px (tabular figures) over "visits" in 12px soft sepia. On phones it is one line: 30px logo, 15px title, and no counter.
-- **Filters.** The Categories and Random buttons sit under the header, and their panels drop below them.
+- **Filters.** The Categories, Random and Tour buttons (then Favorites and Legends once they have something) sit under the header, and their 340px panels drop below them. On phones, Tour and Favorites are icon-only.
 - **Right column.** From top to bottom: the compass rose (58px, 50px on phone), then Reset view, then zoom + and − on desktop only.
 - **Bottom left.** The title scroll (240 × 72px, scaled to 0.76 on phone). The attribution sits to its right and wraps onto two lines on phone rather than running under the Reset button.
 - **Place card.** A 400px side sheet on desktop. At ≤720px it becomes a bottom sheet: 64dvh by default, dragged up to nearly full height.
@@ -238,6 +238,8 @@ Depth comes from the relief: the exaggerated terrain, the hillshade, and the isl
 - **Near (zoom ≥ 6.2):** a 32px disc (scaled 0.7–1 with zoom) in the aged category colour, with a 2px fresh-parchment ring, a 1px sepia outline, a parchment icon and a small sepia ink pointer below. On hover it scales to 1.1, and the name appears on a parchment label with an ink rule.
 - **Far (zoom < 6.2):** an 11px dot of the same colour with a parchment ring and an ink outline. The touch area extends 10px around it.
 - **Selected:** a red ring with a soft red halo, and a red pointer.
+- **New** (video under 7 days old): a small teal "NEW" tag (8.5px caps, parchment border) on the crest's upper right. In the far view, the dot wears a teal ring that pulses slowly. Teal, not red: red is for actions and the visitor's own choices.
+- **Favorite:** a 15px parchment disc with a red heart on the crest's upper left; a red ring around the far-view dot.
 
 ### Place models (3D)
 - **Content:** one standard low-poly model per category icon (a torii for every shrine, a pagoda for every pagoda…), built from simple faceted shapes with flat painted colours. Examples: vermilion torii, charcoal tile roofs, white castle walls, bronze Buddha, pink cherry tree. Emojis and unknown icons get a stone stele.
@@ -245,6 +247,15 @@ Depth comes from the relief: the exaggerated terrain, the hillshade, and the isl
 - **Scale:** the models grow out of the ground between zoom 8.6 and 9.6, then keep a readable size on screen (62px tall at zoom 10.5, growing slowly, 170px at most).
 - **Light:** a warm hemisphere light plus a sun from the viewer's upper left, so the side you look at is always lit.
 - **Marker:** the crest floats just above its model and points down at it. Tapping the model opens the place, like the crest.
+
+### Favorites
+- **Heart:** a 36px icon button on the card photo, left of share. Outlined in sepia; filled cartographer's red once chosen, with a small beat.
+- **Panel:** numbered rows in travel order (Zen Antique numerals, crest, name, category · prefecture, a remove ×), then the red "Route in Google Maps" button(s) and a parchment secondary button for the guided tour.
+
+### Guided tour
+- **Lower third:** a parchment plate with the double rule, bottom centre: the Japanese name in a small vertical cartouche, the name in Zen Antique 28px (22px on phone), category · prefecture in IM Fell italic. It fades and rises in 0.6s.
+- **Control bar:** a parchment plate with previous, a red pause/play, next, the progress in Zen Antique, and stop. At the bottom centre, or at the top in film mode, where it fades after 2.5s without input.
+- **Film mode:** only the map, the lower third and the attribution remain.
 
 ### Living sea (far view)
 - **Swell:** the coast water-lines, redrawn by a custom GPU layer (`mer.js`) from a distance-to-coast image. Lines about 9px apart roll in toward the shore at about 2.4px/s, fade in about 32px out and fade away at the coast. They waver slightly, like hand-cut lines, and fade out between zoom 6.5 and 8.5 like the old fixed lines.

@@ -531,6 +531,11 @@
         "name": "The Hand-Coloured Border Rule",
         "body": "Region borders are a dash-dot sepia line edged on each side by a soft watercolour band in that region's colour, as on hand-coloured atlases; prefecture borders are short sepia dashes that appear from zoom 6.5. Names follow the zoom: regions from 5.5 to 7.4, then prefectures. They lie under the paper, the legends and the pins.",
         "section": "colors"
+      },
+      {
+        "name": "The Teal Is New Rule",
+        "body": "Recent places are marked in teal ink (a small NEW tag, a pulsing ring from afar), never in red: cartographer's red stays for actions and for what the visitor chose, like the favorite heart.",
+        "section": "colors"
       }
     ],
     "dos": [
