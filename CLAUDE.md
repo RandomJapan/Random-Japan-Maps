@@ -202,7 +202,7 @@ On 2026-10-01 the owner asked for easter eggs: references to Japanese legends sc
 ### Visit counter (`site/compteur.js`)
 
 On 2026-10-01 the owner asked for a visitor count on the desktop map. They chose **GoatCounter** (free, cookie-free analytics with a dashboard) over an Apps Script counter or a keyless public counter, and chose to count **every visit**.
-- `CONFIG.goatcounter` in `config.js` is the account code (`code` for `code.goatcounter.com`). While it is empty, nothing is loaded or shown.
+- `CONFIG.goatcounter` in `config.js` is the account code (`code` for `code.goatcounter.com`). While it is empty, nothing is loaded or shown. The owner's account is `randomjapan` (randomjapan.goatcounter.com, switched on 2026-10-01; only the owner can log in).
 - `brancherCompteur` (called first thing in `demarrer`) injects `gc.zgo.at/count.js` with `data-goatcounter`, so every page load counts, phones included. count.js skips localhost, so local tests never count.
 - On desktop only, it fetches `https://<code>.goatcounter.com/counter/TOTAL.json`. That needs "Allow adding visitor counts on your website" ticked in the GoatCounter site settings; without it the request fails and the counter stays hidden.
   - `count` is a formatted string ("1 094 100"), so the code keeps the digits only. It counts GoatCounter "visitors", which are sessions: a reload soon after does not count again, a return visit later does.
