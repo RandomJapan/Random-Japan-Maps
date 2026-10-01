@@ -260,44 +260,10 @@ svg { display: block; }
 .nom-mer.petit:lang(ja) { font-size: 15px; }
 #carte:not(.loin) .nom-mer { opacity: 0; }
 
-/* ---------- La mer vivante (mer.js) : vagues, bateaux, baleine et serpent de mer, vus de loin ---------- */
+/* ---------- La mer vivante (mer.js) : la baleine et le serpent de mer, vus de loin ---------- */
 .vie-marine { pointer-events: none; }
 .vie-marine svg { display: block; overflow: visible; }
 #carte.mer-calme .vie-marine { display: none; }
-
-/* Vaguelettes gravées, couchées sur l'eau : elles ondulent doucement */
-.vague-gravee svg {
-  width: 34px; height: 12.5px; fill: none; stroke: #33605a; stroke-width: 1.3; stroke-linecap: round;
-  animation: onduler var(--duree, 7s) ease-in-out var(--delai, 0s) infinite alternate;
-}
-@keyframes onduler {
-  from { transform: translateX(-3px) scaleY(0.8); opacity: 0.4; }
-  to { transform: translateX(3px) scaleY(1.15); opacity: 0.95; }
-}
-
-/* Bateaux (bezaisen) : ils tanguent, se retournent quand ils changent de sens, s'effacent au port */
-.bateau { transition: opacity 1.6s; }
-.bateau.au-port { opacity: 0 !important; }
-.bateau-sens { transition: transform 0.9s var(--ease); }
-.bateau.vers-gauche .bateau-sens { transform: scaleX(-1); }
-.bateau svg {
-  width: 46px; height: 42px; transform-origin: 50% 92%;
-  animation: tanguer 3.6s ease-in-out var(--delai, 0s) infinite;
-}
-@keyframes tanguer {
-  0%, 100% { transform: rotate(-3deg); }
-  50% { transform: rotate(2.5deg) translateY(-1px); }
-}
-.bateau .sillage { fill: none; stroke: #3d6b64; stroke-width: 0.9; stroke-linecap: round; }
-.bateau .cordage { fill: none; stroke: #4e3822; stroke-width: 0.45; }
-.bateau .mat { fill: none; stroke: #35251a; stroke-width: 1.2; }
-.bateau .voile { fill: #f6eedb; stroke: #4e3822; stroke-width: 0.8; stroke-linejoin: round; }
-.bateau .bandes { fill: none; stroke: #8a6b45; stroke-width: 0.55; }
-.bateau .vergue { fill: none; stroke: #35251a; stroke-width: 1; stroke-linecap: round; }
-.bateau .blason { fill: none; stroke: #35251a; stroke-width: 0.7; }
-.bateau .coque { fill: #7a5232; stroke: #35251a; stroke-width: 0.9; stroke-linejoin: round; }
-.bateau .bordage { fill: none; stroke: #4e3822; stroke-width: 0.6; }
-.bateau .flamme { fill: #a8321f; }
 
 /* La baleine et le serpent de mer : cachés, ils jouent leur petite scène quand mer.js leur ajoute .joue */
 .baleine, .monstre { visibility: hidden; }
@@ -590,8 +556,6 @@ svg { display: block; }
   .nom-mer { font-size: 15px; letter-spacing: 0.12em; }
   .nom-mer.petit, .nom-mer.petit:lang(ja) { font-size: 12.5px; }
   .nom-mer:lang(ja) { font-size: 16px; }
-  .vague-gravee svg { width: 27px; height: 10px; }
-  .bateau svg { width: 36px; height: 33px; }
   .baleine svg { width: 48px; height: 30px; }
   .monstre svg { width: 62px; height: 33px; }
   .controles #btn-plus, .controles #btn-moins { display: none; }

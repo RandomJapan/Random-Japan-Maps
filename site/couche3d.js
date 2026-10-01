@@ -2,10 +2,10 @@
 //  Les modèles 3D sur la carte : quand on zoome, chaque lieu montre
 //  le petit modèle de l'icône de sa catégorie (voir modeles3d.js),
 //  posé sur le relief, sur un socle de la couleur de la catégorie.
-//  three.js (le moteur 3D) n'est chargé qu'au premier zoom rapproché :
-//  la carte démarre aussi vite qu'avant.
+//  three.js (le moteur 3D) n'est chargé qu'après le démarrage (pour les
+//  bateaux de mer.js) ou au premier zoom rapproché : la carte démarre aussi vite.
 // ================================================================
-const URL_THREE = 'https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.min.js';
+export const URL_THREE = 'https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.min.js';
 
 const ZOOM_CHARGEMENT = 7; // on charge three.js un peu avant d'en avoir besoin
 const ZOOM_DEBUT = 8.6; // en dessous : pas de modèles

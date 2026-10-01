@@ -73,14 +73,13 @@ Un appui sur le modèle ouvre la fiche du lieu, comme un appui sur le repère.
 
 Quand on voit tout le Japon, la mer bouge un peu, comme une vieille carte qui prendrait vie :
 - **la houle** : les lignes d'eau autour des îles avancent doucement vers les plages ;
-- **des vaguelettes** dessinées à l'encre qui ondulent au large ;
-- **4 bateaux de l'époque Edo** (des kitamae-bune, avec leur grande voile à bandes). Ils suivent les vraies routes maritimes de l'époque : d'Osaka à Hokkaidō par la mer du Japon, d'Osaka à Edo (Tokyo), du détroit de Tsugaru à Edo, et de Kagoshima à Okinawa ;
+- **des bateaux de l'époque Edo** (des kitamae-bune, petits modèles 3D avec leur grande voile à bandes). De temps en temps, un bateau apparaît au large, file vers un port de l'époque (Edo, Osaka, Nagasaki, Hakodate…) ou en repart, puis s'efface avant la côte. Il n'y en a jamais plus de 2 à la fois ;
 - **une baleine** qui sort de l'eau et souffle, toutes les 30 à 55 secondes environ, à des endroits connus pour les baleines (Kōchi, Muroto, Okinawa, Ogasawara…) ;
 - **un serpent de mer**, plus rare (toutes les 1 min 30 à 2 min environ), comme sur les cartes anciennes.
 
 Tout disparaît quand on zoome sur un lieu. Si le téléphone est réglé pour réduire les animations, la mer reste immobile.
 
-**Tu n'as rien à faire pour ça.** C'est dans le fichier `site/mer.js`.
+**Tu n'as rien à faire pour ça.** C'est dans le fichier `site/mer.js`. Le bateau est aussi dans la page `…/modeles.html`.
 
 ## Le dé « Au hasard »
 

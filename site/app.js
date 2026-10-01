@@ -236,6 +236,7 @@ const map = new maplibregl.Map({
         attribution: '<a href="https://mapterhorn.com/attribution" target="_blank" rel="noopener">© Mapterhorn</a> · Natural Earth',
       },
       voisins: { type: 'geojson', data: 'data/masque-voisins.geojson' },
+      large: { type: 'geojson', data: 'data/masque-large.geojson' },
       cote: { type: 'geojson', data: 'data/cote-japon.geojson' },
     },
     layers: [
@@ -332,6 +333,9 @@ const map = new maplibregl.Map({
           'line-width': ['interpolate', ['exponential', 1.6], ['zoom'], 3, 4, 6, 5, 8, 7, 10, 14, 12, 40],
         },
       },
+      // Le grand cache : tout ce qui est loin du Japon prend la couleur de la mer. Il cache les milliers
+      // d'îlots des voisins trop petits pour le cache ci-dessus (ils scintillaient quand la carte bougeait).
+      { id: 'large', type: 'fill', source: 'large', paint: { 'fill-color': MER, 'fill-antialias': false } },
     ],
     terrain: { source: 'relief', exaggeration: exageration(vueDepart().zoom) },
     // Au-delà de l'horizon, du parchemin ; au loin, un voile clair, comme sur une vieille gravure

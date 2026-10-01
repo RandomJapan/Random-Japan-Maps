@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-01T10:18:19Z",
+  "generatedAt": "2026-10-01T10:57:03Z",
   "title": "Design System: Random Japan Place",
   "extensions": {
     "colorMeta": {
@@ -366,19 +366,14 @@
         "purpose": "The coast water-lines come alive as a swell (far view)."
       },
       {
-        "name": "wavelet-ripple",
-        "value": "translateX ±3px, scaleY 0.8→1.15, opacity 0.4→0.95, 5.5–9.5s alternate",
-        "purpose": "Offshore engraved wavelets breathing."
-      },
-      {
-        "name": "ship-rock",
-        "value": "rotate -3deg ↔ 2.5deg, 3.6s; scaleX flip 0.9s on heading change; 1.6s fade in port",
-        "purpose": "Bezaisen sailing the Edo routes."
-      },
-      {
         "name": "creature-scenes",
         "value": "whale 9s (rise, spout, tail, dive) every 30–55s; serpent 11s every 80–130s",
         "purpose": "Rare sea creatures, as on antique charts."
+      },
+      {
+        "name": "ship-voyage",
+        "value": "3D bezaisen: grow in 1.6s, 4px/s straight to or from a port, roll ±0.07 rad / pitch ±0.035 rad, shrink away 1.6s; max 2, every 7–16s",
+        "purpose": "Edo ships crossing the open sea, far from the coasts."
       }
     ],
     "breakpoints": [
@@ -460,19 +455,11 @@
       "description": "Turns with the map; tap to put north back up.",
       "html": "<button class=\"ds-rose\" aria-label=\"Remettre le nord en haut\"><svg viewBox=\"0 0 64 64\"><circle cx=\"32\" cy=\"32\" r=\"30\" fill=\"#efe4c8\" stroke=\"#35251a\" stroke-width=\"1.1\"/><circle cx=\"32\" cy=\"32\" r=\"27.2\" fill=\"none\" stroke=\"#35251a\" stroke-width=\".5\"/><g stroke=\"#35251a\" stroke-width=\".6\" stroke-linejoin=\"round\"><path d=\"M32 32 32 11 28.5 28.5Z\" fill=\"#f6eedb\"/><path d=\"M32 32 32 11 35.5 28.5Z\" fill=\"#a8321f\"/><path d=\"M32 32 53 32 35.5 28.5Z\" fill=\"#f6eedb\"/><path d=\"M32 32 53 32 35.5 35.5Z\" fill=\"#35251a\"/><path d=\"M32 32 32 53 35.5 35.5Z\" fill=\"#f6eedb\"/><path d=\"M32 32 32 53 28.5 35.5Z\" fill=\"#35251a\"/><path d=\"M32 32 11 32 28.5 35.5Z\" fill=\"#f6eedb\"/><path d=\"M32 32 11 32 28.5 28.5Z\" fill=\"#35251a\"/></g><text x=\"32\" y=\"8.9\" text-anchor=\"middle\" font-family=\"IM Fell English, Georgia, serif\" font-size=\"8\" fill=\"#a8321f\">N</text></svg></button>",
       "css": ".ds-rose { width: 58px; height: 58px; padding: 0; border: 0; border-radius: 50%; background: none; box-shadow: 0 4px 14px rgba(52,36,18,.28); cursor: pointer; } .ds-rose svg { width: 100%; height: 100%; transition: transform 1s cubic-bezier(0.16,1,0.3,1); } .ds-rose:hover svg { transform: rotate(-30deg); } .ds-rose:focus-visible { outline: 2px solid #1d5652; outline-offset: 2px; }"
-    },
-    {
-      "name": "Bezaisen Ship",
-      "kind": "custom",
-      "refersTo": "panel",
-      "description": "Edo trading ship sailing the historic routes on the far-view sea; it rocks gently and turns to face its heading.",
-      "html": "<span class=\"ds-bateau\"><svg viewBox=\"0 0 48 44\" width=\"92\" height=\"84\"><path d=\"M1 41.6q3.5-1.5 7 0M4.5 43.3q3-1.2 6 0\" fill=\"none\" stroke=\"#3d6b64\" stroke-width=\".9\" stroke-linecap=\"round\"/><path d=\"M24 5.5 43.6 27.6M24 5.5 5.6 31.4\" fill=\"none\" stroke=\"#4e3822\" stroke-width=\".45\"/><path d=\"M24 34.5V4.5\" stroke=\"#35251a\" stroke-width=\"1.2\"/><path d=\"M13 7.6H35Q36.7 19.2 35 31H13Q14.7 19.2 13 7.6Z\" fill=\"#f6eedb\" stroke=\"#4e3822\" stroke-width=\".8\"/><path d=\"M16.7 7.6Q18.3 19.2 16.7 31M20.3 7.6Q21.9 19.2 20.3 31M27.7 7.6Q29.3 19.2 27.7 31M31.3 7.6Q32.9 19.2 31.3 31\" fill=\"none\" stroke=\"#8a6b45\" stroke-width=\".55\"/><path d=\"M12 7.3H36M12.4 31.2H35.6\" stroke=\"#35251a\" stroke-linecap=\"round\"/><path d=\"M4.8 31.2H10.6L11.6 34.4H35.2L42.6 27.2 44.2 28 38.6 40H11L6.4 35.6Z\" fill=\"#7a5232\" stroke=\"#35251a\" stroke-width=\".9\" stroke-linejoin=\"round\"/><path d=\"M24 4.2l7.4 1.7-7.4 1.3Z\" fill=\"#a8321f\"/></svg></span>",
-      "css": ".ds-bateau { display: inline-block; padding: 8px 14px; background: #8fbab2; } .ds-bateau svg { display: block; transform-origin: 50% 92%; animation: ds-tanguer 3.6s ease-in-out infinite; } @keyframes ds-tanguer { 0%, 100% { transform: rotate(-3deg); } 50% { transform: rotate(2.5deg) translateY(-1px); } } @media (prefers-reduced-motion: reduce) { .ds-bateau svg { animation: none; } }"
     }
   ],
   "narrative": {
     "northStar": "The old relief map on the table",
-    "overview": "The map is an antique relief map of Japan, the kind engraved and hand-tinted for a study wall. The islands are a shaded sepia model (pale sand on the coasts, ochre-tan hills, umber mountains and bone-white peaks) under a strong umber hillshade lit from the north-west. The sea is an aged, slightly faded turquoise: engraved water-lines hug every coast, and the islands cast a soft shadow onto it, so they stand up from the sheet. Seen from afar the sea lives a little: the water-lines roll in toward the shore, engraved wavelets ripple offshore, Edo trading ships sail the historic routes, and now and then a whale blows or a sea serpent rises. A grain, faint foxing and burnt edges lie over the whole sheet. The seas are named in 17th-century italic copperplate, a compass rose turns with the map, and a rolled title scroll reads Japan · 日本 · Japon. The interface is made of parchment plates ruled in sepia ink, and cartographer's red marks what the visitor can do.\n\nThe owner chose this world on 2026-09-30 from three reference images: a parchment map with a scroll and a compass rose, a shaded beige relief on a turquoise sea, and an old geological relief map. It replaced the \"Estampe\" woodblock-print world (dark indigo). The map always leads; the interface stays small, square-cornered and flat.",
+    "overview": "The map is an antique relief map of Japan, the kind engraved and hand-tinted for a study wall. The islands are a shaded sepia model (pale sand on the coasts, ochre-tan hills, umber mountains and bone-white peaks) under a strong umber hillshade lit from the north-west. The sea is an aged, slightly faded turquoise: engraved water-lines hug every coast, and the islands cast a soft shadow onto it, so they stand up from the sheet. Seen from afar the sea lives a little: the water-lines roll in toward the shore, a small 3D Edo trading ship now and then crosses the open sea toward a port, and a whale blows or a sea serpent rises from time to time. A grain, faint foxing and burnt edges lie over the whole sheet. The seas are named in 17th-century italic copperplate, a compass rose turns with the map, and a rolled title scroll reads Japan · 日本 · Japon. The interface is made of parchment plates ruled in sepia ink, and cartographer's red marks what the visitor can do.\n\nThe owner chose this world on 2026-09-30 from three reference images: a parchment map with a scroll and a compass rose, a shaded beige relief on a turquoise sea, and an old geological relief map. It replaced the \"Estampe\" woodblock-print world (dark indigo). The map always leads; the interface stays small, square-cornered and flat.",
     "keyCharacteristics": [
       "Aged turquoise sea with engraved water-lines and island shadows (far view only)",
       "Sepia shaded relief; parchment sky and haze at the horizon",
@@ -481,7 +468,7 @@
       "Italic copperplate sea names lying on the water; vertical Japanese names in the Japanese UI",
       "A compass rose that turns with the map, and a Japan · 日本 · Japon scroll bottom-left",
       "Up close, every place is a small painted low-poly model of its category, standing on a base in the category colour",
-      "From afar, a living sea: swell rolling to the shore, engraved wavelets, Edo ships on the historic routes, a whale or a sea serpent now and then"
+      "From afar, a living sea: swell rolling to the shore, a few 3D Edo ships far out at sea, a whale or a sea serpent now and then"
     ],
     "rules": [
       {
@@ -516,8 +503,13 @@
       },
       {
         "name": "The Living Sea Rule",
-        "body": "The sea moves only in the far view (below zoom 7.2), slowly, on a 15 fps clock that stops when the page is hidden. The swell is drawn by one custom GPU layer, and the ships, wavelets and creatures are HTML markers with CSS motion, so nothing re-bakes the terrain textures. Under reduced motion the sea is still: the three fixed water-lines return.",
+        "body": "The sea moves only in the far view (below zoom 7.2), slowly and sparsely, on a 15 fps clock that stops when the page is hidden. The swell and the ships are custom GPU layers and the creatures are HTML markers with CSS motion, so nothing re-bakes the terrain textures. Ships stay far from the coasts and never number more than two: the owner removed the offshore wavelets and the coast-hugging routes because they crowded the map. Under reduced motion the sea is still: the three fixed water-lines return.",
         "section": "elevation"
+      },
+      {
+        "name": "The Open-Sea Mask Rule",
+        "body": "Everything farther than about 70 km from Japan, or nearer a neighbour than Japan, is painted the sea colour (masque-large.geojson), on top of the neighbours mask. Natural Earth misses thousands of tiny foreign islets, and from above they twinkled as sand specks whenever the map moved.",
+        "section": "colors"
       }
     ],
     "dos": [

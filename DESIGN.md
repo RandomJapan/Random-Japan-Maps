@@ -107,7 +107,7 @@ components:
 The map is an antique relief map of Japan, the kind engraved and hand-tinted for a study wall.
 - **The land.** The islands are a shaded sepia model: pale sand on the coasts, ochre-tan hills, umber mountains and bone-white peaks, under a strong umber hillshade lit from the north-west.
 - **The sea.** It is an aged, slightly faded turquoise. Engraved water-lines hug every coast, and the islands cast a soft shadow onto it, so they stand up from the sheet.
-- **The living sea.** Seen from afar, the sea moves a little, the way an old map would if it came alive. The water-lines roll slowly in toward the shore as a swell. Small engraved wavelets ripple offshore. Edo-period trading ships (bezaisen) sail the historic sea routes. Now and then a whale blows, and more rarely a sea serpent rises, as on antique charts.
+- **The living sea.** Seen from afar, the sea moves a little, the way an old map would if it came alive. The water-lines roll slowly in toward the shore as a swell. Now and then a small 3D Edo trading ship (bezaisen) appears far out at sea, sails toward a port of the period and fades before the coast. A whale blows from time to time, and more rarely a sea serpent rises, as on antique charts. The open sea stays sparse, so the map reads first.
 - **The paper.** A grain, faint foxing and burnt edges lie over the whole sheet.
 - **The lettering.** The seas are named in 17th-century italic copperplate.
 - **The ornaments.** A compass rose turns with the map, and a rolled title scroll reads Japan · 日本 · Japon.
@@ -123,7 +123,7 @@ The owner chose this world on 2026-09-30 from three reference images: a parchmen
 - Italic copperplate sea names lying on the water; vertical Japanese names in the Japanese UI
 - A compass rose that turns with the map, and a Japan · 日本 · Japon scroll bottom-left
 - Up close, every place is a small painted low-poly model of its category, standing on a base in the category colour
-- From afar, a living sea: swell rolling to the shore, engraved wavelets, Edo ships on the historic routes, a whale or a sea serpent now and then
+- From afar, a living sea: swell rolling to the shore, a few 3D Edo ships far out at sea, a whale or a sea serpent now and then
 
 ## Colors
 
@@ -144,8 +144,10 @@ The palette is a hand-tinted engraving: one watercolour wash for the sea, sepia 
 
 ### Map inks
 - **Aged Turquoise Sea** (#8fbab2): the sea (the map background, seen through the transparent sea stops of the relief) and the mask over neighbouring countries.
-- **Water-line** (#3d6b64): the engraved swell lines along the coasts (three fixed lines when motion is reduced), the ships' wakes and the creatures' ripples. The offshore wavelets use a deeper step (#33605a).
-- **Sea life** (`style.css`): bezaisen with a timber hull (#7a5232), a parchment sail striped in ink rule and a red pennant; a slate whale (#4d6266) with a parchment spout; a green serpent (#5f8358) with a red crest.
+- **Water-line** (#3d6b64): the engraved swell lines along the coasts (three fixed lines when motion is reduced), and the creatures' ripples.
+- **Sea life**:
+  - the bezaisen (`modeles3d.js`): a timber hull (#7a5232) with high light-wood bulwarks and a dark rail, a sail in alternating parchment strips (#f4ecd8 / #e3d3ae) with the owner's crest, and a red pennant;
+  - in `style.css`: a slate whale (#4d6266) with a parchment spout, and a green serpent (#5f8358) with a red crest.
 - **Island Shadow** (#2c4a43): the blurred shadow cast south-east of every coast.
 - **Water-name Ink** (#1c4744): the sea names, with a pale sea halo.
 - **Relief ramp** (`app.js`), from Sand Lowland (#e3d0a7) at the coast through ochre, tan and umber to bone white (#efe7d6) at 3500 m, with umber hillshade shadows and paper-white lights.
@@ -237,10 +239,13 @@ Depth comes from the relief: the exaggerated terrain, the hillshade, and the isl
 
 ### Living sea (far view)
 - **Swell:** the coast water-lines, redrawn by a custom GPU layer (`mer.js`) from a distance-to-coast image. Lines about 9px apart roll in toward the shore at about 2.4px/s, fade in about 32px out and fade away at the coast. They waver slightly, like hand-cut lines, and fade out between zoom 6.5 and 8.5 like the old fixed lines.
-- **Wavelets:** 64 small engraved scallops ("~~"), lying on the water but facing the viewer. Each one drifts and breathes (opacity 0.4–0.95, 5–9s). They keep away from the coasts and the sea names.
-- **Ships:** four bezaisen on Edo routes: the kitamae route (Osaka to Hokkaidō by the Sea of Japan), the higaki route (Osaka to Edo), the eastern route (Tsugaru to Edo) and Satsuma to Ryūkyū. They move at a steady 4.5px/s on screen and rock gently. They turn to face their heading, fade out in port, and sail back after a pause.
+- **Ships:** small low-poly 3D bezaisen (about 40px tall, 32px on phones), lit like the place models.
+  - At most two sail at once. Each appears far out at sea (at least about 90 km from any coast), grows in, sails straight toward an Edo-period port (or away from one) at a steady 4px/s on screen, and fades away before getting within about 60 km of a coast.
+  - They rock gently and face their heading in 3D.
 - **Creatures:** a whale (9s scene: back rises, spout, tail, dive) about every 30–55s at real whale-watching spots. A sea serpent (11s scene: two coils and a crested head) about every 80–130s, far out at sea. Each picks a spot that is on screen, clear of the sea names and not hidden behind mountains.
-- **Bounds:** everything hides at zoom 7.2 and above, where the place models take over. The clock runs at 15 frames per second and stops when the page is hidden. Under reduced motion nothing moves: the fixed water-lines return, the wavelets and ships stay still, and no creature appears.
+- **Restraint:** offshore wavelets and coast-hugging ship routes were tried and removed at the owner's request: they made the map harder to read. Do not add more sea ornaments without asking.
+- **Bounds:** everything hides at zoom 7.2 and above, where the place models take over. The clock runs at 15 frames per second and stops when the page is hidden. Under reduced motion nothing moves: the fixed water-lines return, and no ship or creature appears.
+- **Open-sea mask:** everything farther than about 70 km from Japan (or nearer a neighbour) is painted the sea colour. The thousands of tiny foreign islets that Natural Earth misses would otherwise twinkle as sand specks.
 
 ### Compass rose (signature)
 - **Drawing:** an eight-point rose on a parchment disc. Each point's clockwise half is inked; the north point is red, under a red "N".
@@ -288,4 +293,4 @@ A parchment ground printed with a faint seigaiha wave pattern (the sea motif of 
 - **Don't** show unsoftened Sheet colours: always pass them through the sepia mix.
 - **Don't** draw a decorative border around the screen: the owner chose the scroll, rose, sea names and aged paper, and left the frame out.
 - **Don't** put a category label or kicker above a heading.
-- **Don't** animate map layers by changing their paint each frame. With terrain, every line, fill and relief layer is baked into tile textures, and a paint change re-bakes them all. Animate in a custom GPU layer (like the swell) or in HTML markers (like the ships).
+- **Don't** animate map layers by changing their paint each frame. With terrain, every line, fill and relief layer is baked into tile textures, and a paint change re-bakes them all. Animate in a custom GPU layer (like the swell and the ships) or in HTML markers (like the whale).

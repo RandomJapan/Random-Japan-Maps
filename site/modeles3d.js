@@ -26,12 +26,11 @@ export function modelePour(icone, modeles) {
   return modeles[nom] ? nom : 'stele';
 }
 
-export function fabriquerModeles(THREE) {
+/** Renvoie la fabrique d'« ateliers » : un atelier assemble des formes colorées en un seul objet (une seule forme à dessiner par modèle). */
+function ateliers(THREE) {
   const couleur = new THREE.Color();
   const PI = Math.PI;
-
-  /** Un « atelier » assemble des formes colorées en un seul objet (une seule forme à dessiner par modèle). */
-  function atelier() {
+  return function atelier() {
     const morceaux = [];
     const a = {
       piece(geo, c, o = {}) {
@@ -93,7 +92,8 @@ export function fabriquerModeles(THREE) {
         a.cone(h * 0.19, h * 0.42, 7, neige || vert, { x, y: h * 0.58 + h * 0.21, z });
         return a;
       },
-      fin() {
+      /** Termine le modèle. decalage : hauteur dont on le monte (0,06 = posé sur le dessus du socle). */
+      fin(decalage = 0.06) {
         let n = 0;
         for (const m of morceaux) n += m.pos.length;
         const pos = new Float32Array(n);
@@ -109,15 +109,19 @@ export function fabriquerModeles(THREE) {
         const geo = new THREE.BufferGeometry();
         geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
         geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
-        geo.translate(0, 0.06, 0); // posé sur le dessus du socle
+        geo.translate(0, decalage, 0);
         geo.computeVertexNormals(); // chaque triangle a ses propres sommets : facettes nettes, style maquette
         geo.computeBoundingBox();
         return { geometrie: geo, hauteur: geo.boundingBox.max.y };
       },
     };
     return a;
-  }
+  };
+}
 
+export function fabriquerModeles(THREE) {
+  const atelier = ateliers(THREE);
+  const PI = Math.PI;
   const M = {};
 
   // Sanctuaire : un torii vermillon
@@ -590,3 +594,76 @@ export function fabriquerModeles(THREE) {
 
   return M;
 }
+
+/**
+ * Le bateau de la mer vivante : un bezaisen (« kitamae-bune ») de l'époque Edo, avec sa grande voile carrée
+ * à bandes, sa proue en lame et ses bordages hauts. Proue vers +z, ligne de flottaison à y = 0 (la coque
+ * descend un peu dessous : la mer la cache). Environ 1,15 de haut et 1,15 de long.
+ */
+export function fabriquerBateau(THREE) {
+  const a = ateliers(THREE)();
+  const PI = Math.PI;
+  const lisse = (b0, b1, v) => { const t = Math.min(1, Math.max(0, (v - b0) / (b1 - b0))); return t * t * (3 - 2 * t); };
+
+  // Coque : le profil de côté (longueur, hauteur), épaissi sur la largeur, puis affiné vers la proue et la quille
+  const profil = new THREE.Shape([
+    [-0.48, -0.06], [0.3, -0.06], [0.5, 0.1], [0.62, 0.34], [0.55, 0.36], [0.44, 0.19],
+    [-0.28, 0.16], [-0.4, 0.24], [-0.54, 0.27], [-0.52, 0.12],
+  ].map(([u, v]) => new THREE.Vector2(u, v)));
+  const largeur = 0.3;
+  const coque = new THREE.ExtrudeGeometry(profil, { depth: largeur, bevelEnabled: false });
+  coque.translate(0, 0, -largeur / 2);
+  coque.rotateY(-PI / 2); // longueur → z, largeur → x
+  const pos = coque.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const y = pos.getY(i), z = pos.getZ(i);
+    pos.setX(i, pos.getX(i) * (1 - 0.88 * lisse(0.22, 0.6, z)) * (1 - 0.22 * lisse(-0.3, -0.52, z)) * (0.55 + 0.45 * lisse(-0.06, 0.1, y)));
+  }
+  a.piece(coque, '#7a5232');
+
+  // Bordages hauts (kakitatsu) le long du pont, avec leur lisse sombre ; la cabine à l'arrière ; le gouvernail
+  for (const cote of [-1, 1]) {
+    a.boite(0.018, 0.08, 0.62, '#a07450', { x: cote * 0.136, y: 0.2, z: -0.06 });
+    a.boite(0.026, 0.018, 0.64, '#3a2a1c', { x: cote * 0.136, y: 0.245, z: -0.06 });
+  }
+  a.boite(0.24, 0.09, 0.19, '#8a6240', { y: 0.29, z: -0.38 })
+    .pignon(0.27, 0.05, 0.22, '#4a4a4f', { y: 0.335, z: -0.38, ry: PI / 2 })
+    .boite(0.03, 0.26, 0.12, C.boisFonce, { y: 0.05, z: -0.56, rx: 0.15 });
+
+  // Mât, vergues et la grande voile carrée en bandes de toile, gonflée vers l'avant
+  a.cylindre(0.018, 0.024, 0.98, 6, C.boisFonce, { y: 0.65, z: 0.02 })
+    .baton([-0.38, 1.06, 0.06], [0.38, 1.06, 0.06], 0.016, C.boisFonce, 6)
+    .baton([-0.36, 0.42, 0.08], [0.36, 0.42, 0.08], 0.012, C.boisFonce, 6);
+  const voileZ = (x, y) => 0.07 + 0.06 * Math.cos((x / 0.36) * (PI / 2)) + 0.03 * Math.sin((PI * (y - 0.43)) / 0.62);
+  /** Une bande de voile entre x0 et x1, vue des deux côtés (une face de chaque sens). */
+  function bande(x0, x1, y0, y1, c, zDe = voileZ) {
+    const tri = [];
+    const n = 3;
+    for (let k = 0; k < n; k++) {
+      const ya = y0 + ((y1 - y0) * k) / n, yb = y0 + ((y1 - y0) * (k + 1)) / n;
+      const A = [x0, ya, zDe(x0, ya)], B = [x1, ya, zDe(x1, ya)], Cc = [x1, yb, zDe(x1, yb)], D = [x0, yb, zDe(x0, yb)];
+      tri.push(A, B, Cc, A, Cc, D, A, Cc, B, A, D, Cc);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(tri.flat(), 3));
+    a.piece(g, c);
+  }
+  for (let i = 0; i < 6; i++) bande(-0.36 + i * 0.12, -0.24 + i * 0.12, 0.43, 1.05, i % 2 ? '#e3d3ae' : '#f4ecd8');
+  // le blason de l'armateur (un cercle et un trait), devant et derrière la voile
+  for (const sens of [1, -1]) {
+    const z = voileZ(0, 0.76) + sens * 0.008;
+    a.piece(new THREE.CylinderGeometry(0.068, 0.068, 0.004, 14), '#35251a', { y: 0.76, z, rx: PI / 2 })
+      .boite(0.1, 0.022, 0.004, '#f4ecd8', { y: 0.76, z: z + sens * 0.004 });
+  }
+
+  // Petite voile de proue (yaho) sur son mât penché, et la flamme rouge en haut du mât
+  a.baton([0, 0.18, 0.4], [0, 0.62, 0.6], 0.01, C.boisFonce, 5);
+  bande(-0.1, 0.1, 0.36, 0.56, '#f4ecd8', (x, y) => 0.48 + (y - 0.36) * 0.45);
+  const flamme = new THREE.BufferGeometry();
+  const F = [[0, 1.13, 0.02], [0, 1.05, 0.02], [0, 1.09, 0.24]];
+  flamme.setAttribute('position', new THREE.Float32BufferAttribute([...F[0], ...F[1], ...F[2], ...F[0], ...F[2], ...F[1]], 3));
+  a.piece(flamme, C.rouge);
+
+  return a.fin(0);
+}
+
