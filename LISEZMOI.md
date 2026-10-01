@@ -97,6 +97,15 @@ Pour les visiteurs :
 
 **Tu n'as rien à faire pour ça.** Les textes sont dans `site/legendes.js` et les dessins dans `site/legendes-dessins.js`. Pour ajouter une légende ou changer un texte, demande à Claude.
 
+## Les régions et les préfectures
+
+Quand on zoome, la carte montre le découpage du Japon, comme un vieil atlas colorié à la main :
+- de loin, les **frontières entre les 8 grandes régions** : un trait de tirets et de points, bordé de chaque côté d'un liseré d'aquarelle à la couleur de la région ;
+- en zoomant un peu, les **noms des régions** apparaissent (TŌHOKU, KANTŌ, CHŪBU…), puis les **frontières des 47 préfectures** en petits tirets ;
+- en zoomant encore, les noms des régions laissent la place aux **noms des préfectures**.
+
+**Tu n'as rien à faire pour ça.** Les frontières viennent d'OpenStreetMap (le programme `outils/fabriquer_frontieres.py` les prépare) et la place des noms est dans `site/noms-regions.js`. Pour déplacer un nom, demande à Claude.
+
 ## Le dé « Au hasard »
 
 Le bouton **Au hasard** tire un lieu au sort. On peut choisir une région ou une préfecture, un type de lieu, les deux, ou rien du tout.
@@ -116,8 +125,8 @@ Le programme fabrique :
 
 ## Comment ça marche (pour les curieux)
 
-- `site/` contient le site : la page (`index.html`), l'apparence (`style.css`), les **réglages** (`config.js`), le programme de la carte (`app.js`), les icônes (`icons.js`), les modèles 3D (`modeles3d.js`, posés sur la carte par `couche3d.js`) la mer vivante (`mer.js`) et les légendes cachées (`legendes.js`).
+- `site/` contient le site : la page (`index.html`), l'apparence (`style.css`), les **réglages** (`config.js`), le programme de la carte (`app.js`), les icônes (`icons.js`), les modèles 3D (`modeles3d.js`, posés sur la carte par `couche3d.js`) la mer vivante (`mer.js`), les légendes cachées (`legendes.js`) et les noms des régions et des préfectures (`noms-regions.js`).
 - La carte lit le tableau Google Sheets à chaque visite. Si Google ne répond pas, elle utilise la copie de secours `site/data/secours-*.csv`. Cette copie est mise à jour automatiquement chaque nuit par GitHub.
 - `outils/` contient les petits programmes qui ont servi à tout préparer : import depuis Google My Maps, traductions, photos, masque des pays voisins.
 - `outils/robot-tableau.gs` est une copie du programme du robot (celui qui tourne vraiment est dans le projet « Robot carte » sur script.google.com). Le robot lit la légende de la vidéo TikTok et demande à Gemini de quel lieu il s'agit. Il cherche ensuite ce lieu dans Wikipédia et Google Maps, puis Gemini rédige la fiche à partir de ce qu'il a trouvé.
-- Le relief vient de **Mapterhorn** (gratuit) et le contour des pays de **Natural Earth** (domaine public). Les lacs et les grandes rivières viennent d'**OpenStreetMap** (gratuit, il faut juste le citer : c'est fait en bas de la carte) ; le programme `outils/fabriquer_eaux.py` les prépare. Les modèles 3D sont dessinés avec **three.js** (gratuit), chargé seulement quand on zoome.
+- Le relief vient de **Mapterhorn** (gratuit) et le contour des pays de **Natural Earth** (domaine public). Les lacs, les grandes rivières et les frontières des préfectures viennent d'**OpenStreetMap** (gratuit, il faut juste le citer : c'est fait en bas de la carte) ; les programmes `outils/fabriquer_eaux.py` et `outils/fabriquer_frontieres.py` les préparent. Les modèles 3D sont dessinés avec **three.js** (gratuit), chargé seulement quand on zoome.

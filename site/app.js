@@ -8,6 +8,7 @@ import { iconeHTML } from './icons.js';
 import { PREFECTURES, REGIONS, chargerPrefectures, regionDe } from './regions.js';
 import { brancherModeles } from './couche3d.js';
 import { animerMer } from './mer.js';
+import { brancherNomsRegions } from './noms-regions.js';
 
 const $ = (id) => document.getElementById(id);
 const estTelephone = () => matchMedia('(max-width: 720px)').matches;
@@ -211,6 +212,12 @@ const TUILES_RELIEF = {
   encoding: 'terrarium',
 };
 const MER = CONFIG.couleurs.mer;
+const OSM = '<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a>';
+// Liseré d'aquarelle de chaque grande région, le long de ses frontières (comme sur les cartes coloriées à la main)
+const LAVIS_REGIONS = {
+  hokkaido: '#9a86a8', tohoku: '#7f9f5c', kanto: '#cf9c45', chubu: '#c47f72',
+  kansai: '#5f7f9e', chugoku: '#7f9f5c', shikoku: '#cf9c45', kyushu: '#9a86a8',
+};
 const SABLE = '#e3d0a7';
 const SABLE_TRANSPARENT = 'rgba(227, 208, 167, 0)'; // même teinte, pour ne pas tirer vers le noir en fondu
 
@@ -241,8 +248,9 @@ const map = new maplibregl.Map({
       eaux: {
         type: 'geojson',
         data: 'data/eaux-japon.geojson',
-        attribution: '<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a>',
+        attribution: OSM,
       },
+      frontieres: { type: 'geojson', data: 'data/frontieres-japon.geojson', attribution: OSM },
     },
     layers: [
       { id: 'fond', type: 'background', paint: { 'background-color': MER } },
@@ -314,6 +322,63 @@ const map = new maplibregl.Map({
           'hillshade-shadow-color': 'rgba(70, 45, 24, 0.82)',
           'hillshade-highlight-color': 'rgba(255, 249, 232, 0.55)',
           'hillshade-accent-color': 'rgba(96, 66, 38, 0.45)',
+        },
+      },
+      // Frontières (OpenStreetMap, voir outils/fabriquer_frontieres.py), sous les rivières. Entre deux grandes
+      // régions : un liseré d'aquarelle de la couleur de chacune, de son côté du trait (g = à gauche du tracé,
+      // d = à droite), et un trait de tirets et de points. Entre deux préfectures : des tirets, en zoomant.
+      ...[['g', -1], ['d', 1]].map(([cote, sens]) => ({
+        id: `lavis-${cote}`,
+        type: 'line',
+        source: 'frontieres',
+        filter: ['==', ['get', 'n'], 'r'],
+        layout: { 'line-join': 'round' },
+        paint: {
+          'line-color': ['match', ['get', cote], ...Object.entries(LAVIS_REGIONS).flat(), '#a39f92'],
+          'line-width': ['interpolate', ['exponential', 1.5], ['zoom'], 4, 4, 7, 9, 10, 15, 14, 24],
+          'line-offset': ['interpolate', ['exponential', 1.5], ['zoom'], 4, sens * 2, 7, sens * 4.5, 10, sens * 7.5, 14, sens * 12],
+          'line-blur': ['interpolate', ['exponential', 1.5], ['zoom'], 4, 2, 7, 4, 10, 6, 14, 9],
+          'line-opacity': 0.6,
+        },
+      })),
+      // Un voile clair sous les tirets, pour qu'il se lise aussi dans l'ombre des montagnes
+      {
+        id: 'frontieres-prefectures-fond',
+        type: 'line',
+        source: 'frontieres',
+        filter: ['==', ['get', 'n'], 'p'],
+        layout: { 'line-join': 'round' },
+        paint: {
+          'line-color': '#f6eedb',
+          'line-width': ['interpolate', ['linear'], ['zoom'], 5.5, 3, 8, 5, 12, 7],
+          'line-blur': ['interpolate', ['linear'], ['zoom'], 5.5, 1, 8, 1.5, 12, 2.5],
+          'line-opacity': ['interpolate', ['linear'], ['zoom'], 5.5, 0, 6.5, 0.5],
+        },
+      },
+      {
+        id: 'frontieres-prefectures',
+        type: 'line',
+        source: 'frontieres',
+        filter: ['==', ['get', 'n'], 'p'],
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: {
+          'line-color': '#35251a',
+          'line-width': ['interpolate', ['linear'], ['zoom'], 5.5, 1.3, 8, 2.2, 12, 3],
+          'line-dasharray': [1.4, 1.5],
+          'line-opacity': ['interpolate', ['linear'], ['zoom'], 5.5, 0, 6.5, 0.85],
+        },
+      },
+      {
+        id: 'frontieres-regions',
+        type: 'line',
+        source: 'frontieres',
+        filter: ['==', ['get', 'n'], 'r'],
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: {
+          'line-color': '#35251a',
+          'line-width': ['interpolate', ['linear'], ['zoom'], 4, 1.1, 7, 1.9, 12, 2.8],
+          'line-dasharray': [4, 1.6, 0.1, 1.6],
+          'line-opacity': 0.9,
         },
       },
       // Lacs et grandes rivières (OpenStreetMap, voir outils/fabriquer_eaux.py), peints de la couleur de la
@@ -415,6 +480,9 @@ for (const m of MERS) {
     .setLngLat(m.ou)
     .addTo(map);
 }
+
+// Noms des grandes régions et des préfectures, écrits sur la terre quand on zoome
+const nomsRegions = brancherNomsRegions(map, maplibregl, { enLangue });
 
 // La mer vivante : houle, vagues, bateaux d'époque, baleine et serpent de mer (vus de loin)
 animerMer(map, maplibregl, { mers: MERS.map((m) => m.ou) });
@@ -1008,6 +1076,7 @@ function appliquerLangue() {
   if (!$('resultats').hidden) rechercher();
   if (lieuActif) remplirFiche(lieuActif);
   legendes?.majLangue();
+  nomsRegions.majLangue(langue);
 }
 
 // ---------------------------------------------------------------- Démarrage

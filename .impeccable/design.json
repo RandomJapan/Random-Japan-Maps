@@ -489,7 +489,7 @@
       },
       {
         "name": "The Map Lettering Rule",
-        "body": "IM Fell English appears only on the map itself: sea names and the title scroll. Names and titles in the interface are Zen Antique. Buttons, labels, counts and reading text are always Noto Sans.",
+        "body": "IM Fell English appears only on the map itself: sea names, prefecture names and the title scroll. Region names on the map, and names and titles in the interface, are Zen Antique. Buttons, labels, counts and reading text are always Noto Sans.",
         "section": "typography"
       },
       {
@@ -525,6 +525,11 @@
       {
         "name": "The Inland Water Rule",
         "body": "Lakes and the big rivers (OpenStreetMap) are painted in the sea colour over the relief, edged with the water-line ink. River width grows with zoom and river size; rivers under 100 km appear only from zoom 6.5. Like the coasts, they read as engraving: no gradients, no labels.",
+        "section": "colors"
+      },
+      {
+        "name": "The Hand-Coloured Border Rule",
+        "body": "Region borders are a dash-dot sepia line edged on each side by a soft watercolour band in that region's colour, as on hand-coloured atlases; prefecture borders are short sepia dashes that appear from zoom 6.5. Names follow the zoom: regions from 5.5 to 7.4, then prefectures. They lie under the paper, the legends and the pins.",
         "section": "colors"
       }
     ],

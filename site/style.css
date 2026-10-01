@@ -260,6 +260,20 @@ svg { display: block; }
 .nom-mer.petit:lang(ja) { font-size: 15px; }
 #carte:not(.loin) .nom-mer { opacity: 0; }
 
+/* Noms des grandes régions (capitales espacées) puis des préfectures (italique), écrits sur la terre quand on
+   zoome (noms-regions.js). Ils sont sous le papier vieilli, comme imprimés sur la feuille. */
+.nom-terre { pointer-events: none; }
+.nom-region, .nom-prefecture {
+  display: block; white-space: nowrap; color: var(--encre);
+  text-shadow: 0 0 2px var(--papier-clair), 0 0 3px var(--papier-clair), 0 0 9px rgba(246, 238, 219, 0.85);
+  opacity: 0; visibility: hidden; transition: opacity .6s, visibility 0s .6s;
+}
+.nom-region { font-family: var(--police-titre); font-size: 26px; letter-spacing: 0.36em; text-transform: uppercase; margin-right: -0.36em; }
+.nom-region:lang(ja) { font-size: 26px; letter-spacing: 0.6em; margin-right: -0.6em; }
+.nom-prefecture { font-family: var(--police-carte); font-style: italic; font-size: 18px; letter-spacing: 0.06em; }
+.nom-prefecture:lang(ja) { font-family: var(--police-titre); font-style: normal; font-size: 16px; letter-spacing: 0.2em; }
+#carte.noms-regions .nom-region, #carte.noms-prefectures .nom-prefecture { opacity: 0.92; visibility: visible; transition: opacity .6s; }
+
 /* ---------- La mer vivante (mer.js) : la baleine et le serpent de mer, vus de loin ---------- */
 .vie-marine { pointer-events: none; }
 .vie-marine svg { display: block; overflow: visible; }
@@ -556,6 +570,10 @@ svg { display: block; }
   .nom-mer { font-size: 15px; letter-spacing: 0.12em; }
   .nom-mer.petit, .nom-mer.petit:lang(ja) { font-size: 12.5px; }
   .nom-mer:lang(ja) { font-size: 16px; }
+  .nom-region { font-size: 19px; letter-spacing: 0.3em; margin-right: -0.3em; }
+  .nom-region:lang(ja) { font-size: 19px; }
+  .nom-prefecture { font-size: 15px; }
+  .nom-prefecture:lang(ja) { font-size: 14px; }
   .baleine svg { width: 48px; height: 30px; }
   .monstre svg { width: 62px; height: 33px; }
   .controles #btn-plus, .controles #btn-moins { display: none; }

@@ -28,6 +28,10 @@ This serves the site locally. It is also the `carte-japon` entry in `.claude/lau
   - Overpass is often busy (504 and 429 errors): the script retries, asks for geometry in small batches, and caches every answer in the system temp folder (`carte-japon-eaux`), so a rerun resumes.
   - Keep the fetch threshold (`RIVIERE_MIN`) at 40 km: changing it changes the batches and downloads everything again. Change `RIVIERE_GARDE` instead.
   - Needs Pillow.
+- `python outils/fabriquer_frontieres.py`: rebuilds `site/data/frontieres-japon.geojson`, the land borders between prefectures, from OpenStreetMap (Overpass, same cache and retries as `fabriquer_eaux.py`).
+  - In OSM, Japan's prefecture relations (admin_level 4) are made of offshore lines (`maritime=yes`) plus the land borders. A land border is a way shared by two prefectures and not tagged `maritime=yes`.
+  - Ways are stitched per prefecture pair and simplified to about 60 m. `n` is `r` for a border between two big regions (`REGIONS` is copied from `regions.js`), `p` otherwise. On `r` borders, `g` and `d` are the regions on the left and right of the line's direction (found by testing points 1 km to each side against `prefectures.geojson`), so the map can paint each side's colour.
+  - It also prints a label point per prefecture (the point farthest from the edges). `site/noms-regions.js` keeps those points, several moved by hand off the legends: rerunning does not change the labels.
 - Deploying means `git push` to `main`. `.github/workflows/mise-en-ligne.yml` publishes `site/` to GitHub Pages. The same workflow also runs nightly and on manual dispatch; in those runs it first commits refreshed `site/data/secours-*.csv`.
 
 On this Windows machine, the shell is PowerShell 5.1. After a winget install, refresh PATH before using `git` or `gh`:
@@ -99,6 +103,12 @@ The redesigns were done with the Impeccable skill (`~/.claude/skills/impeccable`
   - `rivieres-bord` (water-line #3d6b64) under `rivieres` (sea colour) make a turquoise line with a fine dark edge. The width grows with the zoom and with `km` (the river's extent). Rivers shorter than 100 km fade in between zoom 4.5 and 6.5, so the far view only shows the big ones.
   - `lacs` (sea-colour fill) and `lacs-bord` (water-line edge) are drawn after the rivers, so rivers end cleanly in the lakes.
   - The OSM shapes are accurate (simplified to about 60 m), so unlike the coast layers they stay at every zoom.
+- **Regions and prefectures.** The owner asked on 2026-10-01 for every region to be outlined and named when zooming in. Borders come from `frontieres-japon.geojson` (source `frontieres`, see `fabriquer_frontieres.py`) and are drawn over the relief, under the rivers:
+  - Between two big regions: `lavis-g` and `lavis-d`, a blurred watercolour band on each side of the line in that region's colour (`LAVIS_REGIONS` in `app.js`, placed with `line-offset`), under `frontieres-regions`, a dash-dot sepia line. They show at every zoom.
+  - Between two prefectures: `frontieres-prefectures`, short sepia dashes over `frontieres-prefectures-fond`, a pale paper underlay that keeps them readable in the mountains' shade. They fade in between zoom 5.5 and 6.5. (Dots were too faint on the ridges.)
+  - Hokkaidō, Shikoku, Kyūshū and Okinawa have no land border with another region: the sea outlines them.
+  - Names are HTML markers in `site/noms-regions.js`, pitched with the map like the sea names. Region names (Zen Antique spaced capitals; Kyūshū and Okinawa are written separately) show between zoom 5.5 and 7.4, then prefecture names (IM Fell italic, Zen Antique in Japanese; French uses the English name, as the dice does) between 7.4 and 10.5.
+  - The text is in an inner `<span>`, because MapLibre sets the marker element's own opacity. The markers are inserted just before `#papier`, so the aged paper lies over them and the legends and pins stay in front.
 - **Masks.** `voisins` (from `masque-voisins.geojson`) paints the neighbouring countries in the sea colour. `large` (from `masque-large.geojson`) paints everything farther than about 70 km from Japan, or closer to a neighbour than to Japan.
   - The second mask exists because Natural Earth misses thousands of tiny foreign islets, mostly off Korea. From above they showed as sub-pixel sand specks that twinkled whenever the map moved.
 - **Aged paper.** `#papier` (grain, foxing and vignette: one static background with SVG turbulence, normal alpha) is moved by `app.js` into the map's canvas container, right after the canvas. It therefore sits over the relief and under the markers.

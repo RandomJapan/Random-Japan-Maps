@@ -110,7 +110,8 @@ The map is an antique relief map of Japan, the kind engraved and hand-tinted for
 - **The living sea.** Seen from afar, the sea moves a little, the way an old map would if it came alive. The water-lines roll slowly in toward the shore as a swell. Now and then a small 3D Edo trading ship (bezaisen) appears far out at sea, sails toward a port of the period and fades before the coast. A whale blows from time to time, and more rarely a sea serpent rises, as on antique charts. The open sea stays sparse, so the map reads first.
 - **The hidden legends.** Zoom into a region and small ink-and-watercolour vignettes of Japanese legends appear where they happen: the nine-tailed fox on its split stone at Nasu, the kappa of Tōno, the tengu of Kurama, the eight-headed serpent of Izumo. There are twenty-two of them, to be found like easter eggs. A tap tells the legend in a parchment bubble.
 - **The paper.** A grain, faint foxing and burnt edges lie over the whole sheet.
-- **The lettering.** The seas are named in 17th-century italic copperplate.
+- **The lettering.** The seas are named in 17th-century italic copperplate. Zoom in and the big regions appear in widely spaced letterpress capitals, then the prefectures in small italics.
+- **The borders.** Like a hand-coloured atlas, the borders between the big regions are a dash-dot ink line edged on each side with a soft watercolour band in that region's colour. Prefecture borders are fine ink dashes that appear as you zoom in.
 - **The ornaments.** A compass rose turns with the map, and a rolled title scroll reads Japan · 日本 · Japon.
 - **The interface.** It is made of parchment plates ruled in sepia ink. Cartographer's red marks what the visitor can do.
 
@@ -157,6 +158,8 @@ The palette is a hand-tinted engraving: one watercolour wash for the sea, sepia 
 - **Relief ramp** (`app.js`), from Sand Lowland (#e3d0a7) at the coast through ochre, tan and umber to bone white (#efe7d6) at 3500 m, with umber hillshade shadows and paper-white lights.
 - **Sky** (#e9dcbd, Parchment Sky), **Horizon** (#d3d6c0) and **Haze** (#c4d6cc): past the horizon the map fades into paper.
 - **Coast Ink** (#4e3822): a thin coastline over the relief in the far view.
+- **Borders**: Sepia Ink (#35251a). Region borders are dash-dot, prefecture borders short dashes over a pale paper underlay (#f6eedb at 50%).
+- **Region washes** (`LAVIS_REGIONS`, 60% and blurred, along region borders only): moss #7f9f5c (Tōhoku, Chūgoku), ochre #cf9c45 (Kantō, Shikoku), rose #c47f72 (Chūbu), indigo #5f7f9e (Kansai), lilac #9a86a8 (Hokkaidō, Kyūshū). Neighbouring regions never share a wash.
 
 **The Red Ink Is a Verb Rule.** Cartographer's red marks only what the visitor can do or has chosen. It has two ornamental uses, both ones a cartographer would make: the north point of the rose (which is itself a button), and the 日本 seal on the title scroll. Drawings (the sea creatures, the legend vignettes and the 伝説 seal of the legends' bravo) may use reds as pigments: the rule is about the interface.
 
@@ -179,6 +182,8 @@ The palette is a hand-tinted engraving: one watercolour wash for the sea, sepia 
 - **Map lettering**:
   - Sea names: italic, 22px on desktop and 15px on phone (16px and 12.5px for the minor seas), tracked 0.12–0.2em, lying on the water.
   - Japanese sea names: Zen Antique set vertically, tracked 0.4em.
+  - Region names: Zen Antique capitals, 26px (19px on phone), tracked 0.36em, in sepia ink with a paper halo. Japanese: 26px, tracked 0.6em.
+  - Prefecture names: IM Fell English italic 18px (15px on phone). Japanese: Zen Antique 16px, tracked 0.2em.
   - The title scroll: IM Fell italic 19px beside a 24px Zen Antique 日本.
 - **Cartouche** (Zen Antique 20px, vertical, 0.14em tracking): the Japanese name on the photo. It drops to 16, 14 and 12px for names longer than 6, 8 and 10 characters.
 - **Body** (400, 15px, 1.7, max 65ch): place descriptions.
@@ -256,6 +261,11 @@ Depth comes from the relief: the exaggerated terrain, the hillshade, and the isl
 - **Bubble:** a parchment popup with the ink rule. The title is Zen Antique 19px, the second name is teal Zen Antique, the place is IM Fell English italic (Zen Antique in the Japanese UI), and the story is Noto Sans 13.5px.
 - **Counter:** a "Legends n/22" button with a red lantern joins the Categories / Random row after the first find. It opens a parchment list: found legends with their vignette (tap to fly there), unknown ones as a dashed "?" circle with their region as a hint. The count turns red when all are found.
 - **Bravo:** a centred parchment card with a red double-ruled 伝説 seal that stamps in, shown when the last legend is found.
+
+### Regions and prefectures (zoomed in)
+- **Region names** show between zoom 5.5 and 7.4, placed in the heart of each region and clear of the legend vignettes. Kyūshū and Okinawa each get their own name.
+- **Prefecture names** take over between zoom 7.4 and 10.5, at the point farthest from each prefecture's edges, moved by hand where a legend stood.
+- Both lie on the land like the sea names, under the aged paper, the legends and the pins, and cross-fade in 0.6s.
 
 ### Compass rose (signature)
 - **Drawing:** an eight-point rose on a parchment disc. Each point's clockwise half is inked; the north point is red, under a red "N".
