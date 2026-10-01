@@ -147,7 +147,9 @@ In the far view (below `ZOOM_CALME` = 7.2) the sea comes alive. The owner settle
   - The waterline is y = 0 and the hull dips below it. The relief's sea surface (0 m) writes depth, so it hides the hull's underside.
   - At most `MAX_BATEAUX` (2) sail at once. A new one is tried every `ENTRE_BATEAUX` seconds.
   - Each trip is a straight line toward one of `PORTS` (Edo-period ports, each with a seaward bearing). It starts at least `LARGE_DEPART` (46px at zoom 5, about 90 km) from any coast. It ends where the line comes within `LARGE_FIN` (30px) of a coast.
-  - 60% of ships sail in toward the port and 40% sail out. Each grows in, sails at a constant `VITESSE_BATEAU` px/s on screen, rocks, and shrinks away at the end.
+  - 60% of ships sail in toward the port and 40% sail out. Each grows in, rocks as it sails, and shrinks away at the end.
+  - They are objects on the map: a fixed size and speed in map units (`TAILLE_BATEAU` = 40px tall and `VITESSE_BATEAU` = 4px/s at zoom 5), so they grow when you zoom in. The owner asked for this: a constant screen size looked wrong while zooming.
+  - Between zoom 6.6 and 7.2 (`FONDU_BATEAUX`) the material's opacity fades them out, so a 150px ship does not pop away at `ZOOM_CALME`.
   - A trip is rejected if `queryTerrainElevation` finds land along it (for example islands hidden under the masks), if the start is not `bienVisible`, or if another ship is within 140px.
 - **Creatures.** `BETES` lists a whale (real whale-watching spots) and a sea serpent (open sea). Each plays a CSS scene when `mer.js` adds `.joue` (scene lengths are in `style.css`). A spot is used only if it passes `bienVisible`: on screen, clear of the sea names, and not behind relief (`map.unproject(map.project(spot))` must land near the spot).
   - `jouerScene(nom, [lng, lat])` is exported for tests: `(await import('/mer.js')).jouerScene('baleine', [134.4, 33.05])`.

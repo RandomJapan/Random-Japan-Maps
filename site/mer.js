@@ -21,8 +21,10 @@ const LIGNES_FIXES = ['lignes-eau-1', 'lignes-eau-2', 'lignes-eau-3']; // rempla
 // Les bateaux : jamais plus de 2 à la fois, toujours au large (distances en pixels au zoom 5, ≈ 2 km chacun)
 const MAX_BATEAUX = 2;
 const ENTRE_BATEAUX = [7, 16]; // secondes entre deux départs
-const VITESSE_BATEAU = 4; // pixels d'écran par seconde, quel que soit le zoom
-const TAILLE_BATEAU = matchMedia('(max-width: 720px)').matches ? 32 : 40; // hauteur à l'écran (pixels)
+// Les bateaux sont posés sur la carte : ils grandissent quand on zoome et rapetissent quand on dézoome.
+const VITESSE_BATEAU = 4; // pixels par seconde au zoom 5 (≈ 8 km/s : le temps d'un trajet ne dépend pas du zoom)
+const TAILLE_BATEAU = 40; // hauteur à l'écran au zoom 5 (pixels) : 28 au zoom de départ du téléphone, 113 au zoom 6,5
+const FONDU_BATEAUX = [6.6, ZOOM_CALME]; // de près, ils s'effacent doucement avant que la mer ne redevienne calme
 const LARGE_DEPART = 46; // un bateau apparaît au moins à cette distance des côtes…
 const LARGE_FIN = 30; // … et s'efface avant d'en être plus près que ça
 const APPARITION = 1.6; // secondes pour grandir ou s'effacer
@@ -276,7 +278,7 @@ function coucheHoule(map, maplibregl, image, obtenirTemps, quandPrete) {
 // ---------------------------------------------------------------- Les bateaux (petits modèles 3D)
 /** Couche 3D des bateaux : le même moteur (three.js) et la même lumière que les modèles des lieux (couche3d.js). */
 function coucheBateaux(map, maplibregl, THREE, modele, flotte) {
-  let renderer, scene, camera, soleil, bateaux;
+  let renderer, scene, camera, soleil, bateaux, matiere;
   const m4 = {
     // modèle (x, y = haut, z = proue) → carte (x = est, y = sud, z = haut) : un miroir, comme dans couche3d.js
     base: new THREE.Matrix4().set(1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1),
@@ -295,15 +297,18 @@ function coucheBateaux(map, maplibregl, THREE, modele, flotte) {
       const ciel = new THREE.HemisphereLight(0xfff3dc, 0x6b5a44, 2.5);
       ciel.position.set(0, 0, 1);
       soleil = new THREE.DirectionalLight(0xfff0d8, 2.2);
-      bateaux = new THREE.InstancedMesh(modele.geometrie, new THREE.MeshLambertMaterial({ vertexColors: true }), MAX_BATEAUX);
+      matiere = new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true });
+      bateaux = new THREE.InstancedMesh(modele.geometrie, matiere, MAX_BATEAUX);
       bateaux.frustumCulled = false;
       bateaux.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       bateaux.count = 0;
       scene.add(ciel, soleil, bateaux);
     },
     render(gl, args) {
-      if (!flotte.length || map.getZoom() >= ZOOM_CALME) return;
-      const k = TAILLE_BATEAU / (512 * 2 ** map.getZoom()); // taille du modèle en unités de la carte
+      const z = map.getZoom();
+      if (!flotte.length || z >= ZOOM_CALME) return;
+      matiere.opacity = 1 - lisser((z - FONDU_BATEAUX[0]) / (FONDU_BATEAUX[1] - FONDU_BATEAUX[0]));
+      const k = TAILLE_BATEAU / Z5; // taille du modèle en unités de la carte : la même à tous les zooms
       // tout autour du centre de l'écran : de petits nombres, donc pas de tremblement
       const centre = maplibregl.MercatorCoordinate.fromLngLat(map.getCenter());
       const b = (map.getBearing() * Math.PI) / 180;
@@ -411,7 +416,7 @@ export function animerMer(map, maplibregl, { mers = [] } = {}) {
   }
 
   function avancerBateaux(dt) {
-    const pas = (VITESSE_BATEAU * dt) / (512 * 2 ** map.getZoom()); // vitesse constante à l'écran
+    const pas = (VITESSE_BATEAU * dt) / Z5; // vitesse constante sur la carte
     for (const b of flotte) {
       const avance = b.etat === 'disparait' ? pas * 0.6 : pas;
       b.x += b.dx * avance;

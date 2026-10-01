@@ -239,8 +239,8 @@ Depth comes from the relief: the exaggerated terrain, the hillshade, and the isl
 
 ### Living sea (far view)
 - **Swell:** the coast water-lines, redrawn by a custom GPU layer (`mer.js`) from a distance-to-coast image. Lines about 9px apart roll in toward the shore at about 2.4px/s, fade in about 32px out and fade away at the coast. They waver slightly, like hand-cut lines, and fade out between zoom 6.5 and 8.5 like the old fixed lines.
-- **Ships:** small low-poly 3D bezaisen (about 40px tall, 32px on phones), lit like the place models.
-  - At most two sail at once. Each appears far out at sea (at least about 90 km from any coast), grows in, sails straight toward an Edo-period port (or away from one) at a steady 4px/s on screen, and fades away before getting within about 60 km of a coast.
+- **Ships:** small low-poly 3D bezaisen, lit like the place models. They sit on the map like objects: 40px tall at zoom 5, growing as you zoom in and shrinking as you zoom out. They fade out between zoom 6.6 and 7.2.
+  - At most two sail at once. Each appears far out at sea (at least about 90 km from any coast), grows in, sails straight toward an Edo-period port (or away from one) at a steady speed on the map (4px/s at zoom 5), and fades away before getting within about 60 km of a coast.
   - They rock gently and face their heading in 3D.
 - **Creatures:** a whale (9s scene: back rises, spout, tail, dive) about every 30–55s at real whale-watching spots. A sea serpent (11s scene: two coils and a crested head) about every 80–130s, far out at sea. Each picks a spot that is on screen, clear of the sea names and not hidden behind mountains.
 - **Restraint:** offshore wavelets and coast-hugging ship routes were tried and removed at the owner's request: they made the map harder to read. Do not add more sea ornaments without asking.
