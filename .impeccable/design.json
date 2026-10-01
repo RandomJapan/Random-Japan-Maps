@@ -372,7 +372,7 @@
       },
       {
         "name": "ship-voyage",
-        "value": "3D bezaisen with a fixed size on the map (40px tall at zoom 5, scaling with zoom): grow in 1.6s, 4px/s at zoom 5 straight to or from a port, roll ±0.07 rad / pitch ±0.035 rad, shrink away 1.6s, fade out between zoom 6.6 and 7.2; max 2, every 7–16s",
+        "value": "3D bezaisen 22px tall at zoom 5, growing ×1.5 per zoom level (slower than the map): grow in 1.6s, 3px/s at zoom 5 straight to or from a port, roll ±0.07 rad / pitch ±0.035 rad, shrink away 1.6s, fade out between zoom 6.6 and 7.2; max 2, every 7–16s",
         "purpose": "Edo ships crossing the open sea, far from the coasts."
       },
       {
@@ -521,6 +521,11 @@
         "name": "The Hidden Legends Rule",
         "body": "Legend vignettes appear only from zoom 6.5, where they are found like easter eggs, and sit under the place pins so places stay first. They share the creatures' ink-and-watercolour hand. The found counter appears only after the first find, and the list gives unknown legends' regions as hints, never their positions.",
         "section": "components"
+      },
+      {
+        "name": "The Inland Water Rule",
+        "body": "Lakes and the big rivers (OpenStreetMap) are painted in the sea colour over the relief, edged with the water-line ink. River width grows with zoom and river size; rivers under 100 km appear only from zoom 6.5. Like the coasts, they read as engraving: no gradients, no labels.",
+        "section": "colors"
       }
     ],
     "dos": [

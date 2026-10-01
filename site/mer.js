@@ -21,9 +21,11 @@ const LIGNES_FIXES = ['lignes-eau-1', 'lignes-eau-2', 'lignes-eau-3']; // rempla
 // Les bateaux : jamais plus de 2 à la fois, toujours au large (distances en pixels au zoom 5, ≈ 2 km chacun)
 const MAX_BATEAUX = 2;
 const ENTRE_BATEAUX = [7, 16]; // secondes entre deux départs
-// Les bateaux sont posés sur la carte : ils grandissent quand on zoome et rapetissent quand on dézoome.
-const VITESSE_BATEAU = 4; // pixels par seconde au zoom 5 (≈ 8 km/s : le temps d'un trajet ne dépend pas du zoom)
-const TAILLE_BATEAU = 40; // hauteur à l'écran au zoom 5 (pixels) : 28 au zoom de départ du téléphone, 113 au zoom 6,5
+// Les bateaux grandissent quand on zoome et rapetissent quand on dézoome, mais moins vite que la carte :
+// ils restent à l'échelle des autres dessins (épingles, légendes) au lieu de devenir aussi grands qu'une île.
+const VITESSE_BATEAU = 3; // pixels par seconde au zoom 5, sur la carte (le temps d'un trajet ne dépend pas du zoom)
+const TAILLE_BATEAU = 22; // hauteur à l'écran au zoom 5 (pixels) : 18 au zoom de départ du téléphone, 41 au zoom 6,5
+const CROISSANCE_BATEAU = 0.6; // ×1,5 par cran de zoom (la carte, elle, double)
 const FONDU_BATEAUX = [6.6, ZOOM_CALME]; // de près, ils s'effacent doucement avant que la mer ne redevienne calme
 const LARGE_DEPART = 46; // un bateau apparaît au moins à cette distance des côtes…
 const LARGE_FIN = 30; // … et s'efface avant d'en être plus près que ça
@@ -308,7 +310,8 @@ function coucheBateaux(map, maplibregl, THREE, modele, flotte) {
       const z = map.getZoom();
       if (!flotte.length || z >= ZOOM_CALME) return;
       matiere.opacity = 1 - lisser((z - FONDU_BATEAUX[0]) / (FONDU_BATEAUX[1] - FONDU_BATEAUX[0]));
-      const k = TAILLE_BATEAU / Z5; // taille du modèle en unités de la carte : la même à tous les zooms
+      // taille du modèle en unités de la carte (le monde entier fait 512 × 2^zoom pixels)
+      const k = (TAILLE_BATEAU * 2 ** (CROISSANCE_BATEAU * (z - 5))) / (512 * 2 ** z);
       // tout autour du centre de l'écran : de petits nombres, donc pas de tremblement
       const centre = maplibregl.MercatorCoordinate.fromLngLat(map.getCenter());
       const b = (map.getBearing() * Math.PI) / 180;

@@ -238,6 +238,11 @@ const map = new maplibregl.Map({
       voisins: { type: 'geojson', data: 'data/masque-voisins.geojson' },
       large: { type: 'geojson', data: 'data/masque-large.geojson' },
       cote: { type: 'geojson', data: 'data/cote-japon.geojson' },
+      eaux: {
+        type: 'geojson',
+        data: 'data/eaux-japon.geojson',
+        attribution: '<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a>',
+      },
     },
     layers: [
       { id: 'fond', type: 'background', paint: { 'background-color': MER } },
@@ -309,6 +314,42 @@ const map = new maplibregl.Map({
           'hillshade-shadow-color': 'rgba(70, 45, 24, 0.82)',
           'hillshade-highlight-color': 'rgba(255, 249, 232, 0.55)',
           'hillshade-accent-color': 'rgba(96, 66, 38, 0.45)',
+        },
+      },
+      // Lacs et grandes rivières (OpenStreetMap, voir outils/fabriquer_eaux.py), peints de la couleur de la
+      // mer par-dessus le relief et cernés d'un fin trait d'eau. De loin, seules les plus longues rivières
+      // se voient ; les autres apparaissent en zoomant. km = étendue de la rivière (40 à 240 km).
+      ...[['rivieres-bord', '#3d6b64', 1.3], ['rivieres', MER, 0]].map(([id, couleur, bord]) => {
+        const importance = ['min', 1, ['/', ['get', 'km'], 160]];
+        return {
+          id,
+          type: 'line',
+          source: 'eaux',
+          filter: ['==', ['get', 't'], 'riviere'],
+          layout: { 'line-join': 'round', 'line-cap': 'round' },
+          paint: {
+            'line-color': couleur,
+            'line-width': ['interpolate', ['exponential', 1.5], ['zoom'],
+              5, ['+', bord * 0.6, ['*', 0.9, importance]],
+              8, ['+', bord, 0.5, ['*', 1.6, importance]],
+              11, ['+', bord, 1.2, ['*', 2.6, importance]],
+              14, ['+', bord * 1.4, 2.6, ['*', 4.5, importance]]],
+            'line-opacity': ['interpolate', ['linear'], ['zoom'],
+              4.5, ['case', ['>=', ['get', 'km'], 100], 0.9, 0],
+              6.5, 0.9],
+          },
+        };
+      }),
+      { id: 'lacs', type: 'fill', source: 'eaux', filter: ['==', ['get', 't'], 'lac'], paint: { 'fill-color': MER } },
+      {
+        id: 'lacs-bord',
+        type: 'line',
+        source: 'eaux',
+        filter: ['==', ['get', 't'], 'lac'],
+        paint: {
+          'line-color': '#3d6b64',
+          'line-width': ['interpolate', ['linear'], ['zoom'], 5, 0.5, 10, 1.1, 14, 1.6],
+          'line-opacity': 0.8,
         },
       },
       // Le trait d'encre des côtes, par-dessus le relief

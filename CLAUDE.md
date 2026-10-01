@@ -22,6 +22,12 @@ This serves the site locally. It is also the `carte-japon` entry in `.claude/lau
 - `python outils/fabriquer_masque.py`: rebuilds `site/data/masque-voisins.geojson` from Natural Earth.
 - `python outils/fabriquer_cote.py`: rebuilds `site/data/cote-japon.geojson`, the coastline used for the water-lines and the islands' shadow.
 - `python outils/fabriquer_houle.py`: rebuilds two files from that coastline and from the neighbours mask. `site/data/distance-cote.png` is the distance-to-coast image behind the swell and the ships. `site/data/masque-large.geojson` is the open-sea mask. Run it after `fabriquer_cote.py` or `fabriquer_masque.py`. Needs numpy, Pillow and opencv-python.
+- `python outils/fabriquer_eaux.py`: rebuilds `site/data/eaux-japon.geojson`, the lakes and big rivers.
+  - The data comes from OpenStreetMap through the Overpass API (ODbL: the map credits "© OpenStreetMap"). Natural Earth only had Lake Biwa and three Japanese rivers.
+  - It keeps river relations wider than `RIVIERE_GARDE` (50 km) and lakes, lagoons and reservoirs that have a Wikidata entry and are wider than 3.5 km. `distance-cote.png` tells Japan from its neighbours.
+  - Overpass is often busy (504 and 429 errors): the script retries, asks for geometry in small batches, and caches every answer in the system temp folder (`carte-japon-eaux`), so a rerun resumes.
+  - Keep the fetch threshold (`RIVIERE_MIN`) at 40 km: changing it changes the batches and downloads everything again. Change `RIVIERE_GARDE` instead.
+  - Needs Pillow.
 - Deploying means `git push` to `main`. `.github/workflows/mise-en-ligne.yml` publishes `site/` to GitHub Pages. The same workflow also runs nightly and on manual dispatch; in those runs it first commits refreshed `site/data/secours-*.csv`.
 
 On this Windows machine, the shell is PowerShell 5.1. After a winget install, refresh PATH before using `git` or `gh`:
@@ -89,6 +95,10 @@ The redesigns were done with the Impeccable skill (`~/.claude/skills/impeccable`
 - **Sea.** The relief's sea stops are **transparent** (the float16 margin rule below still applies). The sea colour is the `background` layer, and three sets of line layers show through from under the relief: `cote-ombre` (the islands' shadow), `lignes-eau-1..3` (engraved water-lines, drawn with `line-gap-width`; once the animated swell of `mer.js` is ready it replaces them, see Living sea) and `cote-encre` (the coast ink, over the relief).
   - Their source is `site/data/cote-japon.geojson`, built by `outils/fabriquer_cote.py` from Natural Earth. It covers Japan's coasts plus the Kurils, since the mask leaves the Kurils visible.
   - The Natural Earth coast is too coarse to match the relief up close, so these layers fade out between zoom 6.5 and 8.5.
+- **Lakes and rivers.** The owner asked for them on 2026-10-01, in the sea colour. They come from `eaux-japon.geojson` (source `eaux`, see `fabriquer_eaux.py`), drawn over the relief and under `cote-encre`:
+  - `rivieres-bord` (water-line #3d6b64) under `rivieres` (sea colour) make a turquoise line with a fine dark edge. The width grows with the zoom and with `km` (the river's extent). Rivers shorter than 100 km fade in between zoom 4.5 and 6.5, so the far view only shows the big ones.
+  - `lacs` (sea-colour fill) and `lacs-bord` (water-line edge) are drawn after the rivers, so rivers end cleanly in the lakes.
+  - The OSM shapes are accurate (simplified to about 60 m), so unlike the coast layers they stay at every zoom.
 - **Masks.** `voisins` (from `masque-voisins.geojson`) paints the neighbouring countries in the sea colour. `large` (from `masque-large.geojson`) paints everything farther than about 70 km from Japan, or closer to a neighbour than to Japan.
   - The second mask exists because Natural Earth misses thousands of tiny foreign islets, mostly off Korea. From above they showed as sub-pixel sand specks that twinkled whenever the map moved.
 - **Aged paper.** `#papier` (grain, foxing and vignette: one static background with SVG turbulence, normal alpha) is moved by `app.js` into the map's canvas container, right after the canvas. It therefore sits over the relief and under the markers.
@@ -148,7 +158,8 @@ In the far view (below `ZOOM_CALME` = 7.2) the sea comes alive. The owner settle
   - At most `MAX_BATEAUX` (2) sail at once. A new one is tried every `ENTRE_BATEAUX` seconds.
   - Each trip is a straight line toward one of `PORTS` (Edo-period ports, each with a seaward bearing). It starts at least `LARGE_DEPART` (46px at zoom 5, about 90 km) from any coast. It ends where the line comes within `LARGE_FIN` (30px) of a coast.
   - 60% of ships sail in toward the port and 40% sail out. Each grows in, rocks as it sails, and shrinks away at the end.
-  - They are objects on the map: a fixed size and speed in map units (`TAILLE_BATEAU` = 40px tall and `VITESSE_BATEAU` = 4px/s at zoom 5), so they grow when you zoom in. The owner asked for this: a constant screen size looked wrong while zooming.
+  - They grow when you zoom in and shrink when you zoom out, but more slowly than the map: `TAILLE_BATEAU` = 22px tall at zoom 5, ×1.5 per zoom level (`CROISSANCE_BATEAU` = 0.6, while the map doubles). Their speed is fixed in map units (`VITESSE_BATEAU` = 3px/s at zoom 5).
+  - The owner asked for both. First, a constant screen size looked wrong while zooming. Then, growing exactly with the map (40px at zoom 5) made a ship as big as Sado island: they asked for ships in proportion with the pins and legends.
   - Between zoom 6.6 and 7.2 (`FONDU_BATEAUX`) the material's opacity fades them out, so a 150px ship does not pop away at `ZOOM_CALME`.
   - A trip is rejected if `queryTerrainElevation` finds land along it (for example islands hidden under the masks), if the start is not `bienVisible`, or if another ship is within 140px.
 - **Creatures.** `BETES` lists a whale (real whale-watching spots) and a sea serpent (open sea). Each plays a CSS scene when `mer.js` adds `.joue` (scene lengths are in `style.css`). A spot is used only if it passes `bienVisible`: on screen, clear of the sea names, and not behind relief (`map.unproject(map.project(spot))` must land near the spot).

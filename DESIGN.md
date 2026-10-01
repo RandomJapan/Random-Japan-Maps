@@ -106,7 +106,7 @@ components:
 
 The map is an antique relief map of Japan, the kind engraved and hand-tinted for a study wall.
 - **The land.** The islands are a shaded sepia model: pale sand on the coasts, ochre-tan hills, umber mountains and bone-white peaks, under a strong umber hillshade lit from the north-west.
-- **The sea.** It is an aged, slightly faded turquoise. Engraved water-lines hug every coast, and the islands cast a soft shadow onto it, so they stand up from the sheet.
+- **The sea.** It is an aged, slightly faded turquoise. Engraved water-lines hug every coast, and the islands cast a soft shadow onto it, so they stand up from the sheet. Lakes and the big rivers are washed in the same turquoise, edged with a fine water-line.
 - **The living sea.** Seen from afar, the sea moves a little, the way an old map would if it came alive. The water-lines roll slowly in toward the shore as a swell. Now and then a small 3D Edo trading ship (bezaisen) appears far out at sea, sails toward a port of the period and fades before the coast. A whale blows from time to time, and more rarely a sea serpent rises, as on antique charts. The open sea stays sparse, so the map reads first.
 - **The hidden legends.** Zoom into a region and small ink-and-watercolour vignettes of Japanese legends appear where they happen: the nine-tailed fox on its split stone at Nasu, the kappa of Tōno, the tengu of Kurama, the eight-headed serpent of Izumo. There are twenty-two of them, to be found like easter eggs. A tap tells the legend in a parchment bubble.
 - **The paper.** A grain, faint foxing and burnt edges lie over the whole sheet.
@@ -146,7 +146,8 @@ The palette is a hand-tinted engraving: one watercolour wash for the sea, sepia 
 
 ### Map inks
 - **Aged Turquoise Sea** (#8fbab2): the sea (the map background, seen through the transparent sea stops of the relief) and the mask over neighbouring countries.
-- **Water-line** (#3d6b64): the engraved swell lines along the coasts (three fixed lines when motion is reduced), and the creatures' ripples.
+- **Water-line** (#3d6b64): the engraved swell lines along the coasts (three fixed lines when motion is reduced), the creatures' ripples, and the fine edge of lakes and rivers.
+- **Lakes and rivers**: Aged Turquoise Sea with a Water-line edge, painted over the relief. Rivers widen with the zoom and with their size; only the longest show from afar.
 - **Sea life**:
   - the bezaisen (`modeles3d.js`): a timber hull (#7a5232) with high light-wood bulwarks and a dark rail, a sail in alternating parchment strips (#f4ecd8 / #e3d3ae) with the owner's crest, and a red pennant;
   - in `style.css`: a slate whale (#4d6266) with a parchment spout, and a green serpent (#5f8358) with a red crest.
@@ -242,8 +243,8 @@ Depth comes from the relief: the exaggerated terrain, the hillshade, and the isl
 
 ### Living sea (far view)
 - **Swell:** the coast water-lines, redrawn by a custom GPU layer (`mer.js`) from a distance-to-coast image. Lines about 9px apart roll in toward the shore at about 2.4px/s, fade in about 32px out and fade away at the coast. They waver slightly, like hand-cut lines, and fade out between zoom 6.5 and 8.5 like the old fixed lines.
-- **Ships:** small low-poly 3D bezaisen, lit like the place models. They sit on the map like objects: 40px tall at zoom 5, growing as you zoom in and shrinking as you zoom out. They fade out between zoom 6.6 and 7.2.
-  - At most two sail at once. Each appears far out at sea (at least about 90 km from any coast), grows in, sails straight toward an Edo-period port (or away from one) at a steady speed on the map (4px/s at zoom 5), and fades away before getting within about 60 km of a coast.
+- **Ships:** small low-poly 3D bezaisen, lit like the place models. They are 22px tall at zoom 5 (18px on the phone start view) and grow as you zoom in, more slowly than the map (×1.5 per zoom level, about 41px at zoom 6.5), so they stay in proportion with the pins and the legend vignettes. They fade out between zoom 6.6 and 7.2.
+  - At most two sail at once. Each appears far out at sea (at least about 90 km from any coast), grows in, sails straight toward an Edo-period port (or away from one) at a steady speed on the map (3px/s at zoom 5), and fades away before getting within about 60 km of a coast.
   - They rock gently and face their heading in 3D.
 - **Creatures:** a whale (9s scene: back rises, spout, tail, dive) about every 30–55s at real whale-watching spots. A sea serpent (11s scene: two coils and a crested head) about every 80–130s, far out at sea. Each picks a spot that is on screen, clear of the sea names and not hidden behind mountains.
 - **Restraint:** offshore wavelets and coast-hugging ship routes were tried and removed at the owner's request: they made the map harder to read. Do not add more sea ornaments without asking.
