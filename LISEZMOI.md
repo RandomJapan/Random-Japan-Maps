@@ -153,7 +153,7 @@ Chaque page montre la couverture de ta vidéo (on clique pour la lire), la descr
 
 **Tu n'as rien à faire :** les pages sont refaites à chaque mise en ligne, à partir du tableau. Un nouveau lieu a sa page le lendemain (la nuit, le robot recopie le tableau et télécharge la couverture de la vidéo).
 
-**Pour que Google les trouve plus vite :** il faut déclarer le site dans Google Search Console (gratuit) et y donner le plan du site : `https://map.randomjapanplace.com/sitemap.xml`.
+**Google Search Console :** c'est fait depuis le 2 octobre 2026. Le domaine randomjapanplace.com est validé et le plan du site (`https://map.randomjapanplace.com/sitemap.xml`) est envoyé. Sur search.google.com/search-console, le menu « Pages » montre les pages que Google connaît, et « Performances » les recherches qui mènent à tes pages. Il n'y a rien à refaire : Google relit le plan du site tout seul.
 
 ## Le compteur de visites
 

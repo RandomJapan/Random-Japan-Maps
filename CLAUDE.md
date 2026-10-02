@@ -245,7 +245,7 @@ On 2026-10-02 the owner approved idea 6 (one page per place, so Google can find 
   - Style: `site/pages/pages.css` repeats the map's tokens (parchment sheet with the double rule on the sea colour, Zen Antique, IM Fell, red buttons). Category icons come from `icons.js`, inserted by `pages.js`.
 - **Covers.** TikTok's thumbnail URLs expire, so the covers are copied into the site (`telecharger_couvertures.py`). A place without a cover gets a page without the picture.
 - **From the map.** The card links to its page (`#fiche-plus`, "Page of this place"), and the bottom of the Categories menu links to the list (`#lien-liste`); both follow the UI language.
-- **The address.** `ADRESSE` at the top of the script is the public address used for canonical, `hreflang`, Open Graph and the sitemap. Change it with the domain (as well as `og:url`/`og:image` in `index.html`). Since 2026-10-02 the site is at a domain's root, so `robots.txt` counts; the sitemap is also submitted in Google Search Console (a Domain property for randomjapanplace.com).
+- **The address.** `ADRESSE` at the top of the script is the public address used for canonical, `hreflang`, Open Graph and the sitemap. Change it with the domain (as well as `og:url`/`og:image` in `index.html`). Since 2026-10-02 the site is at a domain's root, so `robots.txt` counts; the sitemap is also submitted in Google Search Console (a Domain property for randomjapanplace.com, verified and submitted by the owner on 2026-10-02).
 - **Checks.** No test suite: rebuild, then check every internal `href`/`src` resolves to a file and that each JSON-LD block parses (a throwaway script did this on 384 pages).
 
 ### Visit counter (`site/compteur.js`)
