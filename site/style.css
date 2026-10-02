@@ -688,6 +688,31 @@ body.mode-film .aide, body.mode-film .toast, body.mode-film .repere-nom { displa
 body.mode-film .visite-titre { bottom: calc(var(--bas) + 40px); }
 body.mode-film .visite-barre { top: calc(var(--haut) + 6px); bottom: auto; }
 body.visite-calme .visite-barre { opacity: 0; pointer-events: none; }
+.case-option.sous-option { margin: -8px 2px 14px 26px; }
+.case-option:has(input:disabled) { opacity: .45; cursor: default; }
+/* La vidéo TikTok du lieu, dans un cadre de papier à double filet (à droite ; en haut sur téléphone).
+   Le cadre reste posé, invisible : visite.js lit sa place pour décaler le lieu à côté. */
+.visite-video {
+  position: fixed; z-index: 11; right: 76px; top: 50%;
+  padding: 7px; border: 1px solid var(--trait); border-radius: 3px;
+  background: var(--grain) 0 0 / 240px 240px, var(--papier);
+  box-shadow: var(--filet), 0 14px 40px rgba(52, 36, 18, 0.45);
+  visibility: hidden; opacity: 0; transform: translate(18px, -50%);
+  transition: opacity .6s var(--ease), transform .6s var(--ease), visibility 0s linear .6s;
+}
+.visite-video.visible { visibility: visible; opacity: 1; transform: translate(0, -50%); transition-delay: 0s; }
+body.mode-film .visite-video { right: 36px; }
+.visite-video-ecran {
+  position: relative; height: min(66vh, 600px); aspect-ratio: 9 / 16; overflow: hidden;
+  background: #241a10 center / cover no-repeat; outline: 1px solid var(--encre);
+}
+.visite-video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; opacity: 0; transition: opacity .5s; }
+.visite-video.joue iframe { opacity: 1; }
+.visite-video iframe.reserve { opacity: 0 !important; pointer-events: none; } /* la vidéo suivante, qui se charge */
+@media (min-width: 721px) {
+  /* le nom du lieu se centre dans la place laissée à gauche de la vidéo */
+  body.video-visible .visite-titre { left: calc((100vw - var(--video-place, 0px)) / 2); max-width: calc(100vw - var(--video-place, 0px) - 32px); }
+}
 body.visite-calme, body.visite-calme * { cursor: none !important; }
 
 /* ---------- Téléphone ---------- */
@@ -717,6 +742,12 @@ body.visite-calme, body.visite-calme * { cursor: none !important; }
   .visite-titre-textes b { font-size: 22px; }
   .visite-titre-textes small { font-size: 14.5px; }
   body.mode-film .visite-titre { bottom: calc(var(--bas) + 56px); }
+  /* La vidéo en haut, le lieu dessous ; le titre et les boutons de la carte s'effacent derrière */
+  .visite-video { left: 50%; top: var(--haut); padding: 5px; transform: translate(-50%, -14px); }
+  .visite-video, body.mode-film .visite-video { right: auto; }
+  .visite-video.visible { transform: translate(-50%, 0); }
+  .visite-video-ecran { height: min(54dvh, 112vw); }
+  body.video-visible .entete, body.video-visible .filtres, body.video-visible .langues { visibility: hidden; }
   .aide { bottom: calc(var(--bas) + 64px); }
   .controles { bottom: calc(var(--bas) + 16px); }
   .btn-rose { width: 50px; height: 50px; }

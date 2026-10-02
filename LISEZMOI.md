@@ -125,6 +125,9 @@ Les visiteurs peuvent toucher le **cœur** sur la fiche d'un lieu pour le mettre
 Le bouton **Visite** (la petite caméra) fait voler la caméra toute seule d'un lieu à l'autre, comme un film : d'abord une vue d'ensemble, puis chaque lieu de près avec son nom en bas de l'écran.
 - **Choisir les lieux :** une région ou une préfecture, un type de lieu (par exemple « tous les châteaux » ou « tout le Kyūshū »), ou seulement tes favoris.
 - **Temps sur chaque lieu :** court (4 s), normal (7 s) ou long (11 s).
+- **La vidéo de chaque lieu** (cochée au départ) : en arrivant sur un lieu, ta vidéo TikTok de ce lieu passe dans un cadre (à droite sur ordinateur, en haut sur téléphone), pendant le temps choisi. Puis on coupe et la caméra vole au lieu suivant. La vidéo du lieu suivant se prépare pendant ce temps, donc elle démarre tout de suite.
+- **Avec le son :** décoché au départ (pratique si tu ajoutes ta musique dans TikTok). Coché, on entend le son de tes vidéos.
+- La toute première fois, TikTok peut afficher dans le cadre un bandeau de cookies : réponds une fois, c'est retenu.
 - **Mode film** (coché au départ) : tous les boutons disparaissent, il ne reste que la carte et le nom du lieu. Bouge la souris ou touche l'écran pour faire revenir la petite barre (pause, lieu précédent ou suivant, arrêter).
 - **Sur ordinateur :** Espace = pause, flèches = lieu précédent ou suivant, Échap = arrêter.
 - **Pour une vidéo TikTok :** lance la visite sur ton téléphone et filme l'écran avec l'enregistreur du téléphone. L'image est déjà au bon format vertical. L'écran ne s'éteint pas pendant la visite.

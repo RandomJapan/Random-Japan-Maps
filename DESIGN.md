@@ -255,7 +255,8 @@ Depth comes from the relief: the exaggerated terrain, the hillshade, and the isl
 ### Guided tour
 - **Lower third:** a parchment plate with the double rule, bottom centre: the Japanese name in a small vertical cartouche, the name in Zen Antique 28px (22px on phone), category · prefecture in IM Fell italic. It fades and rises in 0.6s.
 - **Control bar:** a parchment plate with previous, a red pause/play, next, the progress in Zen Antique, and stop. At the bottom centre, or at the top in film mode, where it fades after 2.5s without input.
-- **Film mode:** only the map, the lower third and the attribution remain.
+- **Video frame:** the place's TikTok in a 9:16 parchment frame with the double rule (7px border, 5px on phone), about two thirds of the screen height. On desktop it stands on the right and the place and lower third centre in the space left of it. On phones it hangs at the top (54% of the height) and the place sits below it. It slides in and fades in 0.6s; the place's photo shows inside until the video plays.
+- **Film mode:** only the map, the lower third, the video frame and the attribution remain.
 
 ### Living sea (far view)
 - **Swell:** the coast water-lines, redrawn by a custom GPU layer (`mer.js`) from a distance-to-coast image. Lines about 9px apart roll in toward the shore at about 2.4px/s, fade in about 32px out and fade away at the coast. They waver slightly, like hand-cut lines, and fade out between zoom 6.5 and 8.5 like the old fixed lines.

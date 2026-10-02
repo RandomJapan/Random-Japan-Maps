@@ -956,6 +956,8 @@ const infosLieu = (l) => [enLangue(l.cat.nom), l.prefecture && enLangue(PREFECTU
 
 const visite = brancherVisite(map, {
   t, enLangue, infos: infosLieu, estTelephone,
+  video: (l) => idVideo(l.tiktok),
+  affiche: (l) => (l.photo ? Promise.resolve(photoAllegee(l.photo)) : miniatureTiktok(l.tiktok)),
   avant: () => {
     arreterRotation();
     fermerFiche();
@@ -1007,7 +1009,12 @@ async function lancerVisite(liste) {
     construireMenu();
     appliquerFiltres();
   }
-  visite.lancer(liste, { duree: Number($('visite-duree').value) || 7000, film: $('visite-film').checked });
+  visite.lancer(liste, {
+    duree: Number($('visite-duree').value) || 7000,
+    film: $('visite-film').checked,
+    video: $('visite-video').checked,
+    son: $('visite-son').checked,
+  });
 }
 
 function rechercher() {
@@ -1306,6 +1313,8 @@ function appliquerLangue() {
   $('duree-normale').textContent = t('dureeNormale');
   $('duree-longue').textContent = t('dureeLongue');
   $('txt-visite-film').textContent = t('visiteFilm');
+  $('txt-visite-video').textContent = t('visiteVideo');
+  $('txt-visite-son').textContent = t('visiteSon');
   majFavoris();
   visite.majLangue();
   construireMenu();
@@ -1379,6 +1388,7 @@ function brancherBoutons() {
   $('visite-region').addEventListener('change', construireVisite);
   $('visite-type').addEventListener('change', construireVisite);
   $('visite-favoris').addEventListener('change', construireVisite);
+  $('visite-video').addEventListener('change', () => { $('visite-son').disabled = !$('visite-video').checked; });
   $('btn-visite-lancer').addEventListener('click', () => {
     lancerVisite(candidats($('visite-region').value, $('visite-type').value, baseVisite()));
   });
