@@ -21,7 +21,7 @@ RACINE = Path(__file__).resolve().parent.parent
 LIEUX = RACINE / "site" / "data" / "secours-lieux.csv"
 DOSSIER = RACINE / "site" / "photos" / "tiktok"
 LARGEUR_MAX = 540
-AGENT = {"User-Agent": "Mozilla/5.0 (compatible; RandomJapanPlace/1.0; +https://randomjapan.github.io/Random-Japan-Maps/)"}
+AGENT = {"User-Agent": "Mozilla/5.0 (compatible; RandomJapanPlace/1.0; +https://map.randomjapanplace.com/)"}
 
 
 def videos():

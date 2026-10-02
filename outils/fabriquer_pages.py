@@ -24,8 +24,8 @@ from fabriquer_prefectures import trouver
 
 RACINE = Path(__file__).resolve().parent.parent
 SITE = RACINE / "site"
-# L'adresse publique du site (avec la barre à la fin). À changer le jour où le site a son nom de domaine.
-ADRESSE = "https://randomjapan.github.io/Random-Japan-Maps/"
+# L'adresse publique du site (avec la barre à la fin), son nom de domaine depuis le 2026-10-02.
+ADRESSE = "https://map.randomjapanplace.com/"
 LANGUES = ("en", "fr", "ja")
 NB_VOISINS = 3
 

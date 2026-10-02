@@ -133,17 +133,27 @@ Le bouton **Visite** (la petite caméra) fait voler la caméra toute seule d'un 
 - **Sur ordinateur :** Espace = pause, flèches = lieu précédent ou suivant, Échap = arrêter.
 - **Pour une vidéo TikTok :** lance la visite sur ton téléphone et filme l'écran avec l'enregistreur du téléphone. L'image est déjà au bon format vertical. L'écran ne s'éteint pas pendant la visite.
 
+## L'adresse de la carte
+
+La carte est à l'adresse **https://map.randomjapanplace.com/**. C'est ce lien qu'il faut mettre dans ta bio TikTok. L'ancienne adresse (randomjapan.github.io/Random-Japan-Maps) renvoie toute seule vers la nouvelle.
+
+- Le nom de domaine **randomjapanplace.com** a été acheté chez **OVH** le 2 octobre 2026. Il se renouvelle chaque année début octobre (environ 12 à 15 €). Quand OVH t'envoie le mail, **paie-le**, sinon la carte n'a plus d'adresse.
+- Dans OVH, la **Zone DNS** contient deux lignes à ne pas effacer :
+  - `map`, de type CNAME vers `randomjapan.github.io.` : elle fait marcher la carte ;
+  - un TXT `google-site-verification=…` : il prouve à Google que le domaine est à toi.
+- randomjapanplace.com, sans « map. », reste libre pour la future boutique.
+
 ## Les pages des lieux (pour Google)
 
 Chaque lieu a aussi sa propre page, en anglais, en français et en japonais, pour que Google puisse le trouver. Par exemple :
-- https://randomjapan.github.io/Random-Japan-Maps/fr/udo-inari-shrine/
-- la liste de tous les lieux, région par région : https://randomjapan.github.io/Random-Japan-Maps/fr/ (remplace `fr` par `en` ou `ja` pour les autres langues).
+- https://map.randomjapanplace.com/fr/udo-inari-shrine/
+- la liste de tous les lieux, région par région : https://map.randomjapanplace.com/fr/ (remplace `fr` par `en` ou `ja` pour les autres langues).
 
 Chaque page montre la couverture de ta vidéo (on clique pour la lire), la description, une petite carte du Japon avec le lieu, les 3 lieux les plus proches et un gros bouton vers la carte 3D. Sur la carte 3D, la fiche d'un lieu a un lien « La page de ce lieu », et le menu Catégories finit par « Tous les lieux, en liste ».
 
 **Tu n'as rien à faire :** les pages sont refaites à chaque mise en ligne, à partir du tableau. Un nouveau lieu a sa page le lendemain (la nuit, le robot recopie le tableau et télécharge la couverture de la vidéo).
 
-**Pour que Google les trouve plus vite :** il faut déclarer le site dans Google Search Console (gratuit) et y donner le plan du site : `https://randomjapan.github.io/Random-Japan-Maps/sitemap.xml`.
+**Pour que Google les trouve plus vite :** il faut déclarer le site dans Google Search Console (gratuit) et y donner le plan du site : `https://map.randomjapanplace.com/sitemap.xml`.
 
 ## Le compteur de visites
 
