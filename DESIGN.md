@@ -258,6 +258,12 @@ Depth comes from the relief: the exaggerated terrain, the hillshade, and the isl
 - **Video frame:** the place's TikTok in a 9:16 parchment frame with the double rule (7px border, 5px on phone), about two thirds of the screen height. On desktop it stands on the right and the place and lower third centre in the space left of it. On phones it hangs at the top (54% of the height) and the place sits below it. It slides in and fades in 0.6s; the place's photo shows inside until the video plays.
 - **Film mode:** only the map, the lower third, the video frame and the attribution remain.
 
+### Place pages (for Google)
+- **Sheet:** each place's page is one parchment sheet with the double rule, floating on the sea colour with the grain, under the map's header plaque and language switch.
+- **Head:** the TikTok cover as a 3:4 framed picture with a red "Play the video" plate (a click swaps in the TikTok player, 9:16), beside the name in Zen Antique 36px, the Japanese name, the category crest and the red primary button "See it on the 3D map".
+- **Where is it?:** a flat engraved locator of all Japan (sea `#9ec5bc`, land `#ece0c2`, sepia prefecture lines), the prefecture in pale red, a red dot with a slow ring; sea names in IM Fell italic. **Nearby:** three small cards (cover, name, category · distance), side by side with the locator on desktop.
+- **List of places:** region headings with the ruled `h2`, prefectures in Zen Antique, places as small cover thumbnails with name and category.
+
 ### Living sea (far view)
 - **Swell:** the coast water-lines, redrawn by a custom GPU layer (`mer.js`) from a distance-to-coast image. Lines about 9px apart roll in toward the shore at about 2.4px/s, fade in about 32px out and fade away at the coast. They waver slightly, like hand-cut lines, and fade out between zoom 6.5 and 8.5 like the old fixed lines.
 - **Ships:** small low-poly 3D bezaisen, lit like the place models. They are 22px tall at zoom 5 (18px on the phone start view) and grow as you zoom in, more slowly than the map (×1.5 per zoom level, about 41px at zoom 6.5), so they stay in proportion with the pins and the legend vignettes. They fade out between zoom 6.6 and 7.2.

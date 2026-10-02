@@ -133,6 +133,18 @@ Le bouton **Visite** (la petite caméra) fait voler la caméra toute seule d'un 
 - **Sur ordinateur :** Espace = pause, flèches = lieu précédent ou suivant, Échap = arrêter.
 - **Pour une vidéo TikTok :** lance la visite sur ton téléphone et filme l'écran avec l'enregistreur du téléphone. L'image est déjà au bon format vertical. L'écran ne s'éteint pas pendant la visite.
 
+## Les pages des lieux (pour Google)
+
+Chaque lieu a aussi sa propre page, en anglais, en français et en japonais, pour que Google puisse le trouver. Par exemple :
+- https://randomjapan.github.io/Random-Japan-Maps/fr/udo-inari-shrine/
+- la liste de tous les lieux, région par région : https://randomjapan.github.io/Random-Japan-Maps/fr/ (remplace `fr` par `en` ou `ja` pour les autres langues).
+
+Chaque page montre la couverture de ta vidéo (on clique pour la lire), la description, une petite carte du Japon avec le lieu, les 3 lieux les plus proches et un gros bouton vers la carte 3D. Sur la carte 3D, la fiche d'un lieu a un lien « La page de ce lieu », et le menu Catégories finit par « Tous les lieux, en liste ».
+
+**Tu n'as rien à faire :** les pages sont refaites à chaque mise en ligne, à partir du tableau. Un nouveau lieu a sa page le lendemain (la nuit, le robot recopie le tableau et télécharge la couverture de la vidéo).
+
+**Pour que Google les trouve plus vite :** il faut déclarer le site dans Google Search Console (gratuit) et y donner le plan du site : `https://randomjapan.github.io/Random-Japan-Maps/sitemap.xml`.
+
 ## Le compteur de visites
 
 Sur ordinateur, le nombre de visites de la carte s'affiche en haut, à droite du titre. À l'ouverture, il défile jusqu'au total, puis ajoute la visite en cours. Les visites sur téléphone sont comptées aussi, mais le compteur ne s'affiche que sur ordinateur.

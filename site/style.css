@@ -181,6 +181,11 @@ svg { display: block; }
 .menu-actions button:hover { color: var(--encre); background: var(--papier-fonce); }
 
 .liste-categories, .resultats { list-style: none; margin: 0; padding: 0; }
+.lien-liste {
+  display: block; margin: 8px 0 2px; padding: 8px 8px 2px; border-top: 1px solid rgba(138, 107, 69, 0.4);
+  font: italic 15px var(--police-carte); color: var(--sarcelle); text-underline-offset: 3px; text-decoration-thickness: 1px;
+}
+.lien-liste:hover { color: var(--encre); }
 .deplier, .resultats button {
   display: flex; align-items: center; gap: 11px; width: 100%;
   padding: 7px 8px; border-radius: var(--rayon); cursor: pointer; text-align: left;
@@ -520,7 +525,7 @@ svg { display: block; }
 .fiche-boutons .principal:hover { background: var(--rouge-survol); border-color: var(--rouge-survol); }
 .fiche-boutons svg { width: 16px; height: 16px; }
 .fiche-description { color: var(--encre); line-height: 1.7; font-size: 15px; margin: 0; max-width: 65ch; padding-top: 16px; border-top: 1px solid rgba(138, 107, 69, 0.5); }
-.fiche-plus { margin: 12px 0 0; }
+.fiche-plus { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 12px 0 0; }
 .fiche-plus:empty { display: none; }
 .fiche-plus a { display: inline-flex; align-items: center; gap: 6px; color: var(--sarcelle); font-size: 14px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
 .fiche-plus a:hover { color: var(--encre); }

@@ -4,3 +4,11 @@ __pycache__/
 
 # Captures de la revue de design (Impeccable)
 .impeccable/review/
+
+# Pages des lieux : fabriquées à chaque mise en ligne par outils/fabriquer_pages.py (GitHub Action)
+site/en/
+site/fr/
+site/ja/
+site/sitemap.xml
+site/robots.txt
+site/pages/japon.svg

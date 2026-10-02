@@ -1,0 +1,156 @@
+/* ================================================================
+   Pages des lieux (fabriquées par outils/fabriquer_pages.py) : la même « vieille carte » que le site,
+   une feuille de papier posée sur la mer. Les couleurs et les polices sont celles de style.css.
+   ================================================================ */
+:root {
+  --papier: #efe4c8; --papier-clair: #f6eedb; --papier-fonce: #e4d5b1; --trait: #8a6b45;
+  --encre: #35251a; --encre-2: #5b432d; --encre-3: #6e533a; --rouge: #a8321f; --rouge-survol: #8f2817;
+  --sarcelle: #1d5652; --mer: #8fbab2;
+  --ombre: 0 4px 14px rgba(52, 36, 18, 0.28);
+  --filet: inset 0 0 0 3px var(--papier), inset 0 0 0 4px rgba(138, 107, 69, 0.5);
+  --police: "Noto Sans", "Noto Sans JP", system-ui, sans-serif;
+  --police-titre: "Zen Antique", "Noto Serif JP", Georgia, serif;
+  --police-carte: "IM Fell English", "Zen Antique", Georgia, serif;
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .33 0 0 0 0 .22 0 0 0 0 .11 .6 0 0 0 -.26'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; color: var(--encre); font: 15px/1.6 var(--police); -webkit-font-smoothing: antialiased;
+  background: var(--grain) 0 0 / 240px 240px, var(--mer);
+}
+a { color: inherit; }
+svg { display: block; }
+img { display: block; }
+:focus-visible { outline: 2px solid var(--rouge); outline-offset: 2px; }
+
+/* ---------- En-tête : le titre (vers la carte) et les langues ---------- */
+.haut { display: flex; align-items: center; justify-content: space-between; gap: 12px; max-width: 920px; margin: 0 auto; padding: 14px 16px; }
+.plaque { background: var(--grain) 0 0 / 240px 240px, var(--papier); border: 1px solid var(--trait); border-radius: 2px; box-shadow: var(--ombre); }
+.marque { display: flex; align-items: center; gap: 10px; padding: 6px 14px 6px 6px; text-decoration: none; min-width: 0; }
+.marque img { width: 40px; height: 40px; border-radius: 50%; border: 1.5px solid var(--encre); object-fit: cover; flex: none; }
+.marque b { display: block; font: 400 19px/1.15 var(--police-titre); }
+.marque span span { font-size: 12px; color: var(--encre-2); }
+.langues { display: flex; padding: 3px; gap: 2px; flex: none; }
+.langues a { padding: 7px 10px; border-radius: 2px; font-size: 13px; font-weight: 500; text-decoration: none; color: var(--encre-2); }
+.langues a:hover { background: var(--papier-fonce); }
+.langues a[aria-current] { background: var(--rouge); color: var(--papier-clair); }
+
+/* ---------- La feuille ---------- */
+.feuille {
+  max-width: 920px; margin: 4px auto 36px; padding: 0 0 34px;
+  background: var(--grain) 0 0 / 240px 240px, var(--papier);
+  border: 1px solid var(--trait); border-radius: 3px;
+  box-shadow: var(--filet), 0 16px 44px rgba(52, 36, 18, 0.4);
+}
+.fil { padding: 16px 28px 0; font: italic 15px var(--police-carte); color: var(--encre-3); letter-spacing: 0.03em; }
+.fil a { text-decoration: none; }
+.fil a:hover { text-decoration: underline; }
+
+/* La vidéo (sa couverture, puis le lecteur TikTok) à gauche, le texte à droite */
+.tete-lieu { display: grid; grid-template-columns: 300px 1fr; gap: 28px; padding: 16px 28px 0; align-items: start; }
+.video, .lecteur {
+  display: block; width: 100%; padding: 0; border: 1px solid var(--trait); background: #1c1712;
+  box-shadow: inset 0 0 0 1px rgba(246, 238, 219, 0.15), 0 6px 18px rgba(52, 36, 18, 0.3);
+}
+.video { position: relative; aspect-ratio: 3 / 4; overflow: hidden; cursor: pointer; }
+.video img { width: 100%; height: 100%; object-fit: cover; transition: transform .6s cubic-bezier(0.16, 1, 0.3, 1); }
+.video:hover img { transform: scale(1.03); }
+.lire {
+  position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px;
+  padding: 9px 16px; border-radius: 2px; background: var(--rouge); color: var(--papier-clair);
+  font: 600 14px var(--police); white-space: nowrap; box-shadow: 0 4px 12px rgba(28, 23, 18, 0.45);
+}
+.lire svg { width: 16px; height: 16px; }
+.lecteur { aspect-ratio: 9 / 16; height: auto; }
+
+.corps { padding: 0; min-width: 0; }
+h1 { font: 400 36px/1.15 var(--police-titre); margin: 4px 0 2px; text-wrap: balance; }
+.nom-ja { margin: 0 0 8px; font: 400 21px/1.3 var(--police-titre); color: var(--encre-2); letter-spacing: .08em; }
+.categorie { display: flex; align-items: center; gap: 9px; margin: 6px 0 0; color: var(--encre-2); font-size: 14px; }
+.pastille {
+  flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; color: var(--papier-clair);
+  background: color-mix(in oklab, var(--c, #8a6b45) 78%, #4a3521); box-shadow: 0 0 0 2px var(--papier-clair), 0 0 0 3px var(--encre);
+}
+.pastille svg { width: 15px; height: 15px; }
+.pastille .emoji { font-size: 14px; line-height: 1; }
+.boutons { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0 4px; }
+.bouton {
+  display: inline-flex; align-items: center; gap: 8px; padding: 9px 14px; border-radius: 2px; font-size: 14px; font-weight: 500;
+  text-decoration: none; border: 1px solid var(--trait); background: var(--papier-clair); transition: background .15s;
+}
+.bouton:hover { background: var(--papier-fonce); }
+.bouton svg { width: 17px; height: 17px; flex: none; }
+.bouton.principal { background: var(--rouge); border-color: var(--rouge); color: var(--papier-clair); font-weight: 600; }
+.bouton.principal:hover { background: var(--rouge-survol); }
+.description { font-size: 16px; line-height: 1.75; max-width: 62ch; margin: 18px 0 0; }
+.date { margin: 12px 0 0; font: italic 14px var(--police-carte); color: var(--encre-3); }
+
+/* ---------- Sections : où est-ce (la petite carte) et près d'ici, côte à côte ---------- */
+.section { padding: 0 28px; min-width: 0; }
+.bas { display: grid; grid-template-columns: 1fr 1fr; }
+.bas .section + .section { padding-left: 0; }
+h2 { font: 400 23px var(--police-titre); margin: 34px 0 14px; display: flex; align-items: center; gap: 12px; }
+h2::after { content: ""; flex: 1; border-top: 1px solid var(--trait); opacity: .6; }
+.carte { position: relative; display: block; border: 1px solid var(--trait); text-decoration: none; box-shadow: var(--ombre); }
+.carte svg { width: 100%; height: auto; }
+.carte .bouton { position: absolute; right: 12px; bottom: 12px; padding: 8px 12px; font-size: 13.5px; box-shadow: var(--ombre); }
+.carte-pref { fill: rgba(168, 50, 31, 0.26); stroke: var(--rouge); stroke-width: 0.9; stroke-linejoin: round; }
+.carte-lieu { fill: var(--rouge); stroke: var(--papier-clair); stroke-width: 2.5; }
+.carte-onde { fill: none; stroke: var(--rouge); stroke-width: 2; opacity: .55; transform-box: fill-box; transform-origin: center; animation: onde 2.4s ease-out infinite; }
+@keyframes onde { from { transform: scale(.45); opacity: .7; } to { transform: scale(1.6); opacity: 0; } }
+.carte-mer { font: italic 19px var(--police-carte); fill: #1c4744; opacity: .75; text-anchor: middle; }
+.carte-note { margin: 8px 0 0; font: italic 14px var(--police-carte); color: var(--encre-3); }
+
+.voisins { display: grid; gap: 10px; }
+.voisin {
+  display: grid; grid-template-columns: 90px 1fr; align-items: center; text-decoration: none;
+  background: var(--papier-clair); border: 1px solid var(--trait); transition: transform .2s, box-shadow .2s;
+}
+.voisin:hover { transform: translateY(-2px); box-shadow: var(--ombre); }
+.voisin img, .voisin .sans-image { width: 90px; height: 120px; object-fit: cover; background: var(--papier-fonce); }
+.voisin div { padding: 8px 14px; }
+.voisin b { display: block; font: 400 16px/1.25 var(--police-titre); }
+.voisin span { font-size: 12.5px; color: var(--encre-3); }
+
+/* ---------- La liste de tous les lieux ---------- */
+.feuille > .corps { padding: 22px 28px 0; }
+.feuille > .corps .section { padding: 0; }
+.regions { margin: 18px 0 0; font: italic 16px var(--police-carte); color: var(--encre-3); line-height: 1.9; }
+.regions a { color: var(--encre); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+h2[id], section[id] { scroll-margin-top: 12px; }
+h3 { font: 400 18px var(--police-titre); margin: 22px 0 10px; color: var(--encre-2); }
+h3 small { font: 500 12px var(--police); color: var(--encre-3); margin-left: 4px; }
+.liste { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 8px; }
+.liste a { display: flex; align-items: center; gap: 10px; padding: 6px; text-decoration: none; border: 1px solid transparent; border-radius: 2px; }
+.liste a:hover { background: var(--papier-clair); border-color: var(--trait); }
+.liste img, .liste .sans-image { flex: none; width: 48px; height: 64px; object-fit: cover; border: 1px solid var(--trait); background: var(--papier-fonce); }
+.liste b { display: block; font: 400 16px/1.25 var(--police-titre); }
+.liste small { font-size: 12.5px; color: var(--encre-3); }
+
+/* ---------- Pied de page ---------- */
+.pied { max-width: 720px; margin: 0 auto; padding: 0 16px 30px; text-align: center; font: italic 15px var(--police-carte); color: #1c4744; }
+.pied p { margin: 4px 0; }
+.pied b { font-style: normal; font-family: var(--police-titre); font-weight: 400; }
+
+/* ---------- Téléphone ---------- */
+@media (max-width: 720px) {
+  .haut { padding: 10px 12px; }
+  .marque span span { display: none; }
+  .marque img { width: 30px; height: 30px; }
+  .marque b { font-size: 15px; }
+  .langues a { padding: 7px 8px; font-size: 12px; }
+  .feuille { margin: 0 8px 28px; }
+  .fil { padding: 12px 16px 0; font-size: 14px; }
+  .tete-lieu { grid-template-columns: 1fr; gap: 18px; padding: 12px 16px 0; }
+  .colonne-video { max-width: 340px; width: 100%; margin: 0 auto; }
+  h1 { font-size: 28px; }
+  .section, .feuille > .corps { padding-left: 16px; padding-right: 16px; }
+  .carte .bouton { left: 50%; right: auto; transform: translateX(-50%); white-space: nowrap; }
+  .bas { grid-template-columns: 1fr; }
+  .bas .section + .section { padding-left: 16px; }
+  .voisin { grid-template-columns: 72px 1fr; }
+  .voisin img, .voisin .sans-image { width: 72px; height: 96px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

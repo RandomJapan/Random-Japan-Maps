@@ -1,6 +1,8 @@
 # Met le site en ligne sur GitHub Pages.
 # - à chaque modification du site (git push)
 # - chaque nuit : recopie d'abord le tableau Google Sheets dans la copie de secours
+#   (et télécharge la couverture TikTok des nouveaux lieux)
+# - à chaque fois : fabrique les pages des lieux (outils/fabriquer_pages.py)
 # - à la main : onglet « Actions » de GitHub > « Mise en ligne » > « Run workflow »
 name: Mise en ligne
 
@@ -29,17 +31,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Copie de secours du tableau Google Sheets
+      - name: Copie de secours du tableau Google Sheets et couvertures TikTok des nouveaux lieux
         if: github.event_name != 'push'
         run: |
           python3 outils/sauvegarder_tableau.py
-          if [ -n "$(git status --porcelain site/data)" ]; then
+          pip install --quiet pillow
+          python3 outils/telecharger_couvertures.py || echo "Couvertures : on réessaiera la nuit prochaine"
+          if [ -n "$(git status --porcelain site/data site/photos)" ]; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add site/data
+            git add site/data site/photos
             git commit -m "Copie de secours du tableau"
             git push
           fi
+
+      # Une page par lieu (anglais, français, japonais) pour Google, et le plan du site
+      - name: Pages des lieux
+        run: python3 outils/fabriquer_pages.py
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

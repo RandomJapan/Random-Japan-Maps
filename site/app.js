@@ -1167,8 +1167,10 @@ async function remplirFiche(l) {
   if (l.tiktok) boutons.push(`<a class="principal" href="${esc(l.tiktok)}" target="_blank" rel="noopener">${SVG.tiktok}${esc(t('voirTiktok'))}</a>`);
   boutons.push(`<a href="https://www.google.com/maps/dir/?api=1&destination=${l.lat},${l.lng}" target="_blank" rel="noopener">${SVG.route}${esc(t('itineraire'))}</a>`);
   $('fiche-boutons').innerHTML = boutons.join('');
-  $('fiche-plus').innerHTML = /^https?:\/\//.test(l.autreLien)
-    ? `<a href="${esc(l.autreLien)}" target="_blank" rel="noopener">${esc(t('autreLien'))} ${SVG.sortie}</a>` : '';
+  // « Plus d'infos » (le lien du tableau) et la page du lieu (outils/fabriquer_pages.py)
+  $('fiche-plus').innerHTML = (/^https?:\/\//.test(l.autreLien)
+    ? `<a href="${esc(l.autreLien)}" target="_blank" rel="noopener">${esc(t('autreLien'))} ${SVG.sortie}</a>` : '')
+    + `<a href="${langue}/${esc(l.id)}/">${esc(t('pageLieu'))}</a>`;
   const partage = navigator.share && estTelephone();
   const btnPartager = $('fiche-partager');
   btnPartager.innerHTML = partage ? SVG.partager : SVG.lien;
@@ -1281,6 +1283,8 @@ function appliquerLangue() {
   $('txt-categories').textContent = t('categories');
   $('recherche').placeholder = t('chercher');
   $('btn-tout').textContent = t('tout');
+  $('lien-liste').textContent = t('listeLieux');
+  $('lien-liste').href = `${langue}/`;
   $('btn-rien').textContent = t('rien');
   $('btn-rose').title = t('nord');
   $('btn-rose').setAttribute('aria-label', t('nord'));
