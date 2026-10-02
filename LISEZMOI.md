@@ -92,7 +92,7 @@ Quand on zoome sur une région, de petits dessins de légendes japonaises appara
 Pour les visiteurs :
 - un appui sur un dessin ouvre une bulle qui raconte la légende (en anglais, en français ou en japonais) ;
 - dès qu'on en trouve une, un bouton **Légendes** apparaît sous « Catégories », avec le compteur (par exemple 3/22). Il ouvre la liste : les légendes trouvées (un appui y emmène) et, pour les autres, seulement leur région, comme indice ;
-- quand on les a toutes trouvées, un « Bravo ! » s'affiche avec un sceau rouge ;
+- quand on les a toutes trouvées, un « Bravo ! » s'affiche avec un sceau rouge, et un bouton **Partager ma victoire**. Sur téléphone, il ouvre le partage (TikTok, Instagram, messages…) avec une image verticale : le sceau, « Bravo ! », les 22 dessins et l'adresse de la carte. Sur ordinateur, l'image est enregistrée. Le même bouton reste ensuite en haut de la liste des légendes ;
 - le téléphone (ou l'ordinateur) se souvient des légendes déjà trouvées.
 
 **Tu n'as rien à faire pour ça.** Les textes sont dans `site/legendes.js` et les dessins dans `site/legendes-dessins.js`. Pour ajouter une légende ou changer un texte, demande à Claude.
@@ -132,6 +132,14 @@ Le bouton **Visite** (la petite caméra) fait voler la caméra toute seule d'un 
 - **Mode film** (coché au départ) : tous les boutons disparaissent, il ne reste que la carte et le nom du lieu. Bouge la souris ou touche l'écran pour faire revenir la petite barre (pause, lieu précédent ou suivant, arrêter).
 - **Sur ordinateur :** Espace = pause, flèches = lieu précédent ou suivant, Échap = arrêter.
 - **Pour une vidéo TikTok :** lance la visite sur ton téléphone et filme l'écran avec l'enregistreur du téléphone. L'image est déjà au bon format vertical. L'écran ne s'éteint pas pendant la visite.
+- **L'adresse à l'écran :** en mode film, l'adresse de la carte (avec ton logo) reste écrite en haut de l'écran, sous les onglets de TikTok, pour que chaque extrait filmé fasse la pub de la carte. Pendant une visite avec vidéos sur téléphone, elle passe juste sous le cadre de la vidéo. Pour changer le texte, modifie `adresse` dans `site/config.js`.
+
+### Le plongeon (pour remplacer le hook Google Earth)
+
+Dans la fiche d'un lieu, le bouton **caméra** (à gauche du cœur) lance un plongeon : la carte montre tout le Japon pendant une seconde, puis plonge sur le lieu en 4 secondes, jusqu'à son modèle 3D, et son nom s'affiche. Ensuite la caméra tourne lentement autour du lieu.
+- **Pour filmer :** lance l'enregistreur d'écran du téléphone, ouvre le lieu, appuie sur la caméra. Au montage, garde le passage qui va de l'image de tout le Japon à l'arrivée sur le lieu, puis enchaîne sur tes images.
+- Les boutons disparaissent tout de suite. Touche l'écran pour faire revenir la barre : **Rejouer** (rouge, pour refaire une prise) et **Arrêter**. Sur ordinateur : Espace = rejouer, Échap = arrêter.
+- Sur téléphone, le nom du lieu est placé plus haut que pendant la visite, pour ne pas être caché par la légende de ta vidéo TikTok.
 
 ## L'adresse de la carte
 

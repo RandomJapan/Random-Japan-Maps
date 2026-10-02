@@ -86,6 +86,9 @@ button.legende-ligne:hover { background: var(--papier-fonce); }
 @keyframes sceau { from { transform: rotate(-8deg) scale(2.4); opacity: 0; } }
 .bravo-carte h2 { margin: 0 0 6px; font: 400 26px/1.2 var(--police-titre); }
 .bravo-carte p { margin: 0 0 18px; font-size: 15px; line-height: 1.5; text-wrap: pretty; }
+/* Partager l'image du bravo (bravo-image.js) : sur la carte du bravo, et en haut de la liste quand tout est trouvé */
+.bravo-carte .bravo-merci { margin-top: 8px; }
+.legendes-partager { margin: 0 0 12px; font-size: 15px; padding: 11px; }
 
 @media (max-width: 720px) {
   .legende svg { left: -29px; width: 58px; height: 55px; }

@@ -211,6 +211,10 @@ On 2026-10-01 the owner asked for easter eggs: references to Japanese legends sc
   - The first find reveals `#btn-legendes` with its count, and each find shows a toast.
   - The button opens `#panneau-legendes`. Found legends show their drawing; a tap flies there and opens the bubble. The others show "Not found yet" and their region, as a hint.
   - When the last one is found, a "Bravo" card with a red 伝説 seal appears.
+- **Share image (`site/bravo-image.js`, 2026-10-02).** The bravo card has a red "Share my victory" button, which also stays at the top of the legends list once all are found.
+  - `imageBravo()` draws a 1080×1920 JPEG on a canvas: the `--grain` paper, the double rule, the logo, the seal, the bravo, the 22 vignettes in rows of 4-5-4-5-4, the challenge and the address.
+  - The vignettes are drawn from `DESSINS` as SVG images. Each one gets every non-`.anime` rule of `legendes.css` copied into a `<style>` (`.lg ` stripped). An SVG image can't see the page's CSS, and many drawing rules aren't under `.lg`.
+  - The file is prepared in advance (`preparerImage`), because `navigator.share` must follow the tap closely. On touch devices it uses `navigator.share({ files })`; otherwise it downloads. A language change resets it.
 - **Tests.** `(await import('/legendes.js')).ouvrirLegende('kitsune')` opens a bubble as a tap would, and counts the legend as found.
 - **Texts.** The UI strings are in `TEXTES` (`legendes*`, `legendeTrouvee`, `legendeInconnue`, `legendeAria`, `bravo*`).
 
@@ -246,6 +250,11 @@ The owner asked for these three on 2026-10-02 (ideas 1, 3 and 7 of a list I prop
     - Map padding: `margeLieu` puts the place beside or below the frame, reading the frame's laid-out position (it stays in the layout, invisible, between places). `survoler` computes the overview with `cameraForBounds` corrected for the current padding and flies back to zero padding. `arreter` eases the padding back to zero.
     - Pause and resume: on the place, the video and the orbit continue where they stopped. If the map was dragged during the pause, the tour flies back to the place.
     - Testing: TikTok's video CDN answers 403 to automated browsers (Playwright, even headed Chrome), so headless runs only show the photo fallback. Route `https://www.tiktok.com/player/v1/**` to a fake page that posts the events, or check real playback in Claude in Chrome. In a fresh EU profile the player shows its own cookie banner inside the frame; the frame stays clickable so a visitor can answer it once.
+- **Dive (`plonger(lieu)` in `visite.js`).** The owner asked on 2026-10-02 for a way to replace the Google Earth hook at the start of their TikToks with the map itself. The card's camera icon button (`#fiche-plongeon`, left of the heart) starts it.
+  - Sequence: it jumps to `vueDepart()`, waits for `map.areTilesLoaded()` (3 s at most), then holds the still frame for `PAUSE_PLONGEON` (1.2 s, a clean cut point). Next comes a `flyTo` of `DUREE_PLONGEON` (4.2 s) to zoom 12. `minZoom` is set to the start zoom, so the camera never climbs first. On arrival it shows the lower third and orbits 360° over 140 s.
+  - It always uses film mode, with `body.plongeon`. The bar keeps only Rejouer (red) and Arrêter, and hides after 0.9 s so the take stays clean. Space/Enter replay, Esc stops. Map gestures don't pause it.
+  - On phones the lower third sits at `bottom: 22dvh`, out of the zone TikTok covers with its caption. `margePlongeon` keeps the place above it.
+- **Address watermark (`.filigrane`).** In film mode (tour and dive), the logo plus `CONFIG.adresse` (`map.randomjapanplace.com`) sit on a fresh-parchment label, top centre, below where TikTok draws its tabs. In a phone tour with videos (`body.visite-avec-video`) the label moves just under the video frame, and `margeLieu` adds its height.
 - **Layout.** The button row now holds Categories, Random, Tour, Favorites and Legends. `.filtres` has no fixed width any more; its menus are 340px. On phones, Tour and Favorites show only their icon.
 
 ### Place pages (`outils/fabriquer_pages.py`)

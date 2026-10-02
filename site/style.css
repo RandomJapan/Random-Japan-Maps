@@ -607,6 +607,7 @@ svg { display: block; }
 
 /* ---------- Favoris ---------- */
 .fiche-favori { right: 99px; }
+.fiche-plongeon { right: 141px; }
 .fiche-favori svg { width: 19px; height: 19px; overflow: visible; }
 .fiche-favori path { fill: transparent; stroke: var(--encre); }
 .fiche-favori[aria-pressed="true"] path { fill: var(--rouge); stroke: var(--rouge); }
@@ -719,8 +720,26 @@ body.mode-film .visite-video { right: 36px; }
 @media (min-width: 721px) {
   /* le nom du lieu se centre dans la place laissée à gauche de la vidéo */
   body.video-visible .visite-titre { left: calc((100vw - var(--video-place, 0px)) / 2); max-width: calc(100vw - var(--video-place, 0px) - 32px); }
+  /* l'adresse aussi, pendant toute une visite avec vidéos */
+  body.visite-avec-video .filigrane { left: calc((100vw - var(--video-place, 0px)) / 2); }
 }
 body.visite-calme, body.visite-calme * { cursor: none !important; }
+/* Plongeon : la barre ne garde que « Rejouer » et « Arrêter » */
+.visite-barre .visite-rejouer { display: none; }
+body.plongeon .visite-barre .visite-rejouer { display: grid; background: var(--rouge); color: var(--papier-clair); }
+body.plongeon .visite-barre .visite-rejouer:hover { background: var(--rouge-survol); }
+body.plongeon .visite-barre [data-action="precedent"], body.plongeon .visite-barre [data-action="pause"],
+body.plongeon .visite-barre [data-action="suivant"], body.plongeon .visite-progres { display: none; }
+/* L'adresse de la carte, écrite à l'écran en mode film : chaque extrait filmé la porte.
+   En haut au centre, sous les onglets de TikTok (le bas de l'écran est caché par la légende de la vidéo). */
+.filigrane {
+  position: fixed; left: 50%; top: calc(var(--haut) + 64px); z-index: 11; transform: translateX(-50%);
+  display: none; align-items: center; gap: 8px; padding: 3px 12px 3px 3px; pointer-events: none;
+  background: var(--papier-clair); border: 1px solid var(--trait); border-radius: var(--rayon); box-shadow: var(--ombre);
+  font: italic 15px/1 var(--police-carte); color: var(--encre); letter-spacing: .02em; white-space: nowrap;
+}
+.filigrane img { width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--encre); object-fit: cover; }
+body.mode-film .filigrane { display: flex; }
 
 /* ---------- Téléphone ---------- */
 @media (max-width: 720px) {
@@ -749,6 +768,10 @@ body.visite-calme, body.visite-calme * { cursor: none !important; }
   .visite-titre-textes b { font-size: 22px; }
   .visite-titre-textes small { font-size: 14.5px; }
   body.mode-film .visite-titre { bottom: calc(var(--bas) + 56px); }
+  /* plongeon : le nom du lieu plus haut, hors de la zone où TikTok écrit la légende de la vidéo */
+  body.plongeon .visite-titre { bottom: 22dvh; }
+  /* visite avec vidéo : l'adresse passe sous le cadre de la vidéo (qui occupe le haut de l'écran) */
+  body.visite-avec-video .filigrane { top: calc(var(--haut) + min(54dvh, 112vw) + 22px); }
   /* La vidéo en haut, le lieu dessous ; le titre et les boutons de la carte s'effacent derrière */
   .visite-video { left: 50%; top: var(--haut); padding: 5px; transform: translate(-50%, -14px); }
   .visite-video, body.mode-film .visite-video { right: auto; }

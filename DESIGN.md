@@ -256,7 +256,9 @@ Depth comes from the relief: the exaggerated terrain, the hillshade, and the isl
 - **Lower third:** a parchment plate with the double rule, bottom centre: the Japanese name in a small vertical cartouche, the name in Zen Antique 28px (22px on phone), category · prefecture in IM Fell italic. It fades and rises in 0.6s.
 - **Control bar:** a parchment plate with previous, a red pause/play, next, the progress in Zen Antique, and stop. At the bottom centre, or at the top in film mode, where it fades after 2.5s without input.
 - **Video frame:** the place's TikTok in a 9:16 parchment frame with the double rule (7px border, 5px on phone), about two thirds of the screen height. On desktop it stands on the right and the place and lower third centre in the space left of it. On phones it hangs at the top (54% of the height) and the place sits below it. It slides in and fades in 0.6s; the place's photo shows inside until the video plays.
-- **Film mode:** only the map, the lower third, the video frame and the attribution remain.
+- **Film mode:** only the map, the lower third, the video frame, the address label and the attribution remain.
+- **Address label:** the round logo (24px, ink ring) and the map's address in IM Fell English italic 15px, on fresh parchment with an ink rule (2px corners). It sits top centre, below where TikTok draws its tabs; in a phone tour with videos, it sits just under the video frame.
+- **Dive:** a still frame of all Japan, then a 4.2s dive straight down onto one place, then a slow orbit. On phones the lower third rises to 22% of the height, clear of TikTok's caption zone. Its bar holds only a red Replay and Stop.
 
 ### Place pages (for Google)
 - **Sheet:** each place's page is one parchment sheet with the double rule, floating on the sea colour with the grain, under the map's header plaque and language switch.
@@ -278,7 +280,8 @@ Depth comes from the relief: the exaggerated terrain, the hillshade, and the isl
 - **Vignettes:** 68px tall (58px on phones), the foot standing on the legend's place, with a soft ink drop shadow. They hide below zoom 6.5 and sit under the place pins. Only the ones on screen play their small idle loop (tails swaying, a fan waving, a catfish making the ground shake). Hover or an open bubble lifts a vignette by 10%.
 - **Bubble:** a parchment popup with the ink rule. The title is Zen Antique 19px, the second name is teal Zen Antique, the place is IM Fell English italic (Zen Antique in the Japanese UI), and the story is Noto Sans 13.5px.
 - **Counter:** a "Legends n/22" button with a red lantern joins the Categories / Random row after the first find. It opens a parchment list: found legends with their vignette (tap to fly there), unknown ones as a dashed "?" circle with their region as a hint. The count turns red when all are found.
-- **Bravo:** a centred parchment card with a red double-ruled 伝説 seal that stamps in, shown when the last legend is found.
+- **Bravo:** a centred parchment card with a red double-ruled 伝説 seal that stamps in, shown when the last legend is found. A red "Share my victory" button (primary) sits above a parchment "Thank you!" (secondary).
+- **Share image:** a 9:16 aged-paper sheet with the double rule: the logo and site name, the tilted 伝説 seal, the bravo in Zen Antique, one line of Noto Sans, the 22 vignettes in staggered rows with their ink drop shadow, the challenge in Zen Antique, and the address in red IM Fell italic.
 
 ### Regions and prefectures (zoomed in)
 - **Region names** show between zoom 5.5 and 7.4, placed in the heart of each region and clear of the legend vignettes. Kyūshū and Okinawa each get their own name.

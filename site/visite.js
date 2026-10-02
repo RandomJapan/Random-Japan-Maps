@@ -6,13 +6,18 @@
 //  - Option vidéo : sur chaque lieu, la vidéo TikTok du lieu passe dans un cadre (à droite sur ordinateur,
 //    en haut sur téléphone) pendant le temps choisi, puis on coupe et on vole au lieu suivant.
 //  - Mode film : tous les boutons de la carte se cachent (la barre revient quand on bouge la souris
-//    ou qu'on touche l'écran), pour filmer l'écran proprement.
+//    ou qu'on touche l'écran), pour filmer l'écran proprement. L'adresse de la carte reste écrite
+//    à l'écran (le « filigrane »), pour que chaque extrait filmé la porte.
+//  - Plongeon : depuis tout le Japon, la caméra plonge sur un seul lieu, comme le début des vidéos
+//    TikTok (il remplace le plongeon Google Earth). Lancé depuis la fiche d'un lieu.
 // ================================================================
 import { ordreDeVoyage } from './favoris.js';
 
 const ZOOM_LIEU = 12;
 const CACHER_BARRE = 2500; // ms sans bouger avant que la barre se cache, en mode film
 const ATTENTE_VIDEO = 6000; // ms : si la vidéo n'a pas démarré, on continue avec la photo du lieu
+const PAUSE_PLONGEON = 1200; // ms d'image fixe sur tout le Japon avant de plonger (pour couper au montage)
+const DUREE_PLONGEON = 4200; // ms : le plongeon lui-même
 const SANS_MARGE = { top: 0, bottom: 0, left: 0, right: 0 };
 // Lecteur TikTok sans boutons ni textes ; il démarre tout seul (muet, sinon le navigateur peut refuser)
 const LECTEUR = 'https://www.tiktok.com/player/v1/';
@@ -25,20 +30,23 @@ const ICONES = {
   precedent: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6 5h2.5v14H6zM19 5.8v12.4a.8.8 0 0 1-1.2.7L9.6 12.7a.8.8 0 0 1 0-1.4l8.2-6.2a.8.8 0 0 1 1.2.7Z"/></svg>',
   suivant: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M15.5 5H18v14h-2.5zM5 5.8v12.4a.8.8 0 0 0 1.2.7l8.2-6.2a.8.8 0 0 0 0-1.4L6.2 5.1A.8.8 0 0 0 5 5.8Z"/></svg>',
   arreter: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M6 6l12 12M18 6 6 18"/></svg>',
+  rejouer: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M4.6 13A7.5 7.5 0 1 0 6.8 6.7M4.4 4.2v4.3h4.3"/></svg>',
 };
 
 /**
  * outils : { t, enLangue, infos(lieu) → « Catégorie · Préfecture », video(lieu) → numéro de la vidéo TikTok,
  *            debut(lieu) → seconde où commence l'extrait (après le plongeon du début de la vidéo),
- *            affiche(lieu) → Promise de l'adresse de sa photo, estTelephone, avant(), apres() }
+ *            affiche(lieu) → Promise de l'adresse de sa photo, estTelephone, vueDepart() → la vue de tout le Japon,
+ *            adresse → l'adresse de la carte, écrite à l'écran en mode film, avant(), apres() }
  *   avant() : appelé au début (fermer les menus et la fiche, arrêter la rotation…)
  *   apres() : appelé à la fin
- * Renvoie { lancer(liste, { duree, film, video, son }), arreter(), enCours(), majLangue() }.
+ * Renvoie { lancer(liste, { duree, film, video, son }), plonger(lieu), arreter(), enCours(), majLangue() }.
  */
 export function brancherVisite(map, outils) {
-  const { t, enLangue, infos, video, debut, affiche, estTelephone, avant, apres } = outils;
+  const { t, enLangue, infos, video, debut, affiche, estTelephone, vueDepart, adresse, avant, apres } = outils;
   const calme = matchMedia('(prefers-reduced-motion: reduce)').matches;
   // etat : { liste, i, duree, film, avecVideo, son, pause, jeton, minuterie, attente, finSejour, reste,
+  //          plongeon (un seul lieu, en plongeant depuis tout le Japon),
   //          surPlace (arrivé sur le lieu), deplace (on a bougé la carte pendant la pause),
   //          lecteur (la vidéo affichée), reserve (la vidéo du lieu suivant, qui se charge en cachette) }
   let etat = null;
@@ -56,24 +64,32 @@ export function brancherVisite(map, outils) {
     <button type="button" data-action="pause" class="visite-pause">${ICONES.pause}</button>
     <button type="button" data-action="suivant">${ICONES.suivant}</button>
     <span class="visite-progres"></span>
+    <button type="button" data-action="rejouer" class="visite-rejouer">${ICONES.rejouer}</button>
     <button type="button" data-action="arreter" class="visite-arreter">${ICONES.arreter}</button>`;
   // Le cadre de la vidéo : la photo du lieu en attendant, puis le lecteur TikTok par-dessus
   const cadreVideo = document.createElement('div');
   cadreVideo.className = 'visite-video';
   cadreVideo.innerHTML = '<div class="visite-video-ecran"></div>';
   const ecran = cadreVideo.firstChild;
-  document.body.append(cadreVideo, titre, barre);
+  // L'adresse de la carte, en mode film (en haut, sous les onglets de TikTok ; sous la vidéo sur téléphone)
+  const filigrane = document.createElement('div');
+  filigrane.className = 'filigrane';
+  filigrane.setAttribute('aria-hidden', 'true');
+  filigrane.innerHTML = `<img src="img/logo.jpg" alt=""><span>${echapper(adresse)}</span>`;
+  document.body.append(cadreVideo, titre, barre, filigrane);
   barre.addEventListener('click', (e) => {
     const action = e.target.closest('button')?.dataset.action;
     if (action === 'precedent') aller(etat.i - 1);
     else if (action === 'suivant') aller(etat.i + 1);
     else if (action === 'pause') basculerPause();
+    else if (action === 'rejouer') plonger(etat.liste[0]);
     else if (action === 'arreter') arreter();
     montrerBarre();
   });
 
   function majLangue() {
-    for (const [action, cle] of [['precedent', 'visitePrecedent'], ['suivant', 'visiteSuivant'], ['arreter', 'visiteArreter']]) {
+    const arret = etat?.plongeon ? 'plongeonArreter' : 'visiteArreter';
+    for (const [action, cle] of [['precedent', 'visitePrecedent'], ['suivant', 'visiteSuivant'], ['rejouer', 'plongeonRejouer'], ['arreter', arret]]) {
       const b = barre.querySelector(`[data-action="${action}"]`);
       b.title = t(cle);
       b.setAttribute('aria-label', t(cle));
@@ -97,10 +113,10 @@ export function brancherVisite(map, outils) {
   }
 
   // Mode film : la barre et le curseur disparaissent quand on ne bouge plus
-  function montrerBarre() {
+  function montrerBarre(ms = CACHER_BARRE) {
     document.body.classList.remove('visite-calme');
     clearTimeout(minuterieBarre);
-    if (etat?.film) minuterieBarre = setTimeout(() => document.body.classList.add('visite-calme'), CACHER_BARRE);
+    if (etat?.film) minuterieBarre = setTimeout(() => document.body.classList.add('visite-calme'), ms);
   }
 
   function montrerTitre(l) {
@@ -125,6 +141,7 @@ export function brancherVisite(map, outils) {
     avant();
     document.body.classList.add('en-visite');
     document.body.classList.toggle('mode-film', film);
+    document.body.classList.toggle('visite-avec-video', avecVideo); // sur téléphone, l'adresse passe sous la vidéo
     navigator.wakeLock?.request('screen').then((v) => { verrou = v; }).catch(() => {});
     majLangue();
     majProgres();
@@ -198,7 +215,10 @@ export function brancherVisite(map, outils) {
     if (!avecVideo) return { ...SANS_MARGE, bottom: bas };
     // Le cadre est toujours posé (invisible) : on lit sa place sans les petits décalages de son animation
     // (sur téléphone, assez bas pour que le repère flottant au-dessus du modèle 3D ne touche pas le cadre)
-    if (estTelephone()) return { ...SANS_MARGE, top: cadreVideo.offsetTop + cadreVideo.offsetHeight + 40, bottom: bas };
+    if (estTelephone()) {
+      const sous = cadreVideo.offsetTop + cadreVideo.offsetHeight + 40;
+      return { ...SANS_MARGE, top: sous + (etat.film ? filigrane.offsetHeight + 10 : 0), bottom: bas };
+    }
     const droite = innerWidth - cadreVideo.offsetLeft;
     document.body.style.setProperty('--video-place', `${droite}px`);
     return { ...SANS_MARGE, bottom: bas, right: droite };
@@ -229,6 +249,63 @@ export function brancherVisite(map, outils) {
     etat.finSejour = performance.now() + ms;
     etat.minuterie = setTimeout(() => { if (jeton === etat?.jeton && !etat.pause) aller(etat.i + 1); }, ms);
     prechargerVideo(etat.liste[etat.i + 1]);
+  }
+
+  // ---- Le plongeon
+  /**
+   * Plongeon : une image fixe de tout le Japon, puis la caméra plonge sur le lieu en ~4 s, et tourne
+   * lentement autour jusqu'à ce qu'on arrête. Toujours en mode film. « Rejouer » (barre, Espace)
+   * recommence, pour refaire une prise.
+   */
+  function plonger(l) {
+    if (!l) return;
+    arreter(false);
+    etat = { liste: [l], i: 0, plongeon: true, film: true, duree: 7000, avecVideo: false, pause: false, jeton: 0, minuterie: 0, attente: 0 };
+    avant();
+    document.body.classList.add('en-visite', 'mode-film', 'plongeon');
+    navigator.wakeLock?.request('screen').then((v) => { verrou = v; }).catch(() => {});
+    majLangue();
+    montrerBarre(900); // partie avant que la caméra plonge : la prise reste propre (un appui la fait revenir)
+    const jeton = ++etat.jeton;
+    map.stop();
+    map.jumpTo({ ...vueDepart(), padding: SANS_MARGE });
+    quandDessinee(jeton, () => {
+      etat.minuterie = setTimeout(() => { if (jeton === etat?.jeton) descendre(l, jeton); }, calme ? 0 : PAUSE_PLONGEON);
+    });
+  }
+
+  /** Attend que le relief de la vue soit chargé (3 s au plus), pour que l'image de départ soit nette. */
+  function quandDessinee(jeton, fin) {
+    const debutAttente = performance.now();
+    const verifier = () => {
+      if (jeton !== etat?.jeton) return;
+      if (map.areTilesLoaded() || performance.now() - debutAttente > 3000) fin();
+      else setTimeout(verifier, 150);
+    };
+    setTimeout(verifier, 200);
+  }
+
+  function descendre(l, jeton) {
+    map.once('moveend', () => {
+      if (jeton !== etat?.jeton) return;
+      etat.surPlace = true;
+      montrerTitre(l);
+      // puis un lent tour du lieu (2,6° par seconde, comme la visite), jusqu'à ce qu'on arrête
+      if (!calme) map.easeTo({ bearing: map.getBearing() + 360, duration: 140000, easing: (x) => x, essential: true });
+    });
+    map.flyTo({
+      center: [l.lng, l.lat], zoom: ZOOM_LIEU, pitch: estTelephone() ? 56 : 60,
+      bearing: map.getBearing() + (calme ? 0 : 30),
+      padding: margePlongeon(),
+      minZoom: map.getZoom(), // on plonge tout droit, sans reprendre de hauteur au début
+      duration: calme ? 0 : DUREE_PLONGEON, essential: true,
+    });
+  }
+
+  /** Sur téléphone, le nom du lieu est plus haut (hors de la zone des textes de TikTok) : le lieu se pose au-dessus. */
+  function margePlongeon() {
+    if (!estTelephone()) return { ...SANS_MARGE, bottom: 90 };
+    return { ...SANS_MARGE, bottom: Math.round(innerHeight * 0.22) + 40 };
   }
 
   // ---- La vidéo TikTok du lieu
@@ -436,7 +513,7 @@ export function brancherVisite(map, outils) {
     etat = null;
     map.stop();
     cacherTitre();
-    document.body.classList.remove('en-visite', 'mode-film', 'visite-calme');
+    document.body.classList.remove('en-visite', 'mode-film', 'visite-calme', 'plongeon', 'visite-avec-video');
     verrou?.release().catch(() => {});
     verrou = null;
     if (rendre) {
@@ -450,7 +527,10 @@ export function brancherVisite(map, outils) {
   document.addEventListener('keydown', (e) => {
     if (!etat) return;
     if (e.key === 'Escape') arreter();
-    else if (e.key === ' ' || e.key === 'Spacebar') basculerPause();
+    else if (etat.plongeon) {
+      if (e.key === ' ' || e.key === 'Spacebar' || e.key === 'Enter') plonger(etat.liste[0]);
+      else return;
+    } else if (e.key === ' ' || e.key === 'Spacebar') basculerPause();
     else if (e.key === 'ArrowRight') aller(etat.i + 1);
     else if (e.key === 'ArrowLeft') aller(Math.max(0, etat.i - 1));
     else return;
@@ -463,7 +543,7 @@ export function brancherVisite(map, outils) {
   // avec le bouton). Un simple appui, lui, fait juste revenir la barre.
   for (const type of ['dragstart', 'zoomstart', 'rotatestart', 'pitchstart']) {
     map.on(type, (e) => {
-      if (!etat || !e.originalEvent) return;
+      if (!etat || !e.originalEvent || etat.plongeon) return; // plongeon : on regarde librement, « Rejouer » recommence
       etat.deplace = true;
       if (!etat.pause) basculerPause();
     });
@@ -473,7 +553,7 @@ export function brancherVisite(map, outils) {
     if (etat && !document.hidden && !verrou) navigator.wakeLock?.request('screen').then((v) => { verrou = v; }).catch(() => {});
   });
 
-  return { lancer, arreter, enCours: () => !!etat, majLangue };
+  return { lancer, plonger, arreter, enCours: () => !!etat, majLangue };
 }
 
 const echapper = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);

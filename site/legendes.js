@@ -269,7 +269,7 @@ const creer = (balise, classe, texte) => {
  * Renvoie { majLangue, remplirPanneau } : app.js les appelle au changement de langue et à l'ouverture de la liste.
  */
 export function brancherLegendes(map, maplibregl, outils) {
-  const { t, enLangue, langue, afficherMessage, fermerPanneau, fermerFiche, reperes } = outils;
+  const { t, enLangue, langue, afficherMessage, fermerPanneau, fermerFiche, reperes, adresse, nomSite } = outils;
   const carte = map.getContainer();
   const conteneur = map.getCanvasContainer();
   const papier = document.getElementById('papier');
@@ -426,8 +426,55 @@ export function brancherLegendes(map, maplibregl, outils) {
     panneau.replaceChildren(
       creer('p', 'hasard-titre', t('legendesTitre')),
       creer('p', 'legendes-info', n === total ? t('legendesToutes', total) : t('legendesInfo', n, total)),
+      ...(n === total ? [boutonPartage('btn-lancer legendes-partager')] : []),
       liste,
     );
+    if (n === total) preparerImage().catch(() => {});
+  }
+
+  // ---- L'image « Bravo » à partager (bravo-image.js), fabriquée d'avance : sur téléphone, le partage
+  //      doit partir juste après l'appui, sinon le navigateur le refuse.
+  let image = null; // Promise du fichier
+  function preparerImage() {
+    image ||= import('./bravo-image.js')
+      .then(({ imageBravo }) => imageBravo({
+        legendes: LEGENDES, dessins: DESSINS,
+        textes: { titre: t('bravoTitre'), texte: t('bravoImageTexte', total), defi: t('bravoImageDefi'), adresse, nomSite },
+      }))
+      .then((blob) => new File([blob], `random-japan-place-${total}-legendes.jpg`, { type: 'image/jpeg' }));
+    image.catch(() => { image = null; });
+    return image;
+  }
+
+  function boutonPartage(classe) {
+    const b = creer('button', classe);
+    b.type = 'button';
+    b.innerHTML = `${ICONE_PARTAGE}<span>${echapper(t('bravoPartager'))}</span>`;
+    b.addEventListener('click', () => partagerImage(b));
+    return b;
+  }
+
+  async function partagerImage(bouton) {
+    bouton.disabled = true;
+    try {
+      const fichier = await preparerImage();
+      // Téléphone : la feuille de partage (TikTok, Instagram, messages…) ; ordinateur : l'image est enregistrée
+      if (matchMedia('(pointer: coarse)').matches && navigator.canShare?.({ files: [fichier] })) {
+        await navigator.share({ files: [fichier], text: t('bravoPartageMessage', total, adresse) }).catch(() => {});
+      } else {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(fichier);
+        a.download = fichier.name;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+        afficherMessage(t('bravoImageEnregistree'));
+      }
+    } catch (e) {
+      console.warn('Image du bravo', e);
+      afficherMessage(t('bravoImageErreur'));
+    } finally {
+      bouton.disabled = false;
+    }
   }
 
   /** Depuis la liste : vole jusqu'à la légende et ouvre sa bulle. */
@@ -449,9 +496,10 @@ export function brancherLegendes(map, maplibregl, outils) {
     sceau.setAttribute('aria-hidden', 'true');
     const titre = creer('h2', '', t('bravoTitre'));
     titre.id = 'bravo-titre';
-    const ok = creer('button', 'btn-lancer', t('bravoBouton'));
+    const ok = creer('button', 'btn-secondaire bravo-merci', t('bravoBouton'));
     ok.type = 'button';
-    carteBravo.append(sceau, titre, creer('p', '', t('bravoTexte', total)), ok);
+    carteBravo.append(sceau, titre, creer('p', '', t('bravoTexte', total)), boutonPartage('btn-lancer'), ok);
+    preparerImage().catch(() => {});
     fond.append(carteBravo);
     const fermer = () => fond.remove();
     ok.addEventListener('click', fermer);
@@ -462,6 +510,7 @@ export function brancherLegendes(map, maplibregl, outils) {
   }
 
   function majLangue() {
+    image = null; // l'image du bravo est dans la langue choisie
     document.getElementById('txt-legendes').textContent = t('legendes');
     for (const l of LEGENDES) l.el.setAttribute('aria-label', t('legendeAria', enLangue(l.nom)));
     majCompteur();
@@ -472,6 +521,9 @@ export function brancherLegendes(map, maplibregl, outils) {
 
   return { majLangue, remplirPanneau };
 }
+
+const ICONE_PARTAGE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 13v6a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-6"/></svg>';
+const echapper = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 /** Pour les essais : ouvre tout de suite la bulle d'une légende (ex. « kitsune »), comme un appui. */
 export function ouvrirLegende(id) {

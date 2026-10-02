@@ -784,7 +784,7 @@ function chargerLegendes() {
   import('./legendes.js')
     .then(({ brancherLegendes }) => {
       legendes = brancherLegendes(map, maplibregl, {
-        t, enLangue, langue: () => langue, afficherMessage, fermerFiche, reperes,
+        t, enLangue, langue: () => langue, afficherMessage, fermerFiche, reperes, adresse: CONFIG.adresse, nomSite: CONFIG.titre,
         fermerPanneau: () => ouvrirLegendes(false),
       });
     })
@@ -985,7 +985,7 @@ function ouvrirFavoris(ouvrir) {
 const infosLieu = (l) => [enLangue(l.cat.nom), l.prefecture && enLangue(PREFECTURES[l.prefecture])].filter(Boolean).join(' · ');
 
 const visite = brancherVisite(map, {
-  t, enLangue, infos: infosLieu, estTelephone,
+  t, enLangue, infos: infosLieu, estTelephone, vueDepart, adresse: CONFIG.adresse,
   video: (l) => idVideo(l.tiktok),
   debut: (l) => l.debutVideo ?? CONFIG.debutVideo ?? 4,
   affiche: (l) => (l.photo ? Promise.resolve(photoAllegee(l.photo)) : miniatureTiktok(l.tiktok)),
@@ -1200,6 +1200,9 @@ async function remplirFiche(l) {
   btnPartager.title = t(partage ? 'partager' : 'copierLien');
   btnPartager.setAttribute('aria-label', btnPartager.title);
   btnPartager.onclick = () => partager(l, partage);
+  const btnPlongeon = $('fiche-plongeon');
+  btnPlongeon.title = t('plongeon');
+  btnPlongeon.setAttribute('aria-label', btnPlongeon.title);
   // Fiche ouverte par le dé : bouton « Un autre » en haut de la photo, pour relancer d'un doigt
   $('fiche-autre').hidden = !tirageActif;
   $('txt-autre').textContent = t('unAutre');
@@ -1403,6 +1406,7 @@ function brancherBoutons() {
     else if (ligne) allerAuLieu(trouver(ligne.dataset.lieu));
     else if (e.target.closest('[data-visite]')) lancerVisite(lieux.filter(estFavori));
   });
+  $('fiche-plongeon').addEventListener('click', () => visite.plonger(lieuActif));
   $('fiche-favori').addEventListener('click', () => {
     if (!lieuActif) return;
     const premier = !lieux.some(estFavori);

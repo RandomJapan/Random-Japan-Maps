@@ -20,6 +20,8 @@ export const CONFIG = {
   titre: 'Random Japan Place',
   tiktokProfil: 'https://www.tiktok.com/@random_japan_place',
   logo: 'img/logo.jpg', // ton logo (fabriqué par outils/preparer_logo.py) ; mettre '' pour ne pas en afficher
+  // L'adresse de la carte, écrite à l'écran quand on filme (mode film de la visite et plongeon)
+  adresse: 'map.randomjapanplace.com',
 
   // --- Compteur de visites (GoatCounter) ------------------------------
   // Le code de ton compte GoatCounter (le début de l'adresse : « monsite » pour monsite.goatcounter.com).
@@ -123,6 +125,12 @@ export const TEXTES = {
     bravoTitre: 'Well done!',
     bravoTexte: (total) => `You found all ${total} hidden legends of Japan: yokai, heroes, gods and sea monsters.`,
     bravoBouton: 'Thank you!',
+    bravoPartager: 'Share my victory',
+    bravoImageTexte: (total) => `I found all ${total} hidden legends of Japan`,
+    bravoImageDefi: 'Can you find them all?',
+    bravoPartageMessage: (total, adresse) => `I found all ${total} hidden legends on the 3D map of Japan 🗾 ${adresse}`,
+    bravoImageEnregistree: 'Image saved',
+    bravoImageErreur: 'The image could not be made',
     visites: (n) => (n === 1 ? 'visit' : 'visits'),
     visitesInfo: 'Visits to the map (the total is updated every few hours)',
     // Nouveautés, favoris, visite guidée
@@ -159,6 +167,9 @@ export const TEXTES = {
     visitePrecedent: 'Previous place',
     visiteArreter: 'Stop the tour',
     visiteFin: 'End of the tour',
+    plongeon: 'Dive here from the sky (to film it)',
+    plongeonRejouer: 'Dive again',
+    plongeonArreter: 'Stop',
     visiteAide: 'Space: pause · ← →: previous / next · Esc: stop',
   },
   fr: {
@@ -209,6 +220,12 @@ export const TEXTES = {
     bravoTitre: 'Bravo !',
     bravoTexte: (total) => `Tu as trouvé les ${total} légendes cachées du Japon : yokai, héros, dieux et monstres marins.`,
     bravoBouton: 'Merci !',
+    bravoPartager: 'Partager ma victoire',
+    bravoImageTexte: (total) => `J'ai trouvé les ${total} légendes cachées du Japon`,
+    bravoImageDefi: 'Sauras-tu toutes les trouver ?',
+    bravoPartageMessage: (total, adresse) => `J'ai trouvé les ${total} légendes cachées de la carte 3D du Japon 🗾 ${adresse}`,
+    bravoImageEnregistree: 'Image enregistrée',
+    bravoImageErreur: "L'image n'a pas pu être créée",
     visites: (n) => (n < 2 ? 'visite' : 'visites'),
     visitesInfo: 'Visites de la carte (le total se met à jour toutes les quelques heures)',
     // Nouveautés, favoris, visite guidée
@@ -245,6 +262,9 @@ export const TEXTES = {
     visitePrecedent: 'Lieu précédent',
     visiteArreter: 'Arrêter la visite',
     visiteFin: 'Fin de la visite',
+    plongeon: 'Plonger ici depuis le ciel (pour filmer)',
+    plongeonRejouer: 'Rejouer le plongeon',
+    plongeonArreter: 'Arrêter',
     visiteAide: 'Espace : pause · ← → : lieu précédent / suivant · Échap : arrêter',
   },
   ja: {
@@ -295,6 +315,12 @@ export const TEXTES = {
     bravoTitre: 'おめでとう！',
     bravoTexte: (total) => `日本に隠された${total}の伝説をすべて見つけました。妖怪、英雄、神々、海の怪物たち…`,
     bravoBouton: 'ありがとう！',
+    bravoPartager: '結果をシェアする',
+    bravoImageTexte: (total) => `日本に隠された${total}の伝説をすべて見つけた！`,
+    bravoImageDefi: 'あなたは全部見つけられる？',
+    bravoPartageMessage: (total, adresse) => `日本の3Dマップに隠された${total}の伝説をすべて見つけた！🗾 ${adresse}`,
+    bravoImageEnregistree: '画像を保存しました',
+    bravoImageErreur: '画像を作成できませんでした',
     visites: () => '回の訪問',
     visitesInfo: '地図の訪問数（数時間ごとに更新）',
     // Nouveautés, favoris, visite guidée
@@ -331,6 +357,9 @@ export const TEXTES = {
     visitePrecedent: '前のスポット',
     visiteArreter: 'ツアーを終了',
     visiteFin: 'ツアー終了',
+    plongeon: '空からここへダイブ（撮影用）',
+    plongeonRejouer: 'もう一度ダイブ',
+    plongeonArreter: '終了',
     visiteAide: 'スペース：一時停止 · ← →：前／次 · Esc：終了',
   },
 };
