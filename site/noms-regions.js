@@ -43,7 +43,7 @@ const NOMS_PREFECTURES = {
  * donc sous les légendes et les épingles des lieux.
  * Renvoie majLangue(langue), à appeler quand la langue change.
  */
-export function brancherNomsRegions(map, maplibregl, { enLangue }) {
+export function brancherNomsRegions(map, maplibregl, { enLangue, reperes }) {
   const carte = map.getContainer();
   const conteneur = map.getCanvasContainer();
   const papier = document.getElementById('papier');
@@ -58,21 +58,28 @@ export function brancherNomsRegions(map, maplibregl, { enLangue }) {
     const texte = document.createElement('span');
     texte.className = classe;
     el.append(texte);
-    new maplibregl.Marker({ element: el, pitchAlignment: 'map', rotationAlignment: 'viewport', opacityWhenCovered: '1' })
-      .setLngLat(ou)
-      .addTo(map);
-    if (papier?.parentNode === conteneur) conteneur.insertBefore(el, papier);
-    noms.push({ texte, nom });
+    const repere = new maplibregl.Marker({ element: el, pitchAlignment: 'map', rotationAlignment: 'viewport', opacityWhenCovered: '1' })
+      .setLngLat(ou);
+    reperes.suivre(repere, { voulu: false, placer: (moi) => { if (papier?.parentNode === conteneur) conteneur.insertBefore(moi, papier); } });
+    noms.push({ texte, nom, repere, groupe: classe === 'nom-region' ? 'noms-regions' : 'noms-prefectures' });
   }
 
   for (const n of NOMS_REGIONS) poser('nom-region', n.ou, n.nom || REGIONS.find((r) => r.cle === n.region).nom);
   // En français, les préfectures gardent leur nom anglais (comme dans le dé)
   for (const [code, ou] of Object.entries(NOMS_PREFECTURES)) poser('nom-prefecture', ou, PREFECTURES[code]);
 
+  // Les noms sont posés sur la carte un peu avant leur plage de zoom (invisibles, pour que le fondu
+  // d'entrée se joue) et retirés après le fondu de sortie : hors de leur plage, ils ne coûtent rien.
   const etat = {};
+  const garde = {};
   function majZoom() {
     const z = map.getZoom();
     for (const [classe, [de, a]] of [['noms-regions', ZOOMS_REGIONS], ['noms-prefectures', ZOOMS_PREFECTURES]]) {
+      const garder = z >= de - 0.35 && z < a + 0.35;
+      if (garde[classe] !== garder) {
+        garde[classe] = garder;
+        for (const n of noms) if (n.groupe === classe) reperes.montrer(n.repere, garder, 700);
+      }
       const voir = z >= de && z < a;
       if (etat[classe] !== voir) carte.classList.toggle(classe, (etat[classe] = voir));
     }

@@ -48,6 +48,15 @@ The Browser pane can be hidden, and then `requestAnimationFrame` pauses and the 
 
 The TikTok embedded player shows "Player error" in headless Edge (codec issue). That is expected.
 
+### Measuring smoothness (phones)
+
+The owner asked on 2026-10-02 for smoother zooming on phones. The method that found the causes:
+- Headless Edge can use this PC's real GPU: args `--enable-gpu --use-angle=d3d11 --ignore-gpu-blocklist`. Use a phone context (390×844, `device_scale_factor=2`, `is_mobile`), and slow the main thread with CDP `Emulation.setCPUThrottlingRate` (rate 4 ≈ a mid-range Android).
+- Script a series of `easeTo` zooms (far view → zoom 12.5 → back to 6). Count frame intervals with a `requestAnimationFrame` loop, and read `Performance.getMetrics` (`ScriptDuration`, `RecalcStyleDuration`) before and after. Do a warm-up pass and reload first, so tiles come from the HTTP cache.
+- For JS hotspots, take a CDP `Profiler` profile with `maplibre-gl.mjs` routed to `maplibre-gl-dev.mjs` (readable names). For style recalcs, trace with `disabled-by-default-devtools.timeline.invalidationTracking`: `UpdateLayoutTree` gives the element count, and the invalidation events give the JS stack that caused them.
+- SwiftShader is far too slow to judge a phone GPU, so it can't be used for that.
+- Results: 6.5 → about 68 frames/s at rate 4 (desktop: about 174).
+
 ## Architecture
 
 ### Data flow (`site/app.js`)
@@ -80,7 +89,11 @@ The TikTok embedded player shows "Player error" in headless Edge (codec issue). 
   - `pixelRatio` is capped at 2;
   - `.panneau` panels have no `backdrop-filter` (the blur was recomputed every frame);
   - place flights use a lower pitch.
-- Places are HTML `Marker`s with `opacityWhenCovered`. Hiding a category removes its markers from the map (`appliquerFiltres`).
+  - **Off-screen HTML markers are taken off the map** (`site/reperes.js`, 2026-10-02). With terrain, `Marker._update` calls `map.project`, which calls `terrain.getElevationForLngLat`. For a point outside the rendered terrain tiles, that runs a full `coveringTiles()` per marker per frame: zoomed in, about 190 per frame, the biggest cost of all. `gererReperes(map)` keeps a marker on the map only when it is wanted and within the view bounds + 10%. It re-checks on every `move`. Every marker goes through it: `suivre(marker, { voulu, placer })`, then `montrer(marker, voulu, delai)`. Never call `addTo`/`remove` directly. `placer(el)` puts a re-added element back in its DOM place: places keep north-to-south order (south in front), names stay before `#papier`, legends and sea names right after it. Names and legends are added 0.35 zoom before their range and removed after their fade-out (`delai`); the sea creatures only while a scene plays.
+  - **Never set a custom property or class on `#carte` per frame.** It restyles all ~2000 elements of the map. The pin lift therefore uses `setOffset` (see 3D models). `--t` (pin size) is changed in a dedicated CSSOM rule `.repere { --t }` (`regleTaille` in `app.js`). Selectors under `#carte.<class>` must not end in `> *`: a universal selector makes a class toggle restyle the whole subtree.
+  - GeoJSON sources have a `maxzoom` (7 for the masks, 8 for the coast, 10 for lakes, rivers and borders): fewer tile levels to search every frame.
+  - The loading screen gets `display: none` once faded, so its looping logo animation stops.
+- Places are HTML `Marker`s with `opacityWhenCovered`. Hiding a category hides its markers (`appliquerFiltres` → `reperes.montrer`).
 - The start-up camera is different for desktop and phone (`CONFIG.camera`, with `estTelephone()` at ≤720px). A turntable rotation runs until the first user interaction.
 
 ### UI
@@ -149,7 +162,7 @@ When the map is zoomed in, every place shows a small low-poly model of its categ
   - The model-to-map basis is deliberately a **mirror**: (x, y, z) → (x, z, y). With a proper rotation, the faces rendered inside-out, showing back faces only (dark models, bases seen as arcs).
   - The models' directional light follows the camera, coming from the viewer's upper left. A fixed north-west light (like the hillshade) left every model backlit, because the camera usually looks north.
 - **Size.** Models appear between zoom 8.6 and 9.6 (they grow out of the ground). Their on-screen height is `62px × 2^((z − 10.5) / 2)`, capped at 170px.
-- **Marker lift.** `couche3d.js` sets `--leve` on the map container: the model's screen height × sin(pitch), in 4px steps, to avoid restyling every marker each frame. Each marker has `--h`, its model's height. `.repere-tete` and `.repere-nom` add `--leve × --h` to their `bottom`.
+- **Marker lift.** `majLevee` (`couche3d.js`) computes the screen height of a size-1 model × sin(pitch), in 4px steps. When it changes, each place marker gets `setOffset([0, −lift × (model height + 0.08)])`. MapLibre repositions markers every frame anyway, so this costs no restyle. The earlier `--leve` CSS variable on `#carte` restyled the whole map on every step and was the main cause of phone stutter.
 - **Clicks.** A tap on a model opens its place (`lieuSous()`, a screen-box test from the drawn places).
 - **Antialiasing.** It is enabled only when `devicePixelRatio < 2` (`canvasContextAttributes`). Phones don't need it and it costs GPU time.
 

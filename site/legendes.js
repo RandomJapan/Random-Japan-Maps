@@ -269,7 +269,7 @@ const creer = (balise, classe, texte) => {
  * Renvoie { majLangue, remplirPanneau } : app.js les appelle au changement de langue et à l'ouverture de la liste.
  */
 export function brancherLegendes(map, maplibregl, outils) {
-  const { t, enLangue, langue, afficherMessage, fermerPanneau, fermerFiche } = outils;
+  const { t, enLangue, langue, afficherMessage, fermerPanneau, fermerFiche, reperes } = outils;
   const carte = map.getContainer();
   const conteneur = map.getCanvasContainer();
   const papier = document.getElementById('papier');
@@ -293,10 +293,13 @@ export function brancherLegendes(map, maplibregl, outils) {
     });
     l.el = el;
     l.marqueur = new maplibregl.Marker({ element: el, anchor: 'bottom', opacityWhenCovered: '0.25' })
-      .setLngLat(l.ou)
-      .addTo(map);
+      .setLngLat(l.ou);
     // juste au-dessus du papier vieilli, donc sous les épingles des lieux, qui restent devant
-    conteneur.insertBefore(el, papier?.parentNode === conteneur ? papier.nextSibling : conteneur.firstChild);
+    // (reperes.js ne la garde sur la carte que près de l'écran, et pas en vue lointaine)
+    reperes.suivre(l.marqueur, {
+      voulu: false,
+      placer: (moi) => conteneur.insertBefore(moi, papier?.parentNode === conteneur ? papier.nextSibling : conteneur.firstChild),
+    });
   }
 
   // ---- Cachées tant qu'on voit tout le Japon ; seules celles à l'écran bougent
@@ -305,7 +308,14 @@ export function brancherLegendes(map, maplibregl, outils) {
     const vue = map.getBounds();
     for (const l of LEGENDES) l.el.classList.toggle('anime', !cachees && vue.contains(l.ou));
   }
+  let gardees = null;
   function majZoom() {
+    // posées un peu avant de se montrer (le fondu d'entrée se joue), retirées après le fondu de sortie
+    const g = map.getZoom() >= ZOOM_LEGENDES - 0.35;
+    if (g !== gardees) {
+      gardees = g;
+      for (const l of LEGENDES) reperes.montrer(l.marqueur, g, 450);
+    }
     const c = map.getZoom() < ZOOM_LEGENDES;
     if (c === cachees) return;
     cachees = c;

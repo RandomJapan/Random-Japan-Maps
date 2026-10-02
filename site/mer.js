@@ -343,7 +343,10 @@ function coucheBateaux(map, maplibregl, THREE, modele, flotte) {
  * Fait vivre la mer.
  * @param mers - positions [lng, lat] des noms des mers : ni bateau ni bête n'apparaît dessus
  */
-export function animerMer(map, maplibregl, { mers = [] } = {}) {
+let reperesMer = null; // le gestionnaire de reperes.js : les bêtes ne sont sur la carte que pendant leur scène
+
+export function animerMer(map, maplibregl, { mers = [], reperes } = {}) {
+  reperesMer = reperes;
   const sansMouvement = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const conteneur = map.getContainer();
   let temps = 0; // horloge de la mer (secondes), arrêtée quand la mer est calme ou la page cachée
@@ -453,11 +456,12 @@ export function animerMer(map, maplibregl, { mers = [] } = {}) {
     bete.el = element(bete.nom, DESSINS[bete.nom]);
     bete.prochaine = bete.premiere;
     bete.marqueur = new maplibregl.Marker({ element: bete.el, anchor: 'bottom', offset: [0, 4], opacityWhenCovered: '0' })
-      .setLngLat(bete.lieux[0])
-      .addTo(map);
+      .setLngLat(bete.lieux[0]);
+    reperes.suivre(bete.marqueur, { voulu: false });
     const fin = (e) => {
       if (e.target !== bete.el) return;
       bete.el.classList.remove('joue');
+      reperes.montrer(bete.marqueur, false);
       bete.enCours = false;
       bete.prochaine = temps + entre(bete.entre);
     };
@@ -522,6 +526,7 @@ export function jouerScene(nom, lieu) {
   const bete = BETES.find((b) => b.nom === nom);
   if (!bete?.marqueur) return;
   bete.marqueur.setLngLat(lieu);
+  reperesMer?.montrer(bete.marqueur, true);
   bete.el.classList.remove('joue');
   void bete.el.offsetWidth; // relance la scène si elle jouait déjà
   bete.el.classList.toggle('miroir', Math.random() < 0.5);

@@ -48,8 +48,6 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
       if (!parModele.has(nom)) parModele.set(nom, []);
       parModele.get(nom).push(l);
       l.hauteur3d = modeles[nom].hauteur;
-      // la pointe du repère se pose juste au-dessus de son modèle (voir --leve dans style.css)
-      l.el.style.setProperty('--h', (l.hauteur3d + 0.08).toFixed(2));
       const hexa = l.cat.couleur.replace('#', '');
       const rvb = [0, 2, 4].map((i, j) => Math.round(parseInt(hexa.slice(i, i + 2), 16) * 0.78 + BRUN[j] * 0.22));
       l.couleur3d = new THREE.Color(`rgb(${rvb.join(',')})`);
@@ -139,7 +137,12 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
     onRemove() { renderer?.dispose(); },
   };
 
-  /** Monte les repères au-dessus de leur modèle : ici la hauteur d'un modèle de taille 1 à l'écran (par pas de 4 px). */
+  /**
+   * Monte chaque repère juste au-dessus de son modèle : la hauteur à l'écran d'un modèle de taille 1
+   * (par pas de 4 px), fois la hauteur de son modèle. On décale le repère lui-même (MapLibre le replace
+   * de toute façon à chaque image) : une variable CSS posée sur la carte obligeait le navigateur à
+   * recalculer le style des quelque 2 000 éléments de la carte, et les téléphones saccadaient au zoom.
+   */
   function majLevee() {
     if (etat !== 'pret') return;
     const pousse = lisser((map.getZoom() - ZOOM_DEBUT) / (ZOOM_PLEIN - ZOOM_DEBUT));
@@ -147,7 +150,9 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
     const levee = Math.round(px / 4) * 4;
     if (levee !== leveeActuelle) {
       leveeActuelle = levee;
-      map.getContainer().style.setProperty('--leve', `${levee}px`);
+      for (const l of obtenirLieux()) {
+        if (l.hauteur3d) l.epingle.setOffset([0, -Math.round(levee * (l.hauteur3d + 0.08))]);
+      }
     }
   }
 

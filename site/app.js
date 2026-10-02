@@ -12,6 +12,7 @@ import { brancherNomsRegions } from './noms-regions.js';
 import { brancherCompteur } from './compteur.js';
 import { lireFavoris, ecrireFavoris, ordreDeVoyage, liensItineraire } from './favoris.js';
 import { brancherVisite } from './visite.js';
+import { gererReperes } from './reperes.js';
 
 const $ = (id) => document.getElementById(id);
 const estTelephone = () => matchMedia('(max-width: 720px)').matches;
@@ -273,15 +274,20 @@ const map = new maplibregl.Map({
         ...TUILES_RELIEF,
         attribution: '<a href="https://mapterhorn.com/attribution" target="_blank" rel="noopener">© Mapterhorn</a> · Natural Earth',
       },
-      voisins: { type: 'geojson', data: 'data/masque-voisins.geojson' },
-      large: { type: 'geojson', data: 'data/masque-large.geojson' },
-      cote: { type: 'geojson', data: 'data/cote-japon.geojson' },
+      // maxzoom : au-delà, MapLibre agrandit les tuiles du dernier niveau au lieu d'en découper de nouvelles.
+      // À chaque image, il cherche les tuiles à afficher pour chaque source : moins de niveaux, moins de calcul
+      // (les téléphones saccadaient au zoom). Les côtes et les masques (Natural Earth) sont grossiers : 7-8 suffit ;
+      // les lacs, rivières et frontières (simplifiés à ~60 m) sont exacts à 10.
+      voisins: { type: 'geojson', data: 'data/masque-voisins.geojson', maxzoom: 7 },
+      large: { type: 'geojson', data: 'data/masque-large.geojson', maxzoom: 7 },
+      cote: { type: 'geojson', data: 'data/cote-japon.geojson', maxzoom: 8 },
       eaux: {
         type: 'geojson',
         data: 'data/eaux-japon.geojson',
+        maxzoom: 10,
         attribution: OSM,
       },
-      frontieres: { type: 'geojson', data: 'data/frontieres-japon.geojson', attribution: OSM },
+      frontieres: { type: 'geojson', data: 'data/frontieres-japon.geojson', maxzoom: 10, attribution: OSM },
     },
     layers: [
       { id: 'fond', type: 'background', paint: { 'background-color': MER } },
@@ -496,6 +502,9 @@ window.carte = map; // pratique pour inspecter la carte depuis la console du nav
 // par-dessus le relief mais sous les lieux, qui restent nets.
 map.getCanvasContainer().insertBefore($('papier'), map.getCanvas().nextSibling);
 
+// Les repères HTML ne restent sur la carte que près de l'écran (voir reperes.js : sinon le zoom saccade)
+const reperes = gererReperes(map);
+
 // Noms des mers, écrits à l'ancienne et couchés sur l'eau. Ils s'effacent quand on zoome (voir .loin dans style.css).
 const MERS = [
   { ou: [135.7, 39.6], nom: { en: 'Sea of Japan', fr: 'Mer du Japon', ja: '日本海' } },
@@ -507,16 +516,17 @@ for (const m of MERS) {
   m.el = document.createElement('div');
   m.el.className = m.petit ? 'nom-mer petit' : 'nom-mer';
   m.el.setAttribute('aria-hidden', 'true');
-  new maplibregl.Marker({ element: m.el, pitchAlignment: 'map', rotationAlignment: 'viewport', opacityWhenCovered: '1' })
-    .setLngLat(m.ou)
-    .addTo(map);
+  const repere = new maplibregl.Marker({ element: m.el, pitchAlignment: 'map', rotationAlignment: 'viewport', opacityWhenCovered: '1' })
+    .setLngLat(m.ou);
+  // juste au-dessus du papier vieilli, sous les lieux
+  reperes.suivre(repere, { placer: (el) => el.parentNode.insertBefore(el, $('papier').nextSibling) });
 }
 
 // Noms des grandes régions et des préfectures, écrits sur la terre quand on zoome
-const nomsRegions = brancherNomsRegions(map, maplibregl, { enLangue });
+const nomsRegions = brancherNomsRegions(map, maplibregl, { enLangue, reperes });
 
 // La mer vivante : houle, vagues, bateaux d'époque, baleine et serpent de mer (vus de loin)
-animerMer(map, maplibregl, { mers: MERS.map((m) => m.ou) });
+animerMer(map, maplibregl, { mers: MERS.map((m) => m.ou), reperes });
 
 // Petits modèles 3D des lieux (un par icône de catégorie), visibles quand on zoome
 const modeles3d = brancherModeles(map, maplibregl, () => lieux);
@@ -531,6 +541,13 @@ tournerRose();
 // Hauteur du relief et taille des épingles selon le zoom
 let exagActuelle = null;
 let tailleActuelle = null;
+// La taille des repères (--t) est changée dans une règle qui ne vise qu'eux : posée sur la carte, la
+// variable obligeait le navigateur à recalculer le style de tous les éléments de la carte.
+const regleTaille = (() => {
+  const feuille = document.head.appendChild(document.createElement('style')).sheet;
+  feuille.insertRule('.repere { --t: 1; }');
+  return feuille.cssRules[0];
+})();
 let vueLointaine = null; // tout le Japon à l'écran : les lieux sont de petits points
 
 /**
@@ -571,7 +588,7 @@ function majSelonZoom() {
   const taille = Math.min(1, Math.max(0.7, Math.round((0.7 + (z - 4.5) * 0.1) * 10) / 10));
   if (taille !== tailleActuelle) {
     tailleActuelle = taille;
-    map.getContainer().style.setProperty('--t', String(taille));
+    regleTaille.style.setProperty('--t', String(taille));
   }
   const loin = z < ZOOM_POINTS;
   if (loin !== vueLointaine) {
@@ -611,7 +628,7 @@ let lieuActif = null;
 const favoris = lireFavoris(); // identifiants des lieux mis en favoris (favoris.js)
 let deplieNouveaux = true; // la ligne « Nouveaux lieux » du menu est dépliée
 
-function creerEpingle(lieu) {
+function creerEpingle(lieu, rang) {
   const el = document.createElement('button');
   el.type = 'button';
   el.className = 'repere';
@@ -626,13 +643,19 @@ function creerEpingle(lieu) {
   lieu.el = el;
   lieu.epingle = new maplibregl.Marker({ element: el, anchor: 'bottom', opacityWhenCovered: '0.35' })
     .setLngLat([lieu.lng, lieu.lat]);
+  // Un lieu qui revient sur la carte reprend sa place : ceux du sud devant ceux du nord (voir demarrer)
+  reperes.suivre(lieu.epingle, {
+    voulu: false,
+    placer: (moi) => {
+      for (let j = rang + 1; j < lieux.length; j++) {
+        if (lieux[j].el.parentNode === moi.parentNode) return moi.parentNode.insertBefore(moi, lieux[j].el);
+      }
+    },
+  });
 }
 
 function appliquerFiltres() {
-  for (const l of lieux) {
-    if (l.cat.visible) l.epingle.addTo(map);
-    else l.epingle.remove();
-  }
+  for (const l of lieux) reperes.montrer(l.epingle, l.cat.visible);
   map.triggerRepaint(); // les modèles 3D des catégories masquées disparaissent aussi
   const visibles = lieux.filter((l) => l.cat.visible).length;
   $('compteur').textContent = visibles === lieux.length ? lieux.length : `${visibles}/${lieux.length}`;
@@ -761,7 +784,7 @@ function chargerLegendes() {
   import('./legendes.js')
     .then(({ brancherLegendes }) => {
       legendes = brancherLegendes(map, maplibregl, {
-        t, enLangue, langue: () => langue, afficherMessage, fermerFiche,
+        t, enLangue, langue: () => langue, afficherMessage, fermerFiche, reperes,
         fermerPanneau: () => ouvrirLegendes(false),
       });
     })
@@ -1475,6 +1498,8 @@ async function demarrer() {
   const pret = () => {
     appliquerFiltres();
     $('chargement').classList.add('fini');
+    // une fois effacé, l'écran de chargement sort de la page : son logo animé aurait tourné pour rien à chaque image
+    setTimeout(() => { $('chargement').style.display = 'none'; }, 900);
     if (location.hash.length > 1) ouvrirDepuisAdresse();
     else if (rotation) setTimeout(() => requestAnimationFrame(tourner), 600);
     // Contours des préfectures (116 Ko) chargés en avance, sans gêner le démarrage : le dé s'ouvre tout de suite.
