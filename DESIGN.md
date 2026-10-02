@@ -260,6 +260,12 @@ Depth comes from the relief: the exaggerated terrain, the hillshade, and the isl
 - **Address label:** the round logo (24px, ink ring) and the map's address in IM Fell English italic 15px, on fresh parchment with an ink rule (2px corners). It sits top centre, below where TikTok draws its tabs; in a phone tour with videos, it sits just under the video frame.
 - **Dive:** a still frame of all Japan, then a 4.2s dive straight down onto one place, then a slow orbit. On phones the lower third rises to 22% of the height, clear of TikTok's caption zone. Its bar holds only a red Replay and Stop.
 
+### Guess-the-place game (hidden until its release)
+- **Card:** a parchment plate with the double rule (360px, top-left on desktop; full width at the top on phones). It holds "Round n/5" and the score in Zen Antique 16px, and a close ×. The image sits in a dark frame (contained, tap to enlarge), with the instruction in Noto Sans. The main action is the red button; on phones it is fixed low on the screen, under the thumb.
+- **Pins:** the player's guess is a red drop with a parchment ring and centre, with an ink drop shadow. The answer is the place's own crest (or dot) in its selected state, with its name label. A dashed cartographer's-red line joins them.
+- **Reveal:** a verdict in Zen Antique 21px ("Bullseye!", "Very close!", "Not bad", "Far away…"), the place name, category · prefecture, and the distance plus points in bold.
+- **End:** "Your score", the total in Zen Antique 40px, a title, a secondary "Share my score" and a red "Play again".
+
 ### Place pages (for Google)
 - **Sheet:** each place's page is one parchment sheet with the double rule, floating on the sea colour with the grain, under the map's header plaque and language switch.
 - **Head:** the TikTok cover as a 3:4 framed picture with a red "Play the video" plate (a click swaps in the TikTok player, 9:16), beside the name in Zen Antique 36px, the Japanese name, the category crest and the red primary button "See it on the 3D map".

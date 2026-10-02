@@ -141,6 +141,14 @@ Dans la fiche d'un lieu, le bouton **caméra** (à gauche du cœur) lance un plo
 - Les boutons disparaissent tout de suite. Touche l'écran pour faire revenir la barre : **Rejouer** (rouge, pour refaire une prise) et **Arrêter**. Sur ordinateur : Espace = rejouer, Échap = arrêter.
 - Sur téléphone, le nom du lieu est placé plus haut que pendant la visite, pour ne pas être caché par la légende de ta vidéo TikTok.
 
+## Le jeu « Devine le lieu » (pas encore public)
+
+Il est prêt mais **caché** : il sortira le mois prochain, avec un TikTok. Pour l'essayer, ouvre **https://map.randomjapanplace.com/?jeu** : un bouton « Devine le lieu » apparaît à côté des autres. Sans `?jeu` dans l'adresse, personne ne le voit.
+- Une partie = 5 lieux tirés au hasard, éloignés les uns des autres. Pour chacun : une photo (la photo du tableau, ou la couverture de ta vidéo avec le nom flouté), et le joueur touche la carte là où il pense que c'est, puis valide.
+- Le vrai lieu apparaît avec son nom, relié à l'épingle du joueur, avec la distance et les points (1 000 au plus par lieu : 670 à 100 km, 370 à 250 km). À la fin : le score sur 5 000, un titre (de « Touriste curieux » à « Expert du Japon ») et « Partager mon score ».
+- Pendant la partie, les épingles et les modèles 3D des lieux sont cachés, sinon ce serait trop facile.
+- Le jour de la sortie, demande à Claude de rendre le bouton visible pour tout le monde.
+
 ## L'adresse de la carte
 
 La carte est à l'adresse **https://map.randomjapanplace.com/**. C'est ce lien qu'il faut mettre dans ta bio TikTok. L'ancienne adresse (randomjapan.github.io/Random-Japan-Maps) renvoie toute seule vers la nouvelle.

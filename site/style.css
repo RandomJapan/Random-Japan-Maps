@@ -741,8 +741,61 @@ body.plongeon .visite-barre [data-action="suivant"], body.plongeon .visite-progr
 .filigrane img { width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--encre); object-fit: cover; }
 body.mode-film .filigrane { display: flex; }
 
+/* ---------- Jeu « Devine le lieu » (jeu.js ; pas encore public) ---------- */
+body.en-jeu .filtres, body.en-jeu .bandeau, body.en-jeu .aide { display: none; }
+.jeu {
+  position: fixed; z-index: 9; top: calc(var(--haut) + 64px); left: 12px; width: 360px;
+  max-height: calc(100dvh - var(--haut) - 90px); overflow: auto; overscroll-behavior: contain;
+  display: flex; flex-direction: column; gap: 10px; padding: 12px 14px 14px;
+  box-shadow: var(--filet), var(--ombre);
+}
+.jeu[hidden] { display: none; }
+.jeu-tete { display: flex; align-items: center; gap: 10px; min-height: 32px; }
+.jeu-manche { font: 400 16px var(--police-titre); color: var(--encre-2); }
+.jeu-score { margin-left: auto; font: 400 16px var(--police-titre); font-variant-numeric: tabular-nums; }
+.jeu-quitter {
+  width: 32px; height: 32px; display: grid; place-items: center; flex: none; margin-right: -4px;
+  border: 0; border-radius: var(--rayon); background: none; color: var(--encre);
+}
+.jeu-quitter:hover { background: var(--papier-fonce); }
+.jeu-quitter svg { width: 18px; height: 18px; }
+.jeu-titre { margin: -6px 0 0; font: 400 26px/1.2 var(--police-titre); }
+.jeu-image {
+  display: block; width: 100%; height: 230px; padding: 0; border: 1px solid var(--trait); border-radius: 2px;
+  background: #241a10; cursor: zoom-in; overflow: hidden; transition: height .35s var(--ease);
+}
+.jeu-image img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.jeu.image-grande .jeu-image { height: min(62dvh, 560px); cursor: zoom-out; }
+.jeu-texte { margin: 0; font-size: 14.5px; line-height: 1.5; text-wrap: pretty; }
+.jeu[data-phase="revele"] .jeu-texte { font: 400 21px/1.2 var(--police-titre); }
+.jeu-total { display: block; margin-bottom: 4px; font: 400 40px/1.1 var(--police-titre); font-variant-numeric: tabular-nums; }
+.jeu-resultat b { display: block; font: 400 19px/1.25 var(--police-titre); }
+.jeu-resultat small { display: block; margin-top: 2px; font-size: 13px; color: var(--encre-3); }
+.jeu-resultat p { margin: 6px 0 0; font-size: 15px; font-weight: 600; }
+.jeu .btn-lancer, .jeu .btn-secondaire { margin-top: 2px; }
+.jeu .btn-secondaire svg { color: var(--encre); }
+.jeu:not([data-phase="accueil"]):not([data-phase="fin"]) .jeu-titre { display: none; }
+.jeu[data-phase="accueil"] .jeu-image, .jeu[data-phase="fin"] .jeu-image { display: none; }
+.jeu:not([data-phase="revele"]) .jeu-resultat { display: none; }
+.jeu:not([data-phase="fin"]) .jeu-partager { display: none; }
+/* l'épingle du joueur : une goutte rouge cerclée de papier */
+.jeu-epingle { pointer-events: none; }
+.jeu-epingle svg { display: block; width: 32px; height: 44px; filter: drop-shadow(0 3px 3px rgba(40, 26, 12, 0.45)); }
+
 /* ---------- Téléphone ---------- */
 @media (max-width: 720px) {
+  /* Jeu : la carte du jeu en haut (elle cache l'en-tête), le grand bouton en bas, sous le pouce */
+  body.en-jeu .entete, body.en-jeu .langues { visibility: hidden; }
+  .jeu { top: var(--haut); right: 12px; width: auto; max-height: 52dvh; padding: 10px 12px 12px; gap: 8px; }
+  .jeu-image { height: 24dvh; }
+  .jeu.image-grande .jeu-image { height: 44dvh; }
+  /* au-dessus des sources (OpenStreetMap, Mapterhorn), qui doivent rester lisibles, et à gauche de la rose */
+  .jeu .jeu-action {
+    position: fixed; left: 50%; bottom: calc(var(--bas) + 86px); transform: translateX(-50%);
+    width: min(300px, calc(100vw - 150px)); z-index: 9;
+  }
+  .bouton-jeu .texte-bouton { display: none; }
+  .bouton-jeu { padding: 7px 9px; }
   /* En-tête sur une seule ligne, pour laisser la place à la carte */
   .entete { padding: 4px 10px 4px 4px; max-width: calc(100vw - 24px - 136px); }
   .logo { width: 30px; height: 30px; border-width: 1.5px; }

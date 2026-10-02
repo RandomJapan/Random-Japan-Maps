@@ -14,7 +14,7 @@ const MARGE = 0.1; // un repère reste sur la carte jusqu'à 10 % de la taille d
  * @returns suivre(repère, { voulu, placer }) pour confier un repère (pas encore ajouté à la carte) ;
  *   montrer(repère, voulu, delai) pour le montrer ou le cacher (catégorie décochée, zoom hors de sa plage…),
  *   le retrait pouvant attendre `delai` ms (le temps d'un fondu) ;
- *   verifier(repère) après un setLngLat.
+ *   verifier(repère) après un setLngLat ; oublier(repère) pour le retirer pour de bon.
  */
 export function gererReperes(map) {
   const suivis = new Map(); // repère → { voulu, placer, sur, minuterie }
@@ -68,6 +68,13 @@ export function gererReperes(map) {
     verifier(repere) {
       const s = suivis.get(repere);
       if (s) appliquer(repere, s);
+    },
+    oublier(repere) {
+      const s = suivis.get(repere);
+      if (!s) return;
+      clearTimeout(s.minuterie);
+      if (s.sur) repere.remove();
+      suivis.delete(repere);
     },
   };
 }

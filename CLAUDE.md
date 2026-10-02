@@ -257,6 +257,15 @@ The owner asked for these three on 2026-10-02 (ideas 1, 3 and 7 of a list I prop
 - **Address watermark (`.filigrane`).** In film mode (tour and dive), the logo plus `CONFIG.adresse` (`map.randomjapanplace.com`) sit on a fresh-parchment label, top centre, below where TikTok draws its tabs. In a phone tour with videos (`body.visite-avec-video`) the label moves just under the video frame, and `margeLieu` adds its height.
 - **Layout.** The button row now holds Categories, Random, Tour, Favorites and Legends. `.filtres` has no fixed width any more; its menus are 340px. On phones, Tour and Favorites show only their icon.
 
+### Guess-the-place game (`site/jeu.js`, not public yet)
+
+The owner asked on 2026-10-02 for a "Guess the place" game, to be coded now but **released next month** with a TikTok. Until then the `#btn-jeu` button stays `hidden` unless the URL has `?jeu` (`app.js`), and nothing links to it. `jeu.js` is loaded only on the first click (`lancerJeu`). To release it, show the button for everyone.
+- **A game.** It has 5 rounds (`choisirLieux`: random places at least 80 km apart, each with an image). Each round shows an image: the Sheet photo if any (no text on it), otherwise the local TikTok cover with its middle band (30%–82%, where the cover writes the name) blurred, by shrinking ×22 then enlarging on a canvas. That works in every browser, unlike `ctx.filter`. The next round's image is prepared ahead.
+- **Guess and reveal.** A tap on the map places a red drop pin (a marker through `reperes.suivre`, removed with `reperes.oublier`). Confirming re-shows the true place's marker, with `.actif` so its name label shows even as a far-view dot, and its 3D model. A dashed red line (source/layer `jeu-trait`) joins the two. `fitBounds` frames both.
+- **Scoring.** Points are `round(1000 × e^(−km/250))`, with verdicts at 10, 50 and 150 km. The final titles depend on the share of 5000 (≥90%, 70%, 40%). Sharing uses `navigator.share` on touch devices and the clipboard elsewhere. The text links to `https://<adresse>/?jeu`.
+- **During a game** (`body.en-jeu`), every place marker is hidden through `reperes.montrer`, and models through `modeles3d.filtrer(fn)` (a new `couche3d.js` hook). The filter buttons, title scroll and hint hide; on phones the header hides too.
+- **Placement.** The card sits top-left on desktop and at the top on phones. On phones the main button is fixed at the bottom, above the attribution and left of the rose. Each round's overview fits all places with `cameraForBounds`, corrected for the current padding as in `visite.js`.
+
 ### Place pages (`outils/fabriquer_pages.py`)
 
 On 2026-10-02 the owner approved idea 6 (one page per place, so Google can find the places) from a mockup, as a step toward a shop on their own domain. The map itself is one JS page that Google can't index place by place.

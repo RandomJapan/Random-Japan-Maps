@@ -1001,6 +1001,34 @@ const visite = brancherVisite(map, {
   apres: () => {},
 });
 
+// ---------------------------------------------------------------- Jeu « Devine le lieu » (pas encore public)
+// Le bouton n'apparaît qu'avec ?jeu dans l'adresse (map.randomjapanplace.com/?jeu) : le jeu sortira plus tard.
+let jeu = null;
+if (new URLSearchParams(location.search).has('jeu')) $('btn-jeu').hidden = false;
+async function lancerJeu() {
+  if (!jeu) {
+    const { brancherJeu } = await import('./jeu.js');
+    jeu = brancherJeu(map, maplibregl, {
+      t, enLangue, infos: infosLieu, lieux: () => lieux, reperes, modeles3d, vueDepart, estTelephone, afficherMessage,
+      adresse: CONFIG.adresse,
+      photo: (l) => (l.photo ? photoAllegee(l.photo) : ''),
+      couverture: (l) => (idVideo(l.tiktok) ? `photos/tiktok/${idVideo(l.tiktok)}.jpg` : ''),
+      avant: () => {
+        if (visite.enCours()) visite.arreter();
+        arreterRotation();
+        fermerFiche();
+        ouvrirMenu(false);
+        ouvrirHasard(false);
+        ouvrirLegendes(false);
+        ouvrirFavoris(false);
+        ouvrirVisite(false);
+      },
+      apres: () => {},
+    });
+  }
+  jeu.lancer();
+}
+
 /** Lieux proposés à la visite : tous, ou seulement les favoris si la case est cochée. */
 const baseVisite = () => (!$('ligne-visite-favoris').hidden && $('visite-favoris').checked ? lieux.filter(estFavori) : lieux);
 
@@ -1355,6 +1383,8 @@ function appliquerLangue() {
   $('txt-visite-son').textContent = t('visiteSon');
   majFavoris();
   visite.majLangue();
+  $('txt-jeu').textContent = t('jeu');
+  jeu?.majLangue();
   construireMenu();
   if (!$('resultats').hidden) rechercher();
   if (lieuActif) remplirFiche(lieuActif);
@@ -1407,6 +1437,7 @@ function brancherBoutons() {
     else if (e.target.closest('[data-visite]')) lancerVisite(lieux.filter(estFavori));
   });
   $('fiche-plongeon').addEventListener('click', () => visite.plonger(lieuActif));
+  $('btn-jeu').addEventListener('click', () => lancerJeu().catch((e) => console.warn('Jeu indisponible', e)));
   $('fiche-favori').addEventListener('click', () => {
     if (!lieuActif) return;
     const premier = !lieux.some(estFavori);
@@ -1458,6 +1489,7 @@ function brancherBoutons() {
   // Un appui sur un modèle 3D ouvre son lieu, comme un appui sur son repère
   map.on('click', (e) => {
     if (visite.enCours()) return; // pendant la visite, un appui fait juste revenir la barre
+    if (jeu?.enCours()) return; // pendant le jeu, un appui pose l'épingle (jeu.js)
     const l = modeles3d.lieuSous(e.point);
     if (l) ouvrirLieu(l);
   });

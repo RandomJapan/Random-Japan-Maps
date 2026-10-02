@@ -28,6 +28,7 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
   let dessines = []; // lieux dessinés à la dernière image (pour les clics)
   let echelleDessin = 0;
   let leveeActuelle = null;
+  let filtre = null; // si posé, seuls les lieux pour lesquels filtre(lieu) est vrai ont leur modèle (jeu.js)
   const m4 = {};
 
   map.on('sourcedata', (e) => { if (e.sourceId === 'relief' && e.tile) versionRelief++; });
@@ -109,7 +110,7 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
       for (const t of types) {
         let n = 0;
         for (const l of t.lieux) {
-          if (!l.cat.visible) continue;
+          if (!l.cat.visible || (filtre && !filtre(l))) continue;
           if (l.lng < bornes.getWest() - marge || l.lng > bornes.getEast() + marge
             || l.lat < bornes.getSouth() - marge || l.lat > bornes.getNorth() + marge) continue;
           const mc = maplibregl.MercatorCoordinate.fromLngLat([l.lng, l.lat], altitude(l));
@@ -190,6 +191,11 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
   verifier();
 
   return {
+    /** Ne dessine que les modèles des lieux pour lesquels f(lieu) est vrai ; null : tous. */
+    filtrer(f) {
+      filtre = f;
+      map.triggerRepaint();
+    },
     /** Le lieu dont le modèle est sous ce point de l'écran (pour ouvrir sa fiche d'un appui sur le modèle). */
     lieuSous(point) {
       if (!dessines.length) return null;
