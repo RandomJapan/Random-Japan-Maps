@@ -32,6 +32,13 @@ export const CONFIG = {
   // La date vient du lien de la vidéo : rien à remplir dans le tableau.
   joursNouveau: 7,
 
+  // --- Visite guidée ---------------------------------------------------
+  // Tes vidéos commencent par un plongeon depuis le ciel vers le lieu (3 à 4 s) : pendant la visite,
+  // chaque vidéo démarre à cette seconde, directement sur le lieu.
+  // Pour une vidéo qui commence autrement, écrire sa seconde de départ dans la colonne « Début vidéo »
+  // du tableau, sur la ligne du lieu (par exemple 0 pour une vidéo sans plongeon).
+  debutVideo: 4,
+
   // --- Caméra au démarrage -------------------------------------------
   camera: {
     ordinateur: { centre: [137.3, 36.7], zoom: 5.05, inclinaison: 52, orientation: -45 },

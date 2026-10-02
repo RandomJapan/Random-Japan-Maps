@@ -54,7 +54,7 @@ The TikTok embedded player shows "Player error" in headless Edge (codec issue). 
 2. `lireCSV()` is a small custom CSV parser (there is no PapaParse). Header names are matched loosely by `champ(ligne, [aliases])`, after `normaliser()` has removed accents, spaces and punctuation from them. So `Nom (EN)` matches the alias `nomen`.
    - When you add a Sheet column, add its alias in `construireLieux` / `construireCategories`.
    - Never rename the Sheet headers (row 1) or the tab names `Lieux` / `Catégories`.
-3. `construireLieux()` skips rows with no English name, unparseable GPS, or `Afficher ? = Non`.
+3. `construireLieux()` skips rows with no English name, unparseable GPS, or `Afficher ? = Non`. An optional `Début vidéo` column (seconds) sets where the guided tour starts that place's TikTok.
    - The id is the slug of the English name. It is also the URL hash deep link (`#udo-inari-shrine`).
    - `lireGPS` accepts `lat, lng`, decimal commas, and swapped order.
 4. `construireCategories()` joins places to the Catégories tab by name, case-insensitively.
@@ -223,8 +223,10 @@ The owner asked for these three on 2026-10-02 (ideas 1, 3 and 7 of a list I prop
     - On arrival, the place's video plays in a parchment frame (`.visite-video`): on the right on desktop, at the top on phones with the place below. It plays for the chosen time, then the tour cuts to the next place. The place's photo shows behind the player until it plays.
     - It uses the TikTok embed player (`player/v1/{id}`, `autoplay=1&muted=1`, every control off) and its postMessage API: commands `{type, value, 'x-tiktok-player': true}` (`play`, `pause`, `seekTo`, `mute`, `unMute`); events `onPlayerReady`, `onStateChange` (1 = playing, 2 = paused, 3 = buffering), `onMute`, `onPlayerError` (3002 = autoplay refused).
     - With `autoplay=0` the player sends no events and ignores `play` until clicked: always use `autoplay=1`.
+    - **Skipping the hook.** Almost every video opens with a 3 to 4 s Google Earth dive toward the place; the owner asked on 2026-10-02 to start after it. The clip starts at `debut(lieu)`: the place's optional Sheet column `Début vidéo` (seconds, `lireSecondes` accepts `4`, `4,5`, `0:04`), else `CONFIG.debutVideo` (4). Measured on 6 videos: at 3 s, 2 showed the place; at 3.5 s, 5; at 4 s, all 6. Videos shorter than the start + 3 s play from 0.
+    - The player stays invisible (the photo shows) until `onCurrentTime` reaches the start: a player that autoplays from 0 gets one `seekTo`. The stay starts then. If the video loops back below the start, it is sent there again.
     - The stay starts on the first `onStateChange` 1. If nothing plays within `ATTENTE_VIDEO` (6 s), the stay starts anyway on the photo; a video that starts later still gets the full time.
-    - The player takes 2 to 3 s to start. So the next place's player loads during the current stay, as a hidden `reserve` iframe paused as soon as it plays, and gets `seekTo 0` + `play` on arrival. The first place loads during the opening overview. Measured in Chrome: the video starts within 0.1 s of arrival.
+    - The player takes 2 to 3 s to start. So the next place's player loads during the current stay, as a hidden `reserve` iframe that gets `seekTo` (the start) + `pause` as soon as it plays, and `play` on arrival. The first place loads during the opening overview. Measured in Chrome: the video starts within 0.1 s of arrival.
     - Sound: the player always starts muted. "With sound" sends `unMute` once it plays; Chrome allows it after the Launch click. If a browser refuses (error 3002, or a pause we did not ask for), the video carries on muted.
     - Map padding: `margeLieu` puts the place beside or below the frame, reading the frame's laid-out position (it stays in the layout, invisible, between places). `survoler` computes the overview with `cameraForBounds` corrected for the current padding and flies back to zero padding. `arreter` eases the padding back to zero.
     - Pause and resume: on the place, the video and the orbit continue where they stopped. If the map was dragged during the pause, the tour flies back to the place.

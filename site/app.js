@@ -152,6 +152,7 @@ function construireLieux(lignes) {
       },
       photo: champ(r, ['photo', 'image']),
       autreLien: champ(r, ['autrelien', 'lien', 'link']),
+      debutVideo: lireSecondes(champ(r, ['debutvideo', 'debutvideos', 'debutdelavideo', 'videostart'])),
     });
   });
   // Nouveau : la vidéo a moins de CONFIG.joursNouveau jours
@@ -160,6 +161,12 @@ function construireLieux(lignes) {
     l.nouveau = !!l.date && Date.now() - l.date < (CONFIG.joursNouveau ?? 7) * 86400000;
   }
   return lieux;
+}
+
+/** « 4 », « 4,5 », « 4 s » ou « 0:04 » → 4 (secondes) ; une case vide → null. */
+function lireSecondes(texte) {
+  const m = String(texte).trim().replace(',', '.').match(/^(?:(\d+):)?(\d+(?:\.\d+)?)/);
+  return m ? Number(m[1] || 0) * 60 + Number(m[2]) : null;
 }
 
 /** Date de publication d'une vidéo TikTok : elle est cachée dans son numéro (les 32 premiers bits = secondes depuis 1970). */
@@ -957,6 +964,7 @@ const infosLieu = (l) => [enLangue(l.cat.nom), l.prefecture && enLangue(PREFECTU
 const visite = brancherVisite(map, {
   t, enLangue, infos: infosLieu, estTelephone,
   video: (l) => idVideo(l.tiktok),
+  debut: (l) => l.debutVideo ?? CONFIG.debutVideo ?? 4,
   affiche: (l) => (l.photo ? Promise.resolve(photoAllegee(l.photo)) : miniatureTiktok(l.tiktok)),
   avant: () => {
     arreterRotation();

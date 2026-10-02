@@ -126,6 +126,7 @@ Le bouton **Visite** (la petite caméra) fait voler la caméra toute seule d'un 
 - **Choisir les lieux :** une région ou une préfecture, un type de lieu (par exemple « tous les châteaux » ou « tout le Kyūshū »), ou seulement tes favoris.
 - **Temps sur chaque lieu :** court (4 s), normal (7 s) ou long (11 s).
 - **La vidéo de chaque lieu** (cochée au départ) : en arrivant sur un lieu, ta vidéo TikTok de ce lieu passe dans un cadre (à droite sur ordinateur, en haut sur téléphone), pendant le temps choisi. Puis on coupe et la caméra vole au lieu suivant. La vidéo du lieu suivant se prépare pendant ce temps, donc elle démarre tout de suite.
+- **Le plongeon du début est sauté :** chaque vidéo démarre à 4 secondes, directement sur le lieu. Si une vidéo commence autrement (sans plongeon, ou avec un plongeon plus long), ajoute une colonne **« Début vidéo »** tout à droite de l'onglet « Lieux » et écris sur sa ligne la seconde de départ (par exemple `0` ou `6`). Les cases vides gardent 4 secondes. Pour changer ces 4 secondes partout, change `debutVideo` dans `site/config.js`.
 - **Avec le son :** décoché au départ (pratique si tu ajoutes ta musique dans TikTok). Coché, on entend le son de tes vidéos.
 - La toute première fois, TikTok peut afficher dans le cadre un bandeau de cookies : réponds une fois, c'est retenu.
 - **Mode film** (coché au départ) : tous les boutons disparaissent, il ne reste que la carte et le nom du lieu. Bouge la souris ou touche l'écran pour faire revenir la petite barre (pause, lieu précédent ou suivant, arrêter).

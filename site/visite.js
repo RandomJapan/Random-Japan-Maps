@@ -29,13 +29,14 @@ const ICONES = {
 
 /**
  * outils : { t, enLangue, infos(lieu) → « Catégorie · Préfecture », video(lieu) → numéro de la vidéo TikTok,
+ *            debut(lieu) → seconde où commence l'extrait (après le plongeon du début de la vidéo),
  *            affiche(lieu) → Promise de l'adresse de sa photo, estTelephone, avant(), apres() }
  *   avant() : appelé au début (fermer les menus et la fiche, arrêter la rotation…)
  *   apres() : appelé à la fin
  * Renvoie { lancer(liste, { duree, film, video, son }), arreter(), enCours(), majLangue() }.
  */
 export function brancherVisite(map, outils) {
-  const { t, enLangue, infos, video, affiche, estTelephone, avant, apres } = outils;
+  const { t, enLangue, infos, video, debut, affiche, estTelephone, avant, apres } = outils;
   const calme = matchMedia('(prefers-reduced-motion: reduce)').matches;
   // etat : { liste, i, duree, film, avecVideo, son, pause, jeton, minuterie, attente, finSejour, reste,
   //          surPlace (arrivé sur le lieu), deplace (on a bougé la carte pendant la pause),
@@ -231,10 +232,13 @@ export function brancherVisite(map, outils) {
   }
 
   // ---- La vidéo TikTok du lieu
-  // Un lecteur : { lieu, iframe, pret (il a déjà joué), joue (il a joué depuis qu'il est affiché),
-  //   commence (le séjour a commencé), secours (commencé sans la vidéo), sonEssaye, repli (son refusé), pauseVoulue }.
+  // Un lecteur : { lieu, iframe, pret (il a déjà joué), joue (l'extrait se voit), temps et longueur (en s),
+  //   saut (on a demandé d'aller au début de l'extrait), commence (le séjour a commencé),
+  //   secours (commencé sans la vidéo), sonEssaye, repli (son refusé), pauseVoulue }.
+  // L'extrait commence après le plongeon depuis le ciel du début des vidéos (debut(lieu), 4 s) : le lecteur
+  // reste invisible (on voit la photo) jusqu'à ce qu'il y soit.
   // Le lecteur TikTok met 2 à 3 s à démarrer : la vidéo du lieu suivant se charge donc en réserve pendant
-  // le séjour (invisible, mise en pause dès qu'elle joue) et repart du début dès l'arrivée.
+  // le séjour (invisible, calée au début de l'extrait et mise en pause dès qu'elle joue) et part dès l'arrivée.
   function creerLecteur(l) {
     const iframe = document.createElement('iframe');
     // toujours muet au départ : c'est la seule lecture automatique que tous les navigateurs acceptent
@@ -244,7 +248,16 @@ export function brancherVisite(map, outils) {
     iframe.tabIndex = -1;
     iframe.className = 'reserve';
     ecran.append(iframe);
-    return { lieu: l, iframe, pret: false, joue: false, commence: false, secours: false, sonEssaye: false, repli: false, pauseVoulue: false };
+    return {
+      lieu: l, iframe, pret: false, joue: false, temps: 0, longueur: 0, saut: false,
+      commence: false, secours: false, sonEssaye: false, repli: false, pauseVoulue: false,
+    };
+  }
+
+  /** La seconde où commence l'extrait (0 si la vidéo est trop courte pour sauter le plongeon). */
+  function departDe(lecteur) {
+    const d = Math.max(0, Number(debut(lecteur.lieu)) || 0);
+    return lecteur.longueur && lecteur.longueur < d + 3 ? 0 : d;
   }
 
   function prechargerVideo(l) {
@@ -264,7 +277,7 @@ export function brancherVisite(map, outils) {
     let lecteur = etat.reserve;
     if (lecteur?.lieu === l) {
       etat.reserve = null;
-      if (lecteur.pret) commander('seekTo', lecteur, 0);
+      if (lecteur.pret && Math.abs(lecteur.temps - departDe(lecteur)) > 0.6) commander('seekTo', lecteur, departDe(lecteur));
     } else {
       jeterReserve();
       lecteur = creerLecteur(l);
@@ -310,6 +323,15 @@ export function brancherVisite(map, outils) {
     setTimeout(() => lecteur.iframe.remove(), 600); // après le fondu du cadre
   }
 
+  /** L'extrait commence : le lecteur apparaît par-dessus la photo et le séjour démarre. */
+  function montrerExtrait(lecteur) {
+    lecteur.joue = true;
+    cadreVideo.classList.add('joue');
+    // la vidéo a tout son temps, même si elle a démarré après l'attente maximale
+    if (lecteur.secours) orbiter(etat.duree);
+    if (!lecteur.commence || lecteur.secours) { lecteur.secours = false; sejour(etat.jeton, etat.duree); }
+  }
+
   /** Le son a été refusé par le navigateur : on relance la vidéo sans le son. */
   function sansSon(lecteur) {
     lecteur.repli = true;
@@ -328,25 +350,33 @@ export function brancherVisite(map, outils) {
     if (typeof d === 'string') { try { d = JSON.parse(d); } catch { return; } }
     if (!d?.['x-tiktok-player']) return;
     const etatLecteur = d.type === 'onStateChange' ? d.value : null;
+    if (d.type === 'onCurrentTime') {
+      lecteur.temps = Number(d.value?.currentTime) || 0;
+      lecteur.longueur = Number(d.value?.duration) || lecteur.longueur;
+    }
 
     if (lecteur === reserve) {
-      // En réserve : dès qu'elle joue, elle est prête ; on l'arrête en attendant l'arrivée
-      if (etatLecteur === 1 && !lecteur.pret) { lecteur.pret = true; commander('pause', lecteur); }
-      else if (d.type === 'onPlayerError') jeterReserve();
+      // En réserve : dès qu'elle joue, on la cale au début de l'extrait et on l'arrête en attendant l'arrivée
+      if (etatLecteur === 1 && !lecteur.pret) {
+        lecteur.pret = true;
+        commander('seekTo', lecteur, departDe(lecteur));
+        commander('pause', lecteur);
+      } else if (d.type === 'onPlayerError') jeterReserve();
       return;
     }
+    const depart = departDe(lecteur);
     if (d.type === 'onPlayerReady' && !lecteur.joue && !etat.pause) commander('play', lecteur);
     else if (etatLecteur === 1) {
       lecteur.pret = true;
-      cadreVideo.classList.add('joue');
       if (etat.pause) { commander('pause', lecteur); return; }
       if (etat.son && !lecteur.sonEssaye) { lecteur.sonEssaye = true; commander('unMute', lecteur); }
-      if (!lecteur.joue) {
-        lecteur.joue = true;
-        // la vidéo a tout son temps, même si elle a démarré après l'attente maximale
-        if (lecteur.secours) orbiter(etat.duree);
-        if (!lecteur.commence || lecteur.secours) { lecteur.secours = false; sejour(etat.jeton, etat.duree); }
-      }
+      if (lecteur.joue) return;
+      if (lecteur.temps >= depart - 0.3) montrerExtrait(lecteur);
+      else if (!lecteur.saut) { lecteur.saut = true; commander('seekTo', lecteur, depart); } // on saute le plongeon
+    } else if (d.type === 'onCurrentTime' && !etat.pause) {
+      if (!lecteur.joue && lecteur.temps >= depart - 0.3) montrerExtrait(lecteur);
+      // la vidéo a fait le tour (boucle) : on saute encore le plongeon
+      else if (lecteur.joue && lecteur.temps < depart - 0.5) commander('seekTo', lecteur, depart);
     } else if (etatLecteur === 2 && !lecteur.pauseVoulue && !etat.pause && lecteur.sonEssaye && !lecteur.repli) {
       sansSon(lecteur); // certains navigateurs arrêtent la vidéo quand on remet le son
     } else if (d.type === 'onPlayerError') {
