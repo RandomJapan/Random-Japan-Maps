@@ -12,6 +12,7 @@ import { brancherNomsRegions } from './noms-regions.js';
 import { brancherCompteur } from './compteur.js';
 import { lireFavoris, ecrireFavoris, ordreDeVoyage, liensItineraire } from './favoris.js';
 import { brancherVisite } from './visite.js';
+import { brancherPrecharge } from './precharge.js';
 import { gererReperes } from './reperes.js';
 
 const $ = (id) => document.getElementById(id);
@@ -574,7 +575,9 @@ function changerRelief(e) {
 
 function majSelonZoom() {
   const z = map.getZoom();
-  const e = Math.round(exageration(z) * 10) / 10;
+  // Par pas de 0,01 : avec des pas de 0,1, de près (×1,5 à ×2,5), les montagnes rétrécissaient par
+  // crans de 4 à 7 % en zoomant, et leurs sommets sautaient à l'écran (on le voyait en plongeant).
+  const e = Math.round(exageration(z) * 100) / 100;
   // Pas de garde isStyleLoaded() : elle reste fausse tant que des tuiles chargent (pendant un vol
   // vers un lieu), et le relief gardait alors l'exagération ×30 de la vue lointaine.
   if (e !== exagActuelle) {
@@ -993,6 +996,7 @@ const infosLieu = (l) => [enLangue(l.cat.nom), l.prefecture && enLangue(PREFECTU
 
 const visite = brancherVisite(map, {
   t, enLangue, infos: infosLieu, estTelephone, vueDepart, adresse: CONFIG.adresse,
+  exageration, preparerVol: brancherPrecharge(map, maplibregl, TUILES_RELIEF),
   video: (l) => idVideo(l.tiktok),
   debut: (l) => l.debutVideo ?? CONFIG.debutVideo ?? 4,
   affiche: (l) => (l.photo ? Promise.resolve(photoAllegee(l.photo)) : miniatureTiktok(l.tiktok)),
@@ -1013,6 +1017,7 @@ const visite = brancherVisite(map, {
 // (coordonnées GPS ou lien Google Maps), avec un lieu provisoire (épingle et modèle 3D de son type),
 // retiré quand le plongeon s'arrête.
 const MEMO_PLONGEON = 'plongeon'; // les derniers champs remplis (localStorage), pour refaire une prise plus tard
+let minuteriePosition = 0;
 
 function choisirOnglet(plongeon) {
   $('onglet-visite').setAttribute('aria-selected', String(!plongeon));
@@ -1073,6 +1078,7 @@ async function lancerPlongeon() {
   l.el.querySelector('.repere-nom').textContent = enLangue(l.nom);
   reperes.montrer(l.epingle, true);
   modeles3d.provisoires([l]);
+  modeles3d.preparer();
   visite.plonger(l, {
     fin: () => {
       reperes.oublier(l.epingle);
@@ -1526,7 +1532,17 @@ function brancherBoutons() {
   $('onglet-visite').addEventListener('click', () => choisirOnglet(false));
   $('onglet-plongeon').addEventListener('click', () => choisirOnglet(true));
   $('btn-plongeon').addEventListener('click', lancerPlongeon);
-  $('plongeon-position').addEventListener('input', () => { $('plongeon-erreur').hidden = true; });
+  $('plongeon-position').addEventListener('input', () => {
+    $('plongeon-erreur').hidden = true;
+    // le relief du trajet se télécharge dès que la position est collée : il sera prêt pour « Plonger »
+    clearTimeout(minuteriePosition);
+    minuteriePosition = setTimeout(() => {
+      const p = lirePosition($('plongeon-position').value);
+      if (p.erreur) return;
+      visite.preparerPlongeon(p);
+      modeles3d.preparer();
+    }, 600);
+  });
   $('btn-jeu').addEventListener('click', () => lancerJeu().catch((e) => console.warn('Jeu indisponible', e)));
   $('fiche-favori').addEventListener('click', () => {
     if (!lieuActif) return;

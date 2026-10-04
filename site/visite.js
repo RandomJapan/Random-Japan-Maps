@@ -18,7 +18,8 @@ const ZOOM_LIEU = 12;
 const CACHER_BARRE = 2500; // ms sans bouger avant que la barre se cache, en mode film
 const ATTENTE_VIDEO = 6000; // ms : si la vidéo n'a pas démarré, on continue avec la photo du lieu
 const PAUSE_PLONGEON = 1200; // ms d'image fixe sur tout le Japon avant de plonger (pour couper au montage)
-const DUREE_PLONGEON = 4200; // ms : le plongeon lui-même
+const DUREE_PLONGEON = 2500; // ms : le plongeon lui-même (la propriétaire l'a voulu entre 2 et 3 s)
+const ATTENTE_PRECHARGE = 10000; // ms au plus d'image fixe à attendre les tuiles du trajet (precharge.js)
 const SANS_MARGE = { top: 0, bottom: 0, left: 0, right: 0 };
 // Lecteur TikTok sans boutons ni textes ; il démarre tout seul (muet, sinon le navigateur peut refuser)
 const LECTEUR = 'https://www.tiktok.com/player/v1/';
@@ -38,14 +39,18 @@ const ICONES = {
  * outils : { t, enLangue, infos(lieu) → « Catégorie · Préfecture », video(lieu) → numéro de la vidéo TikTok,
  *            debut(lieu) → seconde où commence l'extrait (après le plongeon du début de la vidéo),
  *            affiche(lieu) → Promise de l'adresse de sa photo, estTelephone, vueDepart() → la vue de tout le Japon,
- *            adresse → l'adresse de la carte, écrite à l'écran en mode film, avant(), apres() }
+ *            adresse → l'adresse de la carte, écrite à l'écran en mode film,
+ *            exageration(zoom) → la hauteur du relief à ce zoom (sans paliers),
+ *            preparerVol(depart, arrivee, hauteur) → Promise de { altitude } (precharge.js), avant(), apres() }
  *   avant() : appelé au début (fermer les menus et la fiche, arrêter la rotation…)
  *   apres() : appelé à la fin
- * Renvoie { lancer(liste, { duree, film, video, son }), plonger(lieu, { fin }), arreter(), enCours(), majLangue() }.
+ * Renvoie { lancer(liste, { duree, film, video, son }), plonger(lieu, { fin }), preparerPlongeon(lieu), arreter(),
+ *   enCours(), majLangue() }.
  *   plonger : fin() est appelé quand le plongeon s'arrête (app.js y retire le lieu provisoire).
+ *   preparerPlongeon : télécharge d'avance le relief du trajet (dès que la position est collée).
  */
 export function brancherVisite(map, outils) {
-  const { t, enLangue, infos, video, debut, affiche, estTelephone, vueDepart, adresse, avant, apres } = outils;
+  const { t, enLangue, infos, video, debut, affiche, estTelephone, vueDepart, adresse, exageration, preparerVol, avant, apres } = outils;
   const calme = matchMedia('(prefers-reduced-motion: reduce)').matches;
   // etat : { liste, i, duree, film, avecVideo, son, pause, jeton, minuterie, attente, finSejour, reste,
   //          plongeon (un seul lieu, en plongeant depuis tout le Japon),
@@ -255,9 +260,11 @@ export function brancherVisite(map, outils) {
 
   // ---- Le plongeon
   /**
-   * Plongeon : une image fixe de tout le Japon, puis la caméra plonge sur le lieu en ~4 s, et tourne
+   * Plongeon : une image fixe de tout le Japon, puis la caméra plonge sur le lieu en 2,5 s, et tourne
    * lentement autour jusqu'à ce qu'on arrête. Toujours en mode film. « Rejouer » (barre, Espace)
    * recommence, pour refaire une prise. fin() : appelé quand on arrête (pas quand on rejoue).
+   * Pendant l'image fixe, les tuiles de relief du trajet se téléchargent (precharge.js) : la descente
+   * ne les attend plus.
    */
   function plonger(l, { fin } = {}) {
     if (!l) return;
@@ -269,25 +276,65 @@ export function brancherVisite(map, outils) {
     majLangue();
     montrerBarre(900); // partie avant que la caméra plonge : la prise reste propre (un appui la fait revenir)
     const jeton = ++etat.jeton;
+    const vol = volPlongeon(l);
+    const pret = preparerPlongeon(l);
     map.stop();
-    map.jumpTo({ ...vueDepart(), padding: SANS_MARGE });
-    quandDessinee(jeton, () => {
-      etat.minuterie = setTimeout(() => { if (jeton === etat?.jeton) descendre(l, jeton); }, calme ? 0 : PAUSE_PLONGEON);
+    map.jumpTo(vol.depart);
+    Promise.all([dessinee(), Promise.race([pret, attendre(ATTENTE_PRECHARGE)])]).then(([, prep]) => {
+      if (jeton !== etat?.jeton) return;
+      etat.minuterie = setTimeout(() => { if (jeton === etat?.jeton) descendre(l, jeton, vol, prep?.altitude); }, calme ? 0 : PAUSE_PLONGEON);
     });
   }
 
-  /** Attend que le relief de la vue soit chargé (3 s au plus), pour que l'image de départ soit nette. */
-  function quandDessinee(jeton, fin) {
-    const debutAttente = performance.now();
-    const verifier = () => {
-      if (jeton !== etat?.jeton) return;
-      if (map.areTilesLoaded() || performance.now() - debutAttente > 3000) fin();
-      else setTimeout(verifier, 150);
+  /** Le vol du plongeon : la caméra de départ (tout le Japon) et les options du flyTo jusqu'au lieu. */
+  function volPlongeon(l) {
+    const depart = { ...vueDepart(), padding: SANS_MARGE };
+    return {
+      depart,
+      arrivee: {
+        center: [l.lng, l.lat], zoom: ZOOM_LIEU, pitch: estTelephone() ? 56 : 60,
+        bearing: depart.bearing + (calme ? 0 : 30),
+        padding: margePlongeon(),
+        minZoom: depart.zoom, // on plonge tout droit, sans reprendre de hauteur au début
+      },
     };
-    setTimeout(verifier, 200);
   }
 
-  function descendre(l, jeton) {
+  /** Télécharge d'avance le relief du trajet et lit l'altitude du lieu (une seule fois par position). */
+  function preparerPlongeon(l) {
+    if (!preparerVol) return Promise.resolve(null);
+    const { depart, arrivee } = volPlongeon(l);
+    return preparerVol(depart, arrivee, (alt) => hauteurPendantVol(alt, depart.zoom, 0)).catch(() => null);
+  }
+
+  /**
+   * Hauteur du centre de la vue pendant la descente (m) : de celle du départ (h0) à celle du sol du
+   * lieu au zoom d'arrivée, en suivant le zoom. Sans ça, MapLibre la recalculait à chaque image : le
+   * relief rétrécit pendant la descente (exagération ×30 → ×1,5) et ses tuiles se précisent, alors la
+   * caméra montait et descendait par à-coups au-dessus des montagnes.
+   */
+  function hauteurPendantVol(altitude, z0, h0) {
+    return (z) => {
+      const p = Math.min(1, Math.max(0, (z - z0) / (ZOOM_LIEU - z0)));
+      return h0 + (Math.max(0, altitude) * exageration(Math.min(z, ZOOM_LIEU)) - h0) * p;
+    };
+  }
+
+  const attendre = (ms) => new Promise((ok) => setTimeout(ok, ms));
+
+  /** Attend que le relief de la vue soit chargé (3 s au plus), pour que l'image de départ soit nette. */
+  function dessinee() {
+    const debutAttente = performance.now();
+    return new Promise((ok) => {
+      const verifier = () => {
+        if (!etat || map.areTilesLoaded() || performance.now() - debutAttente > 3000) ok();
+        else setTimeout(verifier, 150);
+      };
+      setTimeout(verifier, 200);
+    });
+  }
+
+  function descendre(l, jeton, { arrivee }, altitude) {
     map.once('moveend', () => {
       if (jeton !== etat?.jeton) return;
       etat.surPlace = true;
@@ -295,13 +342,12 @@ export function brancherVisite(map, outils) {
       // puis un lent tour du lieu (2,6° par seconde, comme la visite), jusqu'à ce qu'on arrête
       if (!calme) map.easeTo({ bearing: map.getBearing() + 360, duration: 140000, easing: (x) => x, essential: true });
     });
-    map.flyTo({
-      center: [l.lng, l.lat], zoom: ZOOM_LIEU, pitch: estTelephone() ? 56 : 60,
-      bearing: map.getBearing() + (calme ? 0 : 30),
-      padding: margePlongeon(),
-      minZoom: map.getZoom(), // on plonge tout droit, sans reprendre de hauteur au début
-      duration: calme ? 0 : DUREE_PLONGEON, essential: true,
-    });
+    // la hauteur du centre suit le zoom, jusqu'au sol du lieu (gardée pendant le tour, retirée à l'arrêt)
+    if (altitude != null && exageration) {
+      const hauteur = hauteurPendantVol(altitude, map.getZoom(), map.getCenterElevation());
+      map.setTransformCameraUpdate(({ zoom }) => ({ elevation: hauteur(zoom) }));
+    }
+    map.flyTo({ ...arrivee, duration: calme ? 0 : DUREE_PLONGEON, essential: true });
   }
 
   /** Sur téléphone, le nom du lieu est plus haut (hors de la zone des textes de TikTok) : le lieu se pose au-dessus. */
@@ -515,6 +561,7 @@ export function brancherVisite(map, outils) {
     jeterReserve();
     etat = null;
     map.stop();
+    map.setTransformCameraUpdate(null); // la hauteur du plongeon
     cacherTitre();
     document.body.classList.remove('en-visite', 'mode-film', 'visite-calme', 'plongeon', 'visite-avec-video');
     verrou?.release().catch(() => {});
@@ -556,7 +603,7 @@ export function brancherVisite(map, outils) {
     if (etat && !document.hidden && !verrou) navigator.wakeLock?.request('screen').then((v) => { verrou = v; }).catch(() => {});
   });
 
-  return { lancer, plonger, arreter, enCours: () => !!etat, majLangue };
+  return { lancer, plonger, preparerPlongeon, arreter, enCours: () => !!etat, majLangue };
 }
 
 const echapper = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);

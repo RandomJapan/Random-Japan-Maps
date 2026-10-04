@@ -32,6 +32,7 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
   let filtre = null; // si posé, seuls les lieux pour lesquels filtre(lieu) est vrai ont leur modèle (jeu.js)
   let provisoires = []; // lieux qui ne sont pas (encore) dans le tableau : le plongeon sur un nouveau lieu
   let outils3d = null; // { modeles, modelePour, matiere } une fois three.js chargé
+  let chauffer = false; // compiler les shaders des modèles à la prochaine image (avant un plongeon)
   const m4 = {};
 
   map.on('sourcedata', (e) => { if (e.sourceId === 'relief' && e.tile) versionRelief++; });
@@ -108,6 +109,13 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
       m4.base = new THREE.Matrix4().set(1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1);
     },
     render(gl, args) {
+      if (chauffer && types) {
+        // Compilés d'avance, pendant l'image fixe du plongeon : à leur premier dessin, ils figeaient
+        // une image en pleine descente.
+        chauffer = false;
+        renderer.resetState();
+        renderer.compile(scene, camera);
+      }
       const z = map.getZoom();
       const pousse = lisser((z - ZOOM_DEBUT) / (ZOOM_PLEIN - ZOOM_DEBUT));
       dessines = [];
@@ -216,6 +224,16 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
   }
 
   return {
+    /**
+     * Prépare tout d'avance (avant un plongeon) : three.js chargé, modèles fabriqués (~100 ms sur un
+     * téléphone moyen) et shaders compilés. Sinon, ça se faisait en pleine descente, au zoom 7 et 8,6.
+     */
+    preparer() {
+      if (etat === 'attente') charger();
+      if (etat === 'echec') return;
+      chauffer = true;
+      map.triggerRepaint();
+    },
     /** Lieux qui ne sont pas dans le tableau, dessinés comme les autres (au plus RESERVE) ; [] pour les retirer. */
     provisoires(liste) {
       provisoires = liste.slice(0, RESERVE);
