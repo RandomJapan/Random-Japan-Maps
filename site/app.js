@@ -13,6 +13,7 @@ import { brancherCompteur } from './compteur.js';
 import { lireFavoris, ecrireFavoris, ordreDeVoyage, liensItineraire } from './favoris.js';
 import { brancherVisite } from './visite.js';
 import { brancherPrecharge } from './precharge.js';
+import { brancherTuilesRelief } from './tuiles-relief.js';
 import { gererReperes } from './reperes.js';
 
 const $ = (id) => document.getElementById(id);
@@ -239,9 +240,11 @@ function exageration(z) {
   return R[R.length - 1][1];
 }
 
+// Les tuiles de Mapterhorn, sans demander celles du grand large qu'il n'a pas (tuiles-relief.js)
+const tuilesRelief = brancherTuilesRelief(maplibregl);
 const TUILES_RELIEF = {
   type: 'raster-dem',
-  tiles: ['https://tiles.mapterhorn.com/{z}/{x}/{y}.webp'],
+  tiles: [tuilesRelief.modele],
   tileSize: 512,
   maxzoom: 12,
   encoding: 'terrarium',
@@ -996,7 +999,7 @@ const infosLieu = (l) => [enLangue(l.cat.nom), l.prefecture && enLangue(PREFECTU
 
 const visite = brancherVisite(map, {
   t, enLangue, infos: infosLieu, estTelephone, vueDepart, adresse: CONFIG.adresse,
-  exageration, preparerVol: brancherPrecharge(map, maplibregl, TUILES_RELIEF),
+  exageration, preparerVol: brancherPrecharge(map, maplibregl, TUILES_RELIEF, tuilesRelief),
   video: (l) => idVideo(l.tiktok),
   debut: (l) => l.debutVideo ?? CONFIG.debutVideo ?? 4,
   affiche: (l) => (l.photo ? Promise.resolve(photoAllegee(l.photo)) : miniatureTiktok(l.tiktok)),

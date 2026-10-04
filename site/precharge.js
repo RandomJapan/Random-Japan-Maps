@@ -13,13 +13,14 @@ const RHO = 1.42; // la courbure du flyTo de MapLibre (sa valeur par défaut)
 const EN_PARALLELE = 8;
 
 /**
- * source : la source de relief (tiles, tileSize, maxzoom, encodage terrarium).
+ * source : la source de relief (tileSize, maxzoom, encodage terrarium) ;
+ * tuiles : tuiles-relief.js (la vraie adresse d'une tuile, et les tuiles vides du grand large, à ne pas demander).
  * Renvoie preparer(depart, arrivee, hauteur) → Promise de { altitude, tuiles } (une seule fois par vol) :
  *   depart : la caméra au départ { center, zoom, pitch, bearing, padding } ;
  *   arrivee : les options du flyTo { center, zoom, pitch, bearing, padding, minZoom } ;
  *   hauteur(altitude) → (zoom → hauteur du centre de la vue pendant le vol), ou null.
  */
-export function brancherPrecharge(map, maplibregl, source) {
+export function brancherPrecharge(map, maplibregl, source, tuiles) {
   const vols = new Map(); // clé → Promise
 
   function preparer(depart, arrivee, hauteur) {
@@ -32,6 +33,7 @@ export function brancherPrecharge(map, maplibregl, source) {
   }
 
   async function lancer(depart, arrivee, hauteur) {
+    await tuiles.pret;
     const [lng, lat] = arrivee.center;
     const alt = await altitude(lng, lat);
     let adresses = [];
@@ -44,10 +46,6 @@ export function brancherPrecharge(map, maplibregl, source) {
     return { altitude: alt, tuiles: adresses.length };
   }
 
-  function adresse(z, x, y) {
-    return source.tiles[0].replace('{z}', z).replace('{x}', x).replace('{y}', y);
-  }
-
   /**
    * L'altitude réelle du sol (m), lue dans la tuile de relief la plus précise (encodage terrarium,
    * entre les 4 pixels voisins). 0 sans tuile (le large) ; null si on n'a pas pu la lire.
@@ -58,8 +56,12 @@ export function brancherPrecharge(map, maplibregl, source) {
       const x = ((lng + 180) / 360) * n;
       const y = ((1 - Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360)) / Math.PI) / 2) * n;
       const tx = Math.floor(x), ty = Math.floor(y);
-      const r = await fetch(adresse(z, tx, ty));
-      if (r.status === 404) return 0; // Mapterhorn n'a pas de tuile en pleine mer
+      if (tuiles.estVide(z, tx, ty)) return 0; // Mapterhorn n'a pas de tuile au grand large
+      const r = await fetch(tuiles.adresse(z, tx, ty));
+      if (r.status === 404) {
+        tuiles.noterVide(z, tx, ty);
+        return 0;
+      }
       if (!r.ok) return null;
       const image = await createImageBitmap(await r.blob(), { colorSpaceConversion: 'none', premultiplyAlpha: 'none' });
       const toile = document.createElement('canvas');
@@ -122,7 +124,7 @@ export function brancherPrecharge(map, maplibregl, source) {
     }));
     const camera = { _camera: { transform: tr } }; // map.coveringTiles ne lit que this._camera.transform
     const adresses = new Set();
-    const ajouter = (z, x, y) => adresses.add(adresse(z, x, y));
+    const ajouter = (z, x, y) => { if (!tuiles.estVide(z, x, y)) adresses.add(tuiles.adresse(z, x, y)); };
     const couvrir = () => {
       for (const o of options) {
         for (const { canonical: c } of map.coveringTiles.call(camera, o)) {
@@ -160,7 +162,9 @@ export function brancherPrecharge(map, maplibregl, source) {
       while (i < adresses.length) {
         const a = adresses[i++];
         try {
-          await (await fetch(a)).arrayBuffer();
+          const r = await fetch(a);
+          if (r.status === 404) tuiles.noterVide(...a.match(/(\d+)\/(\d+)\/(\d+)\.webp$/).slice(1).map(Number));
+          else await r.arrayBuffer();
         } catch {
           // tant pis : MapLibre la redemandera pendant le vol
         }
