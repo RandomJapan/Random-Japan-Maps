@@ -146,6 +146,10 @@ Il sert pour un **nouveau lieu, pas encore sur la carte** : tu filmes le début 
 - **Type de lieu :** il choisit la couleur de l'épingle et le modèle 3D posé sur le lieu (un torii pour un sanctuaire…).
 - Appuie sur **Plonger** : la carte montre tout le Japon pendant au moins une seconde (le temps de charger d'avance le relief du trajet, pour une descente fluide), puis plonge sur le lieu en 2 secondes et demie, jusqu'à son modèle 3D. Ensuite la caméra tourne lentement autour. Cette épingle disparaît quand tu arrêtes : le vrai lieu arrivera par le tableau, comme d'habitude.
 - La carte se souvient des derniers champs remplis, pour refaire une prise plus tard.
+- **Affiche à incruster :** sous « Plonger », ce bouton fabrique le carton du nom qui s'affiche à l'arrivée (nom japonais, nom anglais, type · préfecture), en image PNG **à fond transparent**, à poser sur ta vidéo au montage (CapCut…).
+  - Elle est toujours **en anglais**, comme tes vidéos. Il faut au moins le nom ; la préfecture vient de la position.
+  - Sur iPhone, le menu de partage s'ouvre : choisis **Enregistrer l'image**, elle va dans tes photos. Sur Android, choisis l'appli de montage ou l'enregistrement. Sur ordinateur, l'image se télécharge.
+  - Elle est grande (4 fois la taille du bandeau sur un téléphone) : réduis-la dans le montage, elle reste nette.
 - **Pour filmer :** lance l'enregistreur d'écran du téléphone, puis appuie sur Plonger. Au montage, garde le passage qui va de l'image de tout le Japon à l'arrivée sur le lieu, puis enchaîne sur tes images.
 - Les boutons disparaissent tout de suite. Touche l'écran pour faire revenir la barre : **Rejouer** (rouge, pour refaire une prise) et **Arrêter**. Sur ordinateur : Espace = rejouer, Échap = arrêter.
 - Sur téléphone, le nom du lieu est placé plus haut que pendant la visite, pour ne pas être caché par la légende de ta vidéo TikTok.

@@ -186,14 +186,14 @@ function dessinerVignettes(c, images, rangees, { gauche, largeur, haut, largeurC
   c.restore();
 }
 
-function chargerImage(src) {
+export function chargerImage(src) {
   const im = new Image();
   im.src = src;
   return im.decode().then(() => im);
 }
 
 /** Le grain du papier : la même texture que la carte (variable --grain de style.css). */
-function adresseGrain() {
+export function adresseGrain() {
   const v = getComputedStyle(document.documentElement).getPropertyValue('--grain');
   const m = v.match(/url\(["']?(.*?)["']?\)\s*$/);
   if (!m) throw new Error('grain');
@@ -242,7 +242,7 @@ function motsJaponais(texte) {
 }
 
 /** Comme lignes(), mais des lignes de longueurs voisines (pas un mot tout seul sur la dernière). */
-function lignesEquilibrees(c, texte, largeur) {
+export function lignesEquilibrees(c, texte, largeur) {
   const n = lignes(c, texte, largeur).length;
   if (n < 2) return lignes(c, texte, largeur);
   let bas = largeur / 2, haut = largeur;

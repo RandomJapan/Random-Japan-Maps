@@ -156,6 +156,8 @@ svg { display: block; }
 .onglets button[aria-selected="true"] { background: var(--rouge); color: var(--papier-clair); }
 .plongeon-aide { margin: -6px 2px 14px; font-size: 12.5px; line-height: 1.45; color: var(--encre-3); }
 .plongeon-erreur { margin: -6px 2px 14px; font-size: 13px; font-weight: 600; line-height: 1.4; color: var(--rouge); }
+.btn-affiche { margin-top: 10px; }
+.plongeon-aide-affiche { margin: 6px 2px 0; }
 .btn-lancer {
   width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 4px;
   padding: 13px; border: 0; border-radius: var(--rayon); background: var(--rouge); color: var(--papier-clair);

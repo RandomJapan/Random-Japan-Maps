@@ -266,6 +266,12 @@ The owner asked for these three on 2026-10-02 (ideas 1, 3 and 7 of a list I prop
     - Result at CPU ÷4: the place's biggest screen jumps went from 2.2 to 0.35 px/ms (12–14 → 0–3 frames above 0.3), and the longest frame from 128 to 67–94 ms, with a flight 40 % shorter. The first second (zoom 4.6 → 10) is still busy: MapLibre decoding and drawing the new tiles of each level.
   - It always uses film mode, with `body.plongeon`. The bar keeps only Rejouer (red) and Arrêter, and hides after 0.9 s so the take stays clean. Space/Enter replay, Esc stops. Map gestures don't pause it.
   - On phones the lower third sits at `bottom: 22dvh`, out of the zone TikTok covers with its caption. `margePlongeon` keeps the place above it.
+- **Title card to overlay (`site/affiche.js`, 2026-10-04).** The owner overlays the place's name card on their own footage in their TikToks. Below "Plonger", the Dive tab has "Title card for your video" (`#btn-affiche`). It draws the phone lower third (`.visite-titre` measures: vertical Japanese name in its box, name, type · prefecture) on a canvas at ×4, as a PNG with a transparent background and the drop shadow.
+  - It is always in English, the language of the videos: `type.nom.en` and `PREFECTURES[p].en`. The prefecture comes from the position, if one is filled in. A name is required (`plongeonErreurNom`).
+  - In the vertical name, dashes and brackets (`ー`, `「」`…) are drawn turned a quarter turn, as the browser does. The grain tile is redrawn at ×4 (it is an SVG) so it stays sharp.
+  - It reuses `chargerImage`, `adresseGrain` and `lignesEquilibrees`, now exported by `bravo-image.js`.
+  - On touch devices it goes to `navigator.share({ files })`, so iOS can "Save image" to Photos for CapCut. On a computer, or if sharing is refused, it downloads `<slug>.png`. The file is prepared 500 ms after each field change (`preparerAfficheBientot`), because the share must follow the tap closely.
+  - The fields are remembered (`memoriserPlongeon`) on a dive or a title card.
 - **Address watermark (`.filigrane`).** In film mode (tour and dive), the logo plus `CONFIG.adresse` (`map.randomjapanplace.com`) sit on a fresh-parchment label, top centre, below where TikTok draws its tabs. In a phone tour with videos (`body.visite-avec-video`) the label moves just under the video frame, and `margeLieu` adds its height.
 - **Layout.** The button row now holds Categories, Random, Tour, Favorites and Legends. `.filtres` has no fixed width any more; its menus are 340px. On phones, Tour and Favorites show only their icon.
 

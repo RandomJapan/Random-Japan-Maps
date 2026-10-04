@@ -1034,6 +1034,7 @@ function choisirOnglet(plongeon) {
   for (const [id, cle] of [['plongeon-position', 'position'], ['plongeon-nom', 'nom'], ['plongeon-nom-ja', 'nomJa']]) {
     if (!$(id).value && memo[cle]) $(id).value = memo[cle];
   }
+  preparerAfficheBientot();
 }
 
 /**
@@ -1053,6 +1054,16 @@ function lirePosition(texte) {
   return p;
 }
 
+/** Garde les champs remplis (pour refaire une prise ou une affiche plus tard). */
+function memoriserPlongeon() {
+  try {
+    localStorage.setItem(MEMO_PLONGEON, JSON.stringify({
+      position: $('plongeon-position').value.trim(), nom: $('plongeon-nom').value.trim(),
+      nomJa: $('plongeon-nom-ja').value.trim(), type: $('plongeon-type').value,
+    }));
+  } catch { /* pas grave */ }
+}
+
 async function lancerPlongeon() {
   const p = lirePosition($('plongeon-position').value);
   const erreur = $('plongeon-erreur');
@@ -1065,9 +1076,7 @@ async function lancerPlongeon() {
   const cat = { ...type, visible: true }; // une copie : une catégorie vide ou masquée a quand même son modèle
   const nom = $('plongeon-nom').value.trim();
   const nomJa = $('plongeon-nom-ja').value.trim();
-  try {
-    localStorage.setItem(MEMO_PLONGEON, JSON.stringify({ position: $('plongeon-position').value.trim(), nom, nomJa, type: type.cle }));
-  } catch { /* pas grave */ }
+  memoriserPlongeon();
   await preparerPrefectures().catch(() => {}); // pour écrire la préfecture sous le nom
   const l = {
     id: 'plongeon', lng: p.lng, lat: p.lat, cat, nouveau: false, provisoire: true,
@@ -1085,6 +1094,78 @@ async function lancerPlongeon() {
       modeles3d.provisoires([]);
     },
   });
+}
+
+// ---------------------------------------------------------------- L'affiche du lieu (onglet Plongeon)
+// Pour le montage des TikToks : le carton du nom (comme à l'arrivée du plongeon), en PNG transparent (affiche.js).
+// Toujours en anglais, la langue des vidéos. Préparée d'avance pendant qu'on remplit les champs : sur téléphone,
+// le partage (« Enregistrer l'image » vers les photos) doit suivre l'appui de près.
+let affichePrete = null; // { cle, fichier }
+let minuterieAffiche = 0;
+
+function texteAffiche() {
+  const nom = $('plongeon-nom').value.trim();
+  if (!nom) return null;
+  const type = toutesCategories.find((c) => c.cle === $('plongeon-type').value) || categories[0];
+  const p = lirePosition($('plongeon-position').value);
+  const pref = p.erreur ? null : trouverPrefecture?.(p.lng, p.lat);
+  const infos = [type && (type.nom.en || enLangue(type.nom)), pref && PREFECTURES[pref]?.en].filter(Boolean).join(' · ');
+  return { nom, nomJa: $('plongeon-nom-ja').value.trim(), infos };
+}
+
+async function fabriquerAffiche() {
+  await preparerPrefectures().catch(() => {}); // pour la préfecture sous le nom
+  const texte = texteAffiche();
+  if (!texte) return null;
+  const cle = JSON.stringify(texte);
+  if (affichePrete?.cle === cle) return affichePrete.fichier;
+  const { imageAffiche } = await import('./affiche.js');
+  const fichier = new File([await imageAffiche(texte)], `${slug(texte.nom) || 'affiche'}.png`, { type: 'image/png' });
+  affichePrete = { cle, fichier };
+  return fichier;
+}
+
+function preparerAfficheBientot() {
+  clearTimeout(minuterieAffiche);
+  minuterieAffiche = setTimeout(() => fabriquerAffiche().catch(() => {}), 500);
+}
+
+async function partagerAffiche() {
+  const erreur = $('plongeon-erreur');
+  if (!$('plongeon-nom').value.trim()) {
+    erreur.textContent = t('plongeonErreurNom');
+    erreur.hidden = false;
+    $('plongeon-nom').focus();
+    return;
+  }
+  erreur.hidden = true;
+  memoriserPlongeon();
+  const bouton = $('btn-affiche');
+  bouton.disabled = true;
+  try {
+    const fichier = await fabriquerAffiche();
+    // Sur téléphone : le menu de partage (« Enregistrer l'image » la range avec les photos, pour CapCut…)
+    if (matchMedia('(pointer: coarse)').matches && navigator.canShare?.({ files: [fichier] })) {
+      try {
+        await navigator.share({ files: [fichier] });
+        return;
+      } catch (e) {
+        if (e.name === 'AbortError') return; // menu fermé sans choisir
+        // sinon (partage refusé) : on la télécharge
+      }
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(fichier);
+    a.download = fichier.name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+    afficherMessage(t('plongeonAfficheEnregistree'));
+  } catch (e) {
+    console.warn('Affiche', e);
+    afficherMessage(t('bravoImageErreur'));
+  } finally {
+    bouton.disabled = false;
+  }
 }
 
 // ---------------------------------------------------------------- Jeu « Devine le lieu » (pas encore public)
@@ -1473,6 +1554,8 @@ function appliquerLangue() {
   $('txt-plongeon-nom-ja').textContent = t('plongeonNomJa');
   $('txt-plongeon-type').textContent = t('plongeonType');
   $('txt-plongeon-lancer').textContent = t('plongeonLancer');
+  $('txt-plongeon-affiche').textContent = t('plongeonAffiche');
+  $('plongeon-affiche-aide').textContent = t('plongeonAfficheAide');
   if (!$('volet-plongeon').hidden) choisirOnglet(true); // les types dans la nouvelle langue
   majFavoris();
   visite.majLangue();
@@ -1532,6 +1615,10 @@ function brancherBoutons() {
   $('onglet-visite').addEventListener('click', () => choisirOnglet(false));
   $('onglet-plongeon').addEventListener('click', () => choisirOnglet(true));
   $('btn-plongeon').addEventListener('click', lancerPlongeon);
+  $('btn-affiche').addEventListener('click', partagerAffiche);
+  for (const id of ['plongeon-position', 'plongeon-nom', 'plongeon-nom-ja', 'plongeon-type']) {
+    $(id).addEventListener(id === 'plongeon-type' ? 'change' : 'input', preparerAfficheBientot);
+  }
   $('plongeon-position').addEventListener('input', () => {
     $('plongeon-erreur').hidden = true;
     // le relief du trajet se télécharge dès que la position est collée : il sera prêt pour « Plonger »
