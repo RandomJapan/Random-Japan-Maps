@@ -214,7 +214,9 @@ function construireCategories(lignes, lieux) {
     l.cat = cats.get(k);
     l.cat.lieux.push(l);
   }
-  return [...cats.values()].filter((c) => c.lieux.length).sort((a, b) => a.ordre - b.ordre);
+  // toutes, même vides : le plongeon sur un nouveau lieu peut être d'un type qui n'a encore aucun lieu
+  toutesCategories = [...cats.values()].sort((a, b) => a.ordre - b.ordre);
+  return toutesCategories.filter((c) => c.lieux.length);
 }
 
 // ---------------------------------------------------------------- Carte 3D
@@ -624,6 +626,7 @@ for (const ev of ['mousedown', 'touchstart', 'wheel']) {
 // ---------------------------------------------------------------- Épingles
 let lieux = [];
 let categories = [];
+let toutesCategories = []; // avec les catégories encore vides (pour le plongeon sur un nouveau lieu)
 let lieuActif = null;
 const favoris = lireFavoris(); // identifiants des lieux mis en favoris (favoris.js)
 let deplieNouveaux = true; // la ligne « Nouveaux lieux » du menu est dépliée
@@ -808,9 +811,13 @@ let prefecturesPretes = null; // promesse : une fois tenue, chaque lieu a son nu
 let tirageActif = false; // la fiche ouverte vient du dé → bouton « Un autre »
 
 /** Charge les contours des préfectures (une seule fois) et trouve celle de chaque lieu. */
+let trouverPrefecture = null; // (lng, lat) → numéro de préfecture, une fois les contours chargés
 function preparerPrefectures() {
   prefecturesPretes ??= chargerPrefectures('data/prefectures.geojson')
-    .then((trouver) => { for (const l of lieux) l.prefecture = trouver(l.lng, l.lat); })
+    .then((trouver) => {
+      trouverPrefecture = trouver;
+      for (const l of lieux) l.prefecture = trouver(l.lng, l.lat);
+    })
     .catch((e) => { prefecturesPretes = null; throw e; });
   return prefecturesPretes;
 }
@@ -1000,6 +1007,79 @@ const visite = brancherVisite(map, {
   },
   apres: () => {},
 });
+
+// ---------------------------------------------------------------- Plongeon sur un nouveau lieu (onglet de la visite)
+// Le début des vidéos se filme avant que le lieu soit dans le tableau : on plonge sur une position collée
+// (coordonnées GPS ou lien Google Maps), avec un lieu provisoire (épingle et modèle 3D de son type),
+// retiré quand le plongeon s'arrête.
+const MEMO_PLONGEON = 'plongeon'; // les derniers champs remplis (localStorage), pour refaire une prise plus tard
+
+function choisirOnglet(plongeon) {
+  $('onglet-visite').setAttribute('aria-selected', String(!plongeon));
+  $('onglet-plongeon').setAttribute('aria-selected', String(plongeon));
+  $('volet-visite').hidden = plongeon;
+  $('volet-plongeon').hidden = !plongeon;
+  if (!plongeon) return;
+  let memo = {};
+  try { memo = JSON.parse(localStorage.getItem(MEMO_PLONGEON)) || {}; } catch { /* pas grave */ }
+  const sel = $('plongeon-type');
+  const choisi = sel.value || memo.type;
+  sel.replaceChildren(...toutesCategories.map((c) => new Option(enLangue(c.nom), c.cle)));
+  if (toutesCategories.some((c) => c.cle === choisi)) sel.value = choisi;
+  for (const [id, cle] of [['plongeon-position', 'position'], ['plongeon-nom', 'nom'], ['plongeon-nom-ja', 'nomJa']]) {
+    if (!$(id).value && memo[cle]) $(id).value = memo[cle];
+  }
+}
+
+/**
+ * Une position collée : « 34.1302, 133.5345 » (comme dans le tableau), ou un lien Google Maps
+ * (…!3d34.13!4d133.53… : le lieu lui-même ; …/@34.13,133.53,… : le centre de la vue). Les liens courts
+ * (maps.app.goo.gl) ne se lisent pas depuis la page : il faut les coordonnées.
+ */
+function lirePosition(texte) {
+  const s = String(texte || '').trim();
+  if (!s) return { erreur: 'plongeonErreurVide' };
+  if (/goo\.gl|g\.co\//i.test(s)) return { erreur: 'plongeonErreurLienCourt' };
+  const m = s.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/) || s.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/)
+    || s.match(/[?&](?:q|query|ll|destination|center)=(-?\d+(?:\.\d+)?)(?:,|%2C)\+?(-?\d+(?:\.\d+)?)/i);
+  const p = m ? { lat: Number(m[1]), lng: Number(m[2]) } : /^https?:/i.test(s) ? null : lireGPS(s);
+  if (!p) return { erreur: 'plongeonErreurPosition' };
+  if (p.lng < 122 || p.lng > 154 || p.lat < 20 || p.lat > 46) return { erreur: 'plongeonErreurJapon' };
+  return p;
+}
+
+async function lancerPlongeon() {
+  const p = lirePosition($('plongeon-position').value);
+  const erreur = $('plongeon-erreur');
+  erreur.hidden = !p.erreur;
+  if (p.erreur) {
+    erreur.textContent = t(p.erreur);
+    return;
+  }
+  const type = toutesCategories.find((c) => c.cle === $('plongeon-type').value) || categories[0];
+  const cat = { ...type, visible: true }; // une copie : une catégorie vide ou masquée a quand même son modèle
+  const nom = $('plongeon-nom').value.trim();
+  const nomJa = $('plongeon-nom-ja').value.trim();
+  try {
+    localStorage.setItem(MEMO_PLONGEON, JSON.stringify({ position: $('plongeon-position').value.trim(), nom, nomJa, type: type.cle }));
+  } catch { /* pas grave */ }
+  await preparerPrefectures().catch(() => {}); // pour écrire la préfecture sous le nom
+  const l = {
+    id: 'plongeon', lng: p.lng, lat: p.lat, cat, nouveau: false, provisoire: true,
+    nom: { en: nom, fr: nom, ja: nomJa || nom }, description: {},
+  };
+  l.prefecture = trouverPrefecture?.(p.lng, p.lat);
+  creerEpingle(l, lieux.length);
+  l.el.querySelector('.repere-nom').textContent = enLangue(l.nom);
+  reperes.montrer(l.epingle, true);
+  modeles3d.provisoires([l]);
+  visite.plonger(l, {
+    fin: () => {
+      reperes.oublier(l.epingle);
+      modeles3d.provisoires([]);
+    },
+  });
+}
 
 // ---------------------------------------------------------------- Jeu « Devine le lieu » (pas encore public)
 // Le bouton n'apparaît qu'avec ?jeu dans l'adresse (map.randomjapanplace.com/?jeu) : le jeu sortira plus tard.
@@ -1228,9 +1308,6 @@ async function remplirFiche(l) {
   btnPartager.title = t(partage ? 'partager' : 'copierLien');
   btnPartager.setAttribute('aria-label', btnPartager.title);
   btnPartager.onclick = () => partager(l, partage);
-  const btnPlongeon = $('fiche-plongeon');
-  btnPlongeon.title = t('plongeon');
-  btnPlongeon.setAttribute('aria-label', btnPlongeon.title);
   // Fiche ouverte par le dé : bouton « Un autre » en haut de la photo, pour relancer d'un doigt
   $('fiche-autre').hidden = !tirageActif;
   $('txt-autre').textContent = t('unAutre');
@@ -1381,6 +1458,16 @@ function appliquerLangue() {
   $('txt-visite-film').textContent = t('visiteFilm');
   $('txt-visite-video').textContent = t('visiteVideo');
   $('txt-visite-son').textContent = t('visiteSon');
+  $('onglet-visite').textContent = t('visiteOnglet');
+  $('onglet-plongeon').textContent = t('plongeonOnglet');
+  $('plongeon-info').textContent = t('plongeonInfo');
+  $('txt-plongeon-position').textContent = t('plongeonPosition');
+  $('plongeon-aide').textContent = t('plongeonAideGps');
+  $('txt-plongeon-nom').textContent = t('plongeonNom');
+  $('txt-plongeon-nom-ja').textContent = t('plongeonNomJa');
+  $('txt-plongeon-type').textContent = t('plongeonType');
+  $('txt-plongeon-lancer').textContent = t('plongeonLancer');
+  if (!$('volet-plongeon').hidden) choisirOnglet(true); // les types dans la nouvelle langue
   majFavoris();
   visite.majLangue();
   $('txt-jeu').textContent = t('jeu');
@@ -1436,7 +1523,10 @@ function brancherBoutons() {
     else if (ligne) allerAuLieu(trouver(ligne.dataset.lieu));
     else if (e.target.closest('[data-visite]')) lancerVisite(lieux.filter(estFavori));
   });
-  $('fiche-plongeon').addEventListener('click', () => visite.plonger(lieuActif));
+  $('onglet-visite').addEventListener('click', () => choisirOnglet(false));
+  $('onglet-plongeon').addEventListener('click', () => choisirOnglet(true));
+  $('btn-plongeon').addEventListener('click', lancerPlongeon);
+  $('plongeon-position').addEventListener('input', () => { $('plongeon-erreur').hidden = true; });
   $('btn-jeu').addEventListener('click', () => lancerJeu().catch((e) => console.warn('Jeu indisponible', e)));
   $('fiche-favori').addEventListener('click', () => {
     if (!lieuActif) return;

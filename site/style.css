@@ -140,6 +140,22 @@ svg { display: block; }
 }
 .champ-hasard select:focus-visible { outline: none; border-color: var(--sarcelle); box-shadow: 0 0 0 1px var(--sarcelle); }
 .champ-hasard option, .champ-hasard optgroup { background: var(--papier); color: var(--encre); }
+.champ-hasard input {
+  width: 100%; font: inherit; font-size: 15px; color: var(--encre);
+  padding: 10px 12px; border: 1px solid var(--trait); border-radius: var(--rayon); background: var(--papier-clair);
+}
+.champ-hasard input::placeholder { color: var(--encre-3); opacity: .7; }
+.champ-hasard input:focus-visible { outline: none; border-color: var(--sarcelle); box-shadow: 0 0 0 1px var(--sarcelle); caret-color: var(--rouge); }
+/* Onglets du panneau de la visite (Visite · Plongeon), comme le choix de la langue */
+.onglets { display: flex; gap: 2px; padding: 3px; margin: 0 0 14px; border: 1px solid var(--trait); border-radius: var(--rayon); background: var(--papier-clair); }
+.onglets button {
+  flex: 1; padding: 8px 10px; border: 0; border-radius: 2px; background: transparent;
+  font-size: 14px; font-weight: 600; color: var(--encre-2); transition: background .2s, color .2s;
+}
+.onglets button:hover { color: var(--encre); background: var(--papier-fonce); }
+.onglets button[aria-selected="true"] { background: var(--rouge); color: var(--papier-clair); }
+.plongeon-aide { margin: -6px 2px 14px; font-size: 12.5px; line-height: 1.45; color: var(--encre-3); }
+.plongeon-erreur { margin: -6px 2px 14px; font-size: 13px; font-weight: 600; line-height: 1.4; color: var(--rouge); }
 .btn-lancer {
   width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 4px;
   padding: 13px; border: 0; border-radius: var(--rayon); background: var(--rouge); color: var(--papier-clair);
@@ -607,7 +623,6 @@ svg { display: block; }
 
 /* ---------- Favoris ---------- */
 .fiche-favori { right: 99px; }
-.fiche-plongeon { right: 141px; }
 .fiche-favori svg { width: 19px; height: 19px; overflow: visible; }
 .fiche-favori path { fill: transparent; stroke: var(--encre); }
 .fiche-favori[aria-pressed="true"] path { fill: var(--rouge); stroke: var(--rouge); }

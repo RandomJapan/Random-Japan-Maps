@@ -432,49 +432,88 @@ export function brancherLegendes(map, maplibregl, outils) {
     if (n === total) preparerImage().catch(() => {});
   }
 
-  // ---- L'image « Bravo » à partager (bravo-image.js), fabriquée d'avance : sur téléphone, le partage
-  //      doit partir juste après l'appui, sinon le navigateur le refuse.
+  // ---- Partager sa victoire (bravo-image.js) : la carte du bravo propose Instagram, TikTok, X, Facebook
+  //      et « Enregistrer l'image ».
+  //  - X et Facebook n'acceptent qu'un lien : celui de legendes/<langue>.html, dont l'aperçu est l'image
+  //    du bravo en paysage (img/legendes-bravo-<langue>.jpg).
+  //  - Instagram et TikTok n'ont pas de partage par lien depuis une page web : sur téléphone, la feuille de
+  //    partage reçoit l'image verticale (on y choisit l'appli) ; sur ordinateur, l'image est enregistrée et
+  //    le site du réseau s'ouvre, pour la publier.
+  //  L'image est fabriquée d'avance : sur téléphone, le partage doit partir juste après l'appui.
   let image = null; // Promise du fichier
+  let fichierPret = null; // le même fichier, une fois prêt
   function preparerImage() {
     image ||= import('./bravo-image.js')
       .then(({ imageBravo }) => imageBravo({
         legendes: LEGENDES, dessins: DESSINS,
         textes: { titre: t('bravoTitre'), texte: t('bravoImageTexte', total), defi: t('bravoImageDefi'), adresse, nomSite },
       }))
-      .then((blob) => new File([blob], `random-japan-place-${total}-legendes.jpg`, { type: 'image/jpeg' }));
+      .then((blob) => (fichierPret = new File([blob], `random-japan-place-${total}-legendes.jpg`, { type: 'image/jpeg' })));
     image.catch(() => { image = null; });
     return image;
   }
 
-  function boutonPartage(classe) {
-    const b = creer('button', classe);
-    b.type = 'button';
-    b.innerHTML = `${ICONE_PARTAGE}<span>${echapper(t('bravoPartager'))}</span>`;
-    b.addEventListener('click', () => partagerImage(b));
-    return b;
+  const RESEAUX = [
+    { nom: 'Instagram', icone: ICONES.instagram, site: 'https://www.instagram.com/' },
+    { nom: 'TikTok', icone: ICONES.tiktok, site: 'https://www.tiktok.com/upload' },
+    { nom: 'X', icone: ICONES.x, lien: (texte, url) => `https://twitter.com/intent/tweet?text=${encodeURIComponent(texte)}&url=${encodeURIComponent(url)}` },
+    { nom: 'Facebook', icone: ICONES.facebook, lien: (_texte, url) => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}` },
+  ];
+
+  function partagerSur(reseau, bouton) {
+    if (reseau.lien) {
+      open(reseau.lien(t('bravoPartageTexte', total), `https://${adresse}/legendes/${langue()}.html`), '_blank', 'noopener');
+    } else if (matchMedia('(pointer: coarse)').matches && navigator.canShare) {
+      partagerFichier(bouton);
+    } else {
+      open(reseau.site, '_blank', 'noopener'); // tout de suite, sinon le navigateur bloque la fenêtre
+      enregistrer(bouton, t('bravoImagePourReseau', reseau.nom));
+    }
   }
 
-  async function partagerImage(bouton) {
+  async function partagerFichier(bouton) {
     bouton.disabled = true;
     try {
-      const fichier = await preparerImage();
-      // Téléphone : la feuille de partage (TikTok, Instagram, messages…) ; ordinateur : l'image est enregistrée
-      if (matchMedia('(pointer: coarse)').matches && navigator.canShare?.({ files: [fichier] })) {
+      const fichier = fichierPret || await preparerImage();
+      if (navigator.canShare({ files: [fichier] })) {
         await navigator.share({ files: [fichier], text: t('bravoPartageMessage', total, adresse) }).catch(() => {});
-      } else {
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(fichier);
-        a.download = fichier.name;
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(a.href), 10000);
-        afficherMessage(t('bravoImageEnregistree'));
-      }
+      } else await enregistrer(null, t('bravoImageEnregistree'));
     } catch (e) {
       console.warn('Image du bravo', e);
       afficherMessage(t('bravoImageErreur'));
     } finally {
       bouton.disabled = false;
     }
+  }
+
+  async function enregistrer(bouton, message) {
+    if (bouton) bouton.disabled = true;
+    try {
+      const fichier = fichierPret || await preparerImage();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(fichier);
+      a.download = fichier.name;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+      afficherMessage(message);
+    } catch (e) {
+      console.warn('Image du bravo', e);
+      afficherMessage(t('bravoImageErreur'));
+    } finally {
+      if (bouton) bouton.disabled = false;
+    }
+  }
+
+  /** En haut de la liste, quand tout est trouvé : rouvre la carte du bravo et ses boutons de partage. */
+  function boutonPartage(classe) {
+    const b = creer('button', classe);
+    b.type = 'button';
+    b.innerHTML = `${ICONES.partager}<span>${echapper(t('bravoPartager'))}</span>`;
+    b.addEventListener('click', () => {
+      fermerPanneau();
+      feliciter();
+    });
+    return b;
   }
 
   /** Depuis la liste : vole jusqu'à la légende et ouvre sa bulle. */
@@ -487,30 +526,51 @@ export function brancherLegendes(map, maplibregl, outils) {
   }
 
   function feliciter() {
+    document.querySelector('.bravo-legendes')?.remove();
     const fond = creer('div', 'bravo-legendes');
     const carteBravo = creer('div', 'bravo-carte panneau');
     carteBravo.setAttribute('role', 'dialog');
     carteBravo.setAttribute('aria-modal', 'true');
     carteBravo.setAttribute('aria-labelledby', 'bravo-titre');
+    const croix = creer('button', 'bravo-fermer');
+    croix.type = 'button';
+    croix.innerHTML = ICONES.fermer;
+    croix.title = t('bravoFermer');
+    croix.setAttribute('aria-label', croix.title);
     const sceau = creer('div', 'bravo-sceau', '伝説');
     sceau.setAttribute('aria-hidden', 'true');
     const titre = creer('h2', '', t('bravoTitre'));
     titre.id = 'bravo-titre';
-    const ok = creer('button', 'btn-secondaire bravo-merci', t('bravoBouton'));
-    ok.type = 'button';
-    carteBravo.append(sceau, titre, creer('p', '', t('bravoTexte', total)), boutonPartage('btn-lancer'), ok);
+    // Partager : un bouton par réseau, puis l'image elle-même
+    const reseaux = creer('div', 'bravo-reseaux');
+    for (const r of RESEAUX) {
+      const b = creer('button');
+      b.type = 'button';
+      b.innerHTML = `${r.icone}<span>${r.nom}</span>`;
+      b.addEventListener('click', () => partagerSur(r, b));
+      reseaux.append(b);
+    }
+    const garder = creer('button', 'btn-secondaire bravo-enregistrer');
+    garder.type = 'button';
+    garder.innerHTML = `${ICONES.enregistrer}<span>${echapper(t('bravoEnregistrer'))}</span>`;
+    garder.addEventListener('click', () => enregistrer(garder, t('bravoImageEnregistree')));
+    carteBravo.append(croix, sceau, titre, creer('p', '', t('bravoTexte', total)),
+      creer('div', 'bravo-partage-titre', t('bravoPartageTitre')), reseaux, garder);
     preparerImage().catch(() => {});
     fond.append(carteBravo);
     const fermer = () => fond.remove();
-    ok.addEventListener('click', fermer);
+    croix.addEventListener('click', fermer);
     fond.addEventListener('click', (e) => { if (e.target === fond) fermer(); });
     fond.addEventListener('keydown', (e) => { if (e.key === 'Escape') fermer(); });
     document.body.append(fond);
-    ok.focus();
+    // le clavier arrive dans la carte (Échap la ferme) sans qu'un réseau ait l'air déjà choisi
+    carteBravo.tabIndex = -1;
+    carteBravo.focus();
   }
 
   function majLangue() {
     image = null; // l'image du bravo est dans la langue choisie
+    fichierPret = null;
     document.getElementById('txt-legendes').textContent = t('legendes');
     for (const l of LEGENDES) l.el.setAttribute('aria-label', t('legendeAria', enLangue(l.nom)));
     majCompteur();
@@ -522,7 +582,16 @@ export function brancherLegendes(map, maplibregl, outils) {
   return { majLangue, remplirPanneau };
 }
 
-const ICONE_PARTAGE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 13v6a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-6"/></svg>';
+const ICONES = {
+  partager: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 13v6a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-6"/></svg>',
+  enregistrer: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14"/></svg>',
+  fermer: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M6 6l12 12M18 6 6 18"/></svg>',
+  // les logos des réseaux, d'un seul trait d'encre (pas leurs couleurs : elles jureraient avec la vieille carte)
+  instagram: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.2" y="3.2" width="17.6" height="17.6" rx="5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4.1" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17.2" cy="6.8" r="1.25" fill="currentColor"/></svg>',
+  tiktok: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M16.6 3c.4 2.1 1.8 3.6 4 3.9v3.2c-1.5 0-2.9-.4-4-1.2v6.3a6 6 0 1 1-6-6h.6v3.3a2.8 2.8 0 1 0 2.2 2.7V3Z"/></svg>',
+  x: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.7 3h3.1l-6.8 7.8L22 21h-6.3l-4.9-6.4L5.2 21H2.1l7.3-8.3L1.8 3h6.4l4.4 5.9L17.7 3Zm-1.1 16.2h1.7L7.5 4.7H5.7l10.9 14.5Z"/></svg>',
+  facebook: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M13.6 21v-7.7h2.6l.4-3h-3V8.4c0-.9.3-1.5 1.5-1.5h1.6V4.2c-.3 0-1.2-.1-2.3-.1-2.3 0-3.9 1.4-3.9 4v2.2H7.9v3h2.6V21h3.1Z"/></svg>',
+};
 const echapper = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 /** Pour les essais : ouvre tout de suite la bulle d'une légende (ex. « kitsune »), comme un appui. */

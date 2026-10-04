@@ -11,6 +11,7 @@ const ZOOM_CHARGEMENT = 7; // on charge three.js un peu avant d'en avoir besoin
 const ZOOM_DEBUT = 8.6; // en dessous : pas de modèles
 const ZOOM_PLEIN = 9.6; // entre les deux, les modèles sortent de terre
 const BRUN = [0x4a, 0x35, 0x21]; // les couleurs du tableau sont vieillies vers ce sépia, comme les blasons
+const RESERVE = 2; // places en plus dans chaque tampon, pour les lieux provisoires (plongeon sur un nouveau lieu)
 
 /** Hauteur à l'écran (en pixels) d'un modèle de taille 1 : il grandit doucement quand on s'approche. */
 const taillePx = (z) => Math.min(170, 62 * 2 ** ((z - 10.5) * 0.5));
@@ -29,6 +30,8 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
   let echelleDessin = 0;
   let leveeActuelle = null;
   let filtre = null; // si posé, seuls les lieux pour lesquels filtre(lieu) est vrai ont leur modèle (jeu.js)
+  let provisoires = []; // lieux qui ne sont pas (encore) dans le tableau : le plongeon sur un nouveau lieu
+  let outils3d = null; // { modeles, modelePour, matiere } une fois three.js chargé
   const m4 = {};
 
   map.on('sourcedata', (e) => { if (e.sourceId === 'relief' && e.tile) versionRelief++; });
@@ -40,31 +43,42 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
     return l.alt3d.valeur;
   }
 
+  /** Le modèle d'un lieu, sa hauteur et sa couleur (celle de sa catégorie, vieillie vers le sépia). */
+  function preparerLieu(l) {
+    const { modeles, modelePour } = outils3d;
+    l.modele3d = modelePour(l.cat.icone, modeles);
+    l.hauteur3d = modeles[l.modele3d].hauteur;
+    const hexa = l.cat.couleur.replace('#', '');
+    const rvb = [0, 2, 4].map((i, j) => Math.round(parseInt(hexa.slice(i, i + 2), 16) * 0.78 + BRUN[j] * 0.22));
+    l.couleur3d = new THREE.Color(`rgb(${rvb.join(',')})`);
+  }
+
+  function nouveauType(nom, liste) {
+    const mesh = new THREE.InstancedMesh(outils3d.modeles[nom].geometrie, outils3d.matiere, liste.length + RESERVE);
+    mesh.frustumCulled = false;
+    mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    scene.add(mesh);
+    const t = { nom, lieux: liste, mesh };
+    types.push(t);
+    return t;
+  }
+
   /** Range les lieux par modèle ; un seul « tampon » (InstancedMesh) par modèle, donc très peu de dessins. */
   function preparerTypes(lieux, modeles, modelePour) {
+    outils3d = { modeles, modelePour, matiere: new THREE.MeshLambertMaterial({ vertexColors: true }) };
     const parModele = new Map();
-    const matiere = new THREE.MeshLambertMaterial({ vertexColors: true });
     for (const l of lieux) {
-      const nom = modelePour(l.cat.icone, modeles);
-      if (!parModele.has(nom)) parModele.set(nom, []);
-      parModele.get(nom).push(l);
-      l.hauteur3d = modeles[nom].hauteur;
-      const hexa = l.cat.couleur.replace('#', '');
-      const rvb = [0, 2, 4].map((i, j) => Math.round(parseInt(hexa.slice(i, i + 2), 16) * 0.78 + BRUN[j] * 0.22));
-      l.couleur3d = new THREE.Color(`rgb(${rvb.join(',')})`);
+      preparerLieu(l);
+      if (!parModele.has(l.modele3d)) parModele.set(l.modele3d, []);
+      parModele.get(l.modele3d).push(l);
     }
-    types = [...parModele].map(([nom, liste]) => {
-      const mesh = new THREE.InstancedMesh(modeles[nom].geometrie, matiere, liste.length);
-      mesh.frustumCulled = false;
-      mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-      scene.add(mesh);
-      return { lieux: liste, mesh };
-    });
+    types = [];
+    for (const [nom, liste] of parModele) nouveauType(nom, liste);
     // Le socle rond commun : un disque qui s'enfonce un peu dans le sol (sur une pente, il ne flotte pas)
     const geo = new THREE.CylinderGeometry(0.5, 0.52, 0.2, 24).toNonIndexed();
     geo.translate(0, -0.04, 0);
     geo.computeVertexNormals();
-    socle = new THREE.InstancedMesh(geo, new THREE.MeshLambertMaterial(), lieux.length);
+    socle = new THREE.InstancedMesh(geo, new THREE.MeshLambertMaterial(), lieux.length + RESERVE);
     socle.frustumCulled = false;
     socle.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     for (let i = 0; i < lieux.length; i++) socle.setColorAt(i, lieux[i].couleur3d);
@@ -109,7 +123,8 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
       let nSocle = 0;
       for (const t of types) {
         let n = 0;
-        for (const l of t.lieux) {
+        const liste = provisoires.length ? t.lieux.concat(provisoires.filter((l) => l.modele3d === t.nom)) : t.lieux;
+        for (const l of liste) {
           if (!l.cat.visible || (filtre && !filtre(l))) continue;
           if (l.lng < bornes.getWest() - marge || l.lng > bornes.getEast() + marge
             || l.lat < bornes.getSouth() - marge || l.lat > bornes.getNorth() + marge) continue;
@@ -151,7 +166,7 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
     const levee = Math.round(px / 4) * 4;
     if (levee !== leveeActuelle) {
       leveeActuelle = levee;
-      for (const l of obtenirLieux()) {
+      for (const l of [...obtenirLieux(), ...provisoires]) {
         if (l.hauteur3d) l.epingle.setOffset([0, -Math.round(levee * (l.hauteur3d + 0.08))]);
       }
     }
@@ -169,6 +184,7 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
         if (!lieux.length) return false;
         preparerTypes(lieux, modeles, modelePour);
         etat = 'pret';
+        if (provisoires.length) installerProvisoires();
         majLevee();
         map.triggerRepaint();
         return true;
@@ -190,7 +206,22 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
   map.on('move', verifier);
   verifier();
 
+  /** Les lieux provisoires reçoivent leur modèle (un tampon de plus si aucun lieu du tableau n'a ce modèle). */
+  function installerProvisoires() {
+    for (const l of provisoires) {
+      preparerLieu(l);
+      if (!types.some((t) => t.nom === l.modele3d)) nouveauType(l.modele3d, []);
+      if (leveeActuelle) l.epingle.setOffset([0, -Math.round(leveeActuelle * (l.hauteur3d + 0.08))]);
+    }
+  }
+
   return {
+    /** Lieux qui ne sont pas dans le tableau, dessinés comme les autres (au plus RESERVE) ; [] pour les retirer. */
+    provisoires(liste) {
+      provisoires = liste.slice(0, RESERVE);
+      if (etat === 'pret') installerProvisoires();
+      map.triggerRepaint();
+    },
     /** Ne dessine que les modèles des lieux pour lesquels f(lieu) est vrai ; null : tous. */
     filtrer(f) {
       filtre = f;

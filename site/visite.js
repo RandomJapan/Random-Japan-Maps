@@ -9,7 +9,8 @@
 //    ou qu'on touche l'écran), pour filmer l'écran proprement. L'adresse de la carte reste écrite
 //    à l'écran (le « filigrane »), pour que chaque extrait filmé la porte.
 //  - Plongeon : depuis tout le Japon, la caméra plonge sur un seul lieu, comme le début des vidéos
-//    TikTok (il remplace le plongeon Google Earth). Lancé depuis la fiche d'un lieu.
+//    TikTok (il remplace le plongeon Google Earth). Lancé depuis l'onglet « Plongeon » du panneau de la
+//    visite, sur une position collée : le lieu n'est souvent pas encore dans le tableau (app.js).
 // ================================================================
 import { ordreDeVoyage } from './favoris.js';
 
@@ -40,7 +41,8 @@ const ICONES = {
  *            adresse → l'adresse de la carte, écrite à l'écran en mode film, avant(), apres() }
  *   avant() : appelé au début (fermer les menus et la fiche, arrêter la rotation…)
  *   apres() : appelé à la fin
- * Renvoie { lancer(liste, { duree, film, video, son }), plonger(lieu), arreter(), enCours(), majLangue() }.
+ * Renvoie { lancer(liste, { duree, film, video, son }), plonger(lieu, { fin }), arreter(), enCours(), majLangue() }.
+ *   plonger : fin() est appelé quand le plongeon s'arrête (app.js y retire le lieu provisoire).
  */
 export function brancherVisite(map, outils) {
   const { t, enLangue, infos, video, debut, affiche, estTelephone, vueDepart, adresse, avant, apres } = outils;
@@ -82,7 +84,7 @@ export function brancherVisite(map, outils) {
     if (action === 'precedent') aller(etat.i - 1);
     else if (action === 'suivant') aller(etat.i + 1);
     else if (action === 'pause') basculerPause();
-    else if (action === 'rejouer') plonger(etat.liste[0]);
+    else if (action === 'rejouer') plonger(etat.liste[0], { fin: etat.fin });
     else if (action === 'arreter') arreter();
     montrerBarre();
   });
@@ -255,12 +257,12 @@ export function brancherVisite(map, outils) {
   /**
    * Plongeon : une image fixe de tout le Japon, puis la caméra plonge sur le lieu en ~4 s, et tourne
    * lentement autour jusqu'à ce qu'on arrête. Toujours en mode film. « Rejouer » (barre, Espace)
-   * recommence, pour refaire une prise.
+   * recommence, pour refaire une prise. fin() : appelé quand on arrête (pas quand on rejoue).
    */
-  function plonger(l) {
+  function plonger(l, { fin } = {}) {
     if (!l) return;
-    arreter(false);
-    etat = { liste: [l], i: 0, plongeon: true, film: true, duree: 7000, avecVideo: false, pause: false, jeton: 0, minuterie: 0, attente: 0 };
+    arreter(false, etat?.fin === fin);
+    etat = { liste: [l], i: 0, plongeon: true, fin, film: true, duree: 7000, avecVideo: false, pause: false, jeton: 0, minuterie: 0, attente: 0 };
     avant();
     document.body.classList.add('en-visite', 'mode-film', 'plongeon');
     navigator.wakeLock?.request('screen').then((v) => { verrou = v; }).catch(() => {});
@@ -289,7 +291,7 @@ export function brancherVisite(map, outils) {
     map.once('moveend', () => {
       if (jeton !== etat?.jeton) return;
       etat.surPlace = true;
-      montrerTitre(l);
+      if (enLangue(l.nom)) montrerTitre(l); // un lieu sans nom : pas de bandeau
       // puis un lent tour du lieu (2,6° par seconde, comme la visite), jusqu'à ce qu'on arrête
       if (!calme) map.easeTo({ bearing: map.getBearing() + 360, duration: 140000, easing: (x) => x, essential: true });
     });
@@ -503,8 +505,9 @@ export function brancherVisite(map, outils) {
     });
   }
 
-  function arreter(rendre = true) {
+  function arreter(rendre = true, garderFin = false) {
     if (!etat) return;
+    if (!garderFin) etat.fin?.();
     clearTimeout(etat.minuterie);
     clearTimeout(minuterieBarre);
     clearTimeout(etat.attente);
@@ -528,7 +531,7 @@ export function brancherVisite(map, outils) {
     if (!etat) return;
     if (e.key === 'Escape') arreter();
     else if (etat.plongeon) {
-      if (e.key === ' ' || e.key === 'Spacebar' || e.key === 'Enter') plonger(etat.liste[0]);
+      if (e.key === ' ' || e.key === 'Spacebar' || e.key === 'Enter') plonger(etat.liste[0], { fin: etat.fin });
       else return;
     } else if (e.key === ' ' || e.key === 'Spacebar') basculerPause();
     else if (e.key === 'ArrowRight') aller(etat.i + 1);

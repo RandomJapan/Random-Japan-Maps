@@ -82,6 +82,12 @@
     <div class="menu panneau" id="panneau-legendes" hidden></div>
     <div class="menu panneau" id="panneau-favoris" hidden></div>
     <div class="menu panneau hasard" id="panneau-visite" hidden>
+      <!-- Deux onglets : la visite guidée, et le plongeon sur un nouveau lieu (pour le début des vidéos) -->
+      <div class="onglets" role="tablist">
+        <button type="button" role="tab" id="onglet-visite" aria-selected="true" aria-controls="volet-visite">Tour</button>
+        <button type="button" role="tab" id="onglet-plongeon" aria-selected="false" aria-controls="volet-plongeon">Dive</button>
+      </div>
+      <div id="volet-visite" role="tabpanel" aria-labelledby="onglet-visite">
       <p class="hasard-titre" id="visite-titre-panneau"></p>
       <p class="panneau-info" id="visite-info"></p>
       <label class="champ-hasard">
@@ -120,6 +126,32 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5.5v13a1 1 0 0 0 1.5.9l10.5-6.5a1 1 0 0 0 0-1.8L9.5 4.6A1 1 0 0 0 8 5.5Z"/></svg>
         <span id="txt-visite-lancer"></span>
       </button>
+      </div>
+      <div id="volet-plongeon" role="tabpanel" aria-labelledby="onglet-plongeon" hidden>
+        <p class="panneau-info" id="plongeon-info"></p>
+        <label class="champ-hasard">
+          <span id="txt-plongeon-position"></span>
+          <input type="text" id="plongeon-position" placeholder="34.1302, 133.5345" autocomplete="off" spellcheck="false">
+        </label>
+        <p class="plongeon-aide" id="plongeon-aide"></p>
+        <p class="plongeon-erreur" id="plongeon-erreur" role="alert" hidden></p>
+        <label class="champ-hasard">
+          <span id="txt-plongeon-nom"></span>
+          <input type="text" id="plongeon-nom" autocomplete="off">
+        </label>
+        <label class="champ-hasard">
+          <span id="txt-plongeon-nom-ja"></span>
+          <input type="text" id="plongeon-nom-ja" lang="ja" autocomplete="off">
+        </label>
+        <label class="champ-hasard">
+          <span id="txt-plongeon-type"></span>
+          <select id="plongeon-type"></select>
+        </label>
+        <button type="button" class="btn-lancer" id="btn-plongeon">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M3 7.5h11.5v9H3zM14.5 10.5l6-3v9l-6-3"/></svg>
+          <span id="txt-plongeon-lancer"></span>
+        </button>
+      </div>
     </div>
     <div class="menu panneau hasard" id="panneau-hasard" hidden>
       <p class="hasard-titre" id="hasard-titre"></p>
@@ -216,10 +248,6 @@
       <span id="txt-autre"></span>
     </button>
     <button type="button" class="fiche-partager" id="fiche-partager"></button>
-    <!-- Plongeon depuis tout le Japon jusqu'à ce lieu, en mode film (visite.js) -->
-    <button type="button" class="fiche-partager fiche-plongeon" id="fiche-plongeon">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M3 7.5h11.5v9H3zM14.5 10.5l6-3v9l-6-3"/></svg>
-    </button>
     <button type="button" class="fiche-partager fiche-favori" id="fiche-favori" aria-pressed="false">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M12 20.3s-7.4-4.5-9.2-9.1C1.5 7.8 3.7 4.6 7 4.6c2 0 3.6 1.1 5 2.9 1.4-1.8 3-2.9 5-2.9 3.3 0 5.5 3.2 4.2 6.6-1.8 4.6-9.2 9.1-9.2 9.1Z"/></svg>
     </button>

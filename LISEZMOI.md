@@ -92,7 +92,11 @@ Quand on zoome sur une région, de petits dessins de légendes japonaises appara
 Pour les visiteurs :
 - un appui sur un dessin ouvre une bulle qui raconte la légende (en anglais, en français ou en japonais) ;
 - dès qu'on en trouve une, un bouton **Légendes** apparaît sous « Catégories », avec le compteur (par exemple 3/22). Il ouvre la liste : les légendes trouvées (un appui y emmène) et, pour les autres, seulement leur région, comme indice ;
-- quand on les a toutes trouvées, un « Bravo ! » s'affiche avec un sceau rouge, et un bouton **Partager ma victoire**. Sur téléphone, il ouvre le partage (TikTok, Instagram, messages…) avec une image verticale : le sceau, « Bravo ! », les 22 dessins et l'adresse de la carte. Sur ordinateur, l'image est enregistrée. Le même bouton reste ensuite en haut de la liste des légendes ;
+- quand on les a toutes trouvées, un « Bravo ! » s'affiche avec un sceau rouge, et **Partage ta victoire** :
+  - **X** et **Facebook** ouvrent une publication avec le lien de la carte. L'aperçu montre l'image « Bravo » (le sceau, les 22 dessins, l'adresse) ;
+  - **Instagram** et **TikTok** : sur téléphone, le partage du téléphone s'ouvre avec l'image verticale, et on choisit l'appli. Sur ordinateur, l'image est enregistrée et le site du réseau s'ouvre pour la publier (ces deux réseaux n'acceptent pas de lien de partage depuis un site) ;
+  - **Enregistrer l'image** garde l'image verticale ;
+  - ensuite, « Partager ma victoire » en haut de la liste des légendes rouvre ce « Bravo ! » ;
 - le téléphone (ou l'ordinateur) se souvient des légendes déjà trouvées.
 
 **Tu n'as rien à faire pour ça.** Les textes sont dans `site/legendes.js` et les dessins dans `site/legendes-dessins.js`. Pour ajouter une légende ou changer un texte, demande à Claude.
@@ -136,8 +140,13 @@ Le bouton **Visite** (la petite caméra) fait voler la caméra toute seule d'un 
 
 ### Le plongeon (pour remplacer le hook Google Earth)
 
-Dans la fiche d'un lieu, le bouton **caméra** (à gauche du cœur) lance un plongeon : la carte montre tout le Japon pendant une seconde, puis plonge sur le lieu en 4 secondes, jusqu'à son modèle 3D, et son nom s'affiche. Ensuite la caméra tourne lentement autour du lieu.
-- **Pour filmer :** lance l'enregistreur d'écran du téléphone, ouvre le lieu, appuie sur la caméra. Au montage, garde le passage qui va de l'image de tout le Japon à l'arrivée sur le lieu, puis enchaîne sur tes images.
+Il sert pour un **nouveau lieu, pas encore sur la carte** : tu filmes le début de ta vidéo avant de l'ajouter au tableau. Ouvre le bouton **Visite** (la petite caméra), puis l'onglet **Plongeon** :
+- **Position :** colle les coordonnées GPS du lieu. Dans Google Maps, fais un appui long sur le lieu (clic droit sur ordinateur), puis copie les coordonnées qui s'affichent, par exemple `33.8394, 130.8156`. Un lien Google Maps complet marche aussi, mais pas un lien court en `maps.app.goo.gl`.
+- **Nom** et **Nom japonais** (facultatifs) : ils s'affichent à l'arrivée, comme pour les autres lieux, avec la préfecture trouvée toute seule.
+- **Type de lieu :** il choisit la couleur de l'épingle et le modèle 3D posé sur le lieu (un torii pour un sanctuaire…).
+- Appuie sur **Plonger** : la carte montre tout le Japon pendant une seconde, puis plonge sur le lieu en 4 secondes, jusqu'à son modèle 3D. Ensuite la caméra tourne lentement autour. Cette épingle disparaît quand tu arrêtes : le vrai lieu arrivera par le tableau, comme d'habitude.
+- La carte se souvient des derniers champs remplis, pour refaire une prise plus tard.
+- **Pour filmer :** lance l'enregistreur d'écran du téléphone, puis appuie sur Plonger. Au montage, garde le passage qui va de l'image de tout le Japon à l'arrivée sur le lieu, puis enchaîne sur tes images.
 - Les boutons disparaissent tout de suite. Touche l'écran pour faire revenir la barre : **Rejouer** (rouge, pour refaire une prise) et **Arrêter**. Sur ordinateur : Espace = rejouer, Échap = arrêter.
 - Sur téléphone, le nom du lieu est placé plus haut que pendant la visite, pour ne pas être caché par la légende de ta vidéo TikTok.
 
