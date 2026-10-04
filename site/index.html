@@ -73,8 +73,8 @@
         <span id="txt-legendes">Legends</span>
         <span class="compteur" id="compteur-legendes"></span>
       </button>
-      <!-- Jeu « Devine le lieu » : pas encore public, le bouton n'apparaît qu'avec ?jeu dans l'adresse (jeu.js) -->
-      <button class="bouton-categories bouton-jeu panneau" id="btn-jeu" hidden>
+      <!-- Jeu « Devine le lieu » : pas encore public, seulement en mode développeur (jeu.js) -->
+      <button class="bouton-categories bouton-jeu panneau dev" id="btn-jeu">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M12 21.2s-6.6-6.7-6.6-11.6a6.6 6.6 0 0 1 13.2 0c0 4.9-6.6 11.6-6.6 11.6Z"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M10.2 8.1a1.9 1.9 0 1 1 2.6 1.8c-.5.2-.8.6-.8 1.1v.3"/><circle cx="12" cy="13.2" r="1" fill="currentColor"/></svg>
         <span class="texte-bouton" id="txt-jeu">Guess the place</span>
       </button>
@@ -82,8 +82,9 @@
     <div class="menu panneau" id="panneau-legendes" hidden></div>
     <div class="menu panneau" id="panneau-favoris" hidden></div>
     <div class="menu panneau hasard" id="panneau-visite" hidden>
-      <!-- Deux onglets : la visite guidée, et le plongeon sur un nouveau lieu (pour le début des vidéos) -->
-      <div class="onglets" role="tablist">
+      <!-- Deux onglets : la visite guidée, et le plongeon sur un nouveau lieu (pour le début des vidéos).
+           Le plongeon et ses onglets n'existent qu'en mode développeur. -->
+      <div class="onglets dev" role="tablist">
         <button type="button" role="tab" id="onglet-visite" aria-selected="true" aria-controls="volet-visite">Tour</button>
         <button type="button" role="tab" id="onglet-plongeon" aria-selected="false" aria-controls="volet-plongeon">Dive</button>
       </div>
@@ -127,7 +128,7 @@
         <span id="txt-visite-lancer"></span>
       </button>
       </div>
-      <div id="volet-plongeon" role="tabpanel" aria-labelledby="onglet-plongeon" hidden>
+      <div id="volet-plongeon" class="dev" role="tabpanel" aria-labelledby="onglet-plongeon" hidden>
         <p class="panneau-info" id="plongeon-info"></p>
         <label class="champ-hasard">
           <span id="txt-plongeon-position"></span>
@@ -197,6 +198,10 @@
   </nav>
 
   <div class="controles">
+    <!-- Mode développeur : seulement dans un navigateur où le lien secret a été ouvert (app.js) -->
+    <button type="button" class="panneau btn-dev" id="btn-dev" aria-pressed="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M8.5 7.5 4 12l4.5 4.5M15.5 7.5 20 12l-4.5 4.5M13.5 5l-3 14"/></svg>
+    </button>
     <button type="button" class="btn-rose" id="btn-rose">
       <svg class="rose" id="rose" viewBox="0 0 64 64" aria-hidden="true">
         <circle cx="32" cy="32" r="30" fill="#efe4c8" fill-opacity=".92" stroke="#35251a" stroke-width="1.1"/>

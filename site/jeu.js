@@ -1,6 +1,6 @@
 // ================================================================
-//  Jeu « Devine le lieu » (pas encore public : le bouton n'apparaît qu'avec
-//  ?jeu dans l'adresse de la carte, voir app.js).
+//  Jeu « Devine le lieu » (pas encore public : le bouton n'existe qu'en mode
+//  développeur, voir app.js).
 //  Une partie = 5 manches. À chaque manche, la photo d'un lieu de la carte ;
 //  le joueur pose son épingle sur la carte 3D, puis on révèle le vrai lieu,
 //  la distance et les points (1000 au plus par manche).

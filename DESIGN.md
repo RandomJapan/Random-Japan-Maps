@@ -260,6 +260,7 @@ Depth comes from the relief: the exaggerated terrain, the hillshade, and the isl
 - **Address label:** the round logo (24px, ink ring) and the map's address in IM Fell English italic 15px, on fresh parchment with an ink rule (2px corners). It sits top centre, below where TikTok draws its tabs; in a phone tour with videos, it sits just under the video frame.
 - **Dive:** a still frame of all Japan, then a 2.5s dive straight down onto one place, then a slow orbit. On phones the lower third rises to 22% of the height, clear of TikTok's caption zone. Its bar holds only a red Replay and Stop.
 - **Title card (PNG to overlay on a video):** the phone lower third, alone on a transparent background with its drop shadow, drawn at ×4 (about 800–1400 px wide). It is always in English, the videos' language. In the Dive tab it is a secondary parchment button under the red "Dive", with a quiet helper line.
+- **Developer mode switch:** a 42px square button above the compass, like the zoom buttons, with a `</>` ink glyph. It is parchment on the normal map and cartographer's red when developer mode is on, so the owner always knows which map they are on. It only exists in the owner's browsers.
 - **Tour panel tabs:** "Tour" and "Dive" in a segmented control like the language switch (chosen tab in cartographer's red). The Dive tab has text fields in fresh parchment with an ink rule (teal focus, red caret), a quiet helper line under the position, a red error line, and the red "Dive" button.
 
 ### Guess-the-place game (hidden until its release)

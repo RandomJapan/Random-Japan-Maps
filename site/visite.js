@@ -18,7 +18,7 @@ const ZOOM_LIEU = 12;
 const CACHER_BARRE = 2500; // ms sans bouger avant que la barre se cache, en mode film
 const ATTENTE_VIDEO = 6000; // ms : si la vidéo n'a pas démarré, on continue avec la photo du lieu
 const PAUSE_PLONGEON = 1200; // ms d'image fixe sur tout le Japon avant de plonger (pour couper au montage)
-const DUREE_PLONGEON = 2500; // ms : le plongeon lui-même (la propriétaire l'a voulu entre 2 et 3 s)
+const DUREE_PLONGEON = 2500; // ms : le plongeon lui-même (demandé entre 2 et 3 s)
 const ATTENTE_PRECHARGE = 10000; // ms au plus d'image fixe à attendre les tuiles du trajet (precharge.js)
 const SANS_MARGE = { top: 0, bottom: 0, left: 0, right: 0 };
 // Lecteur TikTok sans boutons ni textes ; il démarre tout seul (muet, sinon le navigateur peut refuser)

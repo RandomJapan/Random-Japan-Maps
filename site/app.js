@@ -1096,6 +1096,63 @@ async function lancerPlongeon() {
   });
 }
 
+// ---------------------------------------------------------------- Mode développeur (pas pour les visiteurs)
+// Ses outils : le plongeon et l'affiche (onglet Plongeon de la visite), le jeu pas encore sorti. Tout élément
+// de classe .dev n'existe qu'en mode développeur (style.css) : pour en ajouter un, lui donner cette classe.
+// Le lien secret (…/?dev=<code>) l'ouvre une fois dans un navigateur, qui s'en souvient. Ensuite le bouton
+// </> (en bas à droite, au-dessus de la rose) passe d'un clic de la carte normale à la carte développeur.
+// Ce n'est pas un verrou (le code du site est public) : c'est caché. Seul le condensé du code est dans le site.
+const MEMO_DEV = 'modeDev'; // localStorage : 'oui' (carte développeur) ou 'non' (carte normale) ; absent = pas permis
+
+function lireDev() {
+  try { return localStorage.getItem(MEMO_DEV); } catch { return null; }
+}
+
+function basculerDev(actif) {
+  try { localStorage.setItem(MEMO_DEV, actif ? 'oui' : 'non'); } catch { /* pas grave */ }
+  document.body.classList.add('dev-permis');
+  document.body.classList.toggle('mode-dev', actif);
+  $('btn-dev').setAttribute('aria-pressed', String(actif));
+  majBoutonDev();
+  if (!actif) {
+    // retour à la carte normale : rien des outils ne reste ouvert
+    if (jeu?.enCours()) jeu.arreter();
+    choisirOnglet(false);
+  }
+}
+
+function majBoutonDev() {
+  const actif = document.body.classList.contains('mode-dev');
+  $('btn-dev').title = t(actif ? 'modeDevActif' : 'modeDevNormal');
+  $('btn-dev').setAttribute('aria-label', t('modeDev'));
+}
+
+/** Le lien secret : on compare son condensé SHA-256 à celui de config.js, puis on l'efface de l'adresse. */
+async function ouvrirLienDev() {
+  const params = new URLSearchParams(location.search);
+  const code = params.get('dev');
+  if (code === null) return;
+  params.delete('dev');
+  const reste = params.toString();
+  history.replaceState(null, '', location.pathname + (reste ? `?${reste}` : '') + location.hash);
+  if (!crypto.subtle || !CONFIG.devCondense) return;
+  const octets = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(code));
+  const condense = [...new Uint8Array(octets)].map((o) => o.toString(16).padStart(2, '0')).join('');
+  if (condense !== CONFIG.devCondense) return;
+  basculerDev(true);
+  afficherMessage(t('modeDevOuvert'));
+}
+
+function brancherDev() {
+  if (lireDev()) basculerDev(lireDev() === 'oui');
+  ouvrirLienDev().catch(() => {});
+  $('btn-dev').addEventListener('click', () => {
+    const actif = !document.body.classList.contains('mode-dev');
+    basculerDev(actif);
+    afficherMessage(t(actif ? 'modeDevActif' : 'modeDevNormal'));
+  });
+}
+
 // ---------------------------------------------------------------- L'affiche du lieu (onglet Plongeon)
 // Pour le montage des TikToks : le carton du nom (comme à l'arrivée du plongeon), en PNG transparent (affiche.js).
 // Toujours en anglais, la langue des vidéos. Préparée d'avance pendant qu'on remplit les champs : sur téléphone,
@@ -1169,9 +1226,8 @@ async function partagerAffiche() {
 }
 
 // ---------------------------------------------------------------- Jeu « Devine le lieu » (pas encore public)
-// Le bouton n'apparaît qu'avec ?jeu dans l'adresse (map.randomjapanplace.com/?jeu) : le jeu sortira plus tard.
+// Le bouton n'existe qu'en mode développeur (classe .dev) : le jeu sortira plus tard, avec un TikTok.
 let jeu = null;
-if (new URLSearchParams(location.search).has('jeu')) $('btn-jeu').hidden = false;
 async function lancerJeu() {
   if (!jeu) {
     const { brancherJeu } = await import('./jeu.js');
@@ -1555,6 +1611,7 @@ function appliquerLangue() {
   $('txt-plongeon-type').textContent = t('plongeonType');
   $('txt-plongeon-lancer').textContent = t('plongeonLancer');
   $('txt-plongeon-affiche').textContent = t('plongeonAffiche');
+  majBoutonDev();
   $('plongeon-affiche-aide').textContent = t('plongeonAfficheAide');
   if (!$('volet-plongeon').hidden) choisirOnglet(true); // les types dans la nouvelle langue
   majFavoris();
@@ -1711,6 +1768,7 @@ async function demarrer() {
     compteur = brancherCompteur({ code: CONFIG.goatcounter, afficher: !estTelephone(), t, langue: () => langue });
   }
   brancherBoutons();
+  brancherDev();
   appliquerLangue();
   majSelonZoom();
 

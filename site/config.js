@@ -23,6 +23,12 @@ export const CONFIG = {
   // L'adresse de la carte, écrite à l'écran quand on filme (mode film de la visite et plongeon)
   adresse: 'map.randomjapanplace.com',
 
+  // --- Mode développeur ------------------------------------------------
+  // Les outils qui ne sont pas pour les visiteurs (plongeon, affiche, jeu pas encore sorti) n'apparaissent que dans
+  // un navigateur où le lien secret (…/?dev=<code>) a été ouvert une fois. Ici, seulement le condensé
+  // SHA-256 du code : le lien lui-même n'est écrit nulle part dans le site. Pour en faire un nouveau, voir CLAUDE.md.
+  devCondense: '4cbb90bcea9c5852989e98655d2677fb02151a7251111c3f759884cb984f3dac',
+
   // --- Compteur de visites (GoatCounter) ------------------------------
   // Le code de ton compte GoatCounter (le début de l'adresse : « monsite » pour monsite.goatcounter.com).
   // Chaque visite y est comptée, et le total s'affiche en haut de la carte sur ordinateur.
@@ -191,6 +197,10 @@ export const TEXTES = {
     plongeonRejouer: 'Dive again',
     plongeonArreter: 'Stop',
     jeu: 'Guess the place',
+    modeDev: 'Developer mode',
+    modeDevActif: 'Developer mode: your tools (dive, title card, game)',
+    modeDevNormal: 'Normal map, as visitors see it',
+    modeDevOuvert: 'Developer mode is now available in this browser',
     jeuRegles: (n) => `${n} places from my videos. Look at the photo, then tap the map where you think it is. The closer you are, the more points you get.`,
     jeuJouer: 'Play',
     jeuManche: (i, n) => `Round ${i}/${n}`,
@@ -332,6 +342,10 @@ export const TEXTES = {
     plongeonRejouer: 'Rejouer le plongeon',
     plongeonArreter: 'Arrêter',
     jeu: 'Devine le lieu',
+    modeDev: 'Mode développeur',
+    modeDevActif: 'Mode développeur : tes outils (plongeon, affiche, jeu)',
+    modeDevNormal: 'Carte normale, comme la voient les visiteurs',
+    modeDevOuvert: 'Le mode développeur est disponible dans ce navigateur',
     jeuRegles: (n) => `${n} lieux de mes vidéos. Regarde la photo, puis touche la carte là où tu penses que c'est. Plus tu es près, plus tu marques de points.`,
     jeuJouer: 'Jouer',
     jeuManche: (i, n) => `Manche ${i}/${n}`,
@@ -473,6 +487,10 @@ export const TEXTES = {
     plongeonRejouer: 'もう一度ダイブ',
     plongeonArreter: '終了',
     jeu: '場所当てクイズ',
+    modeDev: '開発者モード',
+    modeDevActif: '開発者モード：あなた専用のツール（ダイブ、タイトル画像、クイズ）',
+    modeDevNormal: '通常の地図（訪問者と同じ表示）',
+    modeDevOuvert: 'このブラウザで開発者モードが使えるようになりました',
     jeuRegles: (n) => `動画に出てくる${n}つの場所。写真を見て、その場所だと思うところを地図でタップしてね。近いほど高得点！`,
     jeuJouer: 'スタート',
     jeuManche: (i, n) => `第${i}問／${n}`,

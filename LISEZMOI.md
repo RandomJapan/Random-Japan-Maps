@@ -140,7 +140,9 @@ Le bouton **Visite** (la petite caméra) fait voler la caméra toute seule d'un 
 
 ### Le plongeon (pour remplacer le hook Google Earth)
 
-Il sert pour un **nouveau lieu, pas encore sur la carte** : tu filmes le début de ta vidéo avant de l'ajouter au tableau. Ouvre le bouton **Visite** (la petite caméra), puis l'onglet **Plongeon** :
+Il fait partie du **mode développeur** (voir plus bas) : les visiteurs ne le voient pas.
+
+Il sert pour un **nouveau lieu, pas encore sur la carte** : tu filmes le début de ta vidéo avant de l'ajouter au tableau. Passe en mode développeur, ouvre le bouton **Visite** (la petite caméra), puis l'onglet **Plongeon** :
 - **Position :** colle les coordonnées GPS du lieu. Dans Google Maps, fais un appui long sur le lieu (clic droit sur ordinateur), puis copie les coordonnées qui s'affichent, par exemple `33.8394, 130.8156`. Un lien Google Maps complet marche aussi, mais pas un lien court en `maps.app.goo.gl`.
 - **Nom** et **Nom japonais** (facultatifs) : ils s'affichent à l'arrivée, comme pour les autres lieux, avec la préfecture trouvée toute seule.
 - **Type de lieu :** il choisit la couleur de l'épingle et le modèle 3D posé sur le lieu (un torii pour un sanctuaire…).
@@ -154,9 +156,17 @@ Il sert pour un **nouveau lieu, pas encore sur la carte** : tu filmes le début 
 - Les boutons disparaissent tout de suite. Touche l'écran pour faire revenir la barre : **Rejouer** (rouge, pour refaire une prise) et **Arrêter**. Sur ordinateur : Espace = rejouer, Échap = arrêter.
 - Sur téléphone, le nom du lieu est placé plus haut que pendant la visite, pour ne pas être caché par la légende de ta vidéo TikTok.
 
+## Le mode développeur (rien que pour toi)
+
+Tes outils qui ne sont pas pour les visiteurs (pas encore, ou jamais) : le **plongeon** et l'**affiche à incruster** (onglet Plongeon de la visite), et le **jeu** pas encore sorti.
+- **La première fois :** ouvre ton **lien secret** (celui que Claude t'a donné dans la conversation, qui finit par `?dev=…`) dans chaque navigateur où tu veux le mode : sur ton téléphone (Safari ou Chrome, pas le navigateur intégré de TikTok) et sur ton ordinateur. Le navigateur s'en souvient ensuite. Garde ce lien pour toi : il n'est écrit nulle part ailleurs.
+- **Ensuite :** un bouton `</>` apparaît en bas à droite, au-dessus de la rose des vents. **Rouge** = carte développeur (tes outils sont là). **Clair** = carte normale, exactement comme la voient les visiteurs. Un clic pour passer de l'une à l'autre ; la carte retient ton choix.
+- Ce bouton n'existe que dans tes navigateurs : les visiteurs ne le voient jamais.
+- Si tu perds le lien, demande à Claude d'en faire un nouveau.
+
 ## Le jeu « Devine le lieu » (pas encore public)
 
-Il est prêt mais **caché** : il sortira le mois prochain, avec un TikTok. Pour l'essayer, ouvre **https://map.randomjapanplace.com/?jeu** : un bouton « Devine le lieu » apparaît à côté des autres. Sans `?jeu` dans l'adresse, personne ne le voit.
+Il est prêt mais **caché** : il sortira le mois prochain, avec un TikTok. Pour l'essayer, passe en **mode développeur** : un bouton « Devine le lieu » apparaît à côté des autres. Les visiteurs ne le voient pas.
 - Une partie = 5 lieux tirés au hasard, éloignés les uns des autres. Pour chacun : une photo (la photo du tableau, ou la couverture de ta vidéo avec le nom flouté), et le joueur touche la carte là où il pense que c'est, puis valide.
 - Le vrai lieu apparaît avec son nom, relié à l'épingle du joueur, avec la distance et les points (1 000 au plus par lieu : 670 à 100 km, 370 à 250 km). À la fin : le score sur 5 000, un titre (de « Touriste curieux » à « Expert du Japon ») et « Partager mon score ».
 - Pendant la partie, les épingles et les modèles 3D des lieux sont cachés, sinon ce serait trop facile.

@@ -48,6 +48,8 @@ body {
 button { font: inherit; color: inherit; cursor: pointer; }
 svg { display: block; }
 [hidden] { display: none !important; }
+/* Mode développeur (app.js) : les outils qui ne sont pas pour les visiteurs n'existent pas sur la carte normale */
+body:not(.mode-dev) .dev { display: none !important; }
 :focus-visible { outline: 2px solid var(--sarcelle); outline-offset: 2px; }
 
 #carte { position: fixed; inset: 0; }
@@ -263,6 +265,11 @@ svg { display: block; }
 .controles .panneau { width: 42px; height: 42px; display: grid; place-items: center; transition: background .2s; }
 .controles .panneau svg { width: 20px; height: 20px; }
 .controles .panneau:hover { background-color: var(--papier-fonce); }
+/* Le bouton du mode développeur : seulement là où le lien secret a été ouvert ; rouge quand il est actif */
+.controles .btn-dev { display: none; }
+body.dev-permis .controles .btn-dev { display: grid; }
+body.mode-dev .controles .btn-dev { background: var(--rouge); border-color: var(--rouge-survol); color: var(--papier-clair); }
+body.mode-dev .controles .btn-dev:hover { background: var(--rouge-survol); }
 
 /* Rose des vents : elle tourne avec la carte ; la toucher remet le nord en haut */
 .btn-rose {
