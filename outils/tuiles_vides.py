@@ -4,14 +4,13 @@ Mapterhorn n'a pas de tuile pour certaines zones de grand large : il répond 404
 dans la console du navigateur. La carte (site/tuiles-relief.js) ne lui demande plus les tuiles de cette liste, ni
 leurs sous-tuiles (une tuile vide n'a que des sous-tuiles vides).
 - Jusqu'au niveau ZPLEIN, on descend dans toutes les tuiles qui existent, en partant de celle du monde entier
-  (une requête HEAD par tuile : rien n'est téléchargé).
-- Plus fin, jusqu'à ZMAX (le zoom maximal de la source), seulement au bord des zones vides déjà trouvées et à
-  moins de RAYON_KM d'un lieu du tableau : c'est là qu'on zoome. Ailleurs, chaque navigateur apprend les tuiles
-  vides au premier 404.
+  (une requête HEAD par tuile : rien n'est téléchargé). Au niveau 10, ça fait environ 20 000 requêtes.
+- Plus fin, jusqu'à ZMAX (le zoom maximal de la source), seulement au bord des zones vides déjà trouvées : les
+  trous de Mapterhorn suivent à peu près des carrés de 1° sans terre, donc un trou plus fin touche toujours un
+  trou plus grossier. S'il en manque, chaque navigateur apprend une tuile vide à son premier 404.
 On garde les tuiles vides dont la tuile parente existe.
 Les réponses sont gardées dans le dossier temporaire du système (carte-japon-tuiles) : relancer reprend où on en était.
-Les données de Mapterhorn changent rarement : à relancer si des 404 réapparaissent souvent, ou après beaucoup de
-nouveaux lieux au bord du grand large.
+Les données de Mapterhorn changent rarement : à relancer seulement si des 404 réapparaissent souvent.
 Lancer :  python outils/tuiles_vides.py
 """
 import json
@@ -21,20 +20,16 @@ import time
 import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
-from math import atan, cos, degrees, floor, log, pi, radians, sinh, tan
+from math import cos, floor, log, pi, radians, tan
 from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from fabriquer_pages import distance_km, lire_lieux  # noqa: E402  (les lieux du tableau, comme les pages)
 
 RACINE = Path(__file__).resolve().parent.parent
 SORTIE = RACINE / "site" / "data" / "tuiles-vides.json"
 CACHE = Path(tempfile.gettempdir()) / "carte-japon-tuiles" / "reponses.json"
 ADRESSE = "https://tiles.mapterhorn.com/{z}/{x}/{y}.webp"
 BORNES = (108, 12, 170, 58)  # maxBounds de la carte (app.js) : ouest, sud, est, nord
-ZPLEIN = 9
+ZPLEIN = 10
 ZMAX = 12  # maxzoom de la source de relief (app.js)
-RAYON_KM = 120
 EN_PARALLELE = 8
 AGENT = {"User-Agent": "RandomJapanPlaceMap/1.0 (https://map.randomjapanplace.com/; list of empty sea tiles, once)"}
 
@@ -45,11 +40,6 @@ def tuile_x(lng, z):
 
 def tuile_y(lat, z):
     return floor((1 - log(tan(radians(lat)) + 1 / cos(radians(lat))) / pi) / 2 * 2 ** z)
-
-
-def centre(z, x, y):
-    n = 2 ** z
-    return {"lng": (x + 0.5) / n * 360 - 180, "lat": degrees(atan(sinh(pi * (1 - 2 * (y + 0.5) / n))))}
 
 
 def dans_bornes(z, x, y):
@@ -79,7 +69,6 @@ def existe(cle):
 def main():
     CACHE.parent.mkdir(parents=True, exist_ok=True)
     reponses = json.loads(CACHE.read_text()) if CACHE.exists() else {}
-    lieux = lire_lieux()
     vides = set()
 
     def vide(z, x, y):
@@ -90,16 +79,12 @@ def main():
         """Une tuile voisine (même niveau) est-elle vide ?"""
         return any(vide(z, x + dx, y + dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1) if dx or dy)
 
-    def pres_d_un_lieu(z, x, y):
-        c = centre(z, x, y)
-        return any(distance_km(c, l) <= RAYON_KM for l in lieux)
-
     niveau = ["0/0/0"]
     with ThreadPoolExecutor(EN_PARALLELE) as pool:
         for z in range(1, ZMAX + 1):
             parents = [tuple(map(int, c.split("/"))) for c in niveau]
-            if z > ZPLEIN:  # plus fin : seulement au bord du vide, près des lieux
-                parents = [p for p in parents if au_bord(*p) and pres_d_un_lieu(*p)]
+            if z > ZPLEIN:  # plus fin : seulement au bord du vide
+                parents = [p for p in parents if au_bord(*p)]
             enfants = [f"{z}/{2 * x + dx}/{2 * y + dy}" for _, x, y in parents for dx in (0, 1) for dy in (0, 1)
                        if dans_bornes(z, 2 * x + dx, 2 * y + dy)]
             a_demander = [c for c in enfants if c not in reponses]
