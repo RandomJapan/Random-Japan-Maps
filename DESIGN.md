@@ -264,10 +264,14 @@ Depth comes from the relief: the exaggerated terrain, the hillshade, and the isl
 - **Tour panel tabs:** "Tour" and "Dive" in a segmented control like the language switch (chosen tab in cartographer's red). The Dive tab has text fields in fresh parchment with an ink rule (teal focus, red caret), a quiet helper line under the position, a red error line, and the red "Dive" button.
 
 ### Guess-the-place game (hidden until its release)
-- **Card:** a parchment plate with the double rule (360px, top-left on desktop; full width at the top on phones). It holds "Round n/5" and the score in Zen Antique 16px, and a close ×. The image sits in a dark frame (contained, tap to enlarge), with the instruction in Noto Sans. The main action is the red button; on phones it is fixed low on the screen, under the thumb.
+- **Card:** a parchment plate with the double rule (360px, top-left on desktop; full width at the top on phones). It holds "Round n/5" and the score in Zen Antique 16px, the timer, and a close ×. The photo sits in a frame (tap to enlarge), with the instruction in Noto Sans. The main action is the red button; on phones it is fixed low on the screen, under the thumb.
+- **Photo:** shown whole over a blurred, darkened copy of itself, or filling the frame when its shape is close. A small dark plate in the bottom-right corner carries the credit in 10.5px parchment text (licence while guessing; author with a link once revealed).
+- **Timer:** a stopwatch glyph and "30 s" in semibold Noto Sans tabular figures, between the round and the score, plus a 4px parchment bar along the top edge of the photo that shrinks. Both turn cartographer's red in the last 10 seconds, and the number beats gently in the last 5 (not under reduced motion).
+- **Hint:** a secondary parchment button with a lightbulb ink glyph and its cost ("Hint (−25%)"). The hint text is a semibold red line ("Region: Kansai · Prefecture: Nara"). On the map the zone is a translucent red wash (16%) with a solid red outline.
+- **Best scores:** under a Zen Antique 17px heading, a ruled list (rank in Zen Antique, score in bold tabular figures, date in quiet ink on the right) and the number of games. The game just played has a pale red row; a new record gets a small red plate "New record!".
 - **Pins:** the player's guess is a red drop with a parchment ring and centre, with an ink drop shadow. The answer is the place's own crest (or dot) in its selected state, with its name label. A dashed cartographer's-red line joins them.
 - **Reveal:** a verdict in Zen Antique 21px ("Bullseye!", "Very close!", "Not bad", "Far away…"), the place name, category · prefecture, and the distance plus points in bold.
-- **End:** "Your score", the total in Zen Antique 40px, a title, a secondary "Share my score" and a red "Play again".
+- **End:** "Your score", the total in Zen Antique 40px, the record plate or rank, a title, the best scores, a secondary "Share my score" and a red "Play again".
 
 ### Place pages (for Google)
 - **Sheet:** each place's page is one parchment sheet with the double rule, floating on the sea colour with the grain, under the map's header plaque and language switch.

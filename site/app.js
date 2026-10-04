@@ -1235,7 +1235,9 @@ async function lancerJeu() {
       t, enLangue, infos: infosLieu, lieux: () => lieux, reperes, modeles3d, vueDepart, estTelephone, afficherMessage,
       adresse: CONFIG.adresse,
       photo: (l) => (l.photo ? photoAllegee(l.photo) : ''),
-      couverture: (l) => (idVideo(l.tiktok) ? `photos/tiktok/${idVideo(l.tiktok)}.jpg` : ''),
+      video: (l) => idVideo(l.tiktok),
+      prefecture: async (l) => { await preparerPrefectures(); return l.prefecture; },
+      langue: () => langue,
       avant: () => {
         if (visite.enCours()) visite.arreter();
         arreterRotation();

@@ -167,8 +167,13 @@ Tes outils qui ne sont pas pour les visiteurs (pas encore, ou jamais) : le **plo
 ## Le jeu « Devine le lieu » (pas encore public)
 
 Il est prêt mais **caché** : il sortira le mois prochain, avec un TikTok. Pour l'essayer, passe en **mode développeur** : un bouton « Devine le lieu » apparaît à côté des autres. Les visiteurs ne le voient pas.
-- Une partie = 5 lieux tirés au hasard, éloignés les uns des autres. Pour chacun : une photo (la photo du tableau, ou la couverture de ta vidéo avec le nom flouté), et le joueur touche la carte là où il pense que c'est, puis valide.
+- Une partie = 5 lieux tirés au hasard, éloignés les uns des autres. Pour chacun : une **photo nette** du lieu et **30 secondes**. Le joueur touche la carte là où il pense que c'est, puis valide. Le chrono devient rouge dans les 10 dernières secondes. À zéro, l'épingle posée compte ; sans épingle, c'est 0 point.
+- **Les photos :** celle de la colonne Photo du tableau si elle existe ; sinon une photo libre de droits de **Wikimedia Commons** (la photothèque de Wikipédia), choisie une par une par Claude. La licence s'affiche sur la photo, et le nom du photographe une fois le lieu révélé, comme la licence le demande. Les photos de Google Images, elles, appartiennent à leurs auteurs : on ne peut pas les mettre sur le site sans leur accord.
+  - 10 lieux n'ont pas de photo libre qui convienne (par exemple la statue de Luffy ou le village des épouvantails de Nagoro) : ils ne sont pas dans le jeu. **Pour en ajouter un, mets une photo dans la colonne Photo du tableau.**
+  - Pour un nouveau lieu, une photo est cherchée toute seule la nuit. Si une photo te semble mauvaise, dis-le à Claude.
+- **Le bouton Indice :** le 1er indice montre la **région** (colorée en rouge sur la carte), le 2e la **préfecture**. Chaque indice coûte des points : la manche ne rapporte plus que 75 % des points après un indice, 50 % après deux.
 - Le vrai lieu apparaît avec son nom, relié à l'épingle du joueur, avec la distance et les points (1 000 au plus par lieu : 670 à 100 km, 370 à 250 km). À la fin : le score sur 5 000, un titre (de « Touriste curieux » à « Expert du Japon ») et « Partager mon score ».
+- **Les records :** l'accueil et la fin du jeu montrent les 5 meilleurs scores, avec leur date, et le nombre de parties. « Nouveau record ! » s'affiche quand on bat son meilleur score. Ils restent dans le navigateur du joueur (chacun a les siens). Un classement commun à tous les joueurs demanderait des comptes ou un serveur : pas fait pour l'instant.
 - Pendant la partie, les épingles et les modèles 3D des lieux sont cachés, sinon ce serait trop facile.
 - Le jour de la sortie, demande à Claude de rendre le bouton visible pour tout le monde.
 
