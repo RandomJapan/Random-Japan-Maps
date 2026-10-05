@@ -1,7 +1,7 @@
 // ================================================================
 //  Les modèles 3D sur la carte : quand on zoome, chaque lieu montre
 //  le petit modèle de l'icône de sa catégorie (voir modeles3d.js),
-//  posé sur le relief, sur un socle de la couleur de la catégorie.
+//  posé à même le relief et cerné d'un trait d'encre sépia.
 //  three.js (le moteur 3D) n'est chargé qu'après le démarrage (pour les
 //  bateaux de mer.js) ou au premier zoom rapproché : la carte démarre aussi vite.
 // ================================================================
@@ -10,12 +10,33 @@ export const URL_THREE = 'https://cdn.jsdelivr.net/npm/three@0.186.1/build/three
 const ZOOM_CHARGEMENT = 7; // on charge three.js un peu avant d'en avoir besoin
 const ZOOM_DEBUT = 8.6; // en dessous : pas de modèles
 const ZOOM_PLEIN = 9.6; // entre les deux, les modèles sortent de terre
-const BRUN = [0x4a, 0x35, 0x21]; // les couleurs du tableau sont vieillies vers ce sépia, comme les blasons
+const TRAIT = 1.4; // épaisseur du trait d'encre autour des modèles, en pixels à l'écran
 const RESERVE = 2; // places en plus dans chaque tampon, pour les lieux provisoires (plongeon sur un nouveau lieu)
 
 /** Hauteur à l'écran (en pixels) d'un modèle de taille 1 : il grandit doucement quand on s'approche. */
 const taillePx = (z) => Math.min(170, 62 * 2 ** ((z - 10.5) * 0.5));
 const lisser = (t) => (t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t));
+
+/**
+ * Fait avancer un générateur par tranches d'environ 6 ms, entre deux images : fabriquer tous les modèles
+ * d'un coup figeait la carte (un tiers de seconde sur un téléphone moyen). Promise de sa valeur finale.
+ */
+function sansFiger(fabrique) {
+  return new Promise((ok, echec) => {
+    const tranche = () => {
+      try {
+        const debut = performance.now();
+        let etape;
+        do etape = fabrique.next(); while (!etape.done && performance.now() - debut < 6);
+        if (etape.done) ok(etape.value);
+        else setTimeout(tranche, 0);
+      } catch (e) {
+        echec(e);
+      }
+    };
+    tranche();
+  });
+}
 
 /**
  * Branche les modèles 3D sur la carte.
@@ -24,7 +45,7 @@ const lisser = (t) => (t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t));
  */
 export function brancherModeles(map, maplibregl, obtenirLieux) {
   let etat = 'attente'; // puis 'chargement', 'pret' ou 'echec'
-  let THREE, renderer, scene, camera, soleil, socle, types = null;
+  let THREE, renderer, scene, camera, soleil, contour, types = null;
   let versionRelief = 0; // change à chaque tuile de relief reçue : les altitudes se précisent
   let dessines = []; // lieux dessinés à la dernière image (pour les clics)
   let echelleDessin = 0;
@@ -44,29 +65,32 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
     return l.alt3d.valeur;
   }
 
-  /** Le modèle d'un lieu, sa hauteur et sa couleur (celle de sa catégorie, vieillie vers le sépia). */
+  /** Le modèle d'un lieu et sa hauteur (pour poser son épingle juste au-dessus). */
   function preparerLieu(l) {
     const { modeles, modelePour } = outils3d;
     l.modele3d = modelePour(l.cat.icone, modeles);
     l.hauteur3d = modeles[l.modele3d].hauteur;
-    const hexa = l.cat.couleur.replace('#', '');
-    const rvb = [0, 2, 4].map((i, j) => Math.round(parseInt(hexa.slice(i, i + 2), 16) * 0.78 + BRUN[j] * 0.22));
-    l.couleur3d = new THREE.Color(`rgb(${rvb.join(',')})`);
   }
 
   function nouveauType(nom, liste) {
-    const mesh = new THREE.InstancedMesh(outils3d.modeles[nom].geometrie, outils3d.matiere, liste.length + RESERVE);
+    const geo = outils3d.modeles[nom].geometrie;
+    const mesh = new THREE.InstancedMesh(geo, outils3d.matiere, liste.length + RESERVE);
     mesh.frustumCulled = false;
     mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-    scene.add(mesh);
-    const t = { nom, lieux: liste, mesh };
+    // le trait d'encre : la même forme, gonflée, vue de dos, aux mêmes places (elle partage leurs matrices)
+    const trait = new THREE.InstancedMesh(geo, contour.matiere, liste.length + RESERVE);
+    trait.frustumCulled = false;
+    trait.instanceMatrix = mesh.instanceMatrix;
+    scene.add(mesh, trait);
+    const t = { nom, lieux: liste, mesh, trait };
     types.push(t);
     return t;
   }
 
   /** Range les lieux par modèle ; un seul « tampon » (InstancedMesh) par modèle, donc très peu de dessins. */
-  function preparerTypes(lieux, modeles, modelePour) {
+  function preparerTypes(lieux, modeles, modelePour, matiereContour) {
     outils3d = { modeles, modelePour, matiere: new THREE.MeshLambertMaterial({ vertexColors: true }) };
+    contour = matiereContour(THREE);
     const parModele = new Map();
     for (const l of lieux) {
       preparerLieu(l);
@@ -75,15 +99,6 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
     }
     types = [];
     for (const [nom, liste] of parModele) nouveauType(nom, liste);
-    // Le socle rond commun : un disque qui s'enfonce un peu dans le sol (sur une pente, il ne flotte pas)
-    const geo = new THREE.CylinderGeometry(0.5, 0.52, 0.2, 24).toNonIndexed();
-    geo.translate(0, -0.04, 0);
-    geo.computeVertexNormals();
-    socle = new THREE.InstancedMesh(geo, new THREE.MeshLambertMaterial(), lieux.length + RESERVE);
-    socle.frustumCulled = false;
-    socle.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-    for (let i = 0; i < lieux.length; i++) socle.setColorAt(i, lieux[i].couleur3d);
-    scene.add(socle);
   }
 
   const couche = {
@@ -122,13 +137,14 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
       if (pousse <= 0 || !types) return;
       echelleDessin = taillePx(z) * pousse;
       const k = echelleDessin / (512 * 2 ** z); // taille du modèle en unités de la carte
+      contour.epaisseur.value = Math.min(0.03, TRAIT / echelleDessin); // un trait de même épaisseur à toutes les tailles
       // Tout est calculé autour du centre de l'écran : de petits nombres, donc pas de tremblement au zoom maximum.
       const centre = maplibregl.MercatorCoordinate.fromLngLat(map.getCenter());
       const bornes = map.getBounds();
       const marge = 0.05 * (bornes.getEast() - bornes.getWest());
       const b = (map.getBearing() * Math.PI) / 180;
       soleil.position.set(-Math.sin(b) - 0.5 * Math.cos(b), Math.cos(b) - 0.5 * Math.sin(b), 1.2);
-      let nSocle = 0;
+      let nb = 0;
       for (const t of types) {
         let n = 0;
         const liste = provisoires.length ? t.lieux.concat(provisoires.filter((l) => l.modele3d === t.nom)) : t.lieux;
@@ -140,17 +156,13 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
           m4.pos.set(mc.x - centre.x, mc.y - centre.y, mc.z);
           m4.instance.makeScale(k, k, k).multiply(m4.base).setPosition(m4.pos);
           t.mesh.setMatrixAt(n++, m4.instance);
-          socle.setMatrixAt(nSocle, m4.instance);
-          socle.setColorAt(nSocle++, l.couleur3d);
           dessines.push(l);
         }
-        t.mesh.count = n;
+        t.mesh.count = t.trait.count = n;
         t.mesh.instanceMatrix.needsUpdate = true;
+        nb += n;
       }
-      socle.count = nSocle;
-      socle.instanceMatrix.needsUpdate = true;
-      socle.instanceColor.needsUpdate = true;
-      if (!nSocle) return;
+      if (!nb) return;
       camera.projectionMatrix.fromArray(args.defaultProjectionData.mainMatrix)
         .multiply(m4.centre.makeTranslation(centre.x, centre.y, 0));
       camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
@@ -184,13 +196,13 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
     etat = 'chargement';
     try {
       THREE = await import(URL_THREE);
-      const { fabriquerModeles, modelePour } = await import('./modeles3d.js');
-      const modeles = fabriquerModeles(THREE);
+      const { fabriquerPeuAPeu, modelePour, matiereContour } = await import('./modeles3d.js');
+      const modeles = await sansFiger(fabriquerPeuAPeu(THREE));
       map.addLayer(couche);
       const installer = () => {
         const lieux = obtenirLieux();
         if (!lieux.length) return false;
-        preparerTypes(lieux, modeles, modelePour);
+        preparerTypes(lieux, modeles, modelePour, matiereContour);
         etat = 'pret';
         if (provisoires.length) installerProvisoires();
         majLevee();
@@ -225,8 +237,8 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
 
   return {
     /**
-     * Prépare tout d'avance (avant un plongeon) : three.js chargé, modèles fabriqués (~100 ms sur un
-     * téléphone moyen) et shaders compilés. Sinon, ça se faisait en pleine descente, au zoom 7 et 8,6.
+     * Prépare tout d'avance (avant un plongeon) : three.js chargé, modèles fabriqués (peu à peu, ~0,3 s sur
+     * un téléphone moyen) et shaders compilés. Sinon, ça se faisait en pleine descente, au zoom 7 et 8,6.
      */
     preparer() {
       if (etat === 'attente') charger();

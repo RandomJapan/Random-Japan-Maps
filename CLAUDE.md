@@ -151,19 +151,25 @@ The redesigns were done with the Impeccable skill (`~/.claude/skills/impeccable`
 
 ### 3D place models (`site/couche3d.js`, `site/modeles3d.js`)
 
-When the map is zoomed in, every place shows a small low-poly model of its category's **icon**, on a round base in the (sepia-aged) category colour. The HTML marker floats just above its model.
+When the map is zoomed in, every place shows a small low-poly model of its category's **icon**, standing straight on the relief. The HTML marker floats just above its model.
+- **The look (2026-10-05).** The owner found the first models (on a round base in the category colour) poor on video, and asked for no base, more detail and the site's art direction. They approved a pilot of 4 models, then all 30 were redone the same way:
+  - **No base.** The ground is y = 0. Each model brings its own patch of ground (`parcelle`: grass, sand, gravel, water, with an irregular `bosses` outline) and its foundations go down to about −0.2, so it never floats on a slope: the relief hides what is below.
+  - **Ink outline**, like the legend vignettes: an inverted hull. `matiereContour(THREE)` returns a sepia `BackSide` material whose shader pushes each vertex along its smoothed normal (the `contour` attribute, computed per piece in `fin()`). `couche3d.js` draws it as a second `InstancedMesh` per model that shares the model's `instanceMatrix`, and sets `epaisseur` every frame for about `TRAIT` (1.4) px on screen. Flat pieces laid on another surface (water lines, foam) are built with `trait: false`.
+  - **Watercolour painting.** Colours come from the palette `C` (faded washes from the vignettes). `fin()` gives each triangle a small random wash (`nuance`) and darkens the bottom of the model (`0.74 + 0.26 × lisse(−0.06, 0.32, y)`), as if it stood in its own shadow. Water gets fine light lines that follow the shore (`lignesEau`, `ruban`), like the map's engraved water-lines; a per-triangle stripe pattern looked like a mosaic.
+  - **The workshop.** `ateliers(THREE)` returns `atelier()`, a chainable builder: primitives (`boite`, `cylindre`, `cone`, `boule`, `toit`…), `piece(geo, c, { deformer, teinte, couleurs, trait, nuance })`, and Japanese parts reused across models: `toitJapon` (curved roof, upturned corners, tile rows), `ishigaki` (castle stone base), `cedre`, `pinJapon`, `erable`, `lanterne`, `shimenawa`, `chochin`, `baton`, `tube`.
 - **Model set.** `modeles3d.js` builds every model from three.js primitives (no asset files), one per icon name in `ICONES`.
   - `ALIAS` maps `camera` to `viewpoint`, and `star` and `pin` to `stele`.
   - Emojis and unknown icons get `stele`.
-  - Each model is about 1 unit tall, fits in a radius-0.5 disc, and is merged into one vertex-coloured geometry.
+  - Each model is about 1 unit tall, fits in a radius-0.5 disc, and is merged into one vertex-coloured geometry. The 30 models make about 77,000 triangles.
   - When you add an icon, add its model too (otherwise it shows the stele). `site/modeles.html` is the owner-facing gallery and the quickest visual check.
+  - **Building them without freezing the map.** `fabriquerPeuAPeu(THREE)` is a generator that yields after each model; `sansFiger` (`couche3d.js`) runs it in slices of about 6 ms between frames. Built in one go they took about 80 ms on desktop, a third of a second on a mid-range phone. `fabriquerModeles` builds them all at once, for the gallery.
 - **Loading.** three.js (pinned `0.186.1`, jsDelivr ESM, `URL_THREE` exported by `couche3d.js`) is dynamically imported, so start-up is unchanged. `mer.js` loads it about 1.5 s after the map is up, for the ships. Otherwise it loads the first time zoom reaches 7, or when `modeles3d.preparer()` is called (before a dive, which also compiles the shaders). If it fails to load, the map just has no models or ships.
 - **Rendering.** One MapLibre custom layer, `modeles-3d` (`renderingMode: '3d'`), shares MapLibre's GL context and depth buffer, so terrain hides models behind mountains.
-  - There is one `InstancedMesh` per model plus one for the bases: about 25 draw calls.
+  - There are two `InstancedMesh`es per model in use, the model and its ink outline (`nouveauType`): about 45 draw calls.
   - Instance matrices are rebuilt every frame, only for places inside the view bounds, relative to the map centre (relative-to-centre, so there is no float32 jitter at zoom 16). The projection is `defaultProjectionData.mainMatrix × translate(centre)`.
-  - The base elevation is `map.queryTerrainElevation()` (exaggeration included). It is cached per place until the exaggeration changes or a `relief` tile arrives.
+  - The ground elevation is `map.queryTerrainElevation()` (exaggeration included). It is cached per place until the exaggeration changes or a `relief` tile arrives.
 - **Pitfalls.**
-  - The model-to-map basis is deliberately a **mirror**: (x, y, z) → (x, z, y). With a proper rotation, the faces rendered inside-out, showing back faces only (dark models, bases seen as arcs).
+  - The model-to-map basis is deliberately a **mirror**: (x, y, z) → (x, z, y). With a proper rotation, the faces rendered inside-out, showing back faces only (dark models).
   - The models' directional light follows the camera, coming from the viewer's upper left. A fixed north-west light (like the hillshade) left every model backlit, because the camera usually looks north.
 - **Size.** Models appear between zoom 8.6 and 9.6 (they grow out of the ground). Their on-screen height is `62px × 2^((z − 10.5) / 2)`, capped at 170px.
 - **Marker lift.** `majLevee` (`couche3d.js`) computes the screen height of a size-1 model × sin(pitch), in 4px steps. When it changes, each place marker gets `setOffset([0, −lift × (model height + 0.08)])`. MapLibre repositions markers every frame anyway, so this costs no restyle. The earlier `--leve` CSS variable on `#carte` restyled the whole map on every step and was the main cause of phone stutter.

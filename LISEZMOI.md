@@ -60,7 +60,8 @@ Le lieu apparaît sur la carte dès que le robot a fini, en environ 5 minutes.
 
 Quand on zoome sur la carte, chaque lieu montre un petit modèle 3D posé sur le relief, avec son repère juste au-dessus :
 - un torii pour les sanctuaires, un temple, un château, une montagne, une cascade, etc. ;
-- sur un socle rond de la couleur de sa catégorie.
+- peint comme une aquarelle et entouré d'un trait d'encre, comme les dessins des légendes ;
+- sans socle : il est posé directement sur le relief, sur son petit bout de terrain (herbe, sable, eau…).
 
 Un appui sur le modèle ouvre la fiche du lieu, comme un appui sur le repère.
 

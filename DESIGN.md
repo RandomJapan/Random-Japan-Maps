@@ -124,7 +124,7 @@ The owner chose this world on 2026-09-30 from three reference images: a parchmen
 - Parchment plates with a double ink rule; 2px corners
 - Italic copperplate sea names lying on the water; vertical Japanese names in the Japanese UI
 - A compass rose that turns with the map, and a Japan · 日本 · Japon scroll bottom-left
-- Up close, every place is a small painted low-poly model of its category, standing on a base in the category colour
+- Up close, every place is a small painted low-poly model of its category, standing straight on the relief and ringed with sepia ink like the legend vignettes
 - From afar, a living sea: swell rolling to the shore, a few 3D Edo ships far out at sea, a whale or a sea serpent now and then
 - Zoomed in, twenty-two hidden legend vignettes to find, each telling its story in a parchment bubble
 
@@ -242,8 +242,10 @@ Depth comes from the relief: the exaggerated terrain, the hillshade, and the isl
 - **Favorite:** a 15px parchment disc with a red heart on the crest's upper left; a red ring around the far-view dot.
 
 ### Place models (3D)
-- **Content:** one standard low-poly model per category icon (a torii for every shrine, a pagoda for every pagoda…), built from simple faceted shapes with flat painted colours. Examples: vermilion torii, charcoal tile roofs, white castle walls, bronze Buddha, pink cherry tree. Emojis and unknown icons get a stone stele.
-- **Base:** a round game-piece base in the category colour, aged toward sepia like the crests.
+- **Content:** one standard low-poly model per category icon (a torii for every shrine, a pagoda for every pagoda…), built from simple faceted shapes, detailed enough to read on a phone video: curved tile roofs with upturned corners, castle stone bases, sacred ropes, stone lanterns, Japanese pines and maples. Examples: vermilion torii, slate-grey tile roofs, white castle walls, bronze Buddha with a gold halo, pink cherry tree, thatched gasshō houses. Emojis and unknown icons get a stone stele.
+- **Ground:** no base. Each model stands on its own small patch of ground (grass, sand, gravel or water) with an irregular edge; its foundations sink into the relief, so it never floats on a slope.
+- **Ink:** a sepia outline about 1.4px wide on screen, around the silhouette and at the joins, like the legend vignettes.
+- **Paint:** faded watercolour washes from the vignettes' palette (moss, straw, slate, ochre, lacquer red, sepia). Each facet varies slightly in tone, and the foot of the model darkens as if in its own shadow. Water carries fine pale lines that follow the shore, like the map's engraved water-lines.
 - **Scale:** the models grow out of the ground between zoom 8.6 and 9.6, then keep a readable size on screen (62px tall at zoom 10.5, growing slowly, 170px at most).
 - **Light:** a warm hemisphere light plus a sun from the viewer's upper left, so the side you look at is always lit.
 - **Marker:** the crest floats just above its model and points down at it. Tapping the model opens the place, like the crest.
