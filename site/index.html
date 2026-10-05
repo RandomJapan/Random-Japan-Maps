@@ -132,11 +132,27 @@
       </div>
       <div id="volet-plongeon" class="dev" role="tabpanel" aria-labelledby="onglet-plongeon" hidden>
         <p class="panneau-info" id="plongeon-info"></p>
-        <label class="champ-hasard seul-point">
-          <span id="txt-plongeon-depart"></span>
-          <input type="text" id="plongeon-depart" placeholder="34.6851, 135.8048" autocomplete="off" spellcheck="false">
-        </label>
-        <p class="plongeon-erreur seul-point" id="plongeon-depart-erreur" role="alert" hidden></p>
+        <div class="seul-point">
+          <p class="plongeon-etape" id="txt-point-depart"></p>
+          <label class="champ-hasard">
+            <span id="txt-plongeon-depart"></span>
+            <input type="text" id="plongeon-depart" placeholder="34.6851, 135.8048" autocomplete="off" spellcheck="false">
+          </label>
+          <p class="plongeon-erreur" id="plongeon-depart-erreur" role="alert" hidden></p>
+          <label class="champ-hasard">
+            <span id="txt-plongeon-depart-nom"></span>
+            <input type="text" id="plongeon-depart-nom" autocomplete="off">
+          </label>
+          <label class="champ-hasard">
+            <span id="txt-plongeon-depart-nom-ja"></span>
+            <input type="text" id="plongeon-depart-nom-ja" lang="ja" autocomplete="off">
+          </label>
+          <label class="champ-hasard">
+            <span id="txt-plongeon-depart-type"></span>
+            <select id="plongeon-depart-type"></select>
+          </label>
+          <p class="plongeon-etape" id="txt-point-arrivee"></p>
+        </div>
         <label class="champ-hasard">
           <span id="txt-plongeon-position"></span>
           <input type="text" id="plongeon-position" placeholder="34.1302, 133.5345" autocomplete="off" spellcheck="false">

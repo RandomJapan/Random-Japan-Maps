@@ -148,7 +148,7 @@ Il sert pour un **nouveau lieu, pas encore sur la carte** : tu filmes le début 
 - **Type de lieu :** il choisit la couleur de l'épingle et le modèle 3D posé sur le lieu (un torii pour un sanctuaire…).
 - **Caméra à l'arrivée :** **Près** (le réglage normal), **Très près** (la caméra arrive tout contre le lieu ; le relief devient un peu flou de si près) ou **Plus large** (comme avant, on voit mieux les alentours, pratique pour une île ou une montagne).
 - **Orbite à l'arrivée :** à quelle vitesse la caméra tourne autour du lieu une fois arrivée, comme « Accès direct et orbite » dans Google Earth Studio : **Normale** (un tour en 36 secondes), **Lente**, **Rapide** ou **Aucune** (la caméra reste immobile).
-- Appuie sur **Plonger** : la carte montre tout le Japon pendant au moins une seconde (le temps de charger d'avance le relief du trajet, pour une descente fluide), puis plonge sur le lieu en 2,5 à 3 secondes, jusqu'à son modèle 3D. Ensuite la caméra tourne autour, sans s'arrêter, jusqu'à ce que tu arrêtes (si tu attrapes la carte avec le doigt ou la souris, elle s'arrête de tourner).
+- Appuie sur **Plonger** : la carte montre tout le Japon pendant au moins une seconde (le temps de charger d'avance le relief du trajet, pour une descente fluide), puis plonge sur le lieu en 2,5 à 3 secondes, jusqu'à son modèle 3D. La caméra commence à tourner pendant la fin de la descente : elle arrive en tournant déjà, sans pause, puis tourne autour du lieu jusqu'à ce que tu arrêtes (si tu attrapes la carte avec le doigt ou la souris, elle s'arrête de tourner).
 - **Pendant le plongeon, seul ce lieu est sur la carte :** les épingles et les modèles 3D des autres lieux (et les légendes cachées) disparaissent, et reviennent quand tu arrêtes. L'épingle du plongeon disparaît aussi à l'arrêt : le vrai lieu arrivera par le tableau, comme d'habitude.
 - La carte se souvient des derniers champs remplis, pour refaire une prise plus tard.
 - **Affiche à incruster :** sous « Plonger », ce bouton fabrique le carton du nom qui s'affiche à l'arrivée (nom japonais, nom anglais, type · préfecture), en image PNG **à fond transparent**, à poser sur ta vidéo au montage (CapCut…).
@@ -162,9 +162,9 @@ Il sert pour un **nouveau lieu, pas encore sur la carte** : tu filmes le début 
 ### Point à point
 
 C'est le troisième onglet du panneau Visite (mode développeur aussi), comme « Point à point » dans Google Earth Studio : au lieu de plonger depuis tout le Japon, la caméra **part d'un autre endroit, vu de près**, et vole jusqu'au lieu. Pratique pour enchaîner deux lieux proches dans une vidéo.
-- **Départ :** les coordonnées GPS (ou le lien Google Maps) de l'endroit d'où part la caméra. Il n'a pas d'épingle : c'est juste le point de vue de départ.
-- **Arrivée**, nom, nom japonais, type, caméra et orbite : comme pour le plongeon.
-- Appuie sur **Voler** : la carte montre le départ, la caméra déjà tournée vers le lieu, puis elle vole jusqu'à lui (en prenant de la hauteur si c'est loin), en 2,5 à 5,5 secondes selon la distance. À l'arrivée, le nom s'affiche et la caméra tourne autour, comme pour le plongeon. Seul ce lieu est sur la carte.
+- **Départ :** la position (coordonnées GPS ou lien Google Maps) du lieu d'où part la caméra, avec son **nom**, son **nom japonais** (facultatifs) et son **type** : il a sa propre épingle et son modèle 3D, comme l'arrivée.
+- **Arrivée :** position, nom, nom japonais et type, comme pour le plongeon. Puis la caméra et l'orbite.
+- Appuie sur **Voler** : la carte montre le départ, avec son nom en bas, la caméra déjà tournée vers l'arrivée. Puis le nom du départ s'en va et la caméra vole jusqu'à l'arrivée (en prenant de la hauteur si c'est loin), en 2,5 à 5,5 secondes selon la distance. À l'arrivée, le nom s'affiche et la caméra tourne autour, comme pour le plongeon. Seuls ces deux lieux sont sur la carte.
 - **Rejouer** et **Arrêter** marchent comme pour le plongeon.
 
 ## Le mode développeur (rien que pour toi)

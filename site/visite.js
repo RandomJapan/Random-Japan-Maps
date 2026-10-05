@@ -22,7 +22,7 @@ const PAUSE_PLONGEON = 1200; // ms d'image fixe sur tout le Japon avant de plong
 const DUREE_PLONGEON = 2500; // ms : le plongeon jusqu'au zoom 12 (demandé entre 2 et 3 s), +250 ms par zoom de plus
 const ZOOM_PLONGEON = 13; // zoom d'arrivée par défaut (le choix « Caméra à l'arrivée » de l'onglet)
 const ORBITE = 10; // ° par seconde : l'orbite d'arrivée par défaut (le choix « Orbite à l'arrivée »)
-const ELAN_ORBITE = 2500; // ms pour que l'orbite prenne sa vitesse : le vol finit à l'arrêt, sans à-coup
+const ELAN_ORBITE = 2000; // ms : à la fin du vol, la caméra se met à tourner, pour arriver déjà à la vitesse de l'orbite
 const TRANCHE_ORBITE = 90; // ° par easeTo de l'orbite (il prend le plus court chemin : jamais 180° ou plus)
 const ATTENTE_PRECHARGE = 10000; // ms au plus d'image fixe à attendre les tuiles du trajet (precharge.js)
 const SANS_MARGE = { top: 0, bottom: 0, left: 0, right: 0 };
@@ -52,7 +52,7 @@ const ICONES = {
  *   apres() : appelé à la fin
  * Renvoie { lancer(liste, { duree, film, video, son }), plonger(lieu, { fin, ...reglages }),
  *   preparerPlongeon(lieu, reglages), arreter(), enCours(), majLangue() }.
- *   reglages du plongeon : { depart ({ lng, lat } : point à point ; absent : depuis tout le Japon),
+ *   reglages du plongeon : { depart (un lieu { lng, lat, nom… } : point à point ; absent : depuis tout le Japon),
  *     zoom (à l'arrivée), orbite (° par seconde à l'arrivée, 0 : aucune) }.
  *   plonger : fin() est appelé quand le plongeon s'arrête (app.js y retire le lieu provisoire).
  *   preparerPlongeon : télécharge d'avance le relief du trajet (dès que la position est collée).
@@ -270,7 +270,8 @@ export function brancherVisite(map, outils) {
   /**
    * Plongeon : une image fixe de tout le Japon, puis la caméra plonge sur le lieu (2,5 à 3 s) et tourne
    * autour jusqu'à ce qu'on arrête. Point à point (reglages.depart) : l'image fixe montre le départ de
-   * près, la caméra tournée vers le lieu, puis elle vole jusqu'au lieu et tourne autour.
+   * près (avec son nom, s'il en a un), la caméra tournée vers le lieu, puis elle vole jusqu'au lieu et
+   * tourne autour.
    * Toujours en mode film. « Rejouer » (barre, Espace) recommence, pour refaire une prise. fin() : appelé
    * quand on arrête (pas quand on rejoue). Pendant l'image fixe, les tuiles de relief du trajet se
    * téléchargent (precharge.js) : le vol ne les attend plus.
@@ -289,6 +290,7 @@ export function brancherVisite(map, outils) {
     const pret = preparerPlongeon(l, reglages);
     map.stop();
     map.jumpTo(vol.depart);
+    if (reglages.depart?.nom && enLangue(reglages.depart.nom)) montrerTitre(reglages.depart);
     Promise.all([dessinee(), Promise.race([pret, attendre(ATTENTE_PRECHARGE)])]).then(([, prep]) => {
       if (jeton !== etat?.jeton) return;
       etat.minuterie = setTimeout(() => { if (jeton === etat?.jeton) descendre(l, jeton, vol, prep?.altitude); }, calme ? 0 : PAUSE_PLONGEON);
@@ -373,42 +375,52 @@ export function brancherVisite(map, outils) {
   }
 
   function descendre(l, jeton, vol, altitude) {
+    cacherTitre(); // le nom du départ (point à point) s'en va quand la caméra part
+    const vitesse = calme ? 0 : Math.max(0, etat.reglages.orbite ?? ORBITE);
+    let enVol = true;
     map.once('moveend', () => {
       if (jeton !== etat?.jeton) return;
+      enVol = false;
       etat.surPlace = true;
       if (enLangue(l.nom)) montrerTitre(l); // un lieu sans nom : pas de bandeau
-      orbiterSansFin(jeton, etat.reglages.orbite ?? ORBITE);
+      orbiterSansFin(jeton, vitesse); // la caméra tourne déjà : l'orbite continue à la même vitesse, sans pause
     });
-    // la hauteur du centre suit le vol, jusqu'au sol du lieu (gardée pendant l'orbite, retirée à l'arrêt)
-    if (altitude != null && exageration) {
-      const hauteur = hauteurDuVol(vol, altitude, map.getCenterElevation());
-      map.setTransformCameraUpdate(({ zoom, center }) => ({ elevation: hauteur(zoom, center) }));
+    // Pendant le vol, deux retouches de la caméra (setTransformCameraUpdate) :
+    // - la hauteur du centre suit le vol, jusqu'au sol du lieu (gardée pendant l'orbite, retirée à l'arrêt) ;
+    // - l'élan de l'orbite : pendant les ELAN_ORBITE dernières ms, la caméra se met à tourner de plus en
+    //   plus vite, et arrive à la vitesse de l'orbite (le flyTo, lui, finit à l'arrêt).
+    const hauteur = altitude != null && exageration ? hauteurDuVol(vol, altitude, map.getCenterElevation()) : null;
+    const debut = performance.now(), duree = vol.duree, rampe = Math.min(ELAN_ORBITE, duree * 0.8);
+    const elan = () => {
+      const x = Math.max(0, Math.min(duree, performance.now() - debut) - (duree - rampe));
+      return ((vitesse / 1000) * x * x) / (2 * rampe); // ° (vitesse en ° par seconde, x en ms)
+    };
+    if (hauteur || vitesse) {
+      map.setTransformCameraUpdate((tr) => ({
+        elevation: hauteur ? hauteur(tr.zoom, tr.center) : undefined,
+        bearing: enVol && vitesse ? tr.bearing + elan() : undefined,
+      }));
     }
-    map.flyTo({ ...vol.arrivee, duration: calme ? 0 : vol.duree, essential: true });
+    map.flyTo({ ...vol.arrivee, duration: calme ? 0 : duree, essential: true });
   }
 
   /**
    * L'orbite d'arrivée, comme « Accès direct et orbite » de Google Earth Studio : la caméra tourne autour
-   * du lieu à `vitesse` ° par seconde jusqu'à ce qu'on arrête. Elle prend sa vitesse en ELAN_ORBITE ms,
-   * puis tourne par tranches : easeTo va toujours au cap visé par le plus court chemin (un tour complet
-   * demandé d'un coup ne tournait pas du tout). Si on attrape la carte, elle s'arrête.
+   * du lieu à `vitesse` ° par seconde jusqu'à ce qu'on arrête, dès l'arrivée (elle a pris son élan pendant
+   * le vol). Elle tourne par tranches : easeTo va toujours au cap visé par le plus court chemin (un tour
+   * complet demandé d'un coup ne tournait pas du tout). Si on attrape la carte, elle s'arrête.
    */
   function orbiterSansFin(jeton, vitesse) {
     if (calme || !(vitesse > 0)) return;
-    const tranche = (elan) => {
-      // l'élan : la vitesse monte de 0 à `vitesse` (angle parcouru = vitesse × durée / 2)
-      const angle = elan ? (vitesse * ELAN_ORBITE) / 2000 : TRANCHE_ORBITE;
-      const vise = map.getBearing() + angle;
+    const tranche = () => {
+      const vise = map.getBearing() + TRANCHE_ORBITE;
       map.once('moveend', () => {
         // pas arrivée au cap visé : interrompue (carte attrapée, Rejouer, Arrêter), on ne reprend pas
-        if (jeton === etat?.jeton && Math.abs(ecartCap(map.getBearing(), vise)) < 0.5) tranche(false);
+        if (jeton === etat?.jeton && Math.abs(ecartCap(map.getBearing(), vise)) < 0.5) tranche();
       });
-      map.easeTo({
-        bearing: vise, duration: elan ? ELAN_ORBITE : (angle / vitesse) * 1000,
-        easing: elan ? (x) => x * x : (x) => x, essential: true,
-      });
+      map.easeTo({ bearing: vise, duration: (TRANCHE_ORBITE / vitesse) * 1000, easing: (x) => x, essential: true });
     };
-    tranche(true);
+    tranche();
   }
 
   /** Sur téléphone, le nom du lieu est plus haut (hors de la zone des textes de TikTok) : le lieu se pose au-dessus. */

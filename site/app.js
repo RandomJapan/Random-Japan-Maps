@@ -1019,11 +1019,14 @@ const visite = brancherVisite(map, {
 // Le début des vidéos se filme avant que le lieu soit dans le tableau : on plonge sur une position collée
 // (coordonnées GPS ou lien Google Maps), avec un lieu provisoire (épingle et modèle 3D de son type),
 // retiré quand le plongeon s'arrête. Pendant le plongeon, les autres lieux se cachent.
-// L'onglet « Point à point » est le même volet, avec un départ en plus : la caméra part de ce point, vu de
-// près, et vole jusqu'au lieu. Les deux règlent la distance de la caméra et l'orbite à l'arrivée.
+// L'onglet « Point à point » est le même volet, avec un départ en plus (lui aussi un lieu provisoire, avec son
+// épingle, son modèle 3D et son nom) : la caméra part de ce lieu, vu de près, et vole jusqu'à l'autre.
+// Les deux onglets règlent la distance de la caméra et l'orbite à l'arrivée.
 const MEMO_PLONGEON = 'plongeon'; // les derniers champs remplis (localStorage), pour refaire une prise plus tard
-const CHAMPS_PLONGEON = [['plongeon-position', 'position'], ['plongeon-depart', 'depart'], ['plongeon-nom', 'nom'],
-  ['plongeon-nom-ja', 'nomJa'], ['plongeon-type', 'type'], ['plongeon-distance', 'distance'], ['plongeon-orbite', 'orbite']];
+const CHAMPS_PLONGEON = [['plongeon-position', 'position'], ['plongeon-nom', 'nom'], ['plongeon-nom-ja', 'nomJa'],
+  ['plongeon-type', 'type'], ['plongeon-depart', 'depart'], ['plongeon-depart-nom', 'departNom'],
+  ['plongeon-depart-nom-ja', 'departNomJa'], ['plongeon-depart-type', 'departType'],
+  ['plongeon-distance', 'distance'], ['plongeon-orbite', 'orbite']];
 let ongletVisite = 'visite'; // 'visite', 'plongeon' ou 'point'
 let champsRemplis = false;
 let minuteriePosition = 0;
@@ -1042,15 +1045,18 @@ function choisirOnglet(nom) {
   if (!vol) return;
   let memo = {};
   try { memo = JSON.parse(localStorage.getItem(MEMO_PLONGEON)) || {}; } catch { /* pas grave */ }
-  const sel = $('plongeon-type');
-  const choisi = sel.value || memo.type;
-  sel.replaceChildren(...toutesCategories.map((c) => new Option(enLangue(c.nom), c.cle)));
-  if (toutesCategories.some((c) => c.cle === choisi)) sel.value = choisi;
+  // les types (dans la langue de la carte), en gardant celui choisi
+  for (const [id, cle] of [['plongeon-type', 'type'], ['plongeon-depart-type', 'departType']]) {
+    const sel = $(id);
+    const choisi = sel.value || memo[cle];
+    sel.replaceChildren(...toutesCategories.map((c) => new Option(enLangue(c.nom), c.cle)));
+    if (toutesCategories.some((c) => c.cle === choisi)) sel.value = choisi;
+  }
   // les champs de la dernière prise, une fois (ensuite, ce qu'on a tapé reste)
   if (!champsRemplis) {
     champsRemplis = true;
     for (const [id, cle] of CHAMPS_PLONGEON) {
-      if (cle === 'type' || memo[cle] == null || memo[cle] === '') continue;
+      if (memo[cle] == null || memo[cle] === '') continue;
       if ($(id).tagName === 'SELECT' && ![...$(id).options].some((o) => o.value === memo[cle])) continue;
       $(id).value = memo[cle];
     }
@@ -1064,7 +1070,6 @@ function choisirOnglet(nom) {
 function majTextesPlongeon() {
   const point = ongletVisite === 'point';
   $('plongeon-info').textContent = t(point ? 'pointInfo' : 'plongeonInfo');
-  $('txt-plongeon-position').textContent = t(point ? 'pointArrivee' : 'plongeonPosition');
   $('txt-plongeon-lancer').textContent = t(point ? 'pointLancer' : 'plongeonLancer');
 }
 
@@ -1125,34 +1130,45 @@ async function lancerPlongeon() {
   if (p.erreur) erreur.textContent = t(p.erreur);
   if (reglages.depart?.erreur) erreurDepart.textContent = t(reglages.depart.erreur);
   if (p.erreur || reglages.depart?.erreur) return;
-  const type = toutesCategories.find((c) => c.cle === $('plongeon-type').value) || categories[0];
-  const cat = { ...type, visible: true }; // une copie : une catégorie vide ou masquée a quand même son modèle
-  const nom = $('plongeon-nom').value.trim();
-  const nomJa = $('plongeon-nom-ja').value.trim();
   memoriserPlongeon();
   await preparerPrefectures().catch(() => {}); // pour écrire la préfecture sous le nom
+  const l = lieuProvisoire('plongeon', p, $('plongeon-type').value, $('plongeon-nom').value, $('plongeon-nom-ja').value);
+  // point à point : le départ a lui aussi son épingle, son modèle 3D et son nom
+  const d = reglages.depart && lieuProvisoire('plongeon-depart', reglages.depart, $('plongeon-depart-type').value,
+    $('plongeon-depart-nom').value, $('plongeon-depart-nom-ja').value);
+  const provisoires = [l, d].filter(Boolean);
+  modeles3d.provisoires(provisoires);
+  modeles3d.preparer();
+  visite.plonger(l, {
+    ...reglages,
+    depart: d || null,
+    fin: () => {
+      for (const x of provisoires) reperes.oublier(x.epingle);
+      modeles3d.provisoires([]);
+      modeles3d.filtrer(null);
+      appliquerFiltres();
+    },
+  });
+  // Seuls ces lieux : les autres épingles et leurs modèles 3D se cachent (les légendes aussi : style.css)
+  for (const x of lieux) reperes.montrer(x.epingle, false);
+  modeles3d.filtrer((x) => provisoires.includes(x));
+}
+
+/** Un lieu qui n'est pas dans le tableau, pour le plongeon : son épingle et son modèle 3D, du type choisi. */
+function lieuProvisoire(id, p, cleType, nom, nomJa) {
+  const type = toutesCategories.find((c) => c.cle === cleType) || categories[0];
+  nom = nom.trim();
+  nomJa = nomJa.trim();
   const l = {
-    id: 'plongeon', lng: p.lng, lat: p.lat, cat, nouveau: false, provisoire: true,
+    id, lng: p.lng, lat: p.lat, nouveau: false, provisoire: true,
+    cat: { ...type, visible: true }, // une copie : une catégorie vide ou masquée a quand même son modèle
     nom: { en: nom, fr: nom, ja: nomJa || nom }, description: {},
   };
   l.prefecture = trouverPrefecture?.(p.lng, p.lat);
   creerEpingle(l, lieux.length);
   l.el.querySelector('.repere-nom').textContent = enLangue(l.nom);
   reperes.montrer(l.epingle, true);
-  modeles3d.provisoires([l]);
-  modeles3d.preparer();
-  visite.plonger(l, {
-    ...reglages,
-    fin: () => {
-      reperes.oublier(l.epingle);
-      modeles3d.provisoires([]);
-      modeles3d.filtrer(null);
-      appliquerFiltres();
-    },
-  });
-  // Seul ce lieu : les autres épingles et leurs modèles 3D se cachent (les légendes aussi : style.css)
-  for (const x of lieux) reperes.montrer(x.epingle, false);
-  modeles3d.filtrer((x) => x === l);
+  return l;
 }
 
 // ---------------------------------------------------------------- Mode développeur (pas pour les visiteurs)
@@ -1665,7 +1681,13 @@ function appliquerLangue() {
   $('onglet-visite').textContent = t('visiteOnglet');
   $('onglet-plongeon').textContent = t('plongeonOnglet');
   $('onglet-point').textContent = t('pointOnglet');
-  $('txt-plongeon-depart').textContent = t('pointDepart');
+  $('txt-point-depart').textContent = t('pointDepart');
+  $('txt-point-arrivee').textContent = t('pointArrivee');
+  $('txt-plongeon-depart').textContent = t('plongeonPosition');
+  $('txt-plongeon-position').textContent = t('plongeonPosition');
+  $('txt-plongeon-depart-nom').textContent = t('pointNomDepart');
+  $('txt-plongeon-depart-nom-ja').textContent = t('plongeonNomJa');
+  $('txt-plongeon-depart-type').textContent = t('plongeonType');
   $('plongeon-aide').textContent = t('plongeonAideGps');
   $('txt-plongeon-nom').textContent = t('plongeonNom');
   $('txt-plongeon-nom-ja').textContent = t('plongeonNomJa');
