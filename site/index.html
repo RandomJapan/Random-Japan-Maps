@@ -82,11 +82,13 @@
     <div class="menu panneau" id="panneau-legendes" hidden></div>
     <div class="menu panneau" id="panneau-favoris" hidden></div>
     <div class="menu panneau hasard" id="panneau-visite" hidden>
-      <!-- Deux onglets : la visite guidée, et le plongeon sur un nouveau lieu (pour le début des vidéos).
-           Le plongeon et ses onglets n'existent qu'en mode développeur. -->
+      <!-- Trois onglets : la visite guidée, le plongeon sur un nouveau lieu (pour le début des vidéos) et le vol
+           d'un point à un autre (le même volet, avec un départ en plus).
+           Le plongeon, le point à point et les onglets n'existent qu'en mode développeur. -->
       <div class="onglets dev" role="tablist">
         <button type="button" role="tab" id="onglet-visite" aria-selected="true" aria-controls="volet-visite">Tour</button>
         <button type="button" role="tab" id="onglet-plongeon" aria-selected="false" aria-controls="volet-plongeon">Dive</button>
+        <button type="button" role="tab" id="onglet-point" aria-selected="false" aria-controls="volet-plongeon">Point to point</button>
       </div>
       <div id="volet-visite" role="tabpanel" aria-labelledby="onglet-visite">
       <p class="hasard-titre" id="visite-titre-panneau"></p>
@@ -130,6 +132,11 @@
       </div>
       <div id="volet-plongeon" class="dev" role="tabpanel" aria-labelledby="onglet-plongeon" hidden>
         <p class="panneau-info" id="plongeon-info"></p>
+        <label class="champ-hasard seul-point">
+          <span id="txt-plongeon-depart"></span>
+          <input type="text" id="plongeon-depart" placeholder="34.6851, 135.8048" autocomplete="off" spellcheck="false">
+        </label>
+        <p class="plongeon-erreur seul-point" id="plongeon-depart-erreur" role="alert" hidden></p>
         <label class="champ-hasard">
           <span id="txt-plongeon-position"></span>
           <input type="text" id="plongeon-position" placeholder="34.1302, 133.5345" autocomplete="off" spellcheck="false">
@@ -148,6 +155,25 @@
           <span id="txt-plongeon-type"></span>
           <select id="plongeon-type"></select>
         </label>
+        <div class="plongeon-reglages">
+          <label class="champ-hasard">
+            <span id="txt-plongeon-distance"></span>
+            <select id="plongeon-distance">
+              <option value="14" id="distance-tres-pres"></option>
+              <option value="13" id="distance-pres" selected></option>
+              <option value="12" id="distance-large"></option>
+            </select>
+          </label>
+          <label class="champ-hasard">
+            <span id="txt-plongeon-orbite"></span>
+            <select id="plongeon-orbite">
+              <option value="0" id="orbite-sans"></option>
+              <option value="5" id="orbite-lente"></option>
+              <option value="10" id="orbite-normale" selected></option>
+              <option value="18" id="orbite-rapide"></option>
+            </select>
+          </label>
+        </div>
         <button type="button" class="btn-lancer" id="btn-plongeon">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M3 7.5h11.5v9H3zM14.5 10.5l6-3v9l-6-3"/></svg>
           <span id="txt-plongeon-lancer"></span>

@@ -1015,29 +1015,80 @@ const visite = brancherVisite(map, {
   apres: () => {},
 });
 
-// ---------------------------------------------------------------- Plongeon sur un nouveau lieu (onglet de la visite)
+// ---------------------------------------------------------------- Plongeon sur un nouveau lieu (onglets de la visite)
 // Le début des vidéos se filme avant que le lieu soit dans le tableau : on plonge sur une position collée
 // (coordonnées GPS ou lien Google Maps), avec un lieu provisoire (épingle et modèle 3D de son type),
-// retiré quand le plongeon s'arrête.
+// retiré quand le plongeon s'arrête. Pendant le plongeon, les autres lieux se cachent.
+// L'onglet « Point à point » est le même volet, avec un départ en plus : la caméra part de ce point, vu de
+// près, et vole jusqu'au lieu. Les deux règlent la distance de la caméra et l'orbite à l'arrivée.
 const MEMO_PLONGEON = 'plongeon'; // les derniers champs remplis (localStorage), pour refaire une prise plus tard
+const CHAMPS_PLONGEON = [['plongeon-position', 'position'], ['plongeon-depart', 'depart'], ['plongeon-nom', 'nom'],
+  ['plongeon-nom-ja', 'nomJa'], ['plongeon-type', 'type'], ['plongeon-distance', 'distance'], ['plongeon-orbite', 'orbite']];
+let ongletVisite = 'visite'; // 'visite', 'plongeon' ou 'point'
+let champsRemplis = false;
 let minuteriePosition = 0;
 
-function choisirOnglet(plongeon) {
-  $('onglet-visite').setAttribute('aria-selected', String(!plongeon));
-  $('onglet-plongeon').setAttribute('aria-selected', String(plongeon));
-  $('volet-visite').hidden = plongeon;
-  $('volet-plongeon').hidden = !plongeon;
-  if (!plongeon) return;
+function choisirOnglet(nom) {
+  ongletVisite = nom;
+  const vol = nom !== 'visite';
+  for (const [id, n] of [['onglet-visite', 'visite'], ['onglet-plongeon', 'plongeon'], ['onglet-point', 'point']]) {
+    $(id).setAttribute('aria-selected', String(n === nom));
+  }
+  $('volet-visite').hidden = vol;
+  $('volet-plongeon').hidden = !vol;
+  $('volet-plongeon').classList.toggle('point-a-point', nom === 'point');
+  $('volet-plongeon').setAttribute('aria-labelledby', nom === 'point' ? 'onglet-point' : 'onglet-plongeon');
+  majTextesPlongeon();
+  if (!vol) return;
   let memo = {};
   try { memo = JSON.parse(localStorage.getItem(MEMO_PLONGEON)) || {}; } catch { /* pas grave */ }
   const sel = $('plongeon-type');
   const choisi = sel.value || memo.type;
   sel.replaceChildren(...toutesCategories.map((c) => new Option(enLangue(c.nom), c.cle)));
   if (toutesCategories.some((c) => c.cle === choisi)) sel.value = choisi;
-  for (const [id, cle] of [['plongeon-position', 'position'], ['plongeon-nom', 'nom'], ['plongeon-nom-ja', 'nomJa']]) {
-    if (!$(id).value && memo[cle]) $(id).value = memo[cle];
+  // les champs de la dernière prise, une fois (ensuite, ce qu'on a tapé reste)
+  if (!champsRemplis) {
+    champsRemplis = true;
+    for (const [id, cle] of CHAMPS_PLONGEON) {
+      if (cle === 'type' || memo[cle] == null || memo[cle] === '') continue;
+      if ($(id).tagName === 'SELECT' && ![...$(id).options].some((o) => o.value === memo[cle])) continue;
+      $(id).value = memo[cle];
+    }
   }
+  $('plongeon-depart-erreur').hidden = true;
   preparerAfficheBientot();
+  preparerPlongeonBientot(0);
+}
+
+/** Les textes qui changent entre « Plongeon » et « Point à point ». */
+function majTextesPlongeon() {
+  const point = ongletVisite === 'point';
+  $('plongeon-info').textContent = t(point ? 'pointInfo' : 'plongeonInfo');
+  $('txt-plongeon-position').textContent = t(point ? 'pointArrivee' : 'plongeonPosition');
+  $('txt-plongeon-lancer').textContent = t(point ? 'pointLancer' : 'plongeonLancer');
+}
+
+/**
+ * Les réglages du vol : { depart (point à point), zoom (à l'arrivée), orbite (° par seconde) } ;
+ * depart vaut { erreur } si la position de départ ne se lit pas.
+ */
+function reglagesPlongeon() {
+  const point = ongletVisite === 'point';
+  const depart = point ? lirePosition($('plongeon-depart').value) : null;
+  if (depart?.erreur === 'plongeonErreurVide') depart.erreur = 'pointErreurDepart';
+  return { depart, zoom: Number($('plongeon-distance').value) || 13, orbite: Number($('plongeon-orbite').value) };
+}
+
+/** Le relief du trajet se télécharge dès que les positions sont collées : il sera prêt pour « Plonger ». */
+function preparerPlongeonBientot(delai = 600) {
+  clearTimeout(minuteriePosition);
+  minuteriePosition = setTimeout(() => {
+    const p = lirePosition($('plongeon-position').value);
+    const reglages = reglagesPlongeon();
+    if (p.erreur || reglages.depart?.erreur) return;
+    visite.preparerPlongeon(p, reglages);
+    modeles3d.preparer();
+  }, delai);
 }
 
 /**
@@ -1060,21 +1111,20 @@ function lirePosition(texte) {
 /** Garde les champs remplis (pour refaire une prise ou une affiche plus tard). */
 function memoriserPlongeon() {
   try {
-    localStorage.setItem(MEMO_PLONGEON, JSON.stringify({
-      position: $('plongeon-position').value.trim(), nom: $('plongeon-nom').value.trim(),
-      nomJa: $('plongeon-nom-ja').value.trim(), type: $('plongeon-type').value,
-    }));
+    localStorage.setItem(MEMO_PLONGEON, JSON.stringify(Object.fromEntries(CHAMPS_PLONGEON.map(([id, cle]) => [cle, $(id).value.trim()]))));
   } catch { /* pas grave */ }
 }
 
 async function lancerPlongeon() {
   const p = lirePosition($('plongeon-position').value);
+  const reglages = reglagesPlongeon();
   const erreur = $('plongeon-erreur');
+  const erreurDepart = $('plongeon-depart-erreur');
   erreur.hidden = !p.erreur;
-  if (p.erreur) {
-    erreur.textContent = t(p.erreur);
-    return;
-  }
+  erreurDepart.hidden = !reglages.depart?.erreur;
+  if (p.erreur) erreur.textContent = t(p.erreur);
+  if (reglages.depart?.erreur) erreurDepart.textContent = t(reglages.depart.erreur);
+  if (p.erreur || reglages.depart?.erreur) return;
   const type = toutesCategories.find((c) => c.cle === $('plongeon-type').value) || categories[0];
   const cat = { ...type, visible: true }; // une copie : une catégorie vide ou masquée a quand même son modèle
   const nom = $('plongeon-nom').value.trim();
@@ -1092,11 +1142,17 @@ async function lancerPlongeon() {
   modeles3d.provisoires([l]);
   modeles3d.preparer();
   visite.plonger(l, {
+    ...reglages,
     fin: () => {
       reperes.oublier(l.epingle);
       modeles3d.provisoires([]);
+      modeles3d.filtrer(null);
+      appliquerFiltres();
     },
   });
+  // Seul ce lieu : les autres épingles et leurs modèles 3D se cachent (les légendes aussi : style.css)
+  for (const x of lieux) reperes.montrer(x.epingle, false);
+  modeles3d.filtrer((x) => x === l);
 }
 
 // ---------------------------------------------------------------- Mode développeur (pas pour les visiteurs)
@@ -1120,7 +1176,7 @@ function basculerDev(actif) {
   if (!actif) {
     // retour à la carte normale : rien des outils ne reste ouvert
     if (jeu?.enCours()) jeu.arreter();
-    choisirOnglet(false);
+    choisirOnglet('visite');
   }
 }
 
@@ -1608,17 +1664,26 @@ function appliquerLangue() {
   $('txt-visite-son').textContent = t('visiteSon');
   $('onglet-visite').textContent = t('visiteOnglet');
   $('onglet-plongeon').textContent = t('plongeonOnglet');
-  $('plongeon-info').textContent = t('plongeonInfo');
-  $('txt-plongeon-position').textContent = t('plongeonPosition');
+  $('onglet-point').textContent = t('pointOnglet');
+  $('txt-plongeon-depart').textContent = t('pointDepart');
   $('plongeon-aide').textContent = t('plongeonAideGps');
   $('txt-plongeon-nom').textContent = t('plongeonNom');
   $('txt-plongeon-nom-ja').textContent = t('plongeonNomJa');
   $('txt-plongeon-type').textContent = t('plongeonType');
-  $('txt-plongeon-lancer').textContent = t('plongeonLancer');
+  $('txt-plongeon-distance').textContent = t('plongeonDistance');
+  $('distance-tres-pres').textContent = t('distanceTresPres');
+  $('distance-pres').textContent = t('distancePres');
+  $('distance-large').textContent = t('distanceLarge');
+  $('txt-plongeon-orbite').textContent = t('plongeonOrbite');
+  $('orbite-sans').textContent = t('orbiteSans');
+  $('orbite-lente').textContent = t('orbiteLente');
+  $('orbite-normale').textContent = t('orbiteNormale');
+  $('orbite-rapide').textContent = t('orbiteRapide');
   $('txt-plongeon-affiche').textContent = t('plongeonAffiche');
   majBoutonDev();
   $('plongeon-affiche-aide').textContent = t('plongeonAfficheAide');
-  if (!$('volet-plongeon').hidden) choisirOnglet(true); // les types dans la nouvelle langue
+  majTextesPlongeon();
+  if (!$('volet-plongeon').hidden) choisirOnglet(ongletVisite); // les types dans la nouvelle langue
   majFavoris();
   visite.majLangue();
   $('txt-jeu').textContent = t('jeu');
@@ -1674,8 +1739,9 @@ function brancherBoutons() {
     else if (ligne) allerAuLieu(trouver(ligne.dataset.lieu));
     else if (e.target.closest('[data-visite]')) lancerVisite(lieux.filter(estFavori));
   });
-  $('onglet-visite').addEventListener('click', () => choisirOnglet(false));
-  $('onglet-plongeon').addEventListener('click', () => choisirOnglet(true));
+  $('onglet-visite').addEventListener('click', () => choisirOnglet('visite'));
+  $('onglet-plongeon').addEventListener('click', () => choisirOnglet('plongeon'));
+  $('onglet-point').addEventListener('click', () => choisirOnglet('point'));
   $('btn-plongeon').addEventListener('click', lancerPlongeon);
   $('btn-affiche').addEventListener('click', partagerAffiche);
   for (const id of ['plongeon-position', 'plongeon-nom', 'plongeon-nom-ja', 'plongeon-type']) {
@@ -1683,15 +1749,13 @@ function brancherBoutons() {
   }
   $('plongeon-position').addEventListener('input', () => {
     $('plongeon-erreur').hidden = true;
-    // le relief du trajet se télécharge dès que la position est collée : il sera prêt pour « Plonger »
-    clearTimeout(minuteriePosition);
-    minuteriePosition = setTimeout(() => {
-      const p = lirePosition($('plongeon-position').value);
-      if (p.erreur) return;
-      visite.preparerPlongeon(p);
-      modeles3d.preparer();
-    }, 600);
+    preparerPlongeonBientot();
   });
+  $('plongeon-depart').addEventListener('input', () => {
+    $('plongeon-depart-erreur').hidden = true;
+    preparerPlongeonBientot();
+  });
+  $('plongeon-distance').addEventListener('change', () => preparerPlongeonBientot(0));
   $('btn-jeu').addEventListener('click', () => lancerJeu().catch((e) => console.warn('Jeu indisponible', e)));
   $('fiche-favori').addEventListener('click', () => {
     if (!lieuActif) return;

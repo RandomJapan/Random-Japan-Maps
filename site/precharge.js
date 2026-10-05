@@ -1,6 +1,6 @@
 // ================================================================
-//  Plongeon préparé d'avance : avant que la caméra plonge, on télécharge les tuiles de relief
-//  qu'elle verra pendant le vol, et on lit l'altitude du lieu.
+//  Plongeon préparé d'avance : avant que la caméra plonge (ou vole d'un point à un autre), on
+//  télécharge les tuiles de relief qu'elle verra pendant le vol, et on lit l'altitude du lieu.
 //  - Sans ça, une centaine de tuiles arrivaient pendant les 2 à 3 s de la descente : le relief se
 //    précisait par à-coups sous la caméra, surtout en montagne.
 //  - Les tuiles sont seulement téléchargées : le cache du navigateur les garde, et MapLibre les
@@ -15,10 +15,11 @@ const EN_PARALLELE = 8;
 /**
  * source : la source de relief (tileSize, maxzoom, encodage terrarium) ;
  * tuiles : tuiles-relief.js (la vraie adresse d'une tuile, et les tuiles vides du grand large, à ne pas demander).
- * Renvoie preparer(depart, arrivee, hauteur) → Promise de { altitude, tuiles } (une seule fois par vol) :
+ * Renvoie preparer(depart, arrivee, hauteur) → Promise de { altitude, altitudeDepart, tuiles } (une seule
+ * fois par vol) :
  *   depart : la caméra au départ { center, zoom, pitch, bearing, padding } ;
  *   arrivee : les options du flyTo { center, zoom, pitch, bearing, padding, minZoom } ;
- *   hauteur(altitude) → (zoom → hauteur du centre de la vue pendant le vol), ou null.
+ *   hauteur(altitude, altitudeDepart) → ((zoom, centre) → hauteur du centre de la vue pendant le vol), ou null.
  */
 export function brancherPrecharge(map, maplibregl, source, tuiles) {
   const vols = new Map(); // clé → Promise
@@ -34,16 +35,15 @@ export function brancherPrecharge(map, maplibregl, source, tuiles) {
 
   async function lancer(depart, arrivee, hauteur) {
     await tuiles.pret;
-    const [lng, lat] = arrivee.center;
-    const alt = await altitude(lng, lat);
+    const [alt, altDepart] = await Promise.all([altitude(...arrivee.center), altitude(...depart.center)]);
     let adresses = [];
     try {
-      adresses = tuilesDuVol(depart, arrivee, alt == null || !hauteur ? null : hauteur(alt));
+      adresses = tuilesDuVol(depart, arrivee, alt == null || !hauteur ? null : hauteur(alt, altDepart));
     } catch (e) {
       console.warn('Préchargement du plongeon impossible', e);
     }
     await telecharger(adresses);
-    return { altitude: alt, tuiles: adresses.length };
+    return { altitude: alt, altitudeDepart: altDepart, tuiles: adresses.length };
   }
 
   /**
@@ -144,11 +144,11 @@ export function brancherPrecharge(map, maplibregl, source, tuiles) {
       tr.setPitch(incl0 + (arrivee.pitch - incl0) * k);
       tr.interpolatePadding(marge0, arrivee.padding, k);
       vol.easeFunc(k, 1 / w(s), u(s), tr.centerPoint);
-      if (hauteur) tr.setElevation(hauteur(tr.zoom));
+      if (hauteur) tr.setElevation(hauteur(tr.zoom, tr.center));
       couvrir();
     }
-    // le début du tour lent autour du lieu, après l'arrivée (ce qu'on garde d'une prise)
-    for (const plus of [10, 20, 30]) {
+    // le début de l'orbite autour du lieu, après l'arrivée (ce qu'on garde d'une prise)
+    for (const plus of [15, 30, 45, 60, 90]) {
       tr.setBearing(arrivee.bearing + plus);
       couvrir();
     }

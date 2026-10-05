@@ -146,7 +146,10 @@ Il sert pour un **nouveau lieu, pas encore sur la carte** : tu filmes le début 
 - **Position :** colle les coordonnées GPS du lieu. Dans Google Maps, fais un appui long sur le lieu (clic droit sur ordinateur), puis copie les coordonnées qui s'affichent, par exemple `33.8394, 130.8156`. Un lien Google Maps complet marche aussi, mais pas un lien court en `maps.app.goo.gl`.
 - **Nom** et **Nom japonais** (facultatifs) : ils s'affichent à l'arrivée, comme pour les autres lieux, avec la préfecture trouvée toute seule.
 - **Type de lieu :** il choisit la couleur de l'épingle et le modèle 3D posé sur le lieu (un torii pour un sanctuaire…).
-- Appuie sur **Plonger** : la carte montre tout le Japon pendant au moins une seconde (le temps de charger d'avance le relief du trajet, pour une descente fluide), puis plonge sur le lieu en 2 secondes et demie, jusqu'à son modèle 3D. Ensuite la caméra tourne lentement autour. Cette épingle disparaît quand tu arrêtes : le vrai lieu arrivera par le tableau, comme d'habitude.
+- **Caméra à l'arrivée :** **Près** (le réglage normal), **Très près** (la caméra arrive tout contre le lieu ; le relief devient un peu flou de si près) ou **Plus large** (comme avant, on voit mieux les alentours, pratique pour une île ou une montagne).
+- **Orbite à l'arrivée :** à quelle vitesse la caméra tourne autour du lieu une fois arrivée, comme « Accès direct et orbite » dans Google Earth Studio : **Normale** (un tour en 36 secondes), **Lente**, **Rapide** ou **Aucune** (la caméra reste immobile).
+- Appuie sur **Plonger** : la carte montre tout le Japon pendant au moins une seconde (le temps de charger d'avance le relief du trajet, pour une descente fluide), puis plonge sur le lieu en 2,5 à 3 secondes, jusqu'à son modèle 3D. Ensuite la caméra tourne autour, sans s'arrêter, jusqu'à ce que tu arrêtes (si tu attrapes la carte avec le doigt ou la souris, elle s'arrête de tourner).
+- **Pendant le plongeon, seul ce lieu est sur la carte :** les épingles et les modèles 3D des autres lieux (et les légendes cachées) disparaissent, et reviennent quand tu arrêtes. L'épingle du plongeon disparaît aussi à l'arrêt : le vrai lieu arrivera par le tableau, comme d'habitude.
 - La carte se souvient des derniers champs remplis, pour refaire une prise plus tard.
 - **Affiche à incruster :** sous « Plonger », ce bouton fabrique le carton du nom qui s'affiche à l'arrivée (nom japonais, nom anglais, type · préfecture), en image PNG **à fond transparent**, à poser sur ta vidéo au montage (CapCut…).
   - Elle est toujours **en anglais**, comme tes vidéos. Il faut au moins le nom ; la préfecture vient de la position.
@@ -156,9 +159,17 @@ Il sert pour un **nouveau lieu, pas encore sur la carte** : tu filmes le début 
 - Les boutons disparaissent tout de suite. Touche l'écran pour faire revenir la barre : **Rejouer** (rouge, pour refaire une prise) et **Arrêter**. Sur ordinateur : Espace = rejouer, Échap = arrêter.
 - Sur téléphone, le nom du lieu est placé plus haut que pendant la visite, pour ne pas être caché par la légende de ta vidéo TikTok.
 
+### Point à point
+
+C'est le troisième onglet du panneau Visite (mode développeur aussi), comme « Point à point » dans Google Earth Studio : au lieu de plonger depuis tout le Japon, la caméra **part d'un autre endroit, vu de près**, et vole jusqu'au lieu. Pratique pour enchaîner deux lieux proches dans une vidéo.
+- **Départ :** les coordonnées GPS (ou le lien Google Maps) de l'endroit d'où part la caméra. Il n'a pas d'épingle : c'est juste le point de vue de départ.
+- **Arrivée**, nom, nom japonais, type, caméra et orbite : comme pour le plongeon.
+- Appuie sur **Voler** : la carte montre le départ, la caméra déjà tournée vers le lieu, puis elle vole jusqu'à lui (en prenant de la hauteur si c'est loin), en 2,5 à 5,5 secondes selon la distance. À l'arrivée, le nom s'affiche et la caméra tourne autour, comme pour le plongeon. Seul ce lieu est sur la carte.
+- **Rejouer** et **Arrêter** marchent comme pour le plongeon.
+
 ## Le mode développeur (rien que pour toi)
 
-Tes outils qui ne sont pas pour les visiteurs (pas encore, ou jamais) : le **plongeon** et l'**affiche à incruster** (onglet Plongeon de la visite), et le **jeu** pas encore sorti.
+Tes outils qui ne sont pas pour les visiteurs (pas encore, ou jamais) : le **plongeon**, le **point à point** et l'**affiche à incruster** (onglets Plongeon et Point à point de la visite), et le **jeu** pas encore sorti.
 - **La première fois :** ouvre ton **lien secret** (celui que Claude t'a donné dans la conversation, qui finit par `?dev=…`) dans chaque navigateur où tu veux le mode : sur ton téléphone (Safari ou Chrome, pas le navigateur intégré de TikTok) et sur ton ordinateur. Le navigateur s'en souvient ensuite. Garde ce lien pour toi : il n'est écrit nulle part ailleurs.
 - **Ensuite :** un bouton `</>` apparaît en bas à droite, au-dessus de la rose des vents. **Rouge** = carte développeur (tes outils sont là). **Clair** = carte normale, exactement comme la voient les visiteurs. Un clic pour passer de l'une à l'autre ; la carte retient ton choix.
 - Ce bouton n'existe que dans tes navigateurs : les visiteurs ne le voient jamais.

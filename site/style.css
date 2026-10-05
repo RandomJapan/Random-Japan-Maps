@@ -148,10 +148,10 @@ body:not(.mode-dev) .dev { display: none !important; }
 }
 .champ-hasard input::placeholder { color: var(--encre-3); opacity: .7; }
 .champ-hasard input:focus-visible { outline: none; border-color: var(--sarcelle); box-shadow: 0 0 0 1px var(--sarcelle); caret-color: var(--rouge); }
-/* Onglets du panneau de la visite (Visite · Plongeon), comme le choix de la langue */
+/* Onglets du panneau de la visite (Visite · Plongeon · Point à point), comme le choix de la langue */
 .onglets { display: flex; gap: 2px; padding: 3px; margin: 0 0 14px; border: 1px solid var(--trait); border-radius: var(--rayon); background: var(--papier-clair); }
 .onglets button {
-  flex: 1; padding: 8px 10px; border: 0; border-radius: 2px; background: transparent;
+  flex: 1 1 auto; padding: 8px 8px; white-space: nowrap; border: 0; border-radius: 2px; background: transparent;
   font-size: 14px; font-weight: 600; color: var(--encre-2); transition: background .2s, color .2s;
 }
 .onglets button:hover { color: var(--encre); background: var(--papier-fonce); }
@@ -159,6 +159,10 @@ body:not(.mode-dev) .dev { display: none !important; }
 .plongeon-aide { margin: -6px 2px 14px; font-size: 12.5px; line-height: 1.45; color: var(--encre-3); }
 .plongeon-erreur { margin: -6px 2px 14px; font-size: 13px; font-weight: 600; line-height: 1.4; color: var(--rouge); }
 .btn-affiche { margin-top: 10px; }
+/* Le départ n'existe qu'en point à point ; la distance et l'orbite côte à côte */
+#volet-plongeon:not(.point-a-point) .seul-point { display: none; }
+.plongeon-reglages { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
+.plongeon-reglages > * { min-width: 0; }
 .plongeon-aide-affiche { margin: 6px 2px 0; }
 .btn-lancer {
   width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 4px;
@@ -754,6 +758,8 @@ body.plongeon .visite-barre .visite-rejouer { display: grid; background: var(--r
 body.plongeon .visite-barre .visite-rejouer:hover { background: var(--rouge-survol); }
 body.plongeon .visite-barre [data-action="precedent"], body.plongeon .visite-barre [data-action="pause"],
 body.plongeon .visite-barre [data-action="suivant"], body.plongeon .visite-progres { display: none; }
+/* Plongeon : seul le lieu visé reste sur la carte (les autres épingles sont retirées par app.js) */
+body.plongeon .legende.maplibregl-marker { display: none; }
 /* L'adresse de la carte, écrite à l'écran en mode film : chaque extrait filmé la porte.
    En haut au centre, sous les onglets de TikTok (le bas de l'écran est caché par la légende de la vidéo). */
 .filigrane {
