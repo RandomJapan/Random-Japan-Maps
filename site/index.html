@@ -67,6 +67,11 @@
         <span class="texte-bouton" id="txt-favoris">Favorites</span>
         <span class="compteur" id="compteur-favoris"></span>
       </button>
+      <!-- L'itinéraire des favoris quand il est sur la carte et le panneau fermé : son total (un appui rouvre le détail) et × (itineraire.js) -->
+      <div class="resume-itineraire panneau" id="resume-itineraire" hidden>
+        <button type="button" class="resume-details" id="resume-details"></button>
+        <button type="button" class="resume-effacer" id="resume-effacer"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M7 7l10 10M17 7 7 17"/></svg></button>
+      </div>
       <!-- Légendes cachées : le bouton apparaît quand on en a trouvé une (legendes.js) -->
       <button class="bouton-categories bouton-legendes panneau" id="btn-legendes" aria-expanded="false" aria-controls="panneau-legendes" hidden>
         <svg class="lanterne" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M9 3h6M9 21h6M7.5 5h9C19 7 19.6 10 19.6 12s-.6 5-3.1 7h-9C5 17 4.4 14 4.4 12S5 7 7.5 5ZM4.6 10h14.8M4.6 14h14.8"/></svg>

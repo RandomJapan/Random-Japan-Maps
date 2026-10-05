@@ -252,7 +252,8 @@ Depth comes from the relief: the exaggerated terrain, the hillshade, and the isl
 
 ### Favorites
 - **Heart:** a 36px icon button on the card photo, left of share. Outlined in sepia; filled cartographer's red once chosen, with a small beat.
-- **Panel:** numbered rows in travel order (Zen Antique numerals, crest, name, category · prefecture, a remove ×), then the red "Route in Google Maps" button(s) and a parchment secondary button for the guided tour.
+- **Panel:** from 2 favorites, a "Route on the map" box first (car / bike / on foot as a segmented control like the language switch, the red "Draw the route" button, then the total in Zen Antique 22px). Then numbered rows in travel order (Zen Antique numerals, crest, name, category · prefecture, a remove ×), with each leg between two rows on a red dotted rule (mode icon, time · distance · main roads, ferry time in teal). Then "Reverse the order", parchment secondary buttons for Google Maps and the guided tour.
+- **Route on the map:** a cartographer's red line (3–6.5px with zoom) on a pale parchment casing, following the roads; ferries and off-road ends are dotted. Each leg's time sits at its halfway point on a small parchment label with a red rule (labels that would overlap hide). Each stop's crest carries its number in a small red disc instead of the heart; the other crests fade to half. When the panel is closed, a parchment chip next to the Favorites button gives the total, with × to clear.
 
 ### Guided tour
 - **Lower third:** a parchment plate with the double rule, bottom centre: the Japanese name in a small vertical cartouche, the name in Zen Antique 28px (22px on phone), category · prefecture in IM Fell italic. It fades and rises in 0.6s.

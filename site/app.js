@@ -11,6 +11,7 @@ import { animerMer } from './mer.js';
 import { brancherNomsRegions } from './noms-regions.js';
 import { brancherCompteur } from './compteur.js';
 import { lireFavoris, ecrireFavoris, ordreDeVoyage, liensItineraire } from './favoris.js';
+import { brancherItineraire, MODES } from './itineraire.js';
 import { brancherVisite } from './visite.js';
 import { brancherPrecharge } from './precharge.js';
 import { brancherTuilesRelief } from './tuiles-relief.js';
@@ -34,6 +35,13 @@ const SVG = {
   croix: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M7 7l10 10M17 7 7 17"/></svg>',
   etoile: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="m12 2.8 2.6 6 6.5.6-4.9 4.3 1.5 6.4L12 16.8l-5.7 3.3 1.5-6.4-4.9-4.3 6.5-.6Z"/></svg>',
   camera: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M3 7.5h11.5v9H3zM14.5 10.5l6-3v9l-6-3"/></svg>',
+  // les façons de voyager (itinéraire des favoris)
+  car: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M4 16.5v-4l2-5.5h12l2 5.5v4ZM4 12.5h16"/><circle cx="7.8" cy="16.5" r="1.9" fill="currentColor"/><circle cx="16.2" cy="16.5" r="1.9" fill="currentColor"/></svg>',
+  bike: '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="16" r="3.6"/><circle cx="18" cy="16" r="3.6"/><path d="M6 16l3.6-7h6.2L18 16M9.6 9 12 16h-6M15 6.5h2.4l-1.6 2.5M8.2 6.5H11"/></g></svg>',
+  foot: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="13" cy="4.6" r="2" fill="currentColor"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12.6 8.2 10.4 14l3 2.4 1.2 5M10.4 14l-2.6 7M12.6 8.2l3.4 3.8 2.6.6M12.6 8.2 9 10l-1.4 3"/></svg>',
+  bateau: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M3.5 14.5h17l-2.5 4.5H6ZM7 14.5V10h9l2 4.5M10 10V7h4v3"/></svg>',
+  trace: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.5" cy="18.5" r="2.4" fill="currentColor"/><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M7.6 17.4c3.6-1.6 1.4-5.6 5-6.8 1.5-.5 2.6-.6 3.4-1.2"/><path fill="currentColor" fill-rule="evenodd" d="M18.5 2.5a3.6 3.6 0 0 0-3.6 3.6c0 2.6 3.6 6.2 3.6 6.2s3.6-3.6 3.6-6.2a3.6 3.6 0 0 0-3.6-3.6Zm0 2.2a1.4 1.4 0 1 1 0 2.8 1.4 1.4 0 0 1 0-2.8Z"/></svg>',
+  sens: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M8 4v15M4.5 7.5 8 4l3.5 3.5M16 20V5M12.5 16.5 16 20l3.5-3.5"/></svg>',
 };
 // Couleurs de secours (catégorie inconnue de l'onglet Catégories) ; la carte les vieillit vers le sépia
 const PALETTE = ['#c23b27', '#3b5b92', '#5f7f3a', '#c8912a', '#7b4a8c', '#2f7d7a', '#8a5a3b', '#b3486b', '#4a5d7e', '#6f8f3e'];
@@ -642,7 +650,7 @@ function creerEpingle(lieu, rang) {
   el.type = 'button';
   el.className = 'repere';
   el.style.setProperty('--c', lieu.cat.couleur);
-  el.innerHTML = `<span class="repere-tete">${iconeHTML(lieu.cat.icone)}<span class="repere-coeur">${SVG.coeur}</span><span class="repere-nouveau"></span></span><span class="repere-nom"></span>`;
+  el.innerHTML = `<span class="repere-tete">${iconeHTML(lieu.cat.icone)}<span class="repere-coeur">${SVG.coeur}</span><span class="repere-nouveau"></span><span class="repere-etape"></span></span><span class="repere-nom"></span>`;
   el.classList.toggle('nouveau', lieu.nouveau);
   el.classList.toggle('favori', favoris.has(lieu.id));
   el.addEventListener('click', (e) => {
@@ -940,6 +948,7 @@ function majFavoris() {
   if (lieuActif) majCoeur(lieuActif);
   if (!$('panneau-favoris').hidden) remplirFavoris();
   if ($('visite-region').options.length) construireVisite();
+  if (itineraireActuel || calculItineraire) retracerBientot();
 }
 
 function majCoeur(l) {
@@ -950,15 +959,22 @@ function majCoeur(l) {
   b.setAttribute('aria-label', b.title);
 }
 
-/** La liste des favoris, dans l'ordre du voyage, avec l'itinéraire Google Maps et la visite guidée. */
+/** Les favoris dans l'ordre du voyage (ou à l'envers, si on a inversé le sens). */
+function listeFavoris() {
+  const liste = ordreDeVoyage(lieux.filter(estFavori));
+  return sensInverse ? liste.reverse() : liste;
+}
+
+/** La liste des favoris, dans l'ordre du voyage, avec l'itinéraire sur la carte, Google Maps et la visite guidée. */
 function remplirFavoris() {
   const panneau = $('panneau-favoris');
-  const liste = ordreDeVoyage(lieux.filter(estFavori));
+  const liste = listeFavoris();
   const titre = `<p class="hasard-titre">${esc(t('favorisTitre'))}</p>`;
   if (!liste.length) {
     panneau.innerHTML = `${titre}<p class="panneau-info">${esc(t('favorisVide'))}</p>`;
     return;
   }
+  const it = itineraireActuel;
   const lignes = liste.map((l, i) => `<li>
       <button type="button" class="favori-ligne" data-lieu="${esc(l.id)}">
         <span class="favori-num">${i + 1}</span>
@@ -966,14 +982,17 @@ function remplirFavoris() {
         <span class="favori-textes"><b>${esc(enLangue(l.nom))}</b><small>${esc(infosLieu(l))}</small></span>
       </button>
       <button type="button" class="favori-retirer" data-retirer="${esc(l.id)}" title="${esc(t('retirer'))}" aria-label="${esc(`${t('retirer')} : ${enLangue(l.nom)}`)}">${SVG.croix}</button>
-    </li>`).join('');
+    </li>${it?.trajets[i]?.de === l && it.trajets[i].a === liste[i + 1] ? ligneTrajet(it.trajets[i], it.mode) : ''}`).join('');
   const liens = liensItineraire(liste, estTelephone() ? 5 : 10);
-  const itineraires = liens.map((x) => `<a class="btn-lancer btn-itineraire" href="${esc(x.url)}" target="_blank" rel="noopener">${SVG.route}<span>${esc(liens.length > 1 ? t('itinerairePartie', x.de, x.a) : t('itineraireFavoris'))}</span></a>`).join('');
+  const itineraires = liens.map((x) => `<a class="btn-secondaire btn-itineraire" href="${esc(x.url)}" target="_blank" rel="noopener">${SVG.route}<span>${esc(liens.length > 1 ? t('itinerairePartie', x.de, x.a) : t('itineraireFavoris'))}</span></a>`).join('');
   panneau.innerHTML = `${titre}<p class="panneau-info">${esc(t('favorisInfo', liste.length))}</p>
+    ${liste.length > 1 ? blocItineraire() : ''}
     <ol class="liste-favoris">${lignes}</ol>
+    ${liste.length > 1 ? `<div class="menu-actions sens"><button type="button" data-inverser>${SVG.sens}<span>${esc(t('inverserSens'))}</span></button></div>` : ''}
     <div class="favoris-actions">${itineraires}
       <button type="button" class="btn-secondaire" data-visite>${SVG.camera}<span>${esc(t('visiteFavoris'))}</span></button>
-    </div>`;
+    </div>
+    ${it ? `<p class="itineraire-note">${esc(t('itineraireNote'))}</p>` : ''}`;
   // La préfecture de chaque lieu arrive avec les contours (une seule fois)
   if (liste.some((l) => !l.prefecture)) {
     preparerPrefectures().then(() => { if (!panneau.hidden && liste.every((l) => l.prefecture)) remplirFavoris(); }).catch(() => {});
@@ -983,6 +1002,7 @@ function remplirFavoris() {
 function ouvrirFavoris(ouvrir) {
   $('panneau-favoris').hidden = !ouvrir;
   $('btn-favoris').setAttribute('aria-expanded', String(ouvrir));
+  majResume();
   if (!ouvrir) {
     $('btn-favoris').hidden = !lieux.some(estFavori);
     return;
@@ -992,6 +1012,162 @@ function ouvrirFavoris(ouvrir) {
   ouvrirLegendes(false);
   ouvrirVisite(false);
   remplirFavoris();
+}
+
+// ---------------------------------------------------------------- Itinéraire des favoris sur la carte (itineraire.js)
+// Les routes à prendre en trait rouge, le temps de chaque trajet sur la carte, et dans le panneau des favoris
+// le total, la distance, les grandes routes et les bateaux. En voiture, à vélo ou à pied.
+let modeItineraire = (() => {
+  try { const m = localStorage.getItem('modeItineraire'); return MODES.includes(m) ? m : 'car'; } catch { return 'car'; }
+})();
+let sensInverse = false; // le voyage part du nord-est au lieu du sud-ouest
+let itineraireActuel = null; // l'itinéraire montré sur la carte
+let calculItineraire = null; // jeton du calcul en cours (un nouveau calcul fait oublier l'ancien)
+let erreurItineraire = '';
+let minuterieTrace;
+
+/** « 2 h 05 », « 45 min », « 2時間5分 ». */
+function texteDuree(secondes) {
+  const m = Math.max(1, Math.round(secondes / 60));
+  const h = Math.floor(m / 60), mn = m % 60;
+  if (langue === 'ja') return h ? `${h}時間${mn ? `${mn}分` : ''}` : `${mn}分`;
+  return h ? `${h} h ${String(mn).padStart(2, '0')}` : `${mn} min`;
+}
+const texteDistance = (metres) => `${(metres / 1000).toLocaleString(langue, { maximumFractionDigits: metres < 10000 ? 1 : 0 })} km`;
+
+/**
+ * Le nom d'une grande route pour le panneau : en japonais son nom (山陽自動車道) ; ailleurs le numéro
+ * d'autoroute (E2), celui d'une route nationale (« route 2 »), sinon rien (un nom japonais ne se lit pas).
+ */
+function nomRoute(r) {
+  if (langue === 'ja') return r.nom || r.ref;
+  if (/^E\d+[A-Z]?$/.test(r.ref)) return r.ref;
+  const n = r.nom.match(/^国道(\d+)号/)?.[1];
+  return n ? t('routeNationale', n) : '';
+}
+
+const itineraire = brancherItineraire(map, maplibregl, {
+  reperes,
+  texteTrajet: (tr, mode) => (tr.sansRoute ? esc(t('sansRouteCourt')) : `${SVG[mode]}${texteDuree(tr.duree)}`),
+});
+
+/** Une ligne de trajet entre deux favoris : temps, distance, grandes routes, bateau. */
+function ligneTrajet(tr, mode) {
+  if (tr.sansRoute) return `<li class="trajet sans-route"><span class="trajet-icone">${SVG.bateau}</span><span>${esc(t('trajetSansRoute'))}</span></li>`;
+  const morceaux = [texteDuree(tr.duree), texteDistance(tr.distance)];
+  const routes = [...new Set(tr.routes.map(nomRoute).filter(Boolean))];
+  if (routes.length) morceaux.push(routes.join(langue === 'ja' ? '・' : ', '));
+  const bateau = tr.bateau > 60 ? ` <span class="trajet-bateau">${SVG.bateau}${esc(t('dontBateau', texteDuree(tr.bateau)))}</span>` : '';
+  const pied = tr.horsRoute > 1000 ? ` <span class="trajet-bateau">${esc(t('horsRoute', texteDistance(tr.horsRoute)))}</span>` : '';
+  return `<li class="trajet"><span class="trajet-icone">${SVG[mode]}</span><span>${esc(morceaux.join(' · '))}${bateau}${pied}</span></li>`;
+}
+
+/** Le bloc « Itinéraire sur la carte » du panneau : la façon de voyager, le total et les boutons. */
+function blocItineraire() {
+  const it = itineraireActuel;
+  const modes = MODES.map((m) => `<button type="button" data-mode="${m}" aria-pressed="${m === modeItineraire}">${SVG[m]}<span>${esc(t(`mode_${m}`))}</span></button>`).join('');
+  const total = it ? `<div class="itineraire-total">
+      <b>≈ ${esc(texteDuree(it.duree))}</b> <span>${esc(t(`total_${it.mode}`))} · ${esc(texteDistance(it.distance))}</span>
+      ${it.bateau > 60 ? `<small>${SVG.bateau}${esc(t('dontBateau', texteDuree(it.bateau)))}</small>` : ''}
+    </div>` : '';
+  const bouton = calculItineraire
+    ? `<button type="button" class="btn-lancer" disabled>${SVG.trace}<span>${esc(t('calculItineraire'))}</span></button>`
+    : it
+      ? `<button type="button" class="btn-secondaire" data-effacer-itineraire>${SVG.croix}<span>${esc(t('effacerItineraire'))}</span></button>`
+      : `<button type="button" class="btn-lancer" data-tracer>${SVG.trace}<span>${esc(t('tracerItineraire'))}</span></button>`;
+  return `<div class="itineraire-bloc">
+      <p class="bloc-titre">${esc(t('itineraireCarte'))}</p>
+      <div class="onglets modes" role="group" aria-label="${esc(t('itineraireCarte'))}">${modes}</div>
+      ${total}
+      ${erreurItineraire ? `<p class="plongeon-erreur">${esc(erreurItineraire)}</p>` : ''}
+      ${bouton}
+    </div>`;
+}
+
+/** Calcule l'itinéraire des favoris et le montre sur la carte (cadrer : la caméra le montre en entier). */
+async function tracerItineraire({ cadrer = true } = {}) {
+  clearTimeout(minuterieTrace);
+  const liste = listeFavoris();
+  if (liste.length < 2) return effacerItineraire();
+  const jeton = (calculItineraire = {});
+  erreurItineraire = '';
+  if (!$('panneau-favoris').hidden) remplirFavoris();
+  try {
+    const it = await itineraire.calculer(liste, modeItineraire);
+    if (calculItineraire !== jeton) return;
+    itineraireActuel = it;
+    itineraire.afficher(it);
+    marquerEtapes(liste);
+    if (it.sansRoute) erreurItineraire = t('itineraireSansRoute');
+    if (cadrer) {
+      arreterRotation();
+      if (estTelephone()) ouvrirFavoris(false); // la carte se voit en entier ; le résumé reste en bas
+      cadrerItineraire(it.bornes);
+    }
+  } catch (e) {
+    if (calculItineraire !== jeton) return;
+    console.warn(e);
+    erreurItineraire = t('itineraireErreur');
+  }
+  calculItineraire = null;
+  if (!$('panneau-favoris').hidden) remplirFavoris();
+  majResume();
+}
+
+/** Les favoris changent pendant qu'un itinéraire est montré : on le refait (après une petite pause). */
+function retracerBientot() {
+  clearTimeout(minuterieTrace);
+  if (lieux.filter(estFavori).length < 2) return effacerItineraire();
+  minuterieTrace = setTimeout(() => tracerItineraire({ cadrer: false }), 700);
+}
+
+function effacerItineraire() {
+  clearTimeout(minuterieTrace);
+  itineraireActuel = null;
+  calculItineraire = null;
+  erreurItineraire = '';
+  itineraire.effacer();
+  marquerEtapes([]);
+  if (!$('panneau-favoris').hidden) remplirFavoris();
+  majResume();
+}
+
+/** Le numéro de chaque étape sur son épingle (à la place du petit cœur). */
+function marquerEtapes(liste) {
+  document.body.classList.toggle('avec-itineraire', liste.length > 0);
+  for (const l of lieux) l.el.classList.remove('etape');
+  liste.forEach((l, i) => {
+    l.el.classList.add('etape');
+    l.el.querySelector('.repere-etape').textContent = i + 1;
+  });
+}
+
+/** Montre tout l'itinéraire, dans la place que laissent les panneaux. */
+function cadrerItineraire(bornes) {
+  const m = estTelephone()
+    ? { top: 120, bottom: 110, left: 36, right: 36 }
+    : {
+      top: 90, bottom: 80, right: $('fiche').classList.contains('ouverte') ? 460 : 70,
+      left: $('panneau-favoris').hidden ? 70 : 400,
+    };
+  const p = map.getPadding();
+  const h = (p.left + p.right) / 2, v = (p.top + p.bottom) / 2;
+  const vue = map.cameraForBounds(bornes, {
+    padding: { top: m.top - v, bottom: m.bottom - v, left: m.left - h, right: m.right - h }, bearing: map.getBearing(), maxZoom: 12.5,
+  });
+  if (vue) map.flyTo({ ...vue, pitch: 20, padding: { top: 0, bottom: 0, left: 0, right: 0 }, duration: 1800, essential: true });
+}
+
+/** Le résumé en bas de l'écran, quand l'itinéraire est sur la carte et le panneau des favoris fermé. */
+function majResume() {
+  const it = itineraireActuel;
+  $('resume-itineraire').hidden = !it || !$('panneau-favoris').hidden;
+  if (!it) return;
+  $('resume-details').innerHTML = `${SVG[it.mode]}<b>≈ ${esc(texteDuree(it.duree))}</b><span>· ${esc(texteDistance(it.distance))}</span>`;
+  $('resume-details').title = t('voirItineraire');
+  $('resume-details').setAttribute('aria-label', `${t('voirItineraire')} : ${texteDuree(it.duree)}, ${texteDistance(it.distance)}`);
+  $('resume-effacer').title = t('effacerItineraire');
+  $('resume-effacer').setAttribute('aria-label', t('effacerItineraire'));
 }
 
 // ---------------------------------------------------------------- Visite guidée (visite.js)
@@ -1315,6 +1491,7 @@ async function lancerJeu() {
       langue: () => langue,
       avant: () => {
         if (visite.enCours()) visite.arreter();
+        effacerItineraire();
         arreterRotation();
         fermerFiche();
         ouvrirMenu(false);
@@ -1707,6 +1884,8 @@ function appliquerLangue() {
   majTextesPlongeon();
   if (!$('volet-plongeon').hidden) choisirOnglet(ongletVisite); // les types dans la nouvelle langue
   majFavoris();
+  if (itineraireActuel) itineraire.retraduire(itineraireActuel.mode);
+  majResume();
   visite.majLangue();
   $('txt-jeu').textContent = t('jeu');
   jeu?.majLangue();
@@ -1757,9 +1936,30 @@ function brancherBoutons() {
     const retirer = e.target.closest('[data-retirer]');
     const ligne = e.target.closest('[data-lieu]');
     const trouver = (id) => lieux.find((l) => l.id === id);
+    const mode = e.target.closest('[data-mode]')?.dataset.mode;
     if (retirer) basculerFavori(trouver(retirer.dataset.retirer));
     else if (ligne) allerAuLieu(trouver(ligne.dataset.lieu));
     else if (e.target.closest('[data-visite]')) lancerVisite(lieux.filter(estFavori));
+    else if (e.target.closest('[data-tracer]')) tracerItineraire();
+    else if (e.target.closest('[data-effacer-itineraire]')) effacerItineraire();
+    else if (mode && mode !== modeItineraire) {
+      modeItineraire = mode;
+      try { localStorage.setItem('modeItineraire', mode); } catch { /* pas grave */ }
+      if (itineraireActuel || calculItineraire) tracerItineraire({ cadrer: false });
+      else remplirFavoris();
+    } else if (e.target.closest('[data-inverser]')) {
+      sensInverse = !sensInverse;
+      if (itineraireActuel || calculItineraire) tracerItineraire({ cadrer: false });
+      else remplirFavoris();
+    }
+  });
+  $('resume-details').addEventListener('click', (e) => {
+    e.stopPropagation();
+    ouvrirFavoris(true);
+  });
+  $('resume-effacer').addEventListener('click', (e) => {
+    e.stopPropagation();
+    effacerItineraire();
   });
   $('onglet-visite').addEventListener('click', () => choisirOnglet('visite'));
   $('onglet-plongeon').addEventListener('click', () => choisirOnglet('plongeon'));

@@ -121,8 +121,13 @@ Les lieux de tes vidéos des 7 derniers jours portent une étiquette **« Nouvea
 
 Les visiteurs peuvent toucher le **cœur** sur la fiche d'un lieu pour le mettre en favori.
 - Dès le premier, un bouton **❤ Favoris** apparaît sous « Catégories ».
-- Il ouvre la liste, rangée dans l'ordre d'un voyage, avec un bouton **« Itinéraire dans Google Maps »** qui ouvre tout le trajet.
-- Au-delà de 10 lieux (5 sur téléphone), Google Maps n'accepte pas tout d'un coup : le voyage est alors coupé en plusieurs itinéraires.
+- Il ouvre la liste, rangée dans l'ordre d'un voyage. On peut **inverser le sens** (partir du nord au lieu du sud).
+- **Itinéraire sur la carte** (à partir de 2 favoris) : on choisit voiture, vélo ou à pied, puis **« Tracer l'itinéraire »**.
+  - Un trait rouge suit les routes à prendre, et le temps de chaque trajet est écrit sur la carte. Les bateaux sont en pointillés.
+  - Les épingles des étapes portent leur numéro, et les autres lieux pâlissent.
+  - La liste donne le temps total et la distance, puis, entre deux lieux, le temps, les kilomètres et les grandes routes (par exemple « E2 », l'autoroute du Sanyō), et le temps de bateau s'il y en a.
+  - Les temps sont des estimations, sans pauses ni bouchons. Les routes viennent d'OpenStreetMap, par un service gratuit (OSRM).
+- Le bouton **« Itinéraire dans Google Maps »** ouvre tout le trajet dans Google Maps, pour s'y guider en voiture. Au-delà de 10 lieux (5 sur téléphone), Google Maps n'accepte pas tout d'un coup : le voyage est alors coupé en plusieurs itinéraires.
 - Les favoris restent sur l'appareil du visiteur.
 
 ## La visite guidée (pour filmer la carte)
@@ -240,7 +245,7 @@ Le programme fabrique :
 
 ## Comment ça marche (pour les curieux)
 
-- `site/` contient le site : la page (`index.html`), l'apparence (`style.css`), les **réglages** (`config.js`), le programme de la carte (`app.js`), les icônes (`icons.js`), les modèles 3D (`modeles3d.js`, posés sur la carte par `couche3d.js`) la mer vivante (`mer.js`), les légendes cachées (`legendes.js`) et les noms des régions et des préfectures (`noms-regions.js`) le compteur de visites (`compteur.js`), les favoris (`favoris.js`), la visite guidée (`visite.js`) et `reperes.js`, qui ne garde sur la carte que les épingles et les noms proches de l'écran (c'est ce qui rend le zoom fluide sur téléphone).
+- `site/` contient le site : la page (`index.html`), l'apparence (`style.css`), les **réglages** (`config.js`), le programme de la carte (`app.js`), les icônes (`icons.js`), les modèles 3D (`modeles3d.js`, posés sur la carte par `couche3d.js`) la mer vivante (`mer.js`), les légendes cachées (`legendes.js`) et les noms des régions et des préfectures (`noms-regions.js`) le compteur de visites (`compteur.js`), les favoris (`favoris.js`) et leur itinéraire sur la carte (`itineraire.js`), la visite guidée (`visite.js`) et `reperes.js`, qui ne garde sur la carte que les épingles et les noms proches de l'écran (c'est ce qui rend le zoom fluide sur téléphone).
 - La carte lit le tableau Google Sheets à chaque visite. Si Google ne répond pas, elle utilise la copie de secours `site/data/secours-*.csv`. Cette copie est mise à jour automatiquement chaque nuit par GitHub.
 - `outils/` contient les petits programmes qui ont servi à tout préparer : import depuis Google My Maps, traductions, photos, masque des pays voisins.
 - `outils/robot-tableau.gs` est une copie du programme du robot (celui qui tourne vraiment est dans le projet « Robot carte » sur script.google.com). Le robot lit la légende de la vidéo TikTok et demande à Gemini de quel lieu il s'agit. Il cherche ensuite ce lieu dans Wikipédia et Google Maps, puis Gemini rédige la fiche à partir de ce qu'il a trouvé.
