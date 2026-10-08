@@ -76,9 +76,14 @@ Quand on voit tout le Japon, la mer bouge un peu, comme une vieille carte qui pr
 - **la houle** : les lignes d'eau autour des îles avancent doucement vers les plages ;
 - **des bateaux de l'époque Edo** (des kitamae-bune, petits modèles 3D avec leur grande voile à bandes). De temps en temps, un bateau apparaît au large, file vers un port de l'époque (Edo, Osaka, Nagasaki, Hakodate…) ou en repart, puis s'efface avant la côte. Il n'y en a jamais plus de 2 à la fois ;
 - **une baleine** qui sort de l'eau et souffle, toutes les 30 à 55 secondes environ, à des endroits connus pour les baleines (Kōchi, Muroto, Okinawa, Ogasawara…) ;
-- **un serpent de mer**, plus rare (toutes les 1 min 30 à 2 min environ), comme sur les cartes anciennes.
+- **un serpent de mer**, plus rare (toutes les 1 min 30 à 2 min environ), comme sur les cartes anciennes ;
+- **un typhon**, une minute après l'arrivée puis toutes les 15 minutes. Il naît au large, au sud, monte vers le nord en tournant, avec la pluie, des éclairs et le vent, puis se défait en mer. Si le visiteur regarde un lieu de près à ce moment-là, le typhon attend qu'il dézoome.
 
 Tout disparaît quand on zoome sur un lieu. Si le téléphone est réglé pour réduire les animations, la mer reste immobile.
+
+## Les grues
+
+Quand on zoome sur la carte, **trois grues du Japon** (blanches, à tête rouge) passent de temps en temps dans le ciel, avec leur ombre sur le relief. Le premier vol arrive quelques secondes après avoir zoomé, puis un autre toutes les 40 à 75 secondes environ. Il n'y en a pas pendant un plongeon ni pendant le jeu.
 
 **Tu n'as rien à faire pour ça.** C'est dans le fichier `site/mer.js`. Le bateau est aussi dans la page `…/modeles.html`.
 
@@ -245,7 +250,7 @@ Le programme fabrique :
 
 ## Comment ça marche (pour les curieux)
 
-- `site/` contient le site : la page (`index.html`), l'apparence (`style.css`), les **réglages** (`config.js`), le programme de la carte (`app.js`), les icônes (`icons.js`), les modèles 3D (`modeles3d.js`, posés sur la carte par `couche3d.js`) la mer vivante (`mer.js`), les légendes cachées (`legendes.js`) et les noms des régions et des préfectures (`noms-regions.js`) le compteur de visites (`compteur.js`), les favoris (`favoris.js`) et leur itinéraire sur la carte (`itineraire.js`), la visite guidée (`visite.js`) et `reperes.js`, qui ne garde sur la carte que les épingles et les noms proches de l'écran (c'est ce qui rend le zoom fluide sur téléphone).
+- `site/` contient le site : la page (`index.html`), l'apparence (`style.css`), les **réglages** (`config.js`), le programme de la carte (`app.js`), les icônes (`icons.js`), les modèles 3D (`modeles3d.js`, posés sur la carte par `couche3d.js`) la mer vivante (`mer.js`), les légendes cachées (`legendes.js`), les grues (`oiseaux.js`) et les noms des régions et des préfectures (`noms-regions.js`) le compteur de visites (`compteur.js`), les favoris (`favoris.js`) et leur itinéraire sur la carte (`itineraire.js`), la visite guidée (`visite.js`) et `reperes.js`, qui ne garde sur la carte que les épingles et les noms proches de l'écran (c'est ce qui rend le zoom fluide sur téléphone).
 - La carte lit le tableau Google Sheets à chaque visite. Si Google ne répond pas, elle utilise la copie de secours `site/data/secours-*.csv`. Cette copie est mise à jour automatiquement chaque nuit par GitHub.
 - `outils/` contient les petits programmes qui ont servi à tout préparer : import depuis Google My Maps, traductions, photos, masque des pays voisins.
 - `outils/robot-tableau.gs` est une copie du programme du robot (celui qui tourne vraiment est dans le projet « Robot carte » sur script.google.com). Le robot lit la légende de la vidéo TikTok et demande à Gemini de quel lieu il s'agit. Il cherche ensuite ce lieu dans Wikipédia et Google Maps, puis Gemini rédige la fiche à partir de ce qu'il a trouvé.

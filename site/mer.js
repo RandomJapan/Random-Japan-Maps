@@ -3,7 +3,8 @@
 //  - la houle : les lignes d'eau gravées avancent doucement vers les côtes ;
 //  - de temps en temps, un bateau de commerce de l'époque Edo (un bezaisen, dit « kitamae-bune »,
 //    petit modèle 3D) apparaît au large, file vers un port et s'efface avant la côte ;
-//  - parfois une baleine souffle, et plus rarement un serpent de mer sort de l'eau.
+//  - parfois une baleine souffle, et plus rarement un serpent de mer sort de l'eau ;
+//  - toutes les 15 minutes, un typhon arrive du large, tourne, pleut et lance des éclairs, puis se défait.
 //  Tout disparaît quand on zoome sur un lieu. Rien ne bouge si l'appareil demande moins d'animations.
 // ================================================================
 import { URL_THREE } from './couche3d.js';
@@ -59,6 +60,16 @@ const BETES = [
   },
 ];
 
+// Le typhon : la première fois une minute après l'arrivée, puis toutes les 15 minutes. C'est l'heure réelle : s'il
+// est l'heure pendant qu'on regarde un lieu de près, il attend qu'on dézoome. Il naît au large et monte vers le nord
+// en tournant (en sens inverse des aiguilles d'une montre, comme dans l'hémisphère nord), dans la mer qu'on voit.
+const TYPHON = {
+  premier: 60, entre: 15 * 60, duree: 26, // secondes (la durée est aussi dans style.css : typhon-vie)
+  taille: 210, // largeur à l'écran au zoom 5 (pixels) ; il grandit quand on zoome, comme les bateaux
+  chemin: [150, 210], // longueur de son chemin (pixels au zoom 5, ≈ 300 à 440 km)
+  large: 26, // tout son chemin reste au moins à cette distance des côtes (pixels au zoom 5, ≈ 55 km)
+};
+
 // ---------------------------------------------------------------- Dessins (encre et aquarelle, comme sur la carte)
 const DESSINS = {
   // Baleine : le dos sort de l'eau, elle souffle, puis montre sa queue en plongeant
@@ -107,6 +118,48 @@ const DESSINS = {
     </g>
   </svg>`,
 };
+
+/**
+ * Le typhon vu d'en haut : un œil, son mur de nuages et trois bras en spirale, faits de bouffées rondes qui se
+ * chevauchent (le trait d'encre dessous, le nuage, puis un reflet clair). La spirale tourne et s'aplatit (la carte
+ * est penchée) ; la pluie, les éclairs et son ombre sur la mer restent droits, dessous ; le vent souffle autour.
+ */
+function dessinTyphon() {
+  const bouffees = [];
+  for (let i = 0; i < 16; i++) {
+    const a = (i / 16) * 2 * Math.PI;
+    bouffees.push([19 * Math.cos(a), 19 * Math.sin(a), 7.5 + 1.5 * (i % 2)]);
+  }
+  for (let k = 0; k < 3; k++) {
+    const a0 = (k * 2 * Math.PI) / 3;
+    for (let t = 0.02, i = 0; t < 1; i++) {
+      const r = 22 + 92 * t, a = a0 + t * 1.05 * 2 * Math.PI;
+      const taille = (10.5 * Math.sin(Math.PI * Math.min(1, t ** 0.8)) ** 0.9 + 2.6) * (0.88 + (0.24 * ((i * 7) % 5)) / 4);
+      bouffees.push([r * Math.cos(a), r * Math.sin(a), taille]);
+      t += (0.8 * taille) / Math.hypot(92, r * 1.05 * 2 * Math.PI); // la suivante chevauche celle-ci
+    }
+  }
+  const cercles = (liste, k, dr, dx) => liste.map(([x, y, r]) => {
+    const R = (r * k + dr).toFixed(1), cx = x + dx * r, cy = y + dx * r;
+    return `M${(cx - R).toFixed(1)} ${cy.toFixed(1)}a${R} ${R} 0 1 0 ${2 * R} 0a${R} ${R} 0 1 0 ${-2 * R} 0`;
+  }).join('');
+  const eclair = (classe, d) => `<g class="ty-eclair ${classe}"><path class="ty-eclair-fond" d="${d}"/><path class="ty-eclair-trait" d="${d}"/></g>`;
+  return `<div class="ty-scene">
+    <svg class="ty-dessous" viewBox="-130 -130 260 300" aria-hidden="true">
+      <defs><filter id="ty-flou" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="7"/></filter></defs>
+      <ellipse class="ty-ombre" cx="6" cy="22" rx="96" ry="52" filter="url(#ty-flou)"/>
+      <path class="ty-pluie" d="M-70 14l-6 34M-52 26l-6 36M-30 30l-6 38M-8 34l-6 36M14 32l-6 38M36 28l-6 36M58 22l-6 34M76 10l-5 28M-40 46l-5 26M24 50l-5 26M-6 54l-5 24"/>
+      ${eclair('ty-e1', 'M-30 18-38 40-28 42-40 74')}${eclair('ty-e2', 'M40 20 32 44 43 46 30 80')}
+    </svg>
+    <div class="ty-aplati"><div class="ty-tourne"><svg viewBox="-130 -130 260 260" aria-hidden="true">
+      <path class="ty-trait" d="${cercles(bouffees, 1, 1.3, 0)}"/><path class="ty-corps" d="${cercles(bouffees, 1, 0, 0)}"/>
+      <path class="ty-reflet" d="${cercles(bouffees.filter((b) => b[2] > 4), 0.62, 0, -0.22)}"/><circle class="ty-oeil" r="9"/>
+    </svg></div></div>
+    <svg class="ty-dessus" viewBox="-130 -130 260 260" aria-hidden="true">
+      <path class="ty-vents" d="M-124-4C-110-22-90-30-68-28M110 14C98 32 78 42 56 42M-100 30C-88 42-70 48-52 46M96-30C86-42 70-48 52-46"/>
+    </svg>
+  </div>`;
+}
 
 // ---------------------------------------------------------------- Outils
 const lisser = (t) => (t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t));
@@ -344,6 +397,12 @@ function coucheBateaux(map, maplibregl, THREE, modele, flotte) {
  * @param mers - positions [lng, lat] des noms des mers : ni bateau ni bête n'apparaît dessus
  */
 let reperesMer = null; // le gestionnaire de reperes.js : les bêtes ne sont sur la carte que pendant leur scène
+let typhonMaintenant = null;
+
+/** Fait arriver un typhon tout de suite, s'il a un chemin bien visible (sert aux essais). */
+export function jouerTyphon() {
+  return typhonMaintenant?.() ?? false;
+}
 
 export function animerMer(map, maplibregl, { mers = [], reperes } = {}) {
   reperesMer = reperes;
@@ -351,6 +410,7 @@ export function animerMer(map, maplibregl, { mers = [], reperes } = {}) {
   const conteneur = map.getContainer();
   let temps = 0; // horloge de la mer (secondes), arrêtée quand la mer est calme ou la page cachée
   let calme = null;
+  let typhon = null; // le typhon (son repère et sa course en cours), préparé plus bas
   let houlePrete = false;
   let distance = null; // distance à la côte d'un point (x, y), dès que l'image est lue
   const flotte = []; // les bateaux en mer
@@ -362,6 +422,7 @@ export function animerMer(map, maplibregl, { mers = [], reperes } = {}) {
     if (c !== calme) {
       calme = c;
       conteneur.classList.toggle('mer-calme', c);
+      if (c) finirTyphon(); // de près, la mer est calme : le typhon en cours s'en va
     }
   }
   map.on('zoom', majCalme);
@@ -482,6 +543,79 @@ export function animerMer(map, maplibregl, { mers = [], reperes } = {}) {
     }
   }
 
+  // --- Le typhon
+  typhon = { el: element('typhon', dessinTyphon()), course: null, prochain: performance.now() / 1000 + TYPHON.premier };
+  typhon.marqueur = new maplibregl.Marker({ element: typhon.el, anchor: 'center', opacityWhenCovered: '1' }).setLngLat([137, 30]);
+  // juste au-dessus du papier vieilli, sous les épingles
+  reperes.suivre(typhon.marqueur, { voulu: false, placer: (el) => el.parentNode.insertBefore(el, el.parentNode.querySelector('#papier')?.nextSibling ?? null) });
+
+  /**
+   * Un chemin [départ, arrivée] dans la mer qu'on voit : l'arrivée tirée au hasard à l'écran, bien au large, et le
+   * départ plus au sud ; tout le chemin reste loin des côtes et des terres cachées sous les masques.
+   */
+  function cheminTyphon() {
+    const { clientWidth: l, clientHeight: h } = conteneur;
+    const dans = (q, marge) => q.x > -marge * l && q.x < l * (1 + marge) && q.y > 60 - marge * h && q.y < h * (1 + marge);
+    for (let essai = 0; essai < 40; essai++) {
+      const fin = map.unproject([l * (0.2 + Math.random() * 0.6), h * (0.25 + Math.random() * 0.55)]).toArray();
+      if (!bienVisible(fin)) continue;
+      const F = maplibregl.MercatorCoordinate.fromLngLat(fin);
+      if (distance(F.x, F.y) < TYPHON.large) continue;
+      const cap = ((150 + Math.random() * 70) * Math.PI) / 180; // le départ est au sud (cap vu de l'arrivée)
+      const longueur = entre(TYPHON.chemin) / Z5;
+      const S = { x: F.x + Math.sin(cap) * longueur, y: F.y - Math.cos(cap) * longueur };
+      const depart = versLngLat(S.x, S.y);
+      if (!dans(map.project(depart), 0.25) || !dans(map.project(versLngLat((S.x + F.x) / 2, (S.y + F.y) / 2)), 0)) continue;
+      let auLarge = true;
+      for (let t = 0; t <= 1.001 && auLarge; t += 0.05) {
+        const x = S.x + (F.x - S.x) * t, y = S.y + (F.y - S.y) * t;
+        auLarge = distance(x, y) >= TYPHON.large && (map.queryTerrainElevation(versLngLat(x, y)) || 0) <= 5;
+      }
+      if (auLarge) return [depart, fin];
+    }
+    return null;
+  }
+
+  function lancerTyphon() {
+    if (!distance || typhon.course) return false;
+    const route = cheminTyphon();
+    if (!route) return false;
+    typhon.course = { route, debut: performance.now() };
+    avancerTyphon();
+    reperes.montrer(typhon.marqueur, true);
+    typhon.el.classList.remove('joue');
+    void typhon.el.offsetWidth; // relance l'animation
+    typhon.el.classList.add('joue');
+    return true;
+  }
+  typhonMaintenant = lancerTyphon;
+
+  /** Le typhon avance sur son chemin (lentement au début et à la fin), et grandit avec le zoom. */
+  function avancerTyphon() {
+    const c = typhon.course;
+    const p = (performance.now() - c.debut) / (TYPHON.duree * 1000);
+    if (p >= 1) return finirTyphon();
+    const f = lisser(p), [a, b] = c.route;
+    typhon.marqueur.setLngLat([a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f]);
+    reperes.verifier(typhon.marqueur);
+    const largeur = Math.round(TYPHON.taille * 2 ** ((map.getZoom() - 5) * CROISSANCE_BATEAU));
+    if (largeur !== c.largeur) typhon.el.style.setProperty('--taille-typhon', `${(c.largeur = largeur)}px`);
+  }
+
+  function finirTyphon() {
+    if (!typhon?.course) return;
+    typhon.course = null;
+    typhon.el.classList.remove('joue');
+    reperes.montrer(typhon.marqueur, false);
+  }
+
+  function reveillerTyphon() {
+    if (typhon.course) return avancerTyphon();
+    const maintenant = performance.now() / 1000;
+    if (maintenant < typhon.prochain) return;
+    typhon.prochain = maintenant + (lancerTyphon() ? TYPHON.entre : 5);
+  }
+
   // --- La houle et les bateaux ont besoin de l'image des distances à la côte
   if (sansMouvement) return; // les lignes d'eau fixes restent, rien ne bouge
   const image = new Image();
@@ -516,6 +650,7 @@ export function animerMer(map, maplibregl, { mers = [], reperes } = {}) {
     temps += pas;
     if (bateauxPrets) avancerBateaux(pas);
     reveillerBetes();
+    reveillerTyphon();
     if ((houlePrete && reglagesHoule(map.getZoom()).opacite > 0) || flotte.length) map.triggerRepaint();
   }
   requestAnimationFrame(boucle);

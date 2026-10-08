@@ -178,7 +178,7 @@ When the map is zoomed in, every place shows a small low-poly model of its categ
 
 ### Living sea (`site/mer.js`)
 
-In the far view (below `ZOOM_CALME` = 7.2) the sea comes alive. The owner settled the parts on 2026-10-01: the coastal swell, a few 3D Edo ships far out at sea, a whale and a sea serpent.
+In the far view (below `ZOOM_CALME` = 7.2) the sea comes alive. The owner settled the parts on 2026-10-01: the coastal swell, a few 3D Edo ships far out at sea, a whale and a sea serpent. On 2026-10-08 they added a typhoon every 15 minutes.
 - **What was dropped.** The owner first chose engraved wavelets and ships on fixed coastal routes. After seeing them live, they found it too busy: the map was harder to read. Keep the sea sparse and keep ships away from the coasts.
 - **Hiding when zoomed in.** At 7.2 and above, the container gets `.mer-calme`: every `.vie-marine` element gets `display: none`, the ship layer draws nothing and the clock stops.
 - **Swell.** The fixed `lignes-eau-1..3` layers are hidden once the swell is ready, and a custom layer, `houle`, redraws them as lines rolling in toward the coasts.
@@ -199,12 +199,27 @@ In the far view (below `ZOOM_CALME` = 7.2) the sea comes alive. The owner settle
   - A trip is rejected if `queryTerrainElevation` finds land along it (for example islands hidden under the masks), if the start is not `bienVisible`, or if another ship is within 140px.
 - **Creatures.** `BETES` lists a whale (real whale-watching spots) and a sea serpent (open sea). Each plays a CSS scene when `mer.js` adds `.joue` (scene lengths are in `style.css`). A spot is used only if it passes `bienVisible`: on screen, clear of the sea names, and not behind relief (`map.unproject(map.project(spot))` must land near the spot).
   - `jouerScene(nom, [lng, lat])` is exported for tests: `(await import('/mer.js')).jouerScene('baleine', [134.4, 33.05])`.
+- **Typhoon (2026-10-08).** The owner asked for a storm every 15 minutes, seen only from afar, in the spirit of the sea serpent. From animated examples they chose a typhoon (the other option was Raijin, the thunder god, on a black cloud), with the first one a minute after arrival.
+  - **When.** Real time (`performance.now`): `TYPHON.premier` (60 s) after the sea starts, then `TYPHON.entre` (15 min) after each start. It is checked by the sea clock, which only runs in the far view with the page visible, so a typhoon that falls due while the visitor is zoomed in comes as soon as they zoom out. Zooming in during one ends it (`finirTyphon`, from `majCalme`).
+  - **Where.** `cheminTyphon` draws a path in the sea on screen: an end point at random on screen (`bienVisible`, at least `TYPHON.large` = 26px at zoom 5, about 55 km, from Japan's coast), a start 150 to 210px (zoom 5) away toward the south (bearing 150–220° from the end), so it travels north like real typhoons. The start must be within the screen + 25%, the midpoint on screen, and every point of the way at sea (the distance image, plus `queryTerrainElevation` ≤ 5 m for the neighbours under the masks). 40 tries, else it retries 5 s later. Fixed routes were tried first: on the phone start view (rotated, 390px wide) all seven left the screen.
+  - **How it moves.** An HTML marker moved with `setLngLat` at each sea-clock tick (eased along its path, then `reperes.verifier`), inserted after `#papier`, so it passes under the pins. Its width is `TYPHON.taille` (210px at zoom 5) × the ships' growth (`CROISSANCE_BATEAU`), set as `--taille-typhon` on its own element.
+  - **The drawing.** `dessinTyphon()` computes it in the browser: about 230 overlapping round puffs (the eye wall and three arms), drawn as one path each for the ink outline, the cloud and a light highlight. This keeps 35 KB of SVG out of the file. The spiral SVG sits in an HTML div that rotates (CSS, counter-clockwise like a northern-hemisphere typhoon, `will-change`) inside a div squashed to 0.58 for the pitched map. The rotation is a composited layer, so nothing is repainted. Rain, two lightning bolts and its shadow on the sea are an unrotated SVG underneath; wind lines go on top. Its 26 s life (grow, turn, fade) is the CSS `typhon-vie`: keep it equal to `TYPHON.duree`.
+  - Tests: `(await import('/mer.js')).jouerTyphon()` starts one now (false if no path fits the view). Measured at CPU ÷4 in a phone context: no frame-rate change.
 - **Reduced motion.** Nothing in the sea moves:
   - the swell is not added (the fixed lines stay);
   - three.js is not loaded early and there are no ships;
   - the clock never starts and the CSS animations are off;
   - no creature appears.
 - **Filming it.** For GIFs, Playwright can slow the page: wrap `requestAnimationFrame` timestamps and set `playbackRate` on `document.getAnimations()` in an init script. Then set the GIF frame times back to real speed.
+
+### Cranes (`site/oiseaux.js`)
+
+On 2026-10-08 the owner asked for small birds flying over the map, seen only when zoomed in. From animated examples they chose red-crowned cranes (tanchō); the other options were wild geese in a V and swallows.
+- **When.** From zoom `ZOOM_OISEAUX` (8.4): the first flight comes `PREMIER_VOL` (6 s) after zooming in, then one every `ENTRE_VOLS` (40 to 75 s), one at a time. A 2 s `setInterval` checks the time: there is no per-frame work. No flights during a dive or a game (`body.plongeon`, `body.en-jeu`) or under reduced motion. Zooming out fades the sky (`.ciel.loin`).
+- **Screen space.** `.ciel` is a div in the canvas container, right after `#papier`: above the relief and the 3D models, below the pins. The birds are not markers and not tied to a place, so there is no `reperes` bookkeeping and nothing to project.
+- **A flight.** Three cranes in file (`FILE`), each with its shadow one crane-height lower (`filter: brightness(0) blur`), cross the screen from one side to the other while rising and shrinking a little (going away into the pitched map), at `VITESSE` (80px/s, at least 9 s). The side is random; flying left mirrors the formation (`scale(-1, 1)`). The path is CSS variables on the flight (`--x0` to `--y1`, `--duree`) read by the `vol-grues` keyframes. Cranes are 64px wide (50px under 600px).
+- **A crane** (`GRUE`, 80 × 40, ink and watercolour like the legends) flaps with `scaleY` on `.gr-aile` (1.25 s), each one out of phase, and bobs gently.
+- Tests: `(await import('/oiseaux.js')).faireVoler()` starts a flight now, even if one is already flying.
 
 ### Hidden legends (`site/legendes.js`)
 

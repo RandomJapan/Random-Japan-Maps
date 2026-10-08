@@ -8,6 +8,7 @@ import { iconeHTML } from './icons.js';
 import { PREFECTURES, REGIONS, chargerPrefectures, regionDe } from './regions.js';
 import { brancherModeles } from './couche3d.js';
 import { animerMer } from './mer.js';
+import { brancherOiseaux } from './oiseaux.js';
 import { brancherNomsRegions } from './noms-regions.js';
 import { brancherCompteur } from './compteur.js';
 import { lireFavoris, ecrireFavoris, ordreDeVoyage, liensItineraire } from './favoris.js';
@@ -541,6 +542,9 @@ const nomsRegions = brancherNomsRegions(map, maplibregl, { enLangue, reperes });
 
 // La mer vivante : houle, vagues, bateaux d'époque, baleine et serpent de mer (vus de loin)
 animerMer(map, maplibregl, { mers: MERS.map((m) => m.ou), reperes });
+
+// Les grues du Japon : de près, un vol de trois grues traverse l'écran de temps en temps
+brancherOiseaux(map);
 
 // Petits modèles 3D des lieux (un par icône de catégorie), visibles quand on zoome
 const modeles3d = brancherModeles(map, maplibregl, () => lieux);

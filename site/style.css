@@ -418,6 +418,71 @@ body.mode-dev .controles .btn-dev:hover { background: var(--rouge-survol); }
   92%, 100% { transform: translateY(32px) rotate(0deg); }
 }
 
+/* Le typhon (mer.js) : toutes les 15 minutes, vu de loin. Il grandit en arrivant, tourne, pleut, lance des éclairs,
+   puis se défait. La spirale tourne sur la carte graphique (une image qui pivote) : rien à redessiner. */
+.typhon { visibility: hidden; }
+.typhon.joue { visibility: visible; }
+.ty-scene { position: relative; width: var(--taille-typhon, 210px); aspect-ratio: 1; opacity: 0; }
+.typhon.joue .ty-scene { animation: typhon-vie 26s ease-in-out both; }
+@keyframes typhon-vie {
+  0% { opacity: 0; scale: .3; }
+  12% { opacity: 1; }
+  75% { scale: 1; }
+  88% { opacity: 1; }
+  100% { opacity: 0; scale: 1.06; }
+}
+.ty-dessous { position: absolute; left: 0; top: 0; width: 100%; height: calc(100% * 300 / 260); }
+.ty-aplati, .ty-dessus { position: absolute; inset: 0; }
+.ty-aplati { transform: scaleY(.58); }
+.ty-tourne { width: 100%; height: 100%; }
+.ty-tourne svg, .ty-dessus { width: 100%; height: 100%; }
+.typhon.joue .ty-tourne { will-change: transform; animation: tourne-typhon 10s linear infinite; }
+@keyframes tourne-typhon { to { transform: rotate(-360deg); } }
+.ty-trait { fill: #5b4a37; }
+.ty-corps { fill: #e6ddc8; }
+.ty-reflet { fill: #f8f3e8; }
+.ty-oeil { fill: #7aa9a1; stroke: #5b4a37; stroke-width: 1.2; }
+.ty-ombre { fill: #1f3432; opacity: .2; }
+.ty-pluie { fill: none; stroke: #46616a; stroke-width: 1.2; stroke-linecap: round; opacity: .55; stroke-dasharray: 7 9; }
+.typhon.joue .ty-pluie { animation: pluie-typhon .45s linear infinite; }
+@keyframes pluie-typhon { to { stroke-dashoffset: -16; } }
+.ty-eclair { opacity: 0; }
+.typhon.joue .ty-e1 { animation: eclair-typhon 3.4s steps(1) infinite; }
+.typhon.joue .ty-e2 { animation: eclair-typhon 4.7s steps(1) 1.6s infinite; }
+@keyframes eclair-typhon { 0% { opacity: 0; } 40% { opacity: 1; } 43% { opacity: 0; } 46% { opacity: 1; } 50% { opacity: 0; } }
+.ty-eclair-fond { fill: none; stroke: #35251a; stroke-width: 4.2; stroke-linejoin: round; stroke-linecap: round; }
+.ty-eclair-trait { fill: none; stroke: #fff2a8; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.ty-vents { fill: none; stroke: #5b4a37; stroke-width: 1.3; stroke-linecap: round; stroke-dasharray: 40 200; }
+.typhon.joue .ty-vents { animation: vent-typhon 2.6s linear infinite; }
+@keyframes vent-typhon { from { stroke-dashoffset: 40; } to { stroke-dashoffset: -200; } }
+
+/* ---------- Les grues (oiseaux.js) : de près seulement, un vol de trois grues traverse l'écran avec son ombre ---------- */
+.ciel { position: absolute; inset: 0; overflow: hidden; pointer-events: none; transition: opacity .8s; }
+.ciel.loin { opacity: 0; }
+body.plongeon .ciel, body.en-jeu .ciel { display: none; }
+.vol-grues { position: absolute; left: 0; top: 0; animation: vol-grues var(--duree) linear both; }
+@keyframes vol-grues {
+  from { transform: translate(var(--x0), var(--y0)) scale(1.08); }
+  to { transform: translate(var(--x1), var(--y1)) scale(.86); }
+}
+.formation { position: absolute; left: 0; top: 0; }
+.grue { position: absolute; width: var(--taille); animation: balance-grue 3.4s ease-in-out infinite alternate; animation-delay: calc(var(--d) * 3); }
+@keyframes balance-grue { from { translate: 0 -3px; } to { translate: 0 4px; } }
+.grue svg { display: block; width: 100%; height: auto; overflow: visible; }
+.ombre-grue { filter: brightness(0) blur(1.8px); opacity: .17; }
+.gr-plume { fill: #f6eedb; stroke: #35251a; stroke-width: .8; stroke-linejoin: round; }
+.gr-loin .gr-plume { fill: #d8ccb3; }
+.gr-noir { fill: #2a211b; stroke: #35251a; stroke-width: .5; stroke-linejoin: round; }
+.gr-trait { fill: none; stroke: #2a211b; stroke-width: 1.1; stroke-linecap: round; }
+.gr-trait-fin { fill: none; stroke: #b3a58b; stroke-width: .6; stroke-linecap: round; }
+.gr-cou { fill: none; stroke: #2a211b; stroke-width: 2.6; stroke-linecap: round; }
+.gr-bec { fill: #b8a46a; stroke: #35251a; stroke-width: .5; stroke-linejoin: round; }
+.gr-joue { fill: none; stroke: #f6eedb; stroke-width: .9; stroke-linecap: round; }
+.gr-calotte { fill: #c23a26; }
+.gr-aile { transform-origin: 37px 19.5px; animation: battre-grue 1.25s ease-in-out infinite alternate; animation-delay: var(--d); }
+.gr-loin { transform-origin: 40px 19.2px; }
+@keyframes battre-grue { from { transform: scaleY(1); } to { transform: scaleY(-.6); } }
+
 /* Petit mot d'accueil : un cartouche de papier, affiché à la première visite */
 .aide {
   position: fixed; left: 50%; bottom: calc(var(--bas) + 10px); transform: translateX(-50%);

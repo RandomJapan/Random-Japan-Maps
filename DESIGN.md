@@ -107,7 +107,8 @@ components:
 The map is an antique relief map of Japan, the kind engraved and hand-tinted for a study wall.
 - **The land.** The islands are a shaded sepia model: pale sand on the coasts, ochre-tan hills, umber mountains and bone-white peaks, under a strong umber hillshade lit from the north-west.
 - **The sea.** It is an aged, slightly faded turquoise. Engraved water-lines hug every coast, and the islands cast a soft shadow onto it, so they stand up from the sheet. Lakes and the big rivers are washed in the same turquoise, edged with a fine water-line.
-- **The living sea.** Seen from afar, the sea moves a little, the way an old map would if it came alive. The water-lines roll slowly in toward the shore as a swell. Now and then a small 3D Edo trading ship (bezaisen) appears far out at sea, sails toward a port of the period and fades before the coast. A whale blows from time to time, and more rarely a sea serpent rises, as on antique charts. The open sea stays sparse, so the map reads first.
+- **The living sea.** Seen from afar, the sea moves a little, the way an old map would if it came alive. The water-lines roll slowly in toward the shore as a swell. Now and then a small 3D Edo trading ship (bezaisen) appears far out at sea, sails toward a port of the period and fades before the coast. A whale blows from time to time, and more rarely a sea serpent rises, as on antique charts. Every 15 minutes a typhoon comes up from the south, turning, raining and flashing, and fades out at sea. The open sea stays sparse, so the map reads first.
+- **Cranes.** Zoomed in, a file of three red-crowned cranes crosses the sky now and then, with their shadows on the relief.
 - **The hidden legends.** Zoom into a region and small ink-and-watercolour vignettes of Japanese legends appear where they happen: the nine-tailed fox on its split stone at Nasu, the kappa of Tōno, the tengu of Kurama, the eight-headed serpent of Izumo. There are twenty-two of them, to be found like easter eggs. A tap tells the legend in a parchment bubble.
 - **The paper.** A grain, faint foxing and burnt edges lie over the whole sheet.
 - **The lettering.** The seas are named in 17th-century italic copperplate. Zoom in and the big regions appear in widely spaced letterpress capitals, then the prefectures in small italics.
@@ -125,7 +126,8 @@ The owner chose this world on 2026-09-30 from three reference images: a parchmen
 - Italic copperplate sea names lying on the water; vertical Japanese names in the Japanese UI
 - A compass rose that turns with the map, and a Japan · 日本 · Japon scroll bottom-left
 - Up close, every place is a small painted low-poly model of its category, standing straight on the relief and ringed with sepia ink like the legend vignettes
-- From afar, a living sea: swell rolling to the shore, a few 3D Edo ships far out at sea, a whale or a sea serpent now and then
+- From afar, a living sea: swell rolling to the shore, a few 3D Edo ships far out at sea, a whale or a sea serpent now and then, a typhoon every 15 minutes
+- Up close, three red-crowned cranes fly across now and then
 - Zoomed in, twenty-two hidden legend vignettes to find, each telling its story in a parchment bubble
 
 ## Colors
@@ -284,12 +286,18 @@ Depth comes from the relief: the exaggerated terrain, the hillshade, and the isl
 - **Where is it?:** a flat engraved locator of all Japan (sea `#9ec5bc`, land `#ece0c2`, sepia prefecture lines), the prefecture in pale red, a red dot with a slow ring; sea names in IM Fell italic. **Nearby:** three small cards (cover, name, category · distance), side by side with the locator on desktop.
 - **List of places:** region headings with the ruled `h2`, prefectures in Zen Antique, places as small cover thumbnails with name and category.
 
+### Cranes (zoomed in)
+- Three red-crowned cranes (tanchō) in file, in ink and watercolour like the legend vignettes: parchment-white body and wings with black inner feathers, black neck, red crown, ochre bill, legs trailing. They are 64px wide (50px on phones), flap slowly (1.25s) out of phase and bob a little.
+- They cross the screen from one side to the other, rising and shrinking slightly as they go away, at 80px/s. Their shadows, blurred and at 17% black, fall one crane-height lower on the relief. They pass above the relief and the 3D models and below the pins.
+- From zoom 8.4 only: the first 6s after zooming in, then every 40 to 75s. Never in a dive or a game.
+
 ### Living sea (far view)
 - **Swell:** the coast water-lines, redrawn by a custom GPU layer (`mer.js`) from a distance-to-coast image. Lines about 9px apart roll in toward the shore at about 2.4px/s, fade in about 32px out and fade away at the coast. They waver slightly, like hand-cut lines, and fade out between zoom 6.5 and 8.5 like the old fixed lines.
 - **Ships:** small low-poly 3D bezaisen, lit like the place models. They are 22px tall at zoom 5 (18px on the phone start view) and grow as you zoom in, more slowly than the map (×1.5 per zoom level, about 41px at zoom 6.5), so they stay in proportion with the pins and the legend vignettes. They fade out between zoom 6.6 and 7.2.
   - At most two sail at once. Each appears far out at sea (at least about 90 km from any coast), grows in, sails straight toward an Edo-period port (or away from one) at a steady speed on the map (3px/s at zoom 5), and fades away before getting within about 60 km of a coast.
   - They rock gently and face their heading in 3D.
 - **Creatures:** a whale (9s scene: back rises, spout, tail, dive) about every 30–55s at real whale-watching spots. A sea serpent (11s scene: two coils and a crested head) about every 80–130s, far out at sea. Each picks a spot that is on screen, clear of the sea names and not hidden behind mountains.
+- **Typhoon:** every 15 minutes (the first a minute after arrival), a spiral of round cloud puffs in parchment white with a sepia outline and pale highlights, around a sea-coloured eye. It turns counter-clockwise, squashed for the pitched map, over grey rain streaks, two yellow lightning bolts with an ink edge, its blurred shadow on the sea and a few wind strokes. It is 210px wide at zoom 5 and grows with the zoom like the ships. Over 26s it grows in far out at sea to the south, travels north about 300 to 440 km while staying at least about 55 km from the coasts, and fades out.
 - **Restraint:** offshore wavelets and coast-hugging ship routes were tried and removed at the owner's request: they made the map harder to read. Do not add more sea ornaments without asking.
 - **Bounds:** everything hides at zoom 7.2 and above, where the place models take over. The clock runs at 15 frames per second and stops when the page is hidden. Under reduced motion nothing moves: the fixed water-lines return, and no ship or creature appears.
 - **Open-sea mask:** everything farther than about 70 km from Japan (or nearer a neighbour) is painted the sea colour. The thousands of tiny foreign islets that Natural Earth misses would otherwise twinkle as sand specks.
