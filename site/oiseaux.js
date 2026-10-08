@@ -1,14 +1,16 @@
 // ================================================================
-//  Les grues du Japon (tanchō) : de temps en temps, quand on regarde la carte de près, un petit vol de
-//  trois grues traverse l'écran, avec son ombre sur le relief. Elles volent dans le ciel de l'écran (pas
-//  attachées à un endroit de la carte) : rien à recalculer à chaque image, seulement des animations CSS.
+//  Les grues du Japon (tanchō) : quand on regarde la carte de près, un petit vol de trois grues passe
+//  de temps en temps, au hasard, au-dessus d'un vrai coin de la carte. Leur ombre est posée sur le relief
+//  et elles volent au-dessus : si on déplace, tourne ou zoome la carte, elles suivent, comme tout le reste.
 //  De loin, pas d'oiseaux. Rien ne vole si l'appareil demande moins d'animations.
 // ================================================================
 
 const ZOOM_OISEAUX = 8.4; // en dessous, on est trop loin pour voir des oiseaux
-const PREMIER_VOL = 6; // secondes après être arrivé assez près
-const ENTRE_VOLS = [40, 75]; // secondes entre deux vols
-const VITESSE = 80; // pixels par seconde
+const PREMIER_VOL = [1.5, 5]; // secondes après être arrivé assez près (au hasard)
+const ENTRE_VOLS = [25, 60]; // secondes entre deux vols (au hasard)
+const VITESSE = 75; // pixels par seconde à l'écran au départ ; ensuite elles volent sur la carte, à vitesse fixe
+const TAILLE = 60; // largeur d'une grue à l'écran au zoom 10 (pixels) ; ×1,4 par cran de zoom
+const TAILLE_LIMITES = [38, 120];
 
 // Une grue en vol, vers la droite : cou noir tendu, calotte rouge, pattes en arrière, ailes blanches aux
 // plumes intérieures noires. Ses ailes battent (.gr-aile).
@@ -25,29 +27,39 @@ const GRUE = `<svg viewBox="0 0 80 40" aria-hidden="true">
   <g class="gr-aile"><path class="gr-plume" d="M30 19.6C31.2 12 33.4 6 30.4 .4 35.6 3 41.4 9.2 43 19.2Z"/><path class="gr-noir" d="M30 19.6C31.2 12 33.4 6 30.4 .4 32 6 33 12.2 34.4 19.4Z"/><path class="gr-trait-fin" d="M33.6 6.4C36.4 9.4 38.4 13 39.6 17.2"/></g>
 </svg>`;
 
-// Les trois grues en file (décalage en unités de la taille d'une grue) et le décalage de leurs battements
-const FILE = [[0, 0, 0], [-1.3, 0.4, -0.45], [-2.65, 0.1, -0.9]];
+// Les trois grues en file : en arrière de la première et sur le côté (en tailles de grue), et le décalage de
+// leurs battements d'ailes
+const FILE = [[0, 0, 0], [-1.25, 0.42, -0.45], [-2.5, 0.08, -0.9]];
 
 let volerMaintenant = null;
 
 /** Fait passer un vol de grues tout de suite (sert aux essais). */
 export function faireVoler() {
-  volerMaintenant?.();
+  return volerMaintenant?.() ?? false;
 }
 
-/** Branche les grues sur la carte : leur ciel se glisse juste au-dessus du papier vieilli, sous les épingles. */
-export function brancherOiseaux(map) {
+/**
+ * Branche les grues sur la carte. Le vol est un repère (reperes.js) qui avance sur la carte à chaque image,
+ * seulement pendant qu'il vole : son point est l'ombre de la grue de tête, posée sur le relief.
+ */
+export function brancherOiseaux(map, maplibregl, reperes) {
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const ciel = document.createElement('div');
-  ciel.className = 'ciel';
-  ciel.setAttribute('aria-hidden', 'true');
-  const papier = document.getElementById('papier');
-  if (papier?.parentNode === map.getCanvasContainer()) papier.after(ciel);
-  else map.getCanvasContainer().append(ciel);
+  const grues = (classe) => FILE.map(([dx, dy, d]) => `<div class="grue ${classe}" style="--dx:${dx};--dy:${dy};--d:${d}s">${GRUE}</div>`).join('');
+  const el = document.createElement('div');
+  el.className = 'vol-grues';
+  el.setAttribute('aria-hidden', 'true');
+  // les ombres sur le relief, puis les grues au-dessus ; chaque groupe tourne vers le cap du vol.
+  // (Le fondu se fait sur un enfant : MapLibre règle lui-même l'opacité de l'élément du repère.)
+  el.innerHTML = `<div class="grues-fondu"><div class="grues-ombres">${grues('ombre-grue')}</div><div class="grues-air"><div class="grues-cap">${grues('')}</div></div></div>`;
+  const fonduEl = el.firstElementChild, ombres = fonduEl.firstElementChild, air = fonduEl.lastElementChild, cap = air.firstElementChild;
+  const marqueur = new maplibregl.Marker({ element: el, anchor: 'center', opacityWhenCovered: '1' }).setLngLat([138, 35]);
+  // juste au-dessus du papier vieilli, sous les épingles
+  reperes.suivre(marqueur, { voulu: false, placer: (n) => n.parentNode.insertBefore(n, n.parentNode.querySelector('#papier')?.nextSibling ?? null) });
 
   let pres = null; // assez zoomé pour voir des oiseaux
   let prochain = Infinity; // heure (secondes) du prochain vol
-  let enVol = null;
+  let vol = null; // le vol en cours : { A, B (coordonnées Mercator), debut, duree (ms) }
+  let dessin = {}; // ce qui est déjà appliqué au repère (pour ne rien toucher qui n'a pas changé)
   const maintenant = () => performance.now() / 1000;
   const entre = ([a, b]) => a + Math.random() * (b - a);
 
@@ -55,45 +67,88 @@ export function brancherOiseaux(map) {
     const p = map.getZoom() >= ZOOM_OISEAUX;
     if (p === pres) return;
     pres = p;
-    ciel.classList.toggle('loin', !p); // de loin, le vol en cours s'efface
-    if (p) prochain = Math.max(prochain === Infinity ? 0 : prochain, maintenant() + PREMIER_VOL);
+    if (p) prochain = Math.max(prochain === Infinity ? 0 : prochain, maintenant() + entre(PREMIER_VOL));
+    else finir(); // de loin, plus d'oiseaux
   }
   map.on('zoom', majZoom);
   majZoom();
 
+  /** Un point de l'écran qui montre bien la carte (pas le ciel au-dessus de l'horizon) : ses coordonnées Mercator. */
+  function surLaCarte(x, y) {
+    const ll = map.unproject([x, y]);
+    const q = map.project(ll);
+    if (Math.hypot(q.x - x, q.y - y) > 4) return null;
+    return maplibregl.MercatorCoordinate.fromLngLat(ll);
+  }
+
+  /** Un vol au hasard : il traverse l'écran d'un bord à l'autre, dans un sens et à une hauteur au hasard. */
   function voler() {
-    const l = ciel.clientWidth, h = ciel.clientHeight;
-    if (!l || !h) return;
-    const taille = l < 600 ? 50 : 64; // largeur d'une grue à l'écran
-    const versDroite = Math.random() < 0.5;
-    // de bas en haut en traversant : elles s'éloignent dans la carte penchée (elles rapetissent un peu)
-    const y0 = h * (0.42 + Math.random() * 0.3), y1 = y0 - h * (0.12 + Math.random() * 0.2);
-    // la grue de tête entre juste au bord, les deux autres suivent ; à la fin, la dernière est sortie
-    const x0 = versDroite ? -taille * 1.2 : l + taille * 1.2, x1 = versDroite ? l + taille * 3.8 : -taille * 3.8;
-    const cap = (Math.atan2(y1 - y0, Math.abs(x1 - x0)) * 180) / Math.PI;
-    const duree = Math.max(9, Math.hypot(x1 - x0, y1 - y0) / VITESSE);
-    const vol = document.createElement('div');
-    vol.className = 'vol-grues';
-    vol.style.cssText = `--x0:${x0}px;--y0:${y0}px;--x1:${x1}px;--y1:${y1}px;--duree:${duree.toFixed(1)}s;--taille:${taille}px`;
-    // l'ombre des grues tombe plus bas, sur le relief
-    const grues = FILE.map(([dx, dy, d]) => `<div class="grue" style="left:${dx * taille}px;top:${dy * taille}px;--d:${d}s">${GRUE}</div>`).join('');
-    const ombres = FILE.map(([dx, dy, d]) => `<div class="grue ombre-grue" style="left:${dx * taille}px;top:${dy * taille + taille}px;--d:${d}s">${GRUE}</div>`).join('');
-    vol.innerHTML = `<div class="formation" style="transform:scale(${versDroite ? 1 : -1},1) rotate(${cap.toFixed(1)}deg)">${ombres}${grues}</div>`;
-    vol.addEventListener('animationend', (e) => {
-      if (e.target !== vol) return;
-      vol.remove();
-      if (enVol === vol) enVol = null;
-    });
-    ciel.append(vol);
-    enVol = vol;
+    if (vol || !pres) return false;
+    const { clientWidth: l, clientHeight: h } = map.getContainer();
+    const taille = tailleGrue();
+    for (let essai = 0; essai < 12; essai++) {
+      const versDroite = Math.random() < 0.5;
+      const marge = taille * 1.5;
+      // la grue de tête entre juste au bord ; à la fin, la dernière est sortie de l'autre côté
+      const xa = versDroite ? -marge : l + marge, xb = versDroite ? l + marge + taille * 2.5 : -marge - taille * 2.5;
+      const A = surLaCarte(xa, h * (0.3 + Math.random() * 0.6));
+      const B = surLaCarte(xb, h * (0.25 + Math.random() * 0.6));
+      if (!A || !B) continue;
+      const pixels = Math.hypot(l + 2 * marge + taille * 2.5, h * 0.3);
+      vol = { A, B, debut: performance.now(), duree: Math.max(9, pixels / VITESSE) * 1000 };
+      dessin = {};
+      reperes.montrer(marqueur, true);
+      el.classList.add('vole');
+      requestAnimationFrame(image);
+      return true;
+    }
+    return false;
   }
   volerMaintenant = voler;
 
-  // Pas besoin d'une horloge à chaque image : on regarde toutes les 2 secondes s'il est l'heure d'un vol
+  function finir() {
+    if (!vol) return;
+    vol = null;
+    el.classList.remove('vole');
+    reperes.montrer(marqueur, false);
+  }
+
+  const tailleGrue = () => Math.round(Math.min(TAILLE_LIMITES[1], Math.max(TAILLE_LIMITES[0], TAILLE * 2 ** ((map.getZoom() - 10) * 0.5))));
+
+  /** À chaque image du vol : la position sur la carte, le cap vu à l'écran, la taille, la hauteur au-dessus de l'ombre. */
+  function image() {
+    if (!vol) return;
+    const p = (performance.now() - vol.debut) / vol.duree;
+    if (p >= 1) return finir();
+    requestAnimationFrame(image);
+    const { A, B } = vol;
+    const x = A.x + (B.x - A.x) * p, y = A.y + (B.y - A.y) * p;
+    const ici = new maplibregl.MercatorCoordinate(x, y).toLngLat();
+    marqueur.setLngLat(ici);
+    reperes.verifier(marqueur);
+    // le cap à l'écran : celui du vol sur la carte, moins l'orientation de la carte, aplati par l'inclinaison
+    // (calculé ainsi, et non avec deux points projetés : le relief sous eux le faisait trembler)
+    const azimut = Math.atan2(B.x - A.x, A.y - B.y) - (map.getBearing() * Math.PI) / 180;
+    const angle = Math.round((Math.atan2(-Math.cos(azimut) * Math.cos((map.getPitch() * Math.PI) / 180), Math.sin(azimut)) * 180) / Math.PI);
+    // dessinées de profil, elles regardent à droite ou à gauche (retournées) et se penchent au plus de 35° :
+    // une grue qui s'éloigne vers le haut de l'écran ne se dresse pas à la verticale
+    const gauche = Math.abs(angle) > 90;
+    const penche = Math.max(-35, Math.min(35, gauche ? (angle > 0 ? angle - 180 : angle + 180) : angle));
+    const tourne = gauche ? `rotate(${penche}deg) scale(-1,1)` : `rotate(${penche}deg)`;
+    const taille = tailleGrue();
+    // vues de côté (carte penchée), elles volent plus haut au-dessus de leur ombre que vues du dessus
+    const hauteur = Math.round(taille * (0.45 + 0.9 * Math.sin((map.getPitch() * Math.PI) / 180)));
+    const fondu = Math.min(1, p / 0.06, (1 - p) / 0.06).toFixed(2);
+    if (tourne !== dessin.tourne) { ombres.style.transform = cap.style.transform = tourne; dessin.tourne = tourne; }
+    if (taille !== dessin.taille) { el.style.setProperty('--taille', `${taille}px`); dessin.taille = taille; }
+    if (hauteur !== dessin.hauteur) { air.style.transform = `translateY(${-hauteur}px)`; dessin.hauteur = hauteur; }
+    if (fondu !== dessin.fondu) { fonduEl.style.opacity = fondu; dessin.fondu = fondu; }
+  }
+
+  // On regarde chaque seconde s'il est l'heure d'un vol (pas d'horloge à chaque image en dehors des vols)
   setInterval(() => {
-    if (!pres || enVol || document.hidden || maintenant() < prochain) return;
+    if (!pres || vol || document.hidden || maintenant() < prochain) return;
     if (document.body.classList.contains('plongeon') || document.body.classList.contains('en-jeu')) return;
-    voler();
-    prochain = maintenant() + entre(ENTRE_VOLS);
-  }, 2000);
+    prochain = maintenant() + (voler() ? entre(ENTRE_VOLS) : 3);
+  }, 1000);
 }

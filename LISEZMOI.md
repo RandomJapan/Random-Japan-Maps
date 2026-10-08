@@ -83,7 +83,7 @@ Tout disparaît quand on zoome sur un lieu. Si le téléphone est réglé pour r
 
 ## Les grues
 
-Quand on zoome sur la carte, **trois grues du Japon** (blanches, à tête rouge) passent de temps en temps dans le ciel, avec leur ombre sur le relief. Le premier vol arrive quelques secondes après avoir zoomé, puis un autre toutes les 40 à 75 secondes environ. Il n'y en a pas pendant un plongeon ni pendant le jeu.
+Quand on zoome sur la carte, **trois grues du Japon** (blanches, à tête rouge) passent de temps en temps au-dessus d'un coin de la carte, dans une direction au hasard, avec leur ombre sur le relief. Si on déplace, tourne ou zoome la carte pendant leur vol, elles suivent la carte. Le premier vol arrive quelques secondes après avoir zoomé, puis un autre toutes les 25 à 60 secondes environ. Il n'y en a pas pendant un plongeon ni pendant le jeu.
 
 **Tu n'as rien à faire pour ça.** C'est dans le fichier `site/mer.js`. Le bateau est aussi dans la page `…/modeles.html`.
 

@@ -288,8 +288,8 @@ Depth comes from the relief: the exaggerated terrain, the hillshade, and the isl
 
 ### Cranes (zoomed in)
 - Three red-crowned cranes (tanchō) in file, in ink and watercolour like the legend vignettes: parchment-white body and wings with black inner feathers, black neck, red crown, ochre bill, legs trailing. They are 64px wide (50px on phones), flap slowly (1.25s) out of phase and bob a little.
-- They cross the screen from one side to the other, rising and shrinking slightly as they go away, at 80px/s. Their shadows, blurred and at 17% black, fall one crane-height lower on the relief. They pass above the relief and the 3D models and below the pins.
-- From zoom 8.4 only: the first 6s after zooming in, then every 40 to 75s. Never in a dive or a game.
+- They fly over a real stretch of the map, from one edge of the screen to the other, in a random direction and at a random height, about 75px/s. Their blurred shadows, at 17% black, lie on the relief below them, and the cranes fly higher above their shadow when the map is pitched. Moving, rotating or zooming the map carries them along. They face left or right and lean at most 35°. They pass above the relief and the 3D models and below the pins.
+- From zoom 8.4 only: the first a few seconds (1.5 to 5s) after zooming in, then every 25 to 60s. Never in a dive or a game.
 
 ### Living sea (far view)
 - **Swell:** the coast water-lines, redrawn by a custom GPU layer (`mer.js`) from a distance-to-coast image. Lines about 9px apart roll in toward the shore at about 2.4px/s, fade in about 32px out and fade away at the coast. They waver slightly, like hand-cut lines, and fade out between zoom 6.5 and 8.5 like the old fixed lines.

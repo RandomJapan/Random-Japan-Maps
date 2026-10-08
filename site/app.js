@@ -543,8 +543,8 @@ const nomsRegions = brancherNomsRegions(map, maplibregl, { enLangue, reperes });
 // La mer vivante : houle, vagues, bateaux d'époque, baleine et serpent de mer (vus de loin)
 animerMer(map, maplibregl, { mers: MERS.map((m) => m.ou), reperes });
 
-// Les grues du Japon : de près, un vol de trois grues traverse l'écran de temps en temps
-brancherOiseaux(map);
+// Les grues du Japon : de près, un vol de trois grues passe de temps en temps au-dessus de la carte
+brancherOiseaux(map, maplibregl, reperes);
 
 // Petits modèles 3D des lieux (un par icône de catégorie), visibles quand on zoome
 const modeles3d = brancherModeles(map, maplibregl, () => lieux);
