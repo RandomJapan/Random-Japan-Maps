@@ -112,6 +112,89 @@ body:not(.mode-dev) .dev { display: none !important; }
 .langues button:hover { color: var(--encre); background: var(--papier-fonce); }
 .langues button[aria-pressed="true"] { background: var(--rouge); color: var(--papier-clair); }
 
+/* ---------- Musique (musique.js) : le bouton juste sous la langue, son panneau en dessous ---------- */
+.musique {
+  position: fixed; top: calc(var(--haut) + 48px); right: 12px; z-index: 5;
+  display: flex; flex-direction: column; align-items: flex-end;
+}
+.musique:has(> .menu:not([hidden])) { z-index: 9; }
+.btn-musique {
+  width: 42px; height: 42px; padding: 0; display: grid; place-items: center; color: var(--encre);
+  transition: background .2s, color .2s;
+}
+.btn-musique:hover { background-color: var(--papier-fonce); }
+.btn-musique[aria-expanded="true"] { border-color: var(--encre-2); background-color: var(--papier-fonce); }
+.btn-musique .note { width: 20px; height: 20px; }
+/* En lecture : rouge, et trois petites barres qui dansent à la place de la note */
+.btn-musique.joue, .btn-musique.joue:hover { background: var(--rouge); border-color: var(--rouge-survol); color: var(--papier-clair); }
+.btn-musique .egaliseur { display: none; height: 16px; align-items: flex-end; gap: 3px; }
+.btn-musique.joue .note { display: none; }
+.btn-musique.joue .egaliseur { display: flex; }
+.egaliseur i {
+  width: 3px; height: 16px; border-radius: 1px; background: currentColor; transform-origin: bottom;
+  animation: egaliseur 1.1s ease-in-out infinite alternate; will-change: transform;
+}
+.egaliseur i:nth-child(2) { animation-duration: .8s; animation-delay: -.4s; }
+.egaliseur i:nth-child(3) { animation-duration: 1.3s; animation-delay: -.9s; }
+@keyframes egaliseur { from { transform: scaleY(.3); } to { transform: scaleY(1); } }
+/* Une vidéo TikTok parle : la musique attend, les barres s'arrêtent */
+.btn-musique.attente .egaliseur i { animation-play-state: paused; }
+.musique > .menu { width: min(330px, calc(100vw - 24px)); }
+.musique-etiquette { margin: 0 2px 6px; font-size: 13px; color: var(--encre-2); }
+.onglets.musique-onglets { margin-bottom: 12px; }
+.onglets.musique-onglets button { padding: 8px 6px; font-size: 13.5px; }
+/* (deux classes : le choix reste rouge sous le doigt, malgré le survol des .onglets plus bas) */
+.onglets.musique-onglets button[aria-pressed="true"] { background: var(--rouge); color: var(--papier-clair); }
+.onglets.musique-onglets button:disabled { opacity: .4; cursor: default; background: transparent; color: var(--encre-2); }
+.musique-lecteur { margin-top: 2px; padding-top: 12px; border-top: 1px solid rgba(138, 107, 69, 0.4); }
+.musique-morceau { min-height: 44px; margin: 0 2px 10px; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
+.musique-titre {
+  font-family: var(--police-titre); font-size: 17px; line-height: 1.3; color: var(--encre);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+a.musique-titre { text-decoration: none; }
+a.musique-titre:hover { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+.musique-titre.musique-coupee, .musique-titre.musique-erreur { font-family: var(--police); font-size: 14px; white-space: normal; color: var(--encre-2); }
+.musique-titre.musique-erreur { color: var(--rouge); font-weight: 600; }
+.musique-auteur { font-size: 12.5px; color: var(--encre-3); }
+.musique-commandes { display: flex; align-items: center; gap: 8px; }
+.musique-commandes button { flex: none; display: grid; place-items: center; padding: 0; border-radius: 50%; transition: background .15s; }
+.musique-commandes button:disabled { opacity: .45; cursor: default; }
+.musique-jouer { width: 48px; height: 48px; border: 0; background: var(--rouge); color: var(--papier-clair); box-shadow: 0 3px 10px rgba(52, 36, 18, 0.3); }
+.musique-jouer:not(:disabled):hover { background: var(--rouge-survol); }
+.musique-jouer svg { width: 24px; height: 24px; }
+.musique-suivant { width: 40px; height: 40px; border: 1px solid var(--trait); background: var(--papier-clair); color: var(--encre); }
+.musique-suivant:not(:disabled):hover, .musique-muet:hover { background: var(--papier-fonce); }
+.musique-suivant svg { width: 18px; height: 18px; }
+.musique-volume { flex: 1; min-width: 0; display: flex; align-items: center; gap: 4px; margin-left: 4px; }
+.musique-muet { width: 34px; height: 34px; border: 0; background: transparent; color: var(--encre-2); }
+.musique-muet svg { width: 20px; height: 20px; }
+/* Le curseur du volume : un filet d'encre, rouge jusqu'au volume choisi, et un bouton rond rouge */
+.musique-volume input {
+  flex: 1; min-width: 0; height: 28px; margin: 0; background: transparent; cursor: pointer;
+  appearance: none; -webkit-appearance: none;
+}
+.musique-volume input::-webkit-slider-runnable-track {
+  height: 4px; border-radius: 2px; background: linear-gradient(to right, var(--rouge) var(--rempli, 70%), rgba(138, 107, 69, 0.45) 0);
+}
+.musique-volume input::-moz-range-track { height: 4px; border-radius: 2px; background: rgba(138, 107, 69, 0.45); }
+.musique-volume input::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--rouge); }
+.musique-volume input::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 16px; height: 16px; margin-top: -6px; border-radius: 50%;
+  background: var(--rouge); border: 2px solid var(--papier-clair); box-shadow: 0 0 0 1px var(--rouge-survol);
+}
+.musique-volume input::-moz-range-thumb {
+  width: 12px; height: 12px; border-radius: 50%; background: var(--rouge); border: 2px solid var(--papier-clair); box-shadow: 0 0 0 1px var(--rouge-survol);
+}
+.musique-volume input:focus-visible { outline: 2px solid var(--sarcelle); outline-offset: 2px; }
+.musique-credit { margin: 12px 2px 0; font-size: 11.5px; line-height: 1.5; color: var(--encre-3); }
+.musique-credit a { color: var(--sarcelle); text-underline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .egaliseur i { animation: none; }
+  .egaliseur i:nth-child(1) { transform: scaleY(.6); }
+  .egaliseur i:nth-child(3) { transform: scaleY(.45); }
+}
+
 /* ---------- Boutons Catégories / Au hasard ---------- */
 .filtres { position: fixed; top: calc(var(--haut) + 64px); left: 12px; z-index: 6; max-width: calc(100vw - 24px); }
 .filtres > .menu { width: min(340px, calc(100vw - 24px)); }
@@ -126,7 +209,8 @@ body:not(.mode-dev) .dev { display: none !important; }
 .compteur { background: var(--papier-fonce); color: var(--encre-2); padding: 1px 7px; border-radius: 2px; font-size: 12px; font-variant-numeric: tabular-nums; }
 /* Un menu ouvert passe devant la fiche (sur téléphone, elle occupe le bas de l'écran) */
 .filtres:has(> .menu:not([hidden])) { z-index: 9; }
-.filtres-boutons { display: flex; align-items: center; gap: 8px; }
+/* la rangée laisse à droite la colonne du bouton de musique (sous la langue) : sinon elle passe à la ligne */
+.filtres-boutons { display: flex; align-items: center; gap: 8px; max-width: calc(100vw - 24px - 54px); }
 .bouton-hasard .de { color: var(--rouge); }
 .bouton-hasard[aria-expanded="true"], .bouton-categories[aria-expanded="true"] { border-color: var(--encre-2); background-color: var(--papier-fonce); }
 
@@ -857,7 +941,7 @@ body.en-visite .maplibregl-ctrl-bottom-left { left: 8px; }
 /* Pendant la visite, toucher l'écran fait juste revenir la barre : les repères et les légendes ne s'ouvrent pas */
 body.en-visite .repere, body.en-visite .legende { pointer-events: none; }
 /* Mode film : la carte, le nom du lieu et les sources ; la barre revient quand on bouge la souris ou touche l'écran */
-body.mode-film .entete, body.mode-film .filtres, body.mode-film .langues, body.mode-film .controles,
+body.mode-film .entete, body.mode-film .filtres, body.mode-film .langues, body.mode-film .musique, body.mode-film .controles,
 body.mode-film .aide, body.mode-film .toast, body.mode-film .repere-nom { display: none !important; }
 body.mode-film .visite-titre { bottom: calc(var(--bas) + 40px); }
 body.mode-film .visite-barre { top: calc(var(--haut) + 6px); bottom: auto; }
@@ -1001,7 +1085,7 @@ body.en-jeu .filtres, body.en-jeu .bandeau, body.en-jeu .aide { display: none; }
 /* ---------- Téléphone ---------- */
 @media (max-width: 720px) {
   /* Jeu : la carte du jeu en haut (elle cache l'en-tête), le grand bouton en bas, sous le pouce */
-  body.en-jeu .entete, body.en-jeu .langues { visibility: hidden; }
+  body.en-jeu .entete, body.en-jeu .langues, body.en-jeu .musique { visibility: hidden; }
   .jeu { top: var(--haut); right: 12px; width: auto; max-height: 52dvh; padding: 10px 12px 12px; gap: 8px; }
   .jeu-image { height: 24dvh; }
   .jeu.image-grande .jeu-image { height: 44dvh; }
@@ -1021,6 +1105,7 @@ body.en-jeu .filtres, body.en-jeu .bandeau, body.en-jeu .aide { display: none; }
   .langues { padding: 2px; }
   .langues button { padding: 7px 8px; font-size: 12px; }
   .filtres { top: calc(var(--haut) + 48px); }
+  .musique { top: calc(var(--haut) + 44px); }
   .bouton-categories { padding: 7px 11px; font-size: 13.5px; gap: 7px; }
   .bouton-categories > svg { width: 16px; height: 16px; }
   /* Visite et Favoris : juste l'icône (et le nombre), pour garder la rangée de boutons courte */
@@ -1046,7 +1131,7 @@ body.en-jeu .filtres, body.en-jeu .bandeau, body.en-jeu .aide { display: none; }
   .visite-video, body.mode-film .visite-video { right: auto; }
   .visite-video.visible { transform: translate(-50%, 0); }
   .visite-video-ecran { height: min(54dvh, 112vw); }
-  body.video-visible .entete, body.video-visible .filtres, body.video-visible .langues { visibility: hidden; }
+  body.video-visible .entete, body.video-visible .filtres, body.video-visible .langues, body.video-visible .musique { visibility: hidden; }
   .aide { bottom: calc(var(--bas) + 64px); }
   .controles { bottom: calc(var(--bas) + 16px); }
   .btn-rose { width: 50px; height: 50px; }

@@ -198,6 +198,7 @@ The palette is a hand-tinted engraving: one watercolour wash for the sea, sepia 
 The map fills the screen; the interface floats in the corners with a 12px gutter (plus safe areas).
 - **Header.** Top left (logo, name, and a subtitle on desktop only), with the language switch top right. On desktop, the visit counter sits at its right end, behind a 1px ink rule: the number in Zen Antique 19px (tabular figures) over "visits" in 12px soft sepia. On phones it is one line: 30px logo, 15px title, and no counter.
 - **Filters.** The Categories, Random and Tour buttons (then Favorites and Legends once they have something) sit under the header, and their 340px panels drop below them. On phones, Tour and Favorites are icon-only.
+- **Music.** A 42px square button right under the language switch (a sepia note; cartographer's red with three dancing bars while playing). Its 330px panel drops below it on the right.
 - **Right column.** From top to bottom: the compass rose (58px, 50px on phone), then Reset view, then zoom + and − on desktop only.
 - **Bottom left.** The title scroll (240 × 72px, scaled to 0.76 on phone). The attribution sits to its right and wraps onto two lines on phone rather than running under the Reset button.
 - **Place card.** A 400px side sheet on desktop. At ≤720px it becomes a bottom sheet: 64dvh by default, dragged up to nearly full height.
@@ -256,6 +257,13 @@ Depth comes from the relief: the exaggerated terrain, the hillshade, and the isl
 - **Heart:** a 36px icon button on the card photo, left of share. Outlined in sepia; filled cartographer's red once chosen, with a small beat.
 - **Panel:** from 2 favorites, a "Route on the map" box first (car / bike / on foot as a segmented control like the language switch, the red "Draw the route" button, then the total in Zen Antique 22px). Then numbered rows in travel order (Zen Antique numerals, crest, name, category · prefecture, a remove ×), with each leg between two rows on a red dotted rule (mode icon, time · distance · main roads, ferry time in teal). Then "Reverse the order", parchment secondary buttons for Google Maps and the guided tour.
 - **Route on the map:** a cartographer's red line (3–6.5px with zoom) on a pale parchment casing, following the roads; ferries and off-road ends are dotted. Each leg's time sits at its halfway point on a small parchment label with a red rule (labels that would overlap hide). Each stop's crest carries its number in a small red disc instead of the heart; the other crests fade to half. When the panel is closed, a parchment chip next to the Favorites button gives the total, with × to clear.
+
+### Music player
+- **Panel:** the Zen Antique title "Music of Japan", then two segmented controls like the language switch: style (Traditional · Japanese pop · Café) and mood (Calm · Cheerful · Energetic). The chosen one is cartographer's red; a mood without tracks in that style is greyed.
+- **Now playing:** the title in Zen Antique 17px on one line (a link to its page at the composer's), with the composer and singer in small soft sepia below. Before the first play: "The music is off. Press play."
+- **Controls:** a 48px red round play/pause, a 40px parchment round next button, then a speaker icon (taps mute) and a slim ink slider, red up to the volume, with a red round thumb.
+- **Credits:** a small line at the bottom, "Music: 魔王魂 · PeriTune · CC BY 4.0 licence", links in teal.
+- **Sound:** off on arrival; tracks fade in and out, and pause while a TikTok video plays with sound.
 
 ### Guided tour
 - **Lower third:** a parchment plate with the double rule, bottom centre: the Japanese name in a small vertical cartouche, the name in Zen Antique 28px (22px on phone), category · prefecture in IM Fell italic. It fades and rises in 0.6s.

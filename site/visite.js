@@ -59,6 +59,7 @@ const ICONES = {
  */
 export function brancherVisite(map, outils) {
   const { t, enLangue, infos, video, debut, affiche, estTelephone, vueDepart, adresse, exageration, preparerVol, avant, apres } = outils;
+  const sonVideo = outils.sonVideo ?? (() => {}); // les vidéos ont le son : la musique du site se tait (musique.js)
   const calme = matchMedia('(prefers-reduced-motion: reduce)').matches;
   // etat : { liste, i, duree, film, avecVideo, son, pause, jeton, minuterie, attente, finSejour, reste,
   //          plongeon (un seul lieu, en plongeant depuis tout le Japon ou depuis un autre point), reglages,
@@ -154,6 +155,7 @@ export function brancherVisite(map, outils) {
       document.head.insertAdjacentHTML('beforeend', '<link rel="preconnect" href="https://www.tiktok.com">');
     }
     avant();
+    sonVideo(avecVideo && son);
     document.body.classList.add('en-visite');
     document.body.classList.toggle('mode-film', film);
     document.body.classList.toggle('visite-avec-video', avecVideo); // sur téléphone, l'adresse passe sous la vidéo
@@ -637,6 +639,7 @@ export function brancherVisite(map, outils) {
     map.setTransformCameraUpdate(null); // la hauteur du plongeon
     cacherTitre();
     document.body.classList.remove('en-visite', 'mode-film', 'visite-calme', 'plongeon', 'visite-avec-video');
+    sonVideo(false);
     verrou?.release().catch(() => {});
     verrou = null;
     if (rendre) {

@@ -1,0 +1,442 @@
+{
+ "licence": "https://creativecommons.org/licenses/by/4.0/",
+ "auteurs": {
+  "maou": {
+   "nom": "魔王魂",
+   "site": "https://maou.audio/",
+   "licence": "CC BY 4.0"
+  },
+  "peritune": {
+   "nom": "PeriTune",
+   "site": "https://peritune.com/",
+   "licence": "CC BY 4.0"
+  }
+ },
+ "morceaux": [
+  {
+   "id": "peritune-oboro",
+   "style": "trad",
+   "ambiance": "calme",
+   "titre": "Oboro",
+   "auteur": "peritune",
+   "page": "https://peritune.com/blog/2019/04/08/oboro/",
+   "fichier": "musique/peritune-oboro.m4a",
+   "duree": 287
+  },
+  {
+   "id": "peritune-minamo",
+   "style": "trad",
+   "ambiance": "calme",
+   "titre": "Minamo",
+   "auteur": "peritune",
+   "page": "https://peritune.com/blog/2016/06/12/minamo/",
+   "fichier": "musique/peritune-minamo.m4a",
+   "duree": 194
+  },
+  {
+   "id": "peritune-shizima2",
+   "style": "trad",
+   "ambiance": "calme",
+   "titre": "Shizima2",
+   "auteur": "peritune",
+   "page": "https://peritune.com/blog/2017/09/08/shizima2/",
+   "fichier": "musique/peritune-shizima2.m4a",
+   "duree": 99
+  },
+  {
+   "id": "peritune-hanagoyomi",
+   "style": "trad",
+   "ambiance": "calme",
+   "titre": "Hanagoyomi",
+   "auteur": "peritune",
+   "page": "https://peritune.com/blog/2017/10/08/hanagoyomi/",
+   "fichier": "musique/peritune-hanagoyomi.m4a",
+   "duree": 95
+  },
+  {
+   "id": "maou-bgm-ethnic32",
+   "style": "trad",
+   "ambiance": "calme",
+   "titre": "民族32「初詣」",
+   "auteur": "maou",
+   "page": "https://maou.audio/bgm_ethnic32/",
+   "fichier": "musique/maou-bgm-ethnic32.m4a",
+   "duree": 77
+  },
+  {
+   "id": "peritune-ohayashi",
+   "style": "trad",
+   "ambiance": "enjouee",
+   "titre": "Ohayashi",
+   "auteur": "peritune",
+   "page": "https://peritune.com/blog/2019/01/12/ohayashi/",
+   "fichier": "musique/peritune-ohayashi.m4a",
+   "duree": 70
+  },
+  {
+   "id": "peritune-michikusa",
+   "style": "trad",
+   "ambiance": "enjouee",
+   "titre": "Michikusa",
+   "auteur": "peritune",
+   "page": "https://peritune.com/blog/2015/11/23/michikusa/",
+   "fichier": "musique/peritune-michikusa.m4a",
+   "duree": 130
+  },
+  {
+   "id": "peritune-otogi4",
+   "style": "trad",
+   "ambiance": "enjouee",
+   "titre": "Otogi4",
+   "auteur": "peritune",
+   "page": "https://peritune.com/blog/2020/04/01/otogi4/",
+   "fichier": "musique/peritune-otogi4.m4a",
+   "duree": 237
+  },
+  {
+   "id": "peritune-awayuki",
+   "style": "trad",
+   "ambiance": "enjouee",
+   "titre": "Awayuki",
+   "auteur": "peritune",
+   "page": "https://peritune.com/blog/2023/01/07/awayuki/",
+   "fichier": "musique/peritune-awayuki.m4a",
+   "duree": 143
+  },
+  {
+   "id": "maou-bgm-ethnic09",
+   "style": "trad",
+   "ambiance": "enjouee",
+   "titre": "民族09「揺れる提灯」",
+   "auteur": "maou",
+   "page": "https://maou.audio/bgm_ethnic09/",
+   "fichier": "musique/maou-bgm-ethnic09.m4a",
+   "duree": 47
+  },
+  {
+   "id": "maou-bgm-ethnic27",
+   "style": "trad",
+   "ambiance": "enjouee",
+   "titre": "民族27「和の輪」",
+   "auteur": "maou",
+   "page": "https://maou.audio/bgm_ethnic27/",
+   "fichier": "musique/maou-bgm-ethnic27.m4a",
+   "duree": 55
+  },
+  {
+   "id": "peritune-amenoshita2",
+   "style": "trad",
+   "ambiance": "energique",
+   "titre": "Amenoshita2",
+   "auteur": "peritune",
+   "page": "https://peritune.com/blog/2016/10/13/amenoshita2/",
+   "fichier": "musique/peritune-amenoshita2.m4a",
+   "duree": 202
+  },
+  {
+   "id": "peritune-amenoshita3",
+   "style": "trad",
+   "ambiance": "energique",
+   "titre": "Amenoshita3",
+   "auteur": "peritune",
+   "page": "https://peritune.com/blog/2020/08/13/amenoshita3/",
+   "fichier": "musique/peritune-amenoshita3.m4a",
+   "duree": 246
+  },
+  {
+   "id": "peritune-ametsuchi",
+   "style": "trad",
+   "ambiance": "energique",
+   "titre": "Ametsuchi",
+   "auteur": "peritune",
+   "page": "https://peritune.com/blog/2018/10/01/ametsuchi/",
+   "fichier": "musique/peritune-ametsuchi.m4a",
+   "duree": 150
+  },
+  {
+   "id": "peritune-kengeki",
+   "style": "trad",
+   "ambiance": "energique",
+   "titre": "Kengeki",
+   "auteur": "peritune",
+   "page": "https://peritune.com/blog/2021/08/17/kengeki/",
+   "fichier": "musique/peritune-kengeki.m4a",
+   "duree": 201
+  },
+  {
+   "id": "maou-bgm-ethnic33",
+   "style": "trad",
+   "ambiance": "energique",
+   "titre": "民族33「和bravery heart」",
+   "auteur": "maou",
+   "page": "https://maou.audio/bgm_ethnic33/",
+   "fichier": "musique/maou-bgm-ethnic33.m4a",
+   "duree": 183
+  },
+  {
+   "id": "maou-07-sakurabiyori",
+   "style": "pop",
+   "ambiance": "calme",
+   "titre": "桜日和",
+   "auteur": "maou",
+   "voix": "狛茉璃奈",
+   "page": "https://maou.audio/07_sakurabiyori/",
+   "fichier": "musique/maou-07-sakurabiyori.m4a",
+   "duree": 386
+  },
+  {
+   "id": "maou-03-luna-jp",
+   "style": "pop",
+   "ambiance": "calme",
+   "titre": "Luna(日本語ver.)",
+   "auteur": "maou",
+   "voix": "Mary",
+   "page": "https://maou.audio/03_luna_jp/",
+   "fichier": "musique/maou-03-luna-jp.m4a",
+   "duree": 281
+  },
+  {
+   "id": "maou-36-tsukinokawa",
+   "style": "pop",
+   "ambiance": "calme",
+   "titre": "月の河",
+   "auteur": "maou",
+   "voix": "森田交一",
+   "page": "https://maou.audio/36_tsukinokawa/",
+   "fichier": "musique/maou-36-tsukinokawa.m4a",
+   "duree": 352
+  },
+  {
+   "id": "maou-20-ahurera",
+   "style": "pop",
+   "ambiance": "calme",
+   "titre": "アフレラ",
+   "auteur": "maou",
+   "voix": "森田交一",
+   "page": "https://maou.audio/20_ahurera/",
+   "fichier": "musique/maou-20-ahurera.m4a",
+   "duree": 315
+  },
+  {
+   "id": "maou-10-where-you-are",
+   "style": "pop",
+   "ambiance": "calme",
+   "titre": "where you are",
+   "auteur": "maou",
+   "voix": "KEI",
+   "page": "https://maou.audio/10_where_you_are/",
+   "fichier": "musique/maou-10-where-you-are.m4a",
+   "duree": 481
+  },
+  {
+   "id": "maou-05-halzion",
+   "style": "pop",
+   "ambiance": "enjouee",
+   "titre": "ハルジオン",
+   "auteur": "maou",
+   "voix": "KEI",
+   "page": "https://maou.audio/05_halzion/",
+   "fichier": "musique/maou-05-halzion.m4a",
+   "duree": 300
+  },
+  {
+   "id": "maou-39-soleil",
+   "style": "pop",
+   "ambiance": "enjouee",
+   "titre": "SOLEIL",
+   "auteur": "maou",
+   "voix": "KEI",
+   "page": "https://maou.audio/39_soleil/",
+   "fichier": "musique/maou-39-soleil.m4a",
+   "duree": 240
+  },
+  {
+   "id": "maou-37-taiyo-to-spangle",
+   "style": "pop",
+   "ambiance": "enjouee",
+   "titre": "太陽とスパンコール",
+   "auteur": "maou",
+   "voix": "森田交一",
+   "page": "https://maou.audio/37_taiyo_to_spangle/",
+   "fichier": "musique/maou-37-taiyo-to-spangle.m4a",
+   "duree": 357
+  },
+  {
+   "id": "maou-28-karenai-hana",
+   "style": "pop",
+   "ambiance": "enjouee",
+   "titre": "枯れない花",
+   "auteur": "maou",
+   "voix": "芹澤ミナミ",
+   "page": "https://maou.audio/28_karenai_hana/",
+   "fichier": "musique/maou-28-karenai-hana.m4a",
+   "duree": 213
+  },
+  {
+   "id": "maou-30-feels-happiness",
+   "style": "pop",
+   "ambiance": "enjouee",
+   "titre": "Feels happiness",
+   "auteur": "maou",
+   "voix": "火ノ岡レイ",
+   "page": "https://maou.audio/30_feels_happiness/",
+   "fichier": "musique/maou-30-feels-happiness.m4a",
+   "duree": 358
+  },
+  {
+   "id": "maou-04-tsuki-to-okami",
+   "style": "pop",
+   "ambiance": "energique",
+   "titre": "月と狼",
+   "auteur": "maou",
+   "voix": "KEI",
+   "page": "https://maou.audio/04_tsuki_to_okami/",
+   "fichier": "musique/maou-04-tsuki-to-okami.m4a",
+   "duree": 265
+  },
+  {
+   "id": "maou-11-soreha-shinkiro-datta",
+   "style": "pop",
+   "ambiance": "energique",
+   "titre": "それは蜃気楼だった",
+   "auteur": "maou",
+   "voix": "Rosukey",
+   "page": "https://maou.audio/11_soreha_shinkiro_datta/",
+   "fichier": "musique/maou-11-soreha-shinkiro-datta.m4a",
+   "duree": 301
+  },
+  {
+   "id": "maou-19-12345",
+   "style": "pop",
+   "ambiance": "energique",
+   "titre": "12345",
+   "auteur": "maou",
+   "voix": "Mary",
+   "page": "https://maou.audio/19_12345/",
+   "fichier": "musique/maou-19-12345.m4a",
+   "duree": 240
+  },
+  {
+   "id": "maou-01-crying-again",
+   "style": "pop",
+   "ambiance": "energique",
+   "titre": "crying again",
+   "auteur": "maou",
+   "voix": "桑原佑介",
+   "page": "https://maou.audio/01_crying_again/",
+   "fichier": "musique/maou-01-crying-again.m4a",
+   "duree": 323
+  },
+  {
+   "id": "maou-44-hikari-trigger",
+   "style": "pop",
+   "ambiance": "energique",
+   "titre": "ヒカリトリガー",
+   "auteur": "maou",
+   "voix": "火ノ岡レイ",
+   "page": "https://maou.audio/44_hikari_trigger/",
+   "fichier": "musique/maou-44-hikari-trigger.m4a",
+   "duree": 272
+  },
+  {
+   "id": "maou-bgm-acoustic42",
+   "style": "cafe",
+   "ambiance": "calme",
+   "titre": "アコースティック42「少女のロマンス」",
+   "auteur": "maou",
+   "page": "https://maou.audio/bgm_acoustic42/",
+   "fichier": "musique/maou-bgm-acoustic42.m4a",
+   "duree": 154
+  },
+  {
+   "id": "maou-bgm-acoustic06",
+   "style": "cafe",
+   "ambiance": "calme",
+   "titre": "アコースティック06「Satie」",
+   "auteur": "maou",
+   "page": "https://maou.audio/bgm_acoustic06/",
+   "fichier": "musique/maou-bgm-acoustic06.m4a",
+   "duree": 44
+  },
+  {
+   "id": "maou-bgm-acoustic04",
+   "style": "cafe",
+   "ambiance": "calme",
+   "titre": "アコースティック04",
+   "auteur": "maou",
+   "page": "https://maou.audio/bgm_acoustic04/",
+   "fichier": "musique/maou-bgm-acoustic04.m4a",
+   "duree": 60
+  },
+  {
+   "id": "maou-bgm-acoustic16",
+   "style": "cafe",
+   "ambiance": "calme",
+   "titre": "アコースティック16",
+   "auteur": "maou",
+   "page": "https://maou.audio/bgm_acoustic16/",
+   "fichier": "musique/maou-bgm-acoustic16.m4a",
+   "duree": 139
+  },
+  {
+   "id": "maou-bgm-acoustic29",
+   "style": "cafe",
+   "ambiance": "calme",
+   "titre": "アコースティック29",
+   "auteur": "maou",
+   "page": "https://maou.audio/bgm_acoustic29/",
+   "fichier": "musique/maou-bgm-acoustic29.m4a",
+   "duree": 176
+  },
+  {
+   "id": "maou-bgm-acoustic01",
+   "style": "cafe",
+   "ambiance": "enjouee",
+   "titre": "アコースティック01",
+   "auteur": "maou",
+   "page": "https://maou.audio/bgm_acoustic01/",
+   "fichier": "musique/maou-bgm-acoustic01.m4a",
+   "duree": 115
+  },
+  {
+   "id": "maou-bgm-acoustic26",
+   "style": "cafe",
+   "ambiance": "enjouee",
+   "titre": "アコースティック26「海辺のラジオ」",
+   "auteur": "maou",
+   "page": "https://maou.audio/bgm_acoustic26/",
+   "fichier": "musique/maou-bgm-acoustic26.m4a",
+   "duree": 88
+  },
+  {
+   "id": "maou-bgm-acoustic38",
+   "style": "cafe",
+   "ambiance": "enjouee",
+   "titre": "アコースティック38「Avenue Cafe」",
+   "auteur": "maou",
+   "page": "https://maou.audio/bgm_acoustic38/",
+   "fichier": "musique/maou-bgm-acoustic38.m4a",
+   "duree": 118
+  },
+  {
+   "id": "maou-bgm-acoustic50",
+   "style": "cafe",
+   "ambiance": "enjouee",
+   "titre": "アコースティック50「至福の隙間」",
+   "auteur": "maou",
+   "page": "https://maou.audio/bgm_acoustic50/",
+   "fichier": "musique/maou-bgm-acoustic50.m4a",
+   "duree": 139
+  },
+  {
+   "id": "maou-bgm-acoustic41",
+   "style": "cafe",
+   "ambiance": "enjouee",
+   "titre": "アコースティック41「昼下がりのカフェ」",
+   "auteur": "maou",
+   "page": "https://maou.audio/bgm_acoustic41/",
+   "fichier": "musique/maou-bgm-acoustic41.m4a",
+   "duree": 146
+  }
+ ]
+}

@@ -122,6 +122,19 @@ Les lieux de tes vidéos des 7 derniers jours portent une étiquette **« Nouvea
 - **Tu n'as rien à faire :** la date est cachée dans le lien de chaque vidéo TikTok.
 - Pour changer la durée (par exemple 14 jours), change `joursNouveau` dans `site/config.js`.
 
+## La musique
+
+Un bouton **♫** juste sous le choix de la langue ouvre un petit lecteur de musique japonaise. **Le son est coupé à l'arrivée** : rien ne joue (et rien ne se télécharge) tant que le visiteur n'appuie pas sur lecture.
+- **Style :** Traditionnelle (koto, shamisen, shakuhachi, taiko, musique de fête), Pop japonaise (des chansons chantées en japonais) ou Café (guitare et piano acoustiques).
+- **Ambiance :** Calme, Enjouée ou Énergique (le Café n'a pas d'ambiance énergique : elle est grisée).
+- Lecture/pause, morceau suivant, volume (le haut-parleur coupe le son). Choisir un style ou une ambiance lance la musique.
+- Quand une vidéo TikTok joue avec le son (fiche d'un lieu, visite guidée avec le son), la musique se tait puis reprend.
+- Le site retient le style, l'ambiance et le volume de chaque visiteur.
+
+**D'où vient la musique ?** De deux compositeurs japonais qui offrent leur musique sous licence libre **CC BY 4.0** (on peut l'utiliser, même sur un site commercial, à condition de les nommer) : **魔王魂** (maou.audio) et **PeriTune** (peritune.com). Le lecteur affiche toujours le titre, le compositeur et la licence : c'est obligatoire, ne l'enlève pas. Les musiques trouvées sur YouTube, même faites par une IA, ne sont pas libres de droits : il ne faut pas les mettre sur le site.
+
+**Changer les morceaux :** demande-moi, ou modifie la liste `CHOIX` dans `outils/preparer_musique.py`, puis lance `python outils/preparer_musique.py`. Si un jour tu crées tes propres chansons (par exemple avec une IA de musique, sur un abonnement payant qui donne le droit de les utiliser), envoie-moi les fichiers : je les ajouterai.
+
 ## Les favoris
 
 Les visiteurs peuvent toucher le **cœur** sur la fiche d'un lieu pour le mettre en favori.
@@ -250,7 +263,7 @@ Le programme fabrique :
 
 ## Comment ça marche (pour les curieux)
 
-- `site/` contient le site : la page (`index.html`), l'apparence (`style.css`), les **réglages** (`config.js`), le programme de la carte (`app.js`), les icônes (`icons.js`), les modèles 3D (`modeles3d.js`, posés sur la carte par `couche3d.js`) la mer vivante (`mer.js`), les légendes cachées (`legendes.js`), les grues (`oiseaux.js`) et les noms des régions et des préfectures (`noms-regions.js`) le compteur de visites (`compteur.js`), les favoris (`favoris.js`) et leur itinéraire sur la carte (`itineraire.js`), la visite guidée (`visite.js`) et `reperes.js`, qui ne garde sur la carte que les épingles et les noms proches de l'écran (c'est ce qui rend le zoom fluide sur téléphone).
+- `site/` contient le site : la page (`index.html`), l'apparence (`style.css`), les **réglages** (`config.js`), le programme de la carte (`app.js`), les icônes (`icons.js`), les modèles 3D (`modeles3d.js`, posés sur la carte par `couche3d.js`) la mer vivante (`mer.js`), les légendes cachées (`legendes.js`), les grues (`oiseaux.js`), le lecteur de musique (`musique.js`, les morceaux dans `musique/`) et les noms des régions et des préfectures (`noms-regions.js`) le compteur de visites (`compteur.js`), les favoris (`favoris.js`) et leur itinéraire sur la carte (`itineraire.js`), la visite guidée (`visite.js`) et `reperes.js`, qui ne garde sur la carte que les épingles et les noms proches de l'écran (c'est ce qui rend le zoom fluide sur téléphone).
 - La carte lit le tableau Google Sheets à chaque visite. Si Google ne répond pas, elle utilise la copie de secours `site/data/secours-*.csv`. Cette copie est mise à jour automatiquement chaque nuit par GitHub.
 - `outils/` contient les petits programmes qui ont servi à tout préparer : import depuis Google My Maps, traductions, photos, masque des pays voisins.
 - `outils/robot-tableau.gs` est une copie du programme du robot (celui qui tourne vraiment est dans le projet « Robot carte » sur script.google.com). Le robot lit la légende de la vidéo TikTok et demande à Gemini de quel lieu il s'agit. Il cherche ensuite ce lieu dans Wikipédia et Google Maps, puis Gemini rédige la fiche à partir de ce qu'il a trouvé.

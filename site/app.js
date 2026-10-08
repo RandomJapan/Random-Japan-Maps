@@ -9,6 +9,7 @@ import { PREFECTURES, REGIONS, chargerPrefectures, regionDe } from './regions.js
 import { brancherModeles } from './couche3d.js';
 import { animerMer } from './mer.js';
 import { brancherOiseaux } from './oiseaux.js';
+import { brancherMusique } from './musique.js';
 import { brancherNomsRegions } from './noms-regions.js';
 import { brancherCompteur } from './compteur.js';
 import { lireFavoris, ecrireFavoris, ordreDeVoyage, liensItineraire } from './favoris.js';
@@ -793,7 +794,7 @@ function toutCocher(visible) {
 function ouvrirMenu(ouvrir) {
   $('menu-categories').hidden = !ouvrir;
   $('btn-categories').setAttribute('aria-expanded', String(ouvrir));
-  if (ouvrir) { ouvrirHasard(false); ouvrirLegendes(false); ouvrirFavoris(false); ouvrirVisite(false); }
+  if (ouvrir) { ouvrirHasard(false); ouvrirLegendes(false); ouvrirFavoris(false); ouvrirVisite(false); ouvrirMusique(false); }
   if (ouvrir && !estTelephone()) $('recherche').focus();
 }
 
@@ -821,6 +822,7 @@ function ouvrirLegendes(ouvrir) {
   ouvrirHasard(false);
   ouvrirFavoris(false);
   ouvrirVisite(false);
+  ouvrirMusique(false);
   legendes?.remplirPanneau();
 }
 
@@ -904,6 +906,7 @@ async function ouvrirHasard(ouvrir) {
   ouvrirLegendes(false);
   ouvrirFavoris(false);
   ouvrirVisite(false);
+  ouvrirMusique(false);
   if (!$('choix-region').options.length) {
     $('hasard-info').textContent = '…';
     $('btn-lancer').disabled = true;
@@ -1015,6 +1018,7 @@ function ouvrirFavoris(ouvrir) {
   ouvrirHasard(false);
   ouvrirLegendes(false);
   ouvrirVisite(false);
+  ouvrirMusique(false);
   remplirFavoris();
 }
 
@@ -1191,9 +1195,31 @@ const visite = brancherVisite(map, {
     ouvrirLegendes(false);
     ouvrirFavoris(false);
     ouvrirVisite(false);
+    ouvrirMusique(false);
   },
   apres: () => {},
+  sonVideo: (oui) => musique.retrait('visite', oui),
 });
+
+// ---------------------------------------------------------------- Musique (musique.js)
+// Coupée au départ ; le bouton sous la langue ouvre le choix du style et de l'ambiance.
+const musique = brancherMusique({ t, bouton: $('btn-musique'), panneau: $('panneau-musique') });
+
+function ouvrirMusique(ouvrir) {
+  $('panneau-musique').hidden = !ouvrir;
+  $('btn-musique').setAttribute('aria-expanded', String(ouvrir));
+  if (!ouvrir) return;
+  ouvrirMenu(false);
+  ouvrirHasard(false);
+  ouvrirLegendes(false);
+  ouvrirFavoris(false);
+  ouvrirVisite(false);
+  musique.remplir();
+}
+
+// La vidéo TikTok d'une fiche a le son : la musique se tait tant qu'elle est là
+new MutationObserver(() => musique.retrait('fiche', !!$('fiche-media').querySelector('iframe')))
+  .observe($('fiche-media'), { childList: true, subtree: true });
 
 // ---------------------------------------------------------------- Plongeon sur un nouveau lieu (onglets de la visite)
 // Le début des vidéos se filme avant que le lieu soit dans le tableau : on plonge sur une position collée
@@ -1528,6 +1554,7 @@ async function ouvrirVisite(ouvrir) {
   ouvrirHasard(false);
   ouvrirLegendes(false);
   ouvrirFavoris(false);
+  ouvrirMusique(false);
   if (!$('visite-region').options.length) {
     $('txt-visite-lancer').textContent = '…';
     $('btn-visite-lancer').disabled = true;
@@ -1893,6 +1920,9 @@ function appliquerLangue() {
   visite.majLangue();
   $('txt-jeu').textContent = t('jeu');
   jeu?.majLangue();
+  $('btn-musique').title = t('musique');
+  $('btn-musique').setAttribute('aria-label', t('musique'));
+  musique.majLangue();
   construireMenu();
   if (!$('resultats').hidden) rechercher();
   if (lieuActif) remplirFiche(lieuActif);
@@ -1995,6 +2025,11 @@ function brancherBoutons() {
       bouton.classList.add('nouvelle');
     }
   });
+  $('btn-musique').addEventListener('click', (e) => {
+    e.stopPropagation();
+    ouvrirMusique($('panneau-musique').hidden);
+  });
+  $('panneau-musique').addEventListener('click', (e) => e.stopPropagation());
   $('btn-visite').addEventListener('click', (e) => {
     e.stopPropagation();
     ouvrirVisite($('panneau-visite').hidden);
@@ -2017,6 +2052,7 @@ function brancherBoutons() {
     ouvrirLegendes(false);
     ouvrirFavoris(false);
     ouvrirVisite(false);
+    ouvrirMusique(false);
   });
   $('recherche').addEventListener('input', rechercher);
   $('btn-tout').addEventListener('click', () => toutCocher(true));
@@ -2047,6 +2083,7 @@ function brancherBoutons() {
     else if (!$('panneau-legendes').hidden) ouvrirLegendes(false);
     else if (!$('panneau-favoris').hidden) ouvrirFavoris(false);
     else if (!$('panneau-visite').hidden) ouvrirVisite(false);
+    else if (!$('panneau-musique').hidden) ouvrirMusique(false);
     else fermerFiche();
   });
   window.addEventListener('hashchange', ouvrirDepuisAdresse);

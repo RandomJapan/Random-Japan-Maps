@@ -244,6 +244,15 @@
     <button type="button" data-langue="ja">日本語</button>
   </nav>
 
+  <!-- Lecteur de musique (musique.js) : coupé au départ ; le bouton ouvre le choix du style et de l'ambiance -->
+  <div class="musique" id="musique">
+    <button type="button" class="panneau btn-musique" id="btn-musique" aria-expanded="false" aria-controls="panneau-musique">
+      <svg class="note" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M9 17.5V6l11-2.2v11.4"/><circle cx="6.3" cy="17.6" r="2.7" fill="currentColor"/><circle cx="17.3" cy="15.3" r="2.7" fill="currentColor"/></svg>
+      <span class="egaliseur" aria-hidden="true"><i></i><i></i><i></i></span>
+    </button>
+    <div class="menu panneau panneau-musique" id="panneau-musique" hidden></div>
+  </div>
+
   <div class="controles">
     <!-- Mode développeur : seulement dans un navigateur où le lien secret a été ouvert (app.js) -->
     <button type="button" class="panneau btn-dev" id="btn-dev" aria-pressed="false">
