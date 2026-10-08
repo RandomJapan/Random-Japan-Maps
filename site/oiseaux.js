@@ -1,7 +1,8 @@
 // ================================================================
 //  Les grues du Japon (tanchō) : quand on regarde la carte de près, un petit vol de trois grues passe
-//  de temps en temps, au hasard, au-dessus d'un vrai coin de la carte. Leur ombre est posée sur le relief
-//  et elles volent au-dessus : si on déplace, tourne ou zoome la carte, elles suivent, comme tout le reste.
+//  de temps en temps, au hasard, au-dessus d'un vrai coin de la carte. Elles volent à hauteur fixe, un peu
+//  au-dessus du plus haut sommet de leur chemin ; leur ombre suit le relief en dessous. Si on déplace, tourne
+//  ou zoome la carte, elles suivent, comme tout le reste.
 //  De loin, pas d'oiseaux. Rien ne vole si l'appareil demande moins d'animations.
 // ================================================================
 
@@ -95,7 +96,7 @@ export function brancherOiseaux(map, maplibregl, reperes) {
       const B = surLaCarte(xb, h * (0.25 + Math.random() * 0.6));
       if (!A || !B) continue;
       const pixels = Math.hypot(l + 2 * marge + taille * 2.5, h * 0.3);
-      vol = { A, B, debut: performance.now(), duree: Math.max(9, pixels / VITESSE) * 1000 };
+      vol = { A, B, debut: performance.now(), duree: Math.max(9, pixels / VITESSE) * 1000, altitude: altitudeDuVol(A, B, taille) };
       dessin = {};
       reperes.montrer(marqueur, true);
       el.classList.add('vole');
@@ -113,6 +114,33 @@ export function brancherOiseaux(map, maplibregl, reperes) {
     reperes.montrer(marqueur, false);
   }
 
+  // La carte sait placer à l'écran un point à n'importe quelle altitude (MapLibre 6.11, version figée dans les
+  // adresses) ; sans elle, les grues suivraient leur ombre à une hauteur fixe à l'écran.
+  const transformation = () => {
+    const tr = map._camera?.transform;
+    return typeof tr?.coordinatePoint === 'function' && tr._pixelMatrix3D ? tr : null;
+  };
+  const exageration = () => map.terrain?.exaggeration || 1;
+
+  /**
+   * L'altitude du vol (mètres réels, sans l'exagération du relief) : le plus haut point du chemin, plus une marge
+   * qui fait à peu près une grue à l'écran au-dessus de ce sommet (entre 250 et 3000 m).
+   */
+  function altitudeDuVol(A, B, taille) {
+    const tr = transformation();
+    if (!tr) return null;
+    const ex = exageration();
+    let haut = 0, sommet = A;
+    for (let i = 0; i <= 30; i++) {
+      const m = new maplibregl.MercatorCoordinate(A.x + ((B.x - A.x) * i) / 30, A.y + ((B.y - A.y) * i) / 30);
+      const e = (map.queryTerrainElevation(m.toLngLat()) || 0) / ex;
+      if (e > haut) { haut = e; sommet = m; }
+    }
+    const p0 = tr.coordinatePoint(sommet, haut * ex, tr._pixelMatrix3D), p1 = tr.coordinatePoint(sommet, (haut + 1000) * ex, tr._pixelMatrix3D);
+    const parKm = Math.hypot(p1.x - p0.x, p1.y - p0.y); // pixels à l'écran pour 1000 m de plus
+    return haut + (parKm > 0.5 ? Math.min(3000, Math.max(250, (taille * 0.9 * 1000) / parKm)) : 600);
+  }
+
   const tailleGrue = () => Math.round(Math.min(TAILLE_LIMITES[1], Math.max(TAILLE_LIMITES[0], TAILLE * 2 ** ((map.getZoom() - 10) * 0.5))));
 
   /** À chaque image du vol : la position sur la carte, le cap vu à l'écran, la taille, la hauteur au-dessus de l'ombre. */
@@ -123,8 +151,8 @@ export function brancherOiseaux(map, maplibregl, reperes) {
     requestAnimationFrame(image);
     const { A, B } = vol;
     const x = A.x + (B.x - A.x) * p, y = A.y + (B.y - A.y) * p;
-    const ici = new maplibregl.MercatorCoordinate(x, y).toLngLat();
-    marqueur.setLngLat(ici);
+    const merc = new maplibregl.MercatorCoordinate(x, y), ici = merc.toLngLat();
+    marqueur.setLngLat(ici); // le repère est l'ombre, posée sur le relief
     reperes.verifier(marqueur);
     // le cap à l'écran : celui du vol sur la carte, moins l'orientation de la carte, aplati par l'inclinaison
     // (calculé ainsi, et non avec deux points projetés : le relief sous eux le faisait trembler)
@@ -136,12 +164,22 @@ export function brancherOiseaux(map, maplibregl, reperes) {
     const penche = Math.max(-35, Math.min(35, gauche ? (angle > 0 ? angle - 180 : angle + 180) : angle));
     const tourne = gauche ? `rotate(${penche}deg) scale(-1,1)` : `rotate(${penche}deg)`;
     const taille = tailleGrue();
-    // vues de côté (carte penchée), elles volent plus haut au-dessus de leur ombre que vues du dessus
-    const hauteur = Math.round(taille * (0.45 + 0.9 * Math.sin((map.getPitch() * Math.PI) / 180)));
+    // les grues, à leur altitude fixe : leur place à l'écran par rapport à l'ombre
+    const tr = transformation();
+    let dx = 0, dy = -Math.round(taille * (0.45 + 0.9 * Math.sin((map.getPitch() * Math.PI) / 180)));
+    if (tr && vol.altitude != null) {
+      const sol = map.project(ici), ciel = tr.coordinatePoint(merc, vol.altitude * exageration(), tr._pixelMatrix3D);
+      dx = Math.round(ciel.x - sol.x);
+      dy = Math.round(ciel.y - sol.y);
+    }
+    const hauteur = `translate(${dx}px,${dy}px)`;
+    // loin au-dessus du sol (au-dessus d'une vallée), leur ombre pâlit
+    const ombre = Math.max(0.3, Math.min(1, 1.25 - Math.hypot(dx, dy) / (taille * 3))).toFixed(2);
     const fondu = Math.min(1, p / 0.06, (1 - p) / 0.06).toFixed(2);
     if (tourne !== dessin.tourne) { ombres.style.transform = cap.style.transform = tourne; dessin.tourne = tourne; }
     if (taille !== dessin.taille) { el.style.setProperty('--taille', `${taille}px`); dessin.taille = taille; }
-    if (hauteur !== dessin.hauteur) { air.style.transform = `translateY(${-hauteur}px)`; dessin.hauteur = hauteur; }
+    if (hauteur !== dessin.hauteur) { air.style.transform = hauteur; dessin.hauteur = hauteur; }
+    if (ombre !== dessin.ombre) { ombres.style.opacity = ombre; dessin.ombre = ombre; }
     if (fondu !== dessin.fondu) { fonduEl.style.opacity = fondu; dessin.fondu = fondu; }
   }
 
