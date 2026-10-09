@@ -573,7 +573,7 @@ for (const m of MERS) {
 const nomsRegions = brancherNomsRegions(map, maplibregl, { enLangue, reperes });
 
 // La mer vivante : houle, vagues, bateaux d'époque, baleine et serpent de mer (vus de loin)
-animerMer(map, maplibregl, { mers: MERS.map((m) => m.ou), reperes });
+animerMer(map, maplibregl, { mers: MERS.map((m) => m.ou), reperes, tuiles: tuilesRelief });
 
 // Les grues du Japon : de près, un vol de trois grues passe de temps en temps au-dessus de la carte
 brancherOiseaux(map, maplibregl, reperes);

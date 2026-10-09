@@ -5,9 +5,12 @@
 //    petit modèle 3D) apparaît au large, file vers un port et s'efface avant la côte ;
 //  - parfois une baleine souffle, et plus rarement un serpent de mer sort de l'eau ;
 //  - toutes les 15 minutes, un typhon arrive du large, tourne, pleut et lance des éclairs, puis se défait.
-//  Tout disparaît quand on zoome sur un lieu. Rien ne bouge si l'appareil demande moins d'animations.
+//  Bateaux et bêtes disparaissent quand on zoome sur un lieu ; la houle, elle, laisse la place au ressac
+//  (ressac.js) : de près, les vagues arrivent sur la côte et s'y brisent. Rien ne bouge si l'appareil
+//  demande moins d'animations.
 // ================================================================
 import { URL_THREE } from './couche3d.js';
+import { coucheRessac } from './ressac.js';
 
 // Image des distances à la côte : mêmes bornes et même codage que outils/fabriquer_houle.py
 const IMAGE_DISTANCES = 'data/distance-cote.png';
@@ -15,7 +18,7 @@ const BORNES = [121.5, 23.0, 157.5, 51.5]; // ouest, sud, est, nord
 const DISTANCE_MAX = 160; // pixels au zoom 5 (valeur 255 de l'image)
 const Z5 = 512 * 2 ** 5; // pixels d'écran au zoom 5 pour une unité de la carte (le monde entier)
 
-const ZOOM_CALME = 7.2; // au-delà, on regarde un lieu : la mer redevient calme
+const ZOOM_CALME = 7.2; // au-delà, on regarde un lieu : plus de bateaux ni de bêtes (la houle, elle, bouge encore)
 const IMAGES_PAR_SECONDE = 15; // assez pour ces mouvements lents, sans trop user la batterie
 const LIGNES_FIXES = ['lignes-eau-1', 'lignes-eau-2', 'lignes-eau-3']; // remplacées par la houle quand elle marche
 
@@ -404,7 +407,7 @@ export function jouerTyphon() {
   return typhonMaintenant?.() ?? false;
 }
 
-export function animerMer(map, maplibregl, { mers = [], reperes } = {}) {
+export function animerMer(map, maplibregl, { mers = [], reperes, tuiles } = {}) {
   reperesMer = reperes;
   const sansMouvement = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const conteneur = map.getContainer();
@@ -412,6 +415,7 @@ export function animerMer(map, maplibregl, { mers = [], reperes } = {}) {
   let calme = null;
   let typhon = null; // le typhon (son repère et sa course en cours), préparé plus bas
   let houlePrete = false;
+  let ressac = null; // la couche du ressac (ressac.js), si le navigateur sait la calculer
   let distance = null; // distance à la côte d'un point (x, y), dès que l'image est lue
   const flotte = []; // les bateaux en mer
   let bateauxPrets = false;
@@ -630,8 +634,11 @@ export function animerMer(map, maplibregl, { mers = [], reperes } = {}) {
         for (const id of LIGNES_FIXES) if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'none');
       });
     });
+    if (tuiles) ressac = coucheRessac(map, maplibregl, { image, bornes: BORNES, distance, tuiles, obtenirTemps: () => temps % 3600 });
     const ajouter = () => {
-      map.addLayer(couche, map.getLayer('modeles-3d') ? 'modeles-3d' : undefined);
+      const dessous = map.getLayer('modeles-3d') ? 'modeles-3d' : undefined;
+      map.addLayer(couche, dessous);
+      if (ressac) map.addLayer(ressac, dessous);
       // three.js (pour les bateaux) se charge une fois la carte affichée, sans retarder le démarrage
       setTimeout(chargerBateaux, 1500);
     };
@@ -645,13 +652,16 @@ export function animerMer(map, maplibregl, { mers = [], reperes } = {}) {
     const dt = (maintenant - avant) / 1000;
     if (dt < 1 / IMAGES_PAR_SECONDE - 0.004) return;
     avant = maintenant;
-    if (calme || document.hidden) return;
+    if (document.hidden) return;
     const pas = Math.min(dt, 0.25);
-    temps += pas;
-    if (bateauxPrets) avancerBateaux(pas);
-    reveillerBetes();
-    reveillerTyphon();
-    if ((houlePrete && reglagesHoule(map.getZoom()).opacite > 0) || flotte.length) map.triggerRepaint();
+    temps += pas; // la houle et le ressac bougent aussi de près (2026-10-09)
+    if (!calme) {
+      if (bateauxPrets) avancerBateaux(pas);
+      reveillerBetes();
+      reveillerTyphon();
+    }
+    // on ne redessine que si quelque chose bouge à l'écran (de près, au-dessus des terres : rien)
+    if ((houlePrete && reglagesHoule(map.getZoom()).opacite > 0) || flotte.length || ressac?.visible()) map.triggerRepaint();
   }
   requestAnimationFrame(boucle);
 }
