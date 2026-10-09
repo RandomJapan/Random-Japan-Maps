@@ -684,8 +684,88 @@ function changerRelief(e) {
   map.setTerrain({ source: 'relief', exaggeration: e });
 }
 
+// Des montagnes de la même hauteur quand on pivote (2026-10-09). Le relief 3D est fait de tuiles d'altitude
+// (Mapterhorn), plus ou moins détaillées ; dans les moins détaillées, les sommets sont moyennés et plus bas
+// (le Fuji fait 2 709 m au niveau 4, 3 377 au 5, 3 599 au 6). MapLibre prenait ses altitudes deux niveaux
+// sous la vue, un de plus au premier plan et un ou deux de moins au loin : en tournant la carte, une chaîne
+// passait du lointain au proche et grandissait de 20 à 30 %. Désormais, de loin (zoom < 9,5, où les écarts
+// entre niveaux sont grands) :
+// - toutes les tuiles du maillage prennent leurs altitudes au même niveau, un cran plus détaillé qu'avant
+//   (zoom de la vue - 1, déjà téléchargé par la carte) : celles du premier plan, plus fines, lisent celles de
+//   leur tuile parente ;
+// - les tuiles du milieu de l'écran ne descendent plus d'un niveau : seulement tout au fond, vers l'horizon
+//   (plus de deux fois plus loin que le centre de l'écran) ;
+// - le maillage est presque deux fois plus fin (240 au lieu de 128 ; pas plus : au-delà de ~250, les sommets ne
+//   tiennent plus dans les index 16 bits de MapLibre), pour que les sommets aient le même dessin partout.
+// De près, les niveaux ne diffèrent que de 1 à 3 % : on garde le réglage de MapLibre (avec les altitudes un
+// cran plus détaillées). Ce sont des rouages internes de MapLibre 6.11 (version figée) : à revérifier en cas
+// de mise à jour.
+const ZOOM_RELIEF_UNIFORME = 9.5;
+let reliefStabilise = false, maillageFin = null;
+function stabiliserRelief() {
+  try {
+    const source = map.style?.tileManagers?.relief?.getSource?.();
+    const terrain = map.terrain?.tileManager;
+    const fournisseur = map._camera?.transform?.getCoveringTilesDetailsProvider?.();
+    if (!source || !terrain?.getSourceTile || typeof terrain.deltaZoom !== 'number' || !fournisseur?.allowVariableZoom) return;
+    map.setSourceTileLodParams(9.314, 3, 'relief'); // le réglage d'origine de MapLibre
+    const deMapLibre = source.calculateTileZoom;
+    if (typeof deMapLibre !== 'function') return;
+    // le niveau des tuiles : celui de MapLibre, sans descendre au milieu de l'écran
+    const niveau = (zCentre, d2, dz, dCentre, fov) => {
+      const z = deMapLibre(zCentre, d2, dz, dCentre, fov);
+      if (zCentre >= ZOOM_RELIEF_UNIFORME - 1) return z; // zCentre = zoom de la vue - 1
+      const r = Math.hypot(d2, dz) / dCentre;
+      return Math.max(z, zCentre - (r <= 2 ? 0 : 1.5 * Math.log2(r / 2)));
+    };
+    source.calculateTileZoom = niveau; // les tuiles d'altitude téléchargées…
+    // … et les tuiles du maillage 3D, que MapLibre calcule sans passer par la source : on lui glisse la même règle
+    const proto = Object.getPrototypeOf(fournisseur);
+    const avant = proto.allowVariableZoom;
+    const taille = terrain.tileSize;
+    proto.allowVariableZoom = function (transform, options) {
+      if (options.terrain && options.tileSize === taille && !('calculateTileZoom' in options)) options.calculateTileZoom = niveau;
+      return avant.call(this, transform, options);
+    };
+    // les altitudes d'une tuile : celles de son niveau (deltaZoom 0), ou de sa parente au niveau commun
+    terrain.deltaZoom = 0;
+    terrain._sourceTileCache = {}; // MapLibre y garde, par tuile, la tuile d'altitudes choisie avec l'ancien réglage
+    const altitudes = terrain.getSourceTile.bind(terrain);
+    let communAvant = null;
+    terrain.getSourceTile = (tileID, chercher) => {
+      const z = map.getZoom();
+      const commun = z < ZOOM_RELIEF_UNIFORME ? Math.floor(z - 1) : null;
+      if (commun !== communAvant) {
+        communAvant = commun;
+        map.terrain.resetElevationCache?.(); // les altitudes mémorisées par tuile viennent peut-être d'un autre niveau
+      }
+      if (commun !== null && commun >= 0 && tileID.overscaledZ > commun) return altitudes(tileID.scaledTo(commun), chercher);
+      return altitudes(tileID, chercher);
+    };
+    reliefStabilise = true;
+    majMaillage();
+  } catch (e) {
+    console.warn('Relief : réglage des niveaux de détail impossible', e);
+  }
+}
+map.once('load', stabiliserRelief);
+
+/** Le maillage plus fin pour les vues de loin (voir stabiliserRelief). */
+function majMaillage() {
+  const relief = map.terrain;
+  if (!reliefStabilise || !relief?._meshCache) return;
+  const fin = map.getZoom() < ZOOM_RELIEF_UNIFORME;
+  if (fin === maillageFin) return;
+  maillageFin = fin;
+  relief.meshSize = fin ? 240 : 128;
+  for (const m of Object.values(relief._meshCache)) m.destroy?.();
+  relief._meshCache = {}; // refait au prochain dessin
+  map.triggerRepaint();
+}
+
 function majSelonZoom() {
   const z = map.getZoom();
+  majMaillage();
   // Par pas de 0,01 : avec des pas de 0,1, de près (×1,5 à ×2,5), les montagnes rétrécissaient par
   // crans de 4 à 7 % en zoomant, et leurs sommets sautaient à l'écran (on le voyait en plongeant).
   const e = Math.round(exageration(z) * 100) / 100;
