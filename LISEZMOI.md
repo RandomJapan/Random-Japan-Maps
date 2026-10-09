@@ -250,6 +250,14 @@ Le bouton **Au hasard** tire un lieu au sort. On peut choisir une région ou une
 
 **Tu n'as rien à remplir pour ça.** La carte trouve toute seule la préfecture de chaque lieu grâce à ses coordonnées GPS. Un nouveau lieu ajouté dans le tableau apparaît donc directement dans le bon choix de région.
 
+## La vidéo de présentation (TikTok)
+
+Une vidéo de 30 secondes, au format TikTok (vertical), présente la carte : la vraie carte filmée, avec des titres dans le style du site, et à la fin l'adresse de la carte et « Link in bio ». Elle est dans le dossier `videos/` :
+- `promo-carte.mp4` : avec la musique « Michikusa » de PeriTune. Dans la légende du TikTok, ajoute le crédit : *Music: Michikusa by PeriTune (CC BY 4.0)*.
+- `promo-carte-sans-musique.mp4` : sans musique, pour mettre un son TikTok à la place.
+
+**La refaire** (par exemple quand la carte change) : demande-moi, ou lance le site en local puis `python outils/video/tourner.py` (une dizaine de minutes).
+
 ## Changer le logo
 
 1. Remplace les deux images du dossier `outils/logo-source/` par les nouvelles, en gardant les mêmes noms : `logo-carre.jpg` (image carrée) et `logo-large.jpg` (image en largeur).

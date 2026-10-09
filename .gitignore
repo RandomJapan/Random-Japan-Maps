@@ -5,6 +5,9 @@ __pycache__/
 # Captures de la revue de design (Impeccable)
 .impeccable/review/
 
+# Le film promo (outils/video/tourner.py) : trop lourd pour git
+videos/
+
 # Pages des lieux : fabriquées à chaque mise en ligne par outils/fabriquer_pages.py (GitHub Action)
 site/en/
 site/fr/
