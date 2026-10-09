@@ -38,7 +38,7 @@ export const CONFIG = {
   // --- Jeu « Devine le lieu » à plusieurs ----------------------------------
   // L'adresse du petit serveur du jeu à plusieurs et des amis, chez Cloudflare (dossier serveur/ du dépôt).
   // Vide : le jeu se joue seulement seul. (Sur ce PC, pendant les essais, c'est le serveur local qui sert.)
-  serveurJeu: '',
+  serveurJeu: 'wss://carte-jeu.carte-jeu.workers.dev',
 
   // --- Badge « Nouveau » -----------------------------------------------
   // Un lieu dont la vidéo TikTok a moins de ce nombre de jours porte l'étiquette « Nouveau ».
