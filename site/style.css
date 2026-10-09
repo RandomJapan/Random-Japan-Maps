@@ -741,6 +741,15 @@ body.plongeon .vol-grues, body.en-jeu .vol-grues { display: none; }
   animation: flotte 1.8s ease-in-out infinite;
 }
 .chargement p { margin: 0; font-size: 14px; background: var(--papier); padding: 4px 12px; }
+/* Au bout de 20 s sans carte (index.html) : le message, le bouton pour recharger et l'erreur en petit */
+.chargement-secours { display: grid; justify-items: center; gap: 10px; max-width: min(340px, calc(100vw - 32px)); text-align: center; }
+.chargement-secours p { font-weight: 600; color: var(--encre); }
+.chargement-secours button {
+  font: inherit; font-weight: 600; font-size: 15px; padding: 9px 22px; border-radius: 2px; cursor: pointer;
+  background: var(--rouge); color: var(--papier-clair); border: 1px solid var(--rouge-survol); box-shadow: var(--ombre);
+}
+.chargement-secours button:hover { background: var(--rouge-survol); }
+.chargement-secours small { font-size: 11px; color: var(--encre-3); background: var(--papier); padding: 2px 8px; overflow-wrap: anywhere; }
 @keyframes flotte { 50% { transform: translateY(-6px); } }
 .toast {
   position: fixed; left: 50%; bottom: calc(var(--bas) + 40px); z-index: 30; transform: translate(-50%, 20px);

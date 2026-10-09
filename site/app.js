@@ -107,15 +107,38 @@ function champ(ligne, noms) {
   return '';
 }
 
+// Google Sheets répond d'habitude en une seconde, mais il fait parfois attendre une requête 90 s ou plus, ou
+// répond 500 après plusieurs secondes (mesuré le 2026-10-09 : 2 requêtes sur 16 ; la carte restait alors sur
+// l'écran de chargement). Si la réponse traîne, on redemande en parallèle (la seconde arrive en général tout de
+// suite) ; passé ATTENTE_TABLEAU, on prend la copie de secours de la nuit.
+const RELANCE_TABLEAU = 2500;
+const ATTENTE_TABLEAU = 8000;
+// La carte se montre au plus tard après ce délai, même si une tuile de relief traîne (demarrer).
+const ATTENTE_CARTE = 12000;
+
+/** Le texte CSV d'un onglet publié : la première de deux requêtes qui aboutit (la seconde part si la première traîne). */
+function lireTableau(url) {
+  const signal = AbortSignal.timeout?.(ATTENTE_TABLEAU); // vieux navigateurs : pas de limite, comme avant
+  let recu = false;
+  const demander = async () => {
+    const r = await fetch(url, { cache: 'no-store', signal });
+    const texte = r.ok ? await r.text() : '';
+    if (!texte || texte.trimStart().startsWith('<')) throw new Error(`Tableau Google : ${r.status}`);
+    recu = true;
+    return texte;
+  };
+  const relance = new Promise((ok) => setTimeout(ok, RELANCE_TABLEAU)).then(() => {
+    if (recu) throw new Error('inutile');
+    return demander();
+  });
+  return Promise.any([demander(), relance]);
+}
+
 async function chargerCSV(url, secours) {
   if (url) {
     try {
-      const r = await fetch(url, { cache: 'no-store' });
-      const texte = r.ok ? await r.text() : '';
-      if (texte && !texte.trimStart().startsWith('<')) {
-        const lignes = lireCSV(texte);
-        if (lignes.length) return lignes;
-      }
+      const lignes = lireCSV(await lireTableau(url));
+      if (lignes.length) return lignes;
     } catch (e) {
       console.warn('Tableau Google indisponible, copie de secours utilisée.', e);
     }
@@ -2183,7 +2206,10 @@ async function demarrer() {
   lieux.sort((a, b) => b.lat - a.lat).forEach(creerEpingle);
   appliquerLangue();
 
+  let montree = false;
   const pret = () => {
+    if (montree) return;
+    montree = true;
     appliquerFiltres();
     $('chargement').classList.add('fini');
     // une fois effacé, l'écran de chargement sort de la page : son logo animé aurait tourné pour rien à chaque image
@@ -2195,7 +2221,12 @@ async function demarrer() {
     setTimeout(chargerLegendes, 1500);
   };
   if (map.loaded()) pret();
-  else map.once('load', pret);
+  else {
+    map.once('load', pret);
+    // « load » attend toutes les tuiles de la première vue : si l'une traîne, on montre quand même la carte
+    // (les tuiles finissent d'arriver) plutôt que de laisser l'écran de chargement.
+    setTimeout(pret, ATTENTE_CARTE);
+  }
 }
 
 demarrer().catch((e) => {

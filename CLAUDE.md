@@ -67,6 +67,8 @@ The owner asked on 2026-10-02 for smoother zooming on phones. The method that fo
 ### Data flow (`site/app.js`)
 
 1. `chargerCSV()` fetches the Sheet's "Publish to web" CSV URLs (`CONFIG.tableau.lieux` / `.categories` in `site/config.js`, fetched with `no-store`). If that fails, or the answer is HTML, it falls back to `site/data/secours-*.csv`.
+   - **Google sometimes hangs a request for 90 s or more** (measured 2026-10-09: 2 requests out of 16; the owner could no longer open the map, which waited without limit). `lireTableau` sends a second request if the first has not answered after `RELANCE_TABLEAU` (2.5 s) and takes whichever succeeds first (`Promise.any`); both are cut at `ATTENTE_TABLEAU` (8 s, `AbortSignal.timeout`), then the backup is used. Tested: normal 1.8 s, first request hung 3.7 s with live data, Google hung 8.4 s with the backup.
+   - The loading screen also lifts at `ATTENTE_CARTE` (12 s) even if MapLibre's `load` has not fired (it waits for every tile of the first view). And an inline classic script in `index.html` shows "The map is taking too long to load", a Reload button and the first error (failed file or JS error; GoatCounter ignored) if the screen is still there after 20 s, for example when a module or the CDN fails to load.
 2. `lireCSV()` is a small custom CSV parser (there is no PapaParse). Header names are matched loosely by `champ(ligne, [aliases])`, after `normaliser()` has removed accents, spaces and punctuation from them. So `Nom (EN)` matches the alias `nomen`.
    - When you add a Sheet column, add its alias in `construireLieux` / `construireCategories`.
    - Never rename the Sheet headers (row 1) or the tab names `Lieux` / `Catégories`.

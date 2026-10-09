@@ -340,6 +340,51 @@
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+  <!-- Filet de secours (2026-10-09) : si la carte n'a pas démarré au bout de 20 s (un fichier qui n'arrive pas,
+       une erreur dans ce navigateur), on le dit au lieu de laisser tourner le logo, avec un bouton pour recharger
+       et la première erreur en petit, pour pouvoir comprendre ce qui bloque. Un script classique : il marche même
+       si les modules de la carte ne se chargent pas. -->
+  <script>
+    (function () {
+      var erreurs = [];
+      addEventListener('error', function (e) {
+        var cible = e.target && (e.target.src || e.target.href);
+        if (cible && cible.indexOf('zgo.at') >= 0) return; // le compteur de visites, souvent bloqué : sans importance
+        erreurs.push(e.message || (cible ? 'Fichier non chargé : ' + cible : 'Erreur'));
+      }, true);
+      addEventListener('unhandledrejection', function (e) {
+        erreurs.push(String((e.reason && e.reason.message) || e.reason));
+      });
+      setTimeout(function () {
+        var ecran = document.getElementById('chargement');
+        if (!ecran || ecran.classList.contains('fini') || ecran.querySelector('.chargement-secours')) return;
+        var l = '';
+        try { l = localStorage.getItem('langue') || ''; } catch (e) { /* navigation privée */ }
+        l = l || (navigator.language || '').slice(0, 2);
+        var txt = {
+          fr: ['La carte met trop de temps à se charger.', 'Recharger'],
+          ja: ['地図の読み込みに時間がかかっています。', '再読み込み'],
+        }[l] || ['The map is taking too long to load.', 'Reload'];
+        var bloc = document.createElement('div');
+        bloc.className = 'chargement-secours';
+        var p = document.createElement('p');
+        p.textContent = txt[0];
+        var bouton = document.createElement('button');
+        bouton.type = 'button';
+        bouton.textContent = txt[1];
+        bouton.onclick = function () { location.reload(); };
+        bloc.append(p, bouton);
+        var attente = document.getElementById('txt-chargement');
+        if (attente) attente.hidden = true;
+        if (erreurs.length) {
+          var detail = document.createElement('small');
+          detail.textContent = erreurs[0].slice(0, 200);
+          bloc.append(detail);
+        }
+        ecran.append(bloc);
+      }, 20000);
+    })();
+  </script>
   <script type="module" src="app.js"></script>
 </body>
 </html>
