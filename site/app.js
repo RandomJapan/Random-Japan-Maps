@@ -275,6 +275,14 @@ const map = new maplibregl.Map({
   minZoom: 3.6,
   maxZoom: 16,
   maxPitch: 72,
+  // Clic droit + glisser (2026-10-09, « trop rapide, ça part dans tous les sens ») : par défaut la carte tournait
+  // de 0,8° et s'inclinait de 0,5° par pixel (toute l'inclinaison en 140 px), et MapLibre inversait le sens de
+  // rotation quand la souris passait dans la moitié haute de l'écran. Ici : plus lent, et toujours le même sens.
+  // L'élan après le lâcher diminue d'autant (il suit le carré de la vitesse). aroundCenter est lu par le
+  // gestionnaire de rotation de MapLibre 6.11 (generateMouseRotationHandler).
+  rotateSpeed: 0.3,
+  pitchSpeed: -0.25,
+  aroundCenter: false,
   maxBounds: [[108, 12], [170, 58]],
   renderWorldCopies: false,
   // Les téléphones ont souvent 3 pixels par point : dessiner en ×2 suffit et évite ~2× plus de calcul.
@@ -556,6 +564,70 @@ function tournerRose() {
 }
 map.on('rotate', tournerRose);
 tournerRose();
+
+// On peut aussi l'attraper (souris ou doigt) et la faire tourner : la carte tourne avec elle, le N suit le
+// pointeur (2026-10-09). Un simple appui remet toujours le nord en haut ; ← → la tournent de 15° au clavier.
+function brancherRose() {
+  const bouton = $('btn-rose');
+  const SEUIL = 4; // px : en dessous, c'est un appui, pas un geste
+  let geste = null;
+  let avalerClic = false;
+  const angle = (e) => {
+    const r = bouton.getBoundingClientRect();
+    const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+    // tout près du centre, l'angle saute au moindre mouvement : on le garde tel quel
+    return Math.hypot(dx, dy) < 6 ? null : (Math.atan2(dy, dx) * 180) / Math.PI;
+  };
+  bouton.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    avalerClic = false;
+    geste = { id: e.pointerId, x: e.clientX, y: e.clientY, angle: angle(e), cap: map.getBearing(), tourne: false };
+    bouton.setPointerCapture(e.pointerId);
+  });
+  bouton.addEventListener('pointermove', (e) => {
+    if (!geste || e.pointerId !== geste.id) return;
+    if (!geste.tourne) {
+      if (Math.hypot(e.clientX - geste.x, e.clientY - geste.y) < SEUIL) return;
+      geste.tourne = true;
+      arreterRotation();
+      map.stop();
+      geste.cap = map.getBearing();
+      bouton.classList.add('attrapee');
+    }
+    const a = angle(e);
+    if (a === null) return;
+    if (geste.angle === null) { geste.angle = a; geste.cap = map.getBearing(); return; }
+    // la rose tourne de -cap : pour qu'elle suive le pointeur, la carte tourne d'autant dans l'autre sens
+    // (originalEvent : un geste du visiteur, qui met la visite guidée en pause comme un glisser sur la carte)
+    map.setBearing(geste.cap - (a - geste.angle), { originalEvent: e });
+  });
+  const lacher = (e) => {
+    if (!geste || e.pointerId !== geste.id) return;
+    if (geste.tourne) {
+      avalerClic = true; // le clic qui suit le geste ne doit pas remettre le nord en haut
+      bouton.classList.remove('attrapee');
+      // comme sur la carte : tout près du nord, on s'y cale
+      const cap = map.getBearing();
+      if (cap !== 0 && Math.abs(cap) < 7) map.easeTo({ bearing: 0, duration: 300 });
+    }
+    geste = null;
+  };
+  bouton.addEventListener('pointerup', lacher);
+  bouton.addEventListener('pointercancel', lacher);
+  bouton.addEventListener('click', () => {
+    if (avalerClic) { avalerClic = false; return; }
+    arreterRotation();
+    map.easeTo({ bearing: 0, duration: 1000 });
+  });
+  bouton.addEventListener('keydown', (e) => {
+    const sens = { ArrowLeft: -1, ArrowRight: 1 }[e.key];
+    if (!sens) return;
+    e.preventDefault();
+    arreterRotation();
+    // → tourne la rose dans le sens des aiguilles d'une montre, comme le geste
+    map.easeTo({ bearing: map.getBearing() - sens * 15, duration: 300 });
+  });
+}
 
 // Hauteur du relief et taille des épingles selon le zoom
 let exagActuelle = null;
@@ -2063,10 +2135,7 @@ function brancherBoutons() {
     fermerFiche();
     map.flyTo({ ...vueDepart(), padding: { top: 0, bottom: 0, left: 0, right: 0 }, duration: 2200 });
   });
-  $('btn-rose').addEventListener('click', () => {
-    arreterRotation();
-    map.easeTo({ bearing: 0, duration: 1000 });
-  });
+  brancherRose();
   // Un appui sur un modèle 3D ouvre son lieu, comme un appui sur son repère
   map.on('click', (e) => {
     if (visite.enCours()) return; // pendant la visite, un appui fait juste revenir la barre

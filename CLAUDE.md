@@ -101,6 +101,7 @@ The owner asked on 2026-10-02 for smoother zooming on phones. The method that fo
   - The loading screen gets `display: none` once faded, so its looping logo animation stops.
 - Places are HTML `Marker`s with `opacityWhenCovered`. Hiding a category hides its markers (`appliquerFiltres` → `reperes.montrer`).
 - The start-up camera is different for desktop and phone (`CONFIG.camera`, with `estTelephone()` at ≤720px). A turntable rotation runs until the first user interaction.
+- **Right-drag (2026-10-09).** The owner found it too fast and erratic. MapLibre's defaults turned 0.8° and tilted 0.5° per pixel (the whole tilt range in 140px), and with `aroundCenter` it reversed the turn when the mouse crossed into the top half of the screen and followed the angle around the centre beyond 100px. The map options now set `rotateSpeed: 0.3`, `pitchSpeed: -0.25` and `aroundCenter: false` (read by MapLibre 6.11's `generateMouseRotationHandler`; re-check on upgrade): 200px of drag = 60° everywhere, always the same way. The release inertia shrinks with the square of the speed.
 
 ### UI
 
@@ -136,7 +137,7 @@ The redesigns were done with the Impeccable skill (`~/.claude/skills/impeccable`
   - Do not use `mix-blend-mode` or `backdrop-filter` there. Both are recomputed every frame.
 - **Ornaments.**
   - Sea names are HTML markers in `MERS` (`app.js`), with `pitchAlignment: 'map'` and `rotationAlignment: 'viewport'`. They hide below the `.loin` threshold. Their positions were picked so they fit on the phone start view.
-  - The compass rose `#btn-rose` rotates with `-bearing` on every `rotate` event; a tap eases north up.
+  - The compass rose `#btn-rose` rotates with `-bearing` on every `rotate` event; a tap eases north up. The owner asked on 2026-10-09 to turn the map with it: `brancherRose` lets a mouse or finger grab it (pointer capture, 4px threshold) and the map's bearing follows the pointer's angle around the rose's centre, so the N stays under the pointer (`setBearing` with the `originalEvent`, so a tour pauses as for any gesture). Released within 7° of north it snaps north; the click after a drag is swallowed. ← → turn it by 15° from the keyboard.
   - The title scroll `.bandeau` (Japan · 日本 · Japon, inline SVG) sits bottom-left. The attribution control is shifted to its right, and wraps on phones.
 - **Category colours.** They come from the Sheet and are aged toward sepia in CSS with `color-mix(in oklab, var(--c) 78%, #4a3521)`, both for markers and for `.pastille`.
 - **Far view.** Below zoom `ZOOM_POINTS` (6.2), `majSelonZoom` adds `.loin` on the map container. Markers then turn into 11px dots so the relief shows, and the sea names show.

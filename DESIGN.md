@@ -324,7 +324,7 @@ Depth comes from the relief: the exaggerated terrain, the hillshade, and the isl
 
 ### Compass rose (signature)
 - **Drawing:** an eight-point rose on a parchment disc. Each point's clockwise half is inked; the north point is red, under a red "N".
-- **Behaviour:** it rotates live with the map bearing, including during the start-up turntable. Tapping it stops the turntable and eases north back up.
+- **Behaviour:** it rotates live with the map bearing, including during the start-up turntable. Tapping it stops the turntable and eases north back up. It can also be grabbed and turned (mouse or finger, `cursor: grab`): the map turns with it, the N following the pointer. While held it grows to 110% and its disc lightens. Released near north, it settles north.
 
 ### Title scroll
 - **Drawing:** a parchment band with rolled ends and an inner ink rule, bottom-left. It reads Japan · 日本 · Japon, with 日本 in red Zen Antique.
