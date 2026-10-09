@@ -88,7 +88,7 @@ The owner asked on 2026-10-02 for smoother zooming on phones. The method that fo
   - a `color-relief` hypsometric palette;
   - `hillshade`;
   - a GeoJSON mask that paints the neighbouring countries in the sea color, so Japan floats alone.
-- Terrain exaggeration and the pin scale change with zoom in `majSelonZoom`. The relief curve lives in `CONFIG.relief`.
+- Terrain exaggeration and the pin scale change with zoom in `majSelonZoom`. The relief curve lives in `CONFIG.relief`: ×15 at zoom 4, 10 at 6, 6 at 8, 3.6 at 10, 2.2 from 12. On 2026-10-09 the owner chose this gentler curve (it was 34 → 1.5) from a filmed comparison: mountains change proportion less while zooming, and seen from afar and tilted they no longer turn into smooth spikes (the far DEM has one point per ~2 km, which a ×17 exaggeration stretched into cones).
   - The pin scale is the `--t` CSS var. It moves in 0.1 steps only, because changing it every frame re-lays out all the pins.
   - The exaggeration moves in 0.01 steps. With 0.1 steps, up close (×1.5 to ×2.5) the mountains shrank by 4 to 7 % at each step, and their summits jumped on screen while zooming (the owner saw it in the dive, 2026-10-04). Finer steps cost nothing measurable: `changerRelief` is cheap.
 - **Do not call `map.setTerrain()` to change exaggeration.** It destroys and rebuilds the whole terrain, which made zooming stutter badly. Use `changerRelief()` instead. It mutates `map.terrain.exaggeration`, then calls `map._camera.applyTerrainChange()`. These are MapLibre 6.11.2 internals (the version is pinned in the CDN URLs), so re-check `changerRelief` if you upgrade MapLibre. It falls back to `setTerrain` if the internals are missing.

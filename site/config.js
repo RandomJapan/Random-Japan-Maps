@@ -61,13 +61,14 @@ export const CONFIG = {
   // --- Relief ----------------------------------------------------------
   // Hauteur des montagnes selon le zoom [zoom, exagération] :
   // vu de loin = très exagéré (effet maquette), vu de près = presque réel.
+  // Courbe « très douce » choisie le 2026-10-09 (avant : 34 → 1,5) : les montagnes changent moins de
+  // proportion en zoomant, et de loin, inclinées, elles restent détaillées au lieu de pointes lisses.
   relief: [
-    [4, 34],
-    [5.3, 30],
-    [6.5, 16],
+    [4, 15],
+    [6, 10],
     [8, 6],
-    [10, 2.5],
-    [12, 1.5],
+    [10, 3.6],
+    [12, 2.2],
   ],
 
   // --- Couleurs (celles d'une vieille carte en relief) -------------------
