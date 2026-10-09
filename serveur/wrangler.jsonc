@@ -1,0 +1,15 @@
+// Le serveur du jeu à plusieurs, chez Cloudflare (offre gratuite). Voir CLAUDE.md, « Jeu à plusieurs ».
+// Mise en ligne : npm run envoyer (dans ce dossier). Essai sur ce PC : npm run essai (ws://localhost:8787).
+{
+  "name": "carte-jeu",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-20",
+  "durable_objects": {
+    "bindings": [
+      { "name": "SALONS", "class_name": "Salon" },
+      { "name": "ANNUAIRE", "class_name": "Annuaire" }
+    ]
+  },
+  // L'offre gratuite n'accepte que les Durable Objects rangés en SQLite
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Salon", "Annuaire"] }]
+}

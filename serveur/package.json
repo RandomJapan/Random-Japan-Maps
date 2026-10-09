@@ -1,0 +1,12 @@
+{
+  "name": "carte-jeu",
+  "private": true,
+  "description": "Le petit serveur du jeu « Devine le lieu » à plusieurs (Cloudflare Workers + Durable Objects)",
+  "scripts": {
+    "essai": "wrangler dev --port 8787",
+    "envoyer": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "4.136.3"
+  }
+}

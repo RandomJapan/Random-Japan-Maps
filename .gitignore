@@ -15,3 +15,7 @@ site/ja/
 site/sitemap.xml
 site/robots.txt
 site/pages/japon.svg
+
+# Le serveur du jeu à plusieurs (serveur/) : ses outils, installés par npm
+serveur/node_modules/
+serveur/.wrangler/

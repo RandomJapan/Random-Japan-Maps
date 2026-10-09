@@ -1683,11 +1683,16 @@ async function partagerAffiche() {
 
 // ---------------------------------------------------------------- Jeu « Devine le lieu » (pas encore public)
 // Le bouton n'existe qu'en mode développeur (classe .dev) : le jeu sortira plus tard, avec un TikTok.
+// À plusieurs (jeu.js, amis.js, serveur/) : un lien d'invitation …/?partie=FUJI42 ouvre le jeu dans cette partie,
+// et …/?ami=K7M2QX8P la liste d'amis avec ce code, pour tous les visiteurs (choix du propriétaire, 2026-10-09 :
+// il peut tester avec ses amis ; le bouton, lui, reste caché).
 let jeu = null;
-async function lancerJeu() {
+/** quoi : { partie: code } (rejoindre une partie), { ami: code } (ajouter un ami), ou rien (l'accueil du jeu) */
+async function lancerJeu(quoi = {}) {
   if (!jeu) {
-    const { brancherJeu } = await import('./jeu.js');
-    jeu = brancherJeu(map, maplibregl, {
+    const [{ brancherJeu }, lesAmis] = await Promise.all([import('./jeu.js'), chargerAmis().catch(() => null)]);
+    jeu ??= brancherJeu(map, maplibregl, {
+      amis: lesAmis, partager: partagerTexte,
       t, enLangue, infos: infosLieu, lieux: () => lieux, reperes, modeles3d, vueDepart, estTelephone, afficherMessage,
       adresse: CONFIG.adresse,
       photo: (l) => (l.photo ? photoAllegee(l.photo) : ''),
@@ -1708,7 +1713,55 @@ async function lancerJeu() {
       apres: () => {},
     });
   }
-  jeu.lancer();
+  if (quoi.partie) jeu.ouvrirPartie(quoi.partie);
+  else if (quoi.ami) jeu.ouvrirAmis(quoi.ami);
+  else jeu.lancer();
+}
+
+/**
+ * Les amis (amis.js) : chargés avec le jeu, ou au démarrage si ce navigateur a déjà joué à plusieurs (pour
+ * recevoir demandes d'ami et invitations). null s'il n'y a pas de serveur (CONFIG.serveurJeu vide).
+ */
+let promesseAmis = null;
+function chargerAmis() {
+  promesseAmis ??= Promise.all([import('./amis.js'), import('./reseau.js')]).then(([{ brancherAmis }, { adresseServeur }]) => {
+    if (!adresseServeur()) return null;
+    const amis = brancherAmis({
+      t, afficherMessage, adresse: CONFIG.adresse, partager: partagerTexte,
+      rejoindre: (code) => lancerJeu({ partie: code }).catch((e) => console.warn('Jeu indisponible', e)),
+    });
+    amis.demarrer();
+    return amis;
+  });
+  promesseAmis.catch(() => { promesseAmis = null; });
+  return promesseAmis;
+}
+
+function aDejaJoueAPlusieurs() {
+  try { return !!JSON.parse(localStorage.getItem('joueur'))?.pseudo; } catch { return false; }
+}
+
+/** Les liens …/?partie=CODE et …/?ami=CODE : lus au démarrage, et effacés de l'adresse. */
+function lireLiensJeu() {
+  const params = new URLSearchParams(location.search);
+  const quoi = { partie: params.get('partie'), ami: params.get('ami') };
+  if (!quoi.partie && !quoi.ami) return null;
+  params.delete('partie');
+  params.delete('ami');
+  const reste = params.toString();
+  history.replaceState(null, '', location.pathname + (reste ? `?${reste}` : '') + location.hash);
+  return quoi;
+}
+
+/** Un texte à envoyer : la feuille de partage du téléphone, sinon copié (avec le message copie). */
+async function partagerTexte(texte, copie = t('lienCopie')) {
+  if (matchMedia('(pointer: coarse)').matches && navigator.share) {
+    try { await navigator.share({ text: texte }); return; } catch (e) { if (e?.name === 'AbortError') return; }
+  }
+  try {
+    await navigator.clipboard.writeText(texte);
+    afficherMessage(copie);
+  } catch { afficherMessage(texte); }
 }
 
 /** Lieux proposés à la visite : tous, ou seulement les favoris si la case est cochée. */
@@ -2273,6 +2326,7 @@ async function demarrer() {
   }
   brancherBoutons();
   brancherDev();
+  const liensJeu = lireLiensJeu();
   appliquerLangue();
   majSelonZoom();
 
@@ -2299,6 +2353,8 @@ async function demarrer() {
     // Contours des préfectures (116 Ko) chargés en avance, sans gêner le démarrage : le dé s'ouvre tout de suite.
     setTimeout(() => preparerPrefectures().catch(() => {}), 3000);
     setTimeout(chargerLegendes, 1500);
+    if (liensJeu) setTimeout(() => lancerJeu(liensJeu).catch((e) => console.warn('Jeu indisponible', e)), 400);
+    else if (aDejaJoueAPlusieurs()) setTimeout(() => chargerAmis().catch(() => {}), 2500);
   };
   if (map.loaded()) pret();
   else {

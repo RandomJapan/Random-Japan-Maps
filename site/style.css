@@ -1084,7 +1084,7 @@ body.en-jeu .filtres, body.en-jeu .bandeau, body.en-jeu .aide { display: none; }
 .jeu-resultat p { margin: 6px 0 0; font-size: 15px; font-weight: 600; }
 .jeu .btn-lancer, .jeu .btn-secondaire { margin-top: 2px; }
 .jeu .btn-secondaire svg { color: var(--encre); }
-.jeu:not([data-phase="accueil"]):not([data-phase="fin"]) .jeu-titre { display: none; }
+.jeu:not([data-phase="accueil"]):not([data-phase="fin"]):not([data-phase="salon"]):not([data-phase="amis"]) .jeu-titre { display: none; }
 .jeu[data-phase="accueil"] .jeu-cadre, .jeu[data-phase="fin"] .jeu-cadre { display: none; }
 .jeu:not([data-phase="devine"]) .jeu-chrono, .jeu:not([data-phase="devine"]) .jeu-temps { display: none; }
 .jeu:not([data-phase="revele"]) .jeu-resultat { display: none; }
@@ -1093,6 +1093,144 @@ body.en-jeu .filtres, body.en-jeu .bandeau, body.en-jeu .aide { display: none; }
 .jeu-epingle { pointer-events: none; }
 .jeu-epingle svg { display: block; width: 32px; height: 44px; filter: drop-shadow(0 3px 3px rgba(40, 26, 12, 0.45)); }
 
+/* ---------- Jeu à plusieurs et amis (jeu.js, amis.js) ---------- */
+/* ce qui se montre selon la phase : le salon et la liste d'amis ont un titre et pas de photo */
+.jeu[data-phase="salon"] .jeu-cadre, .jeu[data-phase="amis"] .jeu-cadre { display: none; }
+.jeu[data-phase="amis"] .jeu-texte:empty, .jeu[data-phase="salon"] .jeu-texte:empty { display: none; }
+.jeu:not([data-phase="salon"]) .jeu-salon, .jeu:not([data-phase="amis"]) .jeu-amis { display: none; }
+.jeu-retour {
+  width: 32px; height: 32px; display: none; place-items: center; flex: none; margin-left: -6px;
+  border: 0; border-radius: var(--rayon); background: none; color: var(--encre);
+}
+.jeu-retour:hover { background: var(--papier-fonce); }
+.jeu-retour svg { width: 19px; height: 19px; }
+.jeu[data-phase="salon"] .jeu-retour, .jeu[data-phase="amis"] .jeu-retour,
+.jeu[data-phase="fin"][data-multi="oui"] .jeu-retour { display: grid; }
+/* à plusieurs, la distance et les points de chacun sont dans la liste des joueurs */
+.jeu[data-multi="oui"] .jeu-distance { display: none; }
+.jeu-reseau { margin: -4px 0 0; font-size: 13.5px; font-weight: 600; color: var(--rouge); }
+
+/* l'accueil : jouer entre amis, sous le jeu seul */
+.jeu-multi { display: grid; gap: 8px; margin-top: 6px; padding-top: 12px; border-top: 1px solid rgba(138, 107, 69, .45); }
+.jeu-multi-titre { margin: 0; font: 400 19px var(--police-titre); }
+.jeu-multi .champ-hasard { margin: 0; }
+.jeu-rejoindre { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
+.jeu-rejoindre input { text-transform: uppercase; letter-spacing: .08em; }
+.jeu-rejoindre input::placeholder { text-transform: none; }
+.jeu-rejoindre .btn-secondaire { width: auto; padding: 10px 16px; }
+.jeu-erreur { margin: 0 2px; font-size: 13.5px; font-weight: 600; line-height: 1.4; color: var(--rouge); }
+
+/* le salon : le code en grand, à dire ou à envoyer */
+.jeu-salon { display: grid; gap: 6px; justify-items: center; text-align: center; }
+.jeu-code-titre { font-size: 13px; color: var(--encre-2); }
+.jeu-code { font: 400 38px/1.1 var(--police-titre); letter-spacing: .12em; color: var(--rouge); user-select: all; }
+.jeu-salon-boutons { display: grid; grid-template-columns: 1fr auto; gap: 8px; width: 100%; }
+.jeu .jeu-qr-bouton { width: auto; padding: 11px 13px; }
+.jeu .jeu-qr-bouton svg { color: var(--encre); }
+.jeu-qr { display: grid; justify-items: center; gap: 4px; }
+.jeu-qr svg { width: 190px; height: 190px; border: 1px solid var(--trait); }
+.jeu-qr small { font-size: 12.5px; color: var(--encre-3); }
+
+/* les joueurs : en attente, qui a validé, la manche, le classement */
+.jeu-joueurs { margin: 0; padding: 0; list-style: none; border-top: 1px solid rgba(138, 107, 69, .45); }
+.jeu-joueurs li {
+  display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 4px 4px 4px 2px;
+  border-bottom: 1px solid rgba(138, 107, 69, .45); font-size: 14.5px;
+}
+.jeu-joueurs li.moi { background: rgba(168, 50, 31, .08); }
+.jeu-joueurs li.absent { opacity: .55; }
+.jeu-pion { width: 13px; height: 13px; flex: none; margin: 0 3px; border-radius: 50%; background: var(--c); box-shadow: 0 0 0 2px var(--papier-clair), 0 0 0 3px var(--c); }
+.jeu-pseudo { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.jeu-pseudo small, .jeu-joueurs small { font-weight: 400; font-size: 12.5px; color: var(--encre-3); }
+.jeu-joueurs b { font-variant-numeric: tabular-nums; }
+.jeu-joueurs[data-vue="revele"] b { min-width: 3.4em; text-align: right; color: var(--rouge); }
+.jeu-statut { font-weight: 700; color: var(--encre-3); letter-spacing: .05em; }
+.jeu-statut.ok { color: var(--sarcelle); font-size: 16px; }
+/* pendant la manche : des pastilles sur une ligne, pour garder la place à la photo */
+.jeu-joueurs[data-vue="devine"] { display: flex; flex-wrap: wrap; gap: 6px; border: 0; }
+.jeu-joueurs[data-vue="devine"] li {
+  min-height: 0; padding: 3px 8px 3px 4px; gap: 5px; border: 1px solid var(--trait); border-radius: 999px;
+  background: var(--papier-clair); font-size: 13px;
+}
+.jeu-joueurs[data-vue="devine"] .jeu-pion { width: 10px; height: 10px; margin: 0 2px; }
+.jeu-joueurs[data-vue="devine"] .jeu-pseudo { flex: none; max-width: 9em; }
+.jeu-joueurs[data-vue="devine"] .jeu-pseudo small { display: none; }
+/* ajouter en ami, dans le salon et au classement */
+.jeu-ami {
+  display: inline-flex; align-items: center; gap: 3px; padding: 4px 8px; border: 1px solid var(--trait); border-radius: var(--rayon);
+  background: var(--papier-clair); font-size: 12.5px; font-weight: 600; color: var(--encre); white-space: nowrap;
+}
+.jeu-ami:hover { background: var(--papier-fonce); }
+.jeu-ami svg { width: 14px; height: 14px; color: var(--rouge); }
+.jeu-ami-deja svg { display: block; width: 17px; height: 17px; color: var(--rouge); }
+.jeu-ami-attente { white-space: nowrap; }
+
+/* le décompte avant la photo, à plusieurs */
+.jeu-decompte {
+  position: absolute; inset: 1px; display: none; place-items: center; pointer-events: none;
+  font: 400 72px/1 var(--police-titre); color: var(--papier-clair); text-shadow: 0 2px 10px rgba(0, 0, 0, .5);
+}
+.jeu.decompte .jeu-decompte { display: grid; }
+.jeu.decompte .jeu-image { background: #241a10; }
+
+/* les épingles des joueurs, à la révélation : de leur couleur, avec leur pseudo */
+.jeu-epingle-joueur span {
+  position: absolute; left: 25px; top: 3px; max-width: 9em; padding: 1px 6px; overflow: hidden; text-overflow: ellipsis;
+  border: 1.5px solid var(--c); border-radius: var(--rayon); background: var(--papier-clair);
+  font-size: 12px; font-weight: 700; color: var(--encre); white-space: nowrap; box-shadow: 0 2px 4px rgba(40, 26, 12, .3);
+}
+.jeu-epingle-joueur.moi span { background: var(--c); color: var(--papier-clair); }
+
+/* la liste d'amis */
+.jeu-amis { display: grid; gap: 10px; }
+.jeu-amis h3, .jeu-inviter h3 { margin: 4px 0 0; font: 400 17px var(--police-titre); }
+.amis-etat { margin: 0; font-size: 13.5px; font-weight: 600; color: var(--encre-3); }
+.amis-moi { display: grid; gap: 4px; }
+.amis-moi > span { font-size: 13px; color: var(--encre-2); }
+.amis-moi > b { font: 400 26px/1.2 var(--police-titre); letter-spacing: .1em; color: var(--rouge); white-space: nowrap; user-select: all; }
+.jeu .amis-moi .btn-secondaire { margin: 2px 0 0; }
+.amis-ajouter { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
+.amis-ajouter .champ-hasard { margin: 0; }
+.amis-ajouter input { text-transform: uppercase; letter-spacing: .06em; }
+.amis-ajouter input::placeholder { text-transform: none; }
+.jeu .amis-ajouter .btn-secondaire { width: auto; margin: 0; padding: 10px 12px; }
+.amis-liste { margin: 0; padding: 0; list-style: none; border-top: 1px solid rgba(138, 107, 69, .45); }
+.amis-liste li {
+  display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 3px 0 3px 2px;
+  border-bottom: 1px solid rgba(138, 107, 69, .45); font-size: 14.5px;
+}
+.amis-nom { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.amis-nom small { font-size: 12.5px; color: var(--encre-3); }
+.amis-point { width: 10px; height: 10px; flex: none; border-radius: 50%; background: #b8a888; }
+.amis-point.en-ligne { background: #3f8a3a; box-shadow: 0 0 0 3px rgba(63, 138, 58, .2); }
+.amis-bouton {
+  padding: 6px 10px; border: 1px solid var(--rouge); border-radius: var(--rayon); background: var(--rouge);
+  color: var(--papier-clair); font-size: 13px; font-weight: 700; white-space: nowrap;
+}
+.amis-bouton:hover { background: var(--rouge-survol); }
+.amis-bouton:disabled { opacity: .55; cursor: default; }
+.amis-bouton.discret { background: var(--papier-clair); color: var(--encre); border-color: var(--trait); }
+.amis-retirer {
+  min-width: 30px; height: 30px; display: grid; place-items: center; padding: 0 6px; border: 0; border-radius: var(--rayon);
+  background: none; color: var(--encre-3); font-size: 12.5px; font-weight: 700; white-space: nowrap;
+}
+.amis-retirer:hover { background: var(--papier-fonce); color: var(--encre); }
+.amis-retirer svg { width: 15px; height: 15px; }
+.amis-retirer.confirmer { color: var(--papier-clair); background: var(--rouge); }
+.amis-vide { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--encre-3); }
+.jeu-inviter { display: grid; gap: 6px; }
+
+/* une demande d'ami ou une invitation qui arrive : en haut de l'écran, même hors du jeu */
+.amis-alerte {
+  position: fixed; z-index: 31; top: var(--haut); left: 50%; transform: translateX(-50%);
+  width: min(380px, calc(100vw - 24px)); padding: 12px 14px; box-shadow: var(--filet), var(--ombre);
+  animation: alerte-arrive .35s var(--ease);
+}
+.amis-alerte p { margin: 0 0 10px; font: 400 17px/1.3 var(--police-titre); }
+.amis-alerte div { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.amis-alerte .btn-lancer, .amis-alerte .btn-secondaire { margin: 0; padding: 10px; font-size: 14.5px; }
+@keyframes alerte-arrive { from { transform: translate(-50%, -16px); opacity: 0; } }
+
 /* ---------- Téléphone ---------- */
 @media (max-width: 720px) {
   /* Jeu : la carte du jeu en haut (elle cache l'en-tête), le grand bouton en bas, sous le pouce */
@@ -1100,6 +1238,8 @@ body.en-jeu .filtres, body.en-jeu .bandeau, body.en-jeu .aide { display: none; }
   .jeu { top: var(--haut); right: 12px; width: auto; max-height: 52dvh; padding: 10px 12px 12px; gap: 8px; }
   .jeu-image { height: 24dvh; }
   .jeu.image-grande .jeu-image { height: 44dvh; }
+  /* à plusieurs, la révélation montre tous les joueurs : la photo se fait petite */
+  .jeu[data-multi="oui"][data-phase="revele"]:not(.image-grande) .jeu-image { height: 12dvh; }
   /* au-dessus des sources (OpenStreetMap, Mapterhorn), qui doivent rester lisibles, et à gauche de la rose */
   .jeu .jeu-action {
     position: fixed; left: 50%; bottom: calc(var(--bas) + 86px); transform: translateX(-50%);
