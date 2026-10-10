@@ -17,6 +17,8 @@ son premier temps est à 0,31 s, d'où le décalage : chaque scène dure deux me
 import argparse
 import base64
 import json
+import os
+import re
 import shutil
 import subprocess
 import sys
@@ -35,18 +37,38 @@ LARGEUR, HAUTEUR = 432, 768  # un vrai téléphone (l'interface à sa taille), f
 ATTENDRE = "window.carte && document.getElementById('chargement').classList.contains('fini')"
 # Les favoris du visiteur au début du film (le château de Himeji s'y ajoute pendant la scène 3)
 FAVORIS = ['kinkaku-ji', 'sanjusangen-do', 'todai-ji-daibutsu-den', 'itsukushima-jinja']
+# Les vidéos des lieux : celles du propriétaire, telles qu'il les a montées pour TikTok (pas dans le dépôt). Le
+# lecteur TikTok ne marche pas dans un navigateur piloté (TikTok le bloque) : les films voyage et pov montrent donc
+# un extrait du fichier de chaque lieu, préparé dans videos/extraits/ (720 × 1280, sans le son).
+VIDEOS_LIEUX = Path(os.environ.get('VIDEOS_LIEUX', r'D:\Montage\Vidéo lieux random japon'))
+DUREE_EXTRAIT = 4.0
+# id de la vidéo TikTok du lieu (colonne « Lien TikTok » du tableau) : (fichier dans VIDEOS_LIEUX, début de l'extrait
+# en s), choisis sur des planches-contact : un beau plan, sans le titre incrusté du début des vidéos
+EXTRAITS = {
+    '7650552780922424598': ('Hirosaki Castle.mp4', 31.0),  # le donjon derrière le pont rouge et les cerisiers
+    '7659091697707633942': ('Fuji Shibazakura Festival.mp4', 31.3),  # le Fuji au-dessus des champs de mousse rose
+    '7660227940243737878': ('Kinkaku-ji.mp4', 12.1),  # le pavillon d'or au-dessus de l'étang
+    '7647214222648151318': ('Itsukushima Shrine.mp4', 42.6),  # le torii à contre-jour, puis à marée basse
+    '7641695228323319043': ('SAKURAJIMA.mp4', 11.0),  # le panache de l'éruption
+    '7643858576523480342': ('Shuri castle.mp4', 46.6),  # la grande salle rouge
+    '7649489240199531778': ('Himeji Castle.mp4', 36.6),  # à travers les cerisiers, puis vu du ciel
+    '7666570788287286550': ('Kumano Nachi-taisha.mp4', 9.6),  # la pagode et la cascade dans la brume
+}
 # Les films : leurs scripts (injectés dans la page, dans l'ordre), leur musique (site/musique/<id>.m4a), l'instant
-# du morceau où le film commence, le nom des vidéos, les favoris du visiteur au début. commun.js : les outils
-# des films du 2026-10-10 (le premier, realisation.js, a les siens).
+# du morceau où le film commence, le nom des vidéos, les favoris du visiteur au début, les extraits de vidéos
+# qu'ils montrent. commun.js : les outils des films du 2026-10-10 (le premier, realisation.js, a les siens).
 FILMS = {
     'promo': {'scripts': ['realisation.js'], 'musique': 'peritune-michikusa', 'debut': DECALAGE_MUSIQUE, 'nom': 'promo-carte',
               'favoris': FAVORIS, 'de': True},
     # « Le grand voyage » : du nord au sud en une prise ; Ametsuchi (PeriTune), dès son premier temps
-    'voyage': {'scripts': ['commun.js', 'voyage.js'], 'musique': 'peritune-ametsuchi', 'debut': 0.12, 'nom': 'film-voyage', 'favoris': []},
+    'voyage': {'scripts': ['commun.js', 'voyage.js'], 'musique': 'peritune-ametsuchi', 'debut': 0.12, 'nom': 'film-voyage', 'favoris': [],
+               'extraits': ['7650552780922424598', '7659091697707633942', '7660227940243737878', '7647214222648151318',
+                            '7641695228323319043', '7643858576523480342']},
     # « Le zoom arrière » : d'un lieu à tout le Japon ; Awayuki (PeriTune) s'envole à 20,0 s, soit à 7 s du film
     'zoom': {'scripts': ['commun.js', 'zoom.js'], 'musique': 'peritune-awayuki', 'debut': 13.0, 'nom': 'film-zoom', 'favoris': []},
     # « POV voyageur » : le style d'une vidéo TikTok ; Avenue Cafe (魔王魂), 118 battements par minute, premier temps à 0,47 s
-    'pov': {'scripts': ['commun.js', 'pov.js'], 'musique': 'maou-bgm-acoustic38', 'debut': 0.466, 'nom': 'film-pov', 'favoris': []},
+    'pov': {'scripts': ['commun.js', 'pov.js'], 'musique': 'maou-bgm-acoustic38', 'debut': 0.466, 'nom': 'film-pov', 'favoris': [],
+            'extraits': ['7660227940243737878', '7649489240199531778', '7666570788287286550']},
 }
 
 
@@ -56,6 +78,71 @@ def ffmpeg():
         return exe
     import imageio_ffmpeg
     return imageio_ffmpeg.get_ffmpeg_exe()
+
+
+def preparer_extraits(ids):
+    """Coupe l'extrait de chaque vidéo (seulement ceux qui manquent) ; rend {id: fichier}."""
+    dossier = SORTIE / 'extraits'
+    dossier.mkdir(parents=True, exist_ok=True)
+    fichiers = {}
+    for id_ in ids:
+        source, debut = EXTRAITS[id_]
+        f = dossier / f'{id_}-{debut:g}.mp4'
+        if not f.exists():
+            print('Extrait :', source, flush=True)
+            # 9:16 comme les vidéos TikTok, une image clé toutes les 0,5 s (le lecteur cale vite son départ)
+            subprocess.run([ffmpeg(), '-hide_banner', '-loglevel', 'error', '-y', '-ss', str(debut), '-i', str(VIDEOS_LIEUX / source),
+                            '-t', str(DUREE_EXTRAIT), '-an',
+                            '-vf', 'scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,fps=30,format=yuv420p',
+                            '-c:v', 'libx264', '-preset', 'slow', '-crf', '16', '-g', '15', '-movflags', '+faststart', str(f)], check=True)
+        fichiers[id_] = f
+    return fichiers
+
+
+def faux_lecteur(id_, facteur):
+    """Une page qui imite le lecteur TikTok (player/v1 et ses messages) et joue l'extrait, au ralenti du tournage.
+    visite.js lui demande d'aller au début de l'extrait (seekTo) : l'extrait repart de 0, le temps annoncé en tient compte."""
+    return f"""<!doctype html><meta charset="utf-8"><style>html, body {{ margin: 0; height: 100%; background: #000; overflow: hidden; }}
+video {{ display: block; width: 100%; height: 100%; object-fit: cover; }}</style><video muted playsinline preload="auto"></video><script>
+const v = document.querySelector('video'), RALENTI = {facteur};
+let base = 0;
+const dire = (type, value) => parent.postMessage({{ type, value, 'x-tiktok-player': true }}, '*');
+const jouer = () => {{ v.playbackRate = RALENTI; v.play().catch(() => {{}}); }};
+fetch('/__extrait/{id_}.mp4').then((r) => (r.ok ? r.blob() : Promise.reject(r.status))).then((b) => {{
+  v.src = URL.createObjectURL(b);
+  v.addEventListener('loadeddata', () => {{ dire('onPlayerReady'); jouer(); }}, {{ once: true }});
+}}).catch(() => dire('onPlayerError', {{ errorCode: 1 }}));
+v.addEventListener('playing', () => dire('onStateChange', 1));
+v.addEventListener('pause', () => dire('onStateChange', 2));
+setInterval(() => {{ if (v.readyState) dire('onCurrentTime', {{ currentTime: base + v.currentTime, duration: 60 }}); }}, 100);
+addEventListener('message', (e) => {{
+  const d = e.data;
+  if (!d || !d['x-tiktok-player']) return;
+  if (d.type === 'play') jouer();
+  else if (d.type === 'pause') v.pause();
+  else if (d.type === 'seekTo') {{ base = Number(d.value) || 0; v.currentTime = 0; }}
+}});
+</script>"""
+
+
+def brancher_extraits(ctx, fichiers, facteur):
+    """Le lecteur TikTok (player/v1/<id>) devient le faux lecteur ; /__extrait/<id>.mp4 sert l'extrait (aux deux origines)."""
+    def tiktok(route):
+        m = re.search(r'/player/v1/(\d+)', route.request.url)
+        if m:
+            route.fulfill(status=200, content_type='text/html; charset=utf-8', body=faux_lecteur(m.group(1), facteur))
+        else:
+            route.fallback()
+
+    def extrait(route):
+        m = re.search(r'/__extrait/(\d+)\.mp4', route.request.url)
+        f = fichiers.get(m.group(1)) if m else None
+        if f:
+            route.fulfill(status=200, content_type='video/mp4', body=f.read_bytes())
+        else:
+            route.fulfill(status=404, body='')
+    ctx.route('https://www.tiktok.com/player/**', tiktok)
+    ctx.route('**/__extrait/*', extrait)
 
 
 def tourner(images, facteur, ips, dossier, reglages):
@@ -71,6 +158,8 @@ def tourner(images, facteur, ips, dossier, reglages):
         }} catch {{}}
         window.__FACTEUR_RALENTI = {facteur};""")
         ctx.add_init_script((ICI / 'ralenti.js').read_text(encoding='utf-8'))
+        if reglages.get('extraits'):
+            brancher_extraits(ctx, preparer_extraits(reglages['extraits']), facteur)
         p = ctx.new_page()
         erreurs = []
         p.on('pageerror', lambda e: erreurs.append(str(e)))

@@ -1,25 +1,31 @@
 // ================================================================
 //  Film « Le grand voyage » (9:16, 30 s) : une seule prise, sans bouton à l'écran. On survole le Japon du nord
-//  au sud, haut entre deux étapes, en rase-mottes au-dessus de chacune (son nom s'écrit sur la carte, en
-//  anglais et en japonais), jusqu'à Okinawa ; puis la caméra remonte et tourne pour montrer tout le Japon,
-//  avec l'adresse de la carte. Musique : « Ametsuchi » de PeriTune.
+//  au sud, haut entre deux étapes, en rase-mottes au-dessus de chacune, jusqu'à Okinawa ; puis la caméra
+//  remonte et tourne pour montrer tout le Japon, avec l'adresse de la carte. Musique : « Ametsuchi » de PeriTune.
+//  À chaque étape, une carte façon photo s'ouvre avec un extrait de la vidéo TikTok du lieu et son nom (anglais
+//  et japonais), reliée au lieu par un fil d'encre (le propriétaire l'a demandé le 2026-10-10). Les extraits
+//  viennent des fichiers du propriétaire : tourner.py les sert à /__extrait/<id de la vidéo>.mp4.
 //  La caméra suit un trajet calculé d'avance (cles ci-dessous) : chaque image, jumpTo() à l'instant du film.
 //  Sa hauteur est figée (setCenterClampedToGround(false)) et lissée, relevée pendant le repérage : sinon le
 //  centre suivrait le relief et la caméra sauterait au-dessus de chaque montagne.
 // ================================================================
 (() => {
   const film = window.__creerFilm({ duree: 30, css: `
-    /* les lieux : un point d'encre, un filet, le nom gravé (IM Fell, comme les noms de la carte) */
+    /* les lieux : un point d'encre qui bat sur la carte */
     #film .fm-lieu { position: absolute; width: 0; height: 0; }
     #film .fm-lieu-point { position: absolute; left: -7px; top: -7px; width: 14px; height: 14px; border-radius: 50%;
       background: #a8321f; box-shadow: 0 0 0 2.5px #f6eedb, 0 0 0 4px rgba(53, 37, 26, .55), 0 3px 8px rgba(30, 20, 10, .45); }
-    #film .fm-lieu-filet { position: absolute; left: -1px; bottom: 9px; width: 2px; height: 46px; background: #35251a;
-      box-shadow: 0 0 0 1.5px rgba(246, 238, 219, .75); transform-origin: 50% 100%; }
-    #film .fm-lieu-texte { position: absolute; left: 0; bottom: 60px; translate: -50% 0; text-align: center; white-space: nowrap; }
-    #film .fm-lieu-texte b { display: block; font: italic 400 34px/1.05 "IM Fell English", Georgia, serif; color: #2c1e14;
-      text-shadow: 0 0 2px #f6eedb, 0 0 6px #f6eedb, 0 0 12px rgba(246, 238, 219, .9), 0 0 22px rgba(246, 238, 219, .6); }
-    #film .fm-lieu-texte small { display: block; margin-top: 3px; font: 400 21px/1 "Zen Antique", serif; color: #a8321f; letter-spacing: .12em;
-      text-shadow: 0 0 2px #f6eedb, 0 0 6px #f6eedb, 0 0 12px rgba(246, 238, 219, .85); }
+    #film .fm-lieu-onde { position: absolute; left: -16px; top: -16px; width: 32px; height: 32px; border-radius: 50%; border: 2.5px solid #a8321f; }
+    /* la carte-photo : l'extrait de la vidéo du lieu, son nom écrit dessous, comme sur un tirage ; un fil d'encre la relie au lieu */
+    #film .fm-carte { position: absolute; width: 214px; padding: 9px 9px 0; background: var(--grain) 0 0 / 240px 240px, #f3ead4;
+      border: 1px solid #8a6b45; box-shadow: 0 14px 28px rgba(40, 26, 12, .45), 0 2px 5px rgba(40, 26, 12, .3); will-change: transform, opacity; }
+    #film .fm-carte video { display: block; width: 196px; height: 250px; object-fit: cover; background: #241a10; outline: 1px solid #35251a; }
+    #film .fm-carte figcaption { padding: 8px 2px 10px; text-align: center; }
+    #film .fm-carte b { display: block; font: italic 400 23px/1.05 "IM Fell English", Georgia, serif; color: #2c1e14; white-space: nowrap; }
+    #film .fm-carte small { display: block; margin-top: 5px; font: 400 16px/1 "Zen Antique", serif; color: #a8321f; letter-spacing: .12em; }
+    #film .fm-fils { position: absolute; left: 0; top: 0; overflow: visible; }
+    #film .fm-fils line { stroke: #35251a; stroke-width: 2; stroke-linecap: round; }
+    #film .fm-fils line.fond { stroke: rgba(246, 238, 219, .8); stroke-width: 5; }
     /* les grands titres du voyage : de Hokkaidō… à Okinawa */
     #film .fm-grand { position: absolute; left: 252px; translate: -50% 0; text-align: center; white-space: nowrap; }
     #film .fm-grand b { display: block; font: italic 400 50px/1.05 "IM Fell English", Georgia, serif; color: #2c1e14;
@@ -55,7 +61,7 @@
     [0.0, 142.75, 43.95, 7.2, 56], [1.0, 142.45, 43.55, 7.3, 57],
     [3.0, 140.53, 40.70, 9.4, 64], [4.3, 140.42, 40.53, 9.5, 65], // château de Hirosaki
     [6.0, 139.6, 37.9, 7.1, 57],
-    [7.6, 138.80, 35.47, 9.5, 65], [9.0, 138.66, 35.26, 9.6, 66], // mont Fuji
+    [7.6, 138.72, 35.52, 9.5, 65], [9.0, 138.60, 35.32, 9.6, 66], // Fuji Shibazakura, au pied du mont Fuji
     [10.0, 137.2, 35.15, 8.0, 60],
     [11.0, 135.80, 35.07, 10.4, 66], [12.4, 135.66, 35.01, 10.5, 66], // Kinkaku-ji, Kyoto
     [13.45, 134.0, 34.55, 8.1, 60],
@@ -67,14 +73,18 @@
     [25.8, 129.6, 29.2, 6.3, 52], [28.6, 137.6, 37.3, 4.5, 40], [31, 137.6, 37.3, 4.5, 40], // tout le Japon
   ];
   const CAP_FIN = 38; // le cap de la vue de départ du site sur téléphone : le Japon debout dans l'écran
+  // les étapes : des lieux de la carte, avec l'id de leur vidéo TikTok (l'extrait montré) ; cote : la carte-photo à
+  // gauche (g, sous le haut de l'écran) ou à droite (d, plus haut : en bas à droite, TikTok met ses boutons) ;
+  // cadrage : la partie de la vidéo gardée dans la carte (object-position), si le milieu ne convient pas
   const LIEUX = [
-    { t: 3.65, ou: [140.464, 40.608], nom: 'Hirosaki Castle', ja: '弘前城' },
-    { t: 8.3, ou: [138.727, 35.361], nom: 'Mount Fuji', ja: '富士山' },
-    { t: 11.7, ou: [135.729, 35.039], nom: 'Kinkaku-ji', ja: '金閣寺' },
-    { t: 15.2, ou: [132.320, 34.296], nom: 'Itsukushima Shrine', ja: '厳島神社' },
-    { t: 18.65, ou: [130.657, 31.583], nom: 'Sakurajima', ja: '桜島' },
-    { t: 23.4, ou: [127.719, 26.217], nom: 'Shuri Castle', ja: '首里城' },
+    { t: 3.65, ou: [140.4637, 40.6079], nom: 'Hirosaki Castle', ja: '弘前城', video: '7650552780922424598', cote: 'g', penche: -2.5 },
+    { t: 8.3, ou: [138.5885, 35.4410], nom: 'Fuji Shibazakura', ja: '富士芝桜まつり', video: '7659091697707633942', cote: 'd', penche: 2 },
+    { t: 11.7, ou: [135.7292, 35.0394], nom: 'Kinkaku-ji', ja: '金閣寺', video: '7660227940243737878', cote: 'g', penche: -1.8 },
+    { t: 15.2, ou: [132.3198, 34.2960], nom: 'Itsukushima Shrine', ja: '厳島神社', video: '7647214222648151318', cote: 'g', penche: 2.2 },
+    { t: 18.65, ou: [130.65, 31.5833], nom: 'Sakurajima', ja: '桜島', video: '7641695228323319043', cote: 'g', penche: -2 },
+    { t: 23.4, ou: [127.7195, 26.2170], nom: 'Shuri Castle', ja: '首里城', video: '7643858576523480342', cote: 'g', penche: 1.6, cadrage: '50% 20%' },
   ];
+  const CARTE = { g: { left: 22, top: 250 }, d: { left: 304, top: 132 } }, LARGE = 214, HAUTE = 322;
 
   const merc = ([lng, lat]) => [(lng + 180) / 360, (1 - Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360)) / Math.PI) / 2];
   const geo = ([x, y]) => [x * 360 - 180, (360 / Math.PI) * Math.atan(Math.exp((1 - 2 * y) * Math.PI)) - 90];
@@ -149,29 +159,73 @@
     ...(hauteurs ? { elevation: echantillon(hauteurs, t) } : {}),
   });
 
-  // ---------------------------------------------------------------- Les noms des lieux, gravés sur la carte
+  // ---------------------------------------------------------------- Les étapes : un point sur la carte, la vidéo du lieu
+  const fils = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  fils.setAttribute('class', 'fm-fils');
+  fils.setAttribute('width', 540);
+  fils.setAttribute('height', film.HAUT);
+  film.racine.append(fils);
+  const videos = [];
   for (const l of LIEUX) {
-    const el = element('fm-lieu', `<i class="fm-lieu-filet"></i><i class="fm-lieu-point"></i>
-      <div class="fm-lieu-texte"><b>${l.nom}</b><small>${l.ja}</small></div>`);
-    const [filet, point, texte] = el.children;
-    const [nom, ja] = texte.children;
-    const de = l.t - 1.05, a = l.t + 1.05;
+    const el = element('fm-lieu', '<i class="fm-lieu-onde"></i><i class="fm-lieu-point"></i>');
+    const [onde, point] = el.children;
+    const carte = element('fm-carte', `<video muted playsinline preload="auto"></video><figcaption><b>${l.nom}</b><small>${l.ja}</small></figcaption>`);
+    const [video, legende] = carte.children;
+    if (l.cadrage) video.style.objectPosition = l.cadrage; // Shuri : le bas de la vidéo est une bande floue
+    const [nom, ja] = legende.children;
+    const { left, top } = CARTE[l.cote];
+    carte.style.left = `${left}px`;
+    carte.style.top = `${top}px`;
+    carte.style.transformOrigin = l.cote === 'g' ? '100% 80%' : '0% 100%';
+    const traits = ['fond', ''].map((c) => {
+      const x = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      if (c) x.setAttribute('class', c);
+      fils.append(x);
+      return x;
+    });
+    videos.push({ video, id: l.video });
+    const de = l.t - 1.4, a = l.t + 1.0; // un peu avant le passage : après, le lieu file vers le bas de l'écran
+    let lance = false;
     chaqueImage((t) => {
-      el.hidden = t < de || t > a + 0.3;
-      if (el.hidden) return;
+      // la vidéo part juste avant que la carte-photo s'ouvre, au ralenti du tournage (comme toute la page)
+      if (!lance && t >= de - 0.12 && video.src) {
+        lance = true;
+        video.currentTime = 0;
+        video.playbackRate = window.__facteur || 1;
+        video.play().catch(() => {});
+      }
+      const cache = t < de || t > a + 0.35;
+      el.hidden = carte.hidden = cache;
+      for (const x of traits) x.style.display = cache ? 'none' : '';
+      if (cache) return;
       const p = map.project(l.ou);
-      el.style.left = `${f(p.x / film.ECHELLE, 1)}px`;
-      el.style.top = `${f(p.y / film.ECHELLE, 1)}px`;
-      const pin = borne((t - de) / 0.3), pout = borne((t - a) / 0.3);
-      el.style.opacity = f(1 - pout);
+      const px = p.x / film.ECHELLE, py = p.y / film.ECHELLE;
+      el.style.left = `${f(px, 1)}px`;
+      el.style.top = `${f(py, 1)}px`;
+      const pin = borne((t - de) / 0.35), pout = borne((t - a) / 0.35);
+      const vis = 1 - pout;
+      el.style.opacity = f(vis);
       point.style.transform = `scale(${f(pin ? ressort(pin) : 0, 3)})`;
-      filet.style.transform = `scaleY(${f(sortie(borne((t - de - 0.08) / 0.3)), 3)})`;
-      // le nom s'écrit de gauche à droite, puis le japonais apparaît
-      const pe = sortie(borne((t - de - 0.22) / 0.55));
-      nom.style.clipPath = `inset(-20px ${f((1 - pe) * 100, 1)}% -20px -20px)`;
-      const pj = sortie(borne((t - de - 0.6) / 0.35));
-      ja.style.opacity = f(pj);
-      ja.style.transform = `translateY(${f((1 - pj) * 8, 1)}px)`;
+      const po = ((t - de) % 1.1) / 1.1; // une onde par 1,1 s
+      onde.style.opacity = f((1 - po) * 0.8 * borne((t - de) / 0.2));
+      onde.style.transform = `scale(${f(0.4 + 1.3 * sortie(po), 3)})`;
+      // la carte-photo s'ouvre (un petit rebond, elle se redresse un peu), puis s'efface en remontant
+      const pc = borne((t - de - 0.1) / 0.45);
+      carte.style.opacity = f(Math.min(1, pc * 3) * vis);
+      carte.style.transform = `translateY(${f(-pout * 16, 1)}px) rotate(${f(l.penche - 5 * (1 - sortie(pc)), 2)}deg) scale(${f((0.55 + 0.45 * ressort(pc)) * (1 - 0.04 * pout), 4)})`;
+      const pe = sortie(borne((t - de - 0.45) / 0.55)); // le nom s'écrit de gauche à droite, puis le japonais
+      nom.style.clipPath = `inset(-10px ${f((1 - pe) * 100, 1)}% -10px -10px)`;
+      ja.style.opacity = f(sortie(borne((t - de - 0.8) / 0.35)));
+      // le fil : du bord de la carte-photo le plus proche jusqu'au point
+      const x = Math.max(left + 6, Math.min(left + LARGE - 6, px)), y = Math.max(top + 6, Math.min(top + HAUTE - 6, py));
+      const pf = sortie(borne((t - de - 0.3) / 0.4));
+      for (const tr of traits) {
+        tr.setAttribute('x1', f(x, 1));
+        tr.setAttribute('y1', f(y, 1));
+        tr.setAttribute('x2', f(x + (px - x) * pf, 1));
+        tr.setAttribute('y2', f(y + (py - y) * pf, 1));
+        tr.style.opacity = f(vis);
+      }
     });
   }
 
@@ -240,6 +294,15 @@
       s.textContent = `.repere, .nom-terre, .legende, .filigrane, .bandeau, .maplibregl-popup { display: none !important; }`;
       document.head.append(s);
       map.setCenterClampedToGround(false);
+      // les extraits des vidéos, chargés d'avance (en blob : la vidéo peut se caler n'importe où)
+      await Promise.all(videos.map(async ({ video, id }) => {
+        try {
+          const r = await fetch(`/__extrait/${id}.mp4`);
+          if (!r.ok) return;
+          video.src = URL.createObjectURL(await r.blob());
+          await new Promise((ok) => { video.addEventListener('loadeddata', ok, { once: true }); setTimeout(ok, 8000); });
+        } catch {}
+      }));
       const pas = 0.2, mesures = [];
       for (let t = 0; t <= 30.01; t += pas) {
         const c = camera(t);
