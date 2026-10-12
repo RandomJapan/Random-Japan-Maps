@@ -53,6 +53,7 @@ Le lieu apparaît sur la carte dès que le robot a fini, en environ 5 minutes.
 | Voir toutes les icônes | Ouvre la page `…/icones.html` de ton site |
 | Voir tous les modèles 3D | Ouvre la page `…/modeles.html` de ton site |
 | Relire ce que Claude a ajouté | Les lignes jaunes ont « À vérifier = Oui ». Corrige si besoin, puis efface le « Oui » |
+| Dire quand aller voir un lieu | Colonne **Saisons** (voir « Quand partir ? » plus bas) |
 
 ⚠️ Ne change pas les titres des colonnes (ligne 1), ni le nom des onglets **Lieux** et **Catégories**.
 
@@ -147,6 +148,33 @@ Les visiteurs peuvent toucher le **cœur** sur la fiche d'un lieu pour le mettre
   - Les temps sont des estimations, sans pauses ni bouchons. Les routes viennent d'OpenStreetMap, par un service gratuit (OSRM).
 - Le bouton **« Itinéraire dans Google Maps »** ouvre tout le trajet dans Google Maps, pour s'y guider en voiture. Au-delà de 10 lieux (5 sur téléphone), Google Maps n'accepte pas tout d'un coup : le voyage est alors coupé en plusieurs itinéraires.
 - Les favoris restent sur l'appareil du visiteur.
+
+### Partager son voyage
+
+Quand l'itinéraire est sur la carte, le bouton rouge **« Partager mon voyage »** (dans les favoris, ou **Partager** à côté du temps total) ouvre une petite fenêtre :
+- deux images verticales au choix, prêtes pour TikTok ou Instagram : **la carte en 3D** (la vraie carte avec la route rouge) ou **le carnet de voyage** (une petite carte dessinée, puis chaque étape avec sa photo). Ton adresse est en bas de chaque image ;
+- **Envoyer le lien** (ou **Copier le lien** sur ordinateur) : l'ami qui l'ouvre voit le même voyage et la même route, avec un bandeau pour **le garder dans ses favoris** ou lancer **la visite guidée**.
+
+L'image est toujours prise de jour, même s'il fait nuit au Japon.
+
+## Quand partir ? (les saisons)
+
+Le bouton **« Quand partir ? »** (un petit calendrier, à côté de Visite) ouvre les 12 mois. On choisit un mois : la liste montre les lieux à leur plus beau ce mois-là (cerisiers, couleurs d'automne…). **« Voir les lieux sur la carte »** efface presque les autres lieux (ceux qui sont beaux toute l'année restent à moitié visibles) ; le **×** à côté du mois remet tout. La fiche de chaque lieu montre aussi sa **meilleure période**, mois par mois.
+
+Tout vient de la colonne **Saisons** du tableau, que tu peux corriger :
+- écris une saison suivie des mois (de 1 à 12), et sépare-les par `;` : par exemple `cerisiers 4; automne 11-12`, ou `hiver 12-2` (de décembre à février) ;
+- les mots : `cerisiers`, `fleurs` (glycines, prunier, azalées…), `verdure`, `été`, `automne` (couleurs d'automne), `hiver` (neige, glace), `fête` (un festival) ;
+- `toute l'année` pour un lieu sans saison particulière ; une case vide n'affiche rien.
+
+Le robot remplit cette colonne pour chaque nouveau lieu. Les lieux déjà là ont été remplis par Claude le 12 octobre 2026.
+
+## Le jour, la nuit et les saisons sur la carte
+
+La carte suit le moment réel au Japon, toute seule :
+- **le jour**, puis **le coucher du soleil** (relief doré), puis **la nuit** (mer et relief bleu nuit, les lieux s'allument comme des lanternes). Au-dessus de la boussole, une petite étiquette donne **l'heure au Japon** ;
+- **la saison** : le relief verdit au printemps et en été, roussit en automne, la neige descend sur les montagnes l'hiver (le Fuji garde sa neige jusqu'en juin). Quelques pétales de cerisier, lucioles (les nuits de juin), feux d'artifice (l'été), feuilles d'érable ou flocons tombent sur la carte ; ils s'effacent pendant qu'on bouge la carte.
+
+Pour filmer de jour alors qu'il fait nuit au Japon, ajoute `?heure=12:00` à l'adresse (par exemple `map.randomjapanplace.com/?heure=12:00`). Tu peux aussi essayer un autre mois : `?heure=20:00&mois=8` (une nuit d'été, avec les feux d'artifice). `?ambiance=non` remet la carte de toujours.
 
 ## La visite guidée (pour filmer la carte)
 

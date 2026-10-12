@@ -19,6 +19,7 @@ import { brancherPrecharge } from './precharge.js';
 import { brancherTuilesRelief } from './tuiles-relief.js';
 import { gererReperes } from './reperes.js';
 import { preparerAmbiance } from './ambiance.js';
+import { lireSaisons, blocFiche, contenuPanneau, lieuxDuMois, nomMois, iconeDuMois } from './saisons.js';
 
 const $ = (id) => document.getElementById(id);
 const estTelephone = () => matchMedia('(max-width: 720px)').matches;
@@ -190,6 +191,8 @@ function construireLieux(lignes) {
       photo: champ(r, ['photo', 'image']),
       autreLien: champ(r, ['autrelien', 'lien', 'link']),
       debutVideo: lireSecondes(champ(r, ['debutvideo', 'debutvideos', 'debutdelavideo', 'videostart'])),
+      // Quand y aller : « cerisiers 4; automne 11 », « toute l'année »… (saisons.js)
+      saisons: lireSaisons(champ(r, ['saisons', 'saison', 'seasons', 'season', 'quandpartir', 'meilleuresaison'])),
     });
   });
   // Nouveau : la vidéo a moins de CONFIG.joursNouveau jours
@@ -942,7 +945,7 @@ function construireNouveautes(ul) {
 /** Depuis un menu (recherche, liste d'une catégorie, dé) : vole vers le lieu et ouvre sa fiche. */
 function allerAuLieu(l, options = {}) {
   if (!l.cat.visible) { l.cat.visible = true; construireMenu(); appliquerFiltres(); }
-  if (estTelephone()) { ouvrirMenu(false); ouvrirHasard(false); ouvrirFavoris(false); ouvrirVisite(false); }
+  if (estTelephone()) { ouvrirMenu(false); ouvrirHasard(false); ouvrirFavoris(false); ouvrirVisite(false); ouvrirSaisons(false); }
   ouvrirLieu(l, options);
 }
 
@@ -961,7 +964,7 @@ function toutCocher(visible) {
 function ouvrirMenu(ouvrir) {
   $('menu-categories').hidden = !ouvrir;
   $('btn-categories').setAttribute('aria-expanded', String(ouvrir));
-  if (ouvrir) { ouvrirHasard(false); ouvrirLegendes(false); ouvrirFavoris(false); ouvrirVisite(false); ouvrirMusique(false); }
+  if (ouvrir) { ouvrirHasard(false); ouvrirLegendes(false); ouvrirFavoris(false); ouvrirVisite(false); ouvrirMusique(false); ouvrirSaisons(false); }
   if (ouvrir && !estTelephone()) $('recherche').focus();
 }
 
@@ -989,6 +992,7 @@ function ouvrirLegendes(ouvrir) {
   ouvrirHasard(false);
   ouvrirFavoris(false);
   ouvrirVisite(false);
+  ouvrirSaisons(false);
   ouvrirMusique(false);
   legendes?.remplirPanneau();
 }
@@ -1073,6 +1077,7 @@ async function ouvrirHasard(ouvrir) {
   ouvrirLegendes(false);
   ouvrirFavoris(false);
   ouvrirVisite(false);
+  ouvrirSaisons(false);
   ouvrirMusique(false);
   if (!$('choix-region').options.length) {
     $('hasard-info').textContent = '…';
@@ -1189,6 +1194,7 @@ function ouvrirFavoris(ouvrir) {
   ouvrirHasard(false);
   ouvrirLegendes(false);
   ouvrirVisite(false);
+  ouvrirSaisons(false);
   ouvrirMusique(false);
   remplirFavoris();
 }
@@ -1357,6 +1363,64 @@ function majResume() {
   $('resume-effacer').setAttribute('aria-label', t('effacerItineraire'));
 }
 
+// ---------------------------------------------------------------- Quand partir ? (saisons.js)
+// Le calendrier des 12 mois : les lieux à leur plus beau ce mois-là (la colonne « Saisons » du tableau). « Voir sur la
+// carte » efface les autres : très peu les lieux hors saison, un peu ceux qui sont beaux toute l'année.
+let moisSaison = null; // le mois montré sur la carte, ou null
+let moisPanneau = null; // le mois choisi dans le calendrier
+const moisAuJapon = () => Number(new Intl.DateTimeFormat('en', { timeZone: 'Asia/Tokyo', month: 'numeric' }).format(new Date()));
+const pastilleLieu = (l) => `<span class="pastille" style="--c:${l.cat.couleur}">${iconeHTML(l.cat.icone)}</span>`;
+
+function ouvrirSaisons(ouvrir) {
+  $('panneau-saisons').hidden = !ouvrir;
+  $('btn-saisons').setAttribute('aria-expanded', String(ouvrir));
+  majPastilleSaison();
+  if (!ouvrir) return;
+  ouvrirMenu(false);
+  ouvrirHasard(false);
+  ouvrirLegendes(false);
+  ouvrirFavoris(false);
+  ouvrirVisite(false);
+  ouvrirMusique(false);
+  moisPanneau = moisSaison || moisPanneau || moisAuJapon();
+  remplirSaisons();
+}
+
+function remplirSaisons() {
+  $('panneau-saisons').innerHTML = contenuPanneau({ lieux, mois: moisPanneau, t, langue, enLangue, pastille: pastilleLieu });
+}
+
+/** Montre sur la carte les lieux d'un mois (null : tous). */
+function montrerSaison(mois) {
+  moisSaison = mois;
+  const enSaison = new Set(mois ? lieuxDuMois(lieux, mois) : lieux);
+  for (const l of lieux) {
+    const ailleurs = !!mois && !enSaison.has(l);
+    l.el.classList.toggle('hors-saison', ailleurs && !l.saisons.annee);
+    l.el.classList.toggle('toute-annee', ailleurs && l.saisons.annee);
+  }
+  majPastilleSaison();
+  if (!mois || !enSaison.size) return;
+  arreterRotation();
+  const bornes = new maplibregl.LngLatBounds();
+  for (const l of enSaison) bornes.extend([l.lng, l.lat]);
+  const m = estTelephone() ? { top: 140, bottom: 90, left: 40, right: 40 } : { top: 110, bottom: 80, left: 80, right: 80 };
+  const vue = map.cameraForBounds(bornes, { padding: m, bearing: map.getBearing(), maxZoom: 7.5 });
+  if (vue) map.flyTo({ ...vue, pitch: Math.min(map.getPitch(), 40), duration: 1800, essential: true });
+}
+
+function majPastilleSaison() {
+  const b = $('resume-saison');
+  b.hidden = !moisSaison || !$('panneau-saisons').hidden;
+  if (!moisSaison) return;
+  const nom = nomMois(moisSaison, langue);
+  $('saison-details').innerHTML = `<span aria-hidden="true">${iconeDuMois(moisSaison)}</span><b>${esc(nom.charAt(0).toUpperCase() + nom.slice(1))}</b>`
+    + `<span>· ${esc(t('saisonsPastille', lieuxDuMois(lieux, moisSaison).length))}</span>`;
+  $('saison-details').title = t('saisonsTitre');
+  $('saison-effacer').title = t('saisonsEffacer');
+  $('saison-effacer').setAttribute('aria-label', t('saisonsEffacer'));
+}
+
 // ---------------------------------------------------------------- Partager son voyage (partage-voyage.js)
 // Un lien qui montre le même voyage à qui l'ouvre, et une image à poster (la carte en 3D ou le carnet de voyage).
 let partageVoyage = null;
@@ -1462,6 +1526,7 @@ const visite = brancherVisite(map, {
     ouvrirLegendes(false);
     ouvrirFavoris(false);
     ouvrirVisite(false);
+    ouvrirSaisons(false);
     ouvrirMusique(false);
   },
   apres: () => {},
@@ -1481,6 +1546,7 @@ function ouvrirMusique(ouvrir) {
   ouvrirLegendes(false);
   ouvrirFavoris(false);
   ouvrirVisite(false);
+  ouvrirSaisons(false);
   musique.remplir();
 }
 
@@ -1801,6 +1867,7 @@ async function lancerJeu(quoi = {}) {
         ouvrirLegendes(false);
         ouvrirFavoris(false);
         ouvrirVisite(false);
+        ouvrirSaisons(false);
       },
       apres: () => {},
     });
@@ -1875,6 +1942,7 @@ async function ouvrirVisite(ouvrir) {
   ouvrirLegendes(false);
   ouvrirFavoris(false);
   ouvrirMusique(false);
+  ouvrirSaisons(false);
   if (!$('visite-region').options.length) {
     $('txt-visite-lancer').textContent = '…';
     $('btn-visite-lancer').disabled = true;
@@ -2014,6 +2082,7 @@ async function remplirFiche(l) {
   $('fiche-date').innerHTML = date
     ? `${l.nouveau ? `<span class="etiquette-nouveau">${esc(t('nouveau'))}</span>` : ''}${esc(t('videoDu', date))}` : '';
   $('fiche-description').textContent = enLangue(l.description);
+  $('fiche-saisons').innerHTML = blocFiche(l, { t, langue });
 
   // Photo + bouton pour lire la vidéo TikTok directement dans la fiche
   const media = $('fiche-media');
@@ -2191,6 +2260,10 @@ function appliquerLangue() {
     if (l.nouveau) l.el.querySelector('.repere-nouveau').textContent = t('nouveau');
   }
   $('txt-favoris').textContent = t('favoris');
+  $('txt-saisons').textContent = t('saisonsBouton');
+  $('btn-saisons').title = t('saisonsTitre');
+  if (!$('panneau-saisons').hidden) remplirSaisons();
+  majPastilleSaison();
   $('btn-favoris').title = t('favorisTitre');
   $('txt-visite').textContent = t('visite');
   $('btn-visite').title = t('visiteTitre');
@@ -2323,6 +2396,32 @@ function brancherBoutons() {
     partagerVoyage();
   });
   $('voyage-garder').addEventListener('click', garderVoyage);
+  $('btn-saisons').addEventListener('click', (e) => {
+    e.stopPropagation();
+    ouvrirSaisons($('panneau-saisons').hidden);
+  });
+  $('panneau-saisons').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const mois = e.target.closest('[data-mois]')?.dataset.mois;
+    const lieu = e.target.closest('[data-lieu]')?.dataset.lieu;
+    if (mois) {
+      moisPanneau = Number(mois);
+      remplirSaisons();
+      if (moisSaison) montrerSaison(moisPanneau); // la carte suit le mois choisi
+    } else if (lieu) allerAuLieu(lieux.find((l) => l.id === lieu));
+    else if (e.target.closest('[data-voir-saison]')) {
+      ouvrirSaisons(false);
+      montrerSaison(moisPanneau);
+    }
+  });
+  $('saison-details').addEventListener('click', (e) => {
+    e.stopPropagation();
+    ouvrirSaisons(true);
+  });
+  $('saison-effacer').addEventListener('click', (e) => {
+    e.stopPropagation();
+    montrerSaison(null);
+  });
   $('voyage-visite').addEventListener('click', () => { if (voyageRecu) lancerVisite(voyageRecu.lieux); });
   $('voyage-recu-fermer').addEventListener('click', effacerItineraire);
   $('onglet-visite').addEventListener('click', () => choisirOnglet('visite'));
@@ -2382,6 +2481,7 @@ function brancherBoutons() {
     ouvrirLegendes(false);
     ouvrirFavoris(false);
     ouvrirVisite(false);
+    ouvrirSaisons(false);
     ouvrirMusique(false);
   });
   $('recherche').addEventListener('input', rechercher);
@@ -2411,6 +2511,7 @@ function brancherBoutons() {
     else if (!$('panneau-favoris').hidden) ouvrirFavoris(false);
     else if (!$('panneau-visite').hidden) ouvrirVisite(false);
     else if (!$('panneau-musique').hidden) ouvrirMusique(false);
+    else if (!$('panneau-saisons').hidden) ouvrirSaisons(false);
     else fermerFiche();
   });
   window.addEventListener('hashchange', ouvrirDepuisAdresse);

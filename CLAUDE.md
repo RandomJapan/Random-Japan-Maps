@@ -229,6 +229,15 @@ In the far view (below `ZOOM_CALME` = 7.2) the sea comes alive. The owner settle
   - no creature appears.
 - **Filming it.** For GIFs, Playwright can slow the page: wrap `requestAnimationFrame` timestamps and set `playbackRate` on `document.getAnimations()` in an init script. Then set the GIF frame times back to real speed.
 
+### When to go: the places' seasons (`site/saisons.js`, 2026-10-12)
+
+The owner chose, from examples, a 12-month calendar plus a "best time to visit" block on each place card (options B + C; A was four season chips in the Categories menu).
+- **The data** is the Sheet's `Saisons` column (alias list in `construireLieux`), read by `lireSaisons`: items separated by `;`, each a French keyword then months 1–12 (`cerisiers 4; automne 11-12`, `hiver 12-2` wraps over the new year, `fleurs 4,5`), or `toute l'année`. Keywords (accents and case ignored, English and Japanese aliases accepted, matched on the first word so `fête` never reads as `été`): `cerisiers`, `fleurs`, `verdure`, `été`, `automne` (autumn colours, including red glasswort), `hiver` (snow, ice, drift ice, winter illuminations, clear winter Fuji), `fête` (a festival at the place). `SORTES` gives each its emoji, colour and labels (`saison_*` in `TEXTES`). A real season wins over `toute l'année`. Unknown words are ignored; an empty cell shows nothing.
+- **Filling it.** `outils/saisons-depart.json` holds the values I chose for the 134 places of 2026-10-12 (62 "all year", 37 autumn, 13 cherry, 13 summer, 11 festival, 10 flowers, 10 winter, 3 greenery). The robot's `remplirSaisons()` (run once from the Apps Script editor) fetches it from GitHub and fills only the empty cells, by `Nom (EN)`. `colonnes_` adds the `Saisons` column if missing (like `Robot`). For new rows, Gemini call 2 returns `saisons` in the same format (rules in `CONSIGNES_REDIGER`), cleaned by `nettoyerSaisons_` and written only into an empty cell. After that the Sheet is the source: the JSON is not read by the site.
+- **The calendar** (`#btn-saisons` "When to go", icon-only on phones; `#panneau-saisons`, opened by `ouvrirSaisons`, closed by every other panel and the reverse): `contenuPanneau` draws the 12 months (kanji month + short name, an underline in the season's colour), opening on the current month in Japan, then the places at their best that month grouped by season (each place under its first season, north to south; a tap flies to it), then "Show the n places on the map". `montrerSaison(mois)` gives the other pins `.hors-saison` (opacity 0.2, greyed) or, for places beautiful all year, `.toute-annee` (0.55), and frames the season's places. The pill `#resume-saison` (reusing the itinerary summary styles) shows the month and count; a tap reopens the calendar (changing month there moves the map too), × clears.
+- **The card**: `blocFiche` fills `#fiche-saisons` under the category line: a 12-month bar coloured by season, then one line per season with its months (`texteMois` groups consecutive months: "November – December", "December – February"), or "Beautiful all year round".
+- Texts: `saisons*` and `saison_*` in `TEXTES`. Tests: route the Sheet CSV in Playwright and add a `Saisons` column (the 2026-10-12 session's `test_saisons.py`).
+
 ### Time of day and seasons (`site/ambiance.js`, `site/teintes.js`)
 
 On 2026-10-12 the owner chose, from an examples page, a map that follows the real moment in Japan: day, sunrise or sunset, night, and the season, all automatic (no switch button), with the time in Japan shown.
@@ -469,7 +478,7 @@ The robot is a Google Apps Script. The owner pastes a TikTok link into an empty 
      - Without it, Gemini read "Ibuki" as the juniper tree and placed Ibuki Island's artwork 37 km away, in Manno.
   3. Gemini call 1 (`identifierLieu_`) returns the place name plus search queries. Compilations are moved to the `À trier` tab.
   4. It searches Wikipedia (en + ja) and runs a second geocode with call 1's Japanese query. All of these are free and keyless.
-  5. Gemini call 2 (`redigerFiche_`) writes `nom_fr`, the category and the 3 descriptions, and picks a GPS source (`google_maps_legende`, `google_maps` or `wikipedia_*`).
+  5. Gemini call 2 (`redigerFiche_`) writes `nom_fr`, the category, the 3 descriptions and the seasons (`saisons`, see When to go), and picks a GPS source (`google_maps_legende`, `google_maps` or `wikipedia_*`).
   6. `choisirGPS_` prefers a precise Google Maps hit within 3 km. It flags `approx` when Maps only found an area, or when Wikipedia and precise Maps disagree.
   - An `approx` row gets `Afficher ? = Non`, so no wrong pin goes public.
   - **The EN/JA names always come from call 1, in code.** With the name left to call 2, Gemini (especially flash-lite) renamed Udo Inari Shrine to its famous neighbour Udo Jingū, because Wikipedia only covers the latter.

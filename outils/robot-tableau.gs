@@ -4,7 +4,7 @@
  *
  *  Colle le lien d'une vidéo TikTok dans une ligne vide de l'onglet « Lieux »
  *  (colonne « Nom (EN) » ou « Lien TikTok ») : le robot remplit tout le reste
- *  (noms, GPS, catégorie, descriptions en 3 langues), puis colore la ligne
+ *  (noms, GPS, catégorie, descriptions en 3 langues, saisons), puis colore la ligne
  *  en jaune « À vérifier ». La colonne « Robot » montre ce qu'il fait,
  *  ses doutes et ses erreurs.
  *
@@ -29,6 +29,11 @@ const ONGLET_LIEUX = 'Lieux';
 const ONGLET_CATEGORIES = 'Catégories';
 const ONGLET_A_TRIER = 'À trier';
 const COLONNE_ROBOT = 'Robot';
+// Quand aller voir le lieu (le calendrier et la fiche de la carte) : « cerisiers 4; automne 11 », « toute l'année »…
+const COLONNE_SAISONS = 'Saisons';
+const SAISONS = ['cerisiers', 'fleurs', 'verdure', 'été', 'automne', 'hiver', 'fête'];
+// Les saisons de départ des lieux déjà sur la carte (2026-10-12), copiées une fois par remplirSaisons()
+const SAISONS_DEPART = 'https://raw.githubusercontent.com/RandomJapan/Random-Japan-Maps/main/outils/saisons-depart.json';
 const COLONNES_OBLIGATOIRES = ['Nom (EN)', 'Nom (FR)', 'Nom (日本語)', 'Catégorie', 'Coordonnées GPS', 'Lien TikTok',
   'Description (EN)', 'Description (FR)', 'Description (日本語)', 'Afficher ?', 'À vérifier'];
 
@@ -139,6 +144,7 @@ function traiterLigne_(feuille, col, tache, donnees) {
     mettre('Description (FR)', fiche.description_fr);
     mettre('Description (日本語)', fiche.description_ja);
     if (wikipedia && !String(ligne[col['Autre lien'] - 1] || '').trim()) mettre('Autre lien', wikipedia);
+    if (fiche.saisons && !String(ligne[col[COLONNE_SAISONS] - 1] || '').trim()) mettre(COLONNE_SAISONS, fiche.saisons);
     // Position pas sûre : on cache le lieu plutôt que de mettre une épingle au mauvais endroit sur la carte publique
     mettre('Afficher ?', gps && gps.approx ? 'Non' : 'Oui');
     mettre('À vérifier', 'Oui');
@@ -309,13 +315,14 @@ const CONSIGNES_IDENTIFIER = `You help a robot add places to an interactive map 
 - remarque: one short sentence in French when you are unsure or when it is not a single place, otherwise "".`;
 
 const CONSIGNES_REDIGER = `You write one entry of an interactive map of Japan that lists every place featured in the TikTok videos of the travel account @random_japan_place. You receive the place (its name is already decided from the video caption), the caption, search results from Wikipedia and Google Maps (each with an id) and the allowed categories. Reply with a single JSON object and nothing else:
-{"source_gps": string, "nom_fr": string, "categorie": string, "description_en": string, "description_fr": string, "description_ja": string, "confiance": "haute" | "moyenne" | "basse", "remarque": string}
+{"source_gps": string, "nom_fr": string, "categorie": string, "description_en": string, "description_fr": string, "description_ja": string, "saisons": string, "confiance": "haute" | "moyenne" | "basse", "remarque": string}
 - The entry is about the given place, under its given name. Search results can be about another place, often a more famous neighbour (for example the main shrine next to a small shrine): use them only for the surroundings, and never describe that other place as if it were this one.
 - source_gps: the id of the search result that is exactly this place and gives its position (for example "wikipedia_en_1" or "google_maps_legende"), or "aucune". A result about the town or a neighbouring place does not count. "google_maps_legende" is Google Maps' answer for the exact name written in the caption: when it is a precise place, it is usually the right one. Use its address to say where the place is.
 - nom_fr: the French name of the given place in the map's style ("Sanctuaire Udo Inari", "Temple Nanzoin", "Cascade de Kegon", "Château de Himeji", "Lac Tazawa"; famous Japanese names such as "Kinkaku-ji" stay as they are).
 - categorie: exactly one key from the allowed categories.
 - description_en, description_fr, description_ja: the same 2 or 3 sentences in each language, factual and warm, in a travel-guide tone, written in your own words (never copy sentences from the sources). Start with where it is (town, prefecture), then what makes it special. Natural Japanese in です/ます style. Example: "Located in Kami Town, Hyogo Prefecture, Choraku-ji is a temple famously home to the Tajima Daibutsu: three monumental golden Buddha statues set within a vast main hall. Surrounded by tranquil mountain scenery, the complex also features a tall wooden five-story pagoda and thousands of smaller gilded Buddhist figures along its walls."
 - Only use facts from the search results or facts you are certain of. When no search result describes the place itself (only its town, island or a neighbour), do not invent what it looks like, what it is made of or its history: in 2 short sentences, say where it is and what kind of place the caption says it is.
+- saisons: when this place is at its best, for travellers choosing when to go. One or more items separated by "; ", each a French keyword then the months (1 to 12: one month, or a range such as 11-12): "cerisiers" (cherry blossoms), "fleurs" (other flowers: plum, wisteria, azaleas, moss phlox, hydrangeas, lavender…), "verdure" (fresh green, moss), "été" (summer: beaches, climbing season, open only in summer), "automne" (autumn colours), "hiver" (snow, ice, drift ice, winter illuminations), "fête" (a famous festival held at this place). Only seasons you are sure of for this very place. When it has no particular season, write "toute l'année". Example: "cerisiers 4; automne 11".
 - confiance: "haute" only when a search result describes this exact place, "moyenne" when you are fairly sure of the description, "basse" when no source describes the place itself.
 - remarque: one short sentence in French for the channel owner when something is uncertain, otherwise "".`;
 
@@ -350,6 +357,7 @@ function redigerFiche_(video, identification, sources, categories) {
   for (const k of ['nom_fr', 'description_en', 'description_fr', 'description_ja', 'remarque', 'confiance', 'source_gps']) {
     f[k] = String(f[k] == null ? '' : f[k]).trim();
   }
+  f.saisons = nettoyerSaisons_(f.saisons);
   // Le nom vient toujours de la légende (1re question) : l'IA ne peut pas le remplacer par un lieu voisin plus connu
   f.nom_en = String(identification.nom_en || '').trim();
   f.nom_ja = String(identification.nom_ja || '').trim();
@@ -452,15 +460,16 @@ function feuilleLieux_() {
   return f;
 }
 
-/** Numéro de chaque colonne d'après la ligne 1 ; ajoute la colonne « Robot » si elle manque. */
+/** Numéro de chaque colonne d'après la ligne 1 ; ajoute les colonnes « Robot » et « Saisons » si elles manquent. */
 function colonnes_(feuille) {
   let entetes = feuille.getRange(1, 1, 1, feuille.getLastColumn()).getValues()[0].map((v) => String(v).trim());
-  if (!entetes.includes(COLONNE_ROBOT)) {
+  for (const [nom, largeur] of [[COLONNE_ROBOT, 420], [COLONNE_SAISONS, 220]]) {
+    if (entetes.includes(nom)) continue;
     const n = entetes.length + 1;
     feuille.getRange(1, 1).copyTo(feuille.getRange(1, n), SpreadsheetApp.CopyPasteType.PASTE_FORMAT, false);
-    feuille.getRange(1, n).setValue(COLONNE_ROBOT);
-    feuille.setColumnWidth(n, 420);
-    entetes = entetes.concat(COLONNE_ROBOT);
+    feuille.getRange(1, n).setValue(nom);
+    feuille.setColumnWidth(n, largeur);
+    entetes = entetes.concat(nom);
   }
   const col = {};
   entetes.forEach((nom, i) => { if (nom && !col[nom]) col[nom] = i + 1; });
@@ -483,6 +492,49 @@ function versATrier_(video, identification) {
   const pourquoi = identification.type_video === 'compilation'
     ? 'Compilation : plusieurs lieux (ajoutée par le robot)' : 'Pas un lieu précis (ajoutée par le robot)';
   f.appendRow([video.url, video.legende, identification.remarque ? `${pourquoi}. ${identification.remarque}` : pourquoi, '']);
+}
+
+// --- Saisons ------------------------------------------------------------------
+/** Garde des saisons propres : les mots connus et des mois de 1 à 12 (« automne 11-12; hiver 1 »), ou « toute l'année ». */
+function nettoyerSaisons_(texte) {
+  const sansAccent = (t) => String(t).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const bons = [];
+  for (const morceau of String(texte || '').split(/[;\n]+/)) {
+    const m = sansAccent(morceau).trim();
+    if (!m) continue;
+    if (/toute|annee|all year/.test(m)) { bons.push('toute l\'année'); continue; }
+    const cle = SAISONS.find((s) => m.startsWith(sansAccent(s)));
+    const mois = (m.match(/\d{1,2}(\s*-\s*\d{1,2})?/g) || []).map((x) => x.replace(/\s/g, ''))
+      .filter((x) => x.split('-').every((n) => Number(n) >= 1 && Number(n) <= 12));
+    if (cle && mois.length) bons.push(`${cle} ${mois.join(',')}`);
+  }
+  return bons.includes('toute l\'année') && bons.length > 1 ? bons.filter((b) => b !== 'toute l\'année').join('; ') : bons.join('; ');
+}
+
+/**
+ * À lancer une fois (2026-10-12) : remplit la colonne « Saisons » des lieux déjà sur la carte (seulement les cases
+ * vides), avec les saisons préparées dans outils/saisons-depart.json. Les nouveaux lieux reçoivent leurs saisons du
+ * robot. Ensuite, on corrige directement dans le tableau.
+ */
+function remplirSaisons() {
+  const depart = JSON.parse(UrlFetchApp.fetch(SAISONS_DEPART).getContentText());
+  const feuille = feuilleLieux_();
+  const col = colonnes_(feuille);
+  const n = feuille.getLastRow() - 1;
+  if (n < 1) return;
+  const noms = feuille.getRange(2, col['Nom (EN)'], n, 1).getValues();
+  const plage = feuille.getRange(2, col[COLONNE_SAISONS], n, 1);
+  const saisons = plage.getValues();
+  let remplies = 0;
+  noms.forEach(([nom], i) => {
+    const valeur = depart[String(nom).trim()];
+    if (valeur && !String(saisons[i][0]).trim()) {
+      saisons[i][0] = valeur;
+      remplies++;
+    }
+  });
+  plage.setValues(saisons);
+  console.log(`Saisons remplies : ${remplies} lieux ✅`);
 }
 
 // --- Petits outils ----------------------------------------------------------

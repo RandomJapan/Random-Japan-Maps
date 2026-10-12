@@ -61,6 +61,11 @@
         <svg class="camera" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M3 7.5h11.5v9H3zM14.5 10.5l6-3v9l-6-3"/></svg>
         <span class="texte-bouton" id="txt-visite">Tour</span>
       </button>
+      <!-- Quand partir ? Les lieux à leur plus beau chaque mois (saisons.js) -->
+      <button class="bouton-categories bouton-saisons panneau" id="btn-saisons" aria-expanded="false" aria-controls="panneau-saisons">
+        <svg class="calendrier" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M3.5 10h17M8 3v4M16 3v4"/><path fill="currentColor" d="M12 12.2c1.4 1.2 2.7 1.6 2.7 3.3a2.7 2.7 0 0 1-5.4 0c0-1.7 1.3-2.1 2.7-3.3Z"/></svg>
+        <span class="texte-bouton" id="txt-saisons">When to go</span>
+      </button>
       <!-- Favoris : le bouton apparaît dès qu'on a mis un cœur sur un lieu -->
       <button class="bouton-categories bouton-favoris panneau" id="btn-favoris" aria-expanded="false" aria-controls="panneau-favoris" hidden>
         <svg class="coeur" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 20.3s-7.4-4.5-9.2-9.1C1.5 7.8 3.7 4.6 7 4.6c2 0 3.6 1.1 5 2.9 1.4-1.8 3-2.9 5-2.9 3.3 0 5.5 3.2 4.2 6.6-1.8 4.6-9.2 9.1-9.2 9.1Z"/></svg>
@@ -73,6 +78,11 @@
         <!-- Partager son voyage : un lien et une image à poster (partage-voyage.js) -->
         <button type="button" class="resume-partager" id="resume-partager"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 13v6a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-6"/></svg><span id="txt-resume-partager">Share</span></button>
         <button type="button" class="resume-effacer" id="resume-effacer"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M7 7l10 10M17 7 7 17"/></svg></button>
+      </div>
+      <!-- Le mois montré sur la carte (les autres lieux s'effacent) : un appui rouvre le calendrier, × montre tout -->
+      <div class="resume-itineraire resume-saison panneau" id="resume-saison" hidden>
+        <button type="button" class="resume-details" id="saison-details"></button>
+        <button type="button" class="resume-effacer" id="saison-effacer"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M7 7l10 10M17 7 7 17"/></svg></button>
       </div>
       <!-- Légendes cachées : le bouton apparaît quand on en a trouvé une (legendes.js) -->
       <button class="bouton-categories bouton-legendes panneau" id="btn-legendes" aria-expanded="false" aria-controls="panneau-legendes" hidden>
@@ -88,6 +98,7 @@
     </div>
     <div class="menu panneau" id="panneau-legendes" hidden></div>
     <div class="menu panneau" id="panneau-favoris" hidden></div>
+    <div class="menu panneau hasard" id="panneau-saisons" hidden></div>
     <div class="menu panneau hasard" id="panneau-visite" hidden>
       <!-- Trois onglets : la visite guidée, le plongeon sur un nouveau lieu (pour le début des vidéos) et le vol
            d'un point à un autre (le même volet, avec un départ en plus).
@@ -340,6 +351,7 @@
         <h2 class="fiche-nom" id="fiche-nom"></h2>
         <p class="fiche-nom-jp" id="fiche-nom-jp"></p>
         <p class="fiche-categorie" id="fiche-categorie"></p>
+        <div class="fiche-saisons" id="fiche-saisons"></div>
         <p class="fiche-date" id="fiche-date"></p>
         <div class="fiche-boutons" id="fiche-boutons"></div>
         <p class="fiche-description" id="fiche-description"></p>
