@@ -21,7 +21,11 @@ const Z5 = 512 * 2 ** 5; // pixels d'écran au zoom 5 pour une unité de la cart
 
 const ZOOM_CALME = 7.2; // au-delà, on regarde un lieu : plus de bateaux ni de bêtes (la houle, elle, bouge encore)
 const IMAGES_PAR_SECONDE = 15; // assez pour ces mouvements lents, sans trop user la batterie
-const LIGNES_FIXES = ['lignes-eau-1', 'lignes-eau-2', 'lignes-eau-3']; // remplacées par la houle quand elle marche
+// l'ombre des îles et les lignes d'eau fixes (app.js) : remplacées par la houle quand elle marche
+const DESSINS_FIXES = ['cote-ombre', 'lignes-eau-1', 'lignes-eau-2', 'lignes-eau-3'];
+// L'ombre des îles sur la mer : décalée vers le sud-est (la lumière vient du nord-ouest, comme l'ombrage du relief),
+// en pixels sur la carte ; son opacité au plus près de la côte
+const OMBRE_ILES = { decalage: [6, 7], opacite: 0.52 };
 
 // Les bateaux : jamais plus de 2 à la fois, toujours au large (distances en pixels au zoom 5, ≈ 2 km chacun)
 const MAX_BATEAUX = 2;
@@ -211,17 +215,22 @@ void main() {
 
 // Pour chaque point de la mer : sa distance à la côte (l'image), puis des lignes à intervalles réguliers
 // qui avancent avec le temps vers la côte. Épaisseur constante à l'écran, comme un trait de gravure.
+// Dessous, l'ombre des îles : la distance à la côte d'un point un peu au nord-ouest (d'où vient la lumière).
+// Elle était un trait flou le long des côtes (couche « cote-ombre ») : autour des petites îles, ce trait
+// plus large que l'île débordait en pointes (2026-10-12) ; ici, elle s'arrondit d'elle-même.
 const SHADER_COULEURS = `#version 300 es
 precision highp float;
 uniform sampler2D u_distances;
 uniform float u_echelle, u_temps, u_opacite, u_ratio, u_espacement, u_zone, u_vitesse;
-uniform vec3 u_encre;
+uniform vec3 u_encre, u_ombre;
+uniform vec2 u_decalage;
+uniform float u_ombreOpacite, u_ombreRayon;
 in vec2 v_uv;
 in vec2 v_merc;
 out vec4 couleur;
 void main() {
   float v = texture(u_distances, v_uv).r;
-  if (v <= 0.0 || v > 0.97) discard;
+  if (v <= 0.0 || v > 0.97) discard; // la terre, le grand large
   float d = v * v * ${DISTANCE_MAX}.0 * u_echelle; // distance à la côte, en pixels d'écran (vue de dessus)
   // les fronts de houle ondulent un peu le long des côtes, comme tracés à la main
   float tremble = 0.18 * sin(v_merc.x * 377.0 + v_merc.y * 211.0) + 0.1 * sin(v_merc.x * 911.0 - v_merc.y * 640.0);
@@ -232,7 +241,12 @@ void main() {
   float trait = 1.0 - smoothstep(0.5 * u_ratio - 0.5, 0.5 * u_ratio + 0.6, ecart / parPixel);
   float enveloppe = smoothstep(u_zone, u_zone * 0.55, d) * smoothstep(1.5, 6.0, d);
   float a = trait * enveloppe * u_opacite;
-  couleur = vec4(u_encre * a, a);
+  // l'ombre, en mer seulement : le relief ne cache pas les plaines au ras de l'eau, elle les salirait
+  float vo = texture(u_distances, v_uv - u_decalage).r;
+  float o = u_ombreOpacite * (1.0 - smoothstep(0.0, u_ombreRayon, vo * vo * ${DISTANCE_MAX}.0 * u_echelle)) * smoothstep(0.0, 0.04, v);
+  float fond = o * (1.0 - a);
+  if (a + fond <= 0.002) discard;
+  couleur = vec4(u_encre * a + u_ombre * fond, a + fond);
 }`;
 
 function compiler(gl, type, source) {
@@ -243,10 +257,17 @@ function compiler(gl, type, source) {
   return s;
 }
 
-/** Réglages de la houle selon le zoom (pixels d'écran) : elle s'efface quand on zoome, comme les lignes d'eau. */
+/**
+ * Réglages de la houle et de l'ombre des îles selon le zoom (pixels d'écran) : elles s'effacent quand on zoome,
+ * comme les lignes d'eau.
+ */
 function reglagesHoule(z) {
   const f = 2 ** ((z - 5) * 0.45);
-  return { espacement: 8.5 * f, zone: 32 * f, vitesse: 2.4 * f, opacite: 0.62 * (1 - lisser((z - 6.5) / 2)) };
+  const fondu = 1 - lisser((z - 6.5) / 2);
+  return {
+    espacement: 8.5 * f, zone: 32 * f, vitesse: 2.4 * f, opacite: 0.62 * fondu,
+    ombreRayon: 7 + 7 * Math.min(1, Math.max(0, (z - 4) / 3)), ombreOpacite: OMBRE_ILES.opacite * fondu,
+  };
 }
 
 function coucheHoule(map, maplibregl, image, obtenirTemps, quandPrete) {
@@ -263,7 +284,9 @@ function coucheHoule(map, maplibregl, image, obtenirTemps, quandPrete) {
     if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
     u = {};
     for (const nom of ['u_matrice', 'u_hauteur', 'u_distances', 'u_echelle', 'u_temps', 'u_opacite', 'u_ratio',
-      'u_espacement', 'u_zone', 'u_vitesse', 'u_encre']) u[nom] = gl.getUniformLocation(prog, nom);
+      'u_espacement', 'u_zone', 'u_vitesse', 'u_encre', 'u_ombre', 'u_decalage', 'u_ombreOpacite', 'u_ombreRayon']) {
+      u[nom] = gl.getUniformLocation(prog, nom);
+    }
     vao = gl.createVertexArray();
     gl.bindVertexArray(vao);
     const tampon = gl.createBuffer();
@@ -324,6 +347,12 @@ function coucheHoule(map, maplibregl, image, obtenirTemps, quandPrete) {
       gl.uniform1f(u.u_zone, r.zone);
       gl.uniform1f(u.u_vitesse, r.vitesse);
       gl.uniform3f(u.u_encre, ...TEINTES.eau.map((v) => v / 255)); // l'encre des lignes d'eau (#3d6b64 le jour, ambiance.js)
+      gl.uniform3f(u.u_ombre, ...TEINTES.ombre.map((v) => v / 255));
+      gl.uniform1f(u.u_ombreOpacite, r.ombreOpacite);
+      gl.uniform1f(u.u_ombreRayon, r.ombreRayon);
+      // le décalage de l'ombre, en pixels sur la carte (il tourne avec elle), ramené aux coordonnées de l'image
+      const monde = 512 * 2 ** z;
+      gl.uniform2f(u.u_decalage, OMBRE_ILES.decalage[0] / monde / (se.x - no.x), OMBRE_ILES.decalage[1] / monde / (se.y - no.y));
       gl.depthMask(false);
       gl.enable(gl.POLYGON_OFFSET_FILL);
       gl.polygonOffset(-1, -4);
@@ -665,8 +694,8 @@ export function animerMer(map, maplibregl, { mers = [], reperes, tuiles } = {}) 
     typhon.prochain = maintenant + (lancerTyphon() ? TYPHON.entre : 5);
   }
 
-  // --- La houle et les bateaux ont besoin de l'image des distances à la côte
-  if (sansMouvement) return; // les lignes d'eau fixes restent, rien ne bouge
+  // --- La houle (et l'ombre des îles) et les bateaux ont besoin de l'image des distances à la côte.
+  // Si l'appareil demande moins d'animations, la houle reste immobile (son horloge ne part pas) et rien d'autre ne vient.
   const image = new Image();
   image.decoding = 'async';
   image.src = IMAGE_DISTANCES;
@@ -674,23 +703,24 @@ export function animerMer(map, maplibregl, { mers = [], reperes, tuiles } = {}) 
     distance = lireDistances(maplibregl, image);
     const couche = coucheHoule(map, maplibregl, image, () => temps % 3600, () => {
       houlePrete = true;
-      // la houle remplace les lignes d'eau fixes (au prochain dessin, pour ne pas les cacher trop tôt)
+      // la houle remplace l'ombre et les lignes d'eau fixes (au prochain dessin, pour ne pas les cacher trop tôt)
       requestAnimationFrame(() => {
-        for (const id of LIGNES_FIXES) if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'none');
+        for (const id of DESSINS_FIXES) if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', 'none');
       });
     });
-    if (tuiles) ressac = coucheRessac(map, maplibregl, { image, bornes: BORNES, distance, tuiles, obtenirTemps: () => temps % 3600 });
+    if (tuiles && !sansMouvement) ressac = coucheRessac(map, maplibregl, { image, bornes: BORNES, distance, tuiles, obtenirTemps: () => temps % 3600 });
     const ajouter = () => {
       const dessous = map.getLayer('modeles-3d') ? 'modeles-3d' : undefined;
       map.addLayer(couche, dessous);
       if (ressac) map.addLayer(ressac, dessous);
       // three.js (pour les bateaux) se charge une fois la carte affichée, sans retarder le démarrage
-      setTimeout(chargerBateaux, 1500);
+      if (!sansMouvement) setTimeout(chargerBateaux, 1500);
     };
     if (map.loaded() || map.style?._loaded) ajouter(); else map.once('load', ajouter);
   }).catch((e) => console.warn('Mer vivante : image des distances indisponible', e));
 
   // --- L'horloge de la mer (la houle, les bateaux et les bêtes avancent ensemble)
+  if (sansMouvement) return;
   let avant = 0;
   function boucle(maintenant) {
     requestAnimationFrame(boucle);

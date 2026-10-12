@@ -349,7 +349,8 @@ const map = new maplibregl.Map({
       { id: 'fond', type: 'background', paint: { 'background-color': MER } },
       // Sous le relief (qui cache la moitié côté terre) : l'ombre des îles sur la mer, puis les fines
       // lignes d'eau parallèles aux côtes des cartes gravées. Vues de loin seulement : le trait de côte
-      // (Natural Earth) est trop simplifié pour coller au relief de près.
+      // (Natural Earth) est trop simplifié pour coller au relief de près. La houle (mer.js) les remplace
+      // dès qu'elle est prête, avec une ombre plus ronde : ce trait flou fait des pointes autour des petites îles.
       {
         id: 'cote-ombre',
         type: 'line',

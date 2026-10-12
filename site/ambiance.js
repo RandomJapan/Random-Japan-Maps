@@ -186,6 +186,7 @@ export function palette(m) {
     papier: 1 - 0.2 * m.soir - 0.72 * m.nuit,
     eauGL: melange(COULEURS.eau, m),
     ecumeGL: mel([246, 238, 219], [200, 214, 222], m.nuit),
+    ombreGL: melange(COULEURS.ombreIles, m),
     lumiere3d: 1 - 0.1 * m.soir - 0.5 * m.nuit,
     lavis: 0.6 * (1 - 0.55 * m.nuit), // les liserés d'aquarelle des régions, moins vifs la nuit
     nuit: m.nuit,
@@ -294,6 +295,7 @@ export function preparerAmbiance() {
     function teintesHorsCarte(p) {
       TEINTES.eau = p.eauGL;
       TEINTES.ecume = p.ecumeGL;
+      TEINTES.ombre = p.ombreGL;
       TEINTES.lumiere = p.lumiere3d;
       TEINTES.nuit = p.nuit;
       TEINTES.jour = jourDeLAn(m.jour.mois, m.jour.jour);
@@ -432,7 +434,7 @@ export function preparerAmbiance() {
     function jourPourImage() {
       const p = palette({ ...m, soir: 0, nuit: 0 });
       appliquer(p);
-      Object.assign(TEINTES, { eau: p.eauGL, ecume: p.ecumeGL, lumiere: p.lumiere3d, nuit: 0 });
+      Object.assign(TEINTES, { eau: p.eauGL, ecume: p.ecumeGL, ombre: p.ombreGL, lumiere: p.lumiere3d, nuit: 0 });
       return () => {
         const q = palette(arrondi(m));
         appliquer(q);
