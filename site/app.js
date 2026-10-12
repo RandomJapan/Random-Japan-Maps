@@ -749,6 +749,9 @@ function stabiliserRelief() {
   }
 }
 map.once('load', stabiliserRelief);
+// « load » ne vient qu'une fois : s'il est passé avant l'arrivée du tableau, demarrer() ne l'attend pas
+let carteChargee = false;
+map.once('load', () => { carteChargee = true; });
 
 /** Le maillage plus fin pour les vues de loin (voir stabiliserRelief). */
 function majMaillage() {
@@ -2569,7 +2572,9 @@ async function demarrer() {
     if (liensJeu) setTimeout(() => lancerJeu(liensJeu).catch((e) => console.warn('Jeu indisponible', e)), 400);
     else if (aDejaJoueAPlusieurs()) setTimeout(() => chargerAmis().catch(() => {}), 2500);
   };
-  if (map.loaded()) pret();
+  // (pas map.loaded() : les détails de saison peints juste avant la rendent « occupée » un instant, et l'écran
+  // de chargement attendait alors un « load » déjà passé, jusqu'au délai de secours : 15 s au lieu de 2,5)
+  if (carteChargee) pret();
   else {
     map.once('load', pret);
     // « load » attend toutes les tuiles de la première vue : si l'une traîne, on montre quand même la carte
