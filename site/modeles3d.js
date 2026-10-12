@@ -130,6 +130,63 @@ totalEmissiveRadiance += nuit * (cLanterne * vLumiere * 1.3 + cChaud * vBas * 0.
   return { matiere, uniformes };
 }
 
+/**
+ * La lueur chaude des lanternes la nuit (2026-10-12), pour les lieux (couche3d.js) et les bateaux (mer.js) :
+ * - halo : un carré tourné vers l'écran, centré à la hauteur `hauteur` (unités du modèle) au-dessus du point de
+ *   l'instance, de `rayon` pixels ; uniformes.ecran = la taille de la carte en pixels ;
+ * - flaque : une flaque de lumière à plat (pour un disque de rayon `rayonSol` couché à y ≈ 0).
+ * Ajoutées à l'image (mélange additif), sans écrire la profondeur : le relief devant les cache.
+ */
+export function matieresLueur(THREE, rayonSol = 1.6) {
+  const commun = { transparent: true, depthWrite: false, blending: THREE.AdditiveBlending };
+  const uniformes = {
+    force: { value: 0 }, couleur: { value: new THREE.Color(1, 0.62, 0.3) },
+    ecran: { value: new THREE.Vector2(1, 1) }, rayon: { value: 40 }, hauteur: { value: 0.32 },
+  };
+  const halo = new THREE.ShaderMaterial({
+    ...commun,
+    uniforms: uniformes,
+    vertexShader: `uniform vec2 ecran;
+      uniform float rayon, hauteur;
+      varying vec2 vUv;
+      void main() {
+        vec4 c = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(0.0, hauteur, 0.0, 1.0);
+        c.xy += position.xy * rayon * 2.0 / ecran * c.w;
+        gl_Position = c;
+        vUv = position.xy;
+      }`,
+    fragmentShader: `uniform float force;
+      uniform vec3 couleur;
+      varying vec2 vUv;
+      void main() {
+        float r = length(vUv);
+        float a = exp(-r * r * 4.5) * 0.34 * (1.0 - smoothstep(0.75, 1.0, r));
+        gl_FragColor = vec4(couleur * a * force, 1.0);
+      }`,
+  });
+  const flaque = new THREE.ShaderMaterial({
+    ...commun,
+    side: THREE.DoubleSide,
+    polygonOffset: true,
+    polygonOffsetFactor: -2,
+    polygonOffsetUnits: -8,
+    uniforms: uniformes,
+    vertexShader: `varying float vR;
+      void main() {
+        gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0);
+        vR = length(position.xz) / ${rayonSol.toFixed(3)};
+      }`,
+    fragmentShader: `uniform float force;
+      uniform vec3 couleur;
+      varying float vR;
+      void main() {
+        float a = pow(max(0.0, 1.0 - vR), 2.6) * 0.32;
+        gl_FragColor = vec4(couleur * a * force, 1.0);
+      }`,
+  });
+  return { halo, flaque, uniformes };
+}
+
 const lisse = (b0, b1, v) => { const t = Math.min(1, Math.max(0, (v - b0) / (b1 - b0))); return t * t * (3 - 2 * t); };
 /** Un nombre de 0 à 1 qui dépend du point (toujours le même : les modèles ne changent pas d'une visite à l'autre). */
 const hasard = (x, y, z) => { const s = Math.sin(x * 127.1 + y * 311.7 + z * 74.7) * 43758.5453; return s - Math.floor(s); };
@@ -1499,6 +1556,15 @@ export function fabriquerBateau(THREE) {
   flamme.setAttribute('position', new THREE.Float32BufferAttribute([...F[0], ...F[1], ...F[2], ...F[0], ...F[2], ...F[1]], 3));
   a.piece(flamme, C.rouge);
 
+  // Deux lanternes de papier, à la poupe sous l'auvent de la cabine et à la proue, et les fenêtres de la cabine :
+  // elles s'allument la nuit (mer.js, LANTERNES_BATEAU)
+  a.chochin(0, 0.29, -0.52, 2.2)
+    .chochin(0, 0.36, 0.5, 1.8);
+  for (const cote of [-1, 1]) a.boite(0.004, 0.035, 0.07, C.verre, { x: cote * 0.122, y: 0.29, z: -0.38, trait: false });
+
   return a.fin(0, false);
 }
+
+/** Où pendent les lanternes d'un bateau (unités du modèle) : le halo de chacune, la nuit. */
+export const LANTERNES_BATEAU = [[0, 0.29, -0.52], [0, 0.36, 0.5]];
 

@@ -111,11 +111,11 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
   }
 
   /** Range les lieux par modèle ; un seul « tampon » (InstancedMesh) par modèle, donc très peu de dessins. */
-  function preparerTypes(lieux, modeles, modelePour, matiereContour, matiereSaisons) {
+  function preparerTypes(lieux, modeles, modelePour, matiereContour, matiereSaisons, matieresLueur) {
     saisons = matiereSaisons(THREE);
     outils3d = { modeles, modelePour, matiere: saisons.matiere };
     contour = matiereContour(THREE);
-    lueurs = creerLueurs(lieux.length + RESERVE * 2);
+    lueurs = creerLueurs(lieux.length + RESERVE * 2, matieresLueur);
     const parModele = new Map();
     for (const l of lieux) {
       preparerLieu(l);
@@ -131,54 +131,13 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
    * un halo chaud tourné vers l'écran au milieu du modèle, et une flaque de lumière au sol autour de lui.
    * Ajoutées à l'image (mélange additif), sans écrire la profondeur : le relief devant les cache.
    */
-  function creerLueurs(n) {
-    const commun = { transparent: true, depthWrite: false, blending: THREE.AdditiveBlending };
-    const force = { value: 0 };
-    const couleur = { value: new THREE.Color(1, 0.62, 0.3) };
-    const halo = new THREE.InstancedMesh(new THREE.PlaneGeometry(2, 2), new THREE.ShaderMaterial({
-      ...commun,
-      uniforms: { ecran: { value: new THREE.Vector2(1, 1) }, rayon: { value: 40 }, force, couleur },
-      vertexShader: `uniform vec2 ecran;
-        uniform float rayon;
-        varying vec2 vUv;
-        void main() {
-          vec4 c = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(0.0, 0.32, 0.0, 1.0);
-          c.xy += position.xy * rayon * 2.0 / ecran * c.w;
-          gl_Position = c;
-          vUv = position.xy;
-        }`,
-      fragmentShader: `uniform float force;
-        uniform vec3 couleur;
-        varying vec2 vUv;
-        void main() {
-          float r = length(vUv);
-          float a = exp(-r * r * 4.5) * 0.34 * (1.0 - smoothstep(0.75, 1.0, r));
-          gl_FragColor = vec4(couleur * a * force, 1.0);
-        }`,
-    }), n);
-    const sol = new THREE.CircleGeometry(1.6, 40);
-    sol.rotateX(-Math.PI / 2);
-    sol.translate(0, 0.015, 0);
-    const flaque = new THREE.InstancedMesh(sol, new THREE.ShaderMaterial({
-      ...commun,
-      side: THREE.DoubleSide,
-      polygonOffset: true,
-      polygonOffsetFactor: -2,
-      polygonOffsetUnits: -8,
-      uniforms: { force, couleur },
-      vertexShader: `varying float vR;
-        void main() {
-          gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0);
-          vR = length(position.xz) / 1.6;
-        }`,
-      fragmentShader: `uniform float force;
-        uniform vec3 couleur;
-        varying float vR;
-        void main() {
-          float a = pow(1.0 - vR, 2.6) * 0.32;
-          gl_FragColor = vec4(couleur * a * force, 1.0);
-        }`,
-    }), n);
+  function creerLueurs(n, matieresLueur) {
+    const { halo: matiereHalo, flaque: matiereFlaque, uniformes } = matieresLueur(THREE, 1.6);
+    const disque = new THREE.CircleGeometry(1.6, 40);
+    disque.rotateX(-Math.PI / 2);
+    disque.translate(0, 0.015, 0);
+    const halo = new THREE.InstancedMesh(new THREE.PlaneGeometry(2, 2), matiereHalo, n);
+    const flaque = new THREE.InstancedMesh(disque, matiereFlaque, n);
     for (const m of [flaque, halo]) {
       m.frustumCulled = false;
       m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -187,7 +146,7 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
     }
     flaque.renderOrder = 1;
     halo.renderOrder = 2;
-    return { halo, flaque, force, n };
+    return { halo, flaque, uniformes, n };
   }
 
   const couche = {
@@ -266,9 +225,9 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
       // la nuit, la lueur des lieux
       lueurs.halo.count = lueurs.flaque.count = lueur > 0.01 ? Math.min(nb, lueurs.n) : 0;
       if (lueurs.halo.count) {
-        lueurs.force.value = lueur;
-        lueurs.halo.material.uniforms.rayon.value = echelleDessin * 1.15;
-        lueurs.halo.material.uniforms.ecran.value.set(map.getCanvas().clientWidth, map.getCanvas().clientHeight);
+        lueurs.uniformes.force.value = lueur;
+        lueurs.uniformes.rayon.value = echelleDessin * 1.15;
+        lueurs.uniformes.ecran.value.set(map.getCanvas().clientWidth, map.getCanvas().clientHeight);
         lueurs.halo.instanceMatrix.needsUpdate = lueurs.flaque.instanceMatrix.needsUpdate = true;
       }
       if (!nb) return;
@@ -305,13 +264,13 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
     etat = 'chargement';
     try {
       THREE = await import(URL_THREE);
-      const { fabriquerPeuAPeu, modelePour, matiereContour, matiereSaisons } = await import('./modeles3d.js');
+      const { fabriquerPeuAPeu, modelePour, matiereContour, matiereSaisons, matieresLueur } = await import('./modeles3d.js');
       const modeles = await sansFiger(fabriquerPeuAPeu(THREE));
       map.addLayer(couche);
       const installer = () => {
         const lieux = obtenirLieux();
         if (!lieux.length) return false;
-        preparerTypes(lieux, modeles, modelePour, matiereContour, matiereSaisons);
+        preparerTypes(lieux, modeles, modelePour, matiereContour, matiereSaisons, matieresLueur);
         etat = 'pret';
         if (provisoires.length) installerProvisoires();
         majLevee();

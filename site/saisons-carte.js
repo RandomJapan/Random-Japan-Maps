@@ -10,12 +10,16 @@
 //  - les lieux du tableau à leur plus beau ce mois-là (colonne Saisons) ;
 //  - l'hiver : la neige au sol du nord et de la côte de la mer du Japon, les
 //    lacs gelés, la banquise d'Okhotsk (février – mars).
-//  Tout est peint sur le relief (des motifs de petits arbres et de fleurs, comme
-//  les forêts pointillées des cartes anciennes, sous l'ombrage du relief), et ne
-//  change qu'une fois par jour : chaque changement redessine le relief une fois.
+//  Tout est peint sur le relief, sous son ombrage, en touches d'aquarelle fixées au
+//  sol (elles grandissent avec la carte quand on zoome), et ne change qu'une fois
+//  par jour. Les couches naissent avec la carte (styleSaison, dans le style de
+//  départ) : en ajouter après coup redessinait tout le relief pendant le chargement.
+//  De près, un tapis de feuilles d'érable et de ginkgo, ou de pétales de cerisier, jonche le sol (symboles
+//  couchés sur le relief, chacun à sa place : ils grandissent en zoomant, aucun n'apparaît en route).
 // ================================================================
 
 import { lisse, md, ecart, floraison, enFleurs, picAutomne, neigeAuSol } from './phenologie.js';
+import { atlasSol } from './particules.js';
 
 // ---------------------------------------------------------------- Les lieux célèbres
 // Cerisiers : [lng, lat, altitude (m), rayon (km), jour de floraison s'il n'est pas celui de la latitude]
@@ -79,128 +83,31 @@ const COTE_OKHOTSK = [[141.68, 45.40], [141.95, 45.50], [142.20, 45.25], [142.55
   [143.75, 44.15], [144.10, 44.03], [144.40, 43.98], [144.70, 43.93], [144.95, 44.05], [145.15, 44.20], [145.33, 44.34],
   [145.20, 44.10], [145.05, 43.85], [145.10, 43.60], [145.30, 43.45]];
 
-// ---------------------------------------------------------------- Les motifs (petits arbres et fleurs)
-const ENCRE = 'rgba(53, 37, 26, ';
-// n : arbres ou fleurs par tuile ; r : rayon des arbres (points) ; lavis : la couleur du voile peint sous la tache
-const MOTIFS = {
-  sakura: { sorte: 'touffes', couleurs: ['#f0b4c6', '#e89ab2', '#f6cdd9', '#e28aa6'], n: 32, r: [2.3, 3.4], nuage: true, lavis: '#e58ea9' },
-  ume: { sorte: 'touffes', couleurs: ['#f7e7ec', '#fbf6f2', '#e39ab0', '#efc2cf'], n: 36, r: [1.8, 2.6], nuage: true, lavis: '#eec6d1' },
-  momiji: { sorte: 'touffes', couleurs: ['#c9472c', '#d8692f', '#b8341f', '#e09a3a', '#c75a26', '#a8321f'], n: 34, r: [2.2, 3.4], lavis: '#c95a2e' },
-  ginkgo: { sorte: 'touffes', couleurs: ['#e8c547', '#f0d35c', '#d9b23a'], n: 30, r: [2.1, 3], lavis: '#e2bf45' },
-  glycines: { sorte: 'touffes', couleurs: ['#a98bc9', '#8f6fb8', '#c4abdc'], n: 38, r: [1.8, 2.6], nuage: true, lavis: '#a68ac6' },
-  hortensias: { sorte: 'touffes', couleurs: ['#7f9fd6', '#a58fd0', '#6d8ccc', '#c7a6dd'], n: 38, r: [1.8, 2.5], nuage: true, lavis: '#8ea3d6' },
-  kochias: { sorte: 'touffes', couleurs: ['#c8463a', '#b8382e', '#d65a44'], n: 44, r: [1.6, 2.2], lavis: '#c8463a' },
-  nemophiles: { sorte: 'points', couleurs: ['#7fa7d9', '#9dbde6', '#6b93cc', '#b8cff0'], n: 120, lavis: '#8fb0dd' },
-  colza: { sorte: 'points', couleurs: ['#f2d64b', '#e8c93c', '#f6e27a'], n: 120, lavis: '#ecd048' },
-  tournesols: { sorte: 'points', couleurs: ['#f0c030', '#e8b020'], n: 70, coeur: '#6b4a24', lavis: '#e8b828' },
-  higanbana: { sorte: 'points', couleurs: ['#c8322a', '#e04a3a', '#b02a24'], n: 90, lavis: '#cc3a2e' },
-  cosmos: { sorte: 'points', couleurs: ['#e996bf', '#f5c3da', '#fbf3f6', '#d6669e'], n: 100, lavis: '#eaa2c6' },
-  fleurs: { sorte: 'points', couleurs: ['#e996bf', '#a98bc9', '#f2d64b', '#fbf3f6', '#d9453a', '#7fa7d9'], n: 90, lavis: '#d99ab8' },
-  shibazakura: { sorte: 'rangs', couleurs: ['#e77fb0', '#f2a6c8', '#d65d99', '#f6e6ef', '#c9a0dc'], lavis: '#e98fbb' },
-  tulipes: { sorte: 'rangs', couleurs: ['#d9453a', '#f0c23c', '#f6efe3', '#d6609a', '#e8843a'], lavis: '#e0704a' },
-  lavande: { sorte: 'rangs', couleurs: ['#8e72b8', '#7a5ea8', '#9b82c2'], vert: true, lavis: '#9478bd' },
-  iris: { sorte: 'rangs', couleurs: ['#6f5cb0', '#8c79c4', '#f4f0e6'], vert: true, lavis: '#7b68b6' },
+// ---------------------------------------------------------------- Les couleurs des touches d'aquarelle
+const COULEURS = {
+  sakura: ['#f0a9bf', '#e78fab', '#f6c4d3', '#ea9ab3'],
+  ume: ['#f3cfd9', '#e39ab0', '#f7e1e6'],
+  momiji: ['#c9472c', '#d8692f', '#b8341f', '#e09a3a', '#a8321f', '#cf5a2a'],
+  ginkgo: ['#e8c547', '#f0d35c', '#d9b23a'],
+  glycines: ['#a98bc9', '#8f6fb8', '#c4abdc'],
+  hortensias: ['#7f9fd6', '#a58fd0', '#6d8ccc'],
+  kochias: ['#c8463a', '#b8382e', '#d65a44'],
+  nemophiles: ['#7fa7d9', '#9dbde6', '#6b93cc'],
+  colza: ['#f2d64b', '#e8c93c'],
+  tournesols: ['#f0c030', '#e8b020'],
+  higanbana: ['#c8322a', '#e04a3a'],
+  cosmos: ['#e996bf', '#f5c3da', '#d6669e'],
+  fleurs: ['#e996bf', '#a98bc9', '#f2d64b', '#d9453a', '#7fa7d9'],
+  shibazakura: ['#e77fb0', '#d65d99', '#f2a6c8'],
+  tulipes: ['#d9453a', '#f0c23c', '#d6609a', '#e8843a'],
+  lavande: ['#8e72b8', '#7a5ea8', '#9b82c2'],
+  iris: ['#6f5cb0', '#8c79c4'],
 };
 
 /** Un nombre de 0 à 1 qui dépend de la graine (toujours le même). */
 const hasard = (g) => { const s = Math.sin(g * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
 
-/** Dessine un motif (une tuile qui se répète sans couture), à 2 pixels par point. */
-function dessinerMotif(nom) {
-  const o = MOTIFS[nom];
-  const T = o.sorte === 'rangs' ? 36 : o.sorte === 'touffes' ? 72 : 40; // côté de la tuile en points
-  const k = 2;
-  const toile = document.createElement('canvas');
-  toile.width = toile.height = T * k;
-  const c = toile.getContext('2d');
-  c.scale(k, k);
-  let g = nom.length * 7.3;
-  const h = () => hasard(g += 1.618);
-  // chaque forme est dessinée aussi de l'autre côté des bords touchés : la tuile se raccorde
-  const partout = (x, y, r, dessin) => {
-    for (const dx of [-T, 0, T]) for (const dy of [-T, 0, T]) {
-      if (x + dx > -r && x + dx < T + r && y + dy > -r && y + dy < T + r) dessin(x + dx, y + dy);
-    }
-  };
-  if (o.sorte === 'touffes') {
-    // de petits arbres en boule, vus d'en haut : ombre portée, couronne, trait d'encre et reflet. Ils poussent
-    // en bosquets (les trois quarts autour de quatre centres), sans se chevaucher, au hasard : pas de rangées.
-    const bosquets = Array.from({ length: 4 }, () => [h() * T, h() * T]);
-    const arbres = [];
-    for (let essai = 0; arbres.length < o.n && essai < o.n * 60; essai++) {
-      let x, y;
-      if (h() < 0.75) {
-        const [bx, by] = bosquets[Math.floor(h() * 4)], a = h() * 6.283, d = Math.sqrt(h()) * T * 0.24;
-        x = bx + Math.cos(a) * d; y = by + Math.sin(a) * d;
-      } else { x = h() * T; y = h() * T; }
-      x = ((x % T) + T) % T; y = ((y % T) + T) % T;
-      const r = o.r[0] + (o.r[1] - o.r[0]) * h();
-      const proche = arbres.some(([ax, ay, ar]) => {
-        const dx = Math.min(Math.abs(ax - x), T - Math.abs(ax - x)), dy = Math.min(Math.abs(ay - y), T - Math.abs(ay - y));
-        return Math.hypot(dx, dy) < (ar + r) * 0.85;
-      });
-      if (!proche) arbres.push([x, y, r, o.couleurs[Math.floor(h() * o.couleurs.length)], h()]);
-    }
-    // un voile léger sous chaque bosquet
-    for (const [bx, by] of bosquets) {
-      partout(bx, by, T * 0.3, (px, py) => {
-        const voile = c.createRadialGradient(px, py, 0, px, py, T * 0.3);
-        voile.addColorStop(0, `${o.lavis}38`); voile.addColorStop(1, `${o.lavis}00`);
-        c.fillStyle = voile;
-        c.beginPath(); c.arc(px, py, T * 0.3, 0, 7); c.fill();
-      });
-    }
-    arbres.sort((a, b) => a[1] - b[1]);
-    for (const [x, y, r, couleur, v] of arbres) {
-      partout(x, y, r + 2, (px, py) => {
-        c.fillStyle = `${ENCRE}0.2)`;
-        c.beginPath(); c.ellipse(px + r * 0.35, py + r * 0.45, r, r * 0.85, 0, 0, 7); c.fill();
-        const boules = o.nuage ? [[0, 0, 1], [-0.45, 0.2, 0.68], [0.45, 0.15, 0.7], [0.05, -0.4, 0.66]] : [[0, 0, 1]];
-        c.fillStyle = couleur;
-        c.strokeStyle = `${ENCRE}0.5)`;
-        c.lineWidth = 0.45;
-        for (const [bx, by, br] of boules) { c.beginPath(); c.arc(px + bx * r, py + by * r, br * r * (o.nuage ? 0.82 : 1), 0, 7); c.fill(); c.stroke(); }
-        for (const [bx, by, br] of boules) { c.beginPath(); c.arc(px + bx * r, py + by * r, br * r * (o.nuage ? 0.82 : 1) - 0.3, 0, 7); c.fill(); }
-        c.fillStyle = `rgba(255, 252, 240, ${0.28 + 0.12 * v})`;
-        c.beginPath(); c.arc(px - r * 0.32, py - r * 0.34, r * 0.38, 0, 7); c.fill();
-      });
-    }
-  } else if (o.sorte === 'points') {
-    // un tapis de fleurs : de petits points de couleur serrés, sur un léger lavis vert
-    c.fillStyle = 'rgba(111, 154, 78, 0.22)';
-    c.fillRect(0, 0, T, T);
-    for (let i = 0; i < o.n; i++) {
-      const x = h() * T, y = h() * T, r = 0.7 + 0.7 * h();
-      const couleur = o.couleurs[Math.floor(h() * o.couleurs.length)];
-      partout(x, y, r + 1, (px, py) => {
-        c.fillStyle = couleur;
-        c.beginPath(); c.arc(px, py, r, 0, 7); c.fill();
-        if (o.coeur) { c.fillStyle = o.coeur; c.beginPath(); c.arc(px, py, r * 0.4, 0, 7); c.fill(); }
-      });
-    }
-  } else {
-    // des rangs de fleurs, comme les champs de Hokkaidō ou du pied du Fuji
-    const rangs = 6, pas = T / rangs;
-    for (let j = 0; j < rangs; j++) {
-      const couleur = o.couleurs[j % o.couleurs.length];
-      const y0 = (j + 0.5) * pas;
-      if (o.vert) { c.fillStyle = 'rgba(96, 128, 70, 0.45)'; c.fillRect(0, y0 - pas * 0.5, T, pas * 0.32); }
-      for (let i = 0; i < 18; i++) {
-        const x = (i + 0.5) * (T / 18) + (h() - 0.5) * 0.8, y = y0 + (h() - 0.5) * pas * 0.35;
-        partout(x, y, 2, (px, py) => {
-          c.fillStyle = couleur;
-          c.beginPath(); c.ellipse(px, py, 1.25, 1.05, 0, 0, 7); c.fill();
-        });
-      }
-      c.strokeStyle = `${ENCRE}0.18)`;
-      c.lineWidth = 0.4;
-      c.beginPath(); c.moveTo(0, y0 + pas * 0.32); c.lineTo(T, y0 + pas * 0.32); c.stroke();
-    }
-  }
-  return c.getImageData(0, 0, T * k, T * k);
-}
-
-/** Les fêlures et les traînées de neige d'un lac gelé. */
+/** Les fêlures et les traînées de neige d'un lac gelé (un motif, dessiné la première fois qu'un lac gèle). */
 function dessinerGlace() {
   const T = 64, k = 2;
   const toile = document.createElement('canvas');
@@ -239,16 +146,81 @@ function dessinerGlace() {
 const KM_LAT = 110.57;
 const kmLng = (lat) => 111.32 * Math.cos((lat * Math.PI) / 180);
 
-/** Une tache au contour irrégulier autour d'un point (un bois, un champ), toujours la même pour ce point. */
-function tache(lng, lat, rayon) {
+/** Une tache au contour irrégulier autour d'un point, toujours la même pour ce point. */
+function tache(lng, lat, rayon, cotes = 18) {
   const graine = lng * 13.7 + lat * 7.9;
   const anneau = [];
-  for (let i = 0; i <= 56; i++) {
-    const a = ((i % 56) / 56) * 2 * Math.PI;
+  for (let i = 0; i <= cotes; i++) {
+    const a = ((i % cotes) / cotes) * 2 * Math.PI;
     const r = rayon * (1 + 0.2 * Math.sin(3 * a + graine) + 0.12 * Math.sin(5 * a + graine * 2.3) + 0.06 * Math.sin(9 * a + graine * 1.7));
     anneau.push([lng + (r * Math.sin(a)) / kmLng(lat), lat + (r * Math.cos(a)) / KM_LAT]);
   }
   return { type: 'Polygon', coordinates: [anneau] };
+}
+
+/**
+ * Les touches d'aquarelle d'un lieu en fleurs ou en couleurs : un léger lavis sur toute la tache, et des touches
+ * plus vives (plus grandes au cœur), posées sur le sol. Elles grandissent avec la carte quand on zoome, comme le
+ * relief : aucune n'apparaît en route. (Un motif répété, le 2026-10-12, s'écartait puis se redoublait à chaque
+ * niveau de zoom : le propriétaire a trouvé ça bizarre.)
+ */
+function touches(lng, lat, rayon, motif, force) {
+  const couleurs = COULEURS[motif];
+  const res = [{ type: 'Feature', geometry: tache(lng, lat, rayon * 1.05, 32), properties: { c: couleurs[0], o: Math.round(force * 0.12 * 100) / 100 } }];
+  let g = lng * 31.7 + lat * 17.3;
+  const h = () => hasard(g += 1.618);
+  const n = Math.round(8 + rayon * 2.5);
+  for (let i = 0; i < n; i++) {
+    const d = Math.sqrt(h()) * rayon * 0.92, a = h() * 2 * Math.PI;
+    const x = lng + (d * Math.sin(a)) / kmLng(lat), y = lat + (d * Math.cos(a)) / KM_LAT;
+    const taille = rayon * (0.08 + 0.13 * h()) * (1.15 - 0.55 * (d / rayon));
+    res.push({ type: 'Feature', geometry: tache(x, y, taille, 14), properties: { c: couleurs[Math.floor(h() * couleurs.length)], o: Math.round(force * (0.22 + 0.14 * h()) * 100) / 100 } });
+  }
+  return res;
+}
+
+// Les images du tapis (particules.js, atlasSol : 4 × 2 cases de 128 px) : trois érables, un ginkgo, quatre pétales
+const IMAGES_TAPIS = ['feuille-0', 'feuille-1', 'feuille-2', 'feuille-3', 'petale-0', 'petale-1', 'petale-2', 'petale-3'];
+const TAPIS = {
+  momiji: ['feuille-0', 'feuille-1', 'feuille-2', 'feuille-0', 'feuille-1', 'feuille-2', 'feuille-3'],
+  ginkgo: ['feuille-3'],
+  sakura: ['petale-0', 'petale-1', 'petale-2', 'petale-3'],
+  ume: ['petale-2', 'petale-3'],
+};
+
+/**
+ * Le tapis de feuilles ou de pétales tombés d'un lieu (2026-10-12, « fais de vraies feuilles sur le sol ») : des
+ * points fixes sur la carte, en tas autour de sept bosquets (et quelques-uns épars), chacun avec son image, son
+ * orientation et sa taille.
+ */
+function tapis(lng, lat, rayon, motif, force) {
+  const images = TAPIS[motif];
+  if (!images) return [];
+  let g = lng * 53.1 + lat * 29.7;
+  const h = () => hasard(g += 1.618);
+  const bosquets = Array.from({ length: 7 }, () => {
+    const d = Math.sqrt(h()) * rayon * 0.7, a = h() * 2 * Math.PI;
+    return [d * Math.sin(a), d * Math.cos(a)];
+  });
+  const res = [];
+  const n = Math.round((100 + rayon * 40) * force);
+  for (let i = 0; i < n; i++) {
+    let x, y;
+    if (h() < 0.75) {
+      const [bx, by] = bosquets[Math.floor(h() * bosquets.length)];
+      const d = rayon * 0.12 * Math.sqrt(-2 * Math.log(1 - 0.999 * h())), a = h() * 2 * Math.PI;
+      x = bx + d * Math.sin(a); y = by + d * Math.cos(a);
+    } else {
+      const d = Math.sqrt(h()) * rayon * 0.85, a = h() * 2 * Math.PI;
+      x = d * Math.sin(a); y = d * Math.cos(a);
+    }
+    res.push({
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [lng + x / kmLng(lat), lat + y / KM_LAT] },
+      properties: { i: images[Math.floor(h() * images.length)], r: Math.round(h() * 360), s: Math.round((0.75 + 0.5 * h()) * 100) / 100, o: Math.round(force * 10) / 10 },
+    });
+  }
+  return res;
 }
 
 /** Distance (km) d'un point à une ligne brisée. */
@@ -294,148 +266,247 @@ function entre(j, du, au) {
   return lisse(-5, 1, depuis) * lisse(-5, 1, jusque);
 }
 
+// ---------------------------------------------------------------- Ce jour-là
+const vide = () => ({ type: 'FeatureCollection', features: [] });
+const JOURS_MOIS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+/** Les lieux en fleurs ou en couleurs ce jour-là : [lng, lat, rayon, motif, force] (les lieux du tableau d'abord). */
+function lieuxEnSaison(j, lieux) {
+  const res = [];
+  const ajouter = (lng, lat, rayon, motif, force) => {
+    if (force < 0.08) return;
+    // un lieu célèbre tout près d'un lieu du tableau de la même sorte n'est pas peint deux fois
+    if (res.some((t) => t[3] === motif && Math.hypot((t[0] - lng) * kmLng(lat), (t[1] - lat) * KM_LAT) < 5)) return;
+    res.push([lng, lat, rayon, motif, Math.round(force * 10) / 10]);
+  };
+  for (const l of lieux) {
+    for (const p of l.saisons?.periodes || []) {
+      const motif = { cerisiers: 'sakura', fleurs: 'fleurs', automne: 'momiji' }[p.sorte];
+      if (!motif) continue;
+      // du premier au dernier mois de la période, avec un fondu de quelques jours
+      const force = p.mois.reduce((m, oui, i) => (oui ? Math.max(m, entre(j, (i + 1) * 100 + 1, (i + 1) * 100 + JOURS_MOIS[i])) : m), 0);
+      ajouter(l.lng, l.lat, 4.5, motif, force);
+    }
+  }
+  // (les rayons des listes ×1,5 : toute la ville ou la vallée est en fleurs ou en couleurs ; les champs ×1,3)
+  for (const [lng, lat, alt, rayon, debut] of CERISIERS) ajouter(lng, lat, rayon * 1.5, 'sakura', enFleurs(j, debut ?? floraison(lat, lng, alt)));
+  for (const [lng, lat, alt, rayon, sorte] of AUTOMNE) {
+    const pic = picAutomne(lat, alt) + (sorte ? 4 : 0);
+    ajouter(lng, lat, rayon * 1.5, sorte || 'momiji', lisse(pic - 20, pic - 6, j) * (1 - lisse(pic + 8, pic + 20, j)));
+  }
+  for (const [lng, lat, rayon, motif, du, au] of CHAMPS) ajouter(lng, lat, rayon * 1.3, motif, entre(j, du, au));
+  return res;
+}
+
+/** La neige au sol par préfecture ce jour-là : [[code, force]] (côté mer du Japon, elle tient comme 300 m plus haut). */
+function neigesDuJour(j) {
+  return Object.entries(NEIGE_PREFECTURES).map(([code, [force, lat, alt, merDuJapon]]) => {
+    const v = force * neigeAuSol(lat + (merDuJapon ? 300 / 220 : 0), alt, j);
+    return [Number(code), Math.round(v * 20) / 20];
+  }).filter(([, v]) => v >= 0.1); // en dessous, elle ne se voit pas : la couche (et ses 120 Ko de contours) attend
+}
+const lacsGeles = (j) => Object.entries(LACS_GELES).filter(([, [du, au]]) => entre(j, du, au) > 0.5).map(([nom]) => nom);
+const forceBanquise = (j) => Math.round(lisse(22, 46, j) * (1 - lisse(69, 91, j)) * 10) / 10;
+function banquise(force) {
+  if (!plaques) preparerBanquise();
+  return { type: 'FeatureCollection', features: plaques.filter(([, d, tirage]) => tirage < force * Math.exp(-d / 24) * 1.15).map(([geometry]) => ({ type: 'Feature', geometry, properties: {} })) };
+}
+
+// ---------------------------------------------------------------- Les couches
+const filtreNeige = (neiges) => ['in', ['get', 'code'], ['literal', neiges.map(([code]) => code)]];
+const opaciteNeige = (neiges) => ['match', ['get', 'code'], ...neiges.flat(), 0];
+const filtreLacs = (geles) => ['all', ['==', ['get', 't'], 'lac'], ['in', ['get', 'nom'], ['literal', geles]]];
+const sombreDe = (p) => 1 - 0.55 * p.nuit; // la nuit, les couleurs des fleurs et des feuilles s'éteignent un peu
+
+/** Les couches de saison, et la couche avant laquelle chacune se place. */
+const COUCHES = {
+  // les touches d'aquarelle, sous l'ombrage du relief (qui les modèle) ; de loin elles ne se voient pas : pas dessinées
+  'saison-taches': [{ type: 'fill', source: 'saison-taches', minzoom: 6 }, 'ombrage'],
+  // le tapis de feuilles, couché sur le relief : seulement de près
+  'saison-feuilles': [{
+    type: 'symbol',
+    source: 'saison-feuilles',
+    minzoom: 10.5,
+    layout: {
+      'icon-image': ['get', 'i'],
+      'icon-rotate': ['get', 'r'],
+      // il grandit en zoomant, un peu moins vite que la carte (×1,4 par niveau, elle ×2)
+      'icon-size': ['interpolate', ['exponential', 1.4], ['zoom'], 10.5, ['*', 0.32, ['get', 's']], 16, ['*', 2.07, ['get', 's']]],
+      'icon-allow-overlap': true,
+      'icon-ignore-placement': true,
+      'icon-pitch-alignment': 'map',
+      'icon-rotation-alignment': 'map',
+    },
+  }, 'voisins'],
+  'saison-neige': [{ type: 'fill', source: 'prefectures-neige', paint: { 'fill-antialias': false } }, 'ombrage'],
+  'lacs-glace': [{ type: 'fill', source: 'eaux' }, 'lacs-bord'],
+  'lacs-glace-motif': [{ type: 'fill', source: 'eaux', paint: { 'fill-pattern': 'motif-glace' } }, 'lacs-bord'],
+  // la banquise d'Okhotsk, sous le relief (la terre la cache), au-dessus des lignes d'eau
+  banquise: [{ type: 'fill', source: 'banquise' }, 'couleurs-relief'],
+  'banquise-bord': [{ type: 'line', source: 'banquise', paint: { 'line-width': 0.7, 'line-opacity': 0.8 } }, 'couleurs-relief'],
+};
+const SOURCES = {
+  'saison-taches': () => ({ type: 'geojson', data: vide(), maxzoom: 10 }),
+  'saison-feuilles': () => ({ type: 'geojson', data: vide(), maxzoom: 12 }),
+  'prefectures-neige': () => ({ type: 'geojson', data: 'data/prefectures.geojson', maxzoom: 7 }),
+  banquise: () => ({ type: 'geojson', data: vide(), maxzoom: 9 }),
+};
+
+/** L'état de chaque couche ce jour-là : { id: { filtre?, paint } } (celles qui n'ont rien à montrer n'y sont pas). */
+function etatCouches(j, p) {
+  const res = {
+    'saison-taches': { paint: { 'fill-color': ['get', 'c'], 'fill-opacity': ['*', ['get', 'o'], sombreDe(p)] } },
+    'saison-feuilles': { paint: { 'icon-opacity': ['interpolate', ['linear'], ['zoom'], 10.5, 0, 11.4, ['*', ['get', 'o'], sombreDe(p)]] } },
+  };
+  const neiges = neigesDuJour(j);
+  if (neiges.length) res['saison-neige'] = { filtre: filtreNeige(neiges), paint: { 'fill-color': p.neigeSol, 'fill-opacity': opaciteNeige(neiges) } };
+  const geles = lacsGeles(j);
+  if (geles.length) {
+    res['lacs-glace'] = { filtre: filtreLacs(geles), paint: { 'fill-color': p.glace } };
+    res['lacs-glace-motif'] = { filtre: filtreLacs(geles), paint: { 'fill-opacity': 0.9 * sombreDe(p) } };
+  }
+  if (forceBanquise(j) > 0.05) {
+    res.banquise = { paint: { 'fill-color': p.glace, 'fill-opacity': 0.95 } };
+    res['banquise-bord'] = { paint: { 'line-color': p.eau } };
+  }
+  return res;
+}
+
+/**
+ * Les sources et les couches de saison à mettre dans le style de départ de la carte (app.js) : elles naissent avec
+ * elle, sans redessiner le relief après coup. Le motif des lacs gelés vient plus tard (il faut le dessiner d'abord).
+ * @returns { sources, avant(id) : les couches à placer juste avant la couche id }
+ */
+export function styleSaison(j, p) {
+  const etat = etatCouches(j, p);
+  delete etat['lacs-glace-motif'];
+  const sources = {};
+  const couches = {};
+  for (const [id, { filtre, paint }] of Object.entries(etat)) {
+    const [def, avant] = COUCHES[id];
+    if (SOURCES[def.source] && !sources[def.source]) sources[def.source] = SOURCES[def.source]();
+    (couches[avant] ||= []).push({ id, ...def, ...(filtre ? { filter: filtre } : {}), paint: { ...def.paint, ...paint } });
+  }
+  if (sources.banquise) sources.banquise.data = banquise(forceBanquise(j));
+  return { sources, avant: (id) => couches[id] || [] };
+}
+
 // ---------------------------------------------------------------- Brancher sur la carte
 /**
- * @param deps - { lieux() : les lieux du tableau (avec leurs saisons) }
- * @returns { maj(j, p) : la carte de ce jour (1 à 365) et de ces couleurs (ambiance.js), majLieux() }
+ * Tient les détails de saison à jour (ambiance.js appelle maj à chaque palier de couleurs et chaque jour).
+ * Les touches d'aquarelle ne sont calculées que deux secondes après le chargement de la carte (elles ne se voient
+ * qu'à partir du zoom 6 : le démarrage n'en est pas ralenti).
+ * @param deps - { lieux() : les lieux du tableau (avec leurs saisons) } ; jDepart : le jour du style de départ
+ * @returns { maj(j, p), majLieux() }
  */
-export function brancherDetailsSaison(map, deps) {
-  let pret = false, jour = null, couleurs = null, cleTaches = '', cleNeige = '', cleBanquise = '', cleLacs = '';
-  const ajoutes = new Set();
+export function brancherDetailsSaison(map, deps, jDepart) {
+  let jour = null, couleurs = null, cleTaches = '', cleTapis = '', motifGlace = false, tachesPretes = false;
+  let enSaison = []; // les lieux en fleurs ou en couleurs ce jour-là
+  const tapisFaits = new Map(); // les tapis déjà tirés, par lieu
+  let cleBanquise = jDepart ? String(forceBanquise(jDepart)) : ''; // la banquise du départ est déjà dans le style
+  const etatPrecedent = {};
 
-  function preparer() {
-    pret = true;
-    for (const nom of Object.keys(MOTIFS)) map.addImage(`motif-${nom}`, dessinerMotif(nom), { pixelRatio: 2 });
-    map.addImage('motif-glace', dessinerGlace(), { pixelRatio: 2 });
+  // les touches attendent que la carte soit chargée
+  const lancer = () => setTimeout(() => {
+    // les images du tapis de feuilles, découpées dans l'atlas
+    const atlas = atlasSol();
+    const pixels = atlas.getContext('2d').getImageData(0, 0, atlas.width, atlas.height).data; // lu une seule fois
+    IMAGES_TAPIS.forEach((nom, k) => {
+      if (map.hasImage(nom)) return;
+      const image = new ImageData(128, 128);
+      for (let y = 0; y < 128; y++) {
+        const debut = ((Math.floor(k / 4) * 128 + y) * atlas.width + (k % 4) * 128) * 4;
+        image.data.set(pixels.subarray(debut, debut + 128 * 4), y * 128 * 4);
+      }
+      map.addImage(nom, image, { pixelRatio: 4 });
+    });
+    tachesPretes = true;
     if (jour !== null) maj(jour, couleurs);
-  }
-  if (map.style?._loaded) preparer();
-  else map.once('style.load', preparer);
+  }, 2000);
+  // (calculées quand le navigateur n'a rien d'autre à faire : sinon, une image figée au moment où l'on bouge la carte)
+  const auCalme = (f) => (window.requestIdleCallback ? requestIdleCallback(f, { timeout: 3000 }) : setTimeout(f, 50));
 
-  /** Montre ou cache des couches : une couche sans rien à montrer n'est pas dessinée du tout (mesuré : ~8 % d'images en moins au zoom sur un téléphone moyen). */
-  function montrer(ids, oui) {
-    for (const id of ids) if (map.getLayoutProperty(id, 'visibility') !== (oui ? 'visible' : 'none')) map.setLayoutProperty(id, 'visibility', oui ? 'visible' : 'none');
+  /**
+   * Le tapis de feuilles : seulement pour les lieux en saison près de l'écran, de près (à partir du zoom 10 ; la couche
+   * se montre à 10,5). Refait quand la carte s'arrête : quelques centaines de points au lieu de dizaines de milliers.
+   */
+  function majTapis() {
+    if (!tachesPretes || map.getZoom() < 10) return;
+    const b = map.getBounds();
+    const marge = 0.3 * (b.getEast() - b.getWest());
+    const proches = enSaison.filter(([lng, lat, rayon]) => {
+      const dx = rayon / kmLng(lat), dy = rayon / KM_LAT;
+      return lng + dx > b.getWest() - marge && lng - dx < b.getEast() + marge && lat + dy > b.getSouth() - marge && lat - dy < b.getNorth() + marge;
+    });
+    const cle = proches.map((t) => t.join(',')).join('|');
+    if (cle === cleTapis) return;
+    cleTapis = cle;
+    const features = proches.flatMap((t) => {
+      const k = t.join(',');
+      if (!tapisFaits.has(k)) tapisFaits.set(k, tapis(...t));
+      return tapisFaits.get(k);
+    });
+    map.getSource('saison-feuilles')?.setData({ type: 'FeatureCollection', features });
+  }
+  map.on('moveend', majTapis);
+  if (map.loaded()) lancer();
+  else {
+    let lance = false;
+    const une = () => { if (!lance) { lance = true; lancer(); } };
+    map.once('load', une);
+    setTimeout(une, 12000);
   }
 
-  /** Ajoute une couche la première fois qu'elle sert (chaque ajout redessine le relief une fois). */
-  function couche(id, source, def, avant) {
-    if (ajoutes.has(id)) return;
-    if (!map.getSource(source.id)) map.addSource(source.id, source.def);
-    map.addLayer({ id, source: source.id, ...def }, avant);
-    ajoutes.add(id);
+  /** Ajoute une couche (et sa source) la première fois qu'elle sert : seulement si la saison change en cours de visite. */
+  function ajouter(id) {
+    if (map.getLayer(id)) return;
+    const [def, avant] = COUCHES[id];
+    if (!map.getSource(def.source)) map.addSource(def.source, SOURCES[def.source]());
+    if (id === 'lacs-glace-motif' && !motifGlace) { map.addImage('motif-glace', dessinerGlace(), { pixelRatio: 2 }); motifGlace = true; }
+    map.addLayer({ id, ...def }, map.getLayer(avant) ? avant : undefined);
   }
-
-  /** Les taches de fleurs et de feuillage de ce jour. */
-  function taches(j) {
-    const res = [];
-    const pres = (lng, lat, motif) => res.some((f) => f.properties.motif === `motif-${motif}`
-      && Math.hypot((f.properties.lng - lng) * kmLng(lat), (f.properties.lat - lat) * KM_LAT) < 5);
-    const ajouter = (lng, lat, rayon, motif, o) => {
-      if (o < 0.08 || pres(lng, lat, motif)) return;
-      const force = Math.round(o * 10) / 10;
-      res.push({ type: 'Feature', geometry: tache(lng, lat, rayon), properties: { motif: `motif-${motif}`, o: force, lng, lat } });
-      // le voile de couleur, en deux anneaux (plus coloré au cœur) : la tache se voit aussi de loin
-      for (const f of [1.12, 0.75]) {
-        res.push({ type: 'Feature', geometry: tache(lng, lat, rayon * f), properties: { lavis: MOTIFS[motif].lavis, o: force } });
-      }
-    };
-    // les lieux du tableau à leur plus beau ce mois-ci (colonne Saisons) passent d'abord
-    for (const l of deps.lieux()) {
-      for (const p of l.saisons?.periodes || []) {
-        const motif = { cerisiers: 'sakura', fleurs: 'fleurs', automne: 'momiji' }[p.sorte];
-        if (!motif) continue;
-        // du premier au dernier mois de la période, avec un fondu de quelques jours
-        const o = p.mois.reduce((m, oui, i) => (oui ? Math.max(m, entre(j, (i + 1) * 100 + 1, (i + 1) * 100 + [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][i])) : m), 0);
-        ajouter(l.lng, l.lat, 4.5, motif, o);
-      }
-    }
-    // (les rayons des listes ×1,5 : toute la ville ou la vallée est en fleurs ou en couleurs ; les champs ×1,3)
-    for (const [lng, lat, alt, rayon, debut] of CERISIERS) ajouter(lng, lat, rayon * 1.5, 'sakura', enFleurs(j, debut ?? floraison(lat, lng, alt)));
-    for (const [lng, lat, alt, rayon, sorte] of AUTOMNE) {
-      const pic = picAutomne(lat, alt) + (sorte ? 4 : 0);
-      ajouter(lng, lat, rayon * 1.5, sorte || 'momiji', lisse(pic - 20, pic - 6, j) * (1 - lisse(pic + 8, pic + 20, j)));
-    }
-    for (const [lng, lat, rayon, motif, du, au] of CHAMPS) ajouter(lng, lat, rayon * 1.3, motif, entre(j, du, au));
-    return res;
+  /** Montre ou cache une couche : une couche sans rien à montrer n'est pas dessinée du tout. */
+  function montrer(id, oui) {
+    if (map.getLayer(id) && map.getLayoutProperty(id, 'visibility') !== (oui ? 'visible' : 'none')) map.setLayoutProperty(id, 'visibility', oui ? 'visible' : 'none');
   }
 
   function maj(j, p) {
     jour = j;
     couleurs = p;
-    if (!pret) return;
-    const sombre = 1 - 0.55 * p.nuit; // la nuit, les couleurs des fleurs et des feuilles s'éteignent un peu
-
-    // 1. fleurs et feuillages, sous l'ombrage du relief (qui les modèle)
-    const t = taches(j);
-    const cle = t.map((f) => `${f.properties.motif}${f.properties.lng}${f.properties.o}`).join('|');
-    if (t.length || ajoutes.has('saison-taches')) {
-      const source = { id: 'saison-taches', def: { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, maxzoom: 10 } };
-      couche('saison-lavis', source, {
-        type: 'fill', filter: ['has', 'lavis'], paint: { 'fill-color': ['get', 'lavis'], 'fill-opacity': 0, 'fill-antialias': false },
-      }, 'ombrage');
-      couche('saison-taches', source, {
-        type: 'fill', filter: ['has', 'motif'], paint: { 'fill-pattern': ['get', 'motif'], 'fill-opacity': 0, 'fill-antialias': false },
-      }, 'ombrage');
-      if (cle !== cleTaches) map.getSource('saison-taches').setData({ type: 'FeatureCollection', features: t });
-      map.setPaintProperty('saison-taches', 'fill-opacity', ['*', ['get', 'o'], sombre]);
-      map.setPaintProperty('saison-lavis', 'fill-opacity', ['*', ['get', 'o'], 0.16 * sombre]);
-      montrer(['saison-lavis', 'saison-taches'], t.length > 0);
-    }
-    cleTaches = cle;
-
-    // 2. la neige au sol du nord et de la côte de la mer du Japon, sous l'ombrage (le relief se lit dessous)
-    // (côté mer du Japon, la neige tient comme 300 m plus haut : les vents d'hiver y déchargent la neige)
-    const neiges = Object.entries(NEIGE_PREFECTURES).map(([code, [force, lat, alt, merDuJapon]]) => {
-      const v = force * neigeAuSol(lat + (merDuJapon ? 300 / 220 : 0), alt, j);
-      return [Number(code), Math.round(v * 20) / 20];
-    }).filter(([, v]) => v > 0);
-    const cleN = neiges.map((x) => x.join(':')).join(',');
-    if (neiges.length || ajoutes.has('saison-neige')) {
-      couche('saison-neige', { id: 'prefectures-neige', def: { type: 'geojson', data: 'data/prefectures.geojson', maxzoom: 7 } }, {
-        type: 'fill', paint: { 'fill-color': p.neigeSol, 'fill-opacity': 0, 'fill-antialias': false },
-      }, ajoutes.has('saison-lavis') ? 'saison-lavis' : 'ombrage');
-      if (cleN !== cleNeige && neiges.length) {
-        map.setFilter('saison-neige', ['in', ['get', 'code'], ['literal', neiges.map(([code]) => code)]]);
-        map.setPaintProperty('saison-neige', 'fill-opacity', ['match', ['get', 'code'], ...neiges.flat(), 0]);
+    if (!map.style?._loaded) return;
+    const etat = etatCouches(j, p);
+    for (const id of Object.keys(COUCHES)) {
+      const e = etat[id];
+      if (!e) { montrer(id, false); continue; }
+      ajouter(id);
+      montrer(id, true);
+      if (e.filtre && JSON.stringify(e.filtre) !== etatPrecedent[id]) {
+        map.setFilter(id, e.filtre);
+        etatPrecedent[id] = JSON.stringify(e.filtre);
       }
-      map.setPaintProperty('saison-neige', 'fill-color', p.neigeSol);
-      montrer(['saison-neige'], neiges.length > 0);
+      for (const [k, v] of Object.entries(e.paint)) map.setPaintProperty(id, k, v); // sans effet si rien ne change
     }
-    cleNeige = cleN;
-
-    // 3. les lacs gelés : la glace, puis ses fêlures et ses traînées de neige
-    const geles = Object.entries(LACS_GELES).filter(([, [du, au]]) => entre(j, du, au) > 0.5).map(([nom]) => nom);
-    const cleL = geles.join(',');
-    if (geles.length || ajoutes.has('lacs-glace')) {
-      const filtre = ['all', ['==', ['get', 't'], 'lac'], ['in', ['get', 'nom'], ['literal', geles]]];
-      couche('lacs-glace', { id: 'eaux' }, { type: 'fill', filter: filtre, paint: { 'fill-color': p.glace } }, 'lacs-bord');
-      couche('lacs-glace-motif', { id: 'eaux' }, { type: 'fill', filter: filtre, paint: { 'fill-pattern': 'motif-glace', 'fill-opacity': 0.9 } }, 'lacs-bord');
-      if (cleL !== cleLacs) for (const id of ['lacs-glace', 'lacs-glace-motif']) map.setFilter(id, filtre);
-      map.setPaintProperty('lacs-glace', 'fill-color', p.glace);
-      map.setPaintProperty('lacs-glace-motif', 'fill-opacity', 0.9 * sombre);
-      montrer(['lacs-glace', 'lacs-glace-motif'], geles.length > 0);
-    }
-    cleLacs = cleL;
-
-    // 4. la banquise d'Okhotsk, sous le relief (la terre la cache), au-dessus des lignes d'eau
-    const force = lisse(22, 46, j) * (1 - lisse(69, 91, j));
-    const cleB = String(Math.round(force * 10));
-    if (force > 0.05 || ajoutes.has('banquise')) {
-      if (!plaques) preparerBanquise();
-      couche('banquise', { id: 'banquise', def: { type: 'geojson', data: { type: 'FeatureCollection', features: [] }, maxzoom: 9 } }, {
-        type: 'fill', paint: { 'fill-color': p.glace, 'fill-opacity': 0.95 },
-      }, 'couleurs-relief');
-      couche('banquise-bord', { id: 'banquise' }, { type: 'line', paint: { 'line-color': p.eau, 'line-width': 0.7, 'line-opacity': 0.8 } }, 'couleurs-relief');
-      if (cleB !== cleBanquise) {
-        const f = Math.round(force * 10) / 10;
-        const features = plaques.filter(([, d, tirage]) => tirage < f * Math.exp(-d / 24) * 1.15).map(([geometry]) => ({ type: 'Feature', geometry, properties: {} }));
-        map.getSource('banquise').setData({ type: 'FeatureCollection', features });
+    // les touches d'aquarelle (une fois par jour, après le chargement), puis le tapis de feuilles près de l'écran
+    if (tachesPretes) {
+      const lieux = lieuxEnSaison(j, deps.lieux());
+      const cle = lieux.map((t) => t.join(',')).join('|');
+      if (cle !== cleTaches) {
+        cleTaches = cle;
+        enSaison = lieux;
+        tapisFaits.clear();
+        cleTapis = '';
+        auCalme(() => {
+          map.getSource('saison-taches').setData({ type: 'FeatureCollection', features: lieux.flatMap((t) => touches(...t)) });
+          majTapis();
+        });
       }
-      map.setPaintProperty('banquise', 'fill-color', p.glace);
-      map.setPaintProperty('banquise-bord', 'line-color', p.eau);
-      montrer(['banquise', 'banquise-bord'], force > 0.05);
     }
-    cleBanquise = cleB;
+    // la banquise
+    const force = forceBanquise(j);
+    if (force > 0.05 && String(force) !== cleBanquise) {
+      cleBanquise = String(force);
+      map.getSource('banquise').setData(banquise(force));
+    }
   }
 
   return {

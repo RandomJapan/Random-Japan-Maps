@@ -7,6 +7,9 @@
 //  chute en trois mouvements, tous animés en CSS par la carte graphique :
 //  la descente, le balancement de feuille morte (elle glisse d'un côté en
 //  penchant, ralentit, repart de l'autre) et la vrille en 3D.
+//  Les mouvements sont donnés en valeurs fixes (element.animate) : avec des
+//  variables CSS dans les @keyframes, le navigateur les recalculait à chaque
+//  image (mesuré : 13 % d'images en moins sur un téléphone moyen simulé).
 // ================================================================
 
 const hasard = (a, b) => a + Math.random() * (b - a);
@@ -62,6 +65,7 @@ function ginkgo() {
 
 const ERABLE = erable();
 const GINKGO = ginkgo();
+const PETALE = 'M10 23.3C3.4 18.6 1.2 10 3.8 3.6 5.6.3 8.4 1 10 4.3 11.6 1 14.4.3 16.2 3.6 18.8 10 16.6 18.6 10 23.3Z';
 // Les teintes d'automne : [cœur, pointes, trait]
 const ROUX = [
   ['#e9a33b', '#c4321c', '#7a1d12'], ['#d8482a', '#a3201a', '#661410'], ['#f0c24a', '#d9662a', '#8a3a16'],
@@ -89,30 +93,43 @@ function dessinPetale(revers) {
   return `<svg class="${revers ? 'dos' : 'face'}" viewBox="0 0 20 24"><defs><linearGradient id="${id}" x1="0" y1="1" x2="0" y2="0">`
     + `<stop offset="0" stop-color="${revers ? '#f3c3d0' : '#ec9db3'}"/><stop offset=".55" stop-color="${revers ? '#fbe6ec' : '#f8d3de'}"/>`
     + `<stop offset="1" stop-color="#fff3f6"/></linearGradient></defs>`
-    + `<path d="M10 23.3C3.4 18.6 1.2 10 3.8 3.6 5.6.3 8.4 1 10 4.3 11.6 1 14.4.3 16.2 3.6 18.8 10 16.6 18.6 10 23.3Z" fill="url(#${id})" stroke="#d68aa0" stroke-width=".45"/>`
+    + `<path d="${PETALE}" fill="url(#${id})" stroke="#d68aa0" stroke-width=".45"/>`
     + `<path d="M10 22V8.5" stroke="#e3a1b4" stroke-width=".4" fill="none"/></svg>`;
 }
 
 // ---------------------------------------------------------------- La chute
+/** Une animation sans fin de durée d (s), déjà en route (délai négatif au hasard). */
+const toujours = (el, images, d, o = {}) => el.animate(images, { duration: d * 1000, iterations: Infinity, delay: -hasard(0, d * 1000), ...o });
+const f1 = (x) => x.toFixed(1);
+
 /**
  * Un objet qui tombe : la descente (span), le balancement (.balance) et la vrille en 3D (.vrille), chacun
- * avec ses durées au hasard ; delai négatif : déjà en route au premier affichage.
+ * avec ses durées au hasard.
  */
 function tombant(contenu, { gauche = hasard(-4, 100), taille, chute, balance, amplitude, angle, vrille, classe = '' }) {
   const s = document.createElement('span');
   if (classe) s.className = classe;
-  s.style.left = `${gauche.toFixed(1)}%`;
-  s.style.animationDuration = `${chute.toFixed(1)}s`;
-  s.style.animationDelay = `${-hasard(0, chute).toFixed(1)}s`;
-  const axe = [hasard(-1, 1), hasard(-1, 1), hasard(-0.4, 0.4)];
-  const v = vrille ? `<span class="vrille" style="--ax:${axe[0].toFixed(2)};--ay:${axe[1].toFixed(2)};--az:${axe[2].toFixed(2)};animation-duration:${vrille.toFixed(1)}s;animation-delay:${-hasard(0, vrille).toFixed(1)}s">${contenu}</span>` : contenu;
-  s.innerHTML = `<span class="balance" style="--amp:${amplitude.toFixed(0)}px;--angle:${angle.toFixed(0)}deg;--taille:${taille.toFixed(0)}px;`
-    + `animation-duration:${balance.toFixed(1)}s;animation-delay:${-hasard(0, balance).toFixed(1)}s">${v}</span>`;
+  s.style.left = `${f1(gauche)}%`;
+  s.innerHTML = `<span class="balance" style="--taille:${taille.toFixed(0)}px">${vrille ? `<span class="vrille">${contenu}</span>` : contenu}</span>`;
+  toujours(s, [{ transform: 'translateY(0)', opacity: 0 }, { opacity: 1, offset: 0.06 }, { opacity: 1, offset: 0.92 }, { transform: 'translateY(118vh)', opacity: 0 }], chute);
+  // la feuille morte glisse d'un côté en penchant le nez, ralentit en remontant un peu, puis repart de l'autre
+  const A = amplitude, T = angle, doux = 'ease-in-out';
+  toujours(s.firstElementChild, [
+    { transform: `translate(${f1(-A)}px, -7px) rotate(${f1(-T * 0.2)}deg)`, easing: doux },
+    { transform: `translate(0px, 9px) rotate(${f1(T)}deg)`, easing: doux },
+    { transform: `translate(${f1(A)}px, -7px) rotate(${f1(T * 0.2)}deg)`, easing: doux },
+    { transform: `translate(0px, 9px) rotate(${f1(-T)}deg)`, easing: doux },
+    { transform: `translate(${f1(-A)}px, -7px) rotate(${f1(-T * 0.2)}deg)` },
+  ], balance);
+  if (vrille) {
+    const axe = [hasard(-1, 1), hasard(-1, 1), hasard(-0.4, 0.4)].map((v) => v.toFixed(2)).join(', ');
+    toujours(s.querySelector('.vrille'), [{ transform: `rotate3d(${axe}, 0deg)` }, { transform: `rotate3d(${axe}, 360deg)` }], vrille);
+  }
   return s;
 }
 
 const SORTES = {
-  feuilles: () => Array.from({ length: 14 }, (_, i) => {
+  feuilles: () => Array.from({ length: 12 }, (_, i) => {
     const ginkgoOuNon = i % 3 === 2;
     const teinte = ginkgoOuNon ? OR[i % OR.length] : ROUX[i % ROUX.length];
     const forme = ginkgoOuNon ? GINKGO : ERABLE;
@@ -142,10 +159,8 @@ const SORTES = {
     s.className = 'luciole';
     s.style.left = `${hasard(-4, 100)}%`;
     s.style.top = `${hasard(20, 90)}%`;
-    s.style.setProperty('--dx', `${hasard(-70, 70).toFixed(0)}px`);
-    const duree = hasard(5, 9);
-    s.style.animationDuration = `${duree.toFixed(1)}s`;
-    s.style.animationDelay = `${-hasard(0, duree).toFixed(1)}s`;
+    toujours(s, [{ transform: 'translate(0px, 0px)', opacity: 0 }, { opacity: 1, offset: 0.3 }, { opacity: 0.3, offset: 0.6 },
+      { transform: `translate(${hasard(-70, 70).toFixed(0)}px, -40px)`, opacity: 0.9 }], hasard(5, 9), { direction: 'alternate', easing: 'ease-in-out' });
     return s;
   }),
   hanabi: () => ['#e8b04a', '#c4462e', '#e8b04a'].map((couleur, i) => {
@@ -169,7 +184,73 @@ function feuDArtifice(couleur) {
   return `<svg width="76" height="76" viewBox="0 0 100 100" stroke="${couleur}" fill="${couleur}" stroke-width="2.4" stroke-linecap="round">${traits}</svg>`;
 }
 
+/**
+ * L'atlas des feuilles et des pétales tombés au sol, autour des modèles 3D (couche3d.js) : 4 × 2 cases de 128 px.
+ * En haut, trois feuilles d'érable (rouge, orangée, jaune) et une de ginkgo ; en bas, quatre pétales de cerisier.
+ */
+export function atlasSol() {
+  const C = 128;
+  const toile = document.createElement('canvas');
+  toile.width = 4 * C;
+  toile.height = 2 * C;
+  const c = toile.getContext('2d');
+  const feuille = (k, forme, [coeur, pointes, trait]) => {
+    c.save();
+    c.translate(k * C, 0);
+    c.scale(C / 100, C / 100);
+    const [cx, cy] = forme.centre;
+    const degrade = c.createRadialGradient(cx, cy, 2, cx, cy, 48);
+    degrade.addColorStop(0.05, coeur);
+    degrade.addColorStop(1, pointes);
+    c.fillStyle = degrade;
+    c.strokeStyle = trait;
+    c.lineJoin = 'round';
+    c.lineCap = 'round';
+    c.lineWidth = 2;
+    c.stroke(new Path2D(forme.queue));
+    const contour = new Path2D(forme.d);
+    c.fill(contour);
+    c.lineWidth = 1.3;
+    c.stroke(contour);
+    c.globalAlpha = 0.45;
+    c.lineWidth = 0.8;
+    c.stroke(new Path2D(forme.nervures));
+    c.restore();
+  };
+  feuille(0, ERABLE, ROUX[1]);
+  feuille(1, ERABLE, ROUX[0]);
+  feuille(2, ERABLE, ROUX[2]);
+  feuille(3, GINKGO, OR[1]);
+  ['#ec9db3', '#e58ba5', '#f0aabd', '#e8a0b5'].forEach((base, k) => {
+    c.save();
+    c.translate(k * C + C / 2, C + C / 2);
+    c.rotate(k * 0.8);
+    c.scale(4.4, 4.4);
+    c.translate(-10, -12);
+    const degrade = c.createLinearGradient(0, 24, 0, 0);
+    degrade.addColorStop(0, base);
+    degrade.addColorStop(0.55, '#f8d3de');
+    degrade.addColorStop(1, '#fff3f6');
+    c.fillStyle = degrade;
+    c.strokeStyle = '#d68aa0';
+    c.lineWidth = 0.4;
+    const contour = new Path2D(PETALE);
+    c.fill(contour);
+    c.stroke(contour);
+    c.restore();
+  });
+  return toile;
+}
+
 /** Les éléments de cette sorte (feuilles, petales, neige, lucioles, hanabi). */
 export function creerParticules(sorte) {
   return SORTES[sorte]?.() || [];
+}
+
+/** Arrête (false) ou relance (true) tout ce qui bouge dans le conteneur des particules. */
+export function animerParticules(conteneur, oui) {
+  for (const a of conteneur.getAnimations({ subtree: true })) {
+    if (oui) a.play();
+    else a.pause();
+  }
 }

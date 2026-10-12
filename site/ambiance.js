@@ -20,8 +20,8 @@
 import { CONFIG } from './config.js';
 import { TEINTES } from './teintes.js';
 import { MOIS, jourDeLAn, dateDuJour } from './phenologie.js';
-import { creerParticules } from './particules.js';
-import { brancherDetailsSaison } from './saisons-carte.js';
+import { creerParticules, animerParticules } from './particules.js';
+import { brancherDetailsSaison, styleSaison } from './saisons-carte.js';
 
 const CENTRE = { lng: 137.5, lat: 36 }; // le soleil est calculé au centre de Honshū
 const FUSEAU = 'Asia/Tokyo';
@@ -215,6 +215,8 @@ export function preparerAmbiance() {
   const jourClassique = { soir: 0, nuit: 0, matin: false, saison: [0, 0, 0, 99999], particules: null };
   const m0 = reglage.classique ? jourClassique : moment(maintenant());
   const arrondi = (m) => ({ ...m, soir: Math.round(m.soir * 10) / 10, nuit: Math.round(m.nuit * 10) / 10 });
+  const P0 = palette(arrondi(m0));
+  const jDepart = reglage.classique ? null : jourDeLAn(m0.jour.mois, m0.jour.jour);
 
   /**
    * @param deps - { t(cle, …), langue(), lieux() }
@@ -228,7 +230,7 @@ export function preparerAmbiance() {
     let m = m0; // le moment montré : le réel, ou le jour ou la nuit choisis avec l'interrupteur
     let force = null; // 'jour' | 'nuit' : choisi avec l'interrupteur ; null : l'heure du Japon
     let cle = '', particules;
-    const details = brancherDetailsSaison(map, { lieux: deps.lieux });
+    const details = brancherDetailsSaison(map, { lieux: deps.lieux }, jDepart);
 
     // L'horloge : l'interrupteur jour/nuit, l'heure au Japon, et (mode développeur) le réglage de la date
     const horloge = document.createElement('div');
@@ -246,16 +248,25 @@ export function preparerAmbiance() {
     saison.setAttribute('aria-hidden', 'true');
     const papier = document.getElementById('papier');
     papier.after(saison);
-    // Pendant qu'on zoome ou qu'on fait glisser la carte, elles s'effacent (mesuré : -10 % d'images par seconde
-    // sur un téléphone moyen quand elles tombent sur une carte qui bouge) ; la lente rotation du début les garde.
-    map.on('movestart', (e) => { if (e.originalEvent) saison.classList.add('repos'); });
-    map.on('zoomstart', () => saison.classList.add('repos'));
-    map.on('moveend', () => saison.classList.remove('repos'));
+    // Dès que la carte bouge, elles s'effacent (mesuré le 2026-10-12 sur un téléphone moyen simulé : un quart
+    // d'images par seconde en moins quand elles tombent sur une carte qui se déplace). De loin (la lente rotation
+    // du départ), elles sont déjà cachées.
+    // Cachées, elles sont aussi arrêtées (animerParticules).
+    const cachees = () => saison.classList.contains('repos') || saison.classList.contains('loin');
+    let arretees = false;
+    const majAnimation = () => {
+      if (cachees() === arretees) return;
+      arretees = cachees();
+      animerParticules(saison, !arretees);
+    };
+    map.on('movestart', () => { saison.classList.add('repos'); majAnimation(); });
+    map.on('moveend', () => { saison.classList.remove('repos'); majAnimation(); });
     // De loin, rien ne tombe : seulement quand on zoome sur une région
     const majLoin = () => {
       const z = map.getZoom();
       if (z < ZOOM_PARTICULES - 0.2) saison.classList.add('loin');
       else if (z >= ZOOM_PARTICULES) saison.classList.remove('loin');
+      majAnimation();
     };
     map.on('zoom', majLoin);
     majLoin();
@@ -324,6 +335,7 @@ export function preparerAmbiance() {
       particules = sorte;
       saison.replaceChildren(...(sorte ? creerParticules(sorte) : []));
       saison.dataset.sorte = sorte || '';
+      if (arretees) animerParticules(saison, false); // les nouvelles aussi, si elles sont cachées
     }
 
     function verifier() {
@@ -443,7 +455,13 @@ export function preparerAmbiance() {
     };
   }
 
-  return { palette: palette(arrondi(m0)), brancher, classique: reglage.classique };
+  return {
+    palette: P0,
+    brancher,
+    classique: reglage.classique,
+    // les détails de saison du jour, à mettre dans le style de départ (app.js) : rien pour la carte classique
+    saison: reglage.classique ? { sources: {}, avant: () => [] } : styleSaison(jDepart, P0),
+  };
 }
 
 let essai = null;

@@ -343,6 +343,7 @@ const map = new maplibregl.Map({
         attribution: OSM,
       },
       frontieres: { type: 'geojson', data: 'data/frontieres-japon.geojson', maxzoom: 10, attribution: OSM },
+      ...ambiance.saison.sources, // les détails de saison (saisons-carte.js)
     },
     layers: [
       { id: 'fond', type: 'background', paint: { 'background-color': MER } },
@@ -373,6 +374,7 @@ const map = new maplibregl.Map({
           'line-opacity': ['interpolate', ['linear'], ['zoom'], 6.5, opacite, 8.5, 0],
         },
       })),
+      ...ambiance.saison.avant('couleurs-relief'), // la banquise d'Okhotsk, l'hiver
       {
         id: 'couleurs-relief',
         type: 'color-relief',
@@ -389,6 +391,7 @@ const map = new maplibregl.Map({
           'color-relief-color': P.rampe,
         },
       },
+      ...ambiance.saison.avant('ombrage'), // la neige au sol du nord, les touches de fleurs et de feuillages
       {
         id: 'ombrage',
         type: 'hillshade',
@@ -485,6 +488,7 @@ const map = new maplibregl.Map({
         };
       }),
       { id: 'lacs', type: 'fill', source: 'eaux', filter: ['==', ['get', 't'], 'lac'], paint: { 'fill-color': MER } },
+      ...ambiance.saison.avant('lacs-bord'), // les lacs gelés
       {
         id: 'lacs-bord',
         type: 'line',
@@ -507,6 +511,7 @@ const map = new maplibregl.Map({
           'line-opacity': ['interpolate', ['linear'], ['zoom'], 6, 0.75, 8, 0],
         },
       },
+      ...ambiance.saison.avant('voisins'), // le tapis de feuilles ou de pétales tombés, de près
       { id: 'voisins', type: 'fill', source: 'voisins', paint: { 'fill-color': MER } },
       // Un trait épais de la couleur de la mer cache les petites différences de côte des pays voisins.
       {

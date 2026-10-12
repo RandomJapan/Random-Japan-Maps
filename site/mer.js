@@ -335,9 +335,14 @@ function coucheHoule(map, maplibregl, image, obtenirTemps, quandPrete) {
 }
 
 // ---------------------------------------------------------------- Les bateaux (petits modèles 3D)
-/** Couche 3D des bateaux : le même moteur (three.js) et la même lumière que les modèles des lieux (couche3d.js). */
-function coucheBateaux(map, maplibregl, THREE, modele, flotte) {
-  let renderer, scene, camera, ciel, soleil, bateaux, matiere;
+/**
+ * Couche 3D des bateaux : le même moteur (three.js) et la même lumière que les modèles des lieux (couche3d.js).
+ * La nuit (2026-10-12, demande du propriétaire), leurs lanternes s'allument : la matière des lieux (lanternes et
+ * fenêtres qui brillent), un halo autour de chaque lanterne et une flaque de lumière sur l'eau.
+ * outils : { matiereSaisons, matieresLueur, LANTERNES_BATEAU } de modeles3d.js.
+ */
+function coucheBateaux(map, maplibregl, THREE, modele, flotte, outils) {
+  let renderer, scene, camera, ciel, soleil, bateaux, matiere, peinture, lueur, halos, flaques;
   const m4 = {
     // modèle (x, y = haut, z = proue) → carte (x = est, y = sud, z = haut) : un miroir, comme dans couche3d.js
     base: new THREE.Matrix4().set(1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1),
@@ -356,12 +361,33 @@ function coucheBateaux(map, maplibregl, THREE, modele, flotte) {
       ciel = new THREE.HemisphereLight(0xfff3dc, 0x6b5a44, 2.5);
       ciel.position.set(0, 0, 1);
       soleil = new THREE.DirectionalLight(0xfff0d8, 2.2);
-      matiere = new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true });
+      // la matière des lieux, sans leurs saisons (actif = 0) : seulement les lanternes qui s'allument la nuit
+      peinture = outils.matiereSaisons(THREE);
+      matiere = peinture.matiere;
+      matiere.transparent = true;
       bateaux = new THREE.InstancedMesh(modele.geometrie, matiere, MAX_BATEAUX);
       bateaux.frustumCulled = false;
       bateaux.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
       bateaux.count = 0;
       scene.add(ciel, soleil, bateaux);
+      // la nuit : un halo par lanterne, une flaque de lumière sur l'eau sous chaque bateau
+      lueur = outils.matieresLueur(THREE, 0.8);
+      lueur.uniformes.hauteur.value = 0;
+      const disque = new THREE.CircleGeometry(0.8, 32);
+      disque.rotateX(-Math.PI / 2);
+      disque.translate(0, 0.01, 0);
+      halos = new THREE.InstancedMesh(new THREE.PlaneGeometry(2, 2), lueur.halo, MAX_BATEAUX * outils.LANTERNES_BATEAU.length);
+      flaques = new THREE.InstancedMesh(disque, lueur.flaque, MAX_BATEAUX);
+      for (const m of [flaques, halos]) {
+        m.frustumCulled = false;
+        m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+        m.count = 0;
+        scene.add(m);
+      }
+      flaques.renderOrder = 1;
+      halos.renderOrder = 2;
+      m4.lanterne = new THREE.Matrix4();
+      m4.avec = new THREE.Matrix4();
     },
     render(gl, args) {
       const z = map.getZoom();
@@ -375,17 +401,32 @@ function coucheBateaux(map, maplibregl, THREE, modele, flotte) {
       soleil.position.set(-Math.sin(b) - 0.5 * Math.cos(b), Math.cos(b) - 0.5 * Math.sin(b), 1.2);
       ciel.intensity = 2.5 * TEINTES.lumiere; // moins de lumière la nuit (ambiance.js)
       soleil.intensity = 2.2 * TEINTES.lumiere;
-      let n = 0;
+      peinture.uniformes.nuit.value = TEINTES.nuit;
+      const nuit = TEINTES.nuit * matiere.opacity;
+      let n = 0, h = 0;
       for (const bateau of flotte) {
         const e = k * lisser(bateau.echelle);
         m4.euler.set(bateau.tangage, bateau.cap, bateau.roulis);
         m4.rotation.makeRotationFromEuler(m4.euler);
         m4.pos.set(bateau.x - centre.x, bateau.y - centre.y, 0);
         m4.instance.makeScale(e, e, e).multiply(m4.base).multiply(m4.rotation).setPosition(m4.pos);
+        if (nuit > 0.01) {
+          flaques.setMatrixAt(n, m4.instance);
+          for (const [x, y, z] of outils.LANTERNES_BATEAU) halos.setMatrixAt(h++, m4.avec.multiplyMatrices(m4.instance, m4.lanterne.makeTranslation(x, y, z)));
+        }
         bateaux.setMatrixAt(n++, m4.instance);
       }
       bateaux.count = n;
       bateaux.instanceMatrix.needsUpdate = true;
+      flaques.count = nuit > 0.01 ? n : 0;
+      halos.count = nuit > 0.01 ? h : 0;
+      if (flaques.count) {
+        // le halo d'une lanterne : un tiers de la hauteur du bateau à l'écran
+        lueur.uniformes.force.value = nuit * 1.6;
+        lueur.uniformes.rayon.value = TAILLE_BATEAU * 2 ** (CROISSANCE_BATEAU * (z - 5)) * 0.3;
+        lueur.uniformes.ecran.value.set(map.getCanvas().clientWidth, map.getCanvas().clientHeight);
+        flaques.instanceMatrix.needsUpdate = halos.instanceMatrix.needsUpdate = true;
+      }
       camera.projectionMatrix.fromArray(args.defaultProjectionData.mainMatrix)
         .multiply(m4.centre.makeTranslation(centre.x, centre.y, 0));
       camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
@@ -511,8 +552,9 @@ export function animerMer(map, maplibregl, { mers = [], reperes, tuiles } = {}) 
   async function chargerBateaux() {
     try {
       const THREE = await import(URL_THREE);
-      const { fabriquerBateau } = await import('./modeles3d.js');
-      map.addLayer(coucheBateaux(map, maplibregl, THREE, fabriquerBateau(THREE), flotte), map.getLayer('modeles-3d') ? 'modeles-3d' : undefined);
+      const { fabriquerBateau, matiereSaisons, matieresLueur, LANTERNES_BATEAU } = await import('./modeles3d.js');
+      const outils = { matiereSaisons, matieresLueur, LANTERNES_BATEAU };
+      map.addLayer(coucheBateaux(map, maplibregl, THREE, fabriquerBateau(THREE), flotte, outils), map.getLayer('modeles-3d') ? 'modeles-3d' : undefined);
       bateauxPrets = true;
     } catch (e) {
       console.warn('Bateaux 3D indisponibles', e);

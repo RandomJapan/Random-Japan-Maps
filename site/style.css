@@ -1007,36 +1007,23 @@ body.nuit .nom-region, body.nuit .nom-prefecture { color: #dfe6f0; text-shadow: 
 /* Ce qui tombe sur la carte selon la saison (particules.js) : sous les repères, au-dessus du relief, composé par la
    carte graphique. Seulement de près (.loin : de loin, rien), et effacé pendant qu'on bouge la carte (.repos). */
 .saison { position: absolute; inset: 0; overflow: hidden; pointer-events: none; transition: opacity .8s, visibility 0s; }
-.saison.repos { opacity: 0; visibility: hidden; transition: opacity .2s, visibility 0s .2s; }
+.saison.repos { opacity: 0; visibility: hidden; transition: none; }
 .saison.loin { opacity: 0; visibility: hidden; transition: opacity .3s, visibility 0s .3s; }
 .saison.repos *, .saison.loin * { animation-play-state: paused; }
 /* trois mouvements : la descente, le balancement de feuille morte (elle glisse en penchant, ralentit, repart de
    l'autre côté), la vrille en 3D qui montre tour à tour la face et le revers */
-.saison > span { position: absolute; top: -8%; animation: saison-chute linear infinite; }
-.saison .balance { display: block; width: var(--taille); height: var(--taille); perspective: 320px; animation: saison-balance ease-in-out infinite; }
-.saison .vrille { position: relative; display: block; width: 100%; height: 100%; transform-style: preserve-3d; animation: saison-vrille linear infinite; }
+.saison > span { position: absolute; top: -8%; }
+.saison .balance { display: block; width: var(--taille); height: var(--taille); perspective: 320px; }
+.saison .vrille { position: relative; display: block; width: 100%; height: 100%; transform-style: preserve-3d; }
 .saison .vrille svg { position: absolute; inset: 0; display: block; width: 100%; height: 100%; backface-visibility: hidden; }
 .saison .vrille .dos { transform: rotateY(180deg); }
-.saison > .pres { filter: blur(.7px); } /* tout près de l'œil : un peu flou */
-@keyframes saison-chute { 0% { transform: translateY(0); opacity: 0; } 6% { opacity: 1; } 92% { opacity: 1; } 100% { transform: translateY(118vh); opacity: 0; } }
-@keyframes saison-balance {
-  0%, 100% { transform: translate(calc(var(--amp) * -1), -7px) rotate(calc(var(--angle) * -.2)); }
-  25% { transform: translate(0, 9px) rotate(var(--angle)); }
-  50% { transform: translate(var(--amp), -7px) rotate(calc(var(--angle) * .2)); }
-  75% { transform: translate(0, 9px) rotate(calc(var(--angle) * -1)); }
-}
-@keyframes saison-vrille {
-  from { transform: rotate3d(var(--ax), var(--ay), var(--az), 0deg); }
-  to { transform: rotate3d(var(--ax), var(--ay), var(--az), 360deg); }
-}
+.saison > .pres { opacity: .9; } /* tout près de l'œil (un flou coûtait cher à chaque image) */
 /* les flocons : ronds et doux, qui flottent sans tourner ; les plus proches, gros et flous */
 .saison b { display: block; width: 100%; height: 100%; border-radius: 50%; background: radial-gradient(circle, #fff 0 38%, rgba(255, 255, 255, 0.7) 55%, rgba(255, 255, 255, 0) 72%); }
-.saison[data-sorte="neige"] > .pres { filter: blur(1.4px); opacity: .85; }
+.saison[data-sorte="neige"] > .pres { opacity: .7; }
 .saison[data-sorte="neige"] > span:not(.pres) b { box-shadow: 0 0 0 .5px rgba(159, 179, 196, 0.35); }
 /* les lucioles */
-.saison > .luciole { animation: saison-luciole ease-in-out infinite alternate; }
 .saison i { display: block; width: 5px; height: 5px; border-radius: 50%; background: #f4f0a0; box-shadow: 0 0 6px 3px rgba(230, 240, 120, 0.55); }
-@keyframes saison-luciole { 0% { transform: translate(0, 0); opacity: 0; } 30% { opacity: 1; } 60% { opacity: .3; } 100% { transform: translate(var(--dx), -40px); opacity: .9; } }
 /* les feux d'artifice */
 .saison > .hanabi { animation: saison-hanabi 9s ease-out infinite; opacity: 0; transform-origin: center; }
 @keyframes saison-hanabi {
