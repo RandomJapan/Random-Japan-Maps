@@ -110,7 +110,7 @@ export async function imageBravo({ legendes, dessins, textes, format = 'vertical
   return new Promise((ok, ko) => toile.toBlob((b) => (b ? ok(b) : ko(new Error('toBlob'))), 'image/jpeg', 0.9));
 }
 
-function dessinerLogo(c, logo, x, y, r) {
+export function dessinerLogo(c, logo, x, y, r) {
   c.save();
   c.beginPath();
   c.arc(x, y, r, 0, Math.PI * 2);
@@ -224,7 +224,7 @@ function urlDessin(svg, css) {
 }
 
 /** Taille de police (au plus `taille`) pour que le texte tienne dans `largeur`. */
-function ajuster(c, texte, taille, police, largeur) {
+export function ajuster(c, texte, taille, police, largeur) {
   c.font = `${taille}px ${police}`;
   const w = c.measureText(texte).width;
   return w > largeur ? Math.floor((taille * largeur) / w) : taille;

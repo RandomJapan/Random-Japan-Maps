@@ -1130,7 +1130,7 @@ function majFavoris() {
   if (lieuActif) majCoeur(lieuActif);
   if (!$('panneau-favoris').hidden) remplirFavoris();
   if ($('visite-region').options.length) construireVisite();
-  if (itineraireActuel || calculItineraire) retracerBientot();
+  if (!voyageRecu && (itineraireActuel || calculItineraire)) retracerBientot();
 }
 
 function majCoeur(l) {
@@ -1146,6 +1146,9 @@ function listeFavoris() {
   const liste = ordreDeVoyage(lieux.filter(estFavori));
   return sensInverse ? liste.reverse() : liste;
 }
+
+/** Les lieux de l'itinéraire : le voyage reçu par un lien (dans son ordre), sinon les favoris. */
+const listeItineraire = () => voyageRecu?.lieux || listeFavoris();
 
 /** La liste des favoris, dans l'ordre du voyage, avec l'itinéraire sur la carte, Google Maps et la visite guidée. */
 function remplirFavoris() {
@@ -1182,6 +1185,7 @@ function remplirFavoris() {
 }
 
 function ouvrirFavoris(ouvrir) {
+  if (ouvrir && voyageRecu) effacerItineraire(); // on revient à ses propres favoris
   $('panneau-favoris').hidden = !ouvrir;
   $('btn-favoris').setAttribute('aria-expanded', String(ouvrir));
   majResume();
@@ -1205,6 +1209,7 @@ let modeItineraire = (() => {
 })();
 let sensInverse = false; // le voyage part du nord-est au lieu du sud-ouest
 let itineraireActuel = null; // l'itinéraire montré sur la carte
+let voyageRecu = null; // { lieux, mode } : un voyage ouvert par un lien …/?voyage= (sa route remplace celle des favoris)
 let calculItineraire = null; // jeton du calcul en cours (un nouveau calcul fait oublier l'ancien)
 let erreurItineraire = '';
 let minuterieTrace;
@@ -1256,7 +1261,8 @@ function blocItineraire() {
   const bouton = calculItineraire
     ? `<button type="button" class="btn-lancer" disabled>${SVG.trace}<span>${esc(t('calculItineraire'))}</span></button>`
     : it
-      ? `<button type="button" class="btn-secondaire" data-effacer-itineraire>${SVG.croix}<span>${esc(t('effacerItineraire'))}</span></button>`
+      ? `<button type="button" class="btn-lancer btn-partager-voyage" data-partager-voyage>${SVG.partager}<span>${esc(t('partagerVoyage'))}</span></button>
+        <button type="button" class="btn-secondaire" data-effacer-itineraire>${SVG.croix}<span>${esc(t('effacerItineraire'))}</span></button>`
       : `<button type="button" class="btn-lancer" data-tracer>${SVG.trace}<span>${esc(t('tracerItineraire'))}</span></button>`;
   return `<div class="itineraire-bloc">
       <p class="bloc-titre">${esc(t('itineraireCarte'))}</p>
@@ -1270,13 +1276,13 @@ function blocItineraire() {
 /** Calcule l'itinéraire des favoris et le montre sur la carte (cadrer : la caméra le montre en entier). */
 async function tracerItineraire({ cadrer = true } = {}) {
   clearTimeout(minuterieTrace);
-  const liste = listeFavoris();
+  const liste = listeItineraire();
   if (liste.length < 2) return effacerItineraire();
   const jeton = (calculItineraire = {});
   erreurItineraire = '';
   if (!$('panneau-favoris').hidden) remplirFavoris();
   try {
-    const it = await itineraire.calculer(liste, modeItineraire);
+    const it = await itineraire.calculer(liste, voyageRecu?.mode || modeItineraire);
     if (calculItineraire !== jeton) return;
     itineraireActuel = it;
     itineraire.afficher(it);
@@ -1295,6 +1301,7 @@ async function tracerItineraire({ cadrer = true } = {}) {
   calculItineraire = null;
   if (!$('panneau-favoris').hidden) remplirFavoris();
   majResume();
+  majBandeauVoyage();
 }
 
 /** Les favoris changent pendant qu'un itinéraire est montré : on le refait (après une petite pause). */
@@ -1306,6 +1313,8 @@ function retracerBientot() {
 
 function effacerItineraire() {
   clearTimeout(minuterieTrace);
+  voyageRecu = null;
+  majBandeauVoyage();
   itineraireActuel = null;
   calculItineraire = null;
   erreurItineraire = '';
@@ -1327,10 +1336,11 @@ function marquerEtapes(liste) {
 
 /** Montre tout l'itinéraire, dans la place que laissent les panneaux. */
 function cadrerItineraire(bornes) {
+  const bandeau = $('voyage-recu').hidden ? 0 : $('voyage-recu').offsetHeight + 40;
   const m = estTelephone()
-    ? { top: 120, bottom: 110, left: 36, right: 36 }
+    ? { top: 120, bottom: Math.max(110, bandeau + 50), left: 36, right: 36 }
     : {
-      top: 90, bottom: 80, right: $('fiche').classList.contains('ouverte') ? 460 : 70,
+      top: 90, bottom: Math.max(80, bandeau), right: $('fiche').classList.contains('ouverte') ? 460 : 70,
       left: $('panneau-favoris').hidden ? 70 : 400,
     };
   const p = map.getPadding();
@@ -1344,13 +1354,102 @@ function cadrerItineraire(bornes) {
 /** Le résumé en bas de l'écran, quand l'itinéraire est sur la carte et le panneau des favoris fermé. */
 function majResume() {
   const it = itineraireActuel;
-  $('resume-itineraire').hidden = !it || !$('panneau-favoris').hidden;
+  $('resume-itineraire').hidden = !it || !!voyageRecu || !$('panneau-favoris').hidden;
   if (!it) return;
+  $('txt-resume-partager').textContent = t('partagerCourt');
+  $('resume-partager').title = t('partagerVoyage');
   $('resume-details').innerHTML = `${SVG[it.mode]}<b>≈ ${esc(texteDuree(it.duree))}</b><span>· ${esc(texteDistance(it.distance))}</span>`;
   $('resume-details').title = t('voirItineraire');
   $('resume-details').setAttribute('aria-label', `${t('voirItineraire')} : ${texteDuree(it.duree)}, ${texteDistance(it.distance)}`);
   $('resume-effacer').title = t('effacerItineraire');
   $('resume-effacer').setAttribute('aria-label', t('effacerItineraire'));
+}
+
+// ---------------------------------------------------------------- Partager son voyage (partage-voyage.js)
+// Un lien qui montre le même voyage à qui l'ouvre, et une image à poster (la carte en 3D ou le carnet de voyage).
+let partageVoyage = null;
+async function partagerVoyage() {
+  const it = itineraireActuel;
+  if (!it || calculItineraire) return;
+  const liste = [it.trajets[0].de, ...it.trajets.map((tr) => tr.a)]; // dans l'ordre de la route
+  try {
+    partageVoyage ??= import('./partage-voyage.js').then(({ brancherPartageVoyage }) => brancherPartageVoyage(map, {
+      t, langue: () => langue, enLangue, adresse: CONFIG.adresse, infos: infosLieu, texteDuree, texteDistance, icones: SVG,
+      afficherMessage, arreterRotation,
+      // la couverture TikTok copiée dans le site (même origine : le dessin peut la lire), sinon la photo du tableau si elle est locale
+      photo: (l) => (idVideo(l.tiktok) ? `photos/tiktok/${idVideo(l.tiktok)}.jpg` : /^https?:/.test(l.photo || '') ? '' : l.photo || ''),
+    }));
+    (await partageVoyage).ouvrir(liste, it);
+  } catch (e) {
+    console.warn('Partage du voyage', e);
+    partageVoyage = null;
+    afficherMessage(t('bravoImageErreur'));
+  }
+}
+
+/** Le lien …/?voyage=lieu1.lieu2…&mode=bike : lu au démarrage, et effacé de l'adresse. */
+function lireLienVoyage() {
+  const params = new URLSearchParams(location.search);
+  const ids = params.get('voyage');
+  if (ids === null) return null;
+  const mode = params.get('mode');
+  params.delete('voyage');
+  params.delete('mode');
+  const reste = params.toString();
+  history.replaceState(null, '', location.pathname + (reste ? `?${reste}` : '') + location.hash);
+  return { ids: ids.split(/[.,~\s]+/).filter(Boolean), mode: MODES.includes(mode) ? mode : 'car' };
+}
+
+/** Montre un voyage reçu : sa route sur la carte et le bandeau (le garder, la visite guidée, ×). */
+function recevoirVoyage({ ids, mode }) {
+  const vus = new Set();
+  const liste = ids.map((id) => lieux.find((l) => l.id === id)).filter((l) => l && !vus.has(l) && vus.add(l));
+  if (!liste.length) return afficherMessage(t('voyageInconnu'));
+  if (liste.some((l) => !l.cat.visible)) {
+    for (const l of liste) l.cat.visible = true;
+    construireMenu();
+    appliquerFiltres();
+  }
+  arreterRotation();
+  ouvrirFavoris(false);
+  voyageRecu = { lieux: liste, mode };
+  majBandeauVoyage();
+  if (liste.length > 1) tracerItineraire();
+  else allerAuLieu(liste[0]);
+}
+
+/** « Garder ce voyage » : ses lieux rejoignent les favoris (sa route reste, refaite pour les favoris). */
+function garderVoyage() {
+  if (!voyageRecu) return;
+  const { lieux: liste, mode } = voyageRecu;
+  voyageRecu = null;
+  for (const l of liste) {
+    favoris.add(l.id);
+    l.el.classList.add('favori');
+  }
+  ecrireFavoris(favoris);
+  modeItineraire = mode;
+  try { localStorage.setItem('modeItineraire', mode); } catch { /* pas grave */ }
+  majBandeauVoyage();
+  majFavoris();
+  majResume();
+  afficherMessage(t('voyageGarde'));
+}
+
+function majBandeauVoyage() {
+  const b = $('voyage-recu');
+  b.hidden = !voyageRecu;
+  if (!voyageRecu) return;
+  const it = itineraireActuel;
+  const liste = voyageRecu.lieux;
+  $('voyage-recu-sur').textContent = t('voyageRecuSur');
+  $('voyage-recu-titre').textContent = t('lieux', liste.length)
+    + (it && !calculItineraire ? ` · ≈ ${texteDuree(it.duree)} ${t(`total_${it.mode}`)}` : '');
+  $('voyage-recu-etapes').textContent = liste.map((l) => enLangue(l.nom)).join(' → ');
+  $('txt-voyage-garder').textContent = t('voyageGarder');
+  $('txt-voyage-visite').textContent = t('voyageVisite');
+  $('voyage-recu-fermer').title = t('fermer');
+  $('voyage-recu-fermer').setAttribute('aria-label', t('fermer'));
 }
 
 // ---------------------------------------------------------------- Visite guidée (visite.js)
@@ -2145,6 +2244,7 @@ function appliquerLangue() {
   majFavoris();
   if (itineraireActuel) itineraire.retraduire(itineraireActuel.mode);
   majResume();
+  majBandeauVoyage();
   visite.majLangue();
   $('txt-jeu').textContent = t('jeu');
   jeu?.majLangue();
@@ -2203,6 +2303,7 @@ function brancherBoutons() {
     else if (ligne) allerAuLieu(trouver(ligne.dataset.lieu));
     else if (e.target.closest('[data-visite]')) lancerVisite(lieux.filter(estFavori));
     else if (e.target.closest('[data-tracer]')) tracerItineraire();
+    else if (e.target.closest('[data-partager-voyage]')) partagerVoyage();
     else if (e.target.closest('[data-effacer-itineraire]')) effacerItineraire();
     else if (mode && mode !== modeItineraire) {
       modeItineraire = mode;
@@ -2223,6 +2324,13 @@ function brancherBoutons() {
     e.stopPropagation();
     effacerItineraire();
   });
+  $('resume-partager').addEventListener('click', (e) => {
+    e.stopPropagation();
+    partagerVoyage();
+  });
+  $('voyage-garder').addEventListener('click', garderVoyage);
+  $('voyage-visite').addEventListener('click', () => { if (voyageRecu) lancerVisite(voyageRecu.lieux); });
+  $('voyage-recu-fermer').addEventListener('click', effacerItineraire);
   $('onglet-visite').addEventListener('click', () => choisirOnglet('visite'));
   $('onglet-plongeon').addEventListener('click', () => choisirOnglet('plongeon'));
   $('onglet-point').addEventListener('click', () => choisirOnglet('point'));
@@ -2327,6 +2435,7 @@ async function demarrer() {
   brancherBoutons();
   brancherDev();
   const liensJeu = lireLiensJeu();
+  const lienVoyage = lireLienVoyage();
   appliquerLangue();
   majSelonZoom();
 
@@ -2353,6 +2462,7 @@ async function demarrer() {
     // Contours des préfectures (116 Ko) chargés en avance, sans gêner le démarrage : le dé s'ouvre tout de suite.
     setTimeout(() => preparerPrefectures().catch(() => {}), 3000);
     setTimeout(chargerLegendes, 1500);
+    if (lienVoyage) setTimeout(() => recevoirVoyage(lienVoyage), 300);
     if (liensJeu) setTimeout(() => lancerJeu(liensJeu).catch((e) => console.warn('Jeu indisponible', e)), 400);
     else if (aDejaJoueAPlusieurs()) setTimeout(() => chargerAmis().catch(() => {}), 2500);
   };

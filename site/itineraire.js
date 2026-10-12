@@ -41,7 +41,7 @@ function km(a, b) {
 }
 
 /** Le point à mi-chemin le long d'une ligne. */
-function milieu(points) {
+export function milieu(points) {
   const longueurs = points.slice(1).map((p, i) => km(points[i], p));
   let reste = longueurs.reduce((s, x) => s + x, 0) / 2;
   for (let i = 0; i < longueurs.length; i++) {

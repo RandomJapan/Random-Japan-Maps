@@ -70,6 +70,8 @@
       <!-- L'itinéraire des favoris quand il est sur la carte et le panneau fermé : son total (un appui rouvre le détail) et × (itineraire.js) -->
       <div class="resume-itineraire panneau" id="resume-itineraire" hidden>
         <button type="button" class="resume-details" id="resume-details"></button>
+        <!-- Partager son voyage : un lien et une image à poster (partage-voyage.js) -->
+        <button type="button" class="resume-partager" id="resume-partager"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 13v6a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-6"/></svg><span id="txt-resume-partager">Share</span></button>
         <button type="button" class="resume-effacer" id="resume-effacer"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M7 7l10 10M17 7 7 17"/></svg></button>
       </div>
       <!-- Légendes cachées : le bouton apparaît quand on en a trouvé une (legendes.js) -->
@@ -306,6 +308,18 @@
   </div>
 
   <p class="aide" id="aide"></p>
+
+  <!-- Un voyage reçu par un lien …/?voyage= : sa route est sur la carte ; le garder dans ses favoris ou lancer la visite (app.js) -->
+  <div class="voyage-recu panneau" id="voyage-recu" role="region" aria-labelledby="voyage-recu-titre" hidden>
+    <button type="button" class="voyage-recu-fermer" id="voyage-recu-fermer"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M7 7l10 10M17 7 7 17"/></svg></button>
+    <p class="voyage-recu-sur" id="voyage-recu-sur"></p>
+    <p class="voyage-recu-titre" id="voyage-recu-titre"></p>
+    <p class="voyage-recu-etapes" id="voyage-recu-etapes"></p>
+    <div class="voyage-recu-boutons">
+      <button type="button" class="btn-lancer" id="voyage-garder"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 20.3s-7.4-4.5-9.2-9.1C1.5 7.8 3.7 4.6 7 4.6c2 0 3.6 1.1 5 2.9 1.4-1.8 3-2.9 5-2.9 3.3 0 5.5 3.2 4.2 6.6-1.8 4.6-9.2 9.1-9.2 9.1Z"/></svg><span id="txt-voyage-garder"></span></button>
+      <button type="button" class="btn-secondaire" id="voyage-visite"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M3 7.5h11.5v9H3zM14.5 10.5l6-3v9l-6-3"/></svg><span id="txt-voyage-visite"></span></button>
+    </div>
+  </div>
 
   <aside class="fiche" id="fiche" aria-hidden="true">
     <div class="fiche-poignee" id="fiche-poignee" aria-hidden="true"></div>
