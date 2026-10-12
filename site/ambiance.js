@@ -3,35 +3,35 @@
 //  propriétaire sur des exemples : « complète », automatique, avec l'heure du Japon).
 //  - Le jour, le lever ou le coucher du soleil et la nuit suivent l'heure réelle
 //    au Japon : la hauteur du soleil au centre de Honshū. La nuit, la mer et le
-//    relief bleuissent et les lieux s'allument comme des lanternes.
+//    relief bleuissent et les lieux s'allument comme des lanternes. Un
+//    interrupteur jour/nuit, à côté de l'heure, montre l'autre moment.
 //  - La saison suit la date au Japon : le relief verdit au printemps et en été,
 //    roussit en automne, la neige descend sur les montagnes l'hiver (et reste
-//    sur le Fuji jusqu'en juin). Pétales de cerisier, lucioles (les nuits de juin),
-//    feux d'artifice (l'été), feuilles d'érable ou flocons tombent sur la carte.
+//    sur le Fuji jusqu'en juin). Les détails de saison sont peints sur la carte
+//    (saisons-carte.js) ; de près, des pétales, des lucioles (les nuits de juin),
+//    des feux d'artifice (l'été), des feuilles ou des flocons tombent (particules.js).
 //  Les couleurs de la carte ne changent que par paliers, au plus quelques fois
 //  par heure au crépuscule : chaque changement redessine tout le relief (une fois).
 //  Pour les essais : ?heure=21:30, ?date=2026-04-05 (ou ?mois=4) fixent le moment ;
 //  ?ambiance=non garde la carte de toujours (jour, sans saison : les films promo).
+//  En mode développeur, un réglage sous l'heure choisit la date et l'heure.
 // ================================================================
 
 import { CONFIG } from './config.js';
 import { TEINTES } from './teintes.js';
+import { MOIS, jourDeLAn, dateDuJour } from './phenologie.js';
+import { creerParticules } from './particules.js';
+import { brancherDetailsSaison } from './saisons-carte.js';
 
 const CENTRE = { lng: 137.5, lat: 36 }; // le soleil est calculé au centre de Honshū
 const FUSEAU = 'Asia/Tokyo';
 const VERIFIER = 60000; // ms : on regarde l'heure chaque minute ; la carte ne change que si le palier change
+const ZOOM_PARTICULES = 7.2; // de loin, rien ne tombe (2026-10-12) : seulement quand on zoome sur une région
 
 // La rampe du relief (la même que dans app.js avant les saisons), et des paliers plus serrés pour la neige
 const RAMPE = [[2, '#e3d0a7'], [60, '#dcc59a'], [200, '#d1b68a'], [500, '#c4a47a'], [900, '#bc9b72'],
   [1500, '#a8865f'], [2200, '#8f6f50'], [2900, '#a8977f'], [3500, '#efe7d6']];
 const PALIERS = [2, 60, 200, 350, 500, 700, 900, 1200, 1500, 1850, 2200, 2550, 2900, 3200, 3500];
-
-// La végétation et la neige de chaque mois (au 15) : [printemps, été, automne, ligne de neige en m]
-const MOIS = {
-  1: [0, 0, 0, 600], 2: [0, 0, 0, 600], 3: [0.15, 0, 0, 1200], 4: [0.45, 0, 0, 1900], 5: [0.4, 0.15, 0, 2500],
-  6: [0.1, 0.45, 0, 3300], 7: [0, 0.55, 0, 4500], 8: [0, 0.55, 0, 4500], 9: [0, 0.4, 0.1, 4500],
-  10: [0, 0.1, 0.45, 3200], 11: [0, 0, 0.55, 2100], 12: [0, 0, 0.15, 1100],
-};
 
 // Les couleurs de la carte : [jour, coucher, lever, nuit]
 const COULEURS = {
@@ -75,6 +75,9 @@ function soleil(date, { lng, lat }) {
   return { hauteur, matin: Math.sin(angle) < 0 }; // avant midi, le soleil est à l'est (angle horaire négatif)
 }
 
+/** Une date (heure du Japon = UTC + 9). */
+const dateJapon = (annee, mois, jour, heure, minute) => new Date(Date.UTC(annee, mois - 1, jour, heure - 9, minute));
+
 /** Le moment fixé par l'adresse pour les essais (?heure=21:30, ?date=2026-04-05, ?mois=4), sinon maintenant. */
 function lireMoment() {
   const p = new URLSearchParams(location.search);
@@ -87,7 +90,7 @@ function lireMoment() {
       const maintenant = partiesJapon(new Date());
       const [a, m, jr] = date ? [+date[1], +date[2], +date[3]] : [maintenant.annee, mois || maintenant.mois, mois ? 15 : maintenant.jour];
       const [h, mn] = heure ? [+heure[1], +(heure[2] || 0)] : [maintenant.heure, maintenant.minute];
-      return new Date(Date.UTC(a, m - 1, jr, h - 9, mn)); // heure du Japon = UTC + 9
+      return dateJapon(a, m, jr, h, mn);
     } : null,
   };
 }
@@ -121,21 +124,28 @@ export function moment(date) {
 }
 
 // ---------------------------------------------------------------- La palette
-/** Le relief d'une couleur à une altitude : la saison, puis la lumière du moment. */
-function teinteRelief(c, h, m) {
+/** La saison sur le relief : verdure, couleurs d'automne et neige selon l'altitude. */
+function saisonRelief(c, h, m) {
   const [printemps, ete, automne, neige] = m.saison;
   if (printemps && h > 40 && h < 1300) c = mel(c, [178, 186, 120], printemps * Math.min(1, (1300 - h) / 600));
   if (ete && h > 20 && h < 1800) c = mel(c, [126, 150, 86], ete * Math.min(1, (1800 - h) / 700));
   if (automne && h > 120 && h < 2000) c = mel(c, [190, 100, 52], automne * Math.min(1, (h - 120) / 300, (2000 - h) / 600));
   const blanc = lisse(neige - 200, neige + 900, h) * 0.95;
   if (blanc > 0) c = mel(c, [246, 244, 240], blanc);
-  // la lumière : doré au coucher, rosé au lever, bleu la nuit
+  return c;
+}
+
+/** La lumière du moment sur une couleur du relief : dorée au coucher, rosée au lever, bleue la nuit. */
+function lumiereRelief(c, h, m) {
   const crep = m.matin
     ? mel([c[0] * 1.0, c[1] * 0.86, c[2] * 0.8], [255, 200, 190], 0.06 + 0.14 * borne((h - 400) / 1200))
     : mel([c[0] * 1.04, c[1] * 0.84, c[2] * 0.7], [255, 190, 140], 0.08 + 0.17 * borne((h - 400) / 1200));
   const sombre = mel([c[0] * 0.36, c[1] * 0.42, c[2] * 0.58], [70, 80, 110], 0.15);
   return c.map((v, i) => v * (1 - m.soir - m.nuit) + crep[i] * m.soir + sombre[i] * m.nuit);
 }
+
+/** Le relief d'une couleur à une altitude : la saison, puis la lumière du moment. */
+const teinteRelief = (c, h, m) => lumiereRelief(saisonRelief(c, h, m), h, m);
 
 function couleurRampe(h) {
   for (let i = 1; i < RAMPE.length; i++) {
@@ -178,6 +188,9 @@ export function palette(m) {
     ecumeGL: mel([246, 238, 219], [200, 214, 222], m.nuit),
     lumiere3d: 1 - 0.1 * m.soir - 0.5 * m.nuit,
     lavis: 0.6 * (1 - 0.55 * m.nuit), // les liserés d'aquarelle des régions, moins vifs la nuit
+    nuit: m.nuit,
+    neigeSol: rgb(lumiereRelief([246, 244, 240], 300, m)), // la neige au sol du nord (saisons-carte.js)
+    glace: rgb(lumiereRelief([221, 233, 235], 0, m)), // les lacs gelés et la banquise
   };
 }
 
@@ -186,7 +199,10 @@ const ICONES = {
   jour: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.6" fill="currentColor"/><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>',
   crepuscule: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6.8 16a5.2 5.2 0 0 1 10.4 0Z"/><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M2.5 16h19M12 5.5v2.2M4.6 9.2l1.6 1.4M19.4 9.2l-1.6 1.4M6 19.5h12"/></svg>',
   nuit: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M19.5 14.6A8 8 0 0 1 9.4 4.5a8 8 0 1 0 10.1 10.1Z"/></svg>',
+  reglage: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2.2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="17" r="2.2" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
 };
+// Les raccourcis du réglage (mode développeur) : un jour typique de chaque saison
+const RACCOURCIS = [['🌸', 95], ['🌿', 135], ['🌻', 206], ['🍁', 324], ['❄️', 36], ['🧊', 52]];
 
 /**
  * Prépare l'ambiance avant la carte (sa palette sert au style de départ : pas de relief redessiné au chargement),
@@ -194,25 +210,35 @@ const ICONES = {
  */
 export function preparerAmbiance() {
   const reglage = lireMoment();
+  const fixeAdresse = reglage.fixe;
   const maintenant = () => (reglage.fixe ? reglage.fixe() : new Date());
   const jourClassique = { soir: 0, nuit: 0, matin: false, saison: [0, 0, 0, 99999], particules: null };
   const m0 = reglage.classique ? jourClassique : moment(maintenant());
-  const P = palette(m0);
+  const arrondi = (m) => ({ ...m, soir: Math.round(m.soir * 10) / 10, nuit: Math.round(m.nuit * 10) / 10 });
 
   /**
-   * @param deps - { t(cle, …), langue() }
-   * @returns { majLangue(), jourPourImage() }
+   * @param deps - { t(cle, …), langue(), lieux() }
+   * @returns { majLangue(), majLieux(), jourPourImage(), reel() }
    */
   function brancher(map, deps) {
-    if (reglage.classique) return { majLangue() {}, jourPourImage: () => () => {} };
+    const rien = () => {};
+    if (reglage.classique) return { majLangue: rien, majLieux: rien, jourPourImage: () => rien, reel: rien };
     const sansMouvement = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    let m = m0, cle = '', particules;
+    let reel = m0; // le moment au Japon (ou celui fixé par l'adresse ou le réglage)
+    let m = m0; // le moment montré : le réel, ou le jour ou la nuit choisis avec l'interrupteur
+    let force = null; // 'jour' | 'nuit' : choisi avec l'interrupteur ; null : l'heure du Japon
+    let cle = '', particules;
+    const details = brancherDetailsSaison(map, { lieux: deps.lieux });
 
-    // L'horloge : l'heure au Japon, au-dessus de la boussole
+    // L'horloge : l'interrupteur jour/nuit, l'heure au Japon, et (mode développeur) le réglage de la date
     const horloge = document.createElement('div');
     horloge.className = 'heure-japon panneau';
-    horloge.setAttribute('role', 'status');
+    horloge.innerHTML = `<button type="button" class="jour-nuit" role="switch"><span class="jn-piste" aria-hidden="true">${ICONES.jour}${ICONES.nuit}<span class="jn-curseur"></span></span></button>`
+      + '<span class="heure-textes" role="status"></span>'
+      + `<button type="button" class="heure-reglage dev" aria-expanded="false">${ICONES.reglage}</button>`
+      + '<div class="reglage-ambiance panneau dev" hidden></div>';
     document.querySelector('.controles').prepend(horloge);
+    const [interrupteur, textes, boutonReglage, reglageDev] = horloge.children;
 
     // Les particules de la saison : sous les repères, au-dessus du relief et du papier
     const saison = document.createElement('div');
@@ -225,6 +251,14 @@ export function preparerAmbiance() {
     map.on('movestart', (e) => { if (e.originalEvent) saison.classList.add('repos'); });
     map.on('zoomstart', () => saison.classList.add('repos'));
     map.on('moveend', () => saison.classList.remove('repos'));
+    // De loin, rien ne tombe : seulement quand on zoome sur une région
+    const majLoin = () => {
+      const z = map.getZoom();
+      if (z < ZOOM_PARTICULES - 0.2) saison.classList.add('loin');
+      else if (z >= ZOOM_PARTICULES) saison.classList.remove('loin');
+    };
+    map.on('zoom', majLoin);
+    majLoin();
 
     function appliquer(p) {
       for (const id of ['voisins', 'large', 'lacs']) map.setPaintProperty(id, 'fill-color', p.mer);
@@ -250,26 +284,42 @@ export function preparerAmbiance() {
       TEINTES.eau = p.eauGL;
       TEINTES.ecume = p.ecumeGL;
       TEINTES.lumiere = p.lumiere3d;
+      TEINTES.nuit = p.nuit;
+      TEINTES.jour = jourDeLAn(m.jour.mois, m.jour.jour);
       papier.style.opacity = p.papier.toFixed(2);
       document.body.classList.toggle('nuit', m.nuit >= 0.5);
       map.triggerRepaint();
+    }
+
+    function phaseDe(x) {
+      return x.nuit >= 0.5 ? 'nuit' : x.soir >= 0.35 ? (x.matin ? 'lever' : 'coucher') : 'jour';
     }
 
     function majHorloge() {
       const date = maintenant();
       const lang = deps.langue();
       const heure = new Intl.DateTimeFormat(lang, { timeZone: FUSEAU, hour: lang === 'en' ? 'numeric' : '2-digit', minute: '2-digit' }).format(date);
-      const phase = m.nuit >= 0.5 ? 'nuit' : m.soir >= 0.35 ? (m.matin ? 'lever' : 'coucher') : 'jour';
+      const phase = phaseDe(reel); // l'heure et le moment réels au Japon…
+      const vue = phaseDe(m); // … et ce que montre la carte
       const [avant, apres] = deps.t('heureJapon');
       horloge.dataset.phase = phase;
-      horloge.innerHTML = `<span class="heure-icone">${ICONES[phase === 'lever' || phase === 'coucher' ? 'crepuscule' : phase]}</span>`
-        + `<span class="heure-textes"><span>${avant}<b>${heure}</b>${apres}</span><small>${deps.t(`moment_${phase}`)}</small></span>`;
-      horloge.setAttribute('aria-label', `${avant}${heure}${apres} · ${deps.t(`moment_${phase}`)}`);
+      horloge.dataset.vue = vue === 'nuit' ? 'nuit' : vue === 'jour' ? 'jour' : 'crepuscule';
+      horloge.classList.toggle('force', !!force);
+      textes.innerHTML = `<span>${avant}<b>${heure}</b>${apres}</span><small>${deps.t(`moment_${phase}`)}</small>`;
+      textes.setAttribute('aria-label', `${avant}${heure}${apres} · ${deps.t(`moment_${phase}`)}`);
+      interrupteur.querySelector('.jn-curseur').innerHTML = ICONES[horloge.dataset.vue];
+      interrupteur.setAttribute('aria-checked', String(vue === 'nuit'));
+      interrupteur.setAttribute('aria-label', deps.t('jourNuit'));
+      interrupteur.title = deps.t(vue === 'nuit' ? 'voirJour' : 'voirNuit');
+      boutonReglage.setAttribute('aria-label', deps.t('reglageTitre'));
+      boutonReglage.title = deps.t('reglageTitre');
+      if (!reglageDev.hidden) remplirReglage();
     }
 
-    /** Les particules de la saison (rien sous « réduire les animations »). Les lucioles ne sortent que la nuit. */
+    /** Les particules de la saison (rien sous « réduire les animations »). Lucioles et feux d'artifice : la nuit seulement. */
     function majParticules() {
-      const sorte = sansMouvement ? null : m.particules === 'lucioles' && m.nuit < 0.5 ? null : m.particules;
+      const deNuit = m.particules === 'lucioles' || m.particules === 'hanabi';
+      const sorte = sansMouvement || (deNuit && m.nuit < 0.5) ? null : m.particules;
       if (sorte === particules) return;
       particules = sorte;
       saison.replaceChildren(...(sorte ? creerParticules(sorte) : []));
@@ -278,19 +328,80 @@ export function preparerAmbiance() {
 
     function verifier() {
       if (document.hidden) return;
-      m = moment(maintenant());
+      reel = moment(maintenant());
+      // le choix de l'interrupteur s'efface quand l'heure du Japon le rejoint (la nuit tombe, le jour se lève)
+      if (force && (force === 'nuit') === (reel.nuit >= 0.5)) force = null;
+      m = force ? { ...reel, soir: 0, nuit: force === 'nuit' ? 1 : 0 } : reel;
       // des paliers : un dixième de coucher ou de nuit, un jour de saison
       const nouvelle = [Math.round(m.soir * 10), Math.round(m.nuit * 10), m.matin, m.jour.mois, m.jour.jour].join('|');
       if (nouvelle !== cle) {
         const premier = !cle;
         cle = nouvelle;
-        const p = palette({ ...m, soir: Math.round(m.soir * 10) / 10, nuit: Math.round(m.nuit * 10) / 10 });
+        const p = palette(arrondi(m));
         if (!premier) appliquer(p); // au départ, le style de la carte a déjà ces couleurs
         teintesHorsCarte(p);
+        details.maj(jourDeLAn(m.jour.mois, m.jour.jour), p);
       }
       majHorloge();
       majParticules();
     }
+
+    // L'interrupteur : montre l'autre moment (le jour quand il fait nuit au Japon, la nuit sinon) ; un second
+    // appui revient à l'heure du Japon (qui garde son coucher de soleil, s'il y en a un).
+    interrupteur.addEventListener('click', () => {
+      const voulu = m.nuit >= 0.5 ? 'jour' : 'nuit';
+      force = (voulu === 'nuit') === (reel.nuit >= 0.5) ? null : voulu;
+      verifier();
+    });
+
+    // ---- Le réglage du mode développeur : la date et l'heure, pour voir chaque saison
+    let attente = 0;
+    function fixer(jourAn, heureDecimale) {
+      const { mois, jour } = dateDuJour(jourAn);
+      const annee = partiesJapon(new Date()).annee;
+      const h = Math.floor(heureDecimale), mn = Math.round((heureDecimale - h) * 60);
+      reglage.fixe = () => dateJapon(annee, mois, jour, h, mn);
+      force = null;
+    }
+    function remplirReglage() {
+      const lang = deps.langue();
+      const j = jourDeLAn(reel.jour.mois, reel.jour.jour);
+      const heure = reel.jour.heure + reel.jour.minute / 60;
+      const nomJour = (n) => { const d = dateDuJour(n); return new Intl.DateTimeFormat(lang, { day: 'numeric', month: 'long', timeZone: 'UTC' }).format(Date.UTC(2026, d.mois - 1, d.jour)); };
+      const champ = reglageDev.querySelector('[data-date]');
+      if (champ && document.activeElement?.closest('.reglage-ambiance')) return; // on ne bouge pas un curseur qu'on tient
+      reglageDev.innerHTML = `<p class="reglage-titre">${deps.t('reglageTitre')}</p>`
+        + `<div class="reglage-raccourcis">${RACCOURCIS.map(([icone, n]) => `<button type="button" data-jour="${n}" title="${nomJour(n)}">${icone}</button>`).join('')}</div>`
+        + `<label>${deps.t('reglageDate')} <output>${nomJour(j)}</output><input type="range" min="1" max="365" step="1" value="${j}" data-date></label>`
+        + `<label>${deps.t('reglageHeure')} <output>${String(Math.floor(heure)).padStart(2, '0')}:${String(Math.round((heure % 1) * 60)).padStart(2, '0')}</output>`
+        + `<input type="range" min="0" max="23.75" step="0.25" value="${(Math.round(heure * 4) / 4).toFixed(2)}" data-heure></label>`
+        + `<button type="button" class="reglage-reel" data-reel>${deps.t('reglageReel')}</button>`;
+    }
+    boutonReglage.addEventListener('click', () => {
+      reglageDev.hidden = !reglageDev.hidden;
+      boutonReglage.setAttribute('aria-expanded', String(!reglageDev.hidden));
+      if (!reglageDev.hidden) remplirReglage();
+    });
+    reglageDev.addEventListener('input', (e) => {
+      const date = reglageDev.querySelector('[data-date]'), heure = reglageDev.querySelector('[data-heure]');
+      if (!date || !heure) return;
+      const lang = deps.langue();
+      const d = dateDuJour(+date.value);
+      date.previousElementSibling.value = new Intl.DateTimeFormat(lang, { day: 'numeric', month: 'long', timeZone: 'UTC' }).format(Date.UTC(2026, d.mois - 1, d.jour));
+      const h = +heure.value;
+      heure.previousElementSibling.value = `${String(Math.floor(h)).padStart(2, '0')}:${String(Math.round((h % 1) * 60)).padStart(2, '0')}`;
+      clearTimeout(attente);
+      attente = setTimeout(() => { fixer(+date.value, h); verifier(); }, e.target === heure ? 60 : 160);
+    });
+    reglageDev.addEventListener('click', (e) => {
+      const bouton = e.target.closest('button');
+      if (!bouton) return;
+      if (bouton.dataset.jour) fixer(+bouton.dataset.jour, reel.jour.heure + reel.jour.minute / 60);
+      else if (bouton.hasAttribute('data-reel')) { reglage.fixe = fixeAdresse; force = null; }
+      verifier();
+      bouton.blur();
+      remplirReglage();
+    });
 
     verifier();
     setInterval(verifier, VERIFIER);
@@ -298,7 +409,8 @@ export function preparerAmbiance() {
     // pour les essais : (await import('/ambiance.js')).essayerMoment('2026-10-12T22:00') (heure du Japon)
     essai = (texte) => {
       const [, a, mo, j, h, mn] = texte.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/).map(Number);
-      reglage.fixe = () => new Date(Date.UTC(a, mo - 1, j, h - 9, mn));
+      reglage.fixe = () => dateJapon(a, mo, j, h, mn);
+      force = null;
       verifier();
     };
     /**
@@ -308,68 +420,34 @@ export function preparerAmbiance() {
     function jourPourImage() {
       const p = palette({ ...m, soir: 0, nuit: 0 });
       appliquer(p);
-      Object.assign(TEINTES, { eau: p.eauGL, ecume: p.ecumeGL, lumiere: p.lumiere3d });
+      Object.assign(TEINTES, { eau: p.eauGL, ecume: p.ecumeGL, lumiere: p.lumiere3d, nuit: 0 });
       return () => {
-        const q = palette({ ...m, soir: Math.round(m.soir * 10) / 10, nuit: Math.round(m.nuit * 10) / 10 });
+        const q = palette(arrondi(m));
         appliquer(q);
         teintesHorsCarte(q);
       };
     }
 
-    return { majLangue: majHorloge, jourPourImage };
+    return {
+      majLangue: majHorloge,
+      majLieux: details.majLieux,
+      jourPourImage,
+      /** Revient au vrai moment (en quittant le mode développeur). */
+      reel() {
+        if (reglage.fixe === fixeAdresse && !force) return;
+        reglage.fixe = fixeAdresse;
+        force = null;
+        reglageDev.hidden = true;
+        verifier();
+      },
+    };
   }
 
-  return { palette: palette({ ...m0, soir: Math.round(m0.soir * 10) / 10, nuit: Math.round(m0.nuit * 10) / 10 }), brancher, classique: reglage.classique };
+  return { palette: palette(arrondi(m0)), brancher, classique: reglage.classique };
 }
 
 let essai = null;
 /** Pour les essais : passe la carte à ce moment (« 2026-10-12T22:00 », heure du Japon), comme si l'heure avançait. */
 export function essayerMoment(texte) {
   essai?.(texte);
-}
-
-// ---------------------------------------------------------------- Les particules
-const hasard = (a, b) => a + Math.random() * (b - a);
-const DESSINS = {
-  petales: () => '<svg width="13" height="15" viewBox="0 0 10 12"><path d="M5 0C9 3 9.5 8 5 12 .5 8 1 3 5 0Z" fill="#f4bfcb" stroke="#c4687a" stroke-width=".6"/><path d="M5 2.5v6" stroke="#d98c9c" stroke-width=".5"/></svg>',
-  feuilles: (i) => `<svg width="20" height="20" viewBox="0 0 24 24"><path d="M12 2l1.5 5 3.5-2-1 4.5 5-.5-3 3.5 2 1.5-6 .5-1 4.5-.5 3h-1l-.5-3-1-4.5-6-.5 2-1.5-3-3.5 5 .5-1-4.5 3.5 2z" fill="${['#c4462e', '#d9752e', '#b8341f', '#e09a3a'][i % 4]}" stroke="#6b2a14" stroke-width=".7" stroke-linejoin="round"/></svg>`,
-  neige: () => `<b style="--t:${hasard(4, 8).toFixed(1)}px"></b>`,
-  lucioles: () => '<i></i>',
-};
-const NOMBRE = { petales: 12, feuilles: 10, neige: 16, lucioles: 14 };
-
-function creerParticules(sorte) {
-  if (sorte === 'hanabi') {
-    return ['#e8b04a', '#c4462e', '#e8b04a'].map((couleur, i) => {
-      const s = document.createElement('span');
-      s.className = 'hanabi';
-      s.innerHTML = feuDArtifice(couleur);
-      const placer = () => { s.style.left = `${hasard(12, 80)}%`; s.style.top = `${hasard(22, 62)}%`; };
-      placer();
-      s.style.animationDelay = `${i * 2.3 + hasard(0, 1)}s`;
-      s.addEventListener('animationiteration', placer);
-      return s;
-    });
-  }
-  return Array.from({ length: NOMBRE[sorte] }, (_, i) => {
-    const s = document.createElement('span');
-    s.innerHTML = DESSINS[sorte](i);
-    s.style.left = `${hasard(-4, 100)}%`;
-    if (sorte === 'lucioles') s.style.top = `${hasard(20, 90)}%`;
-    s.style.setProperty('--dx', `${hasard(-70, 70).toFixed(0)}px`);
-    s.style.setProperty('--r', `${hasard(-540, 540).toFixed(0)}deg`);
-    const duree = sorte === 'neige' ? hasard(11, 18) : sorte === 'lucioles' ? hasard(5, 9) : hasard(9, 15);
-    s.style.animationDuration = `${duree.toFixed(1)}s`;
-    s.style.animationDelay = `${-hasard(0, duree).toFixed(1)}s`;
-    return s;
-  });
-}
-
-function feuDArtifice(couleur) {
-  let traits = '';
-  for (let i = 0; i < 16; i++) {
-    const a = (i * Math.PI) / 8, c = Math.cos(a), s = Math.sin(a);
-    traits += `<line x1="${50 + c * 18}" y1="${50 + s * 18}" x2="${50 + c * 40}" y2="${50 + s * 40}"/><circle cx="${50 + c * 46}" cy="${50 + s * 46}" r="2.6"/>`;
-  }
-  return `<svg width="76" height="76" viewBox="0 0 100 100" stroke="${couleur}" fill="${couleur}" stroke-width="2.4" stroke-linecap="round">${traits}</svg>`;
 }

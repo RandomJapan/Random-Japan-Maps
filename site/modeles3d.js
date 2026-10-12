@@ -53,6 +53,83 @@ export function matiereContour(THREE, couleur = C.encre) {
   return { matiere, epaisseur };
 }
 
+/**
+ * Ce que la saison change sur chaque partie d'un modèle (attribut `saison` de fin(), lu par matiereSaisons) :
+ * les feuillus, les érables (rouges en automne, verts le reste de l'année), les cerisiers (roses en fleurs),
+ * les conifères, l'herbe et la mousse du sol, le tapis de pétales, l'eau (gelée l'hiver dans le nord), et les
+ * lumières (lanternes, fenêtres, phare) qui s'allument la nuit. La neige, elle, tombe sur tout ce qui regarde le ciel.
+ */
+const SORTES = { feuillu: 1, erable: 2, cerisier: 3, conifere: 4, herbe: 5, tapis: 6, eau: 7, lumiere: 8 };
+// La sorte d'une pièce d'après sa couleur, quand l'atelier ne l'a pas dite
+const SORTE_COULEUR = {
+  [C.herbe]: 'herbe', [C.mousse]: 'herbe', [C.mousseFonce]: 'herbe', [C.feuillage]: 'feuillu',
+  [C.erable]: 'erable', [C.erableClair]: 'erable', '#b8452a': 'erable',
+  '#f2c4d0': 'cerisier', [C.rose]: 'cerisier', '#f7dbe2': 'cerisier', '#eab0c0': 'cerisier',
+  '#efc9d3': 'tapis', '#f5dce2': 'tapis', [C.eau]: 'eau', [C.eauClaire]: 'eau', [C.verre]: 'lumiere', '#4a3c2c': 'lumiere',
+};
+
+/**
+ * La matière des modèles sur la carte (couche3d.js) : leur peinture, changée par la saison du lieu et l'heure.
+ * Chaque instance (un lieu) a son état de la nature (attribut `etatSaison`, voir phenologie.js) : [neige,
+ * automne, feuilles 0–2, fleurs]. uniformes.actif = 0 garde les couleurs d'origine (la carte classique) ;
+ * uniformes.nuit allume les lanternes et une lueur chaude au pied du modèle.
+ */
+export function matiereSaisons(THREE) {
+  const c = (h) => ({ value: new THREE.Color(h) });
+  const uniformes = {
+    actif: { value: 0 }, nuit: { value: 0 },
+    cJeune: c('#a7c466'), cEte: c(C.feuillage), cNu: c('#7a6656'), cRoux1: c('#dba43c'), cRoux2: c('#c4482a'),
+    cSec: c('#b9a774'), cHerbe: c(C.herbe), cGlace: c('#dbe8ea'), cNeige: c('#f6f4ef'), cLanterne: c('#ffb447'), cChaud: c('#ff9a3c'),
+  };
+  const matiere = new THREE.MeshLambertMaterial({ vertexColors: true });
+  matiere.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, uniformes);
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', `#include <common>
+attribute vec3 saison;
+attribute vec4 etatSaison;
+uniform float actif;
+uniform vec3 cJeune, cEte, cNu, cRoux1, cRoux2, cSec, cHerbe, cGlace, cNeige;
+varying float vLumiere;
+varying float vBas;`)
+      .replace('#include <color_vertex>', `#include <color_vertex>
+{
+  float classe = floor(saison.x + 0.5);
+  float p = saison.y, h = saison.z;
+  float neige = etatSaison.x, automne = etatSaison.y, fleurs = etatSaison.w;
+  float presence = clamp(etatSaison.z, 0.0, 1.0), maturite = clamp(etatSaison.z - 1.0, 0.0, 1.0);
+  vec3 c = vColor.rgb, s = vColor.rgb;
+  vec3 jeune = cJeune * p, ete = cEte * p, nu = cNu * p, sec = cSec * p;
+  vec3 roux = mix(cRoux1, cRoux2, h) * p;
+  if (classe == 1.0) s = mix(nu, mix(mix(jeune, c, maturite), roux, automne), presence);
+  else if (classe == 2.0) s = mix(nu, mix(mix(jeune, ete, maturite), c, automne), presence);
+  else if (classe == 3.0) s = mix(nu, mix(mix(mix(jeune, ete, maturite), roux, automne), c, fleurs), max(presence, fleurs));
+  else if (classe == 5.0 || classe == 6.0) {
+    vec3 base = classe == 6.0 ? cHerbe * p : c;
+    s = mix(sec, mix(mix(mix(base, jeune, 0.45), base, maturite), sec, automne * 0.5), presence);
+    if (classe == 6.0) s = mix(s, c, fleurs);
+  } else if (classe == 7.0) s = mix(c, cGlace * (0.95 + 0.1 * h), smoothstep(0.7, 1.0, neige));
+  // la neige sur tout ce qui regarde le ciel (sur l'eau, seulement gelée ; jamais sur les lumières)
+  float couvre = neige * smoothstep(0.3, 0.75, normal.y) * (0.82 + 0.18 * h);
+  if (classe == 7.0) couvre *= smoothstep(0.85, 1.0, neige);
+  if (classe == 8.0) couvre = 0.0;
+  s = mix(s, cNeige * (0.94 + 0.06 * h), couvre);
+  vColor.rgb = mix(c, s, actif);
+  vLumiere = classe == 8.0 ? 1.0 : 0.0;
+  vBas = 1.0 - smoothstep(0.0, 0.4, position.y);
+}`);
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', `#include <common>
+uniform float nuit;
+uniform vec3 cLanterne, cChaud;
+varying float vLumiere;
+varying float vBas;`)
+      .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+totalEmissiveRadiance += nuit * (cLanterne * vLumiere * 1.3 + cChaud * vBas * 0.09);`);
+  };
+  return { matiere, uniformes };
+}
+
 const lisse = (b0, b1, v) => { const t = Math.min(1, Math.max(0, (v - b0) / (b1 - b0))); return t * t * (3 - 2 * t); };
 /** Un nombre de 0 à 1 qui dépend du point (toujours le même : les modèles ne changent pas d'une visite à l'autre). */
 const hasard = (x, y, z) => { const s = Math.sin(x * 127.1 + y * 311.7 + z * 74.7) * 43758.5453; return s - Math.floor(s); };
@@ -77,7 +154,8 @@ function ateliers(THREE) {
        * - deformer(x, y, z) → [x, y, z] : plie la forme avant de la placer (poutre courbe…) ;
        * - teinte(x, y, z) → couleur : une couleur par triangle, selon son centre (rangs de pierres…) ;
        * - couleurs : une couleur par triangle (dans l'ordre) ;
-       * - trait: false : pas de trait d'encre (fumée, petits détails) ; nuance : écart de peinture d'un triangle à l'autre.
+       * - trait: false : pas de trait d'encre (fumée, petits détails) ; nuance : écart de peinture d'un triangle à l'autre ;
+       * - sorte : ce que la saison en fait (SORTES) ; sinon, d'après la couleur de chaque triangle (SORTE_COULEUR).
        */
       piece(geo, c, o = {}) {
         const m = new THREE.Matrix4().compose(
@@ -91,7 +169,7 @@ function ateliers(THREE) {
           for (let i = 0; i < p.count; i++) p.setXYZ(i, ...o.deformer(p.getX(i), p.getY(i), p.getZ(i)));
         }
         g.applyMatrix4(m);
-        morceaux.push({ pos: g.attributes.position.array, c, teinte: o.teinte, couleurs: o.couleurs, trait: o.trait !== false, nuance: o.nuance ?? 0.05 });
+        morceaux.push({ pos: g.attributes.position.array, c, teinte: o.teinte, couleurs: o.couleurs, trait: o.trait !== false, nuance: o.nuance ?? 0.05, sorte: o.sorte });
         return a;
       },
       boite: (l, h, p, c, o) => a.piece(new THREE.BoxGeometry(l, h, p), c, o),
@@ -204,15 +282,15 @@ function ateliers(THREE) {
       },
       pin(x, z, s = 1, y = 0) {
         a.cylindre(0.018 * s, 0.026 * s, 0.24 * s, 5, C.brun, { x, y: y + 0.12 * s, z });
-        a.boule(0.13 * s, C.pinVert, { x, y: y + 0.27 * s, z, sy: 0.55 });
-        return a.boule(0.09 * s, C.pinVert, { x: x + 0.04 * s, y: y + 0.36 * s, z: z - 0.02 * s, sy: 0.55 });
+        a.boule(0.13 * s, C.pinVert, { x, y: y + 0.27 * s, z, sy: 0.55, sorte: 'conifere' });
+        return a.boule(0.09 * s, C.pinVert, { x: x + 0.04 * s, y: y + 0.36 * s, z: z - 0.02 * s, sy: 0.55, sorte: 'conifere' });
       },
       /** Un pin japonais taillé : tronc penché et nuages d'aiguilles en plateaux. */
       pinJapon(x, z, s = 1, sens = 1) {
         a.baton([x, -0.05, z], [x + 0.05 * s * sens, 0.2 * s, z], 0.022 * s, C.brun, 5)
           .baton([x + 0.05 * s * sens, 0.2 * s, z], [x - 0.03 * s * sens, 0.36 * s, z + 0.02 * s], 0.017 * s, C.brun, 5);
         for (const [dx, dy, dz, r] of [[0.08, 0.22, 0, 0.1], [-0.07, 0.3, 0.02, 0.09], [0.01, 0.39, -0.01, 0.075], [-0.02, 0.15, -0.05, 0.07]]) {
-          a.boule(r * s, C.pinVert, { x: x + dx * s * sens, y: dy * s, z: z + dz * s, sy: 0.42 }, 1);
+          a.boule(r * s, C.pinVert, { x: x + dx * s * sens, y: dy * s, z: z + dz * s, sy: 0.42, sorte: 'conifere' }, 1);
         }
         return a;
       },
@@ -314,7 +392,8 @@ function ateliers(THREE) {
           .baton([x + 0.02 * h, y0 + h * 0.45, z], [x + 0.2 * h, y0 + h * 0.7, z - 0.04 * h], 0.022 * h, C.brun, 5);
         for (const [dx, dy, dz, r] of [[0, 0.78, 0, 0.3], [-0.2, 0.68, 0.06, 0.22], [0.21, 0.7, -0.05, 0.22], [0.04, 0.66, 0.2, 0.2], [-0.03, 0.7, -0.2, 0.2], [0.08, 0.92, 0.04, 0.18]]) {
           const c = feuilles[Math.floor(hasard(x + dx, z + dz, dy) * feuilles.length)];
-          a.boule(r * h, c, { x: x + dx * h, y: y0 + dy * h, z: z + dz * h, sy: 0.8 }, 1);
+          const sorte = ['erable', 'cerisier'].includes(SORTE_COULEUR[c]) ? SORTE_COULEUR[c] : 'feuillu';
+          a.boule(r * h, c, { x: x + dx * h, y: y0 + dy * h, z: z + dz * h, sy: 0.8, sorte }, 1);
         }
         return a;
       },
@@ -334,7 +413,7 @@ function ateliers(THREE) {
       /** Une lanterne de papier rouge (chōchin), pendue en x, y, z. */
       chochin(x, y, z, s = 1, c = C.rouge) {
         return a.cylindre(0.022 * s, 0.022 * s, 0.012 * s, 8, C.noir, { x, y: y + 0.03 * s, z })
-          .ovale(0.03 * s, c, { x, y, z, sy: 1.25 }, 8)
+          .ovale(0.03 * s, c, { x, y, z, sy: 1.25, sorte: 'lumiere' }, 8)
           .cylindre(0.02 * s, 0.02 * s, 0.01 * s, 8, C.noir, { x, y: y - 0.036 * s, z });
       },
       /** Un bâton (bras, jambe…) tendu entre deux points [x, y, z]. */
@@ -357,7 +436,7 @@ function ateliers(THREE) {
       cedre(x, z, h, vert = C.pinVert, neige = null, y0 = 0) {
         a.cylindre(0.016 + h * 0.02, 0.022 + h * 0.025, h * 0.3, 5, C.brun, { x, y: y0 + h * 0.09, z });
         for (const [r, hh, y] of [[0.3, 0.42, 0.42], [0.23, 0.36, 0.64], [0.15, 0.3, 0.85]]) {
-          a.cone(h * r, h * hh, 7, vert, { x, y: y0 + h * y - h * hh * 0.25, z, ry: hasard(x, z, y) * 3 });
+          a.cone(h * r, h * hh, 7, vert, { x, y: y0 + h * y - h * hh * 0.25, z, ry: hasard(x, z, y) * 3, sorte: 'conifere' });
           if (neige) a.cone(h * r * 0.72, h * hh * 0.42, 7, neige, { x, y: y0 + h * y - h * hh * 0.25 + h * hh * 0.33, z, ry: hasard(x, z, y) * 3 });
         }
         return a;
@@ -373,6 +452,7 @@ function ateliers(THREE) {
         const pos = new Float32Array(n);
         const col = new Float32Array(n);
         const contour = new Float32Array(n);
+        const saison = new Float32Array(n); // par sommet : sorte (SORTES), peinture (lavis × ombre du pied), hasard du triangle
         let i = 0;
         for (const m of morceaux) {
           const p = m.pos;
@@ -403,14 +483,20 @@ function ateliers(THREE) {
           }
           for (let k = 0, t = 0; k < p.length; k += 9, t++) {
             const cx = (p[k] + p[k + 3] + p[k + 6]) / 3, cy = (p[k + 1] + p[k + 4] + p[k + 7]) / 3, cz = (p[k + 2] + p[k + 5] + p[k + 8]) / 3;
-            const [r, g, b] = rvb(m.couleurs ? m.couleurs[t] : m.teinte ? m.teinte(cx, cy, cz) : m.c);
+            const teinte = m.couleurs ? m.couleurs[t] : m.teinte ? m.teinte(cx, cy, cz) : m.c;
+            const [r, g, b] = rvb(teinte);
             const lavis = peinture ? 1 + m.nuance * (2 * hasard(cx, cy, cz) - 1) : 1;
+            const sorte = SORTES[m.sorte ?? SORTE_COULEUR[teinte]] || 0;
+            const tirage = hasard(cx * 3.1 + 7, cy * 5.7, cz * 2.3);
             for (let s = 0; s < 9; s += 3) {
               const y = p[k + s + 1] + decalage;
               const sol = peinture ? 0.74 + 0.26 * lisse(-0.06, 0.32, y) : 1;
               col[i + k + s] = r * lavis * sol;
               col[i + k + s + 1] = g * lavis * sol;
               col[i + k + s + 2] = b * lavis * sol;
+              saison[i + k + s] = sorte;
+              saison[i + k + s + 1] = lavis * sol;
+              saison[i + k + s + 2] = tirage;
             }
           }
           i += p.length;
@@ -419,6 +505,7 @@ function ateliers(THREE) {
         geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
         geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
         geo.setAttribute('contour', new THREE.BufferAttribute(contour, 3));
+        geo.setAttribute('saison', new THREE.BufferAttribute(saison, 3));
         geo.translate(0, decalage, 0);
         geo.computeVertexNormals(); // chaque triangle a ses propres sommets : facettes nettes, style maquette
         geo.computeBoundingBox();
@@ -1152,7 +1239,7 @@ export function* fabriquerPeuAPeu(THREE) {
     const t = atelier().parcelle(bosses(0.48, 0.06, 13), 0.01, C.neige, { bord: '#e6e1d6', teinte: (x, y, z) => (hasard(x * 10, 1, z * 10) > 0.5 ? C.neige : '#e9e6e0') });
     t.dome(0.25, C.neige, { x: -0.06, y: 0.0, z: -0.04, sy: 0.85 })
       .ovale(0.075, '#3a2a20', { x: -0.06, y: 0.07, z: 0.17, sx: 1, sy: 1.15, sz: 0.4 }, 10)
-      .ovale(0.055, '#e9a24a', { x: -0.06, y: 0.065, z: 0.185, sx: 1, sy: 1.1, sz: 0.25, trait: false }, 10)
+      .ovale(0.055, '#e9a24a', { x: -0.06, y: 0.065, z: 0.185, sx: 1, sy: 1.1, sz: 0.25, trait: false, sorte: 'lumiere' }, 10)
       // le bonhomme de neige
       .boule(0.07, C.neige, { x: 0.26, y: 0.07, z: 0.2 }, 1)
       .boule(0.05, C.neige, { x: 0.26, y: 0.17, z: 0.2 }, 1)

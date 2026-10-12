@@ -942,43 +942,102 @@ body.en-visite .resume-itineraire, body.en-jeu .resume-itineraire { display: non
 .fiche-saisons-annee { margin: 0; font-size: 13.5px; color: var(--encre-2); }
 
 /* ---------- L'ambiance du moment au Japon (ambiance.js) ---------- */
-/* L'heure au Japon, au-dessus de la boussole (sans bouton : la carte suit l'heure toute seule) */
+/* L'heure au Japon, au-dessus de la boussole, avec l'interrupteur jour/nuit (et le réglage du mode développeur) */
 .controles .heure-japon {
   position: absolute; right: 0; bottom: calc(100% + 10px); width: auto; height: auto; display: flex; align-items: center; gap: 8px;
-  padding: 5px 11px 5px 6px; white-space: nowrap; pointer-events: none; color: var(--encre);
+  padding: 5px 11px 5px 5px; white-space: nowrap; pointer-events: none; color: var(--encre);
 }
-.heure-icone { flex: none; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #cf9c45; color: #fff7e2; }
-.heure-icone svg { width: 18px; height: 18px; }
-.heure-japon[data-phase="lever"] .heure-icone, .heure-japon[data-phase="coucher"] .heure-icone { background: #e09a6a; }
-.heure-japon[data-phase="nuit"] .heure-icone { background: #203b45; color: #ffd98a; }
+.heure-japon button { pointer-events: auto; }
 .heure-textes { display: flex; flex-direction: column; font-size: 12.5px; line-height: 1.2; color: var(--encre-2); }
 .heure-textes b { font: 400 16px var(--police-titre); color: var(--encre); font-variant-numeric: tabular-nums; }
 .heure-textes small { font-size: 11.5px; color: var(--encre-3); }
+/* l'interrupteur : le soleil à gauche, la lune à droite ; le bouton rond glisse sur ce que montre la carte */
+.jour-nuit { flex: none; padding: 0; border: 0; background: none; border-radius: 16px; cursor: pointer; }
+.jn-piste {
+  position: relative; display: flex; align-items: center; justify-content: space-between; width: 56px; height: 30px; padding: 0 7px;
+  border-radius: 15px; background: #e8dbbd; box-shadow: inset 0 0 0 1px rgba(53, 37, 26, 0.35); color: rgba(53, 37, 26, 0.42);
+  transition: background .3s, box-shadow .3s;
+}
+.jn-piste > svg { width: 14px; height: 14px; }
+.jn-curseur {
+  position: absolute; top: 2px; left: 2px; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%;
+  background: #cf9c45; color: #fff7e2; box-shadow: 0 1px 2px rgba(53, 37, 26, 0.45);
+  transition: transform .35s cubic-bezier(.3, 1.35, .5, 1), background .3s, color .3s;
+}
+.jn-curseur svg { width: 16px; height: 16px; }
+.heure-japon[data-vue="crepuscule"] .jn-curseur { background: #e09a6a; }
+.heure-japon[data-vue="nuit"] .jn-curseur { transform: translateX(26px); background: #203b45; color: #ffd98a; }
+.heure-japon[data-vue="nuit"] .jn-piste { background: #33475a; color: rgba(246, 238, 219, 0.55); }
+.heure-japon.force .jn-piste { box-shadow: inset 0 0 0 1.5px var(--rouge); } /* un choix fait à la main */
+.jour-nuit:hover .jn-piste { box-shadow: inset 0 0 0 1.5px var(--encre-2); }
+.jour-nuit:focus-visible { outline: 2px solid var(--rouge); outline-offset: 2px; }
+/* Mode développeur : le réglage de la date et de l'heure */
+.heure-reglage {
+  flex: none; display: grid; place-items: center; width: 28px; height: 28px; margin-right: -5px; padding: 0; border-radius: 50%;
+  border: 1px solid var(--trait); background: var(--papier-fonce); color: var(--rouge); cursor: pointer;
+}
+.heure-reglage svg { width: 16px; height: 16px; }
+.heure-reglage[aria-expanded="true"] { background: var(--rouge); color: var(--papier-clair); border-color: var(--rouge-survol); }
+.controles .reglage-ambiance {
+  position: absolute; right: 0; bottom: calc(100% + 8px); width: 264px; height: auto; display: block; padding: 10px 12px 12px;
+  white-space: normal; pointer-events: auto; text-align: left;
+}
+.reglage-ambiance[hidden] { display: none !important; }
+.reglage-titre { margin: 0 0 8px; font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--encre-2); }
+.reglage-raccourcis { display: flex; gap: 4px; margin-bottom: 8px; }
+.reglage-raccourcis button {
+  flex: 1; height: 32px; padding: 0; border: 1px solid var(--trait); border-radius: var(--rayon); background: var(--papier-clair);
+  font-size: 16px; cursor: pointer;
+}
+.reglage-raccourcis button:hover { background: var(--papier-fonce); }
+.reglage-ambiance label { display: block; margin: 4px 0 6px; font-size: 12.5px; color: var(--encre-2); }
+.reglage-ambiance output { float: right; font-weight: 600; color: var(--encre); font-variant-numeric: tabular-nums; }
+.reglage-ambiance input[type="range"] { display: block; width: 100%; margin: 4px 0 0; accent-color: var(--rouge); }
+.reglage-reel {
+  width: 100%; margin-top: 6px; padding: 7px; border: 1px solid var(--trait); border-radius: var(--rayon); background: var(--papier-clair);
+  font: inherit; font-size: 13px; color: var(--encre); cursor: pointer;
+}
+.reglage-reel:hover { background: var(--papier-fonce); }
 body.en-jeu .heure-japon { display: none; }
 /* La nuit, les lieux s'allument comme des lanternes ; les noms écrits sur la carte passent à l'encre claire */
 body.nuit .repere-tete { box-shadow: 0 0 0 1px rgba(53, 37, 26, 0.75), 0 0 10px 3px rgba(255, 176, 80, 0.55), 0 0 22px 7px rgba(255, 150, 50, 0.2); }
 body.nuit #carte.loin .repere-tete { box-shadow: 0 0 0 1px rgba(53, 37, 26, 0.8), 0 0 7px 2px rgba(255, 176, 80, 0.6); }
 body.nuit .nom-mer { color: #b8d3cf; text-shadow: 0 0 6px rgba(10, 25, 35, 0.9); }
 body.nuit .nom-region, body.nuit .nom-prefecture { color: #dfe6f0; text-shadow: 0 0 3px #0d1522, 0 0 9px rgba(13, 21, 34, 0.9); }
-/* Ce qui tombe sur la carte selon la saison : sous les repères, au-dessus du relief (composé par la carte graphique) */
+/* Ce qui tombe sur la carte selon la saison (particules.js) : sous les repères, au-dessus du relief, composé par la
+   carte graphique. Seulement de près (.loin : de loin, rien), et effacé pendant qu'on bouge la carte (.repos). */
 .saison { position: absolute; inset: 0; overflow: hidden; pointer-events: none; transition: opacity .8s, visibility 0s; }
 .saison.repos { opacity: 0; visibility: hidden; transition: opacity .2s, visibility 0s .2s; }
-.saison.repos > * { animation-play-state: paused; }
-.saison > span { position: absolute; top: -6%; animation: saison-tombe linear infinite; }
-.saison svg { display: block; }
-.saison b { display: block; width: var(--t); height: var(--t); border-radius: 50%; background: #fff; box-shadow: 0 0 0 .8px #9fb3c4; }
-@keyframes saison-tombe {
-  0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
-  8% { opacity: 1; }
-  50% { transform: translate(var(--dx), 55vh) rotate(calc(var(--r) * .5)); }
-  92% { opacity: 1; }
-  100% { transform: translate(calc(var(--dx) * -.4), 112vh) rotate(var(--r)); opacity: 0; }
+.saison.loin { opacity: 0; visibility: hidden; transition: opacity .3s, visibility 0s .3s; }
+.saison.repos *, .saison.loin * { animation-play-state: paused; }
+/* trois mouvements : la descente, le balancement de feuille morte (elle glisse en penchant, ralentit, repart de
+   l'autre côté), la vrille en 3D qui montre tour à tour la face et le revers */
+.saison > span { position: absolute; top: -8%; animation: saison-chute linear infinite; }
+.saison .balance { display: block; width: var(--taille); height: var(--taille); perspective: 320px; animation: saison-balance ease-in-out infinite; }
+.saison .vrille { position: relative; display: block; width: 100%; height: 100%; transform-style: preserve-3d; animation: saison-vrille linear infinite; }
+.saison .vrille svg { position: absolute; inset: 0; display: block; width: 100%; height: 100%; backface-visibility: hidden; }
+.saison .vrille .dos { transform: rotateY(180deg); }
+.saison > .pres { filter: blur(.7px); } /* tout près de l'œil : un peu flou */
+@keyframes saison-chute { 0% { transform: translateY(0); opacity: 0; } 6% { opacity: 1; } 92% { opacity: 1; } 100% { transform: translateY(118vh); opacity: 0; } }
+@keyframes saison-balance {
+  0%, 100% { transform: translate(calc(var(--amp) * -1), -7px) rotate(calc(var(--angle) * -.2)); }
+  25% { transform: translate(0, 9px) rotate(var(--angle)); }
+  50% { transform: translate(var(--amp), -7px) rotate(calc(var(--angle) * .2)); }
+  75% { transform: translate(0, 9px) rotate(calc(var(--angle) * -1)); }
 }
-.saison[data-sorte="neige"] > span { animation-name: saison-neige; }
-@keyframes saison-neige { 0% { transform: translate(0, 0); opacity: 0; } 10% { opacity: .95; } 100% { transform: translate(var(--dx), 112vh); opacity: .85; } }
-.saison[data-sorte="lucioles"] > span { animation-name: saison-luciole; animation-timing-function: ease-in-out; animation-direction: alternate; }
+@keyframes saison-vrille {
+  from { transform: rotate3d(var(--ax), var(--ay), var(--az), 0deg); }
+  to { transform: rotate3d(var(--ax), var(--ay), var(--az), 360deg); }
+}
+/* les flocons : ronds et doux, qui flottent sans tourner ; les plus proches, gros et flous */
+.saison b { display: block; width: 100%; height: 100%; border-radius: 50%; background: radial-gradient(circle, #fff 0 38%, rgba(255, 255, 255, 0.7) 55%, rgba(255, 255, 255, 0) 72%); }
+.saison[data-sorte="neige"] > .pres { filter: blur(1.4px); opacity: .85; }
+.saison[data-sorte="neige"] > span:not(.pres) b { box-shadow: 0 0 0 .5px rgba(159, 179, 196, 0.35); }
+/* les lucioles */
+.saison > .luciole { animation: saison-luciole ease-in-out infinite alternate; }
 .saison i { display: block; width: 5px; height: 5px; border-radius: 50%; background: #f4f0a0; box-shadow: 0 0 6px 3px rgba(230, 240, 120, 0.55); }
 @keyframes saison-luciole { 0% { transform: translate(0, 0); opacity: 0; } 30% { opacity: 1; } 60% { opacity: .3; } 100% { transform: translate(var(--dx), -40px); opacity: .9; } }
+/* les feux d'artifice */
 .saison > .hanabi { animation: saison-hanabi 9s ease-out infinite; opacity: 0; transform-origin: center; }
 @keyframes saison-hanabi {
   0% { transform: scale(.1); opacity: 0; } 4% { opacity: 1; } 22% { transform: scale(1); opacity: .9; }

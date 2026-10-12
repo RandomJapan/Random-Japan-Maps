@@ -171,8 +171,13 @@ Le robot remplit cette colonne pour chaque nouveau lieu. Les lieux déjà là on
 ## Le jour, la nuit et les saisons sur la carte
 
 La carte suit le moment réel au Japon, toute seule :
-- **le jour**, puis **le coucher du soleil** (relief doré), puis **la nuit** (mer et relief bleu nuit, les lieux s'allument comme des lanternes). Au-dessus de la boussole, une petite étiquette donne **l'heure au Japon** ;
-- **la saison** : le relief verdit au printemps et en été, roussit en automne, la neige descend sur les montagnes l'hiver (le Fuji garde sa neige jusqu'en juin). Quelques pétales de cerisier, lucioles (les nuits de juin), feux d'artifice (l'été), feuilles d'érable ou flocons tombent sur la carte ; ils s'effacent pendant qu'on bouge la carte.
+- **le jour**, puis **le coucher du soleil** (relief doré), puis **la nuit** (mer et relief bleu nuit, les lieux s'allument comme des lanternes ; de près, une lumière chaude entoure chaque lieu et ses lanternes s'allument). Au-dessus de la boussole, une petite étiquette donne **l'heure au Japon**, avec un **interrupteur jour/nuit** : un appui montre l'autre moment, un second appui revient à l'heure du Japon ;
+- **la saison** : le relief verdit au printemps et en été, roussit en automne, la neige descend sur les montagnes l'hiver (le Fuji garde sa neige jusqu'en juin) ;
+- **les détails de saison** peints sur la carte : les cerisiers en fleurs aux lieux célèbres (le « front des cerisiers » monte de Kyūshū fin mars à Hokkaidō en mai), les couleurs d'automne des vallées et des montagnes, les champs de fleurs (lavande, tournesols, glycines, némophiles…), et l'hiver la neige au sol dans le nord, les lacs gelés et la banquise d'Okhotsk. Les lieux du tableau à leur plus beau ce mois-ci (colonne Saisons) en ont aussi ;
+- **les modèles 3D** suivent la saison de leur lieu : neige sur les toits l'hiver, érables rouges en automne, cerisiers roses au printemps, arbres nus l'hiver ;
+- **de près seulement**, des pétales de cerisier, des lucioles et des feux d'artifice (les nuits d'été), des feuilles d'érable et de ginkgo ou des flocons tombent ; ils s'effacent pendant qu'on bouge la carte.
+
+**En mode développeur**, un petit bouton rouge à côté de l'heure ouvre un réglage : des raccourcis (🌸 printemps, 🌿, 🌻 été, 🍁 automne, ❄️ hiver, 🧊 banquise), la date et l'heure au Japon, et « Revenir au vrai moment ». Pratique pour voir chaque saison ou filmer.
 
 Pour filmer de jour alors qu'il fait nuit au Japon, ajoute `?heure=12:00` à l'adresse (par exemple `map.randomjapanplace.com/?heure=12:00`). Tu peux aussi essayer un autre mois : `?heure=20:00&mois=8` (une nuit d'été, avec les feux d'artifice). `?ambiance=non` remet la carte de toujours.
 

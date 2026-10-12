@@ -1732,6 +1732,7 @@ function basculerDev(actif) {
     // retour à la carte normale : rien des outils ne reste ouvert
     if (jeu?.enCours()) jeu.arreter();
     choisirOnglet('visite');
+    ambianceCarte?.reel(); // la date et l'heure choisies dans le réglage reviennent au vrai moment
   }
 }
 
@@ -2532,7 +2533,7 @@ async function demarrer() {
   const liensJeu = lireLiensJeu();
   const lienVoyage = lireLienVoyage();
   appliquerLangue();
-  ambianceCarte = ambiance.brancher(map, { t, langue: () => langue });
+  ambianceCarte = ambiance.brancher(map, { t, langue: () => langue, lieux: () => lieux });
   majSelonZoom();
 
   const [lignesLieux, lignesCategories] = await Promise.all([
@@ -2544,6 +2545,7 @@ async function demarrer() {
   // Les lieux du sud d'abord : ceux du nord (plus loin à l'écran) passent derrière.
   lieux.sort((a, b) => b.lat - a.lat).forEach(creerEpingle);
   appliquerLangue();
+  ambianceCarte.majLieux(); // les lieux à leur plus beau ce mois-ci se peignent sur la carte (saisons-carte.js)
 
   let montree = false;
   const pret = () => {

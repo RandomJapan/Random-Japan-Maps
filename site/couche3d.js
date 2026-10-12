@@ -2,10 +2,14 @@
 //  Les modèles 3D sur la carte : quand on zoome, chaque lieu montre
 //  le petit modèle de l'icône de sa catégorie (voir modeles3d.js),
 //  posé à même le relief et cerné d'un trait d'encre sépia.
+//  Il suit la saison du lieu (neige sur les toits, érables rouges en
+//  automne, cerisiers en fleurs… voir phenologie.js) et, la nuit, ses
+//  lanternes s'allument et une lueur chaude l'entoure.
 //  three.js (le moteur 3D) n'est chargé qu'après le démarrage (pour les
 //  bateaux de mer.js) ou au premier zoom rapproché : la carte démarre aussi vite.
 // ================================================================
 import { TEINTES } from './teintes.js';
+import { etatNature } from './phenologie.js';
 
 export const URL_THREE = 'https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.min.js';
 
@@ -48,6 +52,8 @@ function sansFiger(fabrique) {
 export function brancherModeles(map, maplibregl, obtenirLieux) {
   let etat = 'attente'; // puis 'chargement', 'pret' ou 'echec'
   let THREE, renderer, scene, camera, ciel, soleil, contour, types = null;
+  let saisons = null; // les réglages de la matière des modèles (saison, nuit) : modeles3d.js, matiereSaisons
+  let lueurs = null; // la nuit : le halo et la lueur au sol de chaque lieu
   let versionRelief = 0; // change à chaque tuile de relief reçue : les altitudes se précisent
   let dessines = []; // lieux dessinés à la dernière image (pour les clics)
   let echelleDessin = 0;
@@ -67,6 +73,17 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
     return l.alt3d.valeur;
   }
 
+  /**
+   * L'état de la nature au lieu ce jour-là (neige, automne, feuilles, fleurs : phenologie.js), selon sa latitude
+   * et son altitude réelle (le relief exagéré divisé par l'exagération).
+   */
+  function etatLieu(l) {
+    const alt = Math.max(0, altitude(l) / (map.terrain?.exaggeration || 1));
+    const cle = `${TEINTES.jour}|${Math.round(alt / 40)}`;
+    if (l.etat3d?.cle !== cle) l.etat3d = { cle, valeur: etatNature(l.lat, l.lng, alt, TEINTES.jour) };
+    return l.etat3d.valeur;
+  }
+
   /** Le modèle d'un lieu et sa hauteur (pour poser son épingle juste au-dessus). */
   function preparerLieu(l) {
     const { modeles, modelePour } = outils3d;
@@ -79,20 +96,26 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
     const mesh = new THREE.InstancedMesh(geo, outils3d.matiere, liste.length + RESERVE);
     mesh.frustumCulled = false;
     mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    // l'état de la nature de chaque lieu dessiné (matiereSaisons)
+    const etat = new THREE.InstancedBufferAttribute(new Float32Array((liste.length + RESERVE) * 4).fill(1), 4);
+    etat.setUsage(THREE.DynamicDrawUsage);
+    geo.setAttribute('etatSaison', etat);
     // le trait d'encre : la même forme, gonflée, vue de dos, aux mêmes places (elle partage leurs matrices)
     const trait = new THREE.InstancedMesh(geo, contour.matiere, liste.length + RESERVE);
     trait.frustumCulled = false;
     trait.instanceMatrix = mesh.instanceMatrix;
     scene.add(mesh, trait);
-    const t = { nom, lieux: liste, mesh, trait };
+    const t = { nom, lieux: liste, mesh, trait, etat };
     types.push(t);
     return t;
   }
 
   /** Range les lieux par modèle ; un seul « tampon » (InstancedMesh) par modèle, donc très peu de dessins. */
-  function preparerTypes(lieux, modeles, modelePour, matiereContour) {
-    outils3d = { modeles, modelePour, matiere: new THREE.MeshLambertMaterial({ vertexColors: true }) };
+  function preparerTypes(lieux, modeles, modelePour, matiereContour, matiereSaisons) {
+    saisons = matiereSaisons(THREE);
+    outils3d = { modeles, modelePour, matiere: saisons.matiere };
     contour = matiereContour(THREE);
+    lueurs = creerLueurs(lieux.length + RESERVE * 2);
     const parModele = new Map();
     for (const l of lieux) {
       preparerLieu(l);
@@ -101,6 +124,70 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
     }
     types = [];
     for (const [nom, liste] of parModele) nouveauType(nom, liste);
+  }
+
+  /**
+   * La lueur des lieux la nuit (2026-10-12, demande du propriétaire : « une sorte de lumière qui émane du lieu ») :
+   * un halo chaud tourné vers l'écran au milieu du modèle, et une flaque de lumière au sol autour de lui.
+   * Ajoutées à l'image (mélange additif), sans écrire la profondeur : le relief devant les cache.
+   */
+  function creerLueurs(n) {
+    const commun = { transparent: true, depthWrite: false, blending: THREE.AdditiveBlending };
+    const force = { value: 0 };
+    const couleur = { value: new THREE.Color(1, 0.62, 0.3) };
+    const halo = new THREE.InstancedMesh(new THREE.PlaneGeometry(2, 2), new THREE.ShaderMaterial({
+      ...commun,
+      uniforms: { ecran: { value: new THREE.Vector2(1, 1) }, rayon: { value: 40 }, force, couleur },
+      vertexShader: `uniform vec2 ecran;
+        uniform float rayon;
+        varying vec2 vUv;
+        void main() {
+          vec4 c = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(0.0, 0.32, 0.0, 1.0);
+          c.xy += position.xy * rayon * 2.0 / ecran * c.w;
+          gl_Position = c;
+          vUv = position.xy;
+        }`,
+      fragmentShader: `uniform float force;
+        uniform vec3 couleur;
+        varying vec2 vUv;
+        void main() {
+          float r = length(vUv);
+          float a = exp(-r * r * 4.5) * 0.34 * (1.0 - smoothstep(0.75, 1.0, r));
+          gl_FragColor = vec4(couleur * a * force, 1.0);
+        }`,
+    }), n);
+    const sol = new THREE.CircleGeometry(1.6, 40);
+    sol.rotateX(-Math.PI / 2);
+    sol.translate(0, 0.015, 0);
+    const flaque = new THREE.InstancedMesh(sol, new THREE.ShaderMaterial({
+      ...commun,
+      side: THREE.DoubleSide,
+      polygonOffset: true,
+      polygonOffsetFactor: -2,
+      polygonOffsetUnits: -8,
+      uniforms: { force, couleur },
+      vertexShader: `varying float vR;
+        void main() {
+          gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0);
+          vR = length(position.xz) / 1.6;
+        }`,
+      fragmentShader: `uniform float force;
+        uniform vec3 couleur;
+        varying float vR;
+        void main() {
+          float a = pow(1.0 - vR, 2.6) * 0.32;
+          gl_FragColor = vec4(couleur * a * force, 1.0);
+        }`,
+    }), n);
+    for (const m of [flaque, halo]) {
+      m.frustumCulled = false;
+      m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      m.count = 0;
+      scene.add(m);
+    }
+    flaque.renderOrder = 1;
+    halo.renderOrder = 2;
+    return { halo, flaque, force, n };
   }
 
   const couche = {
@@ -148,6 +235,10 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
       soleil.position.set(-Math.sin(b) - 0.5 * Math.cos(b), Math.cos(b) - 0.5 * Math.sin(b), 1.2);
       ciel.intensity = 2.5 * TEINTES.lumiere; // moins de lumière la nuit (ambiance.js)
       soleil.intensity = 2.2 * TEINTES.lumiere;
+      const saison = TEINTES.jour !== null;
+      saisons.uniformes.actif.value = saison ? 1 : 0;
+      saisons.uniformes.nuit.value = TEINTES.nuit;
+      const lueur = TEINTES.nuit * pousse;
       let nb = 0;
       for (const t of types) {
         let n = 0;
@@ -159,12 +250,26 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
           const mc = maplibregl.MercatorCoordinate.fromLngLat([l.lng, l.lat], altitude(l));
           m4.pos.set(mc.x - centre.x, mc.y - centre.y, mc.z);
           m4.instance.makeScale(k, k, k).multiply(m4.base).setPosition(m4.pos);
+          if (saison) t.etat.array.set(etatLieu(l), n * 4);
+          if (lueur > 0.01 && nb + n < lueurs.n) {
+            lueurs.halo.setMatrixAt(nb + n, m4.instance);
+            lueurs.flaque.setMatrixAt(nb + n, m4.instance);
+          }
           t.mesh.setMatrixAt(n++, m4.instance);
           dessines.push(l);
         }
         t.mesh.count = t.trait.count = n;
         t.mesh.instanceMatrix.needsUpdate = true;
+        if (saison) t.etat.needsUpdate = true;
         nb += n;
+      }
+      // la nuit, la lueur des lieux
+      lueurs.halo.count = lueurs.flaque.count = lueur > 0.01 ? Math.min(nb, lueurs.n) : 0;
+      if (lueurs.halo.count) {
+        lueurs.force.value = lueur;
+        lueurs.halo.material.uniforms.rayon.value = echelleDessin * 1.15;
+        lueurs.halo.material.uniforms.ecran.value.set(map.getCanvas().clientWidth, map.getCanvas().clientHeight);
+        lueurs.halo.instanceMatrix.needsUpdate = lueurs.flaque.instanceMatrix.needsUpdate = true;
       }
       if (!nb) return;
       camera.projectionMatrix.fromArray(args.defaultProjectionData.mainMatrix)
@@ -200,13 +305,13 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
     etat = 'chargement';
     try {
       THREE = await import(URL_THREE);
-      const { fabriquerPeuAPeu, modelePour, matiereContour } = await import('./modeles3d.js');
+      const { fabriquerPeuAPeu, modelePour, matiereContour, matiereSaisons } = await import('./modeles3d.js');
       const modeles = await sansFiger(fabriquerPeuAPeu(THREE));
       map.addLayer(couche);
       const installer = () => {
         const lieux = obtenirLieux();
         if (!lieux.length) return false;
-        preparerTypes(lieux, modeles, modelePour, matiereContour);
+        preparerTypes(lieux, modeles, modelePour, matiereContour, matiereSaisons);
         etat = 'pret';
         if (provisoires.length) installerProvisoires();
         majLevee();
