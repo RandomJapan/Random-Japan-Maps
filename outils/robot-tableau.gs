@@ -32,8 +32,6 @@ const COLONNE_ROBOT = 'Robot';
 // Quand aller voir le lieu (le calendrier et la fiche de la carte) : « cerisiers 4; automne 11 », « toute l'année »…
 const COLONNE_SAISONS = 'Saisons';
 const SAISONS = ['cerisiers', 'fleurs', 'verdure', 'été', 'automne', 'hiver', 'fête'];
-// Les saisons de départ des lieux déjà sur la carte (2026-10-12), copiées une fois par remplirSaisons()
-const SAISONS_DEPART = 'https://raw.githubusercontent.com/RandomJapan/Random-Japan-Maps/main/outils/saisons-depart.json';
 const COLONNES_OBLIGATOIRES = ['Nom (EN)', 'Nom (FR)', 'Nom (日本語)', 'Catégorie', 'Coordonnées GPS', 'Lien TikTok',
   'Description (EN)', 'Description (FR)', 'Description (日本語)', 'Afficher ?', 'À vérifier'];
 
@@ -509,32 +507,6 @@ function nettoyerSaisons_(texte) {
     if (cle && mois.length) bons.push(`${cle} ${mois.join(',')}`);
   }
   return bons.includes('toute l\'année') && bons.length > 1 ? bons.filter((b) => b !== 'toute l\'année').join('; ') : bons.join('; ');
-}
-
-/**
- * À lancer une fois (2026-10-12) : remplit la colonne « Saisons » des lieux déjà sur la carte (seulement les cases
- * vides), avec les saisons préparées dans outils/saisons-depart.json. Les nouveaux lieux reçoivent leurs saisons du
- * robot. Ensuite, on corrige directement dans le tableau.
- */
-function remplirSaisons() {
-  const depart = JSON.parse(UrlFetchApp.fetch(SAISONS_DEPART).getContentText());
-  const feuille = feuilleLieux_();
-  const col = colonnes_(feuille);
-  const n = feuille.getLastRow() - 1;
-  if (n < 1) return;
-  const noms = feuille.getRange(2, col['Nom (EN)'], n, 1).getValues();
-  const plage = feuille.getRange(2, col[COLONNE_SAISONS], n, 1);
-  const saisons = plage.getValues();
-  let remplies = 0;
-  noms.forEach(([nom], i) => {
-    const valeur = depart[String(nom).trim()];
-    if (valeur && !String(saisons[i][0]).trim()) {
-      saisons[i][0] = valeur;
-      remplies++;
-    }
-  });
-  plage.setValues(saisons);
-  console.log(`Saisons remplies : ${remplies} lieux ✅`);
 }
 
 // --- Petits outils ----------------------------------------------------------

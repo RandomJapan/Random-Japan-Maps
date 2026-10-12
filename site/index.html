@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -19,7 +19,9 @@
   <link rel="apple-touch-icon" href="img/icone-180.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&family=Zen+Antique&family=IM+Fell+English:ital@0;1&display=swap">
+  <!-- Les polices (119 Ko de description, surtout le japonais) se chargent sans retarder le démarrage de la carte :
+       un style « print » ne bloque rien, puis il passe à « all » dès qu'il est arrivé. -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&family=Zen+Antique&family=IM+Fell+English:ital@0;1&display=swap" media="print" onload="this.media='all'">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/maplibre-gl@6.11.2/dist/maplibre-gl.css">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="legendes.css">
@@ -30,11 +32,11 @@
   <div class="papier" id="papier" aria-hidden="true"></div>
 
   <header class="entete panneau">
-    <a class="marque" id="lien-profil" target="_blank" rel="noopener">
+    <a class="marque" id="lien-profil" target="_blank" rel="noopener" data-t-titre="suivre">
       <img class="logo" id="logo" alt="" width="44" height="44">
       <span class="marque-textes">
         <span class="titre" id="titre">Random Japan Place</span>
-        <span class="sous-titre" id="sous-titre"></span>
+        <span class="sous-titre" data-t="sousTitre"></span>
       </span>
     </a>
     <!-- Compteur de visites (compteur.js), sur ordinateur seulement -->
@@ -48,41 +50,41 @@
     <div class="filtres-boutons">
       <button class="bouton-categories panneau" id="btn-categories" aria-expanded="false" aria-controls="menu-categories">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 5h18v2H3zm3 6h12v2H6zm3 6h6v2H9z"/></svg>
-        <span id="txt-categories">Categories</span>
+        <span data-t="categories">Categories</span>
         <span class="compteur" id="compteur"></span>
         <svg class="chevron" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6"/></svg>
       </button>
       <button class="bouton-categories bouton-hasard panneau" id="btn-hasard" aria-expanded="false" aria-controls="panneau-hasard">
         <svg class="de" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.6" fill="currentColor"/></svg>
-        <span id="txt-hasard">Random</span>
+        <span data-t="hasard">Random</span>
       </button>
       <!-- Visite guidée (visite.js) -->
-      <button class="bouton-categories bouton-visite panneau" id="btn-visite" aria-expanded="false" aria-controls="panneau-visite">
+      <button class="bouton-categories bouton-visite panneau" id="btn-visite" aria-expanded="false" aria-controls="panneau-visite" data-t-titre="visiteTitre">
         <svg class="camera" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M3 7.5h11.5v9H3zM14.5 10.5l6-3v9l-6-3"/></svg>
-        <span class="texte-bouton" id="txt-visite">Tour</span>
+        <span class="texte-bouton" data-t="visite">Tour</span>
       </button>
       <!-- Quand partir ? Les lieux à leur plus beau chaque mois (saisons.js) -->
-      <button class="bouton-categories bouton-saisons panneau" id="btn-saisons" aria-expanded="false" aria-controls="panneau-saisons">
+      <button class="bouton-categories bouton-saisons panneau" id="btn-saisons" aria-expanded="false" aria-controls="panneau-saisons" data-t-titre="saisonsTitre">
         <svg class="calendrier" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M3.5 10h17M8 3v4M16 3v4"/><path fill="currentColor" d="M12 12.2c1.4 1.2 2.7 1.6 2.7 3.3a2.7 2.7 0 0 1-5.4 0c0-1.7 1.3-2.1 2.7-3.3Z"/></svg>
-        <span class="texte-bouton" id="txt-saisons">When to go</span>
+        <span class="texte-bouton" data-t="saisonsBouton">When to go</span>
       </button>
       <!-- Favoris : le bouton apparaît dès qu'on a mis un cœur sur un lieu -->
-      <button class="bouton-categories bouton-favoris panneau" id="btn-favoris" aria-expanded="false" aria-controls="panneau-favoris" hidden>
+      <button class="bouton-categories bouton-favoris panneau" id="btn-favoris" aria-expanded="false" aria-controls="panneau-favoris" hidden data-t-titre="favorisTitre">
         <svg class="coeur" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 20.3s-7.4-4.5-9.2-9.1C1.5 7.8 3.7 4.6 7 4.6c2 0 3.6 1.1 5 2.9 1.4-1.8 3-2.9 5-2.9 3.3 0 5.5 3.2 4.2 6.6-1.8 4.6-9.2 9.1-9.2 9.1Z"/></svg>
-        <span class="texte-bouton" id="txt-favoris">Favorites</span>
+        <span class="texte-bouton" data-t="favoris">Favorites</span>
         <span class="compteur" id="compteur-favoris"></span>
       </button>
       <!-- L'itinéraire des favoris quand il est sur la carte et le panneau fermé : son total (un appui rouvre le détail) et × (itineraire.js) -->
       <div class="resume-itineraire panneau" id="resume-itineraire" hidden>
-        <button type="button" class="resume-details" id="resume-details"></button>
+        <button type="button" class="resume-details" id="resume-details" data-t-titre="voirItineraire"></button>
         <!-- Partager son voyage : un lien et une image à poster (partage-voyage.js) -->
-        <button type="button" class="resume-partager" id="resume-partager"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 13v6a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-6"/></svg><span id="txt-resume-partager">Share</span></button>
-        <button type="button" class="resume-effacer" id="resume-effacer"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M7 7l10 10M17 7 7 17"/></svg></button>
+        <button type="button" class="resume-partager" id="resume-partager" data-t-titre="partagerVoyage"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 13v6a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-6"/></svg><span data-t="partagerCourt">Share</span></button>
+        <button type="button" class="resume-effacer" id="resume-effacer" data-t-titre="effacerItineraire" data-t-aria="effacerItineraire"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M7 7l10 10M17 7 7 17"/></svg></button>
       </div>
       <!-- Le mois montré sur la carte (les autres lieux s'effacent) : un appui rouvre le calendrier, × montre tout -->
       <div class="resume-itineraire resume-saison panneau" id="resume-saison" hidden>
-        <button type="button" class="resume-details" id="saison-details"></button>
-        <button type="button" class="resume-effacer" id="saison-effacer"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M7 7l10 10M17 7 7 17"/></svg></button>
+        <button type="button" class="resume-details" id="saison-details" data-t-titre="saisonsTitre"></button>
+        <button type="button" class="resume-effacer" id="saison-effacer" data-t-titre="saisonsEffacer" data-t-aria="saisonsEffacer"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M7 7l10 10M17 7 7 17"/></svg></button>
       </div>
       <!-- Légendes cachées : le bouton apparaît quand on en a trouvé une (legendes.js) -->
       <button class="bouton-categories bouton-legendes panneau" id="btn-legendes" aria-expanded="false" aria-controls="panneau-legendes" hidden>
@@ -93,7 +95,7 @@
       <!-- Jeu « Devine le lieu » : pas encore public, seulement en mode développeur (jeu.js) -->
       <button class="bouton-categories bouton-jeu panneau dev" id="btn-jeu">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M12 21.2s-6.6-6.7-6.6-11.6a6.6 6.6 0 0 1 13.2 0c0 4.9-6.6 11.6-6.6 11.6Z"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M10.2 8.1a1.9 1.9 0 1 1 2.6 1.8c-.5.2-.8.6-.8 1.1v.3"/><circle cx="12" cy="13.2" r="1" fill="currentColor"/></svg>
-        <span class="texte-bouton" id="txt-jeu">Guess the place</span>
+        <span class="texte-bouton" data-t="jeu">Guess the place</span>
       </button>
     </div>
     <div class="menu panneau" id="panneau-legendes" hidden></div>
@@ -104,44 +106,44 @@
            d'un point à un autre (le même volet, avec un départ en plus).
            Le plongeon, le point à point et les onglets n'existent qu'en mode développeur. -->
       <div class="onglets dev" role="tablist">
-        <button type="button" role="tab" id="onglet-visite" aria-selected="true" aria-controls="volet-visite">Tour</button>
-        <button type="button" role="tab" id="onglet-plongeon" aria-selected="false" aria-controls="volet-plongeon">Dive</button>
-        <button type="button" role="tab" id="onglet-point" aria-selected="false" aria-controls="volet-plongeon">Point to point</button>
+        <button type="button" role="tab" id="onglet-visite" aria-selected="true" aria-controls="volet-visite" data-t="visiteOnglet">Tour</button>
+        <button type="button" role="tab" id="onglet-plongeon" aria-selected="false" aria-controls="volet-plongeon" data-t="plongeonOnglet">Dive</button>
+        <button type="button" role="tab" id="onglet-point" aria-selected="false" aria-controls="volet-plongeon" data-t="pointOnglet">Point to point</button>
       </div>
       <div id="volet-visite" role="tabpanel" aria-labelledby="onglet-visite">
-      <p class="hasard-titre" id="visite-titre-panneau"></p>
-      <p class="panneau-info" id="visite-info"></p>
+      <p class="hasard-titre" data-t="visiteTitre"></p>
+      <p class="panneau-info" data-t="visiteInfo"></p>
       <label class="champ-hasard">
-        <span id="txt-visite-region"></span>
+        <span data-t="region"></span>
         <select id="visite-region"></select>
       </label>
       <label class="champ-hasard">
-        <span id="txt-visite-type"></span>
+        <span data-t="type"></span>
         <select id="visite-type"></select>
       </label>
       <label class="case-option" id="ligne-visite-favoris" hidden>
         <input type="checkbox" id="visite-favoris">
-        <span id="txt-visite-favoris"></span>
+        <span data-t="visiteSeulementFavoris"></span>
       </label>
       <label class="champ-hasard">
-        <span id="txt-visite-duree"></span>
+        <span data-t="visiteDuree"></span>
         <select id="visite-duree">
-          <option value="4000" id="duree-courte"></option>
-          <option value="7000" id="duree-normale" selected></option>
-          <option value="11000" id="duree-longue"></option>
+          <option value="4000" data-t="dureeCourte"></option>
+          <option value="7000" selected data-t="dureeNormale"></option>
+          <option value="11000" data-t="dureeLongue"></option>
         </select>
       </label>
       <label class="case-option">
         <input type="checkbox" id="visite-video" checked>
-        <span id="txt-visite-video"></span>
+        <span data-t="visiteVideo"></span>
       </label>
       <label class="case-option sous-option">
         <input type="checkbox" id="visite-son">
-        <span id="txt-visite-son"></span>
+        <span data-t="visiteSon"></span>
       </label>
       <label class="case-option">
         <input type="checkbox" id="visite-film" checked>
-        <span id="txt-visite-film"></span>
+        <span data-t="visiteFilm"></span>
       </label>
       <button type="button" class="btn-lancer" id="btn-visite-lancer">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5.5v13a1 1 0 0 0 1.5.9l10.5-6.5a1 1 0 0 0 0-1.8L9.5 4.6A1 1 0 0 0 8 5.5Z"/></svg>
@@ -151,60 +153,60 @@
       <div id="volet-plongeon" class="dev" role="tabpanel" aria-labelledby="onglet-plongeon" hidden>
         <p class="panneau-info" id="plongeon-info"></p>
         <div class="seul-point">
-          <p class="plongeon-etape" id="txt-point-depart"></p>
+          <p class="plongeon-etape" data-t="pointDepart"></p>
           <label class="champ-hasard">
-            <span id="txt-plongeon-depart"></span>
+            <span data-t="plongeonPosition"></span>
             <input type="text" id="plongeon-depart" placeholder="34.6851, 135.8048" autocomplete="off" spellcheck="false">
           </label>
           <p class="plongeon-erreur" id="plongeon-depart-erreur" role="alert" hidden></p>
           <label class="champ-hasard">
-            <span id="txt-plongeon-depart-nom"></span>
+            <span data-t="pointNomDepart"></span>
             <input type="text" id="plongeon-depart-nom" autocomplete="off">
           </label>
           <label class="champ-hasard">
-            <span id="txt-plongeon-depart-nom-ja"></span>
+            <span data-t="plongeonNomJa"></span>
             <input type="text" id="plongeon-depart-nom-ja" lang="ja" autocomplete="off">
           </label>
           <label class="champ-hasard">
-            <span id="txt-plongeon-depart-type"></span>
+            <span data-t="plongeonType"></span>
             <select id="plongeon-depart-type"></select>
           </label>
-          <p class="plongeon-etape" id="txt-point-arrivee"></p>
+          <p class="plongeon-etape" data-t="pointArrivee"></p>
         </div>
         <label class="champ-hasard">
-          <span id="txt-plongeon-position"></span>
+          <span data-t="plongeonPosition"></span>
           <input type="text" id="plongeon-position" placeholder="34.1302, 133.5345" autocomplete="off" spellcheck="false">
         </label>
-        <p class="plongeon-aide" id="plongeon-aide"></p>
+        <p class="plongeon-aide" data-t="plongeonAideGps"></p>
         <p class="plongeon-erreur" id="plongeon-erreur" role="alert" hidden></p>
         <label class="champ-hasard">
-          <span id="txt-plongeon-nom"></span>
+          <span data-t="plongeonNom"></span>
           <input type="text" id="plongeon-nom" autocomplete="off">
         </label>
         <label class="champ-hasard">
-          <span id="txt-plongeon-nom-ja"></span>
+          <span data-t="plongeonNomJa"></span>
           <input type="text" id="plongeon-nom-ja" lang="ja" autocomplete="off">
         </label>
         <label class="champ-hasard">
-          <span id="txt-plongeon-type"></span>
+          <span data-t="plongeonType"></span>
           <select id="plongeon-type"></select>
         </label>
         <div class="plongeon-reglages">
           <label class="champ-hasard">
-            <span id="txt-plongeon-distance"></span>
+            <span data-t="plongeonDistance"></span>
             <select id="plongeon-distance">
-              <option value="14" id="distance-tres-pres"></option>
-              <option value="13" id="distance-pres" selected></option>
-              <option value="12" id="distance-large"></option>
+              <option value="14" data-t="distanceTresPres"></option>
+              <option value="13" selected data-t="distancePres"></option>
+              <option value="12" data-t="distanceLarge"></option>
             </select>
           </label>
           <label class="champ-hasard">
-            <span id="txt-plongeon-orbite"></span>
+            <span data-t="plongeonOrbite"></span>
             <select id="plongeon-orbite">
-              <option value="0" id="orbite-sans"></option>
-              <option value="5" id="orbite-lente"></option>
-              <option value="10" id="orbite-normale" selected></option>
-              <option value="18" id="orbite-rapide"></option>
+              <option value="0" data-t="orbiteSans"></option>
+              <option value="5" data-t="orbiteLente"></option>
+              <option value="10" selected data-t="orbiteNormale"></option>
+              <option value="18" data-t="orbiteRapide"></option>
             </select>
           </label>
         </div>
@@ -214,24 +216,24 @@
         </button>
         <button type="button" class="btn-secondaire btn-affiche" id="btn-affiche">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M3.5 6.5h17v11h-17zM7 6.5v11M10 10.5h7M10 13.5h4.5"/></svg>
-          <span id="txt-plongeon-affiche"></span>
+          <span data-t="plongeonAffiche"></span>
         </button>
-        <p class="plongeon-aide plongeon-aide-affiche" id="plongeon-affiche-aide"></p>
+        <p class="plongeon-aide plongeon-aide-affiche" data-t="plongeonAfficheAide"></p>
       </div>
     </div>
     <div class="menu panneau hasard" id="panneau-hasard" hidden>
-      <p class="hasard-titre" id="hasard-titre"></p>
+      <p class="hasard-titre" id="hasard-titre" data-t="hasardTitre"></p>
       <label class="champ-hasard">
-        <span id="txt-region"></span>
+        <span data-t="region"></span>
         <select id="choix-region"></select>
       </label>
       <label class="champ-hasard">
-        <span id="txt-type"></span>
+        <span data-t="type"></span>
         <select id="choix-type"></select>
       </label>
       <button type="button" class="btn-lancer" id="btn-lancer">
         <svg class="de" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.6" fill="currentColor"/></svg>
-        <span id="txt-lancer"></span>
+        <span data-t="lancer"></span>
       </button>
       <p class="hasard-info" id="hasard-info"></p>
     </div>
@@ -242,12 +244,12 @@
       </label>
       <ul class="resultats" id="resultats" hidden></ul>
       <div class="menu-actions" id="menu-actions">
-        <button type="button" id="btn-tout"></button>
-        <button type="button" id="btn-rien"></button>
+        <button type="button" id="btn-tout" data-t="tout"></button>
+        <button type="button" id="btn-rien" data-t="rien"></button>
       </div>
       <ul class="liste-categories" id="liste-categories"></ul>
       <!-- Les pages des lieux (outils/fabriquer_pages.py) ; la langue est mise par app.js -->
-      <a class="lien-liste" id="lien-liste" href="en/">All places, as a list</a>
+      <a class="lien-liste" id="lien-liste" href="en/" data-t="listeLieux">All places, as a list</a>
     </div>
   </div>
 
@@ -259,7 +261,7 @@
 
   <!-- Lecteur de musique (musique.js) : coupé au départ ; le bouton ouvre le choix du style et de l'ambiance -->
   <div class="musique" id="musique">
-    <button type="button" class="panneau btn-musique" id="btn-musique" aria-expanded="false" aria-controls="panneau-musique">
+    <button type="button" class="panneau btn-musique" id="btn-musique" aria-expanded="false" aria-controls="panneau-musique" data-t-titre="musique" data-t-aria="musique">
       <svg class="note" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M9 17.5V6l11-2.2v11.4"/><circle cx="6.3" cy="17.6" r="2.7" fill="currentColor"/><circle cx="17.3" cy="15.3" r="2.7" fill="currentColor"/></svg>
       <span class="egaliseur" aria-hidden="true"><i></i><i></i><i></i></span>
     </button>
@@ -271,7 +273,7 @@
     <button type="button" class="panneau btn-dev" id="btn-dev" aria-pressed="false">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M8.5 7.5 4 12l4.5 4.5M15.5 7.5 20 12l-4.5 4.5M13.5 5l-3 14"/></svg>
     </button>
-    <button type="button" class="btn-rose" id="btn-rose">
+    <button type="button" class="btn-rose" id="btn-rose" data-t-titre="nord" data-t-aria="nord">
       <svg class="rose" id="rose" viewBox="0 0 64 64" aria-hidden="true">
         <circle cx="32" cy="32" r="30" fill="#efe4c8" fill-opacity=".92" stroke="#35251a" stroke-width="1.1"/>
         <circle cx="32" cy="32" r="27.2" fill="none" stroke="#35251a" stroke-width=".5"/>
@@ -281,7 +283,7 @@
         <text x="32" y="8.9" text-anchor="middle" font-family="'IM Fell English', Georgia, serif" font-size="8" fill="#a8321f" stroke="#efe4c8" stroke-width="2.4" paint-order="stroke">N</text>
       </svg>
     </button>
-    <button type="button" class="panneau" id="btn-recentrer">
+    <button type="button" class="panneau" id="btn-recentrer" data-t-titre="recentrer" data-t-aria="recentrer">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/></svg>
     </button>
     <button type="button" class="panneau" id="btn-plus" aria-label="Zoom in">
@@ -322,13 +324,13 @@
 
   <!-- Un voyage reçu par un lien …/?voyage= : sa route est sur la carte ; le garder dans ses favoris ou lancer la visite (app.js) -->
   <div class="voyage-recu panneau" id="voyage-recu" role="region" aria-labelledby="voyage-recu-titre" hidden>
-    <button type="button" class="voyage-recu-fermer" id="voyage-recu-fermer"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M7 7l10 10M17 7 7 17"/></svg></button>
-    <p class="voyage-recu-sur" id="voyage-recu-sur"></p>
+    <button type="button" class="voyage-recu-fermer" id="voyage-recu-fermer" data-t-titre="fermer" data-t-aria="fermer"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M7 7l10 10M17 7 7 17"/></svg></button>
+    <p class="voyage-recu-sur" data-t="voyageRecuSur"></p>
     <p class="voyage-recu-titre" id="voyage-recu-titre"></p>
     <p class="voyage-recu-etapes" id="voyage-recu-etapes"></p>
     <div class="voyage-recu-boutons">
-      <button type="button" class="btn-lancer" id="voyage-garder"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 20.3s-7.4-4.5-9.2-9.1C1.5 7.8 3.7 4.6 7 4.6c2 0 3.6 1.1 5 2.9 1.4-1.8 3-2.9 5-2.9 3.3 0 5.5 3.2 4.2 6.6-1.8 4.6-9.2 9.1-9.2 9.1Z"/></svg><span id="txt-voyage-garder"></span></button>
-      <button type="button" class="btn-secondaire" id="voyage-visite"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M3 7.5h11.5v9H3zM14.5 10.5l6-3v9l-6-3"/></svg><span id="txt-voyage-visite"></span></button>
+      <button type="button" class="btn-lancer" id="voyage-garder"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 20.3s-7.4-4.5-9.2-9.1C1.5 7.8 3.7 4.6 7 4.6c2 0 3.6 1.1 5 2.9 1.4-1.8 3-2.9 5-2.9 3.3 0 5.5 3.2 4.2 6.6-1.8 4.6-9.2 9.1-9.2 9.1Z"/></svg><span data-t="voyageGarder"></span></button>
+      <button type="button" class="btn-secondaire" id="voyage-visite"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M3 7.5h11.5v9H3zM14.5 10.5l6-3v9l-6-3"/></svg><span data-t="voyageVisite"></span></button>
     </div>
   </div>
 
@@ -336,13 +338,13 @@
     <div class="fiche-poignee" id="fiche-poignee" aria-hidden="true"></div>
     <button type="button" class="fiche-autre" id="fiche-autre" hidden>
       <svg class="de" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.6" fill="currentColor"/></svg>
-      <span id="txt-autre"></span>
+      <span data-t="unAutre"></span>
     </button>
     <button type="button" class="fiche-partager" id="fiche-partager"></button>
     <button type="button" class="fiche-partager fiche-favori" id="fiche-favori" aria-pressed="false">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M12 20.3s-7.4-4.5-9.2-9.1C1.5 7.8 3.7 4.6 7 4.6c2 0 3.6 1.1 5 2.9 1.4-1.8 3-2.9 5-2.9 3.3 0 5.5 3.2 4.2 6.6-1.8 4.6-9.2 9.1-9.2 9.1Z"/></svg>
     </button>
-    <button type="button" class="fiche-fermer" id="fiche-fermer">
+    <button type="button" class="fiche-fermer" id="fiche-fermer" data-t-aria="fermer">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M6 6l12 12M18 6 6 18"/></svg>
     </button>
     <div class="fiche-defil" id="fiche-defil">
@@ -362,7 +364,7 @@
 
   <div class="chargement" id="chargement">
     <img class="chargement-logo" src="img/logo.jpg" alt="" width="128" height="128">
-    <p id="txt-chargement">Loading the map…</p>
+    <p id="txt-chargement" data-t="chargement">Loading the map…</p>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 

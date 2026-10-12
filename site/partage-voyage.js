@@ -11,6 +11,7 @@
 
 import { milieu } from './itineraire.js';
 import { imageVoyage, miseEnPageCarte } from './voyage-image.js';
+import { echapper, envoyer, partagerFichier, tactile, telecharger } from './commun.js';
 
 const FORMATS = ['carte', 'carnet'];
 const ICONES = {
@@ -19,7 +20,6 @@ const ICONES = {
   enregistrer: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14"/></svg>',
   lien: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M10 14a4 4 0 0 0 5.7 0l3.5-3.5a4 4 0 0 0-5.7-5.7L12 6.3M14 10a4 4 0 0 0-5.7 0l-3.5 3.5a4 4 0 0 0 5.7 5.7l1.5-1.5"/></svg>',
 };
-const echapper = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 /** L'adresse du lien d'un voyage : les identifiants des lieux dans l'ordre, et la façon de voyager si ce n'est pas la voiture. */
 export function lienVoyage(liste, mode) {
@@ -32,7 +32,7 @@ export function lienVoyage(liste, mode) {
  */
 export function brancherPartageVoyage(map, deps) {
   const { t, enLangue } = deps;
-  const tactile = () => matchMedia('(pointer: coarse)').matches && !!navigator.share;
+  const partageSysteme = () => tactile() && !!navigator.share; // le menu de partage du téléphone
   let images = null; // { cle, carte: Promise<File>, carnet: Promise<File>, prets: { carte, carnet } }
   let choix = 'carte';
   let fenetre = null;
@@ -163,14 +163,6 @@ export function brancherPartageVoyage(map, deps) {
     return images;
   }
 
-  function telecharger(fichier) {
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(fichier);
-    a.download = fichier.name;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
-  }
-
   /** Ouvre la fenêtre « Partager mon voyage » pour cette liste (dans l'ordre du voyage) et son itinéraire calculé. */
   function ouvrir(liste, it) {
     fermer();
@@ -190,8 +182,8 @@ export function brancherPartageVoyage(map, deps) {
           <span class="voyage-nom-format">${echapper(t(`voyageFormat_${f}`))}</span></button>`).join('')}
       </div>
       <div class="voyage-actions">
-        <button type="button" class="btn-lancer" data-action="image" disabled>${tactile() ? ICONES.partager : ICONES.enregistrer}<span>${echapper(t(tactile() ? 'voyagePartagerImage' : 'bravoEnregistrer'))}</span></button>
-        <button type="button" class="btn-secondaire" data-action="lien">${ICONES.lien}<span>${echapper(t(tactile() ? 'voyageEnvoyerLien' : 'copierLien'))}</span></button>
+        <button type="button" class="btn-lancer" data-action="image" disabled>${partageSysteme() ? ICONES.partager : ICONES.enregistrer}<span>${echapper(t(partageSysteme() ? 'voyagePartagerImage' : 'bravoEnregistrer'))}</span></button>
+        <button type="button" class="btn-secondaire" data-action="lien">${ICONES.lien}<span>${echapper(t(partageSysteme() ? 'voyageEnvoyerLien' : 'copierLien'))}</span></button>
       </div>
     </div>`;
     const boite = fond.firstElementChild;
@@ -220,30 +212,12 @@ export function brancherPartageVoyage(map, deps) {
     boutonImage.addEventListener('click', async () => {
       const fichier = prep.prets[choix];
       if (!fichier) return;
-      if (tactile() && navigator.canShare?.({ files: [fichier] })) {
-        try {
-          await navigator.share({ files: [fichier], text: `${texte} ${url}` });
-          return;
-        } catch (e) {
-          if (e?.name === 'AbortError') return; // menu fermé sans choisir
-        }
-      }
+      if (await partagerFichier(fichier, `${texte} ${url}`)) return;
       telecharger(fichier);
       deps.afficherMessage(t('bravoImageEnregistree'));
     });
-    boite.querySelector('[data-action=lien]').addEventListener('click', async () => {
-      if (tactile()) {
-        try {
-          await navigator.share({ title: t('voyageImageTitre').join(''), text: texte, url });
-          return;
-        } catch (e) {
-          if (e?.name === 'AbortError') return;
-        }
-      }
-      try {
-        await navigator.clipboard.writeText(url);
-        deps.afficherMessage(t('lienCopie'));
-      } catch { deps.afficherMessage(url); }
+    boite.querySelector('[data-action=lien]').addEventListener('click', () => {
+      envoyer({ titre: t('voyageImageTitre').join(''), texte, url }, { message: deps.afficherMessage, copie: t('lienCopie') });
     });
     boite.querySelector('.voyage-fermer').addEventListener('click', fermer);
     fond.addEventListener('click', (e) => { if (e.target === fond) fermer(); });

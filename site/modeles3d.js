@@ -233,18 +233,9 @@ function ateliers(THREE) {
       cylindre: (rHaut, rBas, h, cotes, c, o) => a.piece(new THREE.CylinderGeometry(rHaut, rBas, h, cotes), c, o),
       cone: (r, h, cotes, c, o) => a.piece(new THREE.ConeGeometry(r, h, cotes), c, o),
       boule: (r, c, o, finesse = 0) => a.piece(new THREE.IcosahedronGeometry(r, finesse), c, o),
-      caillou: (r, c, o) => a.piece(new THREE.DodecahedronGeometry(r, 0), c, o),
       /** Dôme (demi-sphère posée à plat). */
       dome: (r, c, o) => a.piece(new THREE.SphereGeometry(r, 12, 5, 0, 2 * PI, 0, PI / 2), c, o),
       anneau: (r, epaisseur, c, o) => a.piece(new THREE.TorusGeometry(r, epaisseur, 4, 28), c, o),
-      /** Toit en croupe : une pyramide tronquée rectangulaire (largeur en x, profondeur en z). */
-      toit(largeur, profondeur, h, ratioHaut, c, o) {
-        const r = largeur / Math.SQRT2;
-        const g = new THREE.CylinderGeometry(r * ratioHaut, r, h, 4, 1).toNonIndexed();
-        g.rotateY(PI / 4);
-        g.scale(1, 1, profondeur / largeur);
-        return a.piece(g, c, o);
-      },
       /** Toit à deux pentes : un prisme couché, faîtage le long de x. */
       pignon(largeur, h, profondeur, c, o) {
         const [l, p] = [largeur / 2, profondeur / 2];
@@ -336,11 +327,6 @@ function ateliers(THREE) {
         const g = new THREE.BufferGeometry();
         g.setAttribute('position', new THREE.Float32BufferAttribute(tri.flat(), 3));
         return a.piece(g, C.pierre2, { ...o, couleurs });
-      },
-      pin(x, z, s = 1, y = 0) {
-        a.cylindre(0.018 * s, 0.026 * s, 0.24 * s, 5, C.brun, { x, y: y + 0.12 * s, z });
-        a.boule(0.13 * s, C.pinVert, { x, y: y + 0.27 * s, z, sy: 0.55, sorte: 'conifere' });
-        return a.boule(0.09 * s, C.pinVert, { x: x + 0.04 * s, y: y + 0.36 * s, z: z - 0.02 * s, sy: 0.55, sorte: 'conifere' });
       },
       /** Un pin japonais taillé : tronc penché et nuages d'aiguilles en plateaux. */
       pinJapon(x, z, s = 1, sens = 1) {
@@ -1567,4 +1553,3 @@ export function fabriquerBateau(THREE) {
 
 /** Où pendent les lanternes d'un bateau (unités du modèle) : le halo de chacune, la nuit. */
 export const LANTERNES_BATEAU = [[0, 0.29, -0.52], [0, 0.36, 0.5]];
-

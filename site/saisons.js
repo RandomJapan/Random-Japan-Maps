@@ -7,6 +7,8 @@
 //  - La fiche d'un lieu montre sa meilleure période, mois par mois.
 // ================================================================
 
+import { echapper } from './commun.js';
+
 const sansAccent = (t) => String(t).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 // Les sortes de saison : leur icône, leur couleur (sur la barre des mois) et les mots qui les désignent dans le tableau
@@ -56,8 +58,6 @@ export function saisonsDuMois(l, mois) {
     .sort((a, b) => Object.keys(SORTES).indexOf(a) - Object.keys(SORTES).indexOf(b));
 }
 
-const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-
 /** Le nom d'un mois (1 à 12) dans la langue : « novembre », « November », « 11月 ». */
 export function nomMois(mois, langue, format = 'long') {
   if (langue === 'ja') return `${mois}月`;
@@ -82,14 +82,14 @@ function texteMois(mois, langue) {
 export function blocFiche(l, { t, langue }) {
   const s = l.saisons;
   if (!s || (!s.annee && !s.periodes.length)) return '';
-  if (!s.periodes.length) return `<p class="fiche-saisons-annee"><span aria-hidden="true">✨</span> ${esc(t('saisonsAnnee'))}</p>`;
+  if (!s.periodes.length) return `<p class="fiche-saisons-annee"><span aria-hidden="true">✨</span> ${echapper(t('saisonsAnnee'))}</p>`;
   const barre = Array.from({ length: 12 }, (_, i) => {
     const p = s.periodes.find((x) => x.mois[i]);
     const lettre = langue === 'ja' ? String(i + 1) : nomMois(i + 1, langue, 'narrow');
-    return `<span${p ? ` class="oui" style="--s:${SORTES[p.sorte].couleur}"` : ''} title="${esc(nomMois(i + 1, langue))}">${esc(lettre)}</span>`;
+    return `<span${p ? ` class="oui" style="--s:${SORTES[p.sorte].couleur}"` : ''} title="${echapper(nomMois(i + 1, langue))}">${echapper(lettre)}</span>`;
   }).join('');
-  const lignes = s.periodes.map((p) => `<li><span aria-hidden="true">${SORTES[p.sorte].icone}</span> <b>${esc(t(`saison_${p.sorte}`))}</b> · ${esc(texteMois(p.mois, langue))}</li>`).join('');
-  return `<p class="fiche-saisons-titre">${esc(t('saisonsMeilleure'))}</p><div class="barre-mois" aria-hidden="true">${barre}</div><ul>${lignes}</ul>`;
+  const lignes = s.periodes.map((p) => `<li><span aria-hidden="true">${SORTES[p.sorte].icone}</span> <b>${echapper(t(`saison_${p.sorte}`))}</b> · ${echapper(texteMois(p.mois, langue))}</li>`).join('');
+  return `<p class="fiche-saisons-titre">${echapper(t('saisonsMeilleure'))}</p><div class="barre-mois" aria-hidden="true">${barre}</div><ul>${lignes}</ul>`;
 }
 
 /**
@@ -98,7 +98,7 @@ export function blocFiche(l, { t, langue }) {
  */
 export function contenuPanneau({ lieux, mois, t, langue, enLangue, pastille }) {
   const grille = Array.from({ length: 12 }, (_, i) => `<button type="button" data-mois="${i + 1}" aria-pressed="${i + 1 === mois}" style="--s:${COULEUR_MOIS[i]}">`
-    + `<b>${i + 1}月</b>${langue === 'ja' ? '' : `<span>${esc(nomMois(i + 1, langue, 'short'))}</span>`}</button>`).join('');
+    + `<b>${i + 1}月</b>${langue === 'ja' ? '' : `<span>${echapper(nomMois(i + 1, langue, 'short'))}</span>`}</button>`).join('');
   const groupes = new Map(Object.keys(SORTES).map((k) => [k, []]));
   for (const l of lieux) {
     const sortes = saisonsDuMois(l, mois);
@@ -106,14 +106,14 @@ export function contenuPanneau({ lieux, mois, t, langue, enLangue, pastille }) {
   }
   const n = [...groupes.values()].reduce((s, g) => s + g.length, 0);
   const nom = nomMois(mois, langue);
-  const liste = [...groupes].filter(([, g]) => g.length).map(([sorte, g]) => `<li class="saison-groupe"><span aria-hidden="true">${SORTES[sorte].icone}</span> ${esc(t(`saison_${sorte}`))}</li>`
-    + g.sort((a, b) => b.lat - a.lat).map((l) => `<li><button type="button" class="saison-lieu" data-lieu="${esc(l.id)}">
-      ${pastille(l)}<span class="saison-textes"><b>${esc(enLangue(l.nom))}</b></span></button></li>`).join('')).join('');
-  return `<p class="hasard-titre">${esc(t('saisonsTitre'))}</p>
-    <div class="mois-grille" role="group" aria-label="${esc(t('saisonsTitre'))}">${grille}</div>
-    <p class="panneau-info saisons-info">${esc(n ? t('saisonsInfo', nom, n) : t('saisonsAucun', nom))}</p>
+  const liste = [...groupes].filter(([, g]) => g.length).map(([sorte, g]) => `<li class="saison-groupe"><span aria-hidden="true">${SORTES[sorte].icone}</span> ${echapper(t(`saison_${sorte}`))}</li>`
+    + g.sort((a, b) => b.lat - a.lat).map((l) => `<li><button type="button" class="saison-lieu" data-lieu="${echapper(l.id)}">
+      ${pastille(l)}<span class="saison-textes"><b>${echapper(enLangue(l.nom))}</b></span></button></li>`).join('')).join('');
+  return `<p class="hasard-titre">${echapper(t('saisonsTitre'))}</p>
+    <div class="mois-grille" role="group" aria-label="${echapper(t('saisonsTitre'))}">${grille}</div>
+    <p class="panneau-info saisons-info">${echapper(n ? t('saisonsInfo', nom, n) : t('saisonsAucun', nom))}</p>
     ${n ? `<ul class="liste-saison">${liste}</ul>
-    <button type="button" class="btn-lancer" data-voir-saison>${esc(t('saisonsVoir', n))}</button>` : ''}`;
+    <button type="button" class="btn-lancer" data-voir-saison>${echapper(t('saisonsVoir', n))}</button>` : ''}`;
 }
 
 /** Les lieux d'un mois (ceux qui y sont à leur plus beau). */

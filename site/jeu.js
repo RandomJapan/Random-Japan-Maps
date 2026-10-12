@@ -16,6 +16,7 @@
 import { PREFECTURES, regionDe } from './regions.js';
 import { adresseServeur, connexion } from './reseau.js';
 import { identite } from './amis.js';
+import { echapper } from './commun.js';
 
 const MANCHES = 5;
 const POINTS_MAX = 1000;
@@ -54,7 +55,7 @@ const ICONES = {
  * outils : { t, enLangue, infos(lieu), lieux() → tous les lieux, reperes (reperes.js), modeles3d (couche3d.js),
  *            photo(lieu) → adresse de la photo du tableau ou '', video(lieu) → numéro de sa vidéo TikTok,
  *            prefecture(lieu) → Promise du numéro de sa préfecture, langue() → 'en' | 'fr' | 'ja',
- *            vueDepart(), estTelephone(), afficherMessage(texte), adresse, avant(), apres(),
+ *            vueDepart(), estTelephone(), afficherMessage(texte), adresse, avant(),
  *            amis (amis.js, ou null sans serveur), partager(texte) → partage (téléphone) ou copie (ordinateur) }
  * Les photos : celle du tableau, sinon une photo libre de Wikimedia Commons copiée par outils/photos_jeu.py
  * (photos/jeu/<numéro de la vidéo>.jpg ; auteur et licence dans data/photos-jeu.json). Un lieu sans photo
@@ -62,7 +63,7 @@ const ICONES = {
  */
 export function brancherJeu(map, maplibregl, outils) {
   const { t, enLangue, infos, lieux, reperes, modeles3d, photo, video, prefecture, langue, vueDepart, estTelephone,
-    afficherMessage, adresse, avant, apres, amis, partager: partagerTexte } = outils;
+    afficherMessage, adresse, avant, amis, partager: partagerTexte } = outils;
   const calme = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const aPlusieurs = !!adresseServeur();
   const photosLibres = fetch('data/photos-jeu.json').then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
@@ -361,10 +362,7 @@ export function brancherJeu(map, maplibregl, outils) {
     document.body.classList.remove('en-jeu');
     for (const l of lieux()) reperes.montrer(l.epingle, l.cat.visible);
     modeles3d.filtrer(null);
-    if (rendre) {
-      map.easeTo({ padding: SANS_MARGE, duration: calme ? 0 : 700, essential: true });
-      apres();
-    }
+    if (rendre) map.easeTo({ padding: SANS_MARGE, duration: calme ? 0 : 700, essential: true });
   }
 
   // ---- Le chrono (30 s par manche)
@@ -1141,5 +1139,3 @@ function km(a, b) {
 
 const dansBoite = (l, b) => l.lng >= b[0] && l.lng <= b[2] && l.lat >= b[1] && l.lat <= b[3];
 const distBoite = (l, b) => Math.hypot(l.lng - (b[0] + b[2]) / 2, l.lat - (b[1] + b[3]) / 2);
-
-const echapper = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);

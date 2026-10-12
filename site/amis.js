@@ -7,6 +7,7 @@
 //  Une demande ou une invitation qui arrive s'affiche en haut de l'écran, même hors du jeu.
 // ================================================================
 import { adresseServeur, connexion } from './reseau.js';
+import { echapper } from './commun.js';
 
 const MEMO = 'joueur'; // localStorage : { id, secret, pseudo }
 const CHIFFRES = '23456789ABCDEFGHJKMNPQRSTUVWXYZ'; // sans 0/O, 1/I/L : un code qui se lit et se dicte
@@ -37,11 +38,6 @@ export function identite() {
   };
   memoriser(j);
   return j;
-}
-
-/** Ce navigateur a-t-il déjà une identité avec un pseudo (il a déjà joué à plusieurs) ? */
-export function aDejaJoue() {
-  try { return !!JSON.parse(localStorage.getItem(MEMO))?.pseudo; } catch { return false; }
 }
 
 function memoriser(j) {
@@ -255,5 +251,3 @@ export function brancherAmis({ t, afficherMessage, adresse, rejoindre, partager 
     surChange: (f) => { abonnes.add(f); return () => abonnes.delete(f); },
   };
 }
-
-const echapper = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);

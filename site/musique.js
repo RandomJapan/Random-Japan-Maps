@@ -7,6 +7,8 @@
 //  licence CC BY 4.0, crédités (titre, auteur, lien) pendant chaque morceau.
 // ================================================================
 
+import { echapper } from './commun.js';
+
 const STYLES = ['trad', 'pop', 'cafe'];
 const AMBIANCES = ['calme', 'enjouee', 'energique'];
 const VOLUME_DEPART = 0.7; // position du curseur au premier passage ; le son suit son carré (l'oreille entend en logarithme)
@@ -21,8 +23,6 @@ const SVG = {
   son: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3.5 9.2h3.8L12 5v14l-4.7-4.2H3.5z"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M15.3 9a4.2 4.2 0 0 1 0 6M17.8 6.5a7.8 7.8 0 0 1 0 11"/></svg>',
   muet: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3.5 9.2h3.8L12 5v14l-4.7-4.2H3.5z"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="m15.5 9.5 5 5m0-5-5 5"/></svg>',
 };
-
-const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 /** iPhone et iPad : le volume d'un élément audio est en lecture seule (toujours 1). On passe alors par Web Audio. */
 const volumeFixe = (() => {
@@ -250,21 +250,21 @@ export function brancherMusique({ t, bouton, panneau }) {
   }
 
   function construire() {
-    const boutons = (liste, attribut, prefixe) => liste.map((v) => `<button type="button" data-${attribut}="${v}" aria-pressed="false">${esc(t(prefixe + v))}</button>`).join('');
+    const boutons = (liste, attribut, prefixe) => liste.map((v) => `<button type="button" data-${attribut}="${v}" aria-pressed="false">${echapper(t(prefixe + v))}</button>`).join('');
     panneau.innerHTML = `
-      <p class="hasard-titre">${esc(t('musiqueTitre'))}</p>
-      <p class="musique-etiquette" id="musique-txt-style">${esc(t('musiqueStyle'))}</p>
+      <p class="hasard-titre">${echapper(t('musiqueTitre'))}</p>
+      <p class="musique-etiquette" id="musique-txt-style">${echapper(t('musiqueStyle'))}</p>
       <div class="onglets musique-onglets" role="group" aria-labelledby="musique-txt-style">${boutons(STYLES, 'style', 'style_')}</div>
-      <p class="musique-etiquette" id="musique-txt-ambiance">${esc(t('musiqueAmbiance'))}</p>
+      <p class="musique-etiquette" id="musique-txt-ambiance">${echapper(t('musiqueAmbiance'))}</p>
       <div class="onglets musique-onglets" role="group" aria-labelledby="musique-txt-ambiance">${boutons(AMBIANCES, 'ambiance', 'ambiance_')}</div>
       <div class="musique-lecteur">
         <div class="musique-morceau" aria-live="polite"></div>
         <div class="musique-commandes">
           <button type="button" class="musique-jouer" data-jouer></button>
-          <button type="button" class="musique-suivant" data-suivant aria-label="${esc(t('musiqueSuivant'))}" title="${esc(t('musiqueSuivant'))}">${SVG.suivant}</button>
+          <button type="button" class="musique-suivant" data-suivant aria-label="${echapper(t('musiqueSuivant'))}" title="${echapper(t('musiqueSuivant'))}">${SVG.suivant}</button>
           <div class="musique-volume">
-            <button type="button" class="musique-muet" data-muet aria-label="${esc(t('musiqueVolume'))}"></button>
-            <input type="range" min="0" max="100" step="1" data-volume aria-label="${esc(t('musiqueVolume'))}">
+            <button type="button" class="musique-muet" data-muet aria-label="${echapper(t('musiqueVolume'))}"></button>
+            <input type="range" min="0" max="100" step="1" data-volume aria-label="${echapper(t('musiqueVolume'))}">
           </div>
         </div>
       </div>
@@ -282,8 +282,8 @@ export function brancherMusique({ t, bouton, panneau }) {
     for (const b of panneau.querySelectorAll('[data-jouer], [data-suivant]')) b.disabled = !donnees;
     const credit = panneau.querySelector('.musique-credit');
     if (donnees && !credit.firstChild) {
-      const liens = Object.values(donnees.auteurs).map((a) => `<a href="${esc(a.site)}" target="_blank" rel="noopener" lang="ja">${esc(a.nom)}</a>`).join(' · ');
-      credit.innerHTML = `${esc(t('musiqueCredit'))} ${liens} · <a href="${esc(donnees.licence)}" target="_blank" rel="noopener">${esc(t('musiqueLicence'))}</a>`;
+      const liens = Object.values(donnees.auteurs).map((a) => `<a href="${echapper(a.site)}" target="_blank" rel="noopener" lang="ja">${echapper(a.nom)}</a>`).join(' · ');
+      credit.innerHTML = `${echapper(t('musiqueCredit'))} ${liens} · <a href="${echapper(donnees.licence)}" target="_blank" rel="noopener">${echapper(t('musiqueLicence'))}</a>`;
     }
   }
 
@@ -313,16 +313,16 @@ export function brancherMusique({ t, bouton, panneau }) {
     if (!zone) return;
     if (morceau) {
       const auteur = donnees.auteurs[morceau.auteur];
-      zone.innerHTML = `<a class="musique-titre" lang="ja" href="${esc(morceau.page)}" target="_blank" rel="noopener">${esc(morceau.titre)}</a>
-        <span class="musique-auteur"><span lang="ja">${esc(auteur.nom)}</span>${morceau.voix ? ` · ${esc(t('musiqueVoix', morceau.voix))}` : ''}</span>`;
+      zone.innerHTML = `<a class="musique-titre" lang="ja" href="${echapper(morceau.page)}" target="_blank" rel="noopener">${echapper(morceau.titre)}</a>
+        <span class="musique-auteur"><span lang="ja">${echapper(auteur.nom)}</span>${morceau.voix ? ` · ${echapper(t('musiqueVoix', morceau.voix))}` : ''}</span>`;
     } else {
-      zone.innerHTML = `<span class="musique-titre musique-coupee">${esc(t('musiqueCoupee'))}</span>`;
+      zone.innerHTML = `<span class="musique-titre musique-coupee">${echapper(t('musiqueCoupee'))}</span>`;
     }
   }
 
   function afficherErreur() {
     const zone = panneau.querySelector('.musique-morceau');
-    if (zone) zone.innerHTML = `<span class="musique-titre musique-erreur">${esc(t('musiqueErreur'))}</span>`;
+    if (zone) zone.innerHTML = `<span class="musique-titre musique-erreur">${echapper(t('musiqueErreur'))}</span>`;
   }
 
   function majLangue() {

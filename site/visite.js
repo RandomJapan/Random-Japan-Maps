@@ -14,6 +14,7 @@
 //    (app.js). L'onglet « Point à point » part d'un autre point, vu de près, et vole jusqu'au lieu.
 // ================================================================
 import { ordreDeVoyage } from './favoris.js';
+import { echapper } from './commun.js';
 
 const ZOOM_LIEU = 12;
 const CACHER_BARRE = 2500; // ms sans bouger avant que la barre se cache, en mode film
@@ -47,9 +48,8 @@ const ICONES = {
  *            adresse → l'adresse de la carte, écrite à l'écran en mode film,
  *            exageration(zoom) → la hauteur du relief à ce zoom (sans paliers),
  *            preparerVol(depart, arrivee, hauteur) → Promise de { altitude, altitudeDepart } (precharge.js),
- *            avant(), apres() }
+ *            avant() }
  *   avant() : appelé au début (fermer les menus et la fiche, arrêter la rotation…)
- *   apres() : appelé à la fin
  * Renvoie { lancer(liste, { duree, film, video, son }), plonger(lieu, { fin, ...reglages }),
  *   preparerPlongeon(lieu, reglages), arreter(), enCours(), majLangue() }.
  *   reglages du plongeon : { depart (un lieu { lng, lat, nom… } : point à point ; absent : depuis tout le Japon),
@@ -58,7 +58,7 @@ const ICONES = {
  *   preparerPlongeon : télécharge d'avance le relief du trajet (dès que la position est collée).
  */
 export function brancherVisite(map, outils) {
-  const { t, enLangue, infos, video, debut, affiche, estTelephone, vueDepart, adresse, exageration, preparerVol, avant, apres } = outils;
+  const { t, enLangue, infos, video, debut, affiche, estTelephone, vueDepart, adresse, exageration, preparerVol, avant } = outils;
   const sonVideo = outils.sonVideo ?? (() => {}); // les vidéos ont le son : la musique du site se tait (musique.js)
   const calme = matchMedia('(prefers-reduced-motion: reduce)').matches;
   // etat : { liste, i, duree, film, avecVideo, son, pause, jeton, minuterie, attente, finSejour, reste,
@@ -642,11 +642,8 @@ export function brancherVisite(map, outils) {
     sonVideo(false);
     verrou?.release().catch(() => {});
     verrou = null;
-    if (rendre) {
-      // la marge laissée pour la vidéo et le bandeau disparaît en douceur
-      map.easeTo({ padding: SANS_MARGE, duration: calme ? 0 : 700, essential: true });
-      apres();
-    }
+    // la marge laissée pour la vidéo et le bandeau disparaît en douceur
+    if (rendre) map.easeTo({ padding: SANS_MARGE, duration: calme ? 0 : 700, essential: true });
   }
 
   // ---- Clavier, souris, doigts
@@ -693,5 +690,3 @@ const ecartCap = (a, b) => ((((a - b) % 360) + 540) % 360) - 180;
 
 /** [lng, lat] → coordonnées Mercator de 0 à 1 (comme MapLibre). */
 const mercator = ([lng, lat]) => [(lng + 180) / 360, (1 - Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360)) / Math.PI) / 2];
-
-const echapper = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);

@@ -20,10 +20,10 @@ import { brancherTuilesRelief } from './tuiles-relief.js';
 import { gererReperes } from './reperes.js';
 import { preparerAmbiance } from './ambiance.js';
 import { lireSaisons, blocFiche, contenuPanneau, lieuxDuMois, nomMois, iconeDuMois } from './saisons.js';
+import { echapper, envoyer, retirerParametres, tactile } from './commun.js';
 
 const $ = (id) => document.getElementById(id);
 const estTelephone = () => matchMedia('(max-width: 720px)').matches;
-const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 const SVG = {
   coche: '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="m5 12.5 4.5 4.5L19 7.5"/></svg>',
@@ -873,13 +873,13 @@ function construireMenu() {
     li.style.setProperty('--c', c.couleur);
     li.classList.toggle('masquee', !c.visible);
     li.innerHTML = `<div class="ligne-tete">
-        <label class="case" title="${esc(t('afficherSurCarte'))}">
-          <input type="checkbox" ${c.visible ? 'checked' : ''} aria-label="${esc(enLangue(c.nom))}">
+        <label class="case" title="${echapper(t('afficherSurCarte'))}">
+          <input type="checkbox" ${c.visible ? 'checked' : ''} aria-label="${echapper(enLangue(c.nom))}">
           <span class="coche">${SVG.coche}</span>
         </label>
-        <button type="button" class="deplier" aria-expanded="${!!c.deplie}" title="${esc(t('voirLieux'))}">
+        <button type="button" class="deplier" aria-expanded="${!!c.deplie}" title="${echapper(t('voirLieux'))}">
           <span class="pastille">${iconeHTML(c.icone)}</span>
-          <span class="nom-cat">${esc(enLangue(c.nom))}</span>
+          <span class="nom-cat">${echapper(enLangue(c.nom))}</span>
           <span class="nb">${c.lieux.length}</span>
           ${SVG.chevron}
         </button>
@@ -893,7 +893,7 @@ function construireMenu() {
       b.type = 'button';
       b.dataset.lieu = l.id;
       b.textContent = enLangue(l.nom);
-      if (l.nouveau) b.insertAdjacentHTML('beforeend', ` <span class="etiquette-nouveau">${esc(t('nouveau'))}</span>`);
+      if (l.nouveau) b.insertAdjacentHTML('beforeend', ` <span class="etiquette-nouveau">${echapper(t('nouveau'))}</span>`);
       b.classList.toggle('actif', l === lieuActif);
       b.addEventListener('click', () => allerAuLieu(l));
       item.append(b);
@@ -923,7 +923,7 @@ function construireNouveautes(ul) {
       <span class="case" aria-hidden="true"><span class="coche">${SVG.coche}</span></span>
       <button type="button" class="deplier" aria-expanded="${deplieNouveaux}">
         <span class="pastille">${SVG.etoile}</span>
-        <span class="nom-cat">${esc(t('nouveautes'))}</span>
+        <span class="nom-cat">${echapper(t('nouveautes'))}</span>
         <span class="nb">${nouveaux.length}</span>
         ${SVG.chevron}
       </button>
@@ -936,7 +936,7 @@ function construireNouveautes(ul) {
     const b = document.createElement('button');
     b.type = 'button';
     b.dataset.lieu = l.id;
-    b.innerHTML = `${esc(enLangue(l.nom))} <span class="date-courte">${esc(jour.format(l.date))}</span>`;
+    b.innerHTML = `${echapper(enLangue(l.nom))} <span class="date-courte">${echapper(jour.format(l.date))}</span>`;
     b.classList.toggle('actif', l === lieuActif);
     b.addEventListener('click', () => allerAuLieu(l));
     item.append(b);
@@ -953,7 +953,7 @@ function construireNouveautes(ul) {
 /** Depuis un menu (recherche, liste d'une catégorie, dé) : vole vers le lieu et ouvre sa fiche. */
 function allerAuLieu(l, options = {}) {
   if (!l.cat.visible) { l.cat.visible = true; construireMenu(); appliquerFiltres(); }
-  if (estTelephone()) { ouvrirMenu(false); ouvrirHasard(false); ouvrirFavoris(false); ouvrirVisite(false); ouvrirSaisons(false); }
+  if (estTelephone()) fermerPanneaux();
   ouvrirLieu(l, options);
 }
 
@@ -972,8 +972,28 @@ function toutCocher(visible) {
 function ouvrirMenu(ouvrir) {
   $('menu-categories').hidden = !ouvrir;
   $('btn-categories').setAttribute('aria-expanded', String(ouvrir));
-  if (ouvrir) { ouvrirHasard(false); ouvrirLegendes(false); ouvrirFavoris(false); ouvrirVisite(false); ouvrirMusique(false); ouvrirSaisons(false); }
-  if (ouvrir && !estTelephone()) $('recherche').focus();
+  if (!ouvrir) return;
+  fermerPanneaux('menu-categories');
+  if (!estTelephone()) $('recherche').focus();
+}
+
+// ---------------------------------------------------------------- Les panneaux
+// Un seul ouvert à la fois : en ouvrir un ferme les autres ; un appui ailleurs sur la page, ou Échap, le ferme.
+// Pour chacun : son bouton et la fonction qui l'ouvre ou le ferme (avec ses petits effets : le résumé de
+// l'itinéraire sous les favoris, le contenu du calendrier…).
+const PANNEAUX = {
+  'menu-categories': ['btn-categories', ouvrirMenu],
+  'panneau-hasard': ['btn-hasard', ouvrirHasard],
+  'panneau-legendes': ['btn-legendes', ouvrirLegendes],
+  'panneau-favoris': ['btn-favoris', ouvrirFavoris],
+  'panneau-visite': ['btn-visite', ouvrirVisite],
+  'panneau-saisons': ['btn-saisons', ouvrirSaisons],
+  'panneau-musique': ['btn-musique', ouvrirMusique],
+};
+
+/** Ferme tous les panneaux (sauf celui qu'on ouvre). */
+function fermerPanneaux(sauf) {
+  for (const [id, [, ouvrir]] of Object.entries(PANNEAUX)) if (id !== sauf) ouvrir(false);
 }
 
 // ---------------------------------------------------------------- Légendes cachées (legendes.js)
@@ -996,12 +1016,7 @@ function ouvrirLegendes(ouvrir) {
   $('panneau-legendes').hidden = !ouvrir;
   $('btn-legendes').setAttribute('aria-expanded', String(ouvrir));
   if (!ouvrir) return;
-  ouvrirMenu(false);
-  ouvrirHasard(false);
-  ouvrirFavoris(false);
-  ouvrirVisite(false);
-  ouvrirSaisons(false);
-  ouvrirMusique(false);
+  fermerPanneaux('panneau-legendes');
   legendes?.remplirPanneau();
 }
 
@@ -1044,7 +1059,7 @@ function construireHasard() {
  * choix, parmi « base ». Renvoie le nombre de lieux qui correspondent aux deux choix.
  */
 function remplirChoix(selRegion, selType, base) {
-  const candidats = (region, type) => base.filter((l) => correspond(l, region, type));
+  const nb = (region, type) => candidats(region, type, base).length;
   const region = selRegion.value;
   const type = selType.value;
   const option = (valeur, texte, n, choisi) => {
@@ -1053,40 +1068,35 @@ function remplirChoix(selRegion, selType, base) {
     return o;
   };
 
-  selRegion.replaceChildren(option('', t('partout'), candidats('', type).length, region));
+  selRegion.replaceChildren(option('', t('partout'), nb('', type), region));
   for (const r of REGIONS) {
     const prefs = r.prefectures.filter((p) => lieux.some((l) => l.prefecture === p));
     if (!prefs.length) continue;
     const toute = option(`r:${r.cle}`, r.prefectures.length > 1 ? t('toutLaRegion', enLangue(r.nom)) : enLangue(r.nom),
-      candidats(`r:${r.cle}`, type).length, region);
+      nb(`r:${r.cle}`, type), region);
     if (r.prefectures.length === 1) { selRegion.append(toute); continue; }
     const groupe = document.createElement('optgroup');
     groupe.label = enLangue(r.nom);
     groupe.append(toute);
-    for (const p of prefs) groupe.append(option(`p:${p}`, enLangue(PREFECTURES[p]), candidats(`p:${p}`, type).length, region));
+    for (const p of prefs) groupe.append(option(`p:${p}`, enLangue(PREFECTURES[p]), nb(`p:${p}`, type), region));
     selRegion.append(groupe);
   }
   selRegion.value = region;
   if (selRegion.value !== region) selRegion.value = '';
 
-  selType.replaceChildren(option('', t('tousTypes'), candidats(selRegion.value, '').length, type));
-  for (const c of categories) selType.append(option(c.cle, enLangue(c.nom), candidats(selRegion.value, c.cle).length, type));
+  selType.replaceChildren(option('', t('tousTypes'), nb(selRegion.value, ''), type));
+  for (const c of categories) selType.append(option(c.cle, enLangue(c.nom), nb(selRegion.value, c.cle), type));
   selType.value = type;
   if (selType.value !== type) selType.value = '';
 
-  return candidats(selRegion.value, selType.value).length;
+  return nb(selRegion.value, selType.value);
 }
 
 async function ouvrirHasard(ouvrir) {
   $('panneau-hasard').hidden = !ouvrir;
   $('btn-hasard').setAttribute('aria-expanded', String(ouvrir));
   if (!ouvrir) return;
-  ouvrirMenu(false);
-  ouvrirLegendes(false);
-  ouvrirFavoris(false);
-  ouvrirVisite(false);
-  ouvrirSaisons(false);
-  ouvrirMusique(false);
+  fermerPanneaux('panneau-hasard');
   if (!$('choix-region').options.length) {
     $('hasard-info').textContent = '…';
     $('btn-lancer').disabled = true;
@@ -1159,30 +1169,30 @@ const listeItineraire = () => voyageRecu?.lieux || listeFavoris();
 function remplirFavoris() {
   const panneau = $('panneau-favoris');
   const liste = listeFavoris();
-  const titre = `<p class="hasard-titre">${esc(t('favorisTitre'))}</p>`;
+  const titre = `<p class="hasard-titre">${echapper(t('favorisTitre'))}</p>`;
   if (!liste.length) {
-    panneau.innerHTML = `${titre}<p class="panneau-info">${esc(t('favorisVide'))}</p>`;
+    panneau.innerHTML = `${titre}<p class="panneau-info">${echapper(t('favorisVide'))}</p>`;
     return;
   }
   const it = itineraireActuel;
   const lignes = liste.map((l, i) => `<li>
-      <button type="button" class="favori-ligne" data-lieu="${esc(l.id)}">
+      <button type="button" class="favori-ligne" data-lieu="${echapper(l.id)}">
         <span class="favori-num">${i + 1}</span>
         <span class="pastille" style="--c:${l.cat.couleur}">${iconeHTML(l.cat.icone)}</span>
-        <span class="favori-textes"><b>${esc(enLangue(l.nom))}</b><small>${esc(infosLieu(l))}</small></span>
+        <span class="favori-textes"><b>${echapper(enLangue(l.nom))}</b><small>${echapper(infosLieu(l))}</small></span>
       </button>
-      <button type="button" class="favori-retirer" data-retirer="${esc(l.id)}" title="${esc(t('retirer'))}" aria-label="${esc(`${t('retirer')} : ${enLangue(l.nom)}`)}">${SVG.croix}</button>
+      <button type="button" class="favori-retirer" data-retirer="${echapper(l.id)}" title="${echapper(t('retirer'))}" aria-label="${echapper(`${t('retirer')} : ${enLangue(l.nom)}`)}">${SVG.croix}</button>
     </li>${it?.trajets[i]?.de === l && it.trajets[i].a === liste[i + 1] ? ligneTrajet(it.trajets[i], it.mode) : ''}`).join('');
   const liens = liensItineraire(liste, estTelephone() ? 5 : 10);
-  const itineraires = liens.map((x) => `<a class="btn-secondaire btn-itineraire" href="${esc(x.url)}" target="_blank" rel="noopener">${SVG.route}<span>${esc(liens.length > 1 ? t('itinerairePartie', x.de, x.a) : t('itineraireFavoris'))}</span></a>`).join('');
-  panneau.innerHTML = `${titre}<p class="panneau-info">${esc(t('favorisInfo', liste.length))}</p>
+  const itineraires = liens.map((x) => `<a class="btn-secondaire btn-itineraire" href="${echapper(x.url)}" target="_blank" rel="noopener">${SVG.route}<span>${echapper(liens.length > 1 ? t('itinerairePartie', x.de, x.a) : t('itineraireFavoris'))}</span></a>`).join('');
+  panneau.innerHTML = `${titre}<p class="panneau-info">${echapper(t('favorisInfo', liste.length))}</p>
     ${liste.length > 1 ? blocItineraire() : ''}
     <ol class="liste-favoris">${lignes}</ol>
-    ${liste.length > 1 ? `<div class="menu-actions sens"><button type="button" data-inverser>${SVG.sens}<span>${esc(t('inverserSens'))}</span></button></div>` : ''}
+    ${liste.length > 1 ? `<div class="menu-actions sens"><button type="button" data-inverser>${SVG.sens}<span>${echapper(t('inverserSens'))}</span></button></div>` : ''}
     <div class="favoris-actions">${itineraires}
-      <button type="button" class="btn-secondaire" data-visite>${SVG.camera}<span>${esc(t('visiteFavoris'))}</span></button>
+      <button type="button" class="btn-secondaire" data-visite>${SVG.camera}<span>${echapper(t('visiteFavoris'))}</span></button>
     </div>
-    ${it ? `<p class="itineraire-note">${esc(t('itineraireNote'))}</p>` : ''}`;
+    ${it ? `<p class="itineraire-note">${echapper(t('itineraireNote'))}</p>` : ''}`;
   // La préfecture de chaque lieu arrive avec les contours (une seule fois)
   if (liste.some((l) => !l.prefecture)) {
     preparerPrefectures().then(() => { if (!panneau.hidden && liste.every((l) => l.prefecture)) remplirFavoris(); }).catch(() => {});
@@ -1198,12 +1208,7 @@ function ouvrirFavoris(ouvrir) {
     $('btn-favoris').hidden = !lieux.some(estFavori);
     return;
   }
-  ouvrirMenu(false);
-  ouvrirHasard(false);
-  ouvrirLegendes(false);
-  ouvrirVisite(false);
-  ouvrirSaisons(false);
-  ouvrirMusique(false);
+  fermerPanneaux('panneau-favoris');
   remplirFavoris();
 }
 
@@ -1242,39 +1247,39 @@ function nomRoute(r) {
 
 const itineraire = brancherItineraire(map, maplibregl, {
   reperes,
-  texteTrajet: (tr, mode) => (tr.sansRoute ? esc(t('sansRouteCourt')) : `${SVG[mode]}${texteDuree(tr.duree)}`),
+  texteTrajet: (tr, mode) => (tr.sansRoute ? echapper(t('sansRouteCourt')) : `${SVG[mode]}${texteDuree(tr.duree)}`),
 });
 
 /** Une ligne de trajet entre deux favoris : temps, distance, grandes routes, bateau. */
 function ligneTrajet(tr, mode) {
-  if (tr.sansRoute) return `<li class="trajet sans-route"><span class="trajet-icone">${SVG.bateau}</span><span>${esc(t('trajetSansRoute'))}</span></li>`;
+  if (tr.sansRoute) return `<li class="trajet sans-route"><span class="trajet-icone">${SVG.bateau}</span><span>${echapper(t('trajetSansRoute'))}</span></li>`;
   const morceaux = [texteDuree(tr.duree), texteDistance(tr.distance)];
   const routes = [...new Set(tr.routes.map(nomRoute).filter(Boolean))];
   if (routes.length) morceaux.push(routes.join(langue === 'ja' ? '・' : ', '));
-  const bateau = tr.bateau > 60 ? ` <span class="trajet-bateau">${SVG.bateau}${esc(t('dontBateau', texteDuree(tr.bateau)))}</span>` : '';
-  const pied = tr.horsRoute > 1000 ? ` <span class="trajet-bateau">${esc(t('horsRoute', texteDistance(tr.horsRoute)))}</span>` : '';
-  return `<li class="trajet"><span class="trajet-icone">${SVG[mode]}</span><span>${esc(morceaux.join(' · '))}${bateau}${pied}</span></li>`;
+  const bateau = tr.bateau > 60 ? ` <span class="trajet-bateau">${SVG.bateau}${echapper(t('dontBateau', texteDuree(tr.bateau)))}</span>` : '';
+  const pied = tr.horsRoute > 1000 ? ` <span class="trajet-bateau">${echapper(t('horsRoute', texteDistance(tr.horsRoute)))}</span>` : '';
+  return `<li class="trajet"><span class="trajet-icone">${SVG[mode]}</span><span>${echapper(morceaux.join(' · '))}${bateau}${pied}</span></li>`;
 }
 
 /** Le bloc « Itinéraire sur la carte » du panneau : la façon de voyager, le total et les boutons. */
 function blocItineraire() {
   const it = itineraireActuel;
-  const modes = MODES.map((m) => `<button type="button" data-mode="${m}" aria-pressed="${m === modeItineraire}">${SVG[m]}<span>${esc(t(`mode_${m}`))}</span></button>`).join('');
+  const modes = MODES.map((m) => `<button type="button" data-mode="${m}" aria-pressed="${m === modeItineraire}">${SVG[m]}<span>${echapper(t(`mode_${m}`))}</span></button>`).join('');
   const total = it ? `<div class="itineraire-total">
-      <b>≈ ${esc(texteDuree(it.duree))}</b> <span>${esc(t(`total_${it.mode}`))} · ${esc(texteDistance(it.distance))}</span>
-      ${it.bateau > 60 ? `<small>${SVG.bateau}${esc(t('dontBateau', texteDuree(it.bateau)))}</small>` : ''}
+      <b>≈ ${echapper(texteDuree(it.duree))}</b> <span>${echapper(t(`total_${it.mode}`))} · ${echapper(texteDistance(it.distance))}</span>
+      ${it.bateau > 60 ? `<small>${SVG.bateau}${echapper(t('dontBateau', texteDuree(it.bateau)))}</small>` : ''}
     </div>` : '';
   const bouton = calculItineraire
-    ? `<button type="button" class="btn-lancer" disabled>${SVG.trace}<span>${esc(t('calculItineraire'))}</span></button>`
+    ? `<button type="button" class="btn-lancer" disabled>${SVG.trace}<span>${echapper(t('calculItineraire'))}</span></button>`
     : it
-      ? `<button type="button" class="btn-lancer btn-partager-voyage" data-partager-voyage>${SVG.partager}<span>${esc(t('partagerVoyage'))}</span></button>
-        <button type="button" class="btn-secondaire" data-effacer-itineraire>${SVG.croix}<span>${esc(t('effacerItineraire'))}</span></button>`
-      : `<button type="button" class="btn-lancer" data-tracer>${SVG.trace}<span>${esc(t('tracerItineraire'))}</span></button>`;
+      ? `<button type="button" class="btn-lancer btn-partager-voyage" data-partager-voyage>${SVG.partager}<span>${echapper(t('partagerVoyage'))}</span></button>
+        <button type="button" class="btn-secondaire" data-effacer-itineraire>${SVG.croix}<span>${echapper(t('effacerItineraire'))}</span></button>`
+      : `<button type="button" class="btn-lancer" data-tracer>${SVG.trace}<span>${echapper(t('tracerItineraire'))}</span></button>`;
   return `<div class="itineraire-bloc">
-      <p class="bloc-titre">${esc(t('itineraireCarte'))}</p>
-      <div class="onglets modes" role="group" aria-label="${esc(t('itineraireCarte'))}">${modes}</div>
+      <p class="bloc-titre">${echapper(t('itineraireCarte'))}</p>
+      <div class="onglets modes" role="group" aria-label="${echapper(t('itineraireCarte'))}">${modes}</div>
       ${total}
-      ${erreurItineraire ? `<p class="plongeon-erreur">${esc(erreurItineraire)}</p>` : ''}
+      ${erreurItineraire ? `<p class="plongeon-erreur">${echapper(erreurItineraire)}</p>` : ''}
       ${bouton}
     </div>`;
 }
@@ -1362,13 +1367,8 @@ function majResume() {
   const it = itineraireActuel;
   $('resume-itineraire').hidden = !it || !!voyageRecu || !$('panneau-favoris').hidden;
   if (!it) return;
-  $('txt-resume-partager').textContent = t('partagerCourt');
-  $('resume-partager').title = t('partagerVoyage');
-  $('resume-details').innerHTML = `${SVG[it.mode]}<b>≈ ${esc(texteDuree(it.duree))}</b><span>· ${esc(texteDistance(it.distance))}</span>`;
-  $('resume-details').title = t('voirItineraire');
+  $('resume-details').innerHTML = `${SVG[it.mode]}<b>≈ ${echapper(texteDuree(it.duree))}</b><span>· ${echapper(texteDistance(it.distance))}</span>`;
   $('resume-details').setAttribute('aria-label', `${t('voirItineraire')} : ${texteDuree(it.duree)}, ${texteDistance(it.distance)}`);
-  $('resume-effacer').title = t('effacerItineraire');
-  $('resume-effacer').setAttribute('aria-label', t('effacerItineraire'));
 }
 
 // ---------------------------------------------------------------- Quand partir ? (saisons.js)
@@ -1384,12 +1384,7 @@ function ouvrirSaisons(ouvrir) {
   $('btn-saisons').setAttribute('aria-expanded', String(ouvrir));
   majPastilleSaison();
   if (!ouvrir) return;
-  ouvrirMenu(false);
-  ouvrirHasard(false);
-  ouvrirLegendes(false);
-  ouvrirFavoris(false);
-  ouvrirVisite(false);
-  ouvrirMusique(false);
+  fermerPanneaux('panneau-saisons');
   moisPanneau = moisSaison || moisPanneau || moisAuJapon();
   remplirSaisons();
 }
@@ -1422,11 +1417,8 @@ function majPastilleSaison() {
   b.hidden = !moisSaison || !$('panneau-saisons').hidden;
   if (!moisSaison) return;
   const nom = nomMois(moisSaison, langue);
-  $('saison-details').innerHTML = `<span aria-hidden="true">${iconeDuMois(moisSaison)}</span><b>${esc(nom.charAt(0).toUpperCase() + nom.slice(1))}</b>`
-    + `<span>· ${esc(t('saisonsPastille', lieuxDuMois(lieux, moisSaison).length))}</span>`;
-  $('saison-details').title = t('saisonsTitre');
-  $('saison-effacer').title = t('saisonsEffacer');
-  $('saison-effacer').setAttribute('aria-label', t('saisonsEffacer'));
+  $('saison-details').innerHTML = `<span aria-hidden="true">${iconeDuMois(moisSaison)}</span><b>${echapper(nom.charAt(0).toUpperCase() + nom.slice(1))}</b>`
+    + `<span>· ${echapper(t('saisonsPastille', lieuxDuMois(lieux, moisSaison).length))}</span>`;
 }
 
 // ---------------------------------------------------------------- Partager son voyage (partage-voyage.js)
@@ -1454,14 +1446,8 @@ async function partagerVoyage() {
 
 /** Le lien …/?voyage=lieu1.lieu2…&mode=bike : lu au démarrage, et effacé de l'adresse. */
 function lireLienVoyage() {
-  const params = new URLSearchParams(location.search);
-  const ids = params.get('voyage');
+  const { voyage: ids, mode } = retirerParametres('voyage', 'mode');
   if (ids === null) return null;
-  const mode = params.get('mode');
-  params.delete('voyage');
-  params.delete('mode');
-  const reste = params.toString();
-  history.replaceState(null, '', location.pathname + (reste ? `?${reste}` : '') + location.hash);
   return { ids: ids.split(/[.,~\s]+/).filter(Boolean), mode: MODES.includes(mode) ? mode : 'car' };
 }
 
@@ -1507,14 +1493,9 @@ function majBandeauVoyage() {
   if (!voyageRecu) return;
   const it = itineraireActuel;
   const liste = voyageRecu.lieux;
-  $('voyage-recu-sur').textContent = t('voyageRecuSur');
   $('voyage-recu-titre').textContent = t('lieux', liste.length)
     + (it && !calculItineraire ? ` · ≈ ${texteDuree(it.duree)} ${t(`total_${it.mode}`)}` : '');
   $('voyage-recu-etapes').textContent = liste.map((l) => enLangue(l.nom)).join(' → ');
-  $('txt-voyage-garder').textContent = t('voyageGarder');
-  $('txt-voyage-visite').textContent = t('voyageVisite');
-  $('voyage-recu-fermer').title = t('fermer');
-  $('voyage-recu-fermer').setAttribute('aria-label', t('fermer'));
 }
 
 // ---------------------------------------------------------------- Visite guidée (visite.js)
@@ -1525,19 +1506,12 @@ const visite = brancherVisite(map, {
   exageration, preparerVol: brancherPrecharge(map, maplibregl, TUILES_RELIEF, tuilesRelief),
   video: (l) => idVideo(l.tiktok),
   debut: (l) => l.debutVideo ?? CONFIG.debutVideo ?? 4,
-  affiche: (l) => (l.photo ? Promise.resolve(photoAllegee(l.photo)) : miniatureTiktok(l.tiktok)),
+  affiche: couverture,
   avant: () => {
     arreterRotation();
     fermerFiche();
-    ouvrirMenu(false);
-    ouvrirHasard(false);
-    ouvrirLegendes(false);
-    ouvrirFavoris(false);
-    ouvrirVisite(false);
-    ouvrirSaisons(false);
-    ouvrirMusique(false);
+    fermerPanneaux();
   },
-  apres: () => {},
   sonVideo: (oui) => musique.retrait('visite', oui),
 });
 
@@ -1549,12 +1523,7 @@ function ouvrirMusique(ouvrir) {
   $('panneau-musique').hidden = !ouvrir;
   $('btn-musique').setAttribute('aria-expanded', String(ouvrir));
   if (!ouvrir) return;
-  ouvrirMenu(false);
-  ouvrirHasard(false);
-  ouvrirLegendes(false);
-  ouvrirFavoris(false);
-  ouvrirVisite(false);
-  ouvrirSaisons(false);
+  fermerPanneaux('panneau-musique');
   musique.remplir();
 }
 
@@ -1562,160 +1531,21 @@ function ouvrirMusique(ouvrir) {
 new MutationObserver(() => musique.retrait('fiche', !!$('fiche-media').querySelector('iframe')))
   .observe($('fiche-media'), { childList: true, subtree: true });
 
-// ---------------------------------------------------------------- Plongeon sur un nouveau lieu (onglets de la visite)
-// Le début des vidéos se filme avant que le lieu soit dans le tableau : on plonge sur une position collée
-// (coordonnées GPS ou lien Google Maps), avec un lieu provisoire (épingle et modèle 3D de son type),
-// retiré quand le plongeon s'arrête. Pendant le plongeon, les autres lieux se cachent.
-// L'onglet « Point à point » est le même volet, avec un départ en plus (lui aussi un lieu provisoire, avec son
-// épingle, son modèle 3D et son nom) : la caméra part de ce lieu, vu de près, et vole jusqu'à l'autre.
-// Les deux onglets règlent la distance de la caméra et l'orbite à l'arrivée.
-const MEMO_PLONGEON = 'plongeon'; // les derniers champs remplis (localStorage), pour refaire une prise plus tard
-const CHAMPS_PLONGEON = [['plongeon-position', 'position'], ['plongeon-nom', 'nom'], ['plongeon-nom-ja', 'nomJa'],
-  ['plongeon-type', 'type'], ['plongeon-depart', 'depart'], ['plongeon-depart-nom', 'departNom'],
-  ['plongeon-depart-nom-ja', 'departNomJa'], ['plongeon-depart-type', 'departType'],
-  ['plongeon-distance', 'distance'], ['plongeon-orbite', 'orbite']];
-let ongletVisite = 'visite'; // 'visite', 'plongeon' ou 'point'
-let champsRemplis = false;
-let minuteriePosition = 0;
-
-function choisirOnglet(nom) {
-  ongletVisite = nom;
-  const vol = nom !== 'visite';
-  for (const [id, n] of [['onglet-visite', 'visite'], ['onglet-plongeon', 'plongeon'], ['onglet-point', 'point']]) {
-    $(id).setAttribute('aria-selected', String(n === nom));
-  }
-  $('volet-visite').hidden = vol;
-  $('volet-plongeon').hidden = !vol;
-  $('volet-plongeon').classList.toggle('point-a-point', nom === 'point');
-  $('volet-plongeon').setAttribute('aria-labelledby', nom === 'point' ? 'onglet-point' : 'onglet-plongeon');
-  majTextesPlongeon();
-  if (!vol) return;
-  let memo = {};
-  try { memo = JSON.parse(localStorage.getItem(MEMO_PLONGEON)) || {}; } catch { /* pas grave */ }
-  // les types (dans la langue de la carte), en gardant celui choisi
-  for (const [id, cle] of [['plongeon-type', 'type'], ['plongeon-depart-type', 'departType']]) {
-    const sel = $(id);
-    const choisi = sel.value || memo[cle];
-    sel.replaceChildren(...toutesCategories.map((c) => new Option(enLangue(c.nom), c.cle)));
-    if (toutesCategories.some((c) => c.cle === choisi)) sel.value = choisi;
-  }
-  // les champs de la dernière prise, une fois (ensuite, ce qu'on a tapé reste)
-  if (!champsRemplis) {
-    champsRemplis = true;
-    for (const [id, cle] of CHAMPS_PLONGEON) {
-      if (memo[cle] == null || memo[cle] === '') continue;
-      if ($(id).tagName === 'SELECT' && ![...$(id).options].some((o) => o.value === memo[cle])) continue;
-      $(id).value = memo[cle];
-    }
-  }
-  $('plongeon-depart-erreur').hidden = true;
-  preparerAfficheBientot();
-  preparerPlongeonBientot(0);
-}
-
-/** Les textes qui changent entre « Plongeon » et « Point à point ». */
-function majTextesPlongeon() {
-  const point = ongletVisite === 'point';
-  $('plongeon-info').textContent = t(point ? 'pointInfo' : 'plongeonInfo');
-  $('txt-plongeon-lancer').textContent = t(point ? 'pointLancer' : 'plongeonLancer');
-}
-
-/**
- * Les réglages du vol : { depart (point à point), zoom (à l'arrivée), orbite (° par seconde) } ;
- * depart vaut { erreur } si la position de départ ne se lit pas.
- */
-function reglagesPlongeon() {
-  const point = ongletVisite === 'point';
-  const depart = point ? lirePosition($('plongeon-depart').value) : null;
-  if (depart?.erreur === 'plongeonErreurVide') depart.erreur = 'pointErreurDepart';
-  return { depart, zoom: Number($('plongeon-distance').value) || 13, orbite: Number($('plongeon-orbite').value) };
-}
-
-/** Le relief du trajet se télécharge dès que les positions sont collées : il sera prêt pour « Plonger ». */
-function preparerPlongeonBientot(delai = 600) {
-  clearTimeout(minuteriePosition);
-  minuteriePosition = setTimeout(() => {
-    const p = lirePosition($('plongeon-position').value);
-    const reglages = reglagesPlongeon();
-    if (p.erreur || reglages.depart?.erreur) return;
-    visite.preparerPlongeon(p, reglages);
-    modeles3d.preparer();
-  }, delai);
-}
-
-/**
- * Une position collée : « 34.1302, 133.5345 » (comme dans le tableau), ou un lien Google Maps
- * (…!3d34.13!4d133.53… : le lieu lui-même ; …/@34.13,133.53,… : le centre de la vue). Les liens courts
- * (maps.app.goo.gl) ne se lisent pas depuis la page : il faut les coordonnées.
- */
-function lirePosition(texte) {
-  const s = String(texte || '').trim();
-  if (!s) return { erreur: 'plongeonErreurVide' };
-  if (/goo\.gl|g\.co\//i.test(s)) return { erreur: 'plongeonErreurLienCourt' };
-  const m = s.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/) || s.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/)
-    || s.match(/[?&](?:q|query|ll|destination|center)=(-?\d+(?:\.\d+)?)(?:,|%2C)\+?(-?\d+(?:\.\d+)?)/i);
-  const p = m ? { lat: Number(m[1]), lng: Number(m[2]) } : /^https?:/i.test(s) ? null : lireGPS(s);
-  if (!p) return { erreur: 'plongeonErreurPosition' };
-  if (p.lng < 122 || p.lng > 154 || p.lat < 20 || p.lat > 46) return { erreur: 'plongeonErreurJapon' };
-  return p;
-}
-
-/** Garde les champs remplis (pour refaire une prise ou une affiche plus tard). */
-function memoriserPlongeon() {
-  try {
-    localStorage.setItem(MEMO_PLONGEON, JSON.stringify(Object.fromEntries(CHAMPS_PLONGEON.map(([id, cle]) => [cle, $(id).value.trim()]))));
-  } catch { /* pas grave */ }
-}
-
-async function lancerPlongeon() {
-  const p = lirePosition($('plongeon-position').value);
-  const reglages = reglagesPlongeon();
-  const erreur = $('plongeon-erreur');
-  const erreurDepart = $('plongeon-depart-erreur');
-  erreur.hidden = !p.erreur;
-  erreurDepart.hidden = !reglages.depart?.erreur;
-  if (p.erreur) erreur.textContent = t(p.erreur);
-  if (reglages.depart?.erreur) erreurDepart.textContent = t(reglages.depart.erreur);
-  if (p.erreur || reglages.depart?.erreur) return;
-  memoriserPlongeon();
-  await preparerPrefectures().catch(() => {}); // pour écrire la préfecture sous le nom
-  const l = lieuProvisoire('plongeon', p, $('plongeon-type').value, $('plongeon-nom').value, $('plongeon-nom-ja').value);
-  // point à point : le départ a lui aussi son épingle, son modèle 3D et son nom
-  const d = reglages.depart && lieuProvisoire('plongeon-depart', reglages.depart, $('plongeon-depart-type').value,
-    $('plongeon-depart-nom').value, $('plongeon-depart-nom-ja').value);
-  const provisoires = [l, d].filter(Boolean);
-  modeles3d.provisoires(provisoires);
-  modeles3d.preparer();
-  visite.plonger(l, {
-    ...reglages,
-    depart: d || null,
-    fin: () => {
-      for (const x of provisoires) reperes.oublier(x.epingle);
-      modeles3d.provisoires([]);
-      modeles3d.filtrer(null);
-      appliquerFiltres();
-    },
+// ---------------------------------------------------------------- Plongeon et affiche (mode développeur)
+// Les onglets « Plongeon » et « Point à point » du panneau de la visite, et l'affiche du nom pour les vidéos :
+// dans onglet-plongeon.js, chargé seulement en mode développeur (les visiteurs ne le téléchargent pas).
+let ongletPlongeon = null; // Promise des onglets branchés
+function chargerOngletPlongeon() {
+  ongletPlongeon ??= import('./onglet-plongeon.js').then(({ brancherOngletPlongeon }) => brancherOngletPlongeon({
+    t, enLangue, reperes, modeles3d, visite, creerEpingle, preparerPrefectures, lireGPS, slug, afficherMessage, appliquerFiltres,
+    lieux: () => lieux, categories: () => categories, toutesCategories: () => toutesCategories,
+    trouverPrefecture: () => trouverPrefecture,
+  }));
+  ongletPlongeon.catch((e) => {
+    console.warn('Plongeon indisponible', e);
+    ongletPlongeon = null;
   });
-  // Seuls ces lieux : les autres épingles et leurs modèles 3D se cachent (les légendes aussi : style.css)
-  for (const x of lieux) reperes.montrer(x.epingle, false);
-  modeles3d.filtrer((x) => provisoires.includes(x));
-}
-
-/** Un lieu qui n'est pas dans le tableau, pour le plongeon : son épingle et son modèle 3D, du type choisi. */
-function lieuProvisoire(id, p, cleType, nom, nomJa) {
-  const type = toutesCategories.find((c) => c.cle === cleType) || categories[0];
-  nom = nom.trim();
-  nomJa = nomJa.trim();
-  const l = {
-    id, lng: p.lng, lat: p.lat, nouveau: false, provisoire: true,
-    cat: { ...type, visible: true }, // une copie : une catégorie vide ou masquée a quand même son modèle
-    nom: { en: nom, fr: nom, ja: nomJa || nom }, description: {},
-  };
-  l.prefecture = trouverPrefecture?.(p.lng, p.lat);
-  creerEpingle(l, lieux.length);
-  l.el.querySelector('.repere-nom').textContent = enLangue(l.nom);
-  reperes.montrer(l.epingle, true);
-  return l;
+  return ongletPlongeon;
 }
 
 // ---------------------------------------------------------------- Mode développeur (pas pour les visiteurs)
@@ -1736,10 +1566,11 @@ function basculerDev(actif) {
   document.body.classList.toggle('mode-dev', actif);
   $('btn-dev').setAttribute('aria-pressed', String(actif));
   majBoutonDev();
-  if (!actif) {
+  if (actif) chargerOngletPlongeon();
+  else {
     // retour à la carte normale : rien des outils ne reste ouvert
     if (jeu?.enCours()) jeu.arreter();
-    choisirOnglet('visite');
+    ongletPlongeon?.then((o) => o.choisirOnglet('visite'));
     ambianceCarte?.reel(); // la date et l'heure choisies dans le réglage reviennent au vrai moment
   }
 }
@@ -1752,12 +1583,8 @@ function majBoutonDev() {
 
 /** Le lien secret : on compare son condensé SHA-256 à celui de config.js, puis on l'efface de l'adresse. */
 async function ouvrirLienDev() {
-  const params = new URLSearchParams(location.search);
-  const code = params.get('dev');
+  const { dev: code } = retirerParametres('dev');
   if (code === null) return;
-  params.delete('dev');
-  const reste = params.toString();
-  history.replaceState(null, '', location.pathname + (reste ? `?${reste}` : '') + location.hash);
   if (!crypto.subtle || !CONFIG.devCondense) return;
   const octets = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(code));
   const condense = [...new Uint8Array(octets)].map((o) => o.toString(16).padStart(2, '0')).join('');
@@ -1774,78 +1601,6 @@ function brancherDev() {
     basculerDev(actif);
     afficherMessage(t(actif ? 'modeDevActif' : 'modeDevNormal'));
   });
-}
-
-// ---------------------------------------------------------------- L'affiche du lieu (onglet Plongeon)
-// Pour le montage des TikToks : le carton du nom (comme à l'arrivée du plongeon), en PNG transparent (affiche.js).
-// Toujours en anglais, la langue des vidéos. Préparée d'avance pendant qu'on remplit les champs : sur téléphone,
-// le partage (« Enregistrer l'image » vers les photos) doit suivre l'appui de près.
-let affichePrete = null; // { cle, fichier }
-let minuterieAffiche = 0;
-
-function texteAffiche() {
-  const nom = $('plongeon-nom').value.trim();
-  if (!nom) return null;
-  const type = toutesCategories.find((c) => c.cle === $('plongeon-type').value) || categories[0];
-  const p = lirePosition($('plongeon-position').value);
-  const pref = p.erreur ? null : trouverPrefecture?.(p.lng, p.lat);
-  const infos = [type && (type.nom.en || enLangue(type.nom)), pref && PREFECTURES[pref]?.en].filter(Boolean).join(' · ');
-  return { nom, nomJa: $('plongeon-nom-ja').value.trim(), infos };
-}
-
-async function fabriquerAffiche() {
-  await preparerPrefectures().catch(() => {}); // pour la préfecture sous le nom
-  const texte = texteAffiche();
-  if (!texte) return null;
-  const cle = JSON.stringify(texte);
-  if (affichePrete?.cle === cle) return affichePrete.fichier;
-  const { imageAffiche } = await import('./affiche.js');
-  const fichier = new File([await imageAffiche(texte)], `${slug(texte.nom) || 'affiche'}.png`, { type: 'image/png' });
-  affichePrete = { cle, fichier };
-  return fichier;
-}
-
-function preparerAfficheBientot() {
-  clearTimeout(minuterieAffiche);
-  minuterieAffiche = setTimeout(() => fabriquerAffiche().catch(() => {}), 500);
-}
-
-async function partagerAffiche() {
-  const erreur = $('plongeon-erreur');
-  if (!$('plongeon-nom').value.trim()) {
-    erreur.textContent = t('plongeonErreurNom');
-    erreur.hidden = false;
-    $('plongeon-nom').focus();
-    return;
-  }
-  erreur.hidden = true;
-  memoriserPlongeon();
-  const bouton = $('btn-affiche');
-  bouton.disabled = true;
-  try {
-    const fichier = await fabriquerAffiche();
-    // Sur téléphone : le menu de partage (« Enregistrer l'image » la range avec les photos, pour CapCut…)
-    if (matchMedia('(pointer: coarse)').matches && navigator.canShare?.({ files: [fichier] })) {
-      try {
-        await navigator.share({ files: [fichier] });
-        return;
-      } catch (e) {
-        if (e.name === 'AbortError') return; // menu fermé sans choisir
-        // sinon (partage refusé) : on la télécharge
-      }
-    }
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(fichier);
-    a.download = fichier.name;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
-    afficherMessage(t('plongeonAfficheEnregistree'));
-  } catch (e) {
-    console.warn('Affiche', e);
-    afficherMessage(t('bravoImageErreur'));
-  } finally {
-    bouton.disabled = false;
-  }
 }
 
 // ---------------------------------------------------------------- Jeu « Devine le lieu » (pas encore public)
@@ -1871,14 +1626,8 @@ async function lancerJeu(quoi = {}) {
         effacerItineraire();
         arreterRotation();
         fermerFiche();
-        ouvrirMenu(false);
-        ouvrirHasard(false);
-        ouvrirLegendes(false);
-        ouvrirFavoris(false);
-        ouvrirVisite(false);
-        ouvrirSaisons(false);
+        fermerPanneaux();
       },
-      apres: () => {},
     });
   }
   if (quoi.partie) jeu.ouvrirPartie(quoi.partie);
@@ -1911,26 +1660,12 @@ function aDejaJoueAPlusieurs() {
 
 /** Les liens …/?partie=CODE et …/?ami=CODE : lus au démarrage, et effacés de l'adresse. */
 function lireLiensJeu() {
-  const params = new URLSearchParams(location.search);
-  const quoi = { partie: params.get('partie'), ami: params.get('ami') };
-  if (!quoi.partie && !quoi.ami) return null;
-  params.delete('partie');
-  params.delete('ami');
-  const reste = params.toString();
-  history.replaceState(null, '', location.pathname + (reste ? `?${reste}` : '') + location.hash);
-  return quoi;
+  const quoi = retirerParametres('partie', 'ami');
+  return quoi.partie || quoi.ami ? quoi : null;
 }
 
-/** Un texte à envoyer : la feuille de partage du téléphone, sinon copié (avec le message copie). */
-async function partagerTexte(texte, copie = t('lienCopie')) {
-  if (matchMedia('(pointer: coarse)').matches && navigator.share) {
-    try { await navigator.share({ text: texte }); return; } catch (e) { if (e?.name === 'AbortError') return; }
-  }
-  try {
-    await navigator.clipboard.writeText(texte);
-    afficherMessage(copie);
-  } catch { afficherMessage(texte); }
-}
+/** Un texte à envoyer (jeu, amis) : la feuille de partage du téléphone, sinon copié (avec le message copie). */
+const partagerTexte = (texte, copie = t('lienCopie')) => envoyer({ texte }, { message: afficherMessage, copie });
 
 /** Lieux proposés à la visite : tous, ou seulement les favoris si la case est cochée. */
 const baseVisite = () => (!$('ligne-visite-favoris').hidden && $('visite-favoris').checked ? lieux.filter(estFavori) : lieux);
@@ -1946,12 +1681,7 @@ async function ouvrirVisite(ouvrir) {
   $('panneau-visite').hidden = !ouvrir;
   $('btn-visite').setAttribute('aria-expanded', String(ouvrir));
   if (!ouvrir) return;
-  ouvrirMenu(false);
-  ouvrirHasard(false);
-  ouvrirLegendes(false);
-  ouvrirFavoris(false);
-  ouvrirMusique(false);
-  ouvrirSaisons(false);
+  fermerPanneaux('panneau-visite');
   if (!$('visite-region').options.length) {
     $('txt-visite-lancer').textContent = '…';
     $('btn-visite-lancer').disabled = true;
@@ -1992,13 +1722,13 @@ function rechercher() {
   const trouves = lieux.filter((l) =>
     [l.nom.en, l.nom.fr, l.nom.ja, l.cat.nom.en, l.cat.nom.fr, l.cat.nom.ja].some((n) => n && normaliser(n).includes(q)),
   ).slice(0, 40);
-  res.innerHTML = trouves.length ? '' : `<li class="vide">${esc(t('aucunResultat'))}</li>`;
+  res.innerHTML = trouves.length ? '' : `<li class="vide">${echapper(t('aucunResultat'))}</li>`;
   for (const l of trouves) {
     const li = document.createElement('li');
     li.innerHTML = `<button type="button">
         <span class="pastille" style="--c:${l.cat.couleur}">${iconeHTML(l.cat.icone)}</span>
-        <span class="nom-res">${esc(enLangue(l.nom))}</span>
-        <span class="cat-res">${esc(enLangue(l.cat.nom))}</span>
+        <span class="nom-res">${echapper(enLangue(l.nom))}</span>
+        <span class="cat-res">${echapper(enLangue(l.cat.nom))}</span>
       </button>`;
     li.querySelector('button').addEventListener('click', () => allerAuLieu(l));
     res.append(li);
@@ -2022,6 +1752,28 @@ async function miniatureTiktok(url) {
 const photoAllegee = (url) => url.replace(/([?&]fife=)s\d+[^&]*/, '$1s800-rj');
 
 const idVideo = (url) => (String(url).match(/video\/(\d+)/) || [])[1] || '';
+
+/**
+ * L'image d'un lieu (fiche, visite) : la photo du tableau, sinon la couverture de sa vidéo copiée dans le site
+ * chaque nuit (outils/telecharger_couvertures.py : rien à demander à TikTok), sinon celle que donne TikTok
+ * (un lieu ajouté depuis la dernière nuit).
+ */
+const couvertures = new Map();
+function couverture(l) {
+  if (l.photo) return Promise.resolve(photoAllegee(l.photo));
+  const id = idVideo(l.tiktok);
+  if (!id) return Promise.resolve('');
+  if (!couvertures.has(id)) {
+    const locale = `photos/tiktok/${id}.jpg`;
+    couvertures.set(id, new Promise((ok) => {
+      const im = new Image();
+      im.onload = () => ok(locale);
+      im.onerror = () => ok(miniatureTiktok(l.tiktok));
+      im.src = locale;
+    }));
+  }
+  return couvertures.get(id);
+}
 
 function paddingFiche() {
   if (estTelephone()) return { top: 90, bottom: Math.round(innerHeight * 0.62), left: 0, right: 0 };
@@ -2073,8 +1825,8 @@ function fermerFiche() {
 /** Catégorie et préfecture sous le nom : « Châteaux · Hyōgo ». La préfecture arrive dès que les contours sont chargés. */
 function remplirInfos(l) {
   const c = l.cat;
-  const pref = l.prefecture ? ` · ${esc(enLangue(PREFECTURES[l.prefecture]))}` : '';
-  $('fiche-categorie').innerHTML = `<span class="pastille" style="--c:${c.couleur}">${iconeHTML(c.icone)}</span><span>${esc(enLangue(c.nom))}${pref}</span>`;
+  const pref = l.prefecture ? ` · ${echapper(enLangue(PREFECTURES[l.prefecture]))}` : '';
+  $('fiche-categorie').innerHTML = `<span class="pastille" style="--c:${c.couleur}">${iconeHTML(c.icone)}</span><span>${echapper(enLangue(c.nom))}${pref}</span>`;
   if (!l.prefecture) {
     preparerPrefectures().then(() => { if (lieuActif === l && l.prefecture) remplirInfos(l); }).catch(() => {});
   }
@@ -2089,7 +1841,7 @@ async function remplirFiche(l) {
   majCoeur(l);
   const date = l.date ? new Intl.DateTimeFormat(langue, { day: 'numeric', month: 'long', year: 'numeric' }).format(l.date) : '';
   $('fiche-date').innerHTML = date
-    ? `${l.nouveau ? `<span class="etiquette-nouveau">${esc(t('nouveau'))}</span>` : ''}${esc(t('videoDu', date))}` : '';
+    ? `${l.nouveau ? `<span class="etiquette-nouveau">${echapper(t('nouveau'))}</span>` : ''}${echapper(t('videoDu', date))}` : '';
   $('fiche-description').textContent = enLangue(l.description);
   $('fiche-saisons').innerHTML = blocFiche(l, { t, langue });
 
@@ -2101,7 +1853,7 @@ async function remplirFiche(l) {
   vignette.type = 'button';
   vignette.className = 'vignette';
   vignette.setAttribute('aria-label', t('lireVideo'));
-  if (video) vignette.innerHTML = `<span class="lecture">${SVG.lecture}${esc(t('lireVideo'))}</span>`;
+  if (video) vignette.innerHTML = `<span class="lecture">${SVG.lecture}${echapper(t('lireVideo'))}</span>`;
   else vignette.disabled = true;
   vignette.addEventListener('click', () => lancerVideo(video));
   media.append(vignette);
@@ -2121,24 +1873,25 @@ async function remplirFiche(l) {
   // Boutons (avant d'attendre la photo : sinon un lieu ouvert juste avant pourrait écrire ses boutons après).
   // Deux boutons seulement, pour tenir sur une ligne ; partager est une icône sur la photo, « Plus d'infos » un lien après le texte.
   const boutons = [];
-  if (l.tiktok) boutons.push(`<a class="principal" href="${esc(l.tiktok)}" target="_blank" rel="noopener">${SVG.tiktok}${esc(t('voirTiktok'))}</a>`);
-  boutons.push(`<a href="https://www.google.com/maps/dir/?api=1&destination=${l.lat},${l.lng}" target="_blank" rel="noopener">${SVG.route}${esc(t('itineraire'))}</a>`);
+  if (l.tiktok) boutons.push(`<a class="principal" href="${echapper(l.tiktok)}" target="_blank" rel="noopener">${SVG.tiktok}${echapper(t('voirTiktok'))}</a>`);
+  boutons.push(`<a href="https://www.google.com/maps/dir/?api=1&destination=${l.lat},${l.lng}" target="_blank" rel="noopener">${SVG.route}${echapper(t('itineraire'))}</a>`);
   $('fiche-boutons').innerHTML = boutons.join('');
   // « Plus d'infos » (le lien du tableau) et la page du lieu (outils/fabriquer_pages.py)
   $('fiche-plus').innerHTML = (/^https?:\/\//.test(l.autreLien)
-    ? `<a href="${esc(l.autreLien)}" target="_blank" rel="noopener">${esc(t('autreLien'))} ${SVG.sortie}</a>` : '')
-    + `<a href="${langue}/${esc(l.id)}/">${esc(t('pageLieu'))}</a>`;
-  const partage = navigator.share && estTelephone();
+    ? `<a href="${echapper(l.autreLien)}" target="_blank" rel="noopener">${echapper(t('autreLien'))} ${SVG.sortie}</a>` : '')
+    + `<a href="${langue}/${echapper(l.id)}/">${echapper(t('pageLieu'))}</a>`;
+  // partager le lien du lieu : le menu de partage du téléphone, sinon le lien est copié
+  const partage = tactile() && !!navigator.share;
   const btnPartager = $('fiche-partager');
   btnPartager.innerHTML = partage ? SVG.partager : SVG.lien;
   btnPartager.title = t(partage ? 'partager' : 'copierLien');
   btnPartager.setAttribute('aria-label', btnPartager.title);
-  btnPartager.onclick = () => partager(l, partage);
+  btnPartager.onclick = () => envoyer({ titre: enLangue(l.nom), url: `${location.origin}${location.pathname}#${l.id}` },
+    { message: afficherMessage, copie: t('lienCopie') });
   // Fiche ouverte par le dé : bouton « Un autre » en haut de la photo, pour relancer d'un doigt
   $('fiche-autre').hidden = !tirageActif;
-  $('txt-autre').textContent = t('unAutre');
 
-  const photo = l.photo ? photoAllegee(l.photo) : await miniatureTiktok(l.tiktok);
+  const photo = await couverture(l);
   if (lieuActif === l && photo) vignette.style.backgroundImage = `url("${photo.replace(/"/g, '%22')}")`;
 }
 
@@ -2146,19 +1899,6 @@ function lancerVideo(id) {
   if (!id) return;
   const src = `https://www.tiktok.com/player/v1/${id}?autoplay=1&music_info=1&description=0&rel=0`;
   $('fiche-media').innerHTML = `<div class="video-cadre"><iframe class="video" src="${src}" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen title="TikTok"></iframe></div>`;
-}
-
-async function partager(l, viaTelephone) {
-  const url = `${location.origin}${location.pathname}#${l.id}`;
-  if (viaTelephone) {
-    try { await navigator.share({ title: enLangue(l.nom), url }); return; } catch { /* annulé */ }
-  }
-  try {
-    await navigator.clipboard.writeText(url);
-    afficherMessage(t('lienCopie'));
-  } catch {
-    prompt('', url);
-  }
 }
 
 let minuterieMessage;
@@ -2236,30 +1976,18 @@ function ouvrirDepuisAdresse() {
 // ---------------------------------------------------------------- Textes & langue
 function appliquerLangue() {
   document.documentElement.lang = langue;
-  $('sous-titre').textContent = t('sousTitre');
-  $('txt-categories').textContent = t('categories');
+  // Les textes fixes de la page (index.html) : data-t = le texte, data-t-titre = l'infobulle, data-t-aria = le nom
+  // lu par les lecteurs d'écran.
+  for (const el of document.querySelectorAll('[data-t]')) el.textContent = t(el.dataset.t);
+  for (const el of document.querySelectorAll('[data-t-titre]')) el.title = t(el.dataset.tTitre);
+  for (const el of document.querySelectorAll('[data-t-aria]')) el.setAttribute('aria-label', t(el.dataset.tAria));
   $('recherche').placeholder = t('chercher');
-  $('btn-tout').textContent = t('tout');
-  $('lien-liste').textContent = t('listeLieux');
   $('lien-liste').href = `${langue}/`;
-  $('btn-rien').textContent = t('rien');
-  $('btn-rose').title = t('nord');
-  $('btn-rose').setAttribute('aria-label', t('nord'));
   for (const m of MERS) {
     m.el.lang = langue;
     m.el.textContent = enLangue(m.nom);
   }
-  $('btn-recentrer').title = t('recentrer');
-  $('btn-recentrer').setAttribute('aria-label', t('recentrer'));
-  $('fiche-fermer').setAttribute('aria-label', t('fermer'));
-  $('txt-chargement').textContent = t('chargement');
   $('aide').textContent = t(estTelephone() ? 'aideTel' : 'aide');
-  $('lien-profil').title = t('suivre');
-  $('txt-hasard').textContent = t('hasard');
-  $('hasard-titre').textContent = t('hasardTitre');
-  $('txt-region').textContent = t('region');
-  $('txt-type').textContent = t('type');
-  $('txt-lancer').textContent = t('lancer');
   if ($('choix-region').options.length) construireHasard();
   for (const b of document.querySelectorAll('[data-langue]')) {
     b.setAttribute('aria-pressed', String(b.dataset.langue === langue));
@@ -2268,63 +1996,16 @@ function appliquerLangue() {
     l.el.querySelector('.repere-nom').textContent = enLangue(l.nom);
     if (l.nouveau) l.el.querySelector('.repere-nouveau').textContent = t('nouveau');
   }
-  $('txt-favoris').textContent = t('favoris');
-  $('txt-saisons').textContent = t('saisonsBouton');
-  $('btn-saisons').title = t('saisonsTitre');
   if (!$('panneau-saisons').hidden) remplirSaisons();
   majPastilleSaison();
-  $('btn-favoris').title = t('favorisTitre');
-  $('txt-visite').textContent = t('visite');
-  $('btn-visite').title = t('visiteTitre');
-  $('visite-titre-panneau').textContent = t('visiteTitre');
-  $('visite-info').textContent = t('visiteInfo');
-  $('txt-visite-region').textContent = t('region');
-  $('txt-visite-type').textContent = t('type');
-  $('txt-visite-favoris').textContent = t('visiteSeulementFavoris');
-  $('txt-visite-duree').textContent = t('visiteDuree');
-  $('duree-courte').textContent = t('dureeCourte');
-  $('duree-normale').textContent = t('dureeNormale');
-  $('duree-longue').textContent = t('dureeLongue');
-  $('txt-visite-film').textContent = t('visiteFilm');
-  $('txt-visite-video').textContent = t('visiteVideo');
-  $('txt-visite-son').textContent = t('visiteSon');
-  $('onglet-visite').textContent = t('visiteOnglet');
-  $('onglet-plongeon').textContent = t('plongeonOnglet');
-  $('onglet-point').textContent = t('pointOnglet');
-  $('txt-point-depart').textContent = t('pointDepart');
-  $('txt-point-arrivee').textContent = t('pointArrivee');
-  $('txt-plongeon-depart').textContent = t('plongeonPosition');
-  $('txt-plongeon-position').textContent = t('plongeonPosition');
-  $('txt-plongeon-depart-nom').textContent = t('pointNomDepart');
-  $('txt-plongeon-depart-nom-ja').textContent = t('plongeonNomJa');
-  $('txt-plongeon-depart-type').textContent = t('plongeonType');
-  $('plongeon-aide').textContent = t('plongeonAideGps');
-  $('txt-plongeon-nom').textContent = t('plongeonNom');
-  $('txt-plongeon-nom-ja').textContent = t('plongeonNomJa');
-  $('txt-plongeon-type').textContent = t('plongeonType');
-  $('txt-plongeon-distance').textContent = t('plongeonDistance');
-  $('distance-tres-pres').textContent = t('distanceTresPres');
-  $('distance-pres').textContent = t('distancePres');
-  $('distance-large').textContent = t('distanceLarge');
-  $('txt-plongeon-orbite').textContent = t('plongeonOrbite');
-  $('orbite-sans').textContent = t('orbiteSans');
-  $('orbite-lente').textContent = t('orbiteLente');
-  $('orbite-normale').textContent = t('orbiteNormale');
-  $('orbite-rapide').textContent = t('orbiteRapide');
-  $('txt-plongeon-affiche').textContent = t('plongeonAffiche');
   majBoutonDev();
-  $('plongeon-affiche-aide').textContent = t('plongeonAfficheAide');
-  majTextesPlongeon();
-  if (!$('volet-plongeon').hidden) choisirOnglet(ongletVisite); // les types dans la nouvelle langue
+  ongletPlongeon?.then((o) => o.majLangue());
   majFavoris();
   if (itineraireActuel) itineraire.retraduire(itineraireActuel.mode);
   majResume();
   majBandeauVoyage();
   visite.majLangue();
-  $('txt-jeu').textContent = t('jeu');
   jeu?.majLangue();
-  $('btn-musique').title = t('musique');
-  $('btn-musique').setAttribute('aria-label', t('musique'));
   musique.majLangue();
   construireMenu();
   if (!$('resultats').hidden) rechercher();
@@ -2350,27 +2031,16 @@ function brancherBoutons() {
       appliquerLangue();
     });
   }
-  $('btn-categories').addEventListener('click', (e) => {
-    e.stopPropagation();
-    ouvrirMenu($('menu-categories').hidden);
-  });
-  $('menu-categories').addEventListener('click', (e) => e.stopPropagation());
-  $('btn-hasard').addEventListener('click', (e) => {
-    e.stopPropagation();
-    ouvrirHasard($('panneau-hasard').hidden);
-  });
-  $('panneau-hasard').addEventListener('click', (e) => e.stopPropagation());
-  $('btn-legendes').addEventListener('click', (e) => {
-    e.stopPropagation();
-    ouvrirLegendes($('panneau-legendes').hidden);
-  });
-  $('panneau-legendes').addEventListener('click', (e) => e.stopPropagation());
-  $('btn-favoris').addEventListener('click', (e) => {
-    e.stopPropagation();
-    ouvrirFavoris($('panneau-favoris').hidden);
-  });
+  // chaque bouton ouvre ou ferme son panneau ; un appui dans un panneau ne le ferme pas
+  for (const [panneau, [bouton, ouvrir]] of Object.entries(PANNEAUX)) {
+    $(bouton).addEventListener('click', (e) => {
+      e.stopPropagation();
+      ouvrir($(panneau).hidden);
+    });
+    $(panneau).addEventListener('click', (e) => e.stopPropagation());
+  }
+  document.addEventListener('click', () => fermerPanneaux());
   $('panneau-favoris').addEventListener('click', (e) => {
-    e.stopPropagation();
     const retirer = e.target.closest('[data-retirer]');
     const ligne = e.target.closest('[data-lieu]');
     const trouver = (id) => lieux.find((l) => l.id === id);
@@ -2405,12 +2075,7 @@ function brancherBoutons() {
     partagerVoyage();
   });
   $('voyage-garder').addEventListener('click', garderVoyage);
-  $('btn-saisons').addEventListener('click', (e) => {
-    e.stopPropagation();
-    ouvrirSaisons($('panneau-saisons').hidden);
-  });
   $('panneau-saisons').addEventListener('click', (e) => {
-    e.stopPropagation();
     const mois = e.target.closest('[data-mois]')?.dataset.mois;
     const lieu = e.target.closest('[data-lieu]')?.dataset.lieu;
     if (mois) {
@@ -2433,23 +2098,6 @@ function brancherBoutons() {
   });
   $('voyage-visite').addEventListener('click', () => { if (voyageRecu) lancerVisite(voyageRecu.lieux); });
   $('voyage-recu-fermer').addEventListener('click', effacerItineraire);
-  $('onglet-visite').addEventListener('click', () => choisirOnglet('visite'));
-  $('onglet-plongeon').addEventListener('click', () => choisirOnglet('plongeon'));
-  $('onglet-point').addEventListener('click', () => choisirOnglet('point'));
-  $('btn-plongeon').addEventListener('click', lancerPlongeon);
-  $('btn-affiche').addEventListener('click', partagerAffiche);
-  for (const id of ['plongeon-position', 'plongeon-nom', 'plongeon-nom-ja', 'plongeon-type']) {
-    $(id).addEventListener(id === 'plongeon-type' ? 'change' : 'input', preparerAfficheBientot);
-  }
-  $('plongeon-position').addEventListener('input', () => {
-    $('plongeon-erreur').hidden = true;
-    preparerPlongeonBientot();
-  });
-  $('plongeon-depart').addEventListener('input', () => {
-    $('plongeon-depart-erreur').hidden = true;
-    preparerPlongeonBientot();
-  });
-  $('plongeon-distance').addEventListener('change', () => preparerPlongeonBientot(0));
   $('btn-jeu').addEventListener('click', () => lancerJeu().catch((e) => console.warn('Jeu indisponible', e)));
   $('fiche-favori').addEventListener('click', () => {
     if (!lieuActif) return;
@@ -2463,16 +2111,6 @@ function brancherBoutons() {
       bouton.classList.add('nouvelle');
     }
   });
-  $('btn-musique').addEventListener('click', (e) => {
-    e.stopPropagation();
-    ouvrirMusique($('panneau-musique').hidden);
-  });
-  $('panneau-musique').addEventListener('click', (e) => e.stopPropagation());
-  $('btn-visite').addEventListener('click', (e) => {
-    e.stopPropagation();
-    ouvrirVisite($('panneau-visite').hidden);
-  });
-  $('panneau-visite').addEventListener('click', (e) => e.stopPropagation());
   $('visite-region').addEventListener('change', construireVisite);
   $('visite-type').addEventListener('change', construireVisite);
   $('visite-favoris').addEventListener('change', construireVisite);
@@ -2484,15 +2122,6 @@ function brancherBoutons() {
   $('choix-type').addEventListener('change', construireHasard);
   $('btn-lancer').addEventListener('click', lancerDe);
   $('fiche-autre').addEventListener('click', lancerDe);
-  document.addEventListener('click', () => {
-    ouvrirMenu(false);
-    ouvrirHasard(false);
-    ouvrirLegendes(false);
-    ouvrirFavoris(false);
-    ouvrirVisite(false);
-    ouvrirSaisons(false);
-    ouvrirMusique(false);
-  });
   $('recherche').addEventListener('input', rechercher);
   $('btn-tout').addEventListener('click', () => toutCocher(true));
   $('btn-rien').addEventListener('click', () => toutCocher(false));
@@ -2514,13 +2143,7 @@ function brancherBoutons() {
   $('btn-moins').addEventListener('click', () => map.zoomOut());
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
-    if (!$('menu-categories').hidden) ouvrirMenu(false);
-    else if (!$('panneau-hasard').hidden) ouvrirHasard(false);
-    else if (!$('panneau-legendes').hidden) ouvrirLegendes(false);
-    else if (!$('panneau-favoris').hidden) ouvrirFavoris(false);
-    else if (!$('panneau-visite').hidden) ouvrirVisite(false);
-    else if (!$('panneau-musique').hidden) ouvrirMusique(false);
-    else if (!$('panneau-saisons').hidden) ouvrirSaisons(false);
+    if (Object.keys(PANNEAUX).some((id) => !$(id).hidden)) fermerPanneaux();
     else fermerFiche();
   });
   window.addEventListener('hashchange', ouvrirDepuisAdresse);

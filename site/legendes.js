@@ -8,6 +8,7 @@
 // ================================================================
 import { DESSINS } from './legendes-dessins.js';
 import { REGIONS } from './regions.js';
+import { echapper, partagerFichier, tactile, telecharger } from './commun.js';
 
 const ZOOM_LEGENDES = 6.5; // en dessous (tout le Japon à l'écran), les légendes restent cachées
 const MEMOIRE = 'legendesTrouvees'; // localStorage : la liste des légendes déjà trouvées
@@ -463,21 +464,20 @@ export function brancherLegendes(map, maplibregl, outils) {
   function partagerSur(reseau, bouton) {
     if (reseau.lien) {
       open(reseau.lien(t('bravoPartageTexte', total), `https://${adresse}/legendes/${langue()}.html`), '_blank', 'noopener');
-    } else if (matchMedia('(pointer: coarse)').matches && navigator.canShare) {
-      partagerFichier(bouton);
+    } else if (tactile() && navigator.canShare) {
+      envoyerImage(bouton);
     } else {
       open(reseau.site, '_blank', 'noopener'); // tout de suite, sinon le navigateur bloque la fenêtre
       enregistrer(bouton, t('bravoImagePourReseau', reseau.nom));
     }
   }
 
-  async function partagerFichier(bouton) {
+  /** Sur téléphone : le menu de partage avec l'image (on y choisit l'appli) ; sinon, elle est enregistrée. */
+  async function envoyerImage(bouton) {
     bouton.disabled = true;
     try {
       const fichier = fichierPret || await preparerImage();
-      if (navigator.canShare({ files: [fichier] })) {
-        await navigator.share({ files: [fichier], text: t('bravoPartageMessage', total, adresse) }).catch(() => {});
-      } else await enregistrer(null, t('bravoImageEnregistree'));
+      if (!await partagerFichier(fichier, t('bravoPartageMessage', total, adresse))) await enregistrer(null, t('bravoImageEnregistree'));
     } catch (e) {
       console.warn('Image du bravo', e);
       afficherMessage(t('bravoImageErreur'));
@@ -489,12 +489,7 @@ export function brancherLegendes(map, maplibregl, outils) {
   async function enregistrer(bouton, message) {
     if (bouton) bouton.disabled = true;
     try {
-      const fichier = fichierPret || await preparerImage();
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(fichier);
-      a.download = fichier.name;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+      telecharger(fichierPret || await preparerImage());
       afficherMessage(message);
     } catch (e) {
       console.warn('Image du bravo', e);
@@ -592,7 +587,6 @@ const ICONES = {
   x: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.7 3h3.1l-6.8 7.8L22 21h-6.3l-4.9-6.4L5.2 21H2.1l7.3-8.3L1.8 3h6.4l4.4 5.9L17.7 3Zm-1.1 16.2h1.7L7.5 4.7H5.7l10.9 14.5Z"/></svg>',
   facebook: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M13.6 21v-7.7h2.6l.4-3h-3V8.4c0-.9.3-1.5 1.5-1.5h1.6V4.2c-.3 0-1.2-.1-2.3-.1-2.3 0-3.9 1.4-3.9 4v2.2H7.9v3h2.6V21h3.1Z"/></svg>',
 };
-const echapper = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 /** Pour les essais : ouvre tout de suite la bulle d'une légende (ex. « kitsune »), comme un appui. */
 export function ouvrirLegende(id) {
