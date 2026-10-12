@@ -10,7 +10,6 @@ for (const bouton of document.querySelectorAll('[data-video]')) {
     lecteur.className = 'lecteur';
     lecteur.src = `https://www.tiktok.com/player/v1/${bouton.dataset.video}?autoplay=1&music_info=1&description=0&rel=0`;
     lecteur.allow = 'autoplay; fullscreen; encrypted-media; picture-in-picture';
-    lecteur.allowFullscreen = true;
     lecteur.title = 'TikTok';
     bouton.replaceWith(lecteur);
   }, { once: true });

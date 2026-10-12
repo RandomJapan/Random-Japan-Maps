@@ -1898,7 +1898,7 @@ async function remplirFiche(l) {
 function lancerVideo(id) {
   if (!id) return;
   const src = `https://www.tiktok.com/player/v1/${id}?autoplay=1&music_info=1&description=0&rel=0`;
-  $('fiche-media').innerHTML = `<div class="video-cadre"><iframe class="video" src="${src}" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen title="TikTok"></iframe></div>`;
+  $('fiche-media').innerHTML = `<div class="video-cadre"><iframe class="video" src="${src}" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" title="TikTok"></iframe></div>`;
 }
 
 let minuterieMessage;
