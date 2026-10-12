@@ -28,7 +28,7 @@ export function lienVoyage(liste, mode) {
 
 /**
  * @param deps - { t, langue(), enLangue, adresse, infos(l), photo(l), texteDuree, texteDistance, icones (SVG du site),
- *   afficherMessage, arreterRotation }
+ *   afficherMessage, arreterRotation, jour() (passe la carte au jour et renvoie de quoi revenir au moment présent) }
  */
 export function brancherPartageVoyage(map, deps) {
   const { t, enLangue } = deps;
@@ -83,6 +83,7 @@ export function brancherPartageVoyage(map, deps) {
     const finesseAvant = map.getPixelRatio();
     const finesse = Math.min(2.5, Math.max(finesseAvant, cadre.h / ch));
     deps.arreterRotation();
+    const revenir = deps.jour?.(); // l'image est toujours prise de jour (avec la saison), même la nuit au Japon
     try {
       if (finesse !== finesseAvant) map.setPixelRatio(finesse);
       const { bearing, pitch } = orientation(liste, it, rapport);
@@ -117,6 +118,7 @@ export function brancherPartageVoyage(map, deps) {
     } finally {
       if (finesse !== finesseAvant) map.setPixelRatio(finesseAvant);
       map.jumpTo(avant);
+      revenir?.();
     }
   }
 

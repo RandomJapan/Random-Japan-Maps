@@ -5,6 +5,8 @@
 //  three.js (le moteur 3D) n'est chargé qu'après le démarrage (pour les
 //  bateaux de mer.js) ou au premier zoom rapproché : la carte démarre aussi vite.
 // ================================================================
+import { TEINTES } from './teintes.js';
+
 export const URL_THREE = 'https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.min.js';
 
 const ZOOM_CHARGEMENT = 7; // on charge three.js un peu avant d'en avoir besoin
@@ -45,7 +47,7 @@ function sansFiger(fabrique) {
  */
 export function brancherModeles(map, maplibregl, obtenirLieux) {
   let etat = 'attente'; // puis 'chargement', 'pret' ou 'echec'
-  let THREE, renderer, scene, camera, soleil, contour, types = null;
+  let THREE, renderer, scene, camera, ciel, soleil, contour, types = null;
   let versionRelief = 0; // change à chaque tuile de relief reçue : les altitudes se précisent
   let dessines = []; // lieux dessinés à la dernière image (pour les clics)
   let echelleDessin = 0;
@@ -112,7 +114,7 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
       camera = new THREE.Camera();
       // Repère de la carte : x = est, y = sud, z = haut. Le « soleil » des modèles suit la caméra
       // (il vient d'en haut à gauche de celui qui regarde) : sinon, vus du sud, ils seraient à contre-jour.
-      const ciel = new THREE.HemisphereLight(0xfff3dc, 0x6b5a44, 2.5);
+      ciel = new THREE.HemisphereLight(0xfff3dc, 0x6b5a44, 2.5);
       ciel.position.set(0, 0, 1);
       soleil = new THREE.DirectionalLight(0xfff0d8, 2.2);
       scene.add(ciel, soleil);
@@ -144,6 +146,8 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
       const marge = 0.05 * (bornes.getEast() - bornes.getWest());
       const b = (map.getBearing() * Math.PI) / 180;
       soleil.position.set(-Math.sin(b) - 0.5 * Math.cos(b), Math.cos(b) - 0.5 * Math.sin(b), 1.2);
+      ciel.intensity = 2.5 * TEINTES.lumiere; // moins de lumière la nuit (ambiance.js)
+      soleil.intensity = 2.2 * TEINTES.lumiere;
       let nb = 0;
       for (const t of types) {
         let n = 0;

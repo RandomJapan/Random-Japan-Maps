@@ -6,6 +6,8 @@
 //  d'eau qui avancent vers la côte, blanchissent en déferlant et laissent une écume qui se retire.
 //  Une couche à part (« custom layer ») : changer la peinture de la carte à chaque image la referait toute.
 // ================================================================
+import { TEINTES } from './teintes.js';
+
 const PORTEE = 64; // pixels de tuile : la distance la plus grande que connaît le calcul (ressac-calcul.js)
 const ZOOM_DEBUT = [7.6, 8.6]; // il apparaît pendant que la houle du large s'efface (mer.js)
 const ZOOM_TUILES = [7, 12]; // tuiles de relief lues : comme la carte (au-delà de 12, elle agrandit celles du 12)
@@ -349,8 +351,8 @@ export function coucheRessac(map, maplibregl, { image, bornes, distance, tuiles,
       gl.uniform1f(u.u_unite, 512 * 2 ** (z - 13));
       gl.uniform1f(u.u_bord, r.bord);
       gl.uniform1f(u.u_force, r.force);
-      gl.uniform3f(u.u_encre, 61 / 255, 107 / 255, 100 / 255); // #3d6b64, l'encre des lignes d'eau
-      gl.uniform3f(u.u_ecume, 246 / 255, 238 / 255, 219 / 255); // #f6eedb, le papier neuf
+      gl.uniform3f(u.u_encre, ...TEINTES.eau.map((v) => v / 255)); // l'encre des lignes d'eau (#3d6b64 le jour, ambiance.js)
+      gl.uniform3f(u.u_ecume, ...TEINTES.ecume.map((v) => v / 255)); // le papier neuf (#f6eedb), bleuté la nuit
       gl.depthMask(false);
       gl.enable(gl.POLYGON_OFFSET_FILL);
       gl.polygonOffset(-1, -4);

@@ -18,6 +18,7 @@ import { brancherVisite } from './visite.js';
 import { brancherPrecharge } from './precharge.js';
 import { brancherTuilesRelief } from './tuiles-relief.js';
 import { gererReperes } from './reperes.js';
+import { preparerAmbiance } from './ambiance.js';
 
 const $ = (id) => document.getElementById(id);
 const estTelephone = () => matchMedia('(max-width: 720px)').matches;
@@ -282,15 +283,17 @@ const TUILES_RELIEF = {
   maxzoom: 12,
   encoding: 'terrarium',
 };
-const MER = CONFIG.couleurs.mer;
+// Les couleurs du moment au Japon (ambiance.js) : jour, coucher du soleil, nuit, et la saison. La carte part avec elles ;
+// ambiance.js les change ensuite par paliers.
+const ambiance = preparerAmbiance();
+const P = ambiance.palette;
+const MER = P.mer;
 const OSM = '<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a>';
 // Liseré d'aquarelle de chaque grande région, le long de ses frontières (comme sur les cartes coloriées à la main)
 const LAVIS_REGIONS = {
   hokkaido: '#9a86a8', tohoku: '#7f9f5c', kanto: '#cf9c45', chubu: '#c47f72',
   kansai: '#5f7f9e', chugoku: '#7f9f5c', shikoku: '#cf9c45', kyushu: '#9a86a8',
 };
-const SABLE = '#e3d0a7';
-const SABLE_TRANSPARENT = 'rgba(227, 208, 167, 0)'; // même teinte, pour ne pas tirer vers le noir en fondu
 
 const map = new maplibregl.Map({
   container: 'carte',
@@ -315,6 +318,8 @@ const map = new maplibregl.Map({
   attributionControl: false,
   style: {
     version: 8,
+    // Pas de fondu quand une couleur change (ambiance.js) : le relief est redessiné une fois, avec la nouvelle couleur.
+    transition: { duration: 0, delay: 0 },
     sources: {
       relief: TUILES_RELIEF,
       ombrage: {
@@ -346,7 +351,7 @@ const map = new maplibregl.Map({
         type: 'line',
         source: 'cote',
         paint: {
-          'line-color': '#2c4a43',
+          'line-color': P.ombreIles,
           'line-width': ['interpolate', ['linear'], ['zoom'], 4, 10, 7, 20],
           'line-blur': ['interpolate', ['linear'], ['zoom'], 4, 9, 7, 18],
           'line-translate': [6, 7],
@@ -359,7 +364,7 @@ const map = new maplibregl.Map({
         type: 'line',
         source: 'cote',
         paint: {
-          'line-color': '#3d6b64',
+          'line-color': P.eau,
           'line-width': 0.8,
           'line-gap-width': ['interpolate', ['linear'], ['zoom'], 4.5, pres * 2, 7, loin * 2],
           'line-opacity': ['interpolate', ['linear'], ['zoom'], 6.5, opacite, 8.5, 0],
@@ -376,22 +381,9 @@ const map = new maplibregl.Map({
           // le niveau de la mer. D'où une marge d'environ 1 m autour de 0 (pas plus : les polders
           // comme Hachirōgata, à -4 m, doivent rester des terres).
           // La mer est transparente : on voit dessous le fond turquoise, les lignes d'eau et l'ombre des îles.
-          // Couleurs d'une vieille carte en relief : sable pâle, ocre, terre d'ombre, os blanc des sommets.
-          'color-relief-color': [
-            'interpolate', ['linear'], ['elevation'],
-            -2.5, SABLE,
-            -1.2, SABLE_TRANSPARENT,
-            0.6, SABLE_TRANSPARENT,
-            2, SABLE,
-            60, '#dcc59a',
-            200, '#d1b68a',
-            500, '#c4a47a',
-            900, '#bc9b72',
-            1500, '#a8865f',
-            2200, '#8f6f50',
-            2900, '#a8977f',
-            3500, '#efe7d6',
-          ],
+          // Couleurs d'une vieille carte en relief : sable pâle, ocre, terre d'ombre, os blanc des sommets, teintées
+          // par la saison et l'heure au Japon (ambiance.js, qui garde ces paliers et cette marge autour de 0).
+          'color-relief-color': P.rampe,
         },
       },
       {
@@ -399,13 +391,13 @@ const map = new maplibregl.Map({
         type: 'hillshade',
         source: 'ombrage',
         paint: {
-          'hillshade-exaggeration': 0.9,
+          'hillshade-exaggeration': P.exag,
           'hillshade-illumination-anchor': 'map',
-          'hillshade-illumination-direction': 315,
-          // ombres terre d'ombre, lumières couleur de papier : le relief sort de la feuille
-          'hillshade-shadow-color': 'rgba(70, 45, 24, 0.82)',
-          'hillshade-highlight-color': 'rgba(255, 249, 232, 0.55)',
-          'hillshade-accent-color': 'rgba(96, 66, 38, 0.45)',
+          'hillshade-illumination-direction': P.direction,
+          // ombres terre d'ombre, lumières couleur de papier : le relief sort de la feuille (le jour ; voir ambiance.js)
+          'hillshade-shadow-color': P.ombre,
+          'hillshade-highlight-color': P.lumiere,
+          'hillshade-accent-color': P.accent,
         },
       },
       // Frontières (OpenStreetMap, voir outils/fabriquer_frontieres.py), sous les rivières. Entre deux grandes
@@ -422,7 +414,7 @@ const map = new maplibregl.Map({
           'line-width': ['interpolate', ['exponential', 1.5], ['zoom'], 4, 4, 7, 9, 10, 15, 14, 24],
           'line-offset': ['interpolate', ['exponential', 1.5], ['zoom'], 4, sens * 2, 7, sens * 4.5, 10, sens * 7.5, 14, sens * 12],
           'line-blur': ['interpolate', ['exponential', 1.5], ['zoom'], 4, 2, 7, 4, 10, 6, 14, 9],
-          'line-opacity': 0.6,
+          'line-opacity': P.lavis,
         },
       })),
       // Un voile clair sous les tirets, pour qu'il se lise aussi dans l'ombre des montagnes
@@ -433,7 +425,7 @@ const map = new maplibregl.Map({
         filter: ['==', ['get', 'n'], 'p'],
         layout: { 'line-join': 'round' },
         paint: {
-          'line-color': '#f6eedb',
+          'line-color': P.frontieresFond,
           'line-width': ['interpolate', ['linear'], ['zoom'], 5.5, 3, 8, 5, 12, 7],
           'line-blur': ['interpolate', ['linear'], ['zoom'], 5.5, 1, 8, 1.5, 12, 2.5],
           'line-opacity': ['interpolate', ['linear'], ['zoom'], 5.5, 0, 6.5, 0.5],
@@ -446,7 +438,7 @@ const map = new maplibregl.Map({
         filter: ['==', ['get', 'n'], 'p'],
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
-          'line-color': '#35251a',
+          'line-color': P.frontieres,
           'line-width': ['interpolate', ['linear'], ['zoom'], 5.5, 1.3, 8, 2.2, 12, 3],
           'line-dasharray': [1.4, 1.5],
           'line-opacity': ['interpolate', ['linear'], ['zoom'], 5.5, 0, 6.5, 0.85],
@@ -459,7 +451,7 @@ const map = new maplibregl.Map({
         filter: ['==', ['get', 'n'], 'r'],
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: {
-          'line-color': '#35251a',
+          'line-color': P.frontieres,
           'line-width': ['interpolate', ['linear'], ['zoom'], 4, 1.1, 7, 1.9, 12, 2.8],
           'line-dasharray': [4, 1.6, 0.1, 1.6],
           'line-opacity': 0.9,
@@ -468,7 +460,7 @@ const map = new maplibregl.Map({
       // Lacs et grandes rivières (OpenStreetMap, voir outils/fabriquer_eaux.py), peints de la couleur de la
       // mer par-dessus le relief et cernés d'un fin trait d'eau. De loin, seules les plus longues rivières
       // se voient ; les autres apparaissent en zoomant. km = étendue de la rivière (40 à 240 km).
-      ...[['rivieres-bord', '#3d6b64', 1.3], ['rivieres', MER, 0]].map(([id, couleur, bord]) => {
+      ...[['rivieres-bord', P.eau, 1.3], ['rivieres', MER, 0]].map(([id, couleur, bord]) => {
         const importance = ['min', 1, ['/', ['get', 'km'], 160]];
         return {
           id,
@@ -496,7 +488,7 @@ const map = new maplibregl.Map({
         source: 'eaux',
         filter: ['==', ['get', 't'], 'lac'],
         paint: {
-          'line-color': '#3d6b64',
+          'line-color': P.eau,
           'line-width': ['interpolate', ['linear'], ['zoom'], 5, 0.5, 10, 1.1, 14, 1.6],
           'line-opacity': 0.8,
         },
@@ -507,7 +499,7 @@ const map = new maplibregl.Map({
         type: 'line',
         source: 'cote',
         paint: {
-          'line-color': '#4e3822',
+          'line-color': P.encreCote,
           'line-width': ['interpolate', ['linear'], ['zoom'], 4, 0.6, 7, 1.1],
           'line-opacity': ['interpolate', ['linear'], ['zoom'], 6, 0.75, 8, 0],
         },
@@ -530,9 +522,9 @@ const map = new maplibregl.Map({
     terrain: { source: 'relief', exaggeration: exageration(vueDepart().zoom) },
     // Au-delà de l'horizon, du parchemin ; au loin, un voile clair, comme sur une vieille gravure
     sky: {
-      'sky-color': CONFIG.couleurs.ciel,
-      'horizon-color': CONFIG.couleurs.horizon,
-      'fog-color': CONFIG.couleurs.brume,
+      'sky-color': P.ciel,
+      'horizon-color': P.horizon,
+      'fog-color': P.brume,
       'fog-ground-blend': 0.35,
       'horizon-fog-blend': 0.6,
       'sky-horizon-blend': 0.85,
@@ -1368,6 +1360,7 @@ function majResume() {
 // ---------------------------------------------------------------- Partager son voyage (partage-voyage.js)
 // Un lien qui montre le même voyage à qui l'ouvre, et une image à poster (la carte en 3D ou le carnet de voyage).
 let partageVoyage = null;
+let ambianceCarte = null; // l'horloge et les paliers de l'ambiance (ambiance.js), branchés au démarrage
 async function partagerVoyage() {
   const it = itineraireActuel;
   if (!it || calculItineraire) return;
@@ -1375,7 +1368,7 @@ async function partagerVoyage() {
   try {
     partageVoyage ??= import('./partage-voyage.js').then(({ brancherPartageVoyage }) => brancherPartageVoyage(map, {
       t, langue: () => langue, enLangue, adresse: CONFIG.adresse, infos: infosLieu, texteDuree, texteDistance, icones: SVG,
-      afficherMessage, arreterRotation,
+      afficherMessage, arreterRotation, jour: () => ambianceCarte?.jourPourImage(),
       // la couverture TikTok copiée dans le site (même origine : le dessin peut la lire), sinon la photo du tableau si elle est locale
       photo: (l) => (idVideo(l.tiktok) ? `photos/tiktok/${idVideo(l.tiktok)}.jpg` : /^https?:/.test(l.photo || '') ? '' : l.photo || ''),
     }));
@@ -2257,6 +2250,7 @@ function appliquerLangue() {
   legendes?.majLangue();
   nomsRegions.majLangue(langue);
   compteur?.majLangue();
+  ambianceCarte?.majLangue();
 }
 
 // ---------------------------------------------------------------- Démarrage
@@ -2437,6 +2431,7 @@ async function demarrer() {
   const liensJeu = lireLiensJeu();
   const lienVoyage = lireLienVoyage();
   appliquerLangue();
+  ambianceCarte = ambiance.brancher(map, { t, langue: () => langue });
   majSelonZoom();
 
   const [lignesLieux, lignesCategories] = await Promise.all([

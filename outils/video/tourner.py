@@ -32,7 +32,7 @@ ICI = Path(__file__).resolve().parent
 RACINE = ICI.parent.parent
 SORTIE = RACINE / 'videos'
 DECALAGE_MUSIQUE = 0.31  # secondes : le premier temps de « Michikusa »
-ADRESSE = 'http://localhost:8123/'
+ADRESSE = 'http://localhost:8123/?ambiance=non'  # la carte de toujours : de jour, sans saison (voir site/ambiance.js)
 LARGEUR, HAUTEUR = 432, 768  # un vrai téléphone (l'interface à sa taille), filmé en 1080 × 1920
 ATTENDRE = "window.carte && document.getElementById('chargement').classList.contains('fini')"
 # Les favoris du visiteur au début du film (le château de Himeji s'y ajoute pendant la scène 3)

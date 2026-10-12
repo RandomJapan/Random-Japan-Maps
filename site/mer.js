@@ -11,6 +11,7 @@
 // ================================================================
 import { URL_THREE } from './couche3d.js';
 import { coucheRessac } from './ressac.js';
+import { TEINTES } from './teintes.js';
 
 // Image des distances à la côte : mêmes bornes et même codage que outils/fabriquer_houle.py
 const IMAGE_DISTANCES = 'data/distance-cote.png';
@@ -322,7 +323,7 @@ function coucheHoule(map, maplibregl, image, obtenirTemps, quandPrete) {
       gl.uniform1f(u.u_espacement, r.espacement);
       gl.uniform1f(u.u_zone, r.zone);
       gl.uniform1f(u.u_vitesse, r.vitesse);
-      gl.uniform3f(u.u_encre, 61 / 255, 107 / 255, 100 / 255); // #3d6b64, l'encre des lignes d'eau
+      gl.uniform3f(u.u_encre, ...TEINTES.eau.map((v) => v / 255)); // l'encre des lignes d'eau (#3d6b64 le jour, ambiance.js)
       gl.depthMask(false);
       gl.enable(gl.POLYGON_OFFSET_FILL);
       gl.polygonOffset(-1, -4);
@@ -336,7 +337,7 @@ function coucheHoule(map, maplibregl, image, obtenirTemps, quandPrete) {
 // ---------------------------------------------------------------- Les bateaux (petits modèles 3D)
 /** Couche 3D des bateaux : le même moteur (three.js) et la même lumière que les modèles des lieux (couche3d.js). */
 function coucheBateaux(map, maplibregl, THREE, modele, flotte) {
-  let renderer, scene, camera, soleil, bateaux, matiere;
+  let renderer, scene, camera, ciel, soleil, bateaux, matiere;
   const m4 = {
     // modèle (x, y = haut, z = proue) → carte (x = est, y = sud, z = haut) : un miroir, comme dans couche3d.js
     base: new THREE.Matrix4().set(1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1),
@@ -352,7 +353,7 @@ function coucheBateaux(map, maplibregl, THREE, modele, flotte) {
       renderer.autoClear = false;
       scene = new THREE.Scene();
       camera = new THREE.Camera();
-      const ciel = new THREE.HemisphereLight(0xfff3dc, 0x6b5a44, 2.5);
+      ciel = new THREE.HemisphereLight(0xfff3dc, 0x6b5a44, 2.5);
       ciel.position.set(0, 0, 1);
       soleil = new THREE.DirectionalLight(0xfff0d8, 2.2);
       matiere = new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true });
@@ -372,6 +373,8 @@ function coucheBateaux(map, maplibregl, THREE, modele, flotte) {
       const centre = maplibregl.MercatorCoordinate.fromLngLat(map.getCenter());
       const b = (map.getBearing() * Math.PI) / 180;
       soleil.position.set(-Math.sin(b) - 0.5 * Math.cos(b), Math.cos(b) - 0.5 * Math.sin(b), 1.2);
+      ciel.intensity = 2.5 * TEINTES.lumiere; // moins de lumière la nuit (ambiance.js)
+      soleil.intensity = 2.2 * TEINTES.lumiere;
       let n = 0;
       for (const bateau of flotte) {
         const e = k * lisser(bateau.echelle);
