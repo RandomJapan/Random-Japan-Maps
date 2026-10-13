@@ -1517,6 +1517,142 @@ body.en-jeu .filtres, body.en-jeu .bandeau, body.en-jeu .aide { display: none; }
   .fiche-boutons { gap: 6px; }
   .fiche-boutons a, .fiche-boutons button { padding: 8px 11px; font-size: 13px; }
 }
+/* ---------- Près de moi (pres.js) ---------- */
+.controles .btn-pres svg { color: var(--rouge); }
+.controles .btn-pres.actif { background: var(--rouge); border-color: var(--rouge-survol); }
+.controles .btn-pres.actif svg { color: var(--papier-clair); }
+.controles .btn-pres.actif:hover { background: var(--rouge-survol); }
+.controles .btn-pres.cherche svg { animation: pres-cherche 1s ease-in-out infinite; }
+@keyframes pres-cherche { 50% { transform: scale(.75); opacity: .5; } }
+body.en-jeu .btn-pres, body.en-visite .btn-pres { display: none; }
+/* 現在地 « Tu es ici », comme sur les plans des parcs au Japon (un repère sans taille : ses morceaux autour du point) */
+.pres-ici { width: 0; height: 0; pointer-events: none; }
+.pres-ici-halo {
+  position: absolute; left: -36px; top: -36px; width: 72px; height: 72px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(168, 50, 31, .3), rgba(168, 50, 31, .08) 62%, transparent 70%);
+  animation: pres-halo 2.6s ease-out infinite;
+}
+@keyframes pres-halo { 0% { transform: scale(.45); opacity: 1; } 100% { transform: scale(1.2); opacity: 0; } }
+.pres-ici-point {
+  position: absolute; left: -10px; top: -10px; width: 20px; height: 20px; border-radius: 50%; background: var(--rouge);
+  border: 3px solid var(--papier-clair); box-shadow: 0 0 0 1px rgba(53, 37, 26, .6), 0 2px 5px rgba(40, 26, 12, .45);
+}
+.pres-ici-plaque {
+  position: absolute; left: 0; top: 15px; transform: translateX(-50%); display: flex; white-space: nowrap;
+  border: 1px solid rgba(53, 37, 26, .7); border-radius: 2px; overflow: hidden; box-shadow: 0 2px 6px rgba(40, 26, 12, .4);
+}
+.pres-ici-plaque b { padding: 2px 5px; background: var(--rouge); color: var(--papier-clair); font: 400 13px/1.3 var(--police-titre); }
+.pres-ici-plaque span { padding: 2px 6px; background: var(--papier-clair); color: var(--encre); font: 600 11.5px/1.5 var(--police); }
+.pres-ici-plaque span:empty { display: none; }
+/* la distance sous les lieux proches, et le rayon de chaque cercle (écrit comme les noms de la carte) */
+.pres-distance, .pres-rayon, .pres-chez-toi { pointer-events: none; }
+.pres-distance span {
+  display: block; padding: 1px 6px; border-radius: 2px; background: rgba(53, 37, 26, .88); color: var(--papier-clair);
+  font: 700 11.5px/1.5 var(--police); white-space: nowrap; box-shadow: 0 1px 3px rgba(0, 0, 0, .3);
+}
+#carte.loin .pres-distance { display: none; }
+.pres-rayon span {
+  display: block; white-space: nowrap; font: italic 14px var(--police-carte); color: var(--encre);
+  text-shadow: 0 0 3px var(--papier-clair), 0 0 3px var(--papier-clair), 0 0 6px var(--papier-clair);
+}
+.resume-pres .resume-details span { font-weight: 600; color: var(--encre); }
+/* « Y aller » : la route depuis le visiteur, et le bouton Google Maps */
+.pres-trajet, .pres-loin { position: fixed; z-index: 9; box-shadow: var(--filet), var(--ombre); }
+.pres-trajet { left: 12px; bottom: calc(var(--bas) + 84px); width: 340px; padding: 12px 14px 14px; }
+.pres-trajet[hidden], .pres-loin[hidden] { display: none; }
+.pres-trajet h3 { margin: 0 34px 2px 0; font: 400 19px/1.25 var(--police-titre); }
+.pres-temps { margin: 0 0 10px; font-size: 14px; color: var(--encre-2); }
+.pres-temps b { font: 400 18px var(--police-titre); color: var(--encre); }
+.pres-trajet a.btn-lancer, .pres-loin a.btn-lancer { text-decoration: none; }
+.pres-fermer {
+  position: absolute; top: 8px; right: 8px; width: 32px; height: 32px; display: grid; place-items: center;
+  border: 0; border-radius: var(--rayon); background: none; color: var(--encre);
+}
+.pres-fermer:hover { background: var(--papier-fonce); }
+.pres-fermer svg { width: 18px; height: 18px; }
+/* Loin du Japon */
+.pres-loin { left: 50%; bottom: calc(var(--bas) + 96px); transform: translateX(-50%); width: min(380px, calc(100vw - 48px)); padding: 16px; text-align: center; }
+.pres-avion { font-size: 26px; line-height: 1; color: var(--rouge); }
+.pres-loin h3 { margin: 6px 0 4px; font: 400 24px/1.2 var(--police-titre); text-wrap: balance; }
+.pres-loin h3 em { font-style: normal; color: var(--rouge); }
+.pres-loin p { margin: 0 0 12px; font-size: 14px; line-height: 1.45; color: var(--encre-2); }
+.pres-loin p b { color: var(--encre); }
+.pres-loin .btn-secondaire { margin-top: 8px; }
+.pres-chez-toi span {
+  display: block; padding: 3px 8px; border-radius: 2px; border: 1px solid var(--trait); background: var(--papier-clair);
+  font: italic 14px var(--police-carte); color: var(--encre); white-space: nowrap; box-shadow: 0 2px 5px rgba(40, 26, 12, .3);
+}
+
+/* ---------- Défi du jour (defi.js ; pas encore public, comme le jeu) ---------- */
+.bouton-defi { position: relative; }
+.bouton-defi > svg { color: var(--rouge); }
+.defi-point { position: absolute; top: -3px; right: -3px; width: 10px; height: 10px; border-radius: 50%; background: var(--rouge); box-shadow: 0 0 0 2px var(--papier); }
+.defi .jeu-manche { margin-right: auto; }
+.defi-essai { font: 400 16px var(--police-titre); color: var(--encre-2); white-space: nowrap; }
+.defi-serie { font-weight: 700; font-size: 13.5px; color: var(--rouge); white-space: nowrap; }
+.defi-essai:empty, .defi-serie:empty { display: none; }
+.defi-date { margin: -4px 0 0; font-size: 13px; color: var(--encre-3); }
+.defi-note { margin: 0; text-align: center; font-size: 12.5px; color: var(--encre-3); }
+/* la photo, floue au début, plus nette à chaque essai */
+.defi .jeu-photo { filter: blur(var(--flou, 0px)); transition: filter .8s var(--ease); }
+.defi-essais { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.defi-essais li {
+  display: flex; align-items: center; gap: 9px; padding: 3px 8px 3px 3px; border-radius: 2px;
+  background: var(--papier-clair); border: 1px solid rgba(138, 107, 69, .4); font-size: 14px;
+}
+.defi-essais li.nouveau { animation: defi-nouveau 1s var(--ease); }
+@keyframes defi-nouveau { from { background: #fbe8b0; transform: translateY(-4px); } }
+.defi-carre {
+  width: 24px; height: 24px; display: grid; place-items: center; flex: none; border-radius: 3px;
+  background: var(--k); color: #fff; font: 700 13px var(--police); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .15);
+}
+.defi-essais b { min-width: 4.6em; font-variant-numeric: tabular-nums; }
+.defi-fleche { display: grid; width: 20px; height: 20px; color: var(--encre); transition: transform .3s; }
+.defi-fleche svg { width: 20px; height: 20px; }
+.defi-essais small { margin-left: auto; font-size: 12.5px; font-weight: 600; color: var(--encre-3); }
+/* chaque essai sur la carte : un rond numéroté de sa couleur (un repère : pas de position relative) */
+.defi-pion {
+  display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--k); color: #fff;
+  font: 700 13px var(--police); border: 2.5px solid var(--papier-clair); pointer-events: none;
+  box-shadow: 0 0 0 1px rgba(53, 37, 26, .6), 0 2px 5px rgba(40, 26, 12, .45);
+}
+/* la fin : le lieu, les petits carrés, les statistiques */
+.defi-lieu { display: flex; gap: 10px; align-items: center; }
+.defi-lieu img { width: 64px; height: 64px; flex: none; object-fit: cover; border-radius: 2px; border: 1px solid var(--trait); }
+.defi-lieu b { display: block; font: 400 21px/1.2 var(--police-titre); }
+.defi-lieu small { display: block; font-size: 13px; color: var(--encre-3); }
+.defi-lieu .defi-credit { font-size: 11.5px; }
+.defi-lieu .defi-credit:empty { display: none; }
+.defi-credit a { color: inherit; }
+.defi-grille { margin: 0; font-size: 26px; letter-spacing: 4px; line-height: 1.2; text-align: center; }
+.defi-verdict { margin: 0; text-align: center; font-weight: 700; color: var(--rouge); }
+.defi-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; text-align: center; }
+.defi-stats b { display: block; font: 400 24px/1.1 var(--police-titre); font-variant-numeric: tabular-nums; }
+.defi-stats small { font-size: 11.5px; color: var(--encre-3); }
+.defi-barres { display: grid; gap: 3px; }
+.defi-barres div { display: flex; align-items: center; gap: 6px; font-size: 12.5px; }
+.defi-barres span { width: 1.2em; flex: none; text-align: right; color: var(--encre-3); }
+.defi-barres i {
+  display: block; height: 16px; padding: 0 5px; border-radius: 1px; background: rgba(110, 83, 58, .5); color: var(--papier-clair);
+  font: 700 11px/16px var(--police); font-style: normal; text-align: right;
+}
+.defi-barres i.moi { background: var(--rouge); }
+.defi-compte { margin: 0; text-align: center; font-size: 13.5px; color: var(--encre-2); }
+.defi-compte b { color: var(--encre); font-variant-numeric: tabular-nums; }
+.defi-boutons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.defi-boutons .btn-lancer, .defi-boutons .btn-secondaire { margin: 0; padding: 11px 8px; font-size: 14.5px; }
+/* ce qui se montre à chaque moment : l'accueil, les essais, la fin */
+.defi:not([data-phase="fin"]) :is(.defi-lieu, .defi-grille, .defi-verdict, .defi-stats, .defi-barres, .defi-compte, .defi-boutons) { display: none; }
+.defi:not([data-phase="devine"]) .defi-essais, .defi .defi-essais:empty { display: none; }
+.defi:not([data-phase="accueil"]) :is(.defi-date, .defi-note), .defi[data-phase="fin"] :is(.jeu-texte, .jeu-titre) { display: none; }
+
+@media (max-width: 720px) {
+  .pres-trajet { left: 0; right: 0; bottom: 0; width: auto; padding: 12px 16px calc(var(--bas) + 6px); border-radius: 10px 10px 0 0; }
+  body.avec-trajet .heure-japon { display: none; } /* l'horloge cacherait le début de la route */
+  .pres-loin { bottom: calc(var(--bas) + 90px); }
+  .defi .jeu-image { height: 21dvh; }
+  .defi[data-phase="fin"] { max-height: 70dvh; }
+}
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
   #carte.loin .repere.nouveau .repere-tete { box-shadow: 0 0 0 1px rgba(53, 37, 26, 0.8), 0 0 0 3px #1d5652; }

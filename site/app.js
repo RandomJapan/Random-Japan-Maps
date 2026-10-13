@@ -20,7 +20,7 @@ import { brancherTuilesRelief } from './tuiles-relief.js';
 import { gererReperes } from './reperes.js';
 import { preparerAmbiance } from './ambiance.js';
 import { lireSaisons, blocFiche, contenuPanneau, lieuxDuMois, nomMois, iconeDuMois } from './saisons.js';
-import { echapper, envoyer, retirerParametres, tactile } from './commun.js';
+import { echapper, envoyer, retirerParametres, tactile, jourDuDefi } from './commun.js';
 
 const $ = (id) => document.getElementById(id);
 const estTelephone = () => matchMedia('(max-width: 720px)').matches;
@@ -1291,6 +1291,7 @@ async function tracerItineraire({ cadrer = true } = {}) {
   const liste = listeItineraire();
   if (liste.length < 2) return effacerItineraire();
   const jeton = (calculItineraire = {});
+  pres?.effacerTrajet(); // (la route « Y aller » laisse la place à celle des favoris)
   erreurItineraire = '';
   if (!$('panneau-favoris').hidden) remplirFavoris();
   try {
@@ -1571,6 +1572,7 @@ function basculerDev(actif) {
   else {
     // retour à la carte normale : rien des outils ne reste ouvert
     if (jeu?.enCours()) jeu.arreter();
+    if (defi?.enCours()) defi.arreter();
     ongletPlongeon?.then((o) => o.choisirOnglet('visite'));
     ambianceCarte?.reel(); // la date et l'heure choisies dans le réglage reviennent au vrai moment
   }
@@ -1623,8 +1625,10 @@ async function lancerJeu(quoi = {}) {
       prefecture: async (l) => { await preparerPrefectures(); return l.prefecture; },
       langue: () => langue,
       avant: () => {
+        if (defi?.enCours()) defi.arreter(false);
         if (visite.enCours()) visite.arreter();
         effacerItineraire();
+        pres?.effacer();
         arreterRotation();
         fermerFiche();
         fermerPanneaux();
@@ -1657,6 +1661,76 @@ function chargerAmis() {
 
 function aDejaJoueAPlusieurs() {
   try { return !!JSON.parse(localStorage.getItem('joueur'))?.pseudo; } catch { return false; }
+}
+
+// ---------------------------------------------------------------- Défi du jour (defi.js, pas encore public)
+// Un lieu mystère par jour, le même pour tous, en 6 essais. Comme le jeu, le bouton n'existe qu'en mode
+// développeur ; un lien …/?defi (celui du partage) l'ouvre pour tous.
+let defi = null;
+async function lancerDefi() {
+  if (!defi) {
+    const { brancherDefi } = await import('./defi.js');
+    defi ??= brancherDefi(map, maplibregl, {
+      t, enLangue, langue: () => langue, infos: infosLieu, lieux: () => lieux, reperes, modeles3d, vueDepart, estTelephone,
+      afficherMessage, adresse: CONFIG.adresse, debut: CONFIG.debutDefi, partager: partagerTexte,
+      photo: (l) => (l.photo ? photoAllegee(l.photo) : ''),
+      video: (l) => idVideo(l.tiktok),
+      ouvrirLieu: (l) => allerAuLieu(l),
+      quandJoue: majPointDefi,
+      avant: () => {
+        if (jeu?.enCours()) jeu.arreter(false);
+        if (visite.enCours()) visite.arreter();
+        effacerItineraire();
+        pres?.effacer();
+        arreterRotation();
+        fermerFiche();
+        fermerPanneaux();
+      },
+    });
+  }
+  await preparerPrefectures().catch(() => {}); // la préfecture du lieu, écrite à la fin
+  defi.lancer();
+}
+
+/** Le point rouge du bouton Défi : le défi du jour n'est pas encore fini dans ce navigateur (localStorage « defi »). */
+function majPointDefi() {
+  let memo = null;
+  try { memo = JSON.parse(localStorage.getItem('defi')); } catch { /* pas grave */ }
+  $('defi-point').hidden = memo?.jour === jourDuDefi(CONFIG.debutDefi) && !!memo.fini;
+}
+
+// ---------------------------------------------------------------- Près de moi (pres.js)
+// Le bouton rond au-dessus des zooms. La position est demandée tout de suite, dans l'appui (Safari tient à ce
+// qu'elle suive le geste), pendant que le module se charge.
+let pres = null; // une fois chargé : { localiser, allerVers, effacer, effacerTrajet, majLangue, position }
+let presCharge = null;
+function chargerPres() {
+  presCharge ??= import('./pres.js').then(({ brancherPres }) => (pres = brancherPres(map, maplibregl, {
+    t, enLangue, langue: () => langue, lieux: () => lieux, reperes, afficherMessage, estTelephone, vueDepart, SVG, texteDuree,
+    prefectures: () => preparerPrefectures().then(() => trouverPrefecture),
+    nomPrefecture: (code) => enLangue(PREFECTURES[code]),
+    avant: () => {
+      if (visite.enCours()) visite.arreter();
+      arreterRotation();
+      fermerPanneaux();
+    },
+    avantTrajet: () => {
+      fermerFiche();
+      effacerItineraire();
+    },
+    allerAuLieu: (l) => allerAuLieu(l),
+    ouvrirSaisons: () => ouvrirSaisons(true),
+    quandChange: () => { if (lieuActif) remplirBoutons(lieuActif); },
+  })));
+  presCharge.catch((e) => { console.warn('Près de moi indisponible', e); presCharge = null; });
+  return presCharge;
+}
+
+function demanderPosition() {
+  return new Promise((ok, non) => {
+    if (!navigator.geolocation) return non(new Error('Pas de géolocalisation'));
+    navigator.geolocation.getCurrentPosition(ok, non, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
+  });
 }
 
 /** Les liens …/?partie=CODE et …/?ami=CODE : lus au démarrage, et effacés de l'adresse. */
@@ -1697,6 +1771,7 @@ async function ouvrirVisite(ouvrir) {
 
 async function lancerVisite(liste) {
   if (!liste.length) return;
+  pres?.effacer();
   await preparerPrefectures().catch(() => {}); // pour écrire la préfecture sous le nom de chaque lieu
   // Les catégories cachées de la visite réapparaissent, sinon on survolerait des lieux sans repère
   if (liste.some((l) => !l.cat.visible)) {
@@ -1872,11 +1947,7 @@ async function remplirFiche(l) {
   }
 
   // Boutons (avant d'attendre la photo : sinon un lieu ouvert juste avant pourrait écrire ses boutons après).
-  // Deux boutons seulement, pour tenir sur une ligne ; partager est une icône sur la photo, « Plus d'infos » un lien après le texte.
-  const boutons = [];
-  if (l.tiktok) boutons.push(`<a class="principal" href="${echapper(l.tiktok)}" target="_blank" rel="noopener">${SVG.tiktok}${echapper(t('voirTiktok'))}</a>`);
-  boutons.push(`<a href="https://www.google.com/maps/dir/?api=1&destination=${l.lat},${l.lng}" target="_blank" rel="noopener">${SVG.route}${echapper(t('itineraire'))}</a>`);
-  $('fiche-boutons').innerHTML = boutons.join('');
+  remplirBoutons(l);
   // « Plus d'infos » (le lien du tableau) et la page du lieu (outils/fabriquer_pages.py)
   $('fiche-plus').innerHTML = (/^https?:\/\//.test(l.autreLien)
     ? `<a href="${echapper(l.autreLien)}" target="_blank" rel="noopener">${echapper(t('autreLien'))} ${SVG.sortie}</a>` : '')
@@ -1894,6 +1965,19 @@ async function remplirFiche(l) {
 
   const photo = await couverture(l);
   if (lieuActif === l && photo) vignette.style.backgroundImage = `url("${photo.replace(/"/g, '%22')}")`;
+}
+
+/**
+ * Les deux boutons de la fiche (deux seulement, pour tenir sur une ligne ; partager est une icône sur la photo,
+ * « Plus d'infos » un lien après le texte) : la vidéo TikTok, et l'itinéraire Google Maps, ou « Y aller » quand
+ * « Près de moi » connaît la position du visiteur (la route se trace sur la carte, pres.js).
+ */
+function remplirBoutons(l) {
+  const boutons = [];
+  if (l.tiktok) boutons.push(`<a class="principal" href="${echapper(l.tiktok)}" target="_blank" rel="noopener">${SVG.tiktok}${echapper(t('voirTiktok'))}</a>`);
+  if (pres?.position()) boutons.push(`<button type="button" data-aller>${SVG.route}${echapper(t('yAller'))}</button>`);
+  else boutons.push(`<a href="https://www.google.com/maps/dir/?api=1&destination=${l.lat},${l.lng}" target="_blank" rel="noopener">${SVG.route}${echapper(t('itineraire'))}</a>`);
+  $('fiche-boutons').innerHTML = boutons.join('');
 }
 
 function lancerVideo(id) {
@@ -2007,6 +2091,8 @@ function appliquerLangue() {
   majBandeauVoyage();
   visite.majLangue();
   jeu?.majLangue();
+  defi?.majLangue();
+  pres?.majLangue();
   musique.majLangue();
   construireMenu();
   if (!$('resultats').hidden) rechercher();
@@ -2100,6 +2186,16 @@ function brancherBoutons() {
   $('voyage-visite').addEventListener('click', () => { if (voyageRecu) lancerVisite(voyageRecu.lieux); });
   $('voyage-recu-fermer').addEventListener('click', effacerItineraire);
   $('btn-jeu').addEventListener('click', () => lancerJeu().catch((e) => console.warn('Jeu indisponible', e)));
+  $('btn-defi').addEventListener('click', () => lancerDefi().catch((e) => console.warn('Défi indisponible', e)));
+  $('btn-pres').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const position = demanderPosition();
+    position.catch(() => {}); // (lue par pres.js)
+    chargerPres().then((p) => p.localiser(position)).catch(() => afficherMessage(t('presIntrouvable')));
+  });
+  $('fiche-boutons').addEventListener('click', (e) => {
+    if (e.target.closest('[data-aller]') && lieuActif) pres?.allerVers(lieuActif);
+  });
   $('fiche-favori').addEventListener('click', () => {
     if (!lieuActif) return;
     const premier = !lieux.some(estFavori);
@@ -2163,6 +2259,8 @@ async function demarrer() {
   brancherBoutons();
   brancherDev();
   const liensJeu = lireLiensJeu();
+  const lienDefi = retirerParametres('defi').defi !== null;
+  majPointDefi();
   const lienVoyage = lireLienVoyage();
   appliquerLangue();
   ambianceCarte = ambiance.brancher(map, { t, langue: () => langue, lieux: () => lieux });
@@ -2194,6 +2292,7 @@ async function demarrer() {
     setTimeout(chargerLegendes, 1500);
     if (lienVoyage) setTimeout(() => recevoirVoyage(lienVoyage), 300);
     if (liensJeu) setTimeout(() => lancerJeu(liensJeu).catch((e) => console.warn('Jeu indisponible', e)), 400);
+    else if (lienDefi) setTimeout(() => lancerDefi().catch((e) => console.warn('Défi indisponible', e)), 400);
     else if (aDejaJoueAPlusieurs()) setTimeout(() => chargerAmis().catch(() => {}), 2500);
   };
   // (pas map.loaded() : les détails de saison peints juste avant la rendent « occupée » un instant, et l'écran

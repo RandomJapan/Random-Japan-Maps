@@ -87,8 +87,9 @@ function grandesRoutes(etapes, total) {
  * Branche l'itinéraire sur la carte.
  * @param reperes - gererReperes(map) : les temps de trajet sont des repères HTML comme les autres
  * @param texteTrajet(trajet) - le texte de l'étiquette d'un trajet sur la carte (« 2 h 05 »)
+ * @param id - le nom de sa source et de ses couches : « itineraire » (les favoris) ou « trajet » (« Y aller », pres.js)
  */
-export function brancherItineraire(map, maplibregl, { reperes, texteTrajet }) {
+export function brancherItineraire(map, maplibregl, { reperes, texteTrajet, id = 'itineraire' }) {
   const reponses = new Map(); // adresse → réponse du serveur (on ne redemande pas deux fois la même chose)
   let derniere = 0; // heure de la dernière demande
   let etiquettes = []; // repères des temps de trajet
@@ -183,25 +184,25 @@ export function brancherItineraire(map, maplibregl, { reperes, texteTrajet }) {
 
   // ---- Sur la carte
   function ajouterCouches(donnees) {
-    if (map.getSource('itineraire')) return map.getSource('itineraire').setData(donnees);
-    map.addSource('itineraire', { type: 'geojson', data: donnees, maxzoom: 14, attribution: ATTRIBUTION });
+    if (map.getSource(id)) return map.getSource(id).setData(donnees);
+    map.addSource(id, { type: 'geojson', data: donnees, maxzoom: 14, attribution: ATTRIBUTION });
     const dessous = map.getLayer('modeles-3d') ? 'modeles-3d' : undefined; // les modèles 3D passent devant
     const largeur = (a, b, c) => ['interpolate', ['linear'], ['zoom'], 4, a, 10, b, 15, c];
     const est = (...types) => ['in', ['get', 'type'], ['literal', types]];
     // un liseré de papier sous le trait, pour qu'il se lise sur le relief sépia
     map.addLayer({
-      id: 'itineraire-fond', type: 'line', source: 'itineraire', filter: est('route', 'bateau'),
+      id: `${id}-fond`, type: 'line', source: id, filter: est('route', 'bateau'),
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: { 'line-color': PAPIER, 'line-opacity': ['match', ['get', 'type'], 'bateau', 0.55, 0.9], 'line-width': largeur(6.5, 9.5, 13) },
     }, dessous);
     map.addLayer({
-      id: 'itineraire', type: 'line', source: 'itineraire', filter: est('route'),
+      id, type: 'line', source: id, filter: est('route'),
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: { 'line-color': ROUGE, 'line-width': largeur(3.2, 4.6, 6.5) },
     }, dessous);
     // les bateaux, les bouts sans route et les trajets sans route connue : en pointillés
     map.addLayer({
-      id: 'itineraire-pointilles', type: 'line', source: 'itineraire', filter: est('bateau', 'acces', 'sans-route'),
+      id: `${id}-pointilles`, type: 'line', source: id, filter: est('bateau', 'acces', 'sans-route'),
       layout: { 'line-cap': 'round', 'line-join': 'round' },
       paint: {
         'line-color': ROUGE,
@@ -212,8 +213,8 @@ export function brancherItineraire(map, maplibregl, { reperes, texteTrajet }) {
   }
 
   function enleverCouches() {
-    for (const id of ['itineraire-pointilles', 'itineraire', 'itineraire-fond']) if (map.getLayer(id)) map.removeLayer(id);
-    if (map.getSource('itineraire')) map.removeSource('itineraire');
+    for (const c of [`${id}-pointilles`, id, `${id}-fond`]) if (map.getLayer(c)) map.removeLayer(c);
+    if (map.getSource(id)) map.removeSource(id);
   }
 
   function enleverEtiquettes() {

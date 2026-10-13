@@ -97,6 +97,12 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M12 21.2s-6.6-6.7-6.6-11.6a6.6 6.6 0 0 1 13.2 0c0 4.9-6.6 11.6-6.6 11.6Z"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M10.2 8.1a1.9 1.9 0 1 1 2.6 1.8c-.5.2-.8.6-.8 1.1v.3"/><circle cx="12" cy="13.2" r="1" fill="currentColor"/></svg>
         <span class="texte-bouton" data-t="jeu">Guess the place</span>
       </button>
+      <!-- Défi du jour : un lieu mystère par jour, pas encore public non plus (defi.js) ; le point rouge : pas encore joué aujourd'hui -->
+      <button class="bouton-categories bouton-defi panneau dev" id="btn-defi" data-t-titre="defiTitre">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M3.5 10h17M8 3v4M16 3v4"/><path fill="currentColor" d="m12 11.6 1.1 2.3 2.5.3-1.8 1.7.5 2.5-2.3-1.2-2.3 1.2.5-2.5-1.8-1.7 2.5-.3Z"/></svg>
+        <span class="texte-bouton" data-t="defi">Daily</span>
+        <span class="defi-point" id="defi-point" hidden></span>
+      </button>
     </div>
     <div class="menu panneau" id="panneau-legendes" hidden></div>
     <div class="menu panneau" id="panneau-favoris" hidden></div>
@@ -282,6 +288,10 @@
         <circle cx="32" cy="32" r="1.8" fill="#f6eedb" stroke="#35251a" stroke-width=".7"/>
         <text x="32" y="8.9" text-anchor="middle" font-family="'IM Fell English', Georgia, serif" font-size="8" fill="#a8321f" stroke="#efe4c8" stroke-width="2.4" paint-order="stroke">N</text>
       </svg>
+    </button>
+    <!-- Près de moi (pres.js) : localise le visiteur, montre les lieux autour de lui et la route pour y aller -->
+    <button type="button" class="panneau btn-pres" id="btn-pres" data-t-titre="presDeMoi" data-t-aria="presDeMoi">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.4" fill="currentColor"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3"/></svg>
     </button>
     <button type="button" class="panneau" id="btn-recentrer" data-t-titre="recentrer" data-t-aria="recentrer">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/></svg>

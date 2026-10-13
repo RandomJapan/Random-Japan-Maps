@@ -226,7 +226,7 @@ C'est le troisième onglet du panneau Visite (mode développeur aussi), comme «
 
 ## Le mode développeur (rien que pour toi)
 
-Tes outils qui ne sont pas pour les visiteurs (pas encore, ou jamais) : le **plongeon**, le **point à point** et l'**affiche à incruster** (onglets Plongeon et Point à point de la visite), et le **jeu** pas encore sorti.
+Tes outils qui ne sont pas pour les visiteurs (pas encore, ou jamais) : le **plongeon**, le **point à point** et l'**affiche à incruster** (onglets Plongeon et Point à point de la visite), et le **jeu** et le **défi du jour**, pas encore sortis.
 - **La première fois :** ouvre ton **lien secret** (celui que Claude t'a donné dans la conversation, qui finit par `?dev=…`) dans chaque navigateur où tu veux le mode : sur ton téléphone (Safari ou Chrome, pas le navigateur intégré de TikTok) et sur ton ordinateur. Le navigateur s'en souvient ensuite. Garde ce lien pour toi : il n'est écrit nulle part ailleurs.
 - **Ensuite :** un bouton `</>` apparaît en bas à droite, au-dessus de la rose des vents. **Rouge** = carte développeur (tes outils sont là). **Clair** = carte normale, exactement comme la voient les visiteurs. Un clic pour passer de l'une à l'autre ; la carte retient ton choix.
 - Ce bouton n'existe que dans tes navigateurs : les visiteurs ne le voient jamais.
@@ -244,6 +244,23 @@ Il est prêt mais **caché** : il sortira le mois prochain, avec un TikTok. Pour
 - **Les records :** l'accueil et la fin du jeu montrent les 5 meilleurs scores, avec leur date, et le nombre de parties. « Nouveau record ! » s'affiche quand on bat son meilleur score. Ils restent dans le navigateur du joueur (chacun a les siens). Un classement commun à tous les joueurs demanderait des comptes ou un serveur : pas fait pour l'instant.
 - Pendant la partie, les épingles et les modèles 3D des lieux sont cachés, sinon ce serait trop facile.
 - Le jour de la sortie, demande à Claude de rendre le bouton visible pour tout le monde.
+
+## Le défi du jour (pas encore public)
+
+Un **lieu mystère par jour, le même pour tout le monde**, comme le jeu Wordle. Comme le jeu, il est caché : en **mode développeur**, un bouton « Défi » apparaît (avec un point rouge tant que tu n'as pas joué aujourd'hui).
+- On voit la photo du lieu, **floue**. On touche la carte là où on pense que c'est, puis on valide : on apprend la **distance**, une **flèche** vers le lieu, et si c'est froid, tiède, chaud ou brûlant. La photo devient plus nette à chaque essai. **6 essais** ; trouvé si on tombe à moins de 20 km.
+- À la fin : le lieu, les petits carrés à partager (🟦🟨🟧🟥🎯, sans dévoiler le lieu), les statistiques (parties, % trouvés, série de jours, record), le temps avant le prochain défi, et un bouton vers la vidéo du lieu.
+- Le défi change **à minuit, heure du Japon** (16 h ou 17 h en France). Le défi n° 1 est celui du 13 octobre 2026 : le jour de la sortie, Claude peut faire repartir les numéros à 1.
+- Les lieux du défi sont ceux qui ont une photo (comme le jeu). Un lieu tout juste ajouté attend 3 jours avant d'y entrer.
+- Le lien partagé (…/?defi) ouvre le défi pour tout le monde, même avant la sortie : c'est toi qui le partages.
+
+## Près de moi
+
+Pour les visiteurs qui sont au Japon : le **bouton rond avec une cible**, au-dessus du bouton de recentrage, en bas à droite. Le téléphone demande d'abord la permission de les localiser.
+- **Au Japon :** un point rouge **現在地 « Tu es ici »** (comme sur les plans des parcs japonais), des **cercles de distance** en pointillés, la distance écrite sous les lieux les plus proches, et en haut « 3 lieux à moins de 10 km » (la croix efface tout).
+- Dans la fiche d'un lieu, le bouton **« Y aller »** trace alors la route depuis le visiteur sur la carte (à pied, à vélo ou en voiture), avec un bouton **« Ouvrir dans Google Maps »** pour s'y rendre (Google connaît aussi les trains).
+- **Hors du Japon :** « Tu es à 9 032 km du Japon », un trait vers chez lui, et le lieu de la carte le plus proche de lui.
+- La position reste sur le téléphone et n'est enregistrée nulle part. Seule la route « Y aller » l'envoie au service qui calcule les itinéraires (le même que pour les favoris).
 
 ## L'adresse de la carte
 

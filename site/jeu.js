@@ -16,7 +16,7 @@
 import { PREFECTURES, regionDe } from './regions.js';
 import { adresseServeur, connexion } from './reseau.js';
 import { identite } from './amis.js';
-import { echapper } from './commun.js';
+import { echapper, kmEntre as km } from './commun.js';
 
 const MANCHES = 5;
 const POINTS_MAX = 1000;
@@ -1127,14 +1127,6 @@ export function brancherJeu(map, maplibregl, outils) {
   }
 
   return { lancer, arreter, enCours: () => !!etat, majLangue: afficher, ouvrirPartie, ouvrirAmis };
-}
-
-/** Distance en km entre deux points { lng, lat } (à vol d'oiseau). */
-function km(a, b) {
-  const r = Math.PI / 180;
-  const dLat = (b.lat - a.lat) * r, dLng = (b.lng - a.lng) * r;
-  const s = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin(dLng / 2) ** 2;
-  return 2 * 6371 * Math.asin(Math.sqrt(s));
 }
 
 const dansBoite = (l, b) => l.lng >= b[0] && l.lng <= b[2] && l.lat >= b[1] && l.lat <= b[3];

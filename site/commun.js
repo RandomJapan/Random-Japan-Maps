@@ -1,10 +1,34 @@
 // ================================================================
 //  Petits outils partagés par les modules de la carte : écrire du texte
-//  dans du HTML, partager une image ou un lien, nettoyer l'adresse.
+//  dans du HTML, partager une image ou un lien, nettoyer l'adresse,
+//  mesurer une distance.
 // ================================================================
 
 /** Un texte qu'on peut glisser sans risque dans du HTML. */
 export const echapper = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
+/** Distance en km entre deux points { lng, lat } (à vol d'oiseau, sur le globe). */
+export function kmEntre(a, b) {
+  const r = Math.PI / 180;
+  const dLat = (b.lat - a.lat) * r, dLng = (b.lng - a.lng) * r;
+  const s = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin(dLng / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.sqrt(s));
+}
+
+/** Le cap (0 = nord, 90 = est) pour aller de a vers b { lng, lat }, au départ. */
+export function cap(a, b) {
+  const r = Math.PI / 180;
+  const y = Math.sin((b.lng - a.lng) * r) * Math.cos(b.lat * r);
+  const x = Math.cos(a.lat * r) * Math.sin(b.lat * r) - Math.sin(a.lat * r) * Math.cos(b.lat * r) * Math.cos((b.lng - a.lng) * r);
+  return (Math.atan2(y, x) / r + 360) % 360;
+}
+
+// Le défi du jour (defi.js) change à minuit, heure du Japon (UTC+9, sans heure d'été)
+const JOUR = 864e5, DECALAGE_JAPON = 9 * 3600e3;
+/** Le numéro du jour du défi (0 = le jour debut, « 2026-10-13 ») à l'instant donné, compté à l'heure du Japon. */
+export const jourDuDefi = (debut, maintenant = Date.now()) => Math.floor((maintenant + DECALAGE_JAPON - Date.parse(debut)) / JOUR);
+/** L'instant (ms) où commence ce jour du défi : minuit à Tokyo. */
+export const debutDuJour = (debut, jour) => Date.parse(debut) + jour * JOUR - DECALAGE_JAPON;
 
 /** Un écran tactile (téléphone, tablette) : on y partage par le menu du système plutôt que de télécharger ou copier. */
 export const tactile = () => matchMedia('(pointer: coarse)').matches;

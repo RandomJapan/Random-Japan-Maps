@@ -89,6 +89,7 @@ function distanceSegment(x, y, a, b, k) {
  * Télécharge les contours et renvoie une fonction (lng, lat) → numéro de préfecture.
  * Un lieu au bord de la mer ou sur une toute petite île peut tomber juste hors des contours
  * simplifiés : on prend alors la préfecture dont le bord est le plus proche.
+ * La fonction a aussi .ecart(lng, lat) : la distance en km jusqu'au Japon (0 dedans), pour « Près de moi ».
  */
 export async function chargerPrefectures(url) {
   const geo = await (await fetch(url)).json();
@@ -100,11 +101,12 @@ export async function chargerPrefectures(url) {
       polygones.push({ code: f.properties.code, anneaux, boite: [o, s, e, n] });
     }
   }
-  return (lng, lat) => {
+  /** { code, ecart } : la préfecture du point, et sa distance en km aux contours (0 dedans). */
+  function chercher(lng, lat) {
     for (const p of polygones) {
       const [o, s, e, n] = p.boite;
       if (lng < o || lng > e || lat < s || lat > n) continue;
-      if (dansAnneau(lng, lat, p.anneaux[0]) && !p.anneaux.slice(1).some((trou) => dansAnneau(lng, lat, trou))) return p.code;
+      if (dansAnneau(lng, lat, p.anneaux[0]) && !p.anneaux.slice(1).some((trou) => dansAnneau(lng, lat, trou))) return { code: p.code, ecart: 0 };
     }
     const k = Math.cos((lat * Math.PI) / 180);
     let proche = null, dmin = Infinity;
@@ -115,6 +117,9 @@ export async function chargerPrefectures(url) {
         if (d < dmin) { dmin = d; proche = p.code; }
       }
     }
-    return proche;
-  };
+    return { code: proche, ecart: dmin * 111.2 }; // (degrés de latitude → km ; assez juste près du Japon)
+  }
+  const trouver = (lng, lat) => chercher(lng, lat).code;
+  trouver.ecart = (lng, lat) => chercher(lng, lat).ecart;
+  return trouver;
 }
