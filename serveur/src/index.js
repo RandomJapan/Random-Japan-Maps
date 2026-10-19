@@ -5,7 +5,9 @@
 //  - Un seul Annuaire (Durable Object) pour les amis : qui est ami avec qui, qui est en ligne, les
 //    demandes d'ami et les invitations. Pas de compte : chaque navigateur a un numéro de joueur et un
 //    secret (data/joueur dans son localStorage) ; l'annuaire ne garde que l'empreinte SHA-256 du secret.
-//  Tout passe par des WebSockets « en hibernation » : une connexion qui ne dit rien ne coûte rien.
+//  - Un seul carnet des Défis (Durable Object) : le résultat du défi du jour de chaque joueur (trouvé ou non,
+//    en combien d'essais), pour que chacun se compare aux autres. Lui répond à de simples requêtes HTTP.
+//  Le reste passe par des WebSockets « en hibernation » : une connexion qui ne dit rien ne coûte rien.
 //  Le site (site/jeu.js, site/amis.js) parle à ce serveur ; les lieux, eux, restent dans le site
 //  (l'hôte envoie les numéros et les coordonnées des 5 lieux de la partie).
 // ================================================================
@@ -21,6 +23,8 @@ export default {
     const url = new URL(requete.url);
     if (url.pathname === '/') return new Response('carte-jeu : ok');
     if (!ORIGINES.includes(requete.headers.get('Origin'))) return new Response('Interdit', { status: 403 });
+    const defi = url.pathname.match(/^\/defi\/(\d{4}-\d{2}-\d{2})$/);
+    if (defi) return repondreDefi(requete, env, defi[1]);
     if (requete.headers.get('Upgrade') !== 'websocket') return new Response('WebSocket attendu', { status: 426 });
     if (!NUMERO.test(url.searchParams.get('joueur') || '')) return new Response('Numéro de joueur attendu', { status: 400 });
     const salon = url.pathname.match(/^\/salon\/([A-Z0-9]+)$/);
@@ -432,6 +436,62 @@ export class Annuaire extends DurableObject {
 
   envoyerA(joueur, message, partante) {
     for (const ws of this.ctx.getWebSockets(joueur)) if (ws !== partante && ws.deserializeAttachment()?.ok) envoyer(ws, message);
+  }
+}
+
+// ================================================================
+//  Le défi du jour : les résultats de tous les joueurs (site/defi.js)
+//  GET /defi/2026-10-19 → { joueurs, repartition } ; POST le résultat du joueur
+//  (texte JSON { joueur, essais, trouve }, sans en-tête spécial : pas de requête « preflight ») → la même chose.
+//  Le jour est la date au Japon ; seuls hier, aujourd'hui et demain sont acceptés. Le premier résultat d'un
+//  joueur compte (une partie rejouée dans un autre onglet ne change rien). 60 jours sont gardés.
+// ================================================================
+const ESSAIS_DEFI = 6;
+const GARDE_DEFIS = 60; // jours
+const dateJapon = (ms) => new Date(ms + 9 * 3600_000).toISOString().slice(0, 10);
+
+async function repondreDefi(requete, env, jour) {
+  const entetes = {
+    'Access-Control-Allow-Origin': requete.headers.get('Origin'), Vary: 'Origin',
+    'Content-Type': 'application/json', 'Cache-Control': 'no-store',
+  };
+  const reponse = (corps, status = 200) => new Response(JSON.stringify(corps), { status, headers: entetes });
+  const maintenant = Date.now();
+  if (![-1, 0, 1].some((k) => dateJapon(maintenant + k * 864e5) === jour)) return reponse({ erreur: 'jour' }, 400);
+  const carnet = env.DEFIS.get(env.DEFIS.idFromName('defis'));
+  if (requete.method === 'GET') return reponse(await carnet.stats(jour));
+  if (requete.method !== 'POST') return reponse({ erreur: 'methode' }, 405);
+  const texte = await requete.text();
+  let m = null;
+  try { m = texte.length < 300 ? JSON.parse(texte) : null; } catch { /* illisible */ }
+  const essais = m?.essais;
+  if (!m || !NUMERO.test(String(m.joueur)) || !Number.isInteger(essais) || essais < 1 || essais > ESSAIS_DEFI
+    || typeof m.trouve !== 'boolean' || (!m.trouve && essais !== ESSAIS_DEFI)) return reponse({ erreur: 'resultat' }, 400);
+  return reponse(await carnet.noter(jour, m.joueur, essais, m.trouve));
+}
+
+export class Defis extends DurableObject {
+  constructor(ctx, env) {
+    super(ctx, env);
+    this.sql = ctx.storage.sql;
+    this.sql.exec(`CREATE TABLE IF NOT EXISTS resultats (jour TEXT NOT NULL, joueur TEXT NOT NULL, essais INTEGER NOT NULL,
+      trouve INTEGER NOT NULL, quand INTEGER NOT NULL, PRIMARY KEY (jour, joueur));`);
+  }
+
+  noter(jour, joueur, essais, trouve) {
+    this.sql.exec('INSERT OR IGNORE INTO resultats (jour, joueur, essais, trouve, quand) VALUES (?, ?, ?, ?, ?)',
+      jour, joueur, essais, trouve ? 1 : 0, Date.now());
+    this.sql.exec('DELETE FROM resultats WHERE jour < ?', dateJapon(Date.now() - GARDE_DEFIS * 864e5));
+    return this.stats(jour);
+  }
+
+  /** { joueurs, repartition : [trouvé en 1 essai, … en 6, pas trouvé] } */
+  stats(jour) {
+    const repartition = Array(ESSAIS_DEFI + 1).fill(0);
+    for (const r of this.sql.exec('SELECT essais, trouve, COUNT(*) AS n FROM resultats WHERE jour = ? GROUP BY essais, trouve', jour)) {
+      repartition[r.trouve ? r.essais - 1 : ESSAIS_DEFI] += r.n;
+    }
+    return { joueurs: repartition.reduce((a, b) => a + b, 0), repartition };
   }
 }
 

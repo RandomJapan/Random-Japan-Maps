@@ -1626,6 +1626,9 @@ body.en-jeu .btn-pres, body.en-visite .btn-pres { display: none; }
 .defi-credit a { color: inherit; }
 .defi-grille { margin: 0; font-size: 26px; letter-spacing: 4px; line-height: 1.2; text-align: center; }
 .defi-verdict { margin: 0; text-align: center; font-weight: 700; color: var(--rouge); }
+/* se comparer aux autres joueurs (le serveur du jeu) */
+.defi-monde { margin: 0; padding: 7px 10px; border-left: 3px solid var(--sarcelle); background: rgba(29, 86, 82, .09); font-size: 13.5px; line-height: 1.45; color: var(--encre-2); }
+.defi-monde[hidden] { display: none; }
 .defi-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; text-align: center; }
 .defi-stats b { display: block; font: 400 24px/1.1 var(--police-titre); font-variant-numeric: tabular-nums; }
 .defi-stats small { font-size: 11.5px; color: var(--encre-3); }
@@ -1642,7 +1645,7 @@ body.en-jeu .btn-pres, body.en-visite .btn-pres { display: none; }
 .defi-boutons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .defi-boutons .btn-lancer, .defi-boutons .btn-secondaire { margin: 0; padding: 11px 8px; font-size: 14.5px; }
 /* ce qui se montre à chaque moment : l'accueil, les essais, la fin */
-.defi:not([data-phase="fin"]) :is(.defi-lieu, .defi-grille, .defi-verdict, .defi-stats, .defi-barres, .defi-compte, .defi-boutons) { display: none; }
+.defi:not([data-phase="fin"]) :is(.defi-lieu, .defi-grille, .defi-verdict, .defi-monde, .defi-stats, .defi-barres, .defi-compte, .defi-boutons) { display: none; }
 .defi:not([data-phase="devine"]) .defi-essais, .defi .defi-essais:empty { display: none; }
 .defi:not([data-phase="accueil"]) :is(.defi-date, .defi-note), .defi[data-phase="fin"] :is(.jeu-texte, .jeu-titre) { display: none; }
 

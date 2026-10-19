@@ -7,9 +7,13 @@
   "durable_objects": {
     "bindings": [
       { "name": "SALONS", "class_name": "Salon" },
-      { "name": "ANNUAIRE", "class_name": "Annuaire" }
+      { "name": "ANNUAIRE", "class_name": "Annuaire" },
+      { "name": "DEFIS", "class_name": "Defis" }
     ]
   },
   // L'offre gratuite n'accepte que les Durable Objects rangés en SQLite
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Salon", "Annuaire"] }]
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["Salon", "Annuaire"] },
+    { "tag": "v2", "new_sqlite_classes": ["Defis"] }
+  ]
 }

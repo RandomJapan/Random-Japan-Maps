@@ -249,7 +249,8 @@ Il est prêt mais **caché** : il sortira le mois prochain, avec un TikTok. Pour
 
 Un **lieu mystère par jour, le même pour tout le monde**, comme le jeu Wordle. Comme le jeu, il est caché : en **mode développeur**, un bouton « Défi » apparaît (avec un point rouge tant que tu n'as pas joué aujourd'hui).
 - On voit la photo du lieu, **floue**. On touche la carte là où on pense que c'est, puis on valide : on apprend la **distance**, une **flèche** vers le lieu, et si c'est froid, tiède, chaud ou brûlant. La photo devient plus nette à chaque essai. **6 essais** ; trouvé si on tombe à moins de 20 km.
-- À la fin : le lieu, les petits carrés à partager (🟦🟨🟧🟥🎯, sans dévoiler le lieu), les statistiques (parties, % trouvés, série de jours, record), le temps avant le prochain défi, et un bouton vers la vidéo du lieu.
+- À la fin : le lieu, les petits carrés à partager (🟦🟨🟧🟥🎯, sans dévoiler le lieu), **la comparaison avec les autres joueurs du jour** (« Aujourd'hui, 78 % des 9 joueurs l'ont trouvé, en 3,1 essais en moyenne. Tu fais mieux que 38 % des autres joueurs. »), les statistiques (parties, % trouvés, série de jours, record), le temps avant le prochain défi, et un bouton vers la vidéo du lieu.
+- La comparaison passe par le petit serveur du jeu à plusieurs, chez Cloudflare (gratuit). Il ne garde que le résultat de chaque joueur (trouvé ou non, en combien d'essais), sans nom, pendant 60 jours.
 - Le défi change **à minuit, heure du Japon** (16 h ou 17 h en France). Le défi n° 1 est celui du 13 octobre 2026 : le jour de la sortie, Claude peut faire repartir les numéros à 1.
 - Les lieux du défi sont ceux qui ont une photo (comme le jeu). Un lieu tout juste ajouté attend 3 jours avant d'y entrer.
 - Le lien partagé (…/?defi) ouvre le défi pour tout le monde, même avant la sortie : c'est toi qui le partages.

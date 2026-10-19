@@ -9,8 +9,13 @@
 //  Le résultat se partage en petits carrés, sans dévoiler le lieu.
 //  La partie du jour, la série et les statistiques restent dans ce
 //  navigateur. Le défi change à minuit, heure du Japon.
+//  À la fin, on se compare aux autres joueurs (demandé le 2026-10-19) :
+//  le résultat part au serveur du jeu (serveur/, « carnet des Défis »),
+//  qui renvoie ceux de tout le monde pour ce jour-là.
 // ================================================================
 import { echapper, kmEntre, cap, jourDuDefi, debutDuJour } from './commun.js';
+import { identite } from './amis.js';
+import { adresseServeur } from './reseau.js';
 
 const ESSAIS = 6;
 const TROUVE_KM = 20; // plus près, le lieu est trouvé
@@ -18,7 +23,7 @@ const TROUVE_KM = 20; // plus près, le lieu est trouvé
 const TEMPERATURES = [[400, 'froid', '🟦', '#4f7fa6'], [150, 'tiede', '🟨', '#c9971c'], [60, 'chaud', '🟧', '#d9622b'], [0, 'brulant', '🟥', '#a8321f']];
 const FLOU = [11, 8, 5.5, 3.5, 2, 0.8]; // px de flou de la photo avant chaque essai : de plus en plus nette
 const NOUVEAU_LIEU = 3; // jours : un lieu tout juste ajouté au tableau n'entre dans le défi qu'après (sa photo libre arrive la nuit)
-const MEMO = 'defi'; // localStorage : la partie du jour { jour, essais: [{ lng, lat }], fini } (app.js le lit aussi)
+const MEMO = 'defi'; // localStorage : la partie du jour { jour, essais: [{ lng, lat }], fini, envoye } (app.js le lit aussi)
 const MEMO_STATS = 'defiStats'; // { joues, trouves, serie, record, dernierTrouve, repartition: [en 1 essai … en 6, perdu] }
 const FLECHES = ['⬆️', '↗️', '➡️', '↘️', '⬇️', '↙️', '⬅️', '↖️'];
 const ROUGE = '#a8321f';
@@ -66,6 +71,7 @@ export function brancherDefi(map, maplibregl, outils) {
     <div class="defi-lieu"><img alt=""><div><b></b><small></small><small class="defi-credit"></small></div></div>
     <p class="defi-grille" aria-hidden="true"></p>
     <p class="defi-verdict"></p>
+    <p class="defi-monde" hidden></p>
     <ol class="defi-essais"></ol>
     <p class="jeu-texte"></p>
     <div class="defi-stats"></div>
@@ -245,7 +251,9 @@ export function brancherDefi(map, maplibregl, outils) {
     reperes.montrer(l.epingle, true);
     map.triggerRepaint();
     tracerTraits();
+    $('.defi-monde').hidden = true;
     afficher();
+    comparer();
     clearInterval(etat.compte);
     etat.compte = setInterval(majCompte, 20000);
     const bornes = new maplibregl.LngLatBounds([l.lng, l.lat], [l.lng, l.lat]);
@@ -321,6 +329,53 @@ export function brancherDefi(map, maplibregl, outils) {
       $('.defi-partager span').textContent = t('defiPartager');
       $('.defi-video span').textContent = t('defiVideo');
     }
+  }
+
+  // ---- Se comparer aux autres joueurs
+  /**
+   * Envoie le résultat du jour au serveur du jeu (une seule fois : « envoye » dans la mémoire) et lit ceux de tout
+   * le monde ce jour-là ; sinon (déjà envoyé) les relit. Sans serveur ou hors ligne, il n'y a simplement pas de comparaison.
+   */
+  async function comparer() {
+    const base = adresseServeur().replace(/^ws/, 'http'); // (wss://… → https://…)
+    if (!base) return;
+    const partie = etat;
+    const memo = lire(MEMO) || {};
+    const date = new Date(debutDuJour(debut, etat.jour) + 9 * 3600e3).toISOString().slice(0, 10); // la date au Japon
+    const adresseDefi = `${base}/defi/${date}`;
+    try {
+      // (un corps en texte simple : le navigateur n'a pas besoin de demander la permission avant)
+      const r = memo.envoye ? await fetch(adresseDefi, { cache: 'no-store' })
+        : await fetch(adresseDefi, { method: 'POST', body: JSON.stringify({ joueur: identite().id, essais: etat.essais.length, trouve: etat.trouve }) });
+      if (!r.ok) return;
+      const stats = await r.json();
+      if (!memo.envoye && memo.jour === partie.jour) ecrire(MEMO, { ...memo, envoye: true });
+      if (etat === partie && etat.phase === 'fin') montrerMonde(stats);
+    } catch { /* hors ligne */ }
+  }
+
+  /** « Aujourd'hui, 64 % des 128 joueurs l'ont trouvé, en 3,8 essais en moyenne. Tu fais mieux que 71 % des autres. » */
+  function montrerMonde({ joueurs, repartition }) {
+    const el = $('.defi-monde');
+    if (!joueurs || !Array.isArray(repartition) || repartition.length !== ESSAIS + 1) return;
+    const autres = joueurs - 1; // (le résultat de ce joueur est compté dedans)
+    if (autres < 1) {
+      el.textContent = t('defiSeul');
+    } else {
+      const trouves = repartition.slice(0, ESSAIS).reduce((a, b) => a + b, 0);
+      const moyenne = trouves ? repartition.slice(0, ESSAIS).reduce((s, n, i) => s + n * (i + 1), 0) / trouves : 0;
+      const lignes = [t('defiMonde', Math.round((trouves / joueurs) * 100), joueurs,
+        trouves ? moyenne.toLocaleString(langue(), { maximumFractionDigits: 1 }) : '')];
+      if (etat.trouve) {
+        // moins bien : trouvé en plus d'essais, ou pas trouvé
+        const moinsBien = repartition.slice(etat.essais.length).reduce((a, b) => a + b, 0);
+        const part = Math.round((moinsBien / autres) * 100);
+        if (moinsBien === autres) lignes.push(t('defiMieuxTous'));
+        else if (part > 0) lignes.push(t('defiMieux', part));
+      }
+      el.innerHTML = lignes.map(echapper).join('<br>');
+    }
+    el.hidden = false;
   }
 
   function afficherStatistiques() {
