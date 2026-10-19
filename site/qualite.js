@@ -19,11 +19,15 @@
 export const NIVEAUX = ['fine', 'legere', 'tres-legere'];
 const MEMO = 'qualite'; // localStorage : { niveau, impose, puce, echec: { niveau, quand } }
 const FENETRE = 90; // écarts entre deux images de mouvement, par jugement (1,5 s à 60 images/s)
-const LENT = 25; // ms : une médiane au-delà (moins de 40 images/s), l'appareil peine
+const LENT = 25; // ms : une médiane au-delà (moins de 40 images/s) deux fois de suite, l'appareil peine…
+const TRES_LENT = 50; // … une seule fois suffit au-delà de celle-ci (moins de 20 images/s)
 const AISE = 18; // ms : en dessous (60 images/s), il est à l'aise…
 const GPU_AISE = 6; // … si sa carte graphique a de la marge (ms par image, quand le navigateur sait le mesurer)
 const SACCADE = 50; // ms : une image qui se fait attendre
-const ATTENTE = 3000; // ms après le branchement : les premières tuiles arrivent, la carte est forcément chargée
+// ms après le branchement : la carte finit de charger ses premières tuiles, rien à voir avec le rythme des
+// mouvements (2026-10-19 : un portable Iris Xe, jugé trop tôt, était descendu jusqu'à « très légère » ; « légère »
+// lui donne 56 images/s)
+const ATTENTE = 6000;
 const OUBLI_ECHEC = 30 * 24 * 3600e3; // un niveau trop lourd pour cet appareil n'est pas retenté avant 30 jours
 const LOGICIEL = /swiftshader|llvmpipe|softpipe|software|basic render/i;
 
@@ -51,10 +55,21 @@ function ecrire(m) {
 }
 const valable = (n) => NIVEAUX.includes(n);
 
-/** Avant de créer la carte : le niveau retenu, et ses réglages (le lissage des bords ne se choisit qu'à la création). */
+/**
+ * Avant de créer la carte : le niveau retenu, et ses réglages (le lissage des bords ne se choisit qu'à la création).
+ * À la première visite, le niveau est deviné d'après la puce graphique, lue sur une petite toile jetable : sans
+ * cela, un portable gardait le lissage des bords (coûteux pour lui) jusqu'à sa deuxième visite.
+ */
 export function niveauDeDepart() {
   const m = lire();
-  const niveau = valable(m.impose) ? m.impose : valable(m.niveau) ? m.niveau : 'fine';
+  let niveau = valable(m.impose) ? m.impose : valable(m.niveau) ? m.niveau : null;
+  if (!niveau) {
+    try {
+      const gl = document.createElement('canvas').getContext('webgl2');
+      niveau = gl ? deviner(nomPuce(gl)) : 'fine';
+      gl?.getExtension('WEBGL_lose_context')?.loseContext();
+    } catch { niveau = 'fine'; }
+  }
   return { niveau, ...reglagesDe(niveau) };
 }
 
@@ -92,7 +107,7 @@ export function brancherQualite(map, outils) {
   let impose = valable(memo.impose) ? memo.impose : null;
   let niveau = impose || (memo.puce === puce && valable(memo.niveau) ? memo.niveau : deviner(puce));
   let plein = false;
-  let descendu = false, monte = false, aiseDeSuite = 0;
+  let descendu = false, monte = false, aiseDeSuite = 0, lentDeSuite = 0;
   const debut = performance.now();
   const fenetre = { ecarts: [], gpu: [] }; // la fenêtre en cours de jugement
   const recents = { ecarts: [], gpu: [] }; // les dernières images en mouvement, pour le panneau
@@ -149,12 +164,16 @@ export function brancherQualite(map, outils) {
     // En économie d'énergie, les navigateurs limitent à 30 images/s : des écarts réguliers de 33 ms ne disent rien
     // de la carte (sauf si la carte graphique, elle, est vraiment chargée).
     const plafond = ecarts.filter((e) => e > 30 && e < 37).length / ecarts.length > 0.7 && (gpu === null || gpu < 12);
-    const peine = (med > LENT && !plafond) || saccades > 0.12;
+    // deux fenêtres lentes de suite (une rafale de tuiles qui arrivent ne suffit pas), ou une seule très lente
+    const lente = (med > LENT && !plafond) || saccades > 0.12;
+    lentDeSuite = lente ? lentDeSuite + 1 : 0;
+    const peine = lente && (lentDeSuite >= 2 || (med > TRES_LENT && !plafond));
     const aise = med < AISE && saccades < 0.02 && (gpu === null || gpu < GPU_AISE);
     const i = NIVEAUX.indexOf(niveau);
     const fps = Math.round(1000 / med);
     if (peine) {
       aiseDeSuite = 0;
+      lentDeSuite = 0;
       if (i >= NIVEAUX.length - 1) return;
       if (monte) { // le niveau d'où l'on vient de remonter était bien trop lourd : on s'en souvient
         const m = lire();
@@ -267,7 +286,7 @@ export function brancherQualite(map, outils) {
     if (!n) return;
     impose = n === 'auto' ? null : n;
     descendu = monte = false;
-    aiseDeSuite = 0;
+    aiseDeSuite = lentDeSuite = 0;
     fenetre.ecarts.length = fenetre.gpu.length = 0;
     if (impose && impose !== niveau) changer(impose);
     else { retenir(); majPanneau(); }
