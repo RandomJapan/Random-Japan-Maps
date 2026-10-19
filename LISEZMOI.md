@@ -212,9 +212,10 @@ Il sert pour un **nouveau lieu, pas encore sur la carte** : tu filmes le début 
   - Elle est toujours **en anglais**, comme tes vidéos. Il faut au moins le nom ; la préfecture vient de la position.
   - Sur iPhone, le menu de partage s'ouvre : choisis **Enregistrer l'image**, elle va dans tes photos. Sur Android, choisis l'appli de montage ou l'enregistrement. Sur ordinateur, l'image se télécharge.
   - Elle est grande (4 fois la taille du bandeau sur un téléphone) : réduis-la dans le montage, elle reste nette.
-- **Pour filmer : coche « Enregistrer le plongeon en vidéo (MP4) »** (juste au-dessus de Plonger ; la carte s'en souvient), puis appuie sur Plonger.
-  - La carte passe dans un cadre vertical, **en anglais** (comme tes vidéos), et l'écran montre la vidéo telle qu'elle s'enregistre : **juste le plongeon, sans aucun bouton**, avec l'adresse de la carte en haut et le bandeau du nom à l'arrivée.
-  - Elle se fabrique **image par image**, en **1080 × 1920** (le format TikTok), 30 images par seconde : chaque image attend que le relief soit net, donc la vidéo est fluide même si le téléphone rame. C'est parfois un peu plus lent que le vrai plongeon.
+- **Pour filmer : coche « Enregistrer le plongeon en vidéo (MP4) »** (juste au-dessus de Plonger ; la carte s'en souvient), choisis le **format**, puis appuie sur Plonger.
+  - **Format :** **Horizontal 16:9** (1920 × 1080, le choix normal) ou **Vertical 9:16** (1080 × 1920, TikTok plein écran). Le même réglage marche sur téléphone et sur ordinateur.
+  - La carte passe **en anglais** (comme tes vidéos) le temps de l'enregistrement, et l'écran montre la vidéo telle qu'elle s'enregistre : **juste le plongeon, sans aucun bouton**, avec l'adresse de la carte en haut et le bandeau du nom à l'arrivée.
+  - Elle se fabrique **image par image**, 30 images par seconde : chaque image attend que le relief soit net, donc la vidéo est fluide même si le téléphone rame. C'est parfois un peu plus lent que le vrai plongeon.
   - Une fois la caméra arrivée, le bouton **Arrêter l'enregistrement** apparaît : appuie quand l'orbite te suffit (Échap fait pareil sur ordinateur). Une minute au plus.
   - La vidéo s'affiche : **Enregistrer la vidéo**. Sur iPhone, choisis « Enregistrer la vidéo » dans le menu : elle va dans tes photos, prête pour CapCut. Sur ordinateur, elle se télécharge (plongeon-nom-du-lieu.mp4).
   - Elle reprend l'heure et la saison de la carte : de nuit au Japon, la vidéo est de nuit. Pour une vidéo de jour, règle l'heure avec le petit bouton rouge à côté de l'horloge (mode développeur).

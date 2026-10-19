@@ -2,7 +2,8 @@
 //  L'enregistrement du plongeon en vidéo MP4 (mode développeur, onglet Plongeon : case « Enregistrer
 //  le plongeon en vidéo »). Demandé le 2026-10-19 pour le début des TikToks : juste le plongeon, sans
 //  aucun bouton, de bonne qualité.
-//  - La carte se met dans un cadre 9:16 au milieu de l'écran, dessinée en 1080 × 1920, en anglais
+//  - La carte se met dans un cadre au format du film, dessinée à sa taille : horizontal 16:9 en 1920 × 1080
+//    (demandé juste après, le même jour : c'est le choix par défaut) ou vertical 9:16 en 1080 × 1920 ; en anglais
 //    (la langue des vidéos, comme l'affiche du nom).
 //  - Le temps de la page s'arrête, puis avance image par image (1/30 s) : la carte (MapLibre lit
 //    performance.now), les minuteries, les animations CSS. Chaque image attend que le relief soit
@@ -17,46 +18,63 @@
 import { imageAffiche, MARGE_AFFICHE, ECHELLE_AFFICHE } from './affiche.js';
 import { chargerImage } from './bravo-image.js';
 import { echapper, partagerFichier, telecharger } from './commun.js';
+import { TEXTES } from './config.js';
 
 const URL_MUXER = 'https://cdn.jsdelivr.net/npm/mp4-muxer@5.2.2/+esm';
-const LARGEUR = 1080, HAUTEUR = 1920;
+// cadre : la taille de la carte (px CSS) pendant le film, le film = cadre × pixelRatio ; vertical : la mise en page
+// d'un téléphone dans ce cadre (caméra de départ, bandeau du nom plus haut), sinon celle d'un ordinateur
+const FORMATS = {
+  '16:9': { largeur: 1920, hauteur: 1080, cadre: [1280, 720], vertical: false },
+  '9:16': { largeur: 1080, hauteur: 1920, cadre: [432, 768], vertical: true },
+};
 const IMAGES = 30; // par seconde
 const DEBIT = 16_000_000; // bits par seconde : large, pour un début de vidéo net
 const CODECS = ['avc1.640028', 'avc1.4d0028', 'avc1.640032', 'avc1.4d0032']; // H.264 High puis Main, niveau 4 puis 5
 const DUREE_MAX = 60; // s de film au plus (la mémoire du téléphone)
 const ATTENTE_RELIEF = 4000; // ms réelles au plus à attendre les tuiles d'une image
-const LARGEUR_CADRE = 432; // px CSS du cadre (comme les films de outils/video) : × 2,5 = 1080
-const BAS_TITRE = 0.22; // le bandeau du nom à 22 % du bas, hors de la légende de TikTok (style.css, body.plongeon)
+// le bandeau du nom : en vertical à 22 % du bas, hors de la légende de TikTok (style.css, body.plongeon) ; en horizontal
+// à 52 px du bas et un peu plus grand, comme sur un ordinateur (body.mode-film .visite-titre)
+const BAS_TITRE_VERTICAL = 0.22, BAS_TITRE_HORIZONTAL = 52, TAILLE_TITRE_HORIZONTAL = 28 / 22;
 const HALO_TERRE = '#f6eedb', HALO_MER = 'rgba(173, 208, 199, 0.9)';
 const SOURCES = '© Mapterhorn · © OpenStreetMap · Natural Earth';
 
-/** Le codec H.264 que ce navigateur sait fabriquer en 1080 × 1920, ou null (pas de WebCodecs, ou pas de H.264). */
-export async function codecMp4() {
+/** Le codec H.264 que ce navigateur sait fabriquer à la taille de ce format, ou null (pas de WebCodecs, ou pas de H.264). */
+export async function codecMp4(format) {
   if (typeof VideoEncoder === 'undefined' || typeof VideoFrame === 'undefined') return null;
   for (const codec of CODECS) {
     try {
-      const { supported } = await VideoEncoder.isConfigSupported(configuration(codec));
+      const { supported } = await VideoEncoder.isConfigSupported(configuration(codec, leFormat(format)));
       if (supported) return codec;
     } catch { /* suivant */ }
   }
   return null;
 }
 
-const configuration = (codec) => ({
-  codec, width: LARGEUR, height: HAUTEUR, bitrate: DEBIT, framerate: IMAGES, latencyMode: 'quality', avc: { format: 'avc' },
+const leFormat = (format) => FORMATS[format] || FORMATS['16:9'];
+const configuration = (codec, f) => ({
+  codec, width: f.largeur, height: f.hauteur, bitrate: DEBIT, framerate: IMAGES, latencyMode: 'quality', avc: { format: 'avc' },
 });
 
 /**
- * Prépare l'enregistrement (le cadre 9:16, l'anglais) ; le film commence à demarrer() (l'image fixe du départ)
+ * Prépare l'enregistrement (le cadre du format, l'anglais) ; le film commence à demarrer() (l'image fixe du départ)
  * et finit à terminer() (le bouton, Échap, ou la fin du plongeon).
- * outils : { codec, t, langue(), changerLangue(l), afficherMessage, nomFichier, titres: [{ nom, nomJa, infos }],
- *            arreterPlongeon() }
+ * outils : { codec, format ('16:9' | '9:16'), langue(), changerLangue(l), afficherMessage, adresse, nomFichier,
+ *            titres: [{ nom, nomJa, infos }], arreterPlongeon() }
  * Renvoie { demarrer, arrive, terminer }.
  */
 export function enregistrer(map, outils) {
-  const { codec, t, afficherMessage } = outils;
+  const { codec, afficherMessage } = outils;
+  const f = leFormat(outils.format);
+  const LARGEUR = f.largeur, HAUTEUR = f.hauteur;
+  const [L, H] = f.cadre; // le cadre de la carte, en px CSS (il peut déborder de l'écran : on y voit l'image du film)
+  const k = LARGEUR / L; // pixels du film par pixel CSS
   const conteneur = map.getContainer();
   const avant = { pr: map.getPixelRatio(), langue: outils.langue() };
+  // les textes de l'écran d'enregistrement restent dans la langue du propriétaire (la carte, elle, passe en anglais)
+  const t = (cle, ...args) => {
+    const v = TEXTES[avant.langue]?.[cle] ?? TEXTES.en[cle];
+    return typeof v === 'function' ? v(...args) : v;
+  };
   let horloge = null; // le temps de la page, arrêté puis avancé image par image
   let encodeur = null, muxer = null, cible = null;
   let n = 0; // images du film
@@ -71,7 +89,7 @@ export function enregistrer(map, outils) {
 
   // ---- L'écran pendant l'enregistrement : l'image du film elle-même, l'état, et « Arrêter » après l'arrivée
   const ecran = document.createElement('div');
-  ecran.className = 'enregistrement';
+  ecran.className = `enregistrement ${f.vertical ? 'vertical' : 'horizontal'}`;
   ecran.innerHTML = `<div class="enregistrement-tete"><span class="enregistrement-point"></span><span class="enregistrement-etat"></span></div>
     <div class="enregistrement-image"></div>
     <p class="enregistrement-note"></p>
@@ -89,16 +107,13 @@ export function enregistrer(map, outils) {
   c.fillStyle = '#111';
   c.fillRect(0, 0, LARGEUR, HAUTEUR);
 
-  // ---- Le cadre 9:16 (tout de suite : la caméra de départ du plongeon se calcule dans ce cadre)
-  const L = Math.floor(Math.min(LARGEUR_CADRE, innerWidth, (innerHeight * 9) / 16));
-  const H = Math.round((L * 16) / 9);
+  // ---- Le cadre du film (tout de suite : la caméra de départ du plongeon se calcule dans ce cadre)
   document.body.style.setProperty('--cadre-l', `${L}px`);
   document.body.style.setProperty('--cadre-h', `${H}px`);
-  document.body.classList.add('enregistre');
+  document.body.classList.add('enregistre', f.vertical ? 'film-vertical' : 'film-horizontal');
   map.resize();
-  map.setPixelRatio(LARGEUR / L);
+  map.setPixelRatio(k);
   if (avant.langue !== 'en') outils.changerLangue('en');
-  const k = LARGEUR / L; // pixels du film par pixel CSS
 
   /** Le plongeon est prêt (image fixe du départ) : le temps s'arrête, puis le film avance image par image. */
   function demarrer() {
@@ -115,7 +130,7 @@ export function enregistrer(map, outils) {
           output: (morceau, meta) => muxer.addVideoChunk(morceau, meta),
           error: (e) => { console.warn('Encodage', e); arret = true; },
         });
-        encodeur.configure(configuration(codec));
+        encodeur.configure(configuration(codec, f));
         while (!arret) {
           if (n >= DUREE_MAX * IMAGES) break;
           horloge.avancer(1000 / IMAGES);
@@ -166,7 +181,7 @@ export function enregistrer(map, outils) {
     try { encodeur?.close(); } catch { /* déjà fermé */ }
     etape = 'fini';
     outils.arreterPlongeon(); // (sans effet s'il est déjà arrêté : c'est peut-être lui qui nous arrête)
-    document.body.classList.remove('enregistre');
+    document.body.classList.remove('enregistre', 'film-vertical', 'film-horizontal');
     map.setPixelRatio(avant.pr);
     map.resize();
     if (avant.langue !== 'en') outils.changerLangue(avant.langue);
@@ -182,7 +197,7 @@ export function enregistrer(map, outils) {
   function montrerFilm(fichier) {
     const adresse = URL.createObjectURL(fichier);
     ecran.classList.add('fini');
-    ecran.querySelector('.enregistrement-tete').innerHTML = `<span class="enregistrement-etat">${echapper(t('enregistrementPret', duree(n)))}</span>`;
+    ecran.querySelector('.enregistrement-tete').innerHTML = `<span class="enregistrement-etat">${echapper(t('enregistrementPret', duree(n), `${LARGEUR} × ${HAUTEUR}`))}</span>`;
     ecran.querySelector('.enregistrement-image').innerHTML = `<video src="${adresse}" autoplay muted loop playsinline controls></video>`;
     ecran.querySelector('.enregistrement-note').textContent = '';
     ecran.querySelector('.enregistrement-boutons').innerHTML = `<button type="button" class="btn-lancer" data-sauver>${echapper(t('enregistrementSauver'))}</button>
@@ -316,10 +331,12 @@ export function enregistrer(map, outils) {
     const im = images.titres.get(el.querySelector('b')?.textContent || '');
     if (a < 0.02 || !im) return;
     const glisse = new DOMMatrixReadOnly(s.transform === 'none' ? undefined : s.transform).m42; // l'entrée : 12 px → 0
-    const largeur = im.width / ECHELLE_AFFICHE, hauteur = im.height / ECHELLE_AFFICHE; // px CSS, avec la place de l'ombre
-    const boiteL = largeur - 2 * MARGE_AFFICHE.cote, boiteH = hauteur - MARGE_AFFICHE.haut - MARGE_AFFICHE.bas;
-    const x = (L - boiteL) / 2 - MARGE_AFFICHE.cote;
-    const y = H * (1 - BAS_TITRE) - boiteH - MARGE_AFFICHE.haut + glisse;
+    const e = f.vertical ? 1 : TAILLE_TITRE_HORIZONTAL;
+    const largeur = (im.width / ECHELLE_AFFICHE) * e, hauteur = (im.height / ECHELLE_AFFICHE) * e; // px CSS, avec l'ombre
+    const boiteL = largeur - 2 * MARGE_AFFICHE.cote * e, boiteH = hauteur - (MARGE_AFFICHE.haut + MARGE_AFFICHE.bas) * e;
+    const x = (L - boiteL) / 2 - MARGE_AFFICHE.cote * e;
+    const bas = f.vertical ? H * (1 - BAS_TITRE_VERTICAL) : H - BAS_TITRE_HORIZONTAL;
+    const y = bas - boiteH - MARGE_AFFICHE.haut * e + glisse;
     c.globalAlpha = a;
     c.drawImage(im, x * k, y * k, largeur * k, hauteur * k);
     c.globalAlpha = 1;

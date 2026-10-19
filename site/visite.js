@@ -429,11 +429,14 @@ export function brancherVisite(map, outils) {
 
   /** Sur téléphone, le nom du lieu est plus haut (hors de la zone des textes de TikTok) : le lieu se pose au-dessus. */
   function margePlongeon() {
-    if (!estTelephone()) return { ...SANS_MARGE, bottom: 90 };
     const h = map.getContainer().clientHeight;
-    // le cadre 9:16 du plongeon enregistré (enregistrement.js) est moins haut qu'un téléphone : le lieu y reste
-    // au milieu, sinon son modèle 3D et son épingle montaient sous l'adresse, en haut (le bandeau, lui, est plus bas)
-    if (document.body.classList.contains('enregistre')) return { ...SANS_MARGE, bottom: Math.round(h * 0.04) };
+    // Le cadre du plongeon enregistré (enregistrement.js) : le lieu y descend un peu, sinon son modèle 3D et son
+    // épingle montaient sous l'adresse, en haut (le bandeau du nom, lui, est plus bas). Un cadre 9:16 est moins
+    // haut qu'un téléphone : le lieu y reste presque au milieu ; en 16:9, un peu sous le milieu.
+    if (document.body.classList.contains('enregistre')) {
+      return document.body.classList.contains('film-vertical') ? { ...SANS_MARGE, bottom: Math.round(h * 0.04) } : { ...SANS_MARGE, top: Math.round(h * 0.1) };
+    }
+    if (!estTelephone()) return { ...SANS_MARGE, bottom: 90 };
     return { ...SANS_MARGE, bottom: Math.round(h * 0.22) + 40 };
   }
 

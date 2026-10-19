@@ -23,8 +23,10 @@ import { lireSaisons, blocFiche, contenuPanneau, lieuxDuMois, nomMois, iconeDuMo
 import { echapper, envoyer, retirerParametres, tactile, jourDuDefi } from './commun.js';
 
 const $ = (id) => document.getElementById(id);
-// (le cadre 9:16 de l'enregistrement du plongeon compte comme un téléphone, même sur ordinateur)
-const estTelephone = () => matchMedia('(max-width: 720px)').matches || document.body.classList.contains('enregistre');
+// Pendant l'enregistrement du plongeon (enregistrement.js), c'est le format du film qui compte : vertical comme un
+// téléphone, horizontal comme un ordinateur, quel que soit l'appareil
+const estTelephone = () => (document.body.classList.contains('enregistre')
+  ? document.body.classList.contains('film-vertical') : matchMedia('(max-width: 720px)').matches);
 
 const SVG = {
   coche: '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="m5 12.5 4.5 4.5L19 7.5"/></svg>',
@@ -263,8 +265,8 @@ function construireCategories(lignes, lieux) {
 const cam = CONFIG.camera;
 function vueDepart() {
   const v = estTelephone() ? cam.telephone : cam.ordinateur;
-  // le cadre du film (enregistrement.js) est un peu plus large qu'un téléphone (432 px) : le Japon le remplit pareil
-  const film = document.body.classList.contains('enregistre') ? Math.log2(map.getContainer().clientWidth / 390) : 0;
+  // le cadre du film (enregistrement.js) : le Japon le remplit comme un téléphone de 390 px ou un écran de 1400 px
+  const film = document.body.classList.contains('enregistre') ? Math.log2(map.getContainer().clientWidth / (estTelephone() ? 390 : 1400)) : 0;
   return { center: v.centre, zoom: v.zoom + film, pitch: v.inclinaison, bearing: v.orientation };
 }
 

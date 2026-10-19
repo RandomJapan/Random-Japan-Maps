@@ -31,7 +31,7 @@ export function brancherOngletPlongeon(app) {
   const CHAMPS_PLONGEON = [['plongeon-position', 'position'], ['plongeon-nom', 'nom'], ['plongeon-nom-ja', 'nomJa'],
     ['plongeon-type', 'type'], ['plongeon-depart', 'depart'], ['plongeon-depart-nom', 'departNom'],
     ['plongeon-depart-nom-ja', 'departNomJa'], ['plongeon-depart-type', 'departType'],
-    ['plongeon-distance', 'distance'], ['plongeon-orbite', 'orbite']];
+    ['plongeon-distance', 'distance'], ['plongeon-orbite', 'orbite'], ['plongeon-format', 'format']];
   let ongletVisite = 'visite'; // 'visite', 'plongeon' ou 'point'
   let champsRemplis = false;
   let minuteriePosition = 0;
@@ -174,14 +174,15 @@ export function brancherOngletPlongeon(app) {
   async function preparerFilm(reglages) {
     try {
       const module = await import('./enregistrement.js');
-      const codec = await module.codecMp4();
+      const format = $('plongeon-format').value;
+      const codec = await module.codecMp4(format);
       if (!codec) {
         afficherMessage(t('enregistrementImpossible'));
         return null;
       }
       const point = !!reglages.depart;
       return module.enregistrer(app.map, {
-        codec, t, afficherMessage, adresse: app.adresse, langue: app.langue, changerLangue: app.changerLangue,
+        codec, format, afficherMessage, adresse: app.adresse, langue: app.langue, changerLangue: app.changerLangue,
         nomFichier: `plongeon-${slug($('plongeon-nom').value) || 'japon'}.mp4`,
         titres: [texteAffiche(), point ? texteAffiche('plongeon-depart') : null],
         arreterPlongeon: () => visite.arreter(),
@@ -288,6 +289,7 @@ export function brancherOngletPlongeon(app) {
   });
   $('plongeon-distance').addEventListener('change', () => preparerPlongeonBientot(0));
   $('plongeon-enregistrer').addEventListener('change', memoriserPlongeon);
+  $('plongeon-format').addEventListener('change', memoriserPlongeon);
   majTextesPlongeon();
 
   return {

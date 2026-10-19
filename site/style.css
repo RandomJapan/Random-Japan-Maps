@@ -1658,7 +1658,9 @@ body.en-jeu .btn-pres, body.en-visite .btn-pres { display: none; }
 }
 /* ---------- Le plongeon enregistré en vidéo (enregistrement.js ; mode développeur) ---------- */
 .case-enregistrer { margin-top: 2px; }
-/* la carte dans un cadre 9:16 au milieu de l'écran, dessinée en 1080 × 1920 */
+.case-enregistrer:has(input:not(:checked)) + .champ-format { display: none; } /* le format, seulement si on enregistre */
+/* la carte dans le cadre du film (1280 × 720 ou 432 × 768 px CSS, dessiné en 1920 × 1080 ou 1080 × 1920), au milieu
+   de l'écran : il peut en déborder, l'écran montre l'image du film par-dessus */
 body.enregistre { background: #15110c; }
 body.enregistre #carte {
   inset: auto; left: calc(50vw - var(--cadre-l) / 2); top: calc(50dvh - var(--cadre-h) / 2);
@@ -1678,6 +1680,9 @@ body.enregistre .vie-marine, body.enregistre .saison { display: none !important;
   display: block; height: min(calc(100dvh - var(--haut) - var(--bas) - 150px), 1920px); max-width: calc(100vw - 24px);
   aspect-ratio: 9 / 16; width: auto; object-fit: contain; border-radius: 4px; background: #000;
   box-shadow: 0 0 0 1px rgba(246, 238, 219, 0.25), 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+.enregistrement.horizontal .enregistrement-image canvas, .enregistrement.horizontal .enregistrement-image video {
+  aspect-ratio: 16 / 9; height: auto; width: min(calc(100vw - 24px), calc((100dvh - var(--haut) - var(--bas) - 150px) * 16 / 9), 1920px);
 }
 .enregistrement-note { margin: 0; max-width: 380px; text-align: center; font-size: 12.5px; line-height: 1.4; color: rgba(246, 238, 219, 0.7); }
 .enregistrement-note:empty { display: none; }
