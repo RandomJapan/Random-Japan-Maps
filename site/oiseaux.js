@@ -186,7 +186,8 @@ export function brancherOiseaux(map, maplibregl, reperes) {
   // On regarde chaque seconde s'il est l'heure d'un vol (pas d'horloge à chaque image en dehors des vols)
   setInterval(() => {
     if (!pres || vol || document.hidden || maintenant() < prochain) return;
-    if (document.body.classList.contains('plongeon') || document.body.classList.contains('en-jeu')) return;
+    // (ni pendant un plongeon ou une partie, ni sur un appareil peu puissant : qualite.js)
+    if (['plongeon', 'en-jeu', 'qualite-tres-legere'].some((c) => document.body.classList.contains(c))) return;
     prochain = maintenant() + (voler() ? entre(ENTRE_VOLS) : 3);
   }, 1000);
 }

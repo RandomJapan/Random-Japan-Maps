@@ -59,7 +59,7 @@ const configuration = (codec, f) => ({
  * Prépare l'enregistrement (le cadre du format, l'anglais) ; le film commence à demarrer() (l'image fixe du départ)
  * et finit à terminer() (le bouton, Échap, ou la fin du plongeon).
  * outils : { codec, format ('16:9' | '9:16'), langue(), changerLangue(l), afficherMessage, adresse, nomFichier,
- *            titres: [{ nom, nomJa, infos }], arreterPlongeon() }
+ *            titres: [{ nom, nomJa, infos }], arreterPlongeon(), pleineQualite(oui) }
  * Renvoie { demarrer, arrive, terminer }.
  */
 export function enregistrer(map, outils) {
@@ -112,6 +112,7 @@ export function enregistrer(map, outils) {
   document.body.style.setProperty('--cadre-h', `${H}px`);
   document.body.classList.add('enregistre', f.vertical ? 'film-vertical' : 'film-horizontal');
   map.resize();
+  outils.pleineQualite?.(true); // un appareil peu puissant dessine moins fin (qualite.js) : le film, lui, a le temps
   map.setPixelRatio(k);
   if (avant.langue !== 'en') outils.changerLangue('en');
 
@@ -183,6 +184,7 @@ export function enregistrer(map, outils) {
     outils.arreterPlongeon(); // (sans effet s'il est déjà arrêté : c'est peut-être lui qui nous arrête)
     document.body.classList.remove('enregistre', 'film-vertical', 'film-horizontal');
     map.setPixelRatio(avant.pr);
+    outils.pleineQualite?.(false);
     map.resize();
     if (avant.langue !== 'en') outils.changerLangue(avant.langue);
     if (!fichier) {

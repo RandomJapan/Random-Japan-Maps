@@ -473,6 +473,15 @@ function coucheBateaux(map, maplibregl, THREE, modele, flotte, outils) {
  * @param mers - positions [lng, lat] des noms des mers : ni bateau ni bête n'apparaît dessus
  */
 let reperesMer = null; // le gestionnaire de reperes.js : les bêtes ne sont sur la carte que pendant leur scène
+// Selon la puissance de l'appareil (qualite.js) : la houle redessinée moins souvent, sans ressac ni bateaux
+const REGLAGES = { imagesParSeconde: IMAGES_PAR_SECONDE, ressac: true, bateaux: true };
+let appliquerReglages = null;
+
+/** Règle la mer pour un appareil peu puissant : { imagesParSeconde, ressac, bateaux }. */
+export function reglerMer(r) {
+  Object.assign(REGLAGES, r);
+  appliquerReglages?.();
+}
 let typhonMaintenant = null;
 
 /** Fait arriver un typhon tout de suite, s'il a un chemin bien visible (sert aux essais). */
@@ -712,12 +721,22 @@ export function animerMer(map, maplibregl, { mers = [], reperes, tuiles } = {}) 
     const ajouter = () => {
       const dessous = map.getLayer('modeles-3d') ? 'modeles-3d' : undefined;
       map.addLayer(couche, dessous);
-      if (ressac) map.addLayer(ressac, dessous);
+      if (ressac) {
+        map.addLayer(ressac, dessous);
+        if (!REGLAGES.ressac) map.setLayoutProperty('ressac', 'visibility', 'none');
+      }
       // three.js (pour les bateaux) se charge une fois la carte affichée, sans retarder le démarrage
       if (!sansMouvement) setTimeout(chargerBateaux, 1500);
     };
     if (map.loaded() || map.style?._loaded) ajouter(); else map.once('load', ajouter);
   }).catch((e) => console.warn('Mer vivante : image des distances indisponible', e));
+
+  // Un appareil peu puissant (qualite.js) : pas de ressac, et les bateaux en mer s'en vont tout de suite
+  appliquerReglages = () => {
+    if (!REGLAGES.bateaux) flotte.length = 0;
+    if (map.getLayer('ressac')) map.setLayoutProperty('ressac', 'visibility', REGLAGES.ressac ? 'visible' : 'none');
+    map.triggerRepaint();
+  };
 
   // --- L'horloge de la mer (la houle, les bateaux et les bêtes avancent ensemble)
   if (sansMouvement) return;
@@ -725,18 +744,18 @@ export function animerMer(map, maplibregl, { mers = [], reperes, tuiles } = {}) 
   function boucle(maintenant) {
     requestAnimationFrame(boucle);
     const dt = (maintenant - avant) / 1000;
-    if (dt < 1 / IMAGES_PAR_SECONDE - 0.004) return;
+    if (dt < 1 / REGLAGES.imagesParSeconde - 0.004) return;
     avant = maintenant;
     if (document.hidden) return;
     const pas = Math.min(dt, 0.25);
     temps += pas; // la houle et le ressac bougent aussi de près (2026-10-09)
     if (!calme) {
-      if (bateauxPrets) avancerBateaux(pas);
+      if (bateauxPrets && REGLAGES.bateaux) avancerBateaux(pas);
       reveillerBetes();
       reveillerTyphon();
     }
     // on ne redessine que si quelque chose bouge à l'écran (de près, au-dessus des terres : rien)
-    if ((houlePrete && reglagesHoule(map.getZoom()).opacite > 0) || flotte.length || ressac?.visible()) map.triggerRepaint();
+    if ((houlePrete && reglagesHoule(map.getZoom()).opacite > 0) || flotte.length || (REGLAGES.ressac && ressac?.visible())) map.triggerRepaint();
   }
   requestAnimationFrame(boucle);
 }

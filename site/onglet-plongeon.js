@@ -186,6 +186,7 @@ export function brancherOngletPlongeon(app) {
         nomFichier: `plongeon-${slug($('plongeon-nom').value) || 'japon'}.mp4`,
         titres: [texteAffiche(), point ? texteAffiche('plongeon-depart') : null],
         arreterPlongeon: () => visite.arreter(),
+        pleineQualite: app.pleineQualite,
       });
     } catch (e) {
       console.warn('Enregistrement', e);

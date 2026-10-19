@@ -240,6 +240,15 @@ Tes outils qui ne sont pas pour les visiteurs (pas encore, ou jamais) : le **plo
 - Ce bouton n'existe que dans tes navigateurs : les visiteurs ne le voient jamais.
 - Si tu perds le lien, demande à Claude d'en faire un nouveau.
 
+## La fluidité sur les ordinateurs moins puissants
+
+Un PC portable ordinaire (vers 500 €) dessine avec une petite puce graphique, 20 à 50 fois moins puissante que la carte graphique de ton PC : la carte y saccadait en zoomant. Elle s'adapte maintenant toute seule :
+- Elle **mesure sa fluidité** pendant qu'on la bouge. Si l'appareil peine, elle dessine **un peu moins fin** : un niveau « légère », puis « très légère » si ça ne suffit pas (sans ressac, bateaux, grues ni flocons). Elle s'en souvient pour la visite suivante. Le visiteur ne voit rien d'autre qu'une carte plus fluide.
+- Sur un ordinateur à puce graphique intégrée, elle part directement en « légère ». À l'œil, c'est presque pareil.
+- Au repos, vue de loin, la carte ne se redessine plus sans arrêt (avant, la puce graphique travaillait à fond même quand personne ne touchait la carte).
+- **En mode développeur**, un bouton en forme de compteur (au-dessus de `</>`) ouvre « Fluidité » : le nom de la puce graphique, le nombre d'images par seconde quand la carte bouge, et les boutons **Auto / Fine / Légère / Très légère** pour imposer un niveau et comparer. Laisse-le sur **Auto** pour retrouver le choix de la carte.
+- Le plongeon filmé et l'image « Partager mon voyage » sont toujours faits en qualité « fine ».
+
 ## Le jeu « Devine le lieu » (pas encore public)
 
 Il est prêt mais **caché** : il sortira le mois prochain, avec un TikTok. Pour l'essayer, passe en **mode développeur** : un bouton « Devine le lieu » apparaît à côté des autres. Les visiteurs ne le voient pas.

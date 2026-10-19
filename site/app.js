@@ -7,7 +7,7 @@ import { CONFIG, TEXTES } from './config.js';
 import { iconeHTML } from './icons.js';
 import { PREFECTURES, REGIONS, chargerPrefectures, regionDe } from './regions.js';
 import { brancherModeles } from './couche3d.js';
-import { animerMer } from './mer.js';
+import { animerMer, reglerMer } from './mer.js';
 import { brancherOiseaux } from './oiseaux.js';
 import { brancherMusique } from './musique.js';
 import { brancherNomsRegions } from './noms-regions.js';
@@ -19,6 +19,7 @@ import { brancherPrecharge } from './precharge.js';
 import { brancherTuilesRelief } from './tuiles-relief.js';
 import { gererReperes } from './reperes.js';
 import { preparerAmbiance } from './ambiance.js';
+import { niveauDeDepart, brancherQualite } from './qualite.js';
 import { lireSaisons, blocFiche, contenuPanneau, lieuxDuMois, nomMois, iconeDuMois } from './saisons.js';
 import { echapper, envoyer, retirerParametres, tactile, jourDuDefi } from './commun.js';
 
@@ -295,6 +296,9 @@ const TUILES_RELIEF = {
 // ambiance.js les change ensuite par paliers.
 const ambiance = preparerAmbiance();
 const P = ambiance.palette;
+// La finesse du dessin retenue pour cet appareil (qualite.js) : le lissage des bords se choisit à la création
+const qualiteDepart = niveauDeDepart();
+let qualite = null; // branchée au chargement de la carte
 const MER = P.mer;
 const OSM = '<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap</a>';
 // Liseré d'aquarelle de chaque grande région, le long de ses frontières (comme sur les cartes coloriées à la main)
@@ -319,10 +323,11 @@ const map = new maplibregl.Map({
   aroundCenter: false,
   maxBounds: [[108, 12], [170, 58]],
   renderWorldCopies: false,
-  // Les téléphones ont souvent 3 pixels par point : dessiner en ×2 suffit et évite ~2× plus de calcul.
-  pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
-  // Bords lisses pour les modèles 3D sur les écrans d'ordinateur ; les téléphones (×2) n'en ont pas besoin.
-  canvasContextAttributes: { antialias: (window.devicePixelRatio || 1) < 2 },
+  // Les téléphones ont souvent 3 pixels par point : dessiner en ×2 suffit et évite ~2× plus de calcul. Bords lisses
+  // pour les modèles 3D sur les écrans d'ordinateur (les téléphones, ×2, n'en ont pas besoin). Les appareils peu
+  // puissants dessinent moins de pixels, sans lissage (qualite.js).
+  pixelRatio: qualiteDepart.finesse,
+  canvasContextAttributes: { antialias: qualiteDepart.lissage },
   attributionControl: false,
   style: {
     version: 8,
@@ -690,6 +695,32 @@ function changerRelief(e) {
   map.setTerrain({ source: 'relief', exaggeration: e });
 }
 
+// Au repos, vue de loin, la carte se redessinait sans arrêt (trouvé le 2026-10-19 : 160 fois par seconde sans limite
+// d'écran, au lieu des 15 de la houle ; la puce graphique d'un PC portable travaillait à fond même sans geste).
+// MapLibre refait le placement des symboles dès que la matrice de la caméra diffère, au bit près, de celle du dernier
+// placement ; or, de loin, son plan le plus lointain ressort à chaque image avec un écart d'un dix-millionième : le
+// placement n'était jamais fini et chaque image en redemandait une. Ici, les matrices sont comparées à un
+// millionième près ; le reste est la règle de MapLibre 6.11 (rouage interne, version figée : à revérifier en cas de
+// mise à jour).
+function corrigerPlacement() {
+  const style = map.style;
+  if (typeof style?._placementInputsChanged !== 'function') return;
+  const proches = (a, b) => {
+    for (let i = 0; i < 16; i++) if (Math.abs(a[i] - b[i]) > 1e-6 * Math.max(1, Math.abs(a[i]))) return false;
+    return true;
+  };
+  style._placementInputsChanged = function (transform, boites, croisees) {
+    const dernier = this.pauseablePlacement;
+    if (!dernier) return true;
+    const p = dernier.placement;
+    return this._symbolPlacementTriggered || this._placedProjectionTransition !== this.projection?.transitionState
+      || dernier._showCollisionBoxes !== boites || p.collisionGroups.crossSourceCollisions !== croisees
+      || p.transform.renderWorldCopies !== transform.renderWorldCopies
+      || !proches(p.transform.modelViewProjectionMatrix, transform.modelViewProjectionMatrix);
+  };
+}
+corrigerPlacement();
+
 // Des montagnes de la même hauteur quand on pivote (2026-10-09). Le relief 3D est fait de tuiles d'altitude
 // (Mapterhorn), plus ou moins détaillées ; dans les moins détaillées, les sommets sont moyennés et plus bas
 // (le Fuji fait 2 709 m au niveau 4, 3 377 au 5, 3 599 au 6). MapLibre prenait ses altitudes deux niveaux
@@ -708,6 +739,7 @@ function changerRelief(e) {
 // de mise à jour.
 const ZOOM_RELIEF_UNIFORME = 9.5;
 let reliefStabilise = false, maillageFin = null;
+let maillageLoin = qualiteDepart.maillage; // 240, moins sur les appareils peu puissants (qualite.js)
 function stabiliserRelief() {
   try {
     const source = map.style?.tileManagers?.relief?.getSource?.();
@@ -754,7 +786,39 @@ function stabiliserRelief() {
     console.warn('Relief : réglage des niveaux de détail impossible', e);
   }
 }
+
+// À chaque image, MapLibre cherche pour chaque tuile des couches peintes sur le relief les tuiles du relief qui la
+// recouvrent, et prépare une matrice pour chaque paire avant de regarder si elles se touchent : 3,5 % du temps du
+// processeur pendant un zoom (mesuré le 2026-10-19). On ne lui passe que les tuiles du relief liées à celle cherchée
+// (la même, une parente ou une enfant, comme son propre test) : même résultat, 2,5 fois moins de temps. Rouage
+// interne de MapLibre 6.11 (version figée) : à revérifier en cas de mise à jour.
+function allegerCorrespondances() {
+  const gestion = map.terrain?.tileManager;
+  const proto = gestion && Object.getPrototypeOf(gestion);
+  const avant = proto?._getTerrainCoordsForRegularTile;
+  if (typeof avant !== 'function' || !Array.isArray(gestion._renderableTilesKeys)) return;
+  proto._getTerrainCoordsForRegularTile = function (tileID) {
+    const toutes = this._renderableTilesKeys;
+    const c = tileID.canonical;
+    const liees = toutes.filter((k) => {
+      const r = this._tiles[k]?.tileID.canonical;
+      return r && (r.equals(c) || r.isChildOf(c) || c.isChildOf(r));
+    });
+    if (liees.length === toutes.length) return avant.call(this, tileID);
+    this._renderableTilesKeys = liees;
+    try { return avant.call(this, tileID); } finally { this._renderableTilesKeys = toutes; }
+  };
+}
 map.once('load', stabiliserRelief);
+map.once('load', allegerCorrespondances);
+// La finesse du dessin selon l'appareil : mesurée pendant que la carte bouge (qualite.js)
+map.once('load', () => {
+  try {
+    qualite = brancherQualite(map, { maillage: changerMaillage, mer: reglerMer, t, afficherMessage, avant: $('btn-dev') });
+  } catch (e) {
+    console.warn('Qualité automatique indisponible', e);
+  }
+});
 // « load » ne vient qu'une fois : s'il est passé avant l'arrivée du tableau, demarrer() ne l'attend pas
 let carteChargee = false;
 map.once('load', () => { carteChargee = true; });
@@ -766,10 +830,18 @@ function majMaillage() {
   const fin = map.getZoom() < ZOOM_RELIEF_UNIFORME;
   if (fin === maillageFin) return;
   maillageFin = fin;
-  relief.meshSize = fin ? 240 : 128;
+  relief.meshSize = fin ? maillageLoin : 128;
   for (const m of Object.values(relief._meshCache)) m.destroy?.();
   relief._meshCache = {}; // refait au prochain dessin
   map.triggerRepaint();
+}
+
+/** Le maillage de loin selon l'appareil (qualite.js) : 240, 180 ou 128. */
+function changerMaillage(n) {
+  if (n === maillageLoin) return;
+  maillageLoin = n;
+  maillageFin = null; // refait au prochain appel
+  majMaillage();
 }
 
 function majSelonZoom() {
@@ -1440,6 +1512,7 @@ async function partagerVoyage() {
     partageVoyage ??= import('./partage-voyage.js').then(({ brancherPartageVoyage }) => brancherPartageVoyage(map, {
       t, langue: () => langue, enLangue, adresse: CONFIG.adresse, infos: infosLieu, texteDuree, texteDistance, icones: SVG,
       afficherMessage, arreterRotation, jour: () => ambianceCarte?.jourPourImage(),
+      pleineQualite: (oui) => qualite?.plein(oui), // l'image partagée garde toute la finesse
       // la couverture TikTok copiée dans le site (même origine : le dessin peut la lire), sinon la photo du tableau si elle est locale
       photo: (l) => (idVideo(l.tiktok) ? `photos/tiktok/${idVideo(l.tiktok)}.jpg` : /^https?:/.test(l.photo || '') ? '' : l.photo || ''),
     }));
@@ -1547,6 +1620,7 @@ function chargerOngletPlongeon() {
     t, enLangue, reperes, modeles3d, visite, creerEpingle, preparerPrefectures, lireGPS, slug, afficherMessage, appliquerFiltres,
     map, adresse: CONFIG.adresse, langue: () => langue,
     changerLangue: (l) => { langue = l; appliquerLangue(); }, // (le temps d'un film en anglais : pas retenu)
+    pleineQualite: (oui) => qualite?.plein(oui), // le film est fait image par image : toute la finesse
     lieux: () => lieux, categories: () => categories, toutesCategories: () => toutesCategories,
     trouverPrefecture: () => trouverPrefecture,
   }));

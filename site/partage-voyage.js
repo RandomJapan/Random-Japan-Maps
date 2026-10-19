@@ -84,6 +84,7 @@ export function brancherPartageVoyage(map, deps) {
     const finesse = Math.min(2.5, Math.max(finesseAvant, cadre.h / ch));
     deps.arreterRotation();
     const revenir = deps.jour?.(); // l'image est toujours prise de jour (avec la saison), même la nuit au Japon
+    deps.pleineQualite?.(true); // toute la finesse du relief, même sur un appareil peu puissant (qualite.js)
     try {
       if (finesse !== finesseAvant) map.setPixelRatio(finesse);
       const { bearing, pitch } = orientation(liste, it, rapport);
@@ -117,6 +118,7 @@ export function brancherPartageVoyage(map, deps) {
       });
     } finally {
       if (finesse !== finesseAvant) map.setPixelRatio(finesseAvant);
+      deps.pleineQualite?.(false);
       map.jumpTo(avant);
       revenir?.();
     }
