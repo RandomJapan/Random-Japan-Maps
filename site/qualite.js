@@ -14,6 +14,11 @@
 //  rythme d'images pendant qu'elle bouge et descend d'un cran quand l'appareil peine ; tout à fait à l'aise, elle
 //  remonte d'un cran (une fois par visite). Le visiteur ne voit rien ; en mode développeur, le bouton « Fluidité »
 //  montre les mesures et permet d'imposer un niveau.
+//  Net à l'arrêt : le propriétaire voulait la qualité de « fine » sans les saccades. Ces niveaux allègent donc
+//  seulement les images du mouvement ; dès que la carte s'arrête (REPOS), l'image se redessine plus fine (en
+//  « légère », un peu plus de pixels que l'écran, ce qui lisse aussi les bords) et les textures du relief se
+//  refont à la taille de leur tuile à l'écran (jusqu'à 2 048 px), une à la fois, la plus proche d'abord. Une
+//  texture fine se garde en mouvement : seules les nouvelles tuiles se dessinent en petit.
 // ================================================================
 
 export const NIVEAUX = ['fine', 'legere', 'tres-legere'];
@@ -30,21 +35,32 @@ const SACCADE = 50; // ms : une image qui se fait attendre
 const ATTENTE = 6000;
 const OUBLI_ECHEC = 30 * 24 * 3600e3; // un niveau trop lourd pour cet appareil n'est pas retenté avant 30 jours
 const LOGICIEL = /swiftshader|llvmpipe|softpipe|software|basic render/i;
+const REPOS = 300; // ms sans mouvement : l'image redevient fine…
+// … et à partir de celle-ci, ses textures du relief se refont plus grandes, une toutes les ENTRE_AFFINAGES ms au
+// plus : sur un portable, une texture de 2 048 px prend peut-être 70 ms à la carte graphique ; espacées, la houle
+// continue de bouger et un geste qui reprend n'attend qu'elle. Une courte pause entre deux gestes n'y touche pas.
+const REPOS_TEXTURES = 700;
+const ENTRE_AFFINAGES = 80;
+const AFFINAGES = 80; // textures refaites au plus par arrêt (sécurité contre une boucle)
 
 const ratioEcran = () => Math.min(window.devicePixelRatio || 1, 2);
 
-/** Ce que change chaque niveau. finesse : pixels par point d'écran ; texture : côté des textures du relief. */
+/**
+ * Ce que change chaque niveau. finesse : pixels par point d'écran pendant les mouvements, finesseRepos à l'arrêt ;
+ * texture : côté des textures du relief des tuiles dessinées pendant un mouvement, textureRepos à l'arrêt.
+ */
 export function reglagesDe(niveau) {
   const pr = ratioEcran();
   if (niveau === 'tres-legere') {
-    return { finesse: Math.min(pr, Math.max(0.75, pr * 0.6)), texture: 1024, maillage: 128, lissage: false, houle: 6, ressac: false, decor: false };
+    return { finesse: Math.min(pr, Math.max(0.75, pr * 0.6)), finesseRepos: pr, texture: 1024, textureRepos: 1024, maillage: 128, lissage: false, houle: 6, ressac: false, decor: false };
   }
   if (niveau === 'legere') {
     const finesse = Math.min(pr, Math.max(1, pr * 0.8));
-    return { finesse, texture: finesse >= 1.4 ? 1536 : 1024, maillage: 180, lissage: false, houle: 10, ressac: true, decor: true };
+    // à l'arrêt, ×1,5 (au plus 2) : l'image réduite à l'écran a les bords lisses, sans le lissage de « fine »
+    return { finesse, finesseRepos: Math.max(pr, Math.min(2, pr * 1.5)), texture: finesse >= 1.4 ? 1536 : 1024, textureRepos: 2048, maillage: 180, lissage: false, houle: 10, ressac: true, decor: true };
   }
   // comme avant : le lissage des bords pour les écrans d'ordinateur, les téléphones (×2) n'en ont pas besoin
-  return { finesse: pr, texture: 2048, maillage: 240, lissage: pr < 2, houle: 15, ressac: true, decor: true };
+  return { finesse: pr, finesseRepos: pr, texture: 2048, textureRepos: 2048, maillage: 240, lissage: pr < 2, houle: 15, ressac: true, decor: true };
 }
 
 function lire() {
@@ -121,22 +137,124 @@ export function brancherQualite(map, outils) {
     ecrire(m);
   }
 
-  /** Les textures du relief : MapLibre les dessine en 1 024 × 2 = 2 048 px de côté (rouage interne de MapLibre 6.11). */
-  function texture(taille) {
-    const terrain = map.terrain, rtt = map.painter?.renderToTexture;
-    const cote = terrain?.tileManager?.tileSize;
-    if (!rtt || !cote || rtt.rttSize === taille) return;
-    terrain.qualityFactor = taille / cote; // (relu si MapLibre refait son relief)
-    rtt.rttSize = taille;
-    terrain.tileManager.releaseAllRTT?.();
-    map.triggerRepaint();
+  // ---- Net à l'arrêt. Rouages internes de MapLibre 6.11 (à revoir en cas de mise à jour) : changer la finesse
+  // sans map.setPixelRatio, qui annonce un mouvement (movestart, moveend) et arrête un geste en cours ; et la
+  // taille des textures du relief (renderToTexture.rttSize, 1 024 × 2 = 2 048 px), que MapLibre sait mélanger :
+  // chaque tuile garde la sienne (Tile.acquireRTT, la réserve de textures du peintre les remet à la taille).
+  const dynamique = typeof map._resizeCanvas === 'function' && typeof map._containerDimensions === 'function'
+    && typeof map.painter?.resize === 'function';
+  let affinages = 0, dernierAffinage = 0, relance = null;
+  let etat = null; // l'image en cours : { r (les réglages), arret }
+  let texturesBranchees = false;
+
+  function finesse(pr) {
+    if (Math.abs(map.getPixelRatio() - pr) < 0.01) return;
+    map._overridePixelRatio = pr;
+    const [l, h] = map._containerDimensions();
+    const p = map._getClampedPixelRatio?.(l, h) ?? pr; // (au plus la taille de toile permise)
+    map._resizeCanvas(l, h, p);
+    map.painter.resize(l, h, p);
   }
+
+  /**
+   * Le côté de texture qu'il faut à une tuile du relief : son plus grand bord à l'écran, en pixels de la toile
+   * (un peu agrandie, cela ne se voit pas), entre min et max. De loin, les tuiles sont petites à l'écran :
+   * une texture de 2 048 px ne s'y verrait pas, et coûterait quatre fois celle de 1 024.
+   */
+  function taillePour(tuile, min, max) {
+    const tr = map._camera?.transform;
+    const c = tuile.tileID?.canonical;
+    if (!tr?._coordinateClipPoint || !tr._pixelMatrix || !c) return max;
+    const n = 2 ** c.z, decalage = tuile.tileID.wrap || 0;
+    const coins = [];
+    for (const [dx, dy] of [[0, 0], [1, 0], [1, 1], [0, 1]]) {
+      const p = tr._coordinateClipPoint({ x: (c.x + dx) / n + decalage, y: (c.y + dy) / n }, 0, tr._pixelMatrix);
+      if (!(p[3] > 0)) return max; // le bord passe derrière la caméra : la tuile est tout près
+      coins.push([p[0] / p[3], p[1] / p[3]]);
+    }
+    let bord = 0;
+    for (let i = 0; i < 4; i++) bord = Math.max(bord, Math.hypot(coins[i][0] - coins[(i + 1) % 4][0], coins[i][1] - coins[(i + 1) % 4][1]));
+    const besoin = (bord * map.getPixelRatio()) / 1.25;
+    return Math.max(min, [1024, 1536, 2048].find((t) => t >= besoin && t <= max) ?? max);
+  }
+
+  /** La taille des textures d'une tuile : celle du mouvement, ou à l'arrêt celle de sa taille à l'écran. */
+  function texturePour(tuile, proposee) {
+    if (!etat || etat.r.texture === etat.r.textureRepos) return proposee;
+    return etat.arret ? taillePour(tuile, etat.r.texture, etat.r.textureRepos) : etat.r.texture;
+  }
+
+  /** Une fois : chaque tuile du relief reçoit sa taille de texture, même quand MapLibre la redessine de lui-même. */
+  function brancherTextures() {
+    if (texturesBranchees) return;
+    const tuile = map.terrain?.tileManager?.getRenderableTiles?.()[0];
+    const proto = tuile && Object.getPrototypeOf(tuile);
+    if (!proto) return;
+    texturesBranchees = true;
+    const prendre = proto.acquireRTT;
+    if (typeof prendre !== 'function') return;
+    proto.acquireRTT = function (painter, pile, taille) {
+      return prendre.call(this, painter, pile, texturePour(this, taille));
+    };
+    // la réserve rend sa dernière texture libre, remise à la taille demandée (une nouvelle allocation) : on lui
+    // fait rendre plutôt une texture qui a déjà la bonne taille
+    const peintre = map.painter, puiser = peintre.acquireRTT;
+    if (typeof puiser !== 'function' || !Array.isArray(peintre._rttObjectRecyclePool)) return;
+    peintre.acquireRTT = function (taille) {
+      const reserve = this._rttObjectRecyclePool;
+      const i = reserve.findLastIndex((o) => o.size === taille);
+      if (i >= 0 && i < reserve.length - 1) reserve.push(reserve.splice(i, 1)[0]);
+      return puiser.call(this, taille);
+    };
+  }
+
+  /** Une tuile dont les textures sont plus petites que voulu (la plus proche de la caméra) : à refaire. */
+  function affinerUneTuile(rtt) {
+    if (affinages >= AFFINAGES) return false;
+    if (performance.now() - dernierAffinage < ENTRE_AFFINAGES) return true; // (une image de plus, plus tard)
+    for (const tuile of map.terrain?.tileManager?.getRenderableTiles?.() || []) {
+      const voulue = texturePour(tuile, rtt.rttSize);
+      if (!tuile?.rttObjects?.some((o) => o && o.size < voulue)) continue;
+      tuile.releaseRTT(map.painter); // MapLibre la redessine dans cette image
+      affinages++;
+      dernierAffinage = performance.now();
+      return true;
+    }
+    return false;
+  }
+
+  /** Avant chaque image : léger pendant un mouvement, fin à l'arrêt. Vrai s'il reste des textures à refaire. */
+  function regler(bouge) {
+    const r = reglagesDe(plein ? 'fine' : niveau);
+    const calmeDepuis = bouge ? 0 : performance.now() - dernier;
+    const arret = plein || calmeDepuis >= REPOS;
+    etat = { r, arret };
+    if (!arret) affinages = 0;
+    // pendant un film, enregistrement.js règle lui-même la finesse
+    if (dynamique && !plein) finesse(arret ? r.finesseRepos : r.finesse);
+    const rtt = map.painter?.renderToTexture;
+    if (!rtt) return false;
+    rtt.rttSize = arret ? r.textureRepos : r.texture;
+    brancherTextures();
+    return (plein || calmeDepuis >= REPOS_TEXTURES) && affinerUneTuile(rtt);
+  }
+  /** Une image de plus, pour la texture suivante. */
+  function relancer() {
+    if (relance) return;
+    relance = setTimeout(() => { relance = null; map.triggerRepaint(); }, ENTRE_AFFINAGES);
+  }
+  // l'arrêt confirmé, une image pour affiner (au loin, la houle redessine de toute façon)
+  let calmes = [];
+  map.on('moveend', () => {
+    calmes.forEach(clearTimeout);
+    calmes = [REPOS, REPOS_TEXTURES].map((ms) => setTimeout(() => map.triggerRepaint(), ms + 30));
+  });
 
   function appliquer() {
     const r = reglagesDe(plein ? 'fine' : niveau);
-    // pendant un film, enregistrement.js règle lui-même la finesse
-    if (!plein && Math.abs(map.getPixelRatio() - r.finesse) > 0.01) map.setPixelRatio(r.finesse);
-    texture(r.texture);
+    // pendant un film, enregistrement.js règle lui-même la finesse ; sinon regler() s'en charge à chaque image
+    if (!plein && !dynamique && Math.abs(map.getPixelRatio() - r.finesse) > 0.01) map.setPixelRatio(r.finesse);
+    map.triggerRepaint();
     outils.maillage?.(r.maillage);
     outils.mer?.({ imagesParSeconde: r.houle, ressac: r.ressac, bateaux: r.decor });
     // grues, particules et animations des légendes (oiseaux.js, style.css) ; changé rarement : tout se restyle
@@ -213,29 +331,39 @@ export function brancherQualite(map, outils) {
 
   // Le temps passé par la carte graphique sur chaque image, si le navigateur sait le chronométrer (Chrome, Edge).
   // Les résultats arrivent quelques images plus tard.
-  const chrono = gl?.getExtension?.('EXT_disjoint_timer_query_webgl2');
-  if (chrono && typeof gl.createQuery === 'function' && typeof map.painter?.render === 'function') {
-    const libres = [], attente = [];
-    const rendu = map.painter.render;
-    map.painter.render = function (...args) {
-      while (attente.length && gl.getQueryParameter(attente[0].q, gl.QUERY_RESULT_AVAILABLE)) {
-        const x = attente.shift();
-        const ms = gl.getQueryParameter(x.q, gl.QUERY_RESULT) / 1e6;
-        libres.push(x.q);
-        // (pas de lecture de GPU_DISJOINT_EXT : elle peut faire attendre la carte graphique ; la médiane suffit)
-        if (x.bouge) {
-          fenetre.gpu.push(ms);
-          garder(recents.gpu, ms);
-        }
+  let chrono = gl?.getExtension?.('EXT_disjoint_timer_query_webgl2');
+  if (typeof gl?.createQuery !== 'function') chrono = null;
+  const libres = [], attente = [];
+  function chronometrer(rendu, painter, args) {
+    while (attente.length && gl.getQueryParameter(attente[0].q, gl.QUERY_RESULT_AVAILABLE)) {
+      const x = attente.shift();
+      const ms = gl.getQueryParameter(x.q, gl.QUERY_RESULT) / 1e6;
+      libres.push(x.q);
+      // (pas de lecture de GPU_DISJOINT_EXT : elle peut faire attendre la carte graphique ; la médiane suffit)
+      if (x.bouge) {
+        fenetre.gpu.push(ms);
+        garder(recents.gpu, ms);
       }
-      if (attente.length > 6) return rendu.apply(this, args); // la carte graphique est très en retard : on n'empile pas
-      const q = libres.pop() || gl.createQuery();
-      gl.beginQuery(chrono.TIME_ELAPSED_EXT, q);
+    }
+    if (attente.length > 6) return rendu.apply(painter, args); // la carte graphique est très en retard : on n'empile pas
+    const q = libres.pop() || gl.createQuery();
+    gl.beginQuery(chrono.TIME_ELAPSED_EXT, q);
+    try {
+      return rendu.apply(painter, args);
+    } finally {
+      gl.endQuery(chrono.TIME_ELAPSED_EXT);
+      attente.push({ q, bouge: performance.now() - dernier < 100 });
+    }
+  }
+
+  if (typeof map.painter?.render === 'function') {
+    const rendu = map.painter.render;
+    map.painter.render = function (style, options) {
+      const encore = regler(!!options?.moving);
       try {
-        return rendu.apply(this, args);
+        return chrono ? chronometrer(rendu, this, arguments) : rendu.apply(this, arguments);
       } finally {
-        gl.endQuery(chrono.TIME_ELAPSED_EXT);
-        attente.push({ q, bouge: performance.now() - dernier < 100 });
+        if (encore) relancer(); // la tuile suivante, un peu plus tard
       }
     };
   }
@@ -266,11 +394,15 @@ export function brancherQualite(map, outils) {
       const actif = n === 'auto' ? !impose : impose === n;
       return `<button type="button" data-niveau="${n}" aria-pressed="${actif}">${t(n === 'auto' ? 'qualiteAuto' : `qualite_${n}`)}</button>`;
     }).join('');
+    const r = reglagesDe(niveau);
+    const x = (v) => String(Math.round(v * 100) / 100);
+    const repos = dynamique && r.finesseRepos !== r.finesse ? `<p class="qualite-note">${t('qualiteRepos', x(r.finesse), x(r.finesseRepos))}</p>` : '';
     panneau.innerHTML = `<p class="reglage-titre">${t('qualiteTitre')}</p>
       <p class="qualite-puce">${puce.replace(/[<>&]/g, '') || '?'}</p>
       <p class="qualite-mesures">${mesures}</p>
       <div class="qualite-choix">${choix}</div>
       <p class="qualite-etat">${t('qualiteEtat', t(`qualite_${niveau}`), !impose)}</p>
+      ${repos}
       <p class="qualite-note">${t('qualiteLissage')}</p>`;
   }
 
