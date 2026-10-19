@@ -9,6 +9,8 @@
 //    provisoire) ; la caméra part de ce lieu, vu de près, et vole jusqu'à l'autre. Les deux règlent
 //    la distance de la caméra et l'orbite à l'arrivée. Le vol lui-même est dans visite.js.
 //  - L'affiche : le carton du nom (comme à l'arrivée du plongeon), en PNG transparent (affiche.js).
+//  - « Enregistrer le plongeon en vidéo » : le plongeon devient un MP4 1080 × 1920, sans les boutons
+//    (enregistrement.js, chargé seulement à ce moment-là).
 // ================================================================
 import { PREFECTURES } from './regions.js';
 import { partagerFichier, telecharger } from './commun.js';
@@ -18,7 +20,8 @@ const $ = (id) => document.getElementById(id);
 /**
  * app : { t, enLangue, reperes, modeles3d, visite, creerEpingle(lieu, rang), preparerPrefectures(), lireGPS(texte),
  *       slug(texte), afficherMessage(texte), appliquerFiltres(), lieux(), categories(), toutesCategories() (avec
- *       les catégories encore vides), trouverPrefecture() → (lng, lat) → numéro de préfecture, ou null }
+ *       les catégories encore vides), trouverPrefecture() → (lng, lat) → numéro de préfecture, ou null,
+ *       map, adresse, langue(), changerLangue(l) (pour l'enregistrement en vidéo, en anglais) }
  * Renvoie { choisirOnglet('visite' | 'plongeon' | 'point'), majLangue() }.
  */
 export function brancherOngletPlongeon(app) {
@@ -62,6 +65,7 @@ export function brancherOngletPlongeon(app) {
         if ($(id).tagName === 'SELECT' && ![...$(id).options].some((o) => o.value === memo[cle])) continue;
         $(id).value = memo[cle];
       }
+      $('plongeon-enregistrer').checked = !!memo.enregistrer;
     }
     $('plongeon-depart-erreur').hidden = true;
     preparerAfficheBientot();
@@ -118,7 +122,10 @@ export function brancherOngletPlongeon(app) {
   /** Garde les champs remplis (pour refaire une prise ou une affiche plus tard). */
   function memoriserPlongeon() {
     try {
-      localStorage.setItem(MEMO_PLONGEON, JSON.stringify(Object.fromEntries(CHAMPS_PLONGEON.map(([id, cle]) => [cle, $(id).value.trim()]))));
+      localStorage.setItem(MEMO_PLONGEON, JSON.stringify({
+        ...Object.fromEntries(CHAMPS_PLONGEON.map(([id, cle]) => [cle, $(id).value.trim()])),
+        enregistrer: $('plongeon-enregistrer').checked,
+      }));
     } catch { /* pas grave */ }
   }
 
@@ -134,6 +141,7 @@ export function brancherOngletPlongeon(app) {
     if (p.erreur || reglages.depart?.erreur) return;
     memoriserPlongeon();
     await preparerPrefectures().catch(() => {}); // pour écrire la préfecture sous le nom
+    const film = $('plongeon-enregistrer').checked ? await preparerFilm(reglages) : null; // (avant les lieux : en anglais)
     const l = lieuProvisoire('plongeon', p, $('plongeon-type').value, $('plongeon-nom').value, $('plongeon-nom-ja').value);
     // point à point : le départ a lui aussi son épingle, son modèle 3D et son nom
     const d = reglages.depart && lieuProvisoire('plongeon-depart', reglages.depart, $('plongeon-depart-type').value,
@@ -144,16 +152,45 @@ export function brancherOngletPlongeon(app) {
     visite.plonger(l, {
       ...reglages,
       depart: d || null,
+      quandPret: film?.demarrer,
+      quandArrive: film?.arrive,
       fin: () => {
         for (const x of provisoires) reperes.oublier(x.epingle);
         modeles3d.provisoires([]);
         modeles3d.filtrer(null);
         appliquerFiltres();
+        film?.terminer(); // (Échap pendant le film : il s'arrête et se termine)
       },
     });
     // Seuls ces lieux : les autres épingles et leurs modèles 3D se cachent (les légendes aussi : style.css)
     for (const x of app.lieux()) reperes.montrer(x.epingle, false);
     modeles3d.filtrer((x) => provisoires.includes(x));
+  }
+
+  /**
+   * Le plongeon filmé (enregistrement.js) : la carte passe dans un cadre 9:16, en anglais ; le film commence à
+   * l'image fixe du départ. Renvoie { demarrer, arrive, terminer }, ou null si ce navigateur ne sait pas faire de MP4.
+   */
+  async function preparerFilm(reglages) {
+    try {
+      const module = await import('./enregistrement.js');
+      const codec = await module.codecMp4();
+      if (!codec) {
+        afficherMessage(t('enregistrementImpossible'));
+        return null;
+      }
+      const point = !!reglages.depart;
+      return module.enregistrer(app.map, {
+        codec, t, afficherMessage, adresse: app.adresse, langue: app.langue, changerLangue: app.changerLangue,
+        nomFichier: `plongeon-${slug($('plongeon-nom').value) || 'japon'}.mp4`,
+        titres: [texteAffiche(), point ? texteAffiche('plongeon-depart') : null],
+        arreterPlongeon: () => visite.arreter(),
+      });
+    } catch (e) {
+      console.warn('Enregistrement', e);
+      afficherMessage(t('enregistrementErreur'));
+      return null;
+    }
   }
 
   /** Un lieu qui n'est pas dans le tableau, pour le plongeon : son épingle et son modèle 3D, du type choisi. */
@@ -179,14 +216,15 @@ export function brancherOngletPlongeon(app) {
   let affichePrete = null; // { cle, fichier }
   let minuterieAffiche = 0;
 
-  function texteAffiche() {
-    const nom = $('plongeon-nom').value.trim();
+  /** Le texte de l'affiche : celle du lieu (prefixe « plongeon »), ou celle du départ en point à point (« plongeon-depart »). */
+  function texteAffiche(prefixe = 'plongeon') {
+    const nom = $(`${prefixe}-nom`).value.trim();
     if (!nom) return null;
-    const type = app.toutesCategories().find((c) => c.cle === $('plongeon-type').value) || app.categories()[0];
-    const p = lirePosition($('plongeon-position').value);
+    const type = app.toutesCategories().find((c) => c.cle === $(`${prefixe}-type`).value) || app.categories()[0];
+    const p = lirePosition($(prefixe === 'plongeon' ? 'plongeon-position' : 'plongeon-depart').value);
     const pref = p.erreur ? null : app.trouverPrefecture()?.(p.lng, p.lat);
     const infos = [type && (type.nom.en || enLangue(type.nom)), pref && PREFECTURES[pref]?.en].filter(Boolean).join(' · ');
-    return { nom, nomJa: $('plongeon-nom-ja').value.trim(), infos };
+    return { nom, nomJa: $(`${prefixe}-nom-ja`).value.trim(), infos };
   }
 
   async function fabriquerAffiche() {
@@ -249,6 +287,7 @@ export function brancherOngletPlongeon(app) {
     preparerPlongeonBientot();
   });
   $('plongeon-distance').addEventListener('change', () => preparerPlongeonBientot(0));
+  $('plongeon-enregistrer').addEventListener('change', memoriserPlongeon);
   majTextesPlongeon();
 
   return {

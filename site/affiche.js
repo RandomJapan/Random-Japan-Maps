@@ -10,6 +10,7 @@ const PAPIER = '#efe4c8', PAPIER_CLAIR = '#f6eedb', TRAIT = '#8a6b45', ENCRE = '
 const TITRE = '"Zen Antique", "Noto Serif JP", Georgia, serif';
 const CARTE = '"IM Fell English", "Zen Antique", Georgia, serif';
 const K = 4; // pixels de l'image par pixel CSS du bandeau
+export const ECHELLE_AFFICHE = K;
 // Les mesures du bandeau sur téléphone (style.css, .visite-titre), en pixels CSS
 const M = {
   haut: 10, droite: 16, bas: 10, gauche: 10, ecart: 11, retrait: 4,
@@ -17,6 +18,7 @@ const M = {
   ja: 15, jaHaut: 8, jaBas: 6, jaCote: 5,
 };
 const MARGE = { cote: 32, haut: 24, bas: 46 }; // la place de l'ombre portée (0 10px 30px), en pixels CSS
+export const MARGE_AFFICHE = MARGE; // (enregistrement.js pose l'affiche dans le film du plongeon)
 // Signes tournés d'un quart de tour quand le nom japonais est écrit de haut en bas (comme le fait le navigateur)
 const TOURNES = new Set([...'ー－—―‐-～〜…‥（）()「」『』【】〈〉《》［］[]＝=']);
 

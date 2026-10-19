@@ -295,6 +295,7 @@ export function brancherVisite(map, outils) {
     if (reglages.depart?.nom && enLangue(reglages.depart.nom)) montrerTitre(reglages.depart);
     Promise.all([dessinee(), Promise.race([pret, attendre(ATTENTE_PRECHARGE)])]).then(([, prep]) => {
       if (jeton !== etat?.jeton) return;
+      reglages.quandPret?.(); // l'image fixe du départ commence (l'enregistrement en vidéo démarre là)
       etat.minuterie = setTimeout(() => { if (jeton === etat?.jeton) descendre(l, jeton, vol, prep?.altitude); }, calme ? 0 : PAUSE_PLONGEON);
     });
   }
@@ -385,6 +386,7 @@ export function brancherVisite(map, outils) {
       enVol = false;
       etat.surPlace = true;
       if (enLangue(l.nom)) montrerTitre(l); // un lieu sans nom : pas de bandeau
+      etat.reglages.quandArrive?.();
       orbiterSansFin(jeton, vitesse); // la caméra tourne déjà : l'orbite continue à la même vitesse, sans pause
     });
     // Pendant le vol, deux retouches de la caméra (setTransformCameraUpdate) :
@@ -428,7 +430,11 @@ export function brancherVisite(map, outils) {
   /** Sur téléphone, le nom du lieu est plus haut (hors de la zone des textes de TikTok) : le lieu se pose au-dessus. */
   function margePlongeon() {
     if (!estTelephone()) return { ...SANS_MARGE, bottom: 90 };
-    return { ...SANS_MARGE, bottom: Math.round(innerHeight * 0.22) + 40 };
+    const h = map.getContainer().clientHeight;
+    // le cadre 9:16 du plongeon enregistré (enregistrement.js) est moins haut qu'un téléphone : le lieu y reste
+    // au milieu, sinon son modèle 3D et son épingle montaient sous l'adresse, en haut (le bandeau, lui, est plus bas)
+    if (document.body.classList.contains('enregistre')) return { ...SANS_MARGE, bottom: Math.round(h * 0.04) };
+    return { ...SANS_MARGE, bottom: Math.round(h * 0.22) + 40 };
   }
 
   // ---- La vidéo TikTok du lieu
@@ -649,6 +655,7 @@ export function brancherVisite(map, outils) {
   // ---- Clavier, souris, doigts
   document.addEventListener('keydown', (e) => {
     if (!etat) return;
+    if (document.body.classList.contains('enregistre') && e.key !== 'Escape') return; // pendant le film, seul Échap (l'arrête)
     if (e.key === 'Escape') arreter();
     else if (etat.plongeon) {
       if (e.key === ' ' || e.key === 'Spacebar' || e.key === 'Enter') rejouer();

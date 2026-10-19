@@ -1656,6 +1656,34 @@ body.en-jeu .btn-pres, body.en-visite .btn-pres { display: none; }
   .defi .jeu-image { height: 21dvh; }
   .defi[data-phase="fin"] { max-height: 70dvh; }
 }
+/* ---------- Le plongeon enregistré en vidéo (enregistrement.js ; mode développeur) ---------- */
+.case-enregistrer { margin-top: 2px; }
+/* la carte dans un cadre 9:16 au milieu de l'écran, dessinée en 1080 × 1920 */
+body.enregistre { background: #15110c; }
+body.enregistre #carte {
+  inset: auto; left: calc(50vw - var(--cadre-l) / 2); top: calc(50dvh - var(--cadre-h) / 2);
+  width: var(--cadre-l); height: var(--cadre-h);
+}
+/* ce qui n'est pas dans le film n'est pas non plus à l'écran (les bêtes de la mer, les feuilles qui tombent) */
+body.enregistre .vie-marine, body.enregistre .saison { display: none !important; }
+/* par-dessus tout : l'image du film elle-même, telle qu'elle s'enregistre */
+.enregistrement {
+  position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; padding: calc(var(--haut) + 4px) 12px calc(var(--bas) + 4px); background: #15110c; color: var(--papier-clair);
+}
+.enregistrement-tete { display: flex; align-items: center; gap: 9px; font-weight: 600; font-size: 15px; font-variant-numeric: tabular-nums; }
+.enregistrement-point { width: 12px; height: 12px; border-radius: 50%; background: #e0563f; box-shadow: 0 0 0 3px rgba(224, 86, 63, 0.3); }
+.enregistrement-image { min-height: 0; flex: 0 1 auto; display: flex; }
+.enregistrement-image canvas, .enregistrement-image video {
+  display: block; height: min(calc(100dvh - var(--haut) - var(--bas) - 150px), 1920px); max-width: calc(100vw - 24px);
+  aspect-ratio: 9 / 16; width: auto; object-fit: contain; border-radius: 4px; background: #000;
+  box-shadow: 0 0 0 1px rgba(246, 238, 219, 0.25), 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+.enregistrement-note { margin: 0; max-width: 380px; text-align: center; font-size: 12.5px; line-height: 1.4; color: rgba(246, 238, 219, 0.7); }
+.enregistrement-note:empty { display: none; }
+.enregistrement-boutons { display: flex; gap: 8px; width: min(380px, 100%); }
+.enregistrement-boutons > * { flex: 1; margin: 0; }
+.enregistrement-boutons .btn-secondaire { color: var(--encre); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
   #carte.loin .repere.nouveau .repere-tete { box-shadow: 0 0 0 1px rgba(53, 37, 26, 0.8), 0 0 0 3px #1d5652; }
