@@ -107,7 +107,7 @@ Pendant l'événement, la carte se déguise :
 - la nuit, de près, le **défilé des cent démons** (Hyakki Yagyō) traverse parfois la carte : lanterne et ombrelle hantées, renard, tanuki, kappa, oni, tengu, femme au long cou… On les touche pour lire leur histoire ;
 - la **chasse aux yōkai** : 7 yōkai sont cachés dans des lieux hantés (Osorezan, Yotsuya, Kyoto, Himeji, Sakaiminato, Ōboke, Kimotsuki). On zoome sur une région pour les trouver. Pour ne pas les confondre avec les légendes de toute l'année, ils ont une lueur orange (violette la nuit) et une citrouille allumée à leurs pieds, et leur bulle commence par « Spécial Halloween ». Le panneau compte ceux qu'on a trouvés, et quand on a les 7, une image « Chasse terminée ! » est à partager.
 
-**Pour l'instant, seulement en mode développeur** : tu vérifies, et quand tu es d'accord, dis-moi de le mettre en ligne (c'est le réglage `halloween` de `config.js` : `public: true`). Le **1er novembre à minuit**, tout disparaît tout seul et la carte redevient normale (grues, feuilles d'automne).
+**Visible par tous les visiteurs depuis le 20 octobre au soir** (le réglage `halloween` de `config.js` : `public: true` ; avec `false`, seulement en mode développeur). Le **1er novembre à minuit**, tout disparaît tout seul et la carte redevient normale (grues, feuilles d'automne).
 
 Pour voir le défilé ou les feux follets de jour, passe la carte en nuit avec le bouton soleil/lune à côté de l'heure.
 

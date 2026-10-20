@@ -50,7 +50,7 @@ export const CONFIG = {
   // feux follets, défilé des cent démons, chasse aux yōkai et le panneau « Halloween au Japon ».
   // Du jour « debut » jusqu'à minuit la veille du jour « fin » (à l'heure du téléphone ou de l'ordinateur du visiteur).
   // public: false → seulement en mode développeur (pour vérifier) ; true → pour tous les visiteurs.
-  halloween: { debut: '2026-10-20', fin: '2026-11-01', public: false },
+  halloween: { debut: '2026-10-20', fin: '2026-11-01', public: true },
 
   // --- Badge « Nouveau » -----------------------------------------------
   // Un lieu dont la vidéo TikTok a moins de ce nombre de jours porte l'étiquette « Nouveau ».
