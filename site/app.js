@@ -17,6 +17,7 @@ import { brancherItineraire, MODES } from './itineraire.js';
 import { brancherVisite } from './visite.js';
 import { brancherPrecharge } from './precharge.js';
 import { brancherTuilesRelief } from './tuiles-relief.js';
+import { brancherSocle } from './socle.js';
 import { gererReperes } from './reperes.js';
 import { preparerAmbiance } from './ambiance.js';
 import { niveauDeDepart, brancherQualite } from './qualite.js';
@@ -811,10 +812,20 @@ function allegerCorrespondances() {
 }
 map.once('load', stabiliserRelief);
 map.once('load', allegerCorrespondances);
+// Un relief grossier toujours chargé autour de la vue : un lancer rapide ne montre plus la mer à la place de la terre
+map.once('load', () => {
+  try {
+    brancherSocle(map, ['relief', 'ombrage'], tuilesRelief);
+  } catch (e) {
+    console.warn('Relief : socle impossible', e);
+  }
+});
 // La finesse du dessin selon l'appareil : mesurée pendant que la carte bouge (qualite.js)
 map.once('load', () => {
   try {
-    qualite = brancherQualite(map, { maillage: changerMaillage, mer: reglerMer, t, afficherMessage, avant: $('btn-dev') });
+    // pendant un mouvement, MapLibre télécharge au plus MAX_PARALLEL_IMAGE_REQUESTS_PER_FRAME tuiles à la fois
+    const telechargements = (n) => { if (maplibregl.config) maplibregl.config.MAX_PARALLEL_IMAGE_REQUESTS_PER_FRAME = n; };
+    qualite = brancherQualite(map, { maillage: changerMaillage, mer: reglerMer, telechargements, t, afficherMessage, avant: $('btn-dev') });
   } catch (e) {
     console.warn('Qualité automatique indisponible', e);
   }

@@ -20,6 +20,10 @@
 //  du relief se refont à la taille de leur tuile à l'écran (2 048 px près de la caméra, 1 024 au loin), cachées,
 //  et se montrent toutes ensemble. Une texture fine se garde en mouvement : seules les nouvelles tuiles se
 //  dessinent en petit.
+//  Les tuiles de relief : pendant un mouvement, MapLibre n'en télécharge que 8 à la fois (16 à l'arrêt), pour
+//  ménager l'appareil ; en zoomant, elles attendaient jusqu'à 1,3 s leur tour (2026-10-20). Un ordinateur en
+//  « fine » en télécharge 16 à la fois (90 % arrivent en moins de 0,2 s) ; un téléphone moyen saccadait un peu
+//  plus avec 16 : il garde 8, comme les niveaux plus légers.
 // ================================================================
 
 export const NIVEAUX = ['fine', 'legere', 'tres-legere'];
@@ -41,23 +45,26 @@ const ENTRE_AFFINAGES = 40; // … une toutes les 40 ms au plus (sur un portable
 const AFFINAGES = 80; // textures refaites au plus par arrêt (sécurité contre une boucle)
 
 const ratioEcran = () => Math.min(window.devicePixelRatio || 1, 2);
+// une souris (ou un pavé tactile) : un ordinateur, pas un téléphone ni une tablette
+const ordinateur = () => matchMedia('(hover: hover) and (pointer: fine)').matches;
 
 /**
  * Ce que change chaque niveau. finesse : pixels par point d'écran pendant les mouvements, finesseRepos à l'arrêt ;
- * texture : côté des textures du relief des tuiles dessinées pendant un mouvement, textureRepos à l'arrêt.
+ * texture : côté des textures du relief des tuiles dessinées pendant un mouvement, textureRepos à l'arrêt ;
+ * telechargements : tuiles téléchargées à la fois pendant un mouvement.
  */
 export function reglagesDe(niveau) {
   const pr = ratioEcran();
   if (niveau === 'tres-legere') {
-    return { finesse: Math.min(pr, Math.max(0.75, pr * 0.6)), finesseRepos: pr, texture: 1024, textureRepos: 1024, maillage: 128, lissage: false, houle: 6, ressac: false, decor: false };
+    return { finesse: Math.min(pr, Math.max(0.75, pr * 0.6)), finesseRepos: pr, texture: 1024, textureRepos: 1024, maillage: 128, lissage: false, houle: 6, ressac: false, decor: false, telechargements: 8 };
   }
   if (niveau === 'legere') {
     const finesse = Math.min(pr, Math.max(1, pr * 0.8));
     // à l'arrêt, ×1,5 (au plus 2) : l'image réduite à l'écran a les bords lisses, sans le lissage de « fine »
-    return { finesse, finesseRepos: Math.max(pr, Math.min(2, pr * 1.5)), texture: finesse >= 1.4 ? 1536 : 1024, textureRepos: 2048, maillage: 180, lissage: false, houle: 10, ressac: true, decor: true };
+    return { finesse, finesseRepos: Math.max(pr, Math.min(2, pr * 1.5)), texture: finesse >= 1.4 ? 1536 : 1024, textureRepos: 2048, maillage: 180, lissage: false, houle: 10, ressac: true, decor: true, telechargements: 8 };
   }
   // comme avant : le lissage des bords pour les écrans d'ordinateur, les téléphones (×2) n'en ont pas besoin
-  return { finesse: pr, finesseRepos: pr, texture: 2048, textureRepos: 2048, maillage: 240, lissage: pr < 2, houle: 15, ressac: true, decor: true };
+  return { finesse: pr, finesseRepos: pr, texture: 2048, textureRepos: 2048, maillage: 240, lissage: pr < 2, houle: 15, ressac: true, decor: true, telechargements: ordinateur() ? 16 : 8 };
 }
 
 function lire() {
@@ -301,6 +308,7 @@ export function brancherQualite(map, outils) {
     if (!plein && !dynamique && Math.abs(map.getPixelRatio() - r.finesse) > 0.01) map.setPixelRatio(r.finesse);
     map.triggerRepaint();
     outils.maillage?.(r.maillage);
+    outils.telechargements?.(r.telechargements);
     outils.mer?.({ imagesParSeconde: r.houle, ressac: r.ressac, bateaux: r.decor });
     // grues, particules et animations des légendes (oiseaux.js, style.css) ; changé rarement : tout se restyle
     const leger = !r.decor;
