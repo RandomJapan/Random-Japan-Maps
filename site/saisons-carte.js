@@ -15,7 +15,8 @@
 //  par jour. Les couches naissent avec la carte (styleSaison, dans le style de
 //  départ) : en ajouter après coup redessinait tout le relief pendant le chargement.
 //  De près, un tapis de feuilles d'érable et de ginkgo, ou de pétales de cerisier, jonche le sol (symboles
-//  couchés sur le relief, chacun à sa place : ils grandissent en zoomant, aucun n'apparaît en route).
+//  couchés sur le relief, chacun à sa place : ils grandissent en zoomant, aucun n'apparaît en route). Il se
+//  prépare pendant qu'on s'approche (et dès le départ d'un plongeon) : il est là quand on arrive.
 // ================================================================
 
 import { lisse, md, ecart, floraison, enFleurs, picAutomne, neigeAuSol } from './phenologie.js';
@@ -146,39 +147,69 @@ function dessinerGlace() {
 const KM_LAT = 110.57;
 const kmLng = (lat) => 111.32 * Math.cos((lat * Math.PI) / 180);
 
-/** Une tache au contour irrégulier autour d'un point, toujours la même pour ce point. */
-function tache(lng, lat, rayon, cotes = 18) {
-  const graine = lng * 13.7 + lat * 7.9;
-  const anneau = [];
-  for (let i = 0; i <= cotes; i++) {
-    const a = ((i % cotes) / cotes) * 2 * Math.PI;
-    const r = rayon * (1 + 0.2 * Math.sin(3 * a + graine) + 0.12 * Math.sin(5 * a + graine * 2.3) + 0.06 * Math.sin(9 * a + graine * 1.7));
-    anneau.push([lng + (r * Math.sin(a)) / kmLng(lat), lat + (r * Math.cos(a)) / KM_LAT]);
-  }
-  return { type: 'Polygon', coordinates: [anneau] };
-}
-
 /**
- * Les touches d'aquarelle d'un lieu en fleurs ou en couleurs : un léger lavis sur toute la tache, et des touches
- * plus vives (plus grandes au cœur), posées sur le sol. Elles grandissent avec la carte quand on zoome, comme le
- * relief : aucune n'apparaît en route. (Un motif répété, le 2026-10-12, s'écartait puis se redoublait à chaque
- * niveau de zoom : le propriétaire a trouvé ça bizarre.)
+ * Les touches d'aquarelle d'un lieu en fleurs ou en couleurs (refaites le 2026-10-20 : de grands polygones de
+ * couleur unie, transparents et à bord net, se superposaient en auréoles ; le propriétaire voulait plus réaliste).
+ * Ce sont maintenant des coups de pinceau aux bords fondus : des traits courts, épais et flous (couches « line »,
+ * une par taille, voir TAILLES). Quelques grands lavis très doux teintent le lieu, puis des touches plus petites et
+ * plus vives, serrées en bosquets, le moirent ; elles s'éclaircissent vers le bord, sans contour. Elles grandissent
+ * avec la carte quand on zoome : aucune n'apparaît en route. (Un motif répété, le 2026-10-12, s'écartait puis se
+ * redoublait à chaque niveau de zoom : le propriétaire a trouvé ça bizarre.)
+ * Propriétés : c (couleur), o (opacité), t (la taille : un rang de TAILLES).
  */
 function touches(lng, lat, rayon, motif, force) {
   const couleurs = COULEURS[motif];
-  const res = [{ type: 'Feature', geometry: tache(lng, lat, rayon * 1.05, 32), properties: { c: couleurs[0], o: Math.round(force * 0.12 * 100) / 100 } }];
   let g = lng * 31.7 + lat * 17.3;
   const h = () => hasard(g += 1.618);
-  const n = Math.round(8 + rayon * 2.5);
-  for (let i = 0; i < n; i++) {
-    const d = Math.sqrt(h()) * rayon * 0.92, a = h() * 2 * Math.PI;
-    const x = lng + (d * Math.sin(a)) / kmLng(lat), y = lat + (d * Math.cos(a)) / KM_LAT;
-    const taille = rayon * (0.08 + 0.13 * h()) * (1.15 - 0.55 * (d / rayon));
-    res.push({ type: 'Feature', geometry: tache(x, y, taille, 14), properties: { c: couleurs[Math.floor(h() * couleurs.length)], o: Math.round(force * (0.22 + 0.14 * h()) * 100) / 100 } });
+  const kx = kmLng(lat);
+  const deux = (x) => Math.round(x * 100) / 100;
+  const res = [];
+  // un coup de pinceau : un trait un peu allongé, dans un sens au hasard (x, y : km depuis le lieu)
+  const touche = (x, y, diametre, couleur, opacite) => {
+    const a = h() * Math.PI, l = diametre * (0.25 + 0.35 * h());
+    const dx = (l / 2) * Math.cos(a), dy = (l / 2) * Math.sin(a);
+    const pente = 1 - 0.55 * Math.min(1, Math.hypot(x, y) / rayon) ** 2; // plus clair vers le bord
+    res.push({
+      type: 'Feature',
+      geometry: { type: 'LineString', coordinates: [[lng + (x - dx) / kx, lat + (y - dy) / KM_LAT], [lng + (x + dx) / kx, lat + (y + dy) / KM_LAT]] },
+      properties: { c: couleur, o: deux(force * opacite * pente), t: rangTaille(diametre) },
+    });
+  };
+  const auHasard = (portee) => {
+    const d = Math.sqrt(h()) * portee, a = h() * 2 * Math.PI;
+    return [d * Math.sin(a), d * Math.cos(a)];
+  };
+  // les lavis : grands, très doux
+  const lavis = 4 + Math.round(rayon / 3);
+  for (let i = 0; i < lavis; i++) {
+    const [x, y] = auHasard(rayon * 0.45);
+    touche(x, y, rayon * (0.55 + 0.25 * h()), couleurs[i % 2 ? 0 : Math.floor(h() * couleurs.length)], 0.13 + 0.06 * h());
+  }
+  // les bosquets : des touches serrées, plus vives, plus grandes au cœur
+  const taille = 0.7 + rayon / 20;
+  for (let b = 0; b < 6; b++) {
+    const [bx, by] = auHasard(rayon * 0.7);
+    const n = Math.round(6 + rayon * 0.8);
+    for (let i = 0; i < n; i++) {
+      const e = rayon * 0.14 * Math.sqrt(-2 * Math.log(1 - 0.999 * h())), a = h() * 2 * Math.PI;
+      const x = bx + e * Math.sin(a), y = by + e * Math.cos(a);
+      const coeur = 1.25 - 0.5 * Math.min(1, Math.hypot(x, y) / rayon);
+      touche(x, y, taille * (0.35 + 0.9 * h()) * coeur, couleurs[Math.floor(h() * couleurs.length)], 0.28 + 0.2 * h());
+    }
+  }
+  // quelques touches éparses entre les bosquets
+  const epars = Math.round(8 + rayon);
+  for (let i = 0; i < epars; i++) {
+    const [x, y] = auHasard(rayon * 0.9);
+    touche(x, y, taille * (0.3 + 0.6 * h()), couleurs[Math.floor(h() * couleurs.length)], 0.22 + 0.15 * h());
   }
   return res;
 }
 
+// Le tapis de feuilles : préparé à partir de ce zoom (la couche se montre à 10,5), refait au plus toutes les 250 ms
+// pendant un mouvement, pour les 10 lieux en saison les plus proches du centre ; avant un plongeon, ceux à moins de
+// 25 km (plus leur rayon) du lieu d'arrivée
+const ZOOM_TAPIS = 9.5, ENTRE_TAPIS = 250, MAX_TAPIS = 10, RAYON_ARRIVEE = 25;
 // Les images du tapis (particules.js, atlasSol : 4 × 2 cases de 128 px) : trois érables, un ginkgo, quatre pétales
 const IMAGES_TAPIS = ['feuille-0', 'feuille-1', 'feuille-2', 'feuille-3', 'petale-0', 'petale-1', 'petale-2', 'petale-3'];
 const TAPIS = {
@@ -318,10 +349,27 @@ const opaciteNeige = (neiges) => ['match', ['get', 'code'], ...neiges.flat(), 0]
 const filtreLacs = (geles) => ['all', ['==', ['get', 't'], 'lac'], ['in', ['get', 'nom'], ['literal', geles]]];
 const sombreDe = (p) => 1 - 0.55 * p.nuit; // la nuit, les couleurs des fleurs et des feuilles s'éteignent un peu
 
+// Les touches d'aquarelle, par taille (km) : une couche par taille, dont la largeur ne dépend que du zoom (fixée au
+// sol, elle double à chaque niveau, comme la carte). Une largeur lue sur chaque touche (zoom et donnée) est calculée
+// tuile par tuile, au zoom de chaque tuile : de biais, deux tuiles voisines de niveaux différents dessinaient la même
+// touche à deux tailles, coupée net à leur frontière (vu le 2026-10-20).
+const TAILLES = [12, 7.5, 4.7, 2.95, 1.85, 1.15, 0.72, 0.45]; // les plus grandes dessous
+const rangTaille = (km) => TAILLES.reduce((r, t, k) => (Math.abs(Math.log(km / t)) < Math.abs(Math.log(km / TAILLES[r])) ? k : r), 0);
+const PX_KM = 13.083 / Math.cos((35 * Math.PI) / 180); // px par km au zoom 10 (au milieu du Japon)
+const auSol = (px10) => ['interpolate', ['exponential', 2], ['zoom'], 6, px10 / 16, 16, px10 * 64];
+const TACHES = TAILLES.map((km, k) => ({
+  id: `saison-taches-${k}`,
+  largeur: auSol(km * PX_KM),
+  flou: auSol(km * PX_KM * (km > 2 ? 0.5 : 0.4)), // bords fondus : la moitié de la largeur pour les lavis
+}));
+
 /** Les couches de saison, et la couche avant laquelle chacune se place. */
 const COUCHES = {
-  // les touches d'aquarelle, sous l'ombrage du relief (qui les modèle) ; de loin elles ne se voient pas : pas dessinées
-  'saison-taches': [{ type: 'fill', source: 'saison-taches', minzoom: 6 }, 'ombrage'],
+  // les touches d'aquarelle (des traits flous à bouts ronds, une couche par taille), sous l'ombrage du relief (qui
+  // les modèle) ; de loin elles ne se voient pas : pas dessinées
+  ...Object.fromEntries(TACHES.map(({ id }, k) => [id, [{
+    type: 'line', source: 'saison-taches', minzoom: 6, filter: ['==', ['get', 't'], k], layout: { 'line-cap': 'round' },
+  }, 'ombrage']])),
   // le tapis de feuilles, couché sur le relief : seulement de près
   'saison-feuilles': [{
     type: 'symbol',
@@ -346,7 +394,9 @@ const COUCHES = {
   'banquise-bord': [{ type: 'line', source: 'banquise', paint: { 'line-width': 0.7, 'line-opacity': 0.8 } }, 'couleurs-relief'],
 };
 const SOURCES = {
-  'saison-taches': () => ({ type: 'geojson', data: vide(), maxzoom: 10 }),
+  // une touche déborde de sa tuile : la marge (256 px, 16 km au zoom 10) est plus large que la plus grande (12 km
+  // de large) ; tolerance 0 : les traits très courts (de loin) ne sont pas effacés en simplifiant
+  'saison-taches': () => ({ type: 'geojson', data: vide(), maxzoom: 10, buffer: 256, tolerance: 0 }),
   'saison-feuilles': () => ({ type: 'geojson', data: vide(), maxzoom: 12 }),
   'prefectures-neige': () => ({ type: 'geojson', data: 'data/prefectures.geojson', maxzoom: 7 }),
   banquise: () => ({ type: 'geojson', data: vide(), maxzoom: 9 }),
@@ -355,7 +405,9 @@ const SOURCES = {
 /** L'état de chaque couche ce jour-là : { id: { filtre?, paint } } (celles qui n'ont rien à montrer n'y sont pas). */
 function etatCouches(j, p) {
   const res = {
-    'saison-taches': { paint: { 'fill-color': ['get', 'c'], 'fill-opacity': ['*', ['get', 'o'], sombreDe(p)] } },
+    ...Object.fromEntries(TACHES.map(({ id, largeur, flou }) => [id, {
+      paint: { 'line-color': ['get', 'c'], 'line-opacity': ['*', ['get', 'o'], sombreDe(p)], 'line-width': largeur, 'line-blur': flou },
+    }])),
     'saison-feuilles': { paint: { 'icon-opacity': ['interpolate', ['linear'], ['zoom'], 10.5, 0, 11.4, ['*', ['get', 'o'], sombreDe(p)]] } },
   };
   const neiges = neigesDuJour(j);
@@ -427,17 +479,13 @@ export function brancherDetailsSaison(map, deps, jDepart) {
   const auCalme = (f) => (window.requestIdleCallback ? requestIdleCallback(f, { timeout: 3000 }) : setTimeout(f, 50));
 
   /**
-   * Le tapis de feuilles : seulement pour les lieux en saison près de l'écran, de près (à partir du zoom 10 ; la couche
-   * se montre à 10,5). Refait quand la carte s'arrête : quelques centaines de points au lieu de dizaines de milliers.
+   * Le tapis de feuilles : seulement pour les lieux en saison près de l'écran, de près : quelques centaines de points
+   * au lieu de dizaines de milliers. La couche se montre au zoom 10,5 ; il se prépare dès 9,5, pendant qu'on
+   * s'approche (2026-10-20 : refait seulement à l'arrêt, il apparaissait une seconde après l'arrivée d'un plongeon).
    */
-  function majTapis() {
-    if (!tachesPretes || map.getZoom() < 10) return;
-    const b = map.getBounds();
-    const marge = 0.3 * (b.getEast() - b.getWest());
-    const proches = enSaison.filter(([lng, lat, rayon]) => {
-      const dx = rayon / kmLng(lat), dy = rayon / KM_LAT;
-      return lng + dx > b.getWest() - marge && lng - dx < b.getEast() + marge && lat + dy > b.getSouth() - marge && lat - dy < b.getNorth() + marge;
-    });
+  let vus = [], arrivee = []; // les lieux de la vue ; ceux du lieu d'arrivée d'un plongeon (gardés en plus)
+  function poserTapis() {
+    const proches = [...new Set([...vus, ...arrivee])];
     const cle = proches.map((t) => t.join(',')).join('|');
     if (cle === cleTapis) return;
     cleTapis = cle;
@@ -448,6 +496,39 @@ export function brancherDetailsSaison(map, deps, jDepart) {
     });
     map.getSource('saison-feuilles')?.setData({ type: 'FeatureCollection', features });
   }
+  const loinDe = ([lng, lat], [x, y]) => Math.hypot((x - lng) * kmLng(lat), (y - lat) * KM_LAT);
+  function majTapis() {
+    if (!tachesPretes || map.getZoom() < ZOOM_TAPIS) return;
+    const b = map.getBounds();
+    const marge = 0.3 * (b.getEast() - b.getWest());
+    const c = map.getCenter().toArray();
+    const proches = enSaison.filter(([lng, lat, rayon]) => {
+      const dx = rayon / kmLng(lat), dy = rayon / KM_LAT;
+      return lng + dx > b.getWest() - marge && lng - dx < b.getEast() + marge && lat + dy > b.getSouth() - marge && lat - dy < b.getNorth() + marge;
+    });
+    // incliné, la vue va jusqu'à l'horizon : les plus proches du centre d'abord
+    proches.sort((p1, p2) => loinDe(c, p1) - loinDe(c, p2));
+    vus = proches.slice(0, MAX_TAPIS);
+    poserTapis();
+  }
+  // Le tapis n'est fait que de symboles, dessinés par-dessus le relief : MapLibre redessinait pourtant les textures du
+  // relief sous chaque tuile du tapis rechargée (toute donnée arrivée dans une tuile les périme), et le tapis change
+  // maintenant pendant les mouvements. Rouage interne de MapLibre 6.11 (Map._handleTerrainDataEvent), à revérifier en
+  // cas de mise à jour.
+  const surRelief = map._handleTerrainDataEvent;
+  if (typeof surRelief === 'function') {
+    map._handleTerrainDataEvent = function (e, ...reste) {
+      if (e.dataType === 'source' && e.sourceId === 'saison-feuilles') return undefined;
+      return surRelief.call(this, e, ...reste);
+    };
+  }
+  let dernierTapis = 0;
+  map.on('move', () => {
+    const t = performance.now();
+    if (t - dernierTapis < ENTRE_TAPIS) return;
+    dernierTapis = t;
+    majTapis();
+  });
   map.on('moveend', majTapis);
   if (map.loaded()) lancer();
   else {
@@ -494,6 +575,7 @@ export function brancherDetailsSaison(map, deps, jDepart) {
         cleTaches = cle;
         enSaison = lieux;
         tapisFaits.clear();
+        arrivee = [];
         cleTapis = '';
         auCalme(() => {
           map.getSource('saison-taches').setData({ type: 'FeatureCollection', features: lieux.flatMap((t) => touches(...t)) });
@@ -513,5 +595,13 @@ export function brancherDetailsSaison(map, deps, jDepart) {
     maj,
     /** Les lieux du tableau sont arrivés : leurs saisons s'ajoutent aux taches. */
     majLieux() { if (jour !== null) { cleTaches = ''; maj(jour, couleurs); } },
+    /** Avant un plongeon : le tapis autour du lieu d'arrivée ([lng, lat]), prêt avant que la caméra n'y soit. */
+    preparerTapis(centre) {
+      if (!tachesPretes) return;
+      const proches = enSaison.filter((t) => loinDe(centre, t) < t[2] + RAYON_ARRIVEE);
+      proches.sort((p1, p2) => loinDe(centre, p1) - loinDe(centre, p2));
+      arrivee = proches.slice(0, MAX_TAPIS);
+      poserTapis();
+    },
   };
 }

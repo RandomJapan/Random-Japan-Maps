@@ -1592,9 +1592,14 @@ function majBandeauVoyage() {
 // ---------------------------------------------------------------- Visite guidée (visite.js)
 const infosLieu = (l) => [enLangue(l.cat.nom), l.prefecture && enLangue(PREFECTURES[l.prefecture])].filter(Boolean).join(' · ');
 
+const prechargerVol = brancherPrecharge(map, maplibregl, TUILES_RELIEF, tuilesRelief);
 const visite = brancherVisite(map, {
-  t, enLangue, infos: infosLieu, estTelephone, vueDepart, adresse: CONFIG.adresse,
-  exageration, preparerVol: brancherPrecharge(map, maplibregl, TUILES_RELIEF, tuilesRelief),
+  t, enLangue, infos: infosLieu, estTelephone, vueDepart, adresse: CONFIG.adresse, exageration,
+  // avant un plongeon : le relief du trajet, et le tapis de feuilles du lieu d'arrivée (là dès que la caméra arrive)
+  preparerVol: (depart, arrivee, hauteur) => {
+    ambianceCarte?.preparerTapis(arrivee.center);
+    return prechargerVol(depart, arrivee, hauteur);
+  },
   video: (l) => idVideo(l.tiktok),
   debut: (l) => l.debutVideo ?? CONFIG.debutVideo ?? 4,
   affiche: couverture,

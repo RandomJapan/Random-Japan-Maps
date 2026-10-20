@@ -221,11 +221,11 @@ export function preparerAmbiance() {
 
   /**
    * @param deps - { t(cle, …), langue(), lieux() }
-   * @returns { majLangue(), majLieux(), jourPourImage(), reel() }
+   * @returns { majLangue(), majLieux(), jourPourImage(), reel(), preparerTapis([lng, lat]) }
    */
   function brancher(map, deps) {
     const rien = () => {};
-    if (reglage.classique) return { majLangue: rien, majLieux: rien, jourPourImage: () => rien, reel: rien };
+    if (reglage.classique) return { majLangue: rien, majLieux: rien, jourPourImage: () => rien, reel: rien, preparerTapis: rien };
     const sansMouvement = matchMedia('(prefers-reduced-motion: reduce)').matches;
     let reel = m0; // le moment au Japon (ou celui fixé par l'adresse ou le réglage)
     let m = m0; // le moment montré : le réel, ou le jour ou la nuit choisis avec l'interrupteur
@@ -445,6 +445,7 @@ export function preparerAmbiance() {
     return {
       majLangue: majHorloge,
       majLieux: details.majLieux,
+      preparerTapis: details.preparerTapis,
       jourPourImage,
       /** Revient au vrai moment (en quittant le mode développeur). */
       reel() {
