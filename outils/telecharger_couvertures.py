@@ -2,7 +2,9 @@
 
 Les pages des lieux (fabriquer_pages.py) s'en servent. On les garde dans le site, parce que les adresses
 d'images données par TikTok expirent au bout de quelques jours.
-Seules les couvertures qui manquent sont téléchargées : la GitHub Action le lance chaque nuit.
+Seules les couvertures qui manquent sont téléchargées : la GitHub Action le lance chaque nuit. Celles faites depuis
+la vidéo du montage (couvertures_montage.py, notées dans site/data/couvertures-montage.json) sont redemandées :
+si TikTok redonne la vraie couverture, elle prend leur place.
 Lancer :  python outils/telecharger_couvertures.py      (il faut Pillow)
 """
 import csv
@@ -20,6 +22,7 @@ from PIL import Image
 RACINE = Path(__file__).resolve().parent.parent
 LIEUX = RACINE / "site" / "data" / "secours-lieux.csv"
 DOSSIER = RACINE / "site" / "photos" / "tiktok"
+MONTAGE = RACINE / "site" / "data" / "couvertures-montage.json"
 LARGEUR_MAX = 540
 AGENT = {"User-Agent": "Mozilla/5.0 (compatible; RandomJapanPlace/1.0; +https://map.randomjapanplace.com/)"}
 
@@ -65,17 +68,23 @@ def telecharger(numero, lien, cible):
 
 def main():
     DOSSIER.mkdir(parents=True, exist_ok=True)
+    montage = json.loads(MONTAGE.read_text(encoding="utf-8")) if MONTAGE.exists() else {}
     nouvelles = erreurs = 0
     for numero, lien in videos():
         cible = DOSSIER / f"{numero}.jpg"
-        if cible.exists():
+        if cible.exists() and numero not in montage:
             continue
+        essai = cible.with_suffix(".tmp")
         try:
-            telecharger(numero, lien, cible)
+            telecharger(numero, lien, essai)
+            essai.replace(cible)
             nouvelles += 1
             print(f"  {numero}.jpg ({cible.stat().st_size // 1024} Ko)")
+            if montage.pop(numero, None):
+                MONTAGE.write_text(json.dumps(montage, ensure_ascii=False, indent=1, sort_keys=True) + "\n", encoding="utf-8")
         except Exception as e:  # une vidéo supprimée ou un souci réseau ne doit pas tout arrêter
             erreurs += 1
+            essai.unlink(missing_ok=True)
             print(f"  {numero} : {e}", file=sys.stderr)
         time.sleep(0.4)
     print(f"{nouvelles} couverture(s) téléchargée(s), {erreurs} erreur(s)")

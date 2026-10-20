@@ -32,6 +32,16 @@ Le lieu apparaît sur la carte dès que le robot a fini, en environ 5 minutes.
 - **Où est le robot ?** Dans le projet **« Robot carte »** sur [script.google.com](https://script.google.com). La clé de l'IA y est rangée dans ⚙️ **Paramètres du projet → Propriétés du script → `CLE_GEMINI`**. Ne la donne à personne.
 - Le robot passe aussi tout seul **toutes les 10 minutes**, au cas où il aurait raté un lien.
 
+### La vignette du lieu (l'image en haut de la fiche)
+
+Depuis le 20 octobre 2026, TikTok ne donne plus l'image de couverture de tes vidéos. Les anciens lieux gardent la leur : elle avait été copiée dans la carte avant. Pour les nouveaux, la vignette est fabriquée à partir de **ton fichier vidéo**, comme le fait TikTok : une belle image de la vidéo, avec ton cartouche du titre, recadrée pareil.
+
+1. Garde ta vidéo finale dans `D:\Montage\Vidéo lieux random japon`, avec **le même nom que dans Nom (EN)** (par exemple `Lake Kagami.mp4`). C'est déjà ce que tu fais.
+2. Dis-moi « fais les vignettes » : je prends la plus belle image de chaque nouvelle vidéo, je vérifie, et je mets en ligne.
+3. Si tu préfères une autre image, dis-moi à quelle seconde de la vidéo (par exemple « Lake Kagami à 12 s »).
+
+Si un jour TikTok redonne les couvertures, le robot de nuit remettra tout seul la couverture choisie dans l'appli.
+
 ### La méthode à la main
 
 1. Onglet **Lieux** : descends jusqu'à la première ligne vide.
@@ -42,7 +52,7 @@ Le lieu apparaît sur la carte dès que le robot a fini, en environ 5 minutes.
 6. **Description (EN)** : 2 ou 3 phrases en anglais. Les traductions se font toutes seules.
 7. C'est fini ! Le lieu apparaît sur la carte **en environ 5 minutes**. Il n'y a rien d'autre à faire.
 
-> **Photo** : laisse la case vide, la carte prendra la miniature de ta vidéo TikTok.
+> **Photo** : laisse la case vide, la carte prendra la vignette de ta vidéo (voir « La vignette du lieu » plus haut).
 > **Traductions** : tu peux écrire par-dessus une traduction automatique si elle ne te plaît pas.
 
 ## Autres réglages dans le tableau
@@ -302,7 +312,7 @@ Chaque lieu a aussi sa propre page, en anglais, en français et en japonais, pou
 
 Chaque page montre la couverture de ta vidéo (on clique pour la lire), la description, une petite carte du Japon avec le lieu, les 3 lieux les plus proches et un gros bouton vers la carte 3D. Sur la carte 3D, la fiche d'un lieu a un lien « La page de ce lieu », et le menu Catégories finit par « Tous les lieux, en liste ».
 
-**Tu n'as rien à faire :** les pages sont refaites à chaque mise en ligne, à partir du tableau. Un nouveau lieu a sa page le lendemain (la nuit, le robot recopie le tableau et télécharge la couverture de la vidéo).
+**Tu n'as rien à faire :** les pages sont refaites à chaque mise en ligne, à partir du tableau. Un nouveau lieu a sa page le lendemain (la nuit, le robot recopie le tableau ; la vignette vient de ta vidéo, voir « La vignette du lieu »).
 
 **Google Search Console :** c'est fait depuis le 2 octobre 2026. Le domaine randomjapanplace.com est validé et le plan du site (`https://map.randomjapanplace.com/sitemap.xml`) est envoyé. Sur search.google.com/search-console, le menu « Pages » montre les pages que Google connaît, et « Performances » les recherches qui mènent à tes pages. Il n'y a rien à refaire : Google relit le plan du site tout seul.
 
