@@ -20,16 +20,19 @@ const RANGEES = { vertical: [4, 5, 4, 5, 4], paysage: [6, 5, 6, 5] };
  * @param textes - { titre, texte, defi, adresse, nomSite }
  * @param format - 'vertical' (1080 × 1920 : TikTok, Instagram, stories) ou 'paysage' (1200 × 630 : l'aperçu
  *   d'un lien sur X et Facebook ; ces images-là sont fabriquées une fois et rangées dans img/, voir CLAUDE.md)
+ * @param sceau - les deux caractères du sceau rouge (伝説 ; 妖怪 pour la chasse aux yōkai d'Halloween)
+ * @param grandes - des vignettes plus grandes, en rangées de 4 et 3 (les 7 yōkai d'Halloween, format vertical)
+ * @param feuilles - les feuilles de style où sont les couleurs des dessins
  * @returns Promise d'un Blob JPEG
  */
-export async function imageBravo({ legendes, dessins, textes, format = 'vertical' }) {
+export async function imageBravo({ legendes, dessins, textes, format = 'vertical', sceau = '伝説', grandes = false, feuilles = ['legendes.css'] }) {
   const paysage = format === 'paysage';
   const [L, H] = paysage ? [1200, 630] : [1080, 1920];
   const toile = document.createElement('canvas');
   toile.width = L;
   toile.height = H;
   const c = toile.getContext('2d');
-  const tout = Object.values(textes).join('') + '伝説';
+  const tout = Object.values(textes).join('') + sceau;
   await Promise.all([
     document.fonts.load(`110px ${TITRE}`, tout),
     document.fonts.load(`italic 48px ${CARTE}`, textes.adresse),
@@ -38,7 +41,7 @@ export async function imageBravo({ legendes, dessins, textes, format = 'vertical
   const [grain, logo, vignettes] = await Promise.all([
     chargerImage(adresseGrain()).catch(() => null),
     chargerImage('img/logo.jpg').catch(() => null),
-    chargerVignettes(legendes, dessins),
+    chargerVignettes(legendes, dessins, feuilles),
   ]);
 
   // ---- Le papier : grain, bords brunis, double filet d'encre
@@ -76,7 +79,7 @@ export async function imageBravo({ legendes, dessins, textes, format = 'vertical
     c.textAlign = 'left';
     c.fillText(textes.nomSite, 184, 93);
     c.textAlign = 'center';
-    dessinerSceau(c, x, 190, 0.62);
+    dessinerSceau(c, x, 190, 0.62, sceau);
     c.fillStyle = ENCRE;
     c.font = `${ajuster(c, textes.titre, 76, TITRE, 460)}px ${TITRE}`;
     c.fillText(textes.titre, x, 322);
@@ -93,14 +96,15 @@ export async function imageBravo({ legendes, dessins, textes, format = 'vertical
     c.fillStyle = ENCRE;
     c.font = `46px ${TITRE}`;
     c.fillText(textes.nomSite, L / 2, 276);
-    dessinerSceau(c, L / 2, 420, 1);
+    dessinerSceau(c, L / 2, 420, 1, sceau);
     c.fillStyle = ENCRE;
     c.font = `${ajuster(c, textes.titre, 110, TITRE, 900)}px ${TITRE}`;
     c.fillText(textes.titre, L / 2, 640);
     c.fillStyle = ENCRE_2;
     c.font = `40px ${TEXTE}`;
     lignesEquilibrees(c, textes.texte, 820).forEach((ligne, i) => c.fillText(ligne, L / 2, 720 + i * 54));
-    dessinerVignettes(c, vignettes, RANGEES.vertical, { gauche: 0, largeur: L, haut: 852, largeurCase: 196, hauteurRangee: 156, l: 160, h: 150 });
+    if (grandes) dessinerVignettes(c, vignettes, [4, 3], { gauche: 0, largeur: L, haut: 880, largeurCase: 250, hauteurRangee: 330, l: 260, h: 244 });
+    else dessinerVignettes(c, vignettes, RANGEES.vertical, { gauche: 0, largeur: L, haut: 852, largeurCase: 196, hauteurRangee: 156, l: 160, h: 150 });
     c.fillStyle = ENCRE;
     c.font = `${ajuster(c, textes.defi, 54, TITRE, 900)}px ${TITRE}`;
     c.fillText(textes.defi, L / 2, 1712);
@@ -125,8 +129,8 @@ export function dessinerLogo(c, logo, x, y, r) {
   c.stroke();
 }
 
-/** Le sceau rouge 伝説, un peu de travers, comme tamponné. */
-function dessinerSceau(c, x, y, k) {
+/** Le sceau rouge (伝説), un peu de travers, comme tamponné. */
+function dessinerSceau(c, x, y, k, mots = '伝説') {
   c.save();
   c.translate(x, y);
   c.rotate((-8 * Math.PI) / 180);
@@ -141,8 +145,8 @@ function dessinerSceau(c, x, y, k) {
   c.fillStyle = ROUGE;
   c.font = `60px ${TITRE}`;
   c.textBaseline = 'middle';
-  c.fillText('伝', 0, -28);
-  c.fillText('説', 0, 32);
+  c.fillText(mots[0], 0, -28);
+  c.fillText(mots[1], 0, 32);
   c.restore();
 }
 
@@ -162,8 +166,8 @@ function dessinerAdresse(c, adresse, x, y, taille, largeurMax) {
   c.globalAlpha = 1;
 }
 
-function chargerVignettes(legendes, dessins) {
-  const css = styleDessins();
+function chargerVignettes(legendes, dessins, feuilles) {
+  const css = styleDessins(feuilles);
   return Promise.all(legendes.map((l) => {
     const url = urlDessin(dessins[l.id], css);
     return chargerImage(url).catch(() => null).finally(() => URL.revokeObjectURL(url));
@@ -205,10 +209,10 @@ export function adresseGrain() {
  * on les recopie dans chaque dessin, sinon une image SVG ne les voit pas. Les petites animations (.anime)
  * sont laissées de côté.
  */
-function styleDessins() {
+function styleDessins(feuilles) {
   const regles = [];
   for (const feuille of document.styleSheets) {
-    if (!feuille.href?.includes('legendes.css')) continue;
+    if (!feuilles.some((nom) => feuille.href?.includes(nom))) continue;
     for (const r of feuille.cssRules) {
       // toutes les règles (celles des autres éléments de la page ne trouvent rien dans un dessin), sauf les animations
       if (r.selectorText && !r.selectorText.includes('.anime')) regles.push(r.cssText.replace(/\.lg\s+/g, ''));

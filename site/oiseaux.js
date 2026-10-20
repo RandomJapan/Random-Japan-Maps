@@ -4,6 +4,9 @@
 //  au-dessus du plus haut sommet de leur chemin ; leur ombre suit le relief en dessous. Si on déplace, tourne
 //  ou zoome la carte, elles suivent, comme tout le reste.
 //  De loin, pas d'oiseaux. Rien ne vole si l'appareil demande moins d'animations.
+//  Pendant Halloween (halloween.js), ce sont des chauves-souris : choisirOiseaux({ svg, classe, nombre, vitesse,
+//  entre }) remplace les grues par un petit groupe désordonné (chacune zigzague à sa façon : halloween.css),
+//  choisirOiseaux(null) remet les grues.
 // ================================================================
 
 const ZOOM_OISEAUX = 8.4; // en dessous, on est trop loin pour voir des oiseaux
@@ -33,10 +36,18 @@ const GRUE = `<svg viewBox="0 0 80 40" aria-hidden="true">
 const FILE = [[0, 0, 0], [-1.25, 0.42, -0.45], [-2.5, 0.08, -0.9]];
 
 let volerMaintenant = null;
+let sorteVoulue = null; // null : les grues ; sinon { svg, classe, nombre: [min, max], vitesse (×), entre: [s, s] }
+let sorteChangee = null;
 
 /** Fait passer un vol de grues tout de suite (sert aux essais). */
 export function faireVoler() {
   return volerMaintenant?.() ?? false;
+}
+
+/** D'autres oiseaux à la place des grues (les chauves-souris d'Halloween), ou null : les grues reviennent. */
+export function choisirOiseaux(sorte) {
+  sorteVoulue = sorte;
+  sorteChangee?.();
 }
 
 /**
@@ -45,14 +56,27 @@ export function faireVoler() {
  */
 export function brancherOiseaux(map, maplibregl, reperes) {
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const grues = (classe) => FILE.map(([dx, dy, d]) => `<div class="grue ${classe}" style="--dx:${dx};--dy:${dy};--d:${d}s">${GRUE}</div>`).join('');
   const el = document.createElement('div');
   el.className = 'vol-grues';
   el.setAttribute('aria-hidden', 'true');
-  // les ombres sur le relief, puis les grues au-dessus ; chaque groupe tourne vers le cap du vol.
-  // (Le fondu se fait sur un enfant : MapLibre règle lui-même l'opacité de l'élément du repère.)
-  el.innerHTML = `<div class="grues-fondu"><div class="grues-ombres">${grues('ombre-grue')}</div><div class="grues-air"><div class="grues-cap">${grues('')}</div></div></div>`;
-  const fonduEl = el.firstElementChild, ombres = fonduEl.firstElementChild, air = fonduEl.lastElementChild, cap = air.firstElementChild;
+  let sorte = null; // ce qui vole (null : les grues), fixé au début de chaque vol
+  let fonduEl, ombres, air, cap;
+  /** Le vol : les ombres sur le relief, puis les oiseaux au-dessus ; chaque groupe tourne vers le cap du vol.
+   *  (Le fondu se fait sur un enfant : MapLibre règle lui-même l'opacité de l'élément du repère.)
+   *  Les grues volent en file ; les chauves-souris en petit groupe désordonné, tiré au sort à chaque vol. */
+  function remplir() {
+    sorte = sorteVoulue;
+    const file = sorte
+      ? Array.from({ length: Math.round(entre(sorte.nombre)) }, (_, i) => [i ? -entre([0.3, 2.4]) : 0, i ? entre([-0.8, 0.8]) : 0, -entre([0, 0.3]), 1 + (i % 3)])
+      : FILE;
+    const dessin = sorte ? sorte.svg : GRUE;
+    const oiseaux = (classe) => file.map(([dx, dy, d, z]) => `<div class="grue ${sorte ? `${sorte.classe} z${z}` : ''} ${classe}" style="--dx:${dx.toFixed(2)};--dy:${dy.toFixed(2)};--d:${d.toFixed(2)}s">${dessin}</div>`).join('');
+    el.innerHTML = `<div class="grues-fondu"><div class="grues-ombres">${oiseaux('ombre-grue')}</div><div class="grues-air"><div class="grues-cap">${oiseaux('')}</div></div></div>`;
+    fonduEl = el.firstElementChild;
+    ombres = fonduEl.firstElementChild;
+    air = fonduEl.lastElementChild;
+    cap = air.firstElementChild;
+  }
   const marqueur = new maplibregl.Marker({ element: el, anchor: 'center', opacityWhenCovered: '1' }).setLngLat([138, 35]);
   // juste au-dessus du papier vieilli, sous les épingles
   reperes.suivre(marqueur, { voulu: false, placer: (n) => n.parentNode.insertBefore(n, n.parentNode.querySelector('#papier')?.nextSibling ?? null) });
@@ -63,6 +87,9 @@ export function brancherOiseaux(map, maplibregl, reperes) {
   let dessin = {}; // ce qui est déjà appliqué au repère (pour ne rien toucher qui n'a pas changé)
   const maintenant = () => performance.now() / 1000;
   const entre = ([a, b]) => a + Math.random() * (b - a);
+  remplir();
+  // d'autres oiseaux demandés : au prochain vol (celui en cours finit tel quel), et bientôt
+  sorteChangee = () => { if (pres && !vol) prochain = Math.min(prochain, maintenant() + entre(PREMIER_VOL)); };
 
   function majZoom() {
     const p = map.getZoom() >= ZOOM_OISEAUX;
@@ -85,6 +112,7 @@ export function brancherOiseaux(map, maplibregl, reperes) {
   /** Un vol au hasard : il traverse l'écran d'un bord à l'autre, dans un sens et à une hauteur au hasard. */
   function voler() {
     if (vol || !pres) return false;
+    if (sorte !== sorteVoulue || sorte) remplir(); // les chauves-souris changent de groupe à chaque vol
     const { clientWidth: l, clientHeight: h } = map.getContainer();
     const taille = tailleGrue();
     for (let essai = 0; essai < 12; essai++) {
@@ -96,7 +124,8 @@ export function brancherOiseaux(map, maplibregl, reperes) {
       const B = surLaCarte(xb, h * (0.25 + Math.random() * 0.6));
       if (!A || !B) continue;
       const pixels = Math.hypot(l + 2 * marge + taille * 2.5, h * 0.3);
-      vol = { A, B, debut: performance.now(), duree: Math.max(9, pixels / VITESSE) * 1000, altitude: altitudeDuVol(A, B, taille) };
+      const vitesse = VITESSE * (sorte?.vitesse || 1);
+      vol = { A, B, debut: performance.now(), duree: Math.max(9 / (sorte?.vitesse || 1), pixels / vitesse) * 1000, altitude: altitudeDuVol(A, B, taille) };
       dessin = {};
       reperes.montrer(marqueur, true);
       el.classList.add('vole');
@@ -188,6 +217,6 @@ export function brancherOiseaux(map, maplibregl, reperes) {
     if (!pres || vol || document.hidden || maintenant() < prochain) return;
     // (ni pendant un plongeon ou une partie, ni sur un appareil peu puissant : qualite.js)
     if (['plongeon', 'en-jeu', 'qualite-tres-legere'].some((c) => document.body.classList.contains(c))) return;
-    prochain = maintenant() + (voler() ? entre(ENTRE_VOLS) : 3);
+    prochain = maintenant() + (voler() ? entre(sorte?.entre || ENTRE_VOLS) : 3);
   }, 1000);
 }

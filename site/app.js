@@ -8,7 +8,7 @@ import { iconeHTML } from './icons.js';
 import { PREFECTURES, REGIONS, chargerPrefectures, regionDe } from './regions.js';
 import { brancherModeles } from './couche3d.js';
 import { animerMer, reglerMer } from './mer.js';
-import { brancherOiseaux } from './oiseaux.js';
+import { brancherOiseaux, choisirOiseaux } from './oiseaux.js';
 import { brancherMusique } from './musique.js';
 import { brancherNomsRegions } from './noms-regions.js';
 import { brancherCompteur } from './compteur.js';
@@ -1078,6 +1078,7 @@ const PANNEAUX = {
   'panneau-visite': ['btn-visite', ouvrirVisite],
   'panneau-saisons': ['btn-saisons', ouvrirSaisons],
   'panneau-musique': ['btn-musique', ouvrirMusique],
+  'panneau-halloween': ['btn-halloween', ouvrirHalloween],
 };
 
 /** Ferme tous les panneaux (sauf celui qu'on ouvre). */
@@ -1107,6 +1108,45 @@ function ouvrirLegendes(ouvrir) {
   if (!ouvrir) return;
   fermerPanneaux('panneau-legendes');
   legendes?.remplirPanneau();
+}
+
+// ---------------------------------------------------------------- Halloween (halloween.js)
+// Un événement : du CONFIG.halloween.debut à minuit la veille de .fin (heure de l'appareil), seulement en mode
+// développeur tant que .public est faux. Le module se charge quand l'événement commence ; il s'éteint (tout ce qu'il
+// a posé s'en va) en sortant du mode développeur ou quand l'événement finit, même la page ouverte.
+let halloween = null; // la promesse du module branché
+
+function halloweenVoulu() {
+  const h = CONFIG.halloween;
+  if (!h || ambiance.classique) return false; // pas dans les films promo (?ambiance=non)
+  const maintenant = Date.now();
+  if (maintenant < new Date(`${h.debut}T00:00`).getTime() || maintenant >= new Date(`${h.fin}T00:00`).getTime()) return false;
+  return h.public || document.body.classList.contains('mode-dev');
+}
+
+function majHalloween() {
+  const voulu = halloweenVoulu();
+  if (!voulu && !halloween) return;
+  halloween ??= import('./halloween.js')
+    .then(({ brancherHalloween }) => brancherHalloween(map, maplibregl, {
+      langue: () => langue, afficherMessage, fermerFiche, reperes, lieux: () => lieux, ambiance: ambianceCarte,
+      choisirOiseaux, adresse: CONFIG.adresse, nomSite: CONFIG.titre, fermerPanneau: () => ouvrirHalloween(false),
+    }))
+    .catch((e) => { console.warn('Halloween indisponible', e); halloween = null; });
+  halloween.then((h) => {
+    if (!h) return;
+    if (halloweenVoulu()) h.allumer();
+    else h.eteindre();
+  });
+}
+
+/** Le panneau « Halloween au Japon » : l'événement, le défilé des cent démons, la chasse aux yōkai. */
+function ouvrirHalloween(ouvrir) {
+  $('panneau-halloween').hidden = !ouvrir;
+  $('btn-halloween').setAttribute('aria-expanded', String(ouvrir));
+  if (!ouvrir) return;
+  fermerPanneaux('panneau-halloween');
+  halloween?.then((h) => h?.remplirPanneau());
 }
 
 // ---------------------------------------------------------------- Lieu au hasard (le dé)
@@ -1673,6 +1713,7 @@ function basculerDev(actif) {
     ongletPlongeon?.then((o) => o.choisirOnglet('visite'));
     ambianceCarte?.reel(); // la date et l'heure choisies dans le réglage reviennent au vrai moment
   }
+  if (ambianceCarte) majHalloween(); // l'événement d'Halloween, tant qu'il n'est que pour le mode développeur
 }
 
 function majBoutonDev() {
@@ -2195,6 +2236,7 @@ function appliquerLangue() {
   if (!$('resultats').hidden) rechercher();
   if (lieuActif) remplirFiche(lieuActif);
   legendes?.majLangue();
+  halloween?.then((h) => h?.majLangue());
   nomsRegions.majLangue(langue);
   compteur?.majLangue();
   ambianceCarte?.majLangue();
@@ -2387,6 +2429,8 @@ async function demarrer() {
     // Contours des préfectures (116 Ko) chargés en avance, sans gêner le démarrage : le dé s'ouvre tout de suite.
     setTimeout(() => preparerPrefectures().catch(() => {}), 3000);
     setTimeout(chargerLegendes, 1500);
+    setTimeout(majHalloween, 1700);
+    setInterval(majHalloween, 60000); // l'événement s'arrête à minuit, même la page ouverte
     if (lienVoyage) setTimeout(() => recevoirVoyage(lienVoyage), 300);
     if (liensJeu) setTimeout(() => lancerJeu(liensJeu).catch((e) => console.warn('Jeu indisponible', e)), 400);
     else if (lienDefi) setTimeout(() => lancerDefi().catch((e) => console.warn('Défi indisponible', e)), 400);

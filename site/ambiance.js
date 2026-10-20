@@ -225,12 +225,13 @@ export function preparerAmbiance() {
    */
   function brancher(map, deps) {
     const rien = () => {};
-    if (reglage.classique) return { majLangue: rien, majLieux: rien, jourPourImage: () => rien, reel: rien, preparerTapis: rien };
+    if (reglage.classique) return { majLangue: rien, majLieux: rien, jourPourImage: () => rien, reel: rien, preparerTapis: rien, remplacerParticules: rien };
     const sansMouvement = matchMedia('(prefers-reduced-motion: reduce)').matches;
     let reel = m0; // le moment au Japon (ou celui fixé par l'adresse ou le réglage)
     let m = m0; // le moment montré : le réel, ou le jour ou la nuit choisis avec l'interrupteur
     let force = null; // 'jour' | 'nuit' : choisi avec l'interrupteur ; null : l'heure du Japon
     let cle = '', particules;
+    let remplacement = null; // (moment) → une autre sorte de particules, ou undefined (halloween.js : les hitodama la nuit)
     const details = brancherDetailsSaison(map, { lieux: deps.lieux }, jDepart);
 
     // L'horloge : l'interrupteur jour/nuit, l'heure au Japon, et (mode développeur) le réglage de la date
@@ -332,7 +333,8 @@ export function preparerAmbiance() {
     /** Les particules de la saison (rien sous « réduire les animations »). Lucioles et feux d'artifice : la nuit seulement. */
     function majParticules() {
       const deNuit = m.particules === 'lucioles' || m.particules === 'hanabi';
-      const sorte = sansMouvement || (deNuit && m.nuit < 0.5) ? null : m.particules;
+      const autre = remplacement?.(m);
+      const sorte = sansMouvement ? null : autre !== undefined ? autre : deNuit && m.nuit < 0.5 ? null : m.particules;
       if (sorte === particules) return;
       particules = sorte;
       saison.replaceChildren(...(sorte ? creerParticules(sorte) : []));
@@ -447,6 +449,12 @@ export function preparerAmbiance() {
       majLieux: details.majLieux,
       preparerTapis: details.preparerTapis,
       jourPourImage,
+      /** Un événement (halloween.js) remplace les particules de la saison : fn(moment) → sorte, ou undefined. */
+      remplacerParticules(fn) {
+        remplacement = fn;
+        particules = '?'; // les refaire, même si c'est la même sorte
+        majParticules();
+      },
       /** Revient au vrai moment (en quittant le mode développeur). */
       reel() {
         if (reglage.fixe === fixeAdresse && !force) return;

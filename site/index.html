@@ -68,6 +68,12 @@
         <svg class="calendrier" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M3.5 10h17M8 3v4M16 3v4"/><path fill="currentColor" d="M12 12.2c1.4 1.2 2.7 1.6 2.7 3.3a2.7 2.7 0 0 1-5.4 0c0-1.7 1.3-2.1 2.7-3.3Z"/></svg>
         <span class="texte-bouton" data-t="saisonsBouton">When to go</span>
       </button>
+      <!-- Halloween : seulement pendant l'événement (halloween.js, CONFIG.halloween) -->
+      <button class="bouton-categories bouton-halloween panneau" id="btn-halloween" aria-expanded="false" aria-controls="panneau-halloween" hidden>
+        <svg class="citrouille" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 6.4C11.6 4.6 12.2 3.2 13.8 2.4"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M12 6.6C10.4 5.7 8.4 5.6 6.7 6.5 3.9 7.8 2.6 10.7 2.8 13.7 3.1 17.3 5.4 20.1 8.4 20.6 9.7 20.8 10.9 20.5 12 19.9 13.1 20.5 14.3 20.8 15.6 20.6 18.6 20.1 20.9 17.3 21.2 13.7 21.4 10.7 20.1 7.8 17.3 6.5 15.6 5.6 13.6 5.7 12 6.6Z"/><path fill="none" stroke="currentColor" stroke-width="1.6" d="M12 6.8C10.4 10.4 10.4 16.4 12 19.8"/></svg>
+        <span class="texte-bouton" id="txt-halloween">Halloween</span>
+        <span class="compteur" id="compteur-halloween"></span>
+      </button>
       <!-- Favoris : le bouton apparaît dès qu'on a mis un cœur sur un lieu -->
       <button class="bouton-categories bouton-favoris panneau" id="btn-favoris" aria-expanded="false" aria-controls="panneau-favoris" hidden data-t-titre="favorisTitre">
         <svg class="coeur" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 20.3s-7.4-4.5-9.2-9.1C1.5 7.8 3.7 4.6 7 4.6c2 0 3.6 1.1 5 2.9 1.4-1.8 3-2.9 5-2.9 3.3 0 5.5 3.2 4.2 6.6-1.8 4.6-9.2 9.1-9.2 9.1Z"/></svg>
@@ -105,6 +111,7 @@
       </button>
     </div>
     <div class="menu panneau" id="panneau-legendes" hidden></div>
+    <div class="menu panneau halloween-panneau" id="panneau-halloween" hidden></div>
     <div class="menu panneau" id="panneau-favoris" hidden></div>
     <div class="menu panneau hasard" id="panneau-saisons" hidden></div>
     <div class="menu panneau hasard" id="panneau-visite" hidden>

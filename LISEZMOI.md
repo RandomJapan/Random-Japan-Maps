@@ -96,6 +96,21 @@ Quand on voit tout le Japon, la mer bouge un peu, comme une vieille carte qui pr
 
 Tout disparaît quand on zoome sur un lieu. Si le téléphone est réglé pour réduire les animations, la mer reste immobile.
 
+## Halloween (du 20 au 31 octobre)
+
+Pendant l'événement, la carte se déguise :
+- un bouton **Halloween** (une citrouille) ouvre le panneau « Halloween au Japon » : comment se fête Halloween au Japon, le défilé des cent démons (avec un bouton pour le faire passer tout de suite) et la chasse aux yōkai ;
+- les épingles portent un **chapeau de sorcière** ;
+- des **chauves-souris** volent à la place des grues ;
+- un **chat noir** est assis sur le cartouche « Japan 日本 Japon », et une **toile d'araignée** occupe le coin en haut à droite ;
+- la nuit, quand on zoome, des **hitodama** (feux follets japonais, bleu pâle) flottent autour des temples, à la place des feuilles qui tombent ;
+- la nuit, de près, le **défilé des cent démons** (Hyakki Yagyō) traverse parfois la carte : lanterne et ombrelle hantées, renard, tanuki, kappa, oni, tengu, femme au long cou… On les touche pour lire leur histoire ;
+- la **chasse aux yōkai** : 7 yōkai sont cachés dans des lieux hantés (Osorezan, Yotsuya, Kyoto, Himeji, Sakaiminato, Ōboke, Kimotsuki). On zoome sur une région pour les trouver ; le panneau compte ceux qu'on a trouvés, et quand on a les 7, une image « Chasse terminée ! » est à partager.
+
+**Pour l'instant, seulement en mode développeur** : tu vérifies, et quand tu es d'accord, dis-moi de le mettre en ligne (c'est le réglage `halloween` de `config.js` : `public: true`). Le **1er novembre à minuit**, tout disparaît tout seul et la carte redevient normale (grues, feuilles d'automne).
+
+Pour voir le défilé ou les feux follets de jour, passe la carte en nuit avec le bouton soleil/lune à côté de l'heure.
+
 ## Les grues
 
 Quand on zoome sur la carte, **trois grues du Japon** (blanches, à tête rouge) passent de temps en temps au-dessus d'un coin de la carte, dans une direction au hasard. Elles volent à hauteur fixe, un peu au-dessus des sommets ; leur ombre, elle, suit le relief en dessous. Si on déplace, tourne ou zoome la carte pendant leur vol, elles suivent la carte. Le premier vol arrive quelques secondes après avoir zoomé, puis un autre toutes les 25 à 60 secondes environ. Il n'y en a pas pendant un plongeon ni pendant le jeu.

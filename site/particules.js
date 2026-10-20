@@ -14,6 +14,7 @@
 // ================================================================
 
 import { creerHanabi } from './hanabi.js';
+import { creerHitodama } from './hitodama.js';
 
 const hasard = (a, b) => a + Math.random() * (b - a);
 const P = (x, y) => `${x.toFixed(1)} ${y.toFixed(1)}`;
@@ -167,6 +168,7 @@ const SORTES = {
     return s;
   }),
   hanabi: () => [creerHanabi()],
+  hitodama: () => [creerHitodama()], // les nuits d'Halloween (halloween.js)
 };
 
 /**
@@ -227,7 +229,7 @@ export function atlasSol() {
   return toile;
 }
 
-/** Les éléments de cette sorte (feuilles, petales, neige, lucioles, hanabi). */
+/** Les éléments de cette sorte (feuilles, petales, neige, lucioles, hanabi, hitodama). */
 export function creerParticules(sorte) {
   return SORTES[sorte]?.() || [];
 }

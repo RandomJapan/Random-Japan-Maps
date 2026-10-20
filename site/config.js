@@ -45,6 +45,13 @@ export const CONFIG = {
   // À changer pour le jour où le défi sort, s'il doit commencer au n° 1.
   debutDefi: '2026-10-13',
 
+  // --- Halloween ------------------------------------------------------------
+  // L'événement d'Halloween (halloween.js) : chapeaux de sorcière, chauves-souris, chat noir, toile d'araignée,
+  // feux follets, défilé des cent démons, chasse aux yōkai et le panneau « Halloween au Japon ».
+  // Du jour « debut » jusqu'à minuit la veille du jour « fin » (à l'heure du téléphone ou de l'ordinateur du visiteur).
+  // public: false → seulement en mode développeur (pour vérifier) ; true → pour tous les visiteurs.
+  halloween: { debut: '2026-10-20', fin: '2026-11-01', public: false },
+
   // --- Badge « Nouveau » -----------------------------------------------
   // Un lieu dont la vidéo TikTok a moins de ce nombre de jours porte l'étiquette « Nouveau ».
   // La date vient du lien de la vidéo : rien à remplir dans le tableau.
