@@ -7,7 +7,8 @@ Tout se passe dans le tableau **Google Sheets « Random Japan Place - Lieux de l
 ### La méthode rapide : le robot 🤖
 
 1. Sur TikTok, fais **Partager → Copier le lien** de ta nouvelle vidéo.
-2. Dans l'onglet **Lieux**, colle ce lien dans la case **Nom (EN)** de la première ligne vide.
+2. Dans l'onglet **Lieux**, sur la première ligne vide : écris d'abord le nom du lieu dans **Nom (EN)**, comme dans ta légende (par exemple `Koboyama Tumulus | Nagano`), puis colle le lien dans **Lien TikTok**.
+   - Depuis le 20 octobre 2026, TikTok ne donne plus toujours la légende de la vidéo au robot. Avant, il suffisait de coller le lien seul : le robot lisait le nom dans ta légende. Ça marche encore parfois, mais avec le nom écrit, c'est sûr.
 3. Attends environ une minute. Le robot remplit toute la ligne : noms en 3 langues, catégorie, GPS, descriptions en 3 langues. Il la colore ensuite en **jaune** (« À vérifier »).
 4. Relis la ligne jaune. Corrige si besoin, puis efface le « Oui » de **À vérifier** et remets le fond en blanc.
 
@@ -18,6 +19,7 @@ Le lieu apparaît sur la carte dès que le robot a fini, en environ 5 minutes.
 |---|---|
 | ⏳ Le robot travaille… | Il est en train de remplir la ligne. |
 | ⏳ Petit souci… | Google ou TikTok n'a pas répondu. Le robot réessaie tout seul 10 minutes plus tard. |
+| ❌ TikTok ne donne pas la légende… | Écris le nom du lieu dans **Nom (EN)** (comme dans ta légende), puis efface ce message : le robot recommence dans les 10 minutes. |
 | 🤖 Rempli par le robot… | C'est fini. Lis la suite du message : il y note ses doutes (par exemple « position approximative »). |
 | ❌ … | Il n'y arrive pas. Lis le message. **Efface-le** pour qu'il réessaie, ou remplis la ligne à la main. |
 

@@ -24,6 +24,7 @@ const MODELES_REDIGER = ['gemini-3.8-flash', 'gemini-3.5-flash-lite']; // 2e que
 const AGENT = 'RandomJapanPlaceRobot/1.0 (https://randomjapan.github.io/Random-Japan-Maps/)';
 const LIGNES_PAR_PASSAGE = 3;
 const ESSAIS_MAX = 2;
+const SANS_LEGENDE = 'TikTok ne donne pas la légende de cette vidéo au robot. Écris le nom du lieu dans « Nom (EN) », comme dans ta légende (par exemple « Koboyama Tumulus | Nagano »).';
 const COULEUR_A_VERIFIER = '#FFF2CC';
 const ONGLET_LIEUX = 'Lieux';
 const ONGLET_CATEGORIES = 'Catégories';
@@ -88,9 +89,14 @@ function robotCarte() {
       const lien = String(donnees[i][col['Lien TikTok'] - 1]).trim();
       const robot = String(donnees[i][col[COLONNE_ROBOT] - 1]).trim();
       const lienDansNom = /tiktok\.com/i.test(nom);
-      if (!lienDansNom && !(nom === '' && /tiktok\.com/i.test(lien))) continue;
+      // Un lien et un nom écrit à la main, sans GPS ni catégorie : le nom sert de légende (TikTok ne la donne
+      // plus toujours, voir lireVideo_). Une ligne déjà remplie par le robot a son GPS ou sa catégorie.
+      const nomDonne = !lienDansNom && nom !== '' && /tiktok\.com/i.test(lien)
+        && !String(donnees[i][col['Coordonnées GPS'] - 1]).trim() && !String(donnees[i][col['Catégorie'] - 1]).trim()
+        && (robot === '' || robot.startsWith('⏳'));
+      if (!lienDansNom && !nomDonne && !(nom === '' && /tiktok\.com/i.test(lien))) continue;
       if (robot.startsWith('❌')) continue; // erreur : on attend que tu effaces le message
-      aFaire.push({ ligne: i + 1, lien: lienDansNom ? nom : lien, robot });
+      aFaire.push({ ligne: i + 1, lien: lienDansNom ? nom : lien, robot, nom: nomDonne ? nom : '' });
     }
     for (const tache of aFaire.slice(0, LIGNES_PAR_PASSAGE)) {
       if (Date.now() - debut > 3.5 * 60 * 1000) break; // Google coupe à 6 minutes
@@ -114,7 +120,7 @@ function traiterLigne_(feuille, col, tache, donnees) {
   ecrire(COLONNE_ROBOT, `⏳ Le robot travaille… (essai ${essai})`);
   SpreadsheetApp.flush();
   try {
-    const video = lireVideo_(tache.lien);
+    const video = lireVideo_(tache.lien, tache.nom);
     const doublon = trouverDoublon_(donnees, col, video.id, tache.ligne);
     if (doublon) {
       ecrire(COLONNE_ROBOT, `❌ Cette vidéo est déjà sur la carte (ligne ${doublon}). Tu peux supprimer cette ligne.`);
@@ -217,7 +223,8 @@ function nomDansLegende_(legende) {
 }
 
 // --- La vidéo TikTok ------------------------------------------------------
-function lireVideo_(texte) {
+/** nomDonne : le nom du lieu écrit à la main dans la ligne, qui sert de légende si TikTok ne la donne pas. */
+function lireVideo_(texte, nomDonne) {
   const trouve = String(texte).match(/https?:\/\/[^\s"'<>]*tiktok\.com[^\s"'<>]*/i);
   if (!trouve) throw erreur_('Je ne trouve pas de lien TikTok dans cette case.');
   let url = trouve[0];
@@ -239,12 +246,16 @@ function lireVideo_(texte) {
   const o = JSON.parse(r.getContentText());
   id = id || o.embed_product_id;
   if (!id) throw erreur_('Je ne trouve pas le numéro de la vidéo dans ce lien.');
-  // Depuis le 2026-10-20, l'oEmbed de TikTok ne donne plus la légende (title) : on la lit alors dans la page de
-  // son lecteur intégré. Sans légende, l'IA croyait que la vidéo ne montrait aucun lieu et la rangeait dans
-  // « À trier » : on attend plutôt et on réessaie.
-  const integree = o.title ? null : lireIntegree_(id);
-  const legende = String(o.title || (integree && integree.legende) || '').trim();
-  if (!legende) throw erreur_('TikTok ne donne pas la légende de cette vidéo pour l\'instant.', true);
+  // Depuis le 2026-10-20, l'oEmbed de TikTok ne donne plus la légende (title). Sans légende, l'IA croyait que la
+  // vidéo ne montrait aucun lieu et la rangeait dans « À trier ». On prend alors le nom écrit à la main dans la
+  // ligne, sinon la page du lecteur intégré de TikTok (qui répond souvent « trop de demandes » aux serveurs de
+  // Google), sinon on attend et on réessaie.
+  let integree = null;
+  if (!o.title && !nomDonne) {
+    try { integree = lireIntegree_(id); } catch (e) { if (!e.reessayer) throw e; }
+  }
+  const legende = String(o.title || nomDonne || (integree && integree.legende) || '').trim();
+  if (!legende) throw erreur_(SANS_LEGENDE, true);
   const auteur = o.author_unique_id || (integree && integree.auteur) || (propre.match(/@([\w.]+)/) || [])[1] || 'random_japan_place';
   return { id: String(id), url: `https://www.tiktok.com/@${auteur}/video/${id}`, legende, auteur };
 }
@@ -541,16 +552,17 @@ function erreur_(message, reessayer) {
 }
 
 // --- Tests (résultat dans le « Journal d'exécution », rien n'est écrit dans le tableau) ---
+// [lien, nom écrit à la main comme dans la légende] (TikTok ne donne plus toujours la légende au robot)
 const LIENS_TEST = [
-  'https://www.tiktok.com/@random_japan_place/video/7641332794487999766', // Udo Inari Shrine (petit sanctuaire à côté du célèbre Udo Jingū)
-  'https://www.tiktok.com/@random_japan_place/video/7691039736739269910', // Ibuki Tree Art Sculpture (œuvre d'art sur l'île d'Ibuki, 34.1302, 133.5345)
-  'https://www.tiktok.com/@random_japan_place/video/7690679785537703190', // Shipporyu-ji : nom japonais 七宝瀧寺 (l'IA écrivait 七宝隆寺)
+  ['https://www.tiktok.com/@random_japan_place/video/7641332794487999766', 'Udo Inari shrine | Miyazaki'], // petit sanctuaire à côté du célèbre Udo Jingū
+  ['https://www.tiktok.com/@random_japan_place/video/7691039736739269910', 'Ibuki Tree Art Sculpture | Kagawa'], // œuvre d'art sur l'île d'Ibuki, 34.1302, 133.5345
+  ['https://www.tiktok.com/@random_japan_place/video/7690679785537703190', 'Shipporyu-ji | Osaka'], // nom japonais 七宝瀧寺 (l'IA écrivait 七宝隆寺)
 ];
 
 /** Sans IA : légende TikTok, nom lu dans la légende, Google Maps, Wikipédia. */
 function testerSansIA() {
-  for (const lien of LIENS_TEST) {
-    const video = lireVideo_(lien);
+  for (const [lien, nomDonne] of LIENS_TEST) {
+    const video = lireVideo_(lien, nomDonne);
     const nom = nomDansLegende_(video.legende);
     console.log(JSON.stringify(video.legende), '→', nom);
     console.log(JSON.stringify(chercherCarte_(nom, 'google_maps_legende')));
@@ -560,9 +572,9 @@ function testerSansIA() {
 
 /** Test complet sur chaque vidéo, sans rien écrire (2 questions à Gemini par vidéo). */
 function testerAvecIA() {
-  for (const lien of LIENS_TEST) {
+  for (const [lien, nomDonne] of LIENS_TEST) {
     const debut = Date.now();
-    const r = preparerFiche_(lireVideo_(lien), lireCategories_());
+    const r = preparerFiche_(lireVideo_(lien, nomDonne), lireCategories_());
     console.log(JSON.stringify(r.identification, null, 1));
     console.log(JSON.stringify((r.sources || []).map((s) => [s.id, s.titre, s.lat, s.lng])));
     console.log(JSON.stringify(r.fiche, null, 1));
