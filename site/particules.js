@@ -10,7 +10,10 @@
 //  Les mouvements sont donnés en valeurs fixes (element.animate) : avec des
 //  variables CSS dans les @keyframes, le navigateur les recalculait à chaque
 //  image (mesuré : 13 % d'images en moins sur un téléphone moyen simulé).
+//  Les feux d'artifice sont à part, dessinés image par image (hanabi.js).
 // ================================================================
+
+import { creerHanabi } from './hanabi.js';
 
 const hasard = (a, b) => a + Math.random() * (b - a);
 const P = (x, y) => `${x.toFixed(1)} ${y.toFixed(1)}`;
@@ -163,26 +166,8 @@ const SORTES = {
       { transform: `translate(${hasard(-70, 70).toFixed(0)}px, -40px)`, opacity: 0.9 }], hasard(5, 9), { direction: 'alternate', easing: 'ease-in-out' });
     return s;
   }),
-  hanabi: () => ['#e8b04a', '#c4462e', '#e8b04a'].map((couleur, i) => {
-    const s = document.createElement('span');
-    s.className = 'hanabi';
-    s.innerHTML = feuDArtifice(couleur);
-    const placer = () => { s.style.left = `${hasard(12, 80)}%`; s.style.top = `${hasard(22, 62)}%`; };
-    placer();
-    s.style.animationDelay = `${i * 2.3 + hasard(0, 1)}s`;
-    s.addEventListener('animationiteration', placer);
-    return s;
-  }),
+  hanabi: () => [creerHanabi()],
 };
-
-function feuDArtifice(couleur) {
-  let traits = '';
-  for (let i = 0; i < 16; i++) {
-    const a = (i * Math.PI) / 8, c = Math.cos(a), s = Math.sin(a);
-    traits += `<line x1="${50 + c * 18}" y1="${50 + s * 18}" x2="${50 + c * 40}" y2="${50 + s * 40}"/><circle cx="${50 + c * 46}" cy="${50 + s * 46}" r="2.6"/>`;
-  }
-  return `<svg width="76" height="76" viewBox="0 0 100 100" stroke="${couleur}" fill="${couleur}" stroke-width="2.4" stroke-linecap="round">${traits}</svg>`;
-}
 
 /**
  * L'atlas des feuilles et des pétales tombés au sol, autour des modèles 3D (couche3d.js) : 4 × 2 cases de 128 px.
@@ -253,4 +238,5 @@ export function animerParticules(conteneur, oui) {
     if (oui) a.play();
     else a.pause();
   }
+  for (const el of conteneur.children) el.jouer?.(oui); // les feux d'artifice, dessinés image par image
 }
