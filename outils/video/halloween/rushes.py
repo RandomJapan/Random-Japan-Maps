@@ -1,7 +1,9 @@
-"""Filme les « rushes » des vidéos d'Halloween dans la vraie carte (plans.js), en 16:9, pour le montage (montage/, Remotion).
+"""Filme les « rushes » des vidéos d'Halloween dans la vraie carte (plans.js), en 16:9 ou en vertical 9:16 (pour
+TikTok), pour le montage (montage/, Remotion).
 
-    python outils/video/halloween/rushes.py                 # tous les plans
+    python outils/video/halloween/rushes.py                 # tous les plans, en 16:9
     python outils/video/halloween/rushes.py v1-himeji v3-coin   # seulement ceux-là
+    python outils/video/halloween/rushes.py --vertical      # tous les plans, en 9:16 (rushes-v/)
 
 Il faut le site en local (python -m http.server 8123 --directory site), Microsoft Edge, Playwright et ffmpeg (celui du
 système, sinon imageio-ffmpeg). Chaque plan devient videos/halloween/public/rushes/<plan>.mp4 (30 images/s), le dossier
@@ -25,6 +27,7 @@ ICI = Path(__file__).resolve().parent
 VIDEO = ICI.parent
 RACINE = VIDEO.parent.parent
 SORTIE = RACINE / 'videos' / 'halloween' / 'public' / 'rushes'
+SORTIE_V = SORTIE.parent / 'rushes-v'
 ATTENDRE = "window.carte && document.getElementById('chargement').classList.contains('fini')"
 NUIT, JOUR = '21:30', '10:30'
 # Les plans : taille de la page (px CSS) et facteur d'échelle (la vidéo fait largeur × échelle), heure au Japon,
@@ -32,6 +35,17 @@ NUIT, JOUR = '21:30', '10:30'
 # sur une page plus petite (960 × 540 × 2) : les yōkai y sont plus grands. Pas plus que ×2 : qualite.js plafonne la
 # finesse de la carte à 2 (essayé à ×6 : la carte floue, et des trous dans le relief au premier plan).
 # v3-coin est à ×3 (3840 × 2160) : le montage n'y garde que la toile ou le cartouche, nets.
+# En vertical (--vertical, dans rushes-v/) : les mêmes plans sur une page de téléphone, 720 × 1280 × 1,5 = 1080 × 1920
+# (540 × 960 × 2 de près) : les yōkai et les épingles ont la même taille à l'image qu'en 16:9, le cadre est plus
+# étroit. plans.js reçoit window.__VERTICAL et prend les réglages « v » de chaque plan (cadrage, chemin du défilé).
+PLANS_V = {
+    'v2-large': {'positions': True},
+    'v2-proche': {'page': (540, 960), 'echelle': 2, 'positions': True},
+    'v3-jour': {'heure': JOUR, 'halloween': False},
+    'v3-chapeaux': {'page': (540, 960), 'echelle': 2},
+    'v3-coin': {'echelle': 2.25},
+    'v3-chasse': {'trouves': ['yurei', 'oiwa', 'okiku', 'hitotsume', 'konaki', 'ittan']},
+}
 PLANS = {
     'v1-nagoro': {}, 'v1-osorezan': {}, 'v1-noboribetsu': {}, 'v1-himeji': {}, 'v1-fin': {},
     'v2-large': {'positions': True},
@@ -51,8 +65,8 @@ def ffmpeg():
     return shutil.which('ffmpeg') or __import__('imageio_ffmpeg').get_ffmpeg_exe()
 
 
-def tourner(nav, nom, reglages, facteur=0.1, ips=30):
-    l, h = reglages.get('page', (1280, 720))
+def tourner(nav, nom, reglages, vertical=False, facteur=0.1, ips=30):
+    l, h = reglages.get('page', (720, 1280) if vertical else (1280, 720))
     k = reglages.get('echelle', 1.5)
     ctx = nav.new_context(viewport={'width': l, 'height': h}, device_scale_factor=k)
     trouves = reglages.get('trouves', [])
@@ -64,7 +78,8 @@ def tourner(nav, nom, reglages, facteur=0.1, ips=30):
         localStorage.setItem('qualite', JSON.stringify({{ niveau: 'fine', impose: 'fine' }}));
         localStorage.setItem('yokaiTrouves', '{str(trouves).replace("'", '"')}');
     }} catch {{}}
-    window.__FACTEUR_RALENTI = {facteur};""")
+    window.__FACTEUR_RALENTI = {facteur};
+    window.__VERTICAL = {'true' if vertical else 'false'};""")
     ctx.add_init_script(GRAINE)
     ctx.add_init_script((VIDEO / 'ralenti.js').read_text(encoding='utf-8'))
     if not reglages.get('halloween', True):
@@ -109,8 +124,9 @@ def tourner(nav, nom, reglages, facteur=0.1, ips=30):
                 boites.append(b)
             n += 1
     ctx.close()
-    SORTIE.mkdir(parents=True, exist_ok=True)
-    sortie = SORTIE / f'{nom}.mp4'
+    dossier_sortie = SORTIE_V if vertical else SORTIE
+    dossier_sortie.mkdir(parents=True, exist_ok=True)
+    sortie = dossier_sortie / f'{nom}.mp4'
     # JPEG plein écart (BT.601) → vidéo BT.709 plage TV, comme tourner.py ; une image clé par seconde
     subprocess.run([ffmpeg(), '-hide_banner', '-loglevel', 'error', '-y', '-framerate', str(ips), '-i', str(dossier / '%05d.jpg'),
                     '-vf', 'scale=in_range=pc:out_range=tv:in_color_matrix=bt601:out_color_matrix=bt709,format=yuv420p',
@@ -118,19 +134,20 @@ def tourner(nav, nom, reglages, facteur=0.1, ips=30):
                     '-color_primaries', 'bt709', '-color_trc', 'bt709', '-movflags', '+faststart', str(sortie)], check=True)
     shutil.rmtree(dossier, ignore_errors=True)
     if boites is not None:
-        (SORTIE / f'{nom}.json').write_text(json.dumps({'taille': [round(l * k), round(h * k)], 'images': boites}), encoding='utf-8')
+        (dossier_sortie / f'{nom}.json').write_text(json.dumps({'taille': [round(l * k), round(h * k)], 'images': boites}), encoding='utf-8')
     print(f'{nom} : {duree} s en {time.time() - debut:.0f} s → {sortie}', flush=True)
     if erreurs:
         print('  erreurs de la page :', *erreurs, sep='\n    ')
 
 
 def main():
-    noms = sys.argv[1:] or list(PLANS)
+    vertical = '--vertical' in sys.argv
+    noms = [a for a in sys.argv[1:] if not a.startswith('--')] or list(PLANS)
     with sync_playwright() as pw:
         nav = pw.chromium.launch(channel='msedge', headless=True,
                                  args=['--enable-gpu', '--use-angle=d3d11', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'])
         for nom in noms:
-            tourner(nav, nom, PLANS[nom])
+            tourner(nav, nom, PLANS_V.get(nom, {}) if vertical else PLANS[nom], vertical)
         nav.close()
 
 

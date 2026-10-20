@@ -1,5 +1,8 @@
 // Ce que les trois vidéos d'Halloween ont en commun : polices, couleurs, les rushes de la carte (recadrables),
 // la carte-photo des vidéos du propriétaire, les titres, l'éclair, le grain, les crédits et la fin.
+// Chaque vidéo existe en 16:9 et en vertical 9:16 pour TikTok (mêmes temps, mêmes sons) : les éléments se placent
+// selon le format (useFormat), en vertical hors des zones que TikTok couvre (ses onglets en haut, la légende en bas,
+// ses boutons à droite).
 import React from "react";
 import {
   AbsoluteFill, Easing, Img, interpolate, Sequence, spring, staticFile, useCurrentFrame, useVideoConfig,
@@ -14,8 +17,13 @@ export const FELL = fell("italic", { weights: ["400"], subsets: ["latin"] }).fon
 export const SANS = noto("normal", { weights: ["400", "700", "900"], subsets: ["latin"] }).fontFamily;
 
 export const FPS = 30;
-export const L = 1920;
-export const H = 1080;
+
+/** Le format de la vidéo : W × H, et v (vertical 9:16 ; ses rushes sont dans rushes-v/). */
+export const useFormat = () => {
+  const { width, height } = useVideoConfig();
+  return { W: width, H: height, v: height > width };
+};
+export const dossierRushes = (v: boolean) => (v ? "rushes-v" : "rushes");
 export const C = {
   papier: "#efe4c8", clair: "#f6eedb", encre: "#2c1e14", rouge: "#a8321f",
   citrouille: "#e8792a", orange: "#ff9b3d", violet: "#8a4fc0", nuit: "#0d0e16",
@@ -29,20 +37,23 @@ export const de = (f: number, a: number, b: number, sortie = [0, 1], easing = Ea
 export const OMBRE = "0 2px 0 rgba(0,0,0,.55), 0 0 18px rgba(0,0,0,.75), 0 0 42px rgba(0,0,0,.55)";
 
 /**
- * Un rush de la carte (videos/halloween/public/rushes). debut : instant du rush (s) au début du plan ;
- * vitesse ; cadre(f) : la partie du rush montrée, [x, y, largeur] en px du rush (la hauteur suit le 16:9).
+ * Un rush de la carte (videos/halloween/public/rushes, rushes-v en vertical). debut : instant du rush (s) au début
+ * du plan ; vitesse ; taille : celle du rush, si ce n'est pas celle de la vidéo ; cadre(f) : la partie du rush
+ * montrée, [x, y, largeur] en px du rush (la hauteur suit le format de la vidéo).
  */
 export const Rush: React.FC<{
   nom: string; debut?: number; vitesse?: number; taille?: [number, number];
   cadre?: (f: number) => [number, number, number]; filtre?: string; style?: React.CSSProperties;
-}> = ({ nom, debut = 0, vitesse = 1, taille = [L, H], cadre, filtre, style }) => {
+}> = ({ nom, debut = 0, vitesse = 1, taille: t, cadre, filtre, style }) => {
   const f = useCurrentFrame();
+  const { W, H, v } = useFormat();
+  const taille = t ?? [W, H];
   const [x, y, l] = cadre ? cadre(f) : [0, 0, taille[0]];
-  const k = L / l;
+  const k = W / l;
   return (
     <AbsoluteFill style={{ overflow: "hidden", backgroundColor: C.nuit, ...style }}>
       <Video
-        src={staticFile(`rushes/${nom}.mp4`)}
+        src={staticFile(`${dossierRushes(v)}/${nom}.mp4`)}
         trimBefore={Math.round(debut * FPS)}
         playbackRate={vitesse}
         muted
@@ -55,7 +66,7 @@ export const Rush: React.FC<{
   );
 };
 
-/** Une vidéo du propriétaire (9:16) en plein cadre 16:9 : la bande du milieu, un peu plus sombre et froide. */
+/** Une vidéo du propriétaire (9:16) en plein cadre, un peu plus sombre et froide (en 16:9 : la bande du milieu). */
 export const ClipPlein: React.FC<{ nom: string; debut?: number; vitesse?: number; y?: number; zoom?: [number, number]; filtre?: string }> = ({
   nom, debut = 0, vitesse = 1, y = 50, zoom = [1, 1.08], filtre = "saturate(.65) contrast(1.15) brightness(.72) hue-rotate(-10deg)",
 }) => {
@@ -78,24 +89,27 @@ export const ClipPlein: React.FC<{ nom: string; debut?: number; vitesse?: number
   );
 };
 
-/** La carte-photo : une vidéo du propriétaire dans un cadre de papier, qui entre en tournant (à droite). */
+/** La carte-photo : une vidéo du propriétaire dans un cadre de papier, qui entre en tournant (à droite ; en
+ *  vertical, en haut à droite, un peu plus petite). */
 export const CartePhoto: React.FC<{ nom: string; debut?: number; vitesse?: number; penche?: number; legende?: string; x?: number }> = ({
-  nom, debut = 0, vitesse = 1, penche = 3, legende, x = 1260,
+  nom, debut = 0, vitesse = 1, penche = 3, legende, x,
 }) => {
   const f = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const { W, v } = useFormat();
+  const large = v ? 440 : 480; // avec le bord de papier (16 px de chaque côté)
   const e = spring({ frame: f - 2, fps, config: { damping: 14, stiffness: 120, mass: 0.8 } });
   return (
     <div
       style={{
-        position: "absolute", left: x, top: 84, width: 480, padding: "16px 16px 0", backgroundColor: "#f3ead4",
+        position: "absolute", left: x ?? (v ? W - large - 50 : 1260), top: v ? 210 : 84, width: large, padding: "16px 16px 0", backgroundColor: "#f3ead4",
         border: "1px solid #8a6b45", boxShadow: "0 30px 60px rgba(0,0,0,.6), 0 4px 10px rgba(0,0,0,.4)",
         translate: `${interpolate(e, [0, 1], [760, 0])}px ${interpolate(e, [0, 1], [60, 0])}px`,
         rotate: `${interpolate(e, [0, 1], [penche + 14, penche])}deg`,
         transformOrigin: "50% 100%",
       }}
     >
-      <div style={{ width: 448, height: 796, overflow: "hidden", outline: "1.5px solid #35251a", position: "relative", backgroundColor: "#111" }}>
+      <div style={{ width: large - 32, height: Math.round(((large - 32) * 16) / 9), overflow: "hidden", outline: "1.5px solid #35251a", position: "relative", backgroundColor: "#111" }}>
         <Video
           src={staticFile(`clips/${nom}.mp4`)}
           trimBefore={Math.round(debut * FPS)}
@@ -106,24 +120,26 @@ export const CartePhoto: React.FC<{ nom: string; debut?: number; vitesse?: numbe
         />
         <AbsoluteFill style={{ background: "radial-gradient(ellipse 75% 60% at 50% 45%, transparent 55%, rgba(10,6,20,.55))" }} />
       </div>
-      <div style={{ height: 58, display: "flex", alignItems: "center", justifyContent: "center", font: `italic 400 30px ${FELL}`, color: C.encre }}>
+      <div style={{ height: v ? 52 : 58, display: "flex", alignItems: "center", justifyContent: "center", font: `italic 400 ${v ? 28 : 30}px ${FELL}`, color: C.encre }}>
         {legende}
       </div>
     </div>
   );
 };
 
-/** L'étiquette d'un lieu : son numéro (orange, cerné), son nom et une phrase, en bas à gauche. */
+/** L'étiquette d'un lieu : son numéro (orange, cerné), son nom et une phrase, en bas à gauche (en vertical, au-dessus
+ *  de la légende de TikTok). */
 export const Etiquette: React.FC<{ n: number; nom: string; ou: string; phrase: string }> = ({ n, nom, ou, phrase }) => {
   const f = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const { v } = useFormat();
   const pop = spring({ frame: f - 3, fps, config: { damping: 11, stiffness: 160 } });
   return (
-    <div style={{ position: "absolute", left: 96, bottom: 110, width: 1080 }}>
+    <div style={{ position: "absolute", left: v ? 64 : 96, bottom: v ? 470 : 110, width: v ? 900 : 1080 }}>
       <div style={{ display: "flex", alignItems: "flex-end", gap: 26 }}>
         <div
           style={{
-            font: `400 210px/0.8 ${TITRE}`, color: C.orange, WebkitTextStroke: `3px ${C.encre}`,
+            font: `400 ${v ? 170 : 210}px/0.8 ${TITRE}`, color: C.orange, WebkitTextStroke: `3px ${C.encre}`,
             textShadow: "0 6px 0 rgba(0,0,0,.45), 0 0 40px rgba(255,140,40,.55)",
             scale: interpolate(pop, [0, 1], [2.4, 1]), opacity: interpolate(pop, [0, 0.2], [0, 1], borne),
           }}
@@ -131,10 +147,10 @@ export const Etiquette: React.FC<{ n: number; nom: string; ou: string; phrase: s
           {n}
         </div>
         <div style={{ paddingBottom: 14 }}>
-          <div style={{ font: `400 80px/1 ${TITRE}`, color: C.clair, textShadow: OMBRE, clipPath: `inset(-40px ${de(f, 6, 22, [100, 0])}% -40px -40px)` }}>
+          <div style={{ font: `400 ${v ? 74 : 80}px/1 ${TITRE}`, color: C.clair, textShadow: OMBRE, clipPath: `inset(-40px ${de(f, 6, 22, [100, 0])}% -40px -40px)` }}>
             {nom}
           </div>
-          <div style={{ marginTop: 10, font: `italic 400 40px/1.1 ${FELL}`, color: "#e9d9b4", textShadow: OMBRE, opacity: de(f, 14, 24) }}>
+          <div style={{ marginTop: 10, font: `italic 400 ${v ? 36 : 40}px/1.1 ${FELL}`, color: "#e9d9b4", textShadow: OMBRE, opacity: de(f, 14, 24) }}>
             {ou}
           </div>
         </div>
@@ -142,7 +158,7 @@ export const Etiquette: React.FC<{ n: number; nom: string; ou: string; phrase: s
       <div
         style={{
           marginTop: 22, display: "inline-block", padding: "12px 22px 14px", backgroundColor: "rgba(12,10,18,.72)",
-          borderLeft: `6px solid ${C.orange}`, font: `700 44px/1.2 ${SANS}`, color: "#fff",
+          borderLeft: `6px solid ${C.orange}`, font: `700 ${v ? 40 : 44}px/1.2 ${SANS}`, color: "#fff", maxWidth: v ? 880 : undefined,
           translate: `${de(f, 20, 32, [-40, 0])}px 0`, opacity: de(f, 20, 30),
         }}
       >
@@ -169,11 +185,12 @@ export const Flash: React.FC<{ duree?: number; force?: number }> = ({ duree = 6,
 /** Vignette sombre et grain de film (le grain change toutes les deux images). */
 export const Ambiance: React.FC<{ force?: number }> = ({ force = 1 }) => {
   const f = useCurrentFrame();
+  const { W, H } = useFormat();
   const graine = Math.floor(f / 2) % 50;
   return (
     <AbsoluteFill style={{ pointerEvents: "none" }}>
       <AbsoluteFill style={{ background: `radial-gradient(ellipse 80% 75% at 50% 50%, transparent 58%, rgba(6,4,14,${0.6 * force}))` }} />
-      <svg width={L} height={H} style={{ position: "absolute", inset: 0, opacity: 0.12 * force, mixBlendMode: "overlay" }}>
+      <svg width={W} height={H}style={{ position: "absolute", inset: 0, opacity: 0.12 * force, mixBlendMode: "overlay" }}>
         <filter id={`grain${graine}`}>
           <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed={graine} stitchTiles="stitch" />
           <feColorMatrix type="saturate" values="0" />
@@ -197,19 +214,20 @@ export const GrosTitre: React.FC<{ haut?: string; titre: React.ReactNode; bas?: 
 }) => {
   const f = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const { v } = useFormat();
   const p = spring({ frame: f, fps, config: { damping: 16, stiffness: 190 } });
   return (
     <AbsoluteFill style={{ justifyContent: "center", alignItems: "center", textAlign: "center", translate: `0 ${y}px` }}>
       {haut ? (
-        <div style={{ font: `900 46px/1 ${SANS}`, letterSpacing: ".18em", color: C.orange, textShadow: OMBRE, marginBottom: 22 }}>
+        <div style={{ font: `900 ${v ? 36 : 46}px/1 ${SANS}`, letterSpacing: v ? ".14em" : ".18em", color: C.orange, textShadow: OMBRE, marginBottom: 22, maxWidth: v ? 960 : undefined }}>
           {haut}
         </div>
       ) : null}
-      <div style={{ font: `400 ${taille}px/1.02 ${TITRE}`, color: C.clair, textShadow: OMBRE, maxWidth: 1600, scale: interpolate(p, [0, 1], [1.12, 1]) }}>
+      <div style={{ font: `400 ${taille}px/1.02 ${TITRE}`, color: C.clair, textShadow: OMBRE, maxWidth: v ? 940 : 1600, scale: interpolate(p, [0, 1], [1.12, 1]) }}>
         {titre}
       </div>
       {bas ? (
-        <div style={{ marginTop: 26, font: `italic 400 58px/1.1 ${FELL}`, color: couleurBas, textShadow: OMBRE, opacity: de(f, 14, 24), translate: `0 ${de(f, 14, 26, [24, 0])}px` }}>
+        <div style={{ marginTop: 26, font: `italic 400 ${v ? 50 : 58}px/1.1 ${FELL}`, color: couleurBas, textShadow: OMBRE, opacity: de(f, 14, 24), translate: `0 ${de(f, 14, 26, [24, 0])}px`, maxWidth: v ? 940 : undefined }}>
           {bas}
         </div>
       ) : null}
@@ -251,23 +269,25 @@ export const Musique: React.FC<{ nom: string; debut?: number; volume?: number; f
   />
 );
 
-/** La fin : un voile, le logo, le nom de la carte, l'adresse sur un ruban rouge, « lien en bio ». */
+/** La fin : un voile, le logo, le nom de la carte, l'adresse sur un ruban rouge, « lien en bio » (en vertical, plus
+ *  haut que le milieu : la légende de TikTok couvre le bas). */
 export const Fin: React.FC<{ accroche: string; sous?: string; credit?: string }> = ({ accroche, sous, credit }) => {
   const f = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const { v } = useFormat();
   const ruban = spring({ frame: f - 14, fps, config: { damping: 12, stiffness: 140 } });
   const montee = (a: number) => ({ opacity: de(f, a, a + 10), translate: `0 ${de(f, a, a + 14, [26, 0])}px` });
   return (
     <AbsoluteFill style={{ justifyContent: "center", alignItems: "center", textAlign: "center" }}>
       <AbsoluteFill style={{ background: "radial-gradient(ellipse 60% 55% at 50% 50%, rgba(8,6,16,.78), rgba(8,6,16,.45) 70%, rgba(8,6,16,.7))", opacity: de(f, 0, 10) }} />
-      <div style={{ position: "relative" }}>
+      <div style={{ position: "relative", translate: v ? "0 -130px" : undefined, maxWidth: v ? 940 : undefined }}>
         <Img src={staticFile("img/logo.jpg")} style={{ width: 132, height: 132, borderRadius: "50%", border: `3px solid ${C.papier}`, boxShadow: "0 0 0 6px rgba(232,121,42,.6), 0 10px 30px rgba(0,0,0,.6)", ...montee(0) }} />
-        <div style={{ marginTop: 18, font: `400 84px/1.05 ${TITRE}`, color: C.clair, textShadow: OMBRE, ...montee(4) }}>{accroche}</div>
-        {sous ? <div style={{ marginTop: 10, font: `italic 400 50px/1.15 ${FELL}`, color: C.orange, textShadow: OMBRE, ...montee(9) }}>{sous}</div> : null}
+        <div style={{ marginTop: 18, font: `400 ${v ? 76 : 84}px/1.05 ${TITRE}`, color: C.clair, textShadow: OMBRE, ...montee(4) }}>{accroche}</div>
+        {sous ? <div style={{ marginTop: 10, font: `italic 400 ${v ? 46 : 50}px/1.15 ${FELL}`, color: C.orange, textShadow: OMBRE, ...montee(9) }}>{sous}</div> : null}
         <div style={{ marginTop: 34, display: "inline-block", opacity: interpolate(ruban, [0, 0.2], [0, 1], borne), scale: `${interpolate(ruban, [0, 1], [0.3, 1])} 1` }}>
           <div
             style={{
-              padding: "22px 66px 24px", backgroundColor: C.rouge, color: C.clair, font: `700 50px/1 ${SANS}`,
+              padding: v ? "20px 54px 22px" : "22px 66px 24px", backgroundColor: C.rouge, color: C.clair, font: `700 ${v ? 46 : 50}px/1 ${SANS}`,
               clipPath: "polygon(0 0, 100% 0, calc(100% - 24px) 50%, 100% 100%, 0 100%, 24px 50%)",
             }}
           >
@@ -277,7 +297,7 @@ export const Fin: React.FC<{ accroche: string; sous?: string; credit?: string }>
         <div style={{ marginTop: 22, font: `700 40px/1.2 ${SANS}`, color: "#fff", textShadow: OMBRE, ...montee(22) }}>
           Free · in 3D · link in <span style={{ color: C.orange }}>bio</span> ↗
         </div>
-        {credit ? <div style={{ marginTop: 26, font: `400 22px ${SANS}`, color: "rgba(255,255,255,.7)", ...montee(26) }}>{credit}</div> : null}
+        {credit ? <div style={{ marginTop: 26, font: `400 ${v ? 26 : 22}px ${SANS}`, color: "rgba(255,255,255,.7)", ...montee(26) }}>{credit}</div> : null}
       </div>
     </AbsoluteFill>
   );

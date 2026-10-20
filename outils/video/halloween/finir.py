@@ -1,8 +1,8 @@
 """Fabrique les vidéos d'Halloween finies, depuis le montage Remotion (montage/) : chacune avec sa musique et sans
 musique (les bruitages restent : pour y mettre un son TikTok), dans videos/halloween/.
 
-    python outils/video/halloween/finir.py                  # les trois
-    python outils/video/halloween/finir.py HauntedPlaces    # une seule
+    python outils/video/halloween/finir.py                  # les trois, en 16:9 et en vertical
+    python outils/video/halloween/finir.py HauntedPlaces    # une seule (HauntedPlacesV : sa version verticale)
 
 Il faut d'abord les rushes (rushes.py) et le dossier public (preparer.py), et `npm install` dans montage/.
 Après Remotion : le son à −14 LUFS (le niveau de TikTok), le même gain pour la version sans musique ; l'image en
@@ -20,6 +20,8 @@ MONTAGE = ICI / 'montage'
 RACINE = ICI.parent.parent.parent
 SORTIE = RACINE / 'videos' / 'halloween'
 VIDEOS = {'HauntedPlaces': 'halloween-lieux-hantes', 'NightParade': 'halloween-defile', 'SpookyMap': 'halloween-carte'}
+# en vertical 9:16 pour TikTok (rushes.py --vertical d'abord) : « …V », fichiers « -vertical »
+VIDEOS.update({f'{c}V': f'{n}-vertical' for c, n in list(VIDEOS.items())})
 
 
 def ffmpeg():

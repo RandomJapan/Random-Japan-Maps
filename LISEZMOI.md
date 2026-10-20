@@ -366,6 +366,8 @@ Trois vidéos horizontales sur ce que la carte a de nouveau pour Halloween, dans
 
 Chacune existe aussi en `-sans-musique.mp4` (le conteur et les bruitages restent), pour mettre un son TikTok à la place. Si tu gardes la musique, mets son crédit dans la légende (il est aussi écrit sur l'image de fin).
 
+**En vertical pour TikTok** : les mêmes vidéos en 9:16, `…-vertical.mp4` (et `…-vertical-sans-musique.mp4`). La carte y a été refilmée en vertical (pas recadrée), et les textes évitent les zones que TikTok cache : les onglets en haut, ta légende en bas, les boutons à droite.
+
 La voix du conteur a été faite avec ton compte **Flora** (environ 0,12 $ par phrase). **Les refaire** : demande-moi (le programme est dans `outils/video/halloween/`).
 
 ## Changer le logo

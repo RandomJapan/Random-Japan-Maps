@@ -2,20 +2,22 @@
 // cadrer chaque yōkai de près au montage.
 import { useEffect, useState } from "react";
 import { continueRender, delayRender, staticFile } from "remotion";
+import { dossierRushes, useFormat } from "./commun";
 
 export type Boites = { taille: [number, number]; images: ([number, number, number, number] | null)[][] };
 // l'ordre du cortège (hyakki.js, CORTEGE)
 export const MEMBRES = ["chochin", "renard", "kasa", "tanuki", "kappa", "oni", "tengu", "rokurokubi", "zori"];
 
 export function useBoites(nom: string): Boites | null {
+  const { v } = useFormat();
   const [boites, setBoites] = useState<Boites | null>(null);
   const [attente] = useState(() => delayRender(`boîtes ${nom}`));
   useEffect(() => {
-    fetch(staticFile(`rushes/${nom}.json`))
+    fetch(staticFile(`${dossierRushes(v)}/${nom}.json`))
       .then((r) => r.json())
       .then((b: Boites) => { setBoites(b); continueRender(attente); })
       .catch((e) => { console.error(e); continueRender(attente); });
-  }, [nom, attente]);
+  }, [nom, v, attente]);
   return boites;
 }
 

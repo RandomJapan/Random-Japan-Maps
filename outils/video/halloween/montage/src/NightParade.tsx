@@ -8,7 +8,7 @@ import React from "react";
 import { AbsoluteFill, interpolate, Sequence, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { Boites, centre, MEMBRES, useBoites } from "./boites";
 import {
-  Ambiance, C, de, Eclair, Fin, Flash, Glisse, GrosTitre, Musique, OMBRE, Rush, Son, SourcesCarte, TITRE, FELL, Voix,
+  Ambiance, C, de, Eclair, Fin, Flash, Glisse, GrosTitre, Musique, OMBRE, Rush, Son, SourcesCarte, TITRE, FELL, useFormat, Voix,
 } from "./commun";
 
 const TEMPS = (60 / 123) * 30; // un temps, en images
@@ -17,26 +17,33 @@ const bb = (n: number) => Math.round(n * TEMPS);
 export const DUREE_DEFILE = bb(36);
 
 /** Un gros plan sur un yōkai du cortège : le cadre le suit dans le rush, et un halo de lumière le distingue des
- *  autres (le reste un peu dans l'ombre). */
-const GrosPlan: React.FC<{ b: Boites; membre: number; n0: number; largeur?: number; halo?: boolean }> = ({ b, membre, n0, largeur = 1150, halo = true }) => {
+ *  autres (le reste un peu dans l'ombre). largeur : du cadre, en px du rush (par défaut 1150 en 16:9, 860 en
+ *  vertical) ; hauteur : où tombe le yōkai dans l'image (0,55 = un peu sous le milieu). */
+const GrosPlan: React.FC<{ b: Boites; membre: number; n0: number; largeur?: number; hauteur?: number; halo?: boolean }> = ({
+  b, membre, n0, largeur: l, hauteur = 0.55, halo = true,
+}) => {
   const f = useCurrentFrame();
+  const { W: Wv, H: Hv, v } = useFormat();
+  const largeur = l ?? (v ? 860 : 1150);
   const [W, Hh] = b.taille;
-  const haut = (largeur * 9) / 16;
+  const haut = (largeur * Hv) / Wv;
   const cadre = (g: number): [number, number, number] => {
     const c = centre(b, membre, n0 + g) ?? [W / 2, Hh / 2];
     const x = Math.max(0, Math.min(W - largeur, c[0] - largeur / 2));
-    const y = Math.max(0, Math.min(Hh - haut, c[1] - haut * 0.55));
+    const y = Math.max(0, Math.min(Hh - haut, c[1] - haut * hauteur));
     return [x, y, largeur];
   };
   const [x, y] = cadre(f);
   const c = centre(b, membre, n0 + f) ?? [W / 2, Hh / 2];
-  const k = 1920 / largeur;
-  const px = ((c[0] - x) * k) / 19.2, py = ((c[1] - y) * k) / 10.8; // en % de l'image
+  const k = Wv / largeur;
+  // le halo : un peu plus grand que le yōkai (365 × 389 px quand il est agrandi 1,67 fois, comme en 16:9)
+  const r = k / (1920 / 1150);
+  const px = (c[0] - x) * k, py = (c[1] - y) * k - 43 * r;
   return (
     <AbsoluteFill>
       <Rush nom="v2-proche" taille={[W, Hh]} debut={n0 / 30} cadre={cadre} />
       {halo ? (
-        <AbsoluteFill style={{ background: `radial-gradient(ellipse 19% 36% at ${px.toFixed(1)}% ${(py - 4).toFixed(1)}%, rgba(255,190,110,.10), transparent 70%, rgba(4,3,10,.62) 100%)` }} />
+        <AbsoluteFill style={{ background: `radial-gradient(ellipse ${Math.round(365 * r)}px ${Math.round(389 * r)}px at ${px.toFixed(0)}px ${py.toFixed(0)}px, rgba(255,190,110,.10), transparent 70%, rgba(4,3,10,.62) 100%)` }} />
       ) : null}
     </AbsoluteFill>
   );
@@ -56,9 +63,10 @@ const NOMS: Record<string, [string, string, string]> = {
 const Nom: React.FC<{ nom: string; kanji: string; quoi: string }> = ({ nom, kanji, quoi }) => {
   const f = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const { v } = useFormat();
   const s = spring({ frame: f - 1, fps, config: { damping: 12, stiffness: 200 } });
   return (
-    <div style={{ position: "absolute", left: 96, bottom: 104, display: "flex", alignItems: "center", gap: 30 }}>
+    <div style={{ position: "absolute", left: v ? 64 : 96, bottom: v ? 480 : 104, display: "flex", alignItems: "center", gap: v ? 26 : 30 }}>
       <div
         style={{
           minWidth: 132, height: 132, padding: "0 14px", display: "grid", placeItems: "center", backgroundColor: C.rouge, color: C.clair,
@@ -70,20 +78,21 @@ const Nom: React.FC<{ nom: string; kanji: string; quoi: string }> = ({ nom, kanj
         {kanji}
       </div>
       <div>
-        <div style={{ font: `400 96px/1 ${TITRE}`, color: C.clair, textShadow: OMBRE, clipPath: `inset(-40px ${de(f, 2, 12, [100, 0])}% -40px -40px)` }}>{nom}</div>
+        <div style={{ font: `400 ${v ? 88 : 96}px/1 ${TITRE}`, color: C.clair, textShadow: OMBRE, clipPath: `inset(-40px ${de(f, 2, 12, [100, 0])}% -40px -40px)` }}>{nom}</div>
         <div style={{ marginTop: 8, font: `italic 400 46px/1.1 ${FELL}`, color: C.orange, textShadow: OMBRE, opacity: de(f, 6, 13) }}>{quoi}</div>
       </div>
     </div>
   );
 };
 
-/** Le tampon 百鬼夜行, posé d'un coup. */
+/** Le tampon 百鬼夜行, posé d'un coup (en vertical, sous le cortège qui traverse le milieu de l'image). */
 const Tampon: React.FC = () => {
   const f = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const { v } = useFormat();
   const s = spring({ frame: f - 4, fps, config: { damping: 10, stiffness: 220 } });
   return (
-    <AbsoluteFill style={{ justifyContent: "center", alignItems: "center" }}>
+    <AbsoluteFill style={{ justifyContent: "center", alignItems: "center", textAlign: "center", translate: v ? "0 220px" : undefined }}>
       <div
         style={{
           padding: "26px 34px", backgroundColor: "rgba(168,50,31,.92)", color: C.clair, font: `400 150px/1 ${TITRE}`, letterSpacing: ".08em",
@@ -93,7 +102,7 @@ const Tampon: React.FC = () => {
       >
         百鬼夜行
       </div>
-      <div style={{ marginTop: 34, font: `400 76px/1 ${TITRE}`, color: C.clair, textShadow: OMBRE, opacity: de(f, 14, 22), translate: `0 ${de(f, 14, 26, [24, 0])}px` }}>
+      <div style={{ marginTop: 34, font: `400 ${v ? 68 : 76}px/1.05 ${TITRE}`, maxWidth: v ? 900 : undefined, color: C.clair, textShadow: OMBRE, opacity: de(f, 14, 22), translate: `0 ${de(f, 14, 26, [24, 0])}px` }}>
         The Night Parade of 100 Demons
       </div>
     </AbsoluteFill>
@@ -102,6 +111,7 @@ const Tampon: React.FC = () => {
 
 export const NightParade: React.FC<{ musique: boolean }> = ({ musique }) => {
   const b = useBoites("v2-proche");
+  const { v } = useFormat();
   if (!b) return null;
   // dans le rush, la caméra suit chaque yōkai 2,6 s, l'un après l'autre (plans.js) : on le prend une fois rejoint
   const quand = (m: string) => Math.round((MEMBRES.indexOf(m) * 2.6 + 1.25) * 30);
@@ -111,9 +121,10 @@ export const NightParade: React.FC<{ musique: boolean }> = ({ musique }) => {
       {/* L'accroche : la lanterne-fantôme */}
       <Sequence durationInFrames={bb(7)} name="Lanterne">
         <Glisse duree={bb(7)}>
-          <GrosPlan b={b} membre={0} n0={6} largeur={1300} halo={false} />
-          <AbsoluteFill style={{ background: "linear-gradient(transparent 55%, rgba(0,0,0,.55))" }} />
-          <GrosTitre haut="EVERY NIGHT UNTIL HALLOWEEN…" titre={<>…<span style={{ color: C.orange }}>this</span> walks across my map of Japan</>} y={330} taille={84} />
+          {/* en vertical : le titre en haut, la lanterne plus bas */}
+          <GrosPlan b={b} membre={0} n0={6} largeur={v ? 1000 : 1300} hauteur={v ? 0.62 : 0.55} halo={false} />
+          <AbsoluteFill style={{ background: v ? "linear-gradient(rgba(0,0,0,.55), transparent 38%)" : "linear-gradient(transparent 55%, rgba(0,0,0,.55))" }} />
+          <GrosTitre haut="EVERY NIGHT UNTIL HALLOWEEN…" titre={<>…<span style={{ color: C.orange }}>this</span> walks across my map of Japan</>} y={v ? -560 : 330} taille={84} />
         </Glisse>
       </Sequence>
 
@@ -137,7 +148,7 @@ export const NightParade: React.FC<{ musique: boolean }> = ({ musique }) => {
             <Glisse duree={duree} sortie={5}>
               <GrosPlan b={b} membre={MEMBRES.indexOf(m)} n0={quand(m)} />
               <SourcesCarte />
-              <AbsoluteFill style={{ background: "linear-gradient(90deg, rgba(0,0,0,.5), transparent 45%)" }} />
+              <AbsoluteFill style={{ background: v ? "linear-gradient(0deg, rgba(0,0,0,.55) 22%, transparent 45%)" : "linear-gradient(90deg, rgba(0,0,0,.5), transparent 45%)" }} />
               <Nom nom={nom} kanji={kanji} quoi={quoi} />
             </Glisse>
           </Sequence>
@@ -149,7 +160,7 @@ export const NightParade: React.FC<{ musique: boolean }> = ({ musique }) => {
         <Rush nom="v2-large" debut={5.2} />
         <SourcesCarte />
         <AbsoluteFill style={{ backgroundColor: "rgba(5,4,12,.35)" }} />
-        <GrosTitre haut="百鬼夜行 · HYAKKI YAGYŌ" titre="Legend says that on certain nights, 100 demons paraded through old Kyoto" bas="Best to stay home!" taille={84} />
+        <GrosTitre haut="百鬼夜行 · HYAKKI YAGYŌ" titre="Legend says that on certain nights, 100 demons paraded through old Kyoto" bas="Best to stay home!" taille={v ? 78 : 84} y={v ? -120 : 0} />
       </Sequence>
       <Sequence from={bb(25) - 1} durationInFrames={9}><Eclair duree={9} force={0.6} /></Sequence>
 

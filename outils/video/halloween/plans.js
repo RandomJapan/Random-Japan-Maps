@@ -1,8 +1,9 @@
 // ================================================================
 //  Les plans des vidéos d'Halloween (2026-10-21) : des « rushes » filmés dans la vraie carte, la nuit, avec tout
 //  l'événement (chapeaux, chauves-souris, hitodama, défilé, chasse aux yōkai), que montage/ (Remotion) monte
-//  ensuite en trois vidéos 16:9 de 20 s au plus. rushes.py injecte commun.js (l'horloge des films), puis ce
-//  fichier, et appelle window.__lancerPlan(nom).
+//  ensuite en trois vidéos 16:9 de 20 s au plus, et en vertical 9:16 pour TikTok. rushes.py injecte commun.js
+//  (l'horloge des films), puis ce fichier, et appelle window.__lancerPlan(nom).
+//  En vertical (window.__VERTICAL, une page de téléphone), les réglages « v » d'un plan remplacent les siens.
 //  Un plan = une durée, un trajet de caméra (clés [t, lng, lat, zoom, inclinaison, cap], interpolées en douceur,
 //  hauteur du centre figée et lissée comme dans voyage.js) et des actions à des instants du plan.
 // ================================================================
@@ -51,19 +52,32 @@
     .saison.repos { opacity: 1 !important; visibility: visible !important; transition: none !important; }
     .saison.repos * { animation-play-state: running !important; }`;
 
-  async function lancerDefile() {
+  /** Lance le défilé depuis le panneau Halloween. large : sur une page étroite (vertical), son chemin est tracé
+   *  comme sur un écran de `large` px de large, centré sur la page (hyakki.js le tire d'un bord de l'écran à
+   *  l'autre) : aussi long qu'en 16:9, les yōkai restent en route le temps du plan. */
+  async function lancerDefile(large) {
     document.getElementById('btn-halloween').click(); // le panneau se remplit en s'ouvrant
     await new Promise((ok) => setTimeout(ok, 120));
-    document.querySelector('#panneau-halloween .halloween-section .btn-lancer').click();
+    const bouton = document.querySelector('#panneau-halloween .halloween-section .btn-lancer');
+    const map = window.carte, { clientWidth: l, clientHeight: h } = map.getContainer();
+    if (!large || large <= l) return bouton.click();
+    const dx = (large - l) / 2, project = map.project, unproject = map.unproject;
+    map.getContainer = () => ({ clientWidth: large, clientHeight: h });
+    map.project = (ll) => { const q = project.call(map, ll); q.x += dx; return q; };
+    map.unproject = (p) => unproject.call(map, [p[0] - dx, p[1]]);
+    try { bouton.click(); } finally { delete map.getContainer; delete map.project; delete map.unproject; }
   }
   const membres = () => [...document.querySelectorAll('.defile-yokai .membre')].filter((m) => !m.hidden && m.dataset.lng);
   const voler = async () => (await import('/oiseaux.js')).faireVoler();
 
   /**
    * Un plan : { duree, cles, actions: [[t, fn]], interface, css, avant (réglage avant le repérage),
-   *   suivre (la caméra suit le défilé), avance (secondes réelles de défilé avant de filmer) }.
+   *   suivre (la caméra suit le défilé), avance (secondes réelles de défilé avant de filmer),
+   *   marge (padding de la caméra : le lieu visé n'est plus au milieu), cheminLarge (voir lancerDefile),
+   *   v (ce qui change en vertical) }.
    */
   function plan(o) {
+    if (window.__VERTICAL && o.v) o = { ...o, ...o.v, css: (o.css || '') + (o.v.css || '') };
     const film = window.__creerFilm({ duree: o.duree });
     const { map, attendre, tuilesPretes, chaqueImage, quand } = film;
     const style = document.createElement('style');
@@ -84,8 +98,9 @@
       const k = Math.max(0, Math.min(hauteurs.length - 1, t / PAS)), i = Math.floor(k), r = k - i;
       return hauteurs[i] * (1 - r) + hauteurs[Math.min(hauteurs.length - 1, i + 1)] * r;
     };
+    const marge = { top: 0, right: 0, bottom: 0, left: 0, ...o.marge };
     const camera = (t) => ({
-      center: geo([fx(t), fy(t)]), zoom: fz(t), pitch: fp(t), bearing: fb(t),
+      center: geo([fx(t), fy(t)]), zoom: fz(t), pitch: fp(t), bearing: fb(t), padding: marge,
       ...(hauteurs ? { elevation: hauteur(t) } : {}),
     });
 
@@ -112,7 +127,7 @@
       if (o.suivre) {
         suivre(t, avant === null ? 0 : Math.max(0, t - avant));
         avant = t;
-        if (suivi) map.jumpTo({ center: geo(suivi), zoom: fz(t), pitch: fp(t), bearing: fb(t) });
+        if (suivi) map.jumpTo({ center: geo(suivi), zoom: fz(t), pitch: fp(t), bearing: fb(t), padding: marge });
       } else map.jumpTo(camera(t));
     });
     quand(0, () => { tourne = true; });
@@ -142,11 +157,11 @@
         await tuilesPretes(6);
         if (o.avance) {
           // le défilé part avant de filmer (en temps réel), et la caméra le suit déjà
-          await lancerDefile();
+          await lancerDefile(o.cheminLarge);
           const fin = performance.now() + o.avance * 1000;
           while (performance.now() < fin) {
             await attendre(1 / 30);
-            if (o.suivre) { suivre(0, 1 / 30); if (suivi) map.jumpTo({ center: geo(suivi), zoom: fz(0), pitch: fp(0), bearing: fb(0) }); }
+            if (o.suivre) { suivre(0, 1 / 30); if (suivi) map.jumpTo({ center: geo(suivi), zoom: fz(0), pitch: fp(0), bearing: fb(0), padding: marge }); }
           }
           await tuilesPretes(4);
         }
@@ -161,23 +176,26 @@
     for (const a of document.getAnimations()) if (noms.includes(a.animationName)) a.currentTime = ms;
   };
 
+  // en vertical, le lieu est en bas à gauche : la carte-photo de la vidéo du propriétaire prend le haut à droite
+  const LIEU_V = { v: { marge: { top: 160, right: 240 } } };
   const PLANS = {
     // ---------------------------------------------------------------- Vidéo 1 : les lieux les plus hantés
-    'v1-nagoro': () => plan({ duree: 6, cles: [[0, 134.004, 33.836, 10.7, 52, -20], [6, 134.0205, 33.853, 12.5, 64, 6]] }),
-    'v1-osorezan': () => plan({ duree: 6, cles: [[0, 141.075, 41.287, 10.4, 50, 22], [6, 141.05, 41.312, 11.55, 62, -4]] }),
-    'v1-noboribetsu': () => plan({ duree: 6, cles: [[0, 141.12, 42.47, 10.7, 50, 30], [6, 141.143, 42.494, 12.5, 63, 6]] }),
-    'v1-himeji': () => plan({ duree: 6, cles: [[0, 134.695, 34.835, 10.1, 48, 12], [6, 134.652, 34.882, 11.55, 55, 36]] }),
+    'v1-nagoro': () => plan({ duree: 6, cles: [[0, 134.004, 33.836, 10.7, 52, -20], [6, 134.0205, 33.853, 12.5, 64, 6]], ...LIEU_V }),
+    'v1-osorezan': () => plan({ duree: 6, cles: [[0, 141.075, 41.287, 10.4, 50, 22], [6, 141.05, 41.312, 11.55, 62, -4]], ...LIEU_V }),
+    'v1-noboribetsu': () => plan({ duree: 6, cles: [[0, 141.12, 42.47, 10.7, 50, 30], [6, 141.143, 42.494, 12.5, 63, 6]], ...LIEU_V }),
+    'v1-himeji': () => plan({ duree: 6, cles: [[0, 134.695, 34.835, 10.1, 48, 12], [6, 134.652, 34.882, 11.55, 55, 36]], ...LIEU_V }),
     'v1-fin': () => plan({ duree: 6, cles: [[0, 135.76, 35.0, 10.3, 60, 0], [6, 135.45, 34.95, 8.1, 48, -12]] }),
 
     // ---------------------------------------------------------------- Vidéo 2 : le défilé des cent démons
     // large : le cortège traverse Kyoto, entre les temples (avec un vol de chauves-souris) ; la caméra le suit, sinon
     // il reste dans un coin (il met une demi-minute à traverser l'écran)
+    // (en vertical, de plus loin : le cortège entier tient dans l'image étroite)
     'v2-large': () => plan({ duree: 14, avance: 12, suivre: true, cles: [[0, 135.776, 34.996, 11.25, 58, -10], [14, 135.772, 35.0, 11.45, 60, -4]],
-      actions: [[5.5, voler]] }),
+      actions: [[5.5, voler]], v: { cheminLarge: 1280, cles: [[0, 135.776, 34.996, 10.55, 58, -10], [14, 135.772, 35.0, 10.7, 60, -4]] } }),
     // de près, en travelling : la caméra suit un yōkai, puis glisse vers le suivant toutes les 2,6 s (rushes.py le
     // tourne sur une page plus petite : les yōkai y sont plus grands) : la lanterne, le renard, l'ombrelle, le tanuki, le kappa, l'oni, le tengu, rokurokubi
     'v2-proche': () => plan({ duree: 21, avance: 7, cles: [[0, 135.772, 34.99, 12.15, 60, -8]],
-      suivre: [[0, 0], [2.6, 1], [5.2, 2], [7.8, 3], [10.4, 4], [13, 5], [15.6, 6], [18.2, 7]] }),
+      suivre: [[0, 0], [2.6, 1], [5.2, 2], [7.8, 3], [10.4, 4], [13, 5], [15.6, 6], [18.2, 7]], v: { cheminLarge: 960 } }),
 
     // ---------------------------------------------------------------- Vidéo 3 : la carte se transforme, la chasse
     // le même trajet de jour (sans Halloween : rushes.py le coupe) puis de nuit
@@ -190,14 +208,19 @@
       css: `.entete, .filtres, .langues, .musique, .controles, .toast, .repere-nom, .resume-itineraire, .resume-saison, .maplibregl-ctrl-bottom-left { display: none !important; }`,
       cles: [[0, 135.776, 34.996, 10.6, 55, -10], [9, 135.774, 34.998, 10.75, 57, -6]],
       avant: async () => { await new Promise((ok) => setTimeout(ok, 300)); },
-      actions: [[0, () => caler(['araignee', 'toile-soie'], 4900)]] }),
+      actions: [[0, () => caler(['araignee', 'toile-soie'], 4900)]],
+      // en vertical : la toile à sa taille d'ordinateur, et le cartouche (avec son chat) remonté au-dessus de la zone
+      // que TikTok couvre de sa légende
+      v: { css: `.toile-coin { width: 300px !important; height: 300px !important; top: 0 !important; }
+        body.en-visite .bandeau { transform: none !important; left: 8px !important; bottom: 34% !important; }` } }),
     // la chasse : six yōkai déjà trouvés (rushes.py), on touche Enma, le septième : bulle, puis « Chasse terminée ! »
     'v3-chasse': () => plan({ duree: 7.5, interface: true, css: '.legende:not(.yokai-cache) { display: none !important; }',
       cles: [[0, 135.80, 34.99, 10.8, 50, 0], [7.5, 135.805, 34.995, 10.9, 51, 0]],
       actions: [[1.4, () => window.__toucherYokai('enma')]] }),
 
     // ---------------------------------------------------------------- Pour les fins : tout le Japon, la nuit
-    'fin-japon': () => plan({ duree: 7, cles: [[0, 136.6, 36.2, 5.15, 38, 22], [7, 136.9, 36.6, 5.0, 34, 32]] }),
+    'fin-japon': () => plan({ duree: 7, cles: [[0, 136.6, 36.2, 5.15, 38, 22], [7, 136.9, 36.6, 5.0, 34, 32]],
+      v: { cles: [[0, 137.0, 36.0, 4.95, 34, 34], [7, 137.2, 36.3, 4.85, 30, 40]] } }),
   };
 
   window.__lancerPlan = (nom) => {
