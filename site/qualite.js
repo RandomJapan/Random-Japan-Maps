@@ -15,10 +15,11 @@
 //  remonte d'un cran (une fois par visite). Le visiteur ne voit rien ; en mode développeur, le bouton « Fluidité »
 //  montre les mesures et permet d'imposer un niveau.
 //  Net à l'arrêt : le propriétaire voulait la qualité de « fine » sans les saccades. Ces niveaux allègent donc
-//  seulement les images du mouvement ; dès que la carte s'arrête (REPOS), l'image se redessine plus fine (en
-//  « légère », un peu plus de pixels que l'écran, ce qui lisse aussi les bords) et les textures du relief se
-//  refont à la taille de leur tuile à l'écran (jusqu'à 2 048 px), une à la fois, la plus proche d'abord. Une
-//  texture fine se garde en mouvement : seules les nouvelles tuiles se dessinent en petit.
+//  seulement les images du mouvement ; dès que la carte s'arrête (REPOS), toute l'image se redessine plus fine
+//  d'un coup (en « légère », un peu plus de pixels que l'écran, ce qui lisse aussi les bords), puis les textures
+//  du relief se refont à la taille de leur tuile à l'écran (2 048 px près de la caméra, 1 024 au loin), cachées,
+//  et se montrent toutes ensemble. Une texture fine se garde en mouvement : seules les nouvelles tuiles se
+//  dessinent en petit.
 // ================================================================
 
 export const NIVEAUX = ['fine', 'legere', 'tres-legere'];
@@ -35,12 +36,8 @@ const SACCADE = 50; // ms : une image qui se fait attendre
 const ATTENTE = 6000;
 const OUBLI_ECHEC = 30 * 24 * 3600e3; // un niveau trop lourd pour cet appareil n'est pas retenté avant 30 jours
 const LOGICIEL = /swiftshader|llvmpipe|softpipe|software|basic render/i;
-const REPOS = 300; // ms sans mouvement : l'image redevient fine…
-// … et à partir de celle-ci, ses textures du relief se refont plus grandes, une toutes les ENTRE_AFFINAGES ms au
-// plus : sur un portable, une texture de 2 048 px prend peut-être 70 ms à la carte graphique ; espacées, la houle
-// continue de bouger et un geste qui reprend n'attend qu'elle. Une courte pause entre deux gestes n'y touche pas.
-const REPOS_TEXTURES = 700;
-const ENTRE_AFFINAGES = 80;
+const REPOS = 300; // ms sans mouvement : l'image redevient fine, et ses textures du relief se refont plus fines…
+const ENTRE_AFFINAGES = 40; // … une toutes les 40 ms au plus (sur un portable, peut-être 70 ms chacune), cachées
 const AFFINAGES = 80; // textures refaites au plus par arrêt (sécurité contre une boucle)
 
 const ratioEcran = () => Math.min(window.devicePixelRatio || 1, 2);
@@ -138,14 +135,20 @@ export function brancherQualite(map, outils) {
   }
 
   // ---- Net à l'arrêt. Rouages internes de MapLibre 6.11 (à revoir en cas de mise à jour) : changer la finesse
-  // sans map.setPixelRatio, qui annonce un mouvement (movestart, moveend) et arrête un geste en cours ; et la
-  // taille des textures du relief (renderToTexture.rttSize, 1 024 × 2 = 2 048 px), que MapLibre sait mélanger :
-  // chaque tuile garde la sienne (Tile.acquireRTT, la réserve de textures du peintre les remet à la taille).
+  // sans map.setPixelRatio, qui annonce un mouvement (movestart, moveend) et arrête un geste en cours ; la taille
+  // des textures du relief (renderToTexture.rttSize, 1 024 × 2 = 2 048 px), que MapLibre sait mélanger : chaque
+  // tuile garde la sienne (Tile.acquireRTT, la réserve de textures du peintre les remet à la taille) ; et la
+  // texture montrée pour chaque tuile (RenderToTexture.getTexture, lu seulement par drawTerrain).
   const dynamique = typeof map._resizeCanvas === 'function' && typeof map._containerDimensions === 'function'
     && typeof map.painter?.resize === 'function';
-  let affinages = 0, dernierAffinage = 0, relance = null;
-  let etat = null; // l'image en cours : { r (les réglages), arret }
+  let etat = null; // l'image en cours : { r (les réglages), calme (la carte ne bouge pas), arret (calme depuis REPOS) }
   let texturesBranchees = false;
+  let affinages = 0, dernierAffinage = 0, faites = 0, relance = null, attendDepuis = 0, pret = false;
+  // À l'arrêt, les textures refaites (par nous, plus fines, ou par MapLibre : tuile du relief arrivée, zoom
+  // changé…) ne se montrent pas une à une : chaque tuile garde l'ancienne à l'écran, et toutes passent aux
+  // nouvelles dans la même image (montrerTout). Une par une, on les voyait s'affiner carré par carré, comme un
+  // chargement (2026-10-20).
+  const anciennes = new Map(); // tuile → ses textures d'avant, montrées jusqu'à ce que tout soit refait
 
   function finesse(pr) {
     if (Math.abs(map.getPixelRatio() - pr) < 0.01) return;
@@ -157,11 +160,11 @@ export function brancherQualite(map, outils) {
   }
 
   /**
-   * Le côté de texture qu'il faut à une tuile du relief : son plus grand bord à l'écran, en pixels de la toile
-   * (un peu agrandie, cela ne se voit pas), entre min et max. De loin, les tuiles sont petites à l'écran :
-   * une texture de 2 048 px ne s'y verrait pas, et coûterait quatre fois celle de 1 024.
+   * Le côté de texture qu'il faut à une tuile du relief : son plus grand bord à l'écran, en pixels de l'image fine
+   * de l'arrêt (un peu agrandie, cela ne se voit pas), entre min et max. De loin, les tuiles sont petites à
+   * l'écran : une texture de 2 048 px ne s'y verrait pas, et coûterait quatre fois celle de 1 024.
    */
-  function taillePour(tuile, min, max) {
+  function taillePour(tuile, min, max, finesseFine) {
     const tr = map._camera?.transform;
     const c = tuile.tileID?.canonical;
     if (!tr?._coordinateClipPoint || !tr._pixelMatrix || !c) return max;
@@ -174,27 +177,52 @@ export function brancherQualite(map, outils) {
     }
     let bord = 0;
     for (let i = 0; i < 4; i++) bord = Math.max(bord, Math.hypot(coins[i][0] - coins[(i + 1) % 4][0], coins[i][1] - coins[(i + 1) % 4][1]));
-    const besoin = (bord * map.getPixelRatio()) / 1.25;
+    const besoin = (bord * finesseFine) / 1.25;
     return Math.max(min, [1024, 1536, 2048].find((t) => t >= besoin && t <= max) ?? max);
   }
 
-  /** La taille des textures d'une tuile : celle du mouvement, ou à l'arrêt celle de sa taille à l'écran. */
+  /** La taille des textures d'une tuile : celle du mouvement (légère), ou, carte immobile, celle de sa taille à l'écran. */
   function texturePour(tuile, proposee) {
-    if (!etat || etat.r.texture === etat.r.textureRepos) return proposee;
-    return etat.arret ? taillePour(tuile, etat.r.texture, etat.r.textureRepos) : etat.r.texture;
+    const r = etat?.r;
+    if (!r || r.texture === r.textureRepos) return proposee;
+    return etat.calme ? taillePour(tuile, r.texture, r.textureRepos, r.finesseRepos) : r.texture;
   }
 
-  /** Une fois : chaque tuile du relief reçoit sa taille de texture, même quand MapLibre la redessine de lui-même. */
+  /** Toutes les tuiles passent à leurs nouvelles textures dans la même image ; les anciennes retournent à la réserve. */
+  function montrerTout() {
+    for (const textures of anciennes.values()) for (const o of textures) if (o) map.painter.releaseRTT(o);
+    anciennes.clear();
+    pret = false;
+  }
+
+  /** Une fois : la taille de chaque texture, et les anciennes gardées à l'écran pendant qu'on refait les autres. */
   function brancherTextures() {
     if (texturesBranchees) return;
     const tuile = map.terrain?.tileManager?.getRenderableTiles?.()[0];
     const proto = tuile && Object.getPrototypeOf(tuile);
-    if (!proto) return;
+    const rtt = map.painter?.renderToTexture;
+    if (!proto || !rtt) return;
     texturesBranchees = true;
-    const prendre = proto.acquireRTT;
-    if (typeof prendre !== 'function') return;
+    const prendre = proto.acquireRTT, rendre = proto.releaseRTT, montrer = rtt.getTexture;
+    if (typeof prendre !== 'function' || typeof rendre !== 'function' || typeof montrer !== 'function') return;
     proto.acquireRTT = function (painter, pile, taille) {
+      faites++;
       return prendre.call(this, painter, pile, texturePour(this, taille));
+    };
+    proto.releaseRTT = function (painter) {
+      // carte immobile : la tuile sera redessinée, mais on garde ses textures pour les montrer en attendant
+      if (etat?.calme && !plein && this.rttObjects?.length && !anciennes.has(this)) {
+        if (!anciennes.size) attendDepuis = performance.now();
+        anciennes.set(this, this.rttObjects.slice());
+        pret = false;
+        this.rttObjects.length = 0;
+        return;
+      }
+      return rendre.call(this, painter);
+    };
+    rtt.getTexture = function (t) {
+      const garde = anciennes.get(t)?.[this._stacks.length - 1];
+      return garde ? garde.texture : montrer.call(this, t);
     };
     // la réserve rend sa dernière texture libre, remise à la taille demandée (une nouvelle allocation) : on lui
     // fait rendre plutôt une texture qui a déjà la bonne taille
@@ -208,14 +236,14 @@ export function brancherQualite(map, outils) {
     };
   }
 
-  /** Une tuile dont les textures sont plus petites que voulu (la plus proche de la caméra) : à refaire. */
-  function affinerUneTuile(rtt) {
+  /** À l'arrêt : une tuile (la plus proche de la caméra) dont les textures sont plus petites que voulu, à refaire. */
+  function affinerUneTuile() {
     if (affinages >= AFFINAGES) return false;
-    if (performance.now() - dernierAffinage < ENTRE_AFFINAGES) return true; // (une image de plus, plus tard)
+    if (performance.now() - dernierAffinage < ENTRE_AFFINAGES) return true; // (à l'image suivante)
     for (const tuile of map.terrain?.tileManager?.getRenderableTiles?.() || []) {
-      const voulue = texturePour(tuile, rtt.rttSize);
+      const voulue = texturePour(tuile, 0);
       if (!tuile?.rttObjects?.some((o) => o && o.size < voulue)) continue;
-      tuile.releaseRTT(map.painter); // MapLibre la redessine dans cette image
+      tuile.releaseRTT(map.painter); // MapLibre la redessine dans cette image (montrée avec les autres, à la fin)
       affinages++;
       dernierAffinage = performance.now();
       return true;
@@ -223,31 +251,48 @@ export function brancherQualite(map, outils) {
     return false;
   }
 
-  /** Avant chaque image : léger pendant un mouvement, fin à l'arrêt. Vrai s'il reste des textures à refaire. */
+  /**
+   * Avant chaque image : léger pendant un mouvement, fin à l'arrêt. Dès que la carte ne bouge plus, les textures se
+   * refont, cachées ; à l'arrêt (REPOS), l'image devient fine et les montre dans la même image, d'un seul coup.
+   * Vrai s'il reste des textures à refaire.
+   */
   function regler(bouge) {
     const r = reglagesDe(plein ? 'fine' : niveau);
-    const calmeDepuis = bouge ? 0 : performance.now() - dernier;
-    const arret = plein || calmeDepuis >= REPOS;
-    etat = { r, arret };
-    if (!arret) affinages = 0;
+    const calme = !bouge && !plein;
+    const arret = plein || (calme && performance.now() - dernier >= REPOS);
+    etat = { r, calme, arret };
+    if (!calme) { affinages = 0; montrerTout(); } // en mouvement : les dernières textures, tout de suite
+    else if (arret && pret) montrerTout();
     // pendant un film, enregistrement.js règle lui-même la finesse
     if (dynamique && !plein) finesse(arret ? r.finesseRepos : r.finesse);
     const rtt = map.painter?.renderToTexture;
     if (!rtt) return false;
-    rtt.rttSize = arret ? r.textureRepos : r.texture;
+    rtt.rttSize = r.texture; // (en « légère », chaque tuile a la sienne : texturePour)
     brancherTextures();
-    return (plein || calmeDepuis >= REPOS_TEXTURES) && affinerUneTuile(rtt);
+    return calme && affinerUneTuile();
   }
-  /** Une image de plus, pour la texture suivante. */
-  function relancer() {
-    if (relance) return;
-    relance = setTimeout(() => { relance = null; map.triggerRepaint(); }, ENTRE_AFFINAGES);
+  /** Une image de plus, un peu plus tard (la texture suivante, ou montrer celles qui sont prêtes). */
+  function relancer(ms = ENTRE_AFFINAGES) {
+    clearTimeout(relance);
+    relance = setTimeout(() => { relance = null; map.triggerRepaint(); }, ms);
+  }
+  /** Après chaque image : quand plus rien n'est à refaire, les nouvelles textures sont prêtes à se montrer. */
+  function apres(encore) {
+    if (!anciennes.size && !encore) return;
+    const enCours = encore || faites > 0 || map.painter?.renderToTexture?.needsFollowUpFrame;
+    // (au plus 4 s d'attente : si MapLibre redessinait sans cesse, les nouvelles textures finiraient par se montrer)
+    const tropLong = anciennes.size && performance.now() - attendDepuis > 4000;
+    if (tropLong) { montrerTout(); relancer(0); return; }
+    pret = !enCours;
+    if (!pret) relancer();
+    else if (etat?.arret) relancer(0); // l'image suivante les montre
+    else relancer(Math.max(0, REPOS - (performance.now() - dernier)) + 10); // avec la finesse de l'arrêt
   }
   // l'arrêt confirmé, une image pour affiner (au loin, la houle redessine de toute façon)
-  let calmes = [];
+  let calmeMinuterie = null;
   map.on('moveend', () => {
-    calmes.forEach(clearTimeout);
-    calmes = [REPOS, REPOS_TEXTURES].map((ms) => setTimeout(() => map.triggerRepaint(), ms + 30));
+    clearTimeout(calmeMinuterie);
+    calmeMinuterie = setTimeout(() => map.triggerRepaint(), REPOS + 30);
   });
 
   function appliquer() {
@@ -360,10 +405,11 @@ export function brancherQualite(map, outils) {
     const rendu = map.painter.render;
     map.painter.render = function (style, options) {
       const encore = regler(!!options?.moving);
+      faites = 0;
       try {
         return chrono ? chronometrer(rendu, this, arguments) : rendu.apply(this, arguments);
       } finally {
-        if (encore) relancer(); // la tuile suivante, un peu plus tard
+        apres(encore);
       }
     };
   }
