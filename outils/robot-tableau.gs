@@ -239,8 +239,32 @@ function lireVideo_(texte) {
   const o = JSON.parse(r.getContentText());
   id = id || o.embed_product_id;
   if (!id) throw erreur_('Je ne trouve pas le numéro de la vidéo dans ce lien.');
-  const auteur = o.author_unique_id || (propre.match(/@([\w.]+)/) || [])[1] || 'random_japan_place';
-  return { id: String(id), url: `https://www.tiktok.com/@${auteur}/video/${id}`, legende: o.title || '', auteur };
+  // Depuis le 2026-10-20, l'oEmbed de TikTok ne donne plus la légende (title) : on la lit alors dans la page de
+  // son lecteur intégré. Sans légende, l'IA croyait que la vidéo ne montrait aucun lieu et la rangeait dans
+  // « À trier » : on attend plutôt et on réessaie.
+  const integree = o.title ? null : lireIntegree_(id);
+  const legende = String(o.title || (integree && integree.legende) || '').trim();
+  if (!legende) throw erreur_('TikTok ne donne pas la légende de cette vidéo pour l\'instant.', true);
+  const auteur = o.author_unique_id || (integree && integree.auteur) || (propre.match(/@([\w.]+)/) || [])[1] || 'random_japan_place';
+  return { id: String(id), url: `https://www.tiktok.com/@${auteur}/video/${id}`, legende, auteur };
+}
+
+/** La légende et l'auteur d'une vidéo, lus dans la page de son lecteur intégré (celle que les sites affichent). */
+function lireIntegree_(id) {
+  const r = UrlFetchApp.fetch(`https://www.tiktok.com/embed/v2/${id}`, { muteHttpExceptions: true });
+  const code = r.getResponseCode();
+  if (code === 429) throw erreur_('TikTok demande d\'attendre un peu (trop de demandes).', true);
+  if (code !== 200) throw erreur_(`TikTok ne montre pas cette vidéo (code ${code}).`, code >= 500);
+  const m = r.getContentText().match(/<script[^>]*id="__FRONTITY_CONNECT_STATE__"[^>]*>([\s\S]*?)<\/script>/);
+  if (!m) return null;
+  let donnees;
+  try { donnees = JSON.parse(m[1]); } catch (e) { return null; }
+  const pages = (donnees.source && donnees.source.data) || {};
+  for (const cle of Object.keys(pages)) {
+    const v = pages[cle] && pages[cle].videoData;
+    if (v && v.itemInfos) return { legende: v.itemInfos.text || '', auteur: (v.authorInfos && v.authorInfos.uniqueId) || '' };
+  }
+  return null;
 }
 
 function trouverDoublon_(donnees, col, id, ligneCourante) {
