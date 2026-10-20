@@ -3,7 +3,8 @@
 Les pages des lieux (fabriquer_pages.py) s'en servent. On les garde dans le site, parce que les adresses
 d'images données par TikTok expirent au bout de quelques jours.
 Seules les couvertures qui manquent sont téléchargées : la GitHub Action le lance chaque nuit. Celles faites depuis
-la vidéo du montage (couvertures_montage.py, notées dans site/data/couvertures-montage.json) sont redemandées :
+la vidéo du montage (couvertures_montage.py, notées dans site/data/couvertures-montage.json) sont redemandées,
+sauf celles choisies dans Vignettes.txt :
 si TikTok redonne la vraie couverture, elle prend leur place.
 Lancer :  python outils/telecharger_couvertures.py      (il faut Pillow)
 """
@@ -72,8 +73,8 @@ def main():
     nouvelles = erreurs = 0
     for numero, lien in videos():
         cible = DOSSIER / f"{numero}.jpg"
-        if cible.exists() and numero not in montage:
-            continue
+        if cible.exists() and (numero not in montage or montage[numero].get("main")):
+            continue  # déjà là, ou choisie par le propriétaire dans Vignettes.txt
         essai = cible.with_suffix(".tmp")
         try:
             telecharger(numero, lien, essai)

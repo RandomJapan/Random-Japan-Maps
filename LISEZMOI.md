@@ -34,13 +34,15 @@ Le lieu apparaît sur la carte dès que le robot a fini, en environ 5 minutes.
 
 ### La vignette du lieu (l'image en haut de la fiche)
 
-Depuis le 20 octobre 2026, TikTok ne donne plus l'image de couverture de tes vidéos. Les anciens lieux gardent la leur : elle avait été copiée dans la carte avant. Pour les nouveaux, la vignette est fabriquée à partir de **ton fichier vidéo**, comme le fait TikTok : une belle image de la vidéo, avec ton cartouche du titre, recadrée pareil.
+Depuis le 20 octobre 2026, TikTok ne donne plus l'image de couverture de tes vidéos. Les anciens lieux gardent la leur : elle avait été copiée dans la carte avant. Pour les nouveaux, la vignette est fabriquée **toute seule** à partir de ton fichier vidéo, comme le fait TikTok : une belle image de ta vidéo, avec ton cartouche du titre, recadrée pareil.
 
-1. Garde ta vidéo finale dans `D:\Montage\Vidéo lieux random japon`, avec **le même nom que dans Nom (EN)** (par exemple `Lake Kagami.mp4`). C'est déjà ce que tu fais.
-2. Dis-moi « fais les vignettes » : je prends la plus belle image de chaque nouvelle vidéo, je vérifie, et je mets en ligne.
-3. Si tu préfères une autre image, dis-moi à quelle seconde de la vidéo (par exemple « Lake Kagami à 12 s »).
-
-Si un jour TikTok redonne les couvertures, le robot de nuit remettra tout seul la couverture choisie dans l'appli.
+- **Ce qu'il faut :** ta vidéo finale dans `D:\Montage\Vidéo lieux random japon`, avec **le même nom que dans Nom (EN)** (par exemple `Lake Kagami.mp4`). C'est déjà ce que tu fais.
+- **Quand :** ton PC vérifie toutes les 30 minutes, tant qu'il est allumé (et à chaque démarrage). Dès qu'un lieu du tableau n'a pas de vignette et que sa vidéo est là, il la fabrique et la met en ligne. Une notification Windows te le dit (« Carte du Japon : vignette ajoutée »).
+- **Si le nom ne correspond pas :** une notification te prévient (« vignette en attente »). Renomme la vidéo comme dans Nom (EN), ou écris le nom du fichier dans `Vignettes.txt` (voir juste en dessous).
+- **Changer l'image choisie :** ouvre `Vignettes.txt` dans le même dossier, ajoute une ligne avec le nom du lieu et la seconde de la vidéo que tu veux, par exemple `Lake Kagami = 12`, et enregistre. La vignette change dans la demi-heure. Tu peux aussi simplement me le dire.
+- L'ordinateur choisit une belle image (nette, colorée), pas forcément celle que tu aurais prise. Par exemple, pour Ena Gorge tu avais choisi le pont rouge, lui aurait pu prendre les fleurs.
+- Si un jour TikTok redonne les couvertures, le robot de nuit remettra tout seul celle que tu as choisie dans l'appli TikTok (sauf si tu en as choisi une dans `Vignettes.txt`).
+- **Arrêter :** dans le Planificateur de tâches de Windows, la tâche s'appelle « Vignettes carte Japon ». Tu peux la désactiver ou me demander de l'enlever.
 
 ### La méthode à la main
 
