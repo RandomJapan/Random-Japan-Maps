@@ -357,6 +357,17 @@ Une vidéo de 30 secondes, au format TikTok (vertical), présente la carte : la 
 
 **La refaire** (par exemple quand la carte change) : demande-moi, ou lance le site en local puis `python outils/video/tourner.py` (une dizaine de minutes).
 
+### Les vidéos d'Halloween (16:9, 20 secondes au plus)
+
+Trois vidéos horizontales sur ce que la carte a de nouveau pour Halloween, dans `videos/halloween/` :
+- `halloween-lieux-hantes.mp4` : les lieux les plus hantés du Japon (Nagoro, le mont Osore, la vallée de l'Enfer, le château de Himeji), avec tes vidéos et la carte de nuit. Un conteur à la voix grave (en anglais) raconte. Musique : *Kengeki · PeriTune (CC BY 4.0)*.
+- `halloween-defile.mp4` : le défilé des cent démons qui traverse la carte, chaque yōkai en gros plan avec son nom. Avec le conteur. Musique : *民族09「揺れる提灯」· 魔王魂 (CC BY 4.0)*.
+- `halloween-carte.mp4` : la carte de jour, puis la même de nuit déguisée pour Halloween (chauves-souris, chapeaux, araignée, chat, défilé, chasse aux yōkai). Sans conteur, sur la musique : *月と狼 · 魔王魂 (CC BY 4.0)*.
+
+Chacune existe aussi en `-sans-musique.mp4` (le conteur et les bruitages restent), pour mettre un son TikTok à la place. Si tu gardes la musique, mets son crédit dans la légende (il est aussi écrit sur l'image de fin).
+
+La voix du conteur a été faite avec ton compte **Flora** (environ 0,12 $ par phrase). **Les refaire** : demande-moi (le programme est dans `outils/video/halloween/`).
+
 ## Changer le logo
 
 1. Remplace les deux images du dossier `outils/logo-source/` par les nouvelles, en gardant les mêmes noms : `logo-carre.jpg` (image carrée) et `logo-large.jpg` (image en largeur).
