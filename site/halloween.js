@@ -61,6 +61,8 @@ const TEXTES = {
     pasTrouve: 'Not found yet',
     trouve: (n, total) => `Yōkai found! ${n}/${total}`,
     yokaiAria: (nom) => `Yōkai: ${nom}`,
+    evenement: 'Halloween special',
+    evenementCompte: (n, total) => `yōkai ${n}/${total}`,
     jusquau: 'Until the night of October 31.',
     bravoTitre: 'Hunt complete!',
     bravoTexte: (total) => `You found the ${total} yōkai hidden on the map of Japan.`,
@@ -101,6 +103,8 @@ const TEXTES = {
     pasTrouve: 'Pas encore trouvé',
     trouve: (n, total) => `Yōkai trouvé ! ${n}/${total}`,
     yokaiAria: (nom) => `Yōkai : ${nom}`,
+    evenement: 'Spécial Halloween',
+    evenementCompte: (n, total) => `yōkai ${n}/${total}`,
     jusquau: 'Jusqu\'au 31 octobre au soir.',
     bravoTitre: 'Chasse terminée !',
     bravoTexte: (total) => `Tu as trouvé les ${total} yōkai cachés sur la carte du Japon.`,
@@ -141,6 +145,8 @@ const TEXTES = {
     pasTrouve: 'まだ見つかっていません',
     trouve: (n, total) => `妖怪発見！ ${n}/${total}`,
     yokaiAria: (nom) => `妖怪：${nom}`,
+    evenement: 'ハロウィン限定',
+    evenementCompte: (n, total) => `妖怪 ${n}/${total}`,
     jusquau: '10月31日の夜まで。',
     bravoTitre: '妖怪探し達成！',
     bravoTexte: (total) => `日本地図に隠れた${total}体の妖怪をすべて見つけました。`,
@@ -303,7 +309,7 @@ export function brancherHalloween(map, maplibregl, outils) {
   // ---- Les bulles (yōkai de la chasse, défilé) : comme celles des légendes
   function ouvrirPopup(lngLat, contenu, hauteur) {
     fermerBulle();
-    const popup = new maplibregl.Popup({ className: 'bulle-legende', offset: decalages(hauteur), maxWidth: '300px' })
+    const popup = new maplibregl.Popup({ className: 'bulle-legende bulle-halloween', offset: decalages(hauteur), maxWidth: '300px' })
       .setLngLat(lngLat).setDOMContent(contenu).addTo(map);
     popup.getElement().querySelector('.maplibregl-popup-close-button')?.setAttribute('aria-label', tx('fermer'));
     bulle = { popup };
@@ -325,6 +331,14 @@ export function brancherHalloween(map, maplibregl, outils) {
   function fermerBulle() {
     bulle?.popup.remove();
   }
+  /** En tête des bulles de l'événement : la citrouille et « Spécial Halloween » (pour ne pas les prendre pour des
+   *  légendes de toute l'année), et pour un yōkai de la chasse, le compte des trouvés. */
+  function bandeauEvenement(compte) {
+    const p = creer('p', 'bulle-evenement');
+    p.innerHTML = `${ICONE_CITROUILLE}<span>${echapper(tx('evenement'))}</span>`;
+    if (compte) p.append(creer('b', 'bulle-compte', compte));
+    return p;
+  }
   function contenuBulle(titre, second, lieu, texte, secondLangue) {
     const div = creer('div');
     const s = creer('p', 'bulle-second', second);
@@ -332,7 +346,11 @@ export function brancherHalloween(map, maplibregl, outils) {
     div.append(creer('h3', 'bulle-titre', titre), s, creer('p', 'bulle-lieu', lieu), creer('p', 'bulle-texte', texte));
     return div;
   }
-  const contenuYokai = (y) => contenuBulle(enL(y.nom), langue() === 'ja' ? y.nom.en : y.nom.ja, enL(y.lieu), enL(y.texte), langue() === 'ja' ? 'en' : 'ja');
+  const contenuYokai = (y) => {
+    const div = contenuBulle(enL(y.nom), langue() === 'ja' ? y.nom.en : y.nom.ja, enL(y.lieu), enL(y.texte), langue() === 'ja' ? 'en' : 'ja');
+    div.prepend(bandeauEvenement(tx('evenementCompte', trouves.size, total)));
+    return div;
+  };
 
   // ---- La chasse aux yōkai : des dessins sur la carte, comme les légendes (visibles en zoomant sur une région)
   function poserCachettes() {
@@ -380,9 +398,9 @@ export function brancherHalloween(map, maplibregl, outils) {
 
   function ouvrirYokai(y, el) {
     const hauteur = el.querySelector('svg').getBoundingClientRect().height - 2;
+    trouver(y); // avant la bulle : son compteur le compte déjà
     ouvrirPopup(y.ou, contenuYokai(y), hauteur);
     bulle.yokai = y;
-    trouver(y);
   }
 
   function trouver(y) {
@@ -554,7 +572,7 @@ export function brancherHalloween(map, maplibregl, outils) {
     ambiance?.remplacerParticules((m) => (m.nuit >= 0.5 ? 'hitodama' : undefined));
     defile = brancherDefile(map, maplibregl, {
       textes: () => ({ titre: tx('hyakkiTitre'), second: langue() === 'ja' ? 'Hyakki Yagyō' : '百鬼夜行', lieu: tx('hyakkiLieu'), texte: tx('hyakkiTexte'), aria: tx('defileAria') }),
-      popup: (lngLat, contenu, h) => ouvrirPopup(lngLat, contenu, h),
+      popup: (lngLat, contenu, h) => { contenu.prepend(bandeauEvenement()); ouvrirPopup(lngLat, contenu, h); },
     });
     poserCachettes();
     majLangue();

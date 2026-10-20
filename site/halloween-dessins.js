@@ -354,35 +354,147 @@ export const CHAT = `<svg viewBox="0 0 44 56" aria-hidden="true">
   </g>
 </svg>`;
 
+// L'araignée de la toile : une jorō-gumo (Trichonephila clavata), l'araignée des jardins japonais à l'automne,
+// rayée jaune et bleu-noir, aux longues pattes cerclées de jaune (et une yōkai : la femme-araignée des cascades).
+// Tête en bas, comme elle se tient au milieu de sa toile ; le fil part du bout de l'abdomen, en haut.
+const PATTES_ARAIGNEE = [
+  'M17.2 29.4 9.4 24.2 4.6 38.4 2.6 50.6', // I, la plus longue, vers le bas
+  'M17.4 30.6 10.6 30.4 7.4 41.6 7.2 49', // II
+  'M17.6 31.6 12.8 35.2 11.6 40', // III, courte
+  'M17.4 29 10.8 21.6 9.6 10.4 8.2 1.6', // IV, vers le haut, le long de l'abdomen
+];
+const ARAIGNEE = `<svg viewBox="0 0 40 52" aria-hidden="true">
+  ${['', ' transform="matrix(-1 0 0 1 40 0)"'].map((miroir) => `<g${miroir}>${PATTES_ARAIGNEE.map((d, i) => `<g class="ar-patte${i === 0 ? ' avant' : ''}"${i === 0 ? ' style="transform-origin:17px 29px"' : ''}><path class="ar-patte-encre" d="${d}"/><path class="ar-patte-anneaux" d="${d}"/></g>`).join('')}</g>`).join('')}
+  <path class="ar-ventre" d="M20 3.6C24 3.6 25.8 8.6 25.6 14.6 25.4 20.6 23.4 25.6 20 25.6 16.6 25.6 14.6 20.6 14.4 14.6 14.2 8.6 16 3.6 20 3.6Z"/>
+  <path class="ar-bandes" d="M15.2 9.4Q20 11.4 24.8 9.4M14.7 14.2Q20 16.4 25.3 14.2M15 19Q20 21.2 25 19M16.4 23.2Q20 24.8 23.6 23.2"/>
+  <path class="ar-clair" d="M17.6 6.6Q18.2 14.6 17.4 22"/>
+  <ellipse class="ar-rouge" cx="20" cy="5.4" rx="1.7" ry="1.3"/>
+  <path class="ar-tete" d="M20 25.4C22.6 25.4 23.8 27.6 23.6 30.2 23.4 32.8 22 34.4 20 34.4 18 34.4 16.6 32.8 16.4 30.2 16.2 27.6 17.4 25.4 20 25.4Z"/>
+  <path class="ar-poils" d="M18.4 27.6 18 29.4M21.6 27.6 22 29.4M20 27 20 29.2M18.6 31.4 18.4 32.6M21.4 31.4 21.6 32.6"/>
+  <path class="ar-crocs" d="M19 34.2 19.2 35.8M21 34.2 20.8 35.8"/>
+</svg>`;
+
 /**
- * La toile d'araignée du coin de la carte : des rayons depuis le coin (en haut à droite), des fils qui pendent un peu
- * entre eux, et l'araignée au bout de son fil (.araignee, qui descend et remonte).
+ * La toile d'araignée du coin de la carte (refaite le 2026-10-20 : la première, un éventail régulier de fils partant
+ * du coin, faisait dessin d'ordinateur). Une vraie toile orbiculaire, dans un carré de 300 dont le coin haut droit est
+ * celui de la carte : le moyeu sous les boutons du coin, des rayons jusqu'à un cadre de fils amarré en haut et au bord
+ * droit de l'écran (et par de longs fils qui s'en vont dans le vide), la spirale de capture (un seul fil, tour après
+ * tour, qui suit la forme du cadre), la zone libre et le maillage serré du moyeu, un trou déchiré dont des bouts de fil
+ * pendent, des gouttes de rosée. Tirée au hasard une fois pour toutes (graine fixe) : toujours la même toile.
+ * Le dessin ne bouge pas (peint une fois) ; l'araignée, son fil et les reflets de la rosée sont des éléments à part,
+ * animés seulement en transform et opacity (halloween.css) : le navigateur ne repeint jamais la toile.
+ * Renvoie le contenu de .toile-coin.
  */
 export function toileAraignee() {
-  const R = 230, cx = R, cy = 0, n = 8;
-  const angles = Array.from({ length: n }, (_, i) => ((96 + (i * 78) / (n - 1)) * Math.PI) / 180);
-  const longs = angles.map((_, i) => 168 + ((i * 53) % 58));
+  let graine = 20261031;
+  const hasard = () => { // mulberry32
+    graine = (graine + 0x6d2b79f5) | 0;
+    let t = Math.imul(graine ^ (graine >>> 15), 1 | graine);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const entre = (a, b) => a + hasard() * (b - a);
   const f = (v) => v.toFixed(1);
-  let rayons = '';
-  for (let i = 0; i < n; i++) rayons += `M${cx} ${cy}L${f(cx + longs[i] * Math.cos(angles[i]))} ${f(cy + longs[i] * Math.sin(angles[i]))}`;
-  let anneaux = '';
-  for (let k = 1; k <= 9; k++) {
-    const r = 15 * k + 1.15 * k * k;
-    const pts = angles.map((a, i) => [cx + Math.min(r, longs[i]) * Math.cos(a), cy + Math.min(r, longs[i]) * Math.sin(a)]);
-    anneaux += `M${f(pts[0][0])} ${f(pts[0][1])}`;
-    for (let i = 1; i < n; i++) {
-      const [x0, y0] = pts[i - 1], [x1, y1] = pts[i];
-      const mx = (x0 + x1) / 2 + (cx - (x0 + x1) / 2) * 0.1, my = (y0 + y1) / 2 + (cy - (y0 + y1) / 2) * 0.1;
-      anneaux += `Q${f(mx)} ${f(my)} ${f(x1)} ${f(y1)}`;
+  const H = [190, 150]; // le moyeu
+  // le cadre, autour du moyeu ; les sommets hors du carré (en haut, à droite) sont au-delà du bord de l'écran
+  const CADRE = [[150, -14], [324, 34], [318, 238], [236, 290], [108, 266], [42, 156], [60, 52]];
+  // les amarres des sommets du cadre qui sont sur la carte : vers les bords de l'écran, ou de longs fils qui
+  // s'en vont dans le vide en s'effaçant (LOINTAINES)
+  // (celles du haut montent loin : sur un téléphone la toile est descendue sous les boutons, halloween.css)
+  const AMARRES = [[[60, 52], [-8, -90]], [[42, 156], [-40, -90]], [[150, -14], [144, -90]], [[236, 290], [330, 326]]];
+  const LOINTAINES = [[[42, 156], [-44, 198]], [[108, 266], [66, 384]]];
+
+  // un rayon : du moyeu jusqu'au cadre, dans cette direction (le premier côté du cadre qu'il touche)
+  function auCadre(a) {
+    const dx = Math.cos(a), dy = Math.sin(a);
+    let t = Infinity;
+    for (let i = 0; i < CADRE.length; i++) {
+      const [x1, y1] = CADRE[i], [x2, y2] = CADRE[(i + 1) % CADRE.length];
+      const ex = x2 - x1, ey = y2 - y1, d = dx * ey - dy * ex;
+      if (Math.abs(d) < 1e-9) continue;
+      const u = ((x1 - H[0]) * ey - (y1 - H[1]) * ex) / d, v = ((x1 - H[0]) * dy - (y1 - H[1]) * dx) / d;
+      if (u > 0 && v >= 0 && v <= 1) t = Math.min(t, u);
+    }
+    return [H[0] + dx * t, H[1] + dy * t];
+  }
+  const N = 19;
+  const rayons = Array.from({ length: N }, (_, i) => {
+    const a = ((i + entre(-0.22, 0.22)) / N) * 2 * Math.PI;
+    return { a, bout: auCadre(a) };
+  });
+  const sur = (r, s) => [H[0] + (r.bout[0] - H[0]) * s, H[1] + (r.bout[1] - H[1]) * s];
+  // le trou déchiré : en bas à gauche, dans les tours du dehors
+  const deg = (r) => (((r.a * 180) / Math.PI) % 360 + 360) % 360;
+  const dansLeTrou = (i, k) => { const d = deg(rayons[i]); return d > 118 && d < 168 && k >= 2 && k <= 7; };
+  const casse = rayons.findIndex((r) => deg(r) > 130 && deg(r) < 158); // le rayon rompu, au milieu du trou
+
+  let dRayons = '', dSpirale = '', dMoyeu = '', dPendants = '', dCadre = '', gouttes = '';
+  for (const [i, r] of rayons.entries()) {
+    const [x0, y0] = sur(r, 0.035);
+    if (i === casse) {
+      const [x1, y1] = sur(r, 0.52), [x2, y2] = sur(r, 0.84);
+      dRayons += `M${f(x0)} ${f(y0)}L${f(x1)} ${f(y1)}M${f(x2)} ${f(y2)}L${f(r.bout[0])} ${f(r.bout[1])}`;
+      // ses deux bouts retombent
+      dPendants += `M${f(x1)} ${f(y1)}q-3 9 1 19M${f(x2)} ${f(y2)}q4 8 -1 15`;
+    } else {
+      dRayons += `M${f(x0)} ${f(y0)}L${f(r.bout[0])} ${f(r.bout[1])}`;
     }
   }
-  const ax = f(cx + 120 * Math.cos(angles[3])), ay = f(cy + 120 * Math.sin(angles[3]));
-  // l'araignée pend au bout de son fil, qui s'allonge quand elle descend (même rythme : halloween.css)
-  return `<svg viewBox="0 0 ${R} ${R}" aria-hidden="true"><path class="toile-rayons" d="${rayons}"/><path class="toile-fils" d="${anneaux}"/>`
-    + `<path class="toile-rayons fil-araignee" style="transform-origin:${ax}px ${ay}px" d="M${ax} ${ay}V${f(+ay + 66)}"/>`
-    + `<g class="araignee-bete"><g transform="translate(${f(ax - 7)} ${f(+ay + 62)})"><path class="araignee-pattes" d="M7 6 2 2.6 0 5.4M7 6 1.4 7.2 0 10.6M7 7.6 2.4 10.6 1.6 14M7 6 12 2.6 14 5.4M7 6 12.6 7.2 14 10.6M7 7.6 11.6 10.6 12.4 14"/>`
-    + '<ellipse class="araignee-corps" cx="7" cy="9.4" rx="2.8" ry="3.4"/><circle class="araignee-corps" cx="7" cy="5.4" r="1.9"/></g></g></svg>';
+  for (let k = 0; k < CADRE.length; k++) {
+    const [x1, y1] = CADRE[k], [x2, y2] = CADRE[(k + 1) % CADRE.length];
+    // chaque côté du cadre fléchit un peu vers le moyeu
+    const mx = (x1 + x2) / 2 + (H[0] - (x1 + x2) / 2) * 0.05, my = (y1 + y2) / 2 + (H[1] - (y1 + y2) / 2) * 0.05;
+    dCadre += `M${x1} ${y1}Q${f(mx)} ${f(my)} ${x2} ${y2}`;
+  }
+  // la spirale de capture : du dehors (s = 0,94) vers la zone libre (s = 0,27), un fil continu, rayon après rayon
+  const TOURS = 17, S_DEHORS = 0.94, S_DEDANS = 0.27, pas = (S_DEHORS - S_DEDANS) / TOURS;
+  const points = [];
+  for (let k = 0; k < TOURS; k++) {
+    for (let i = 0; i < N; i++) {
+      const s = S_DEHORS - (k + i / N) * pas + entre(-0.1, 0.1) * pas;
+      points.push({ i, k, p: sur(rayons[i], s) });
+    }
+  }
+  let leve = true;
+  for (let j = 1; j < points.length; j++) {
+    const a = points[j - 1], b = points[j];
+    if (dansLeTrou(a.i, a.k) || dansLeTrou(b.i, b.k) || (a.i === casse && a.k >= 1 && a.k <= 8)) {
+      if (!leve && hasard() < 0.6) { // un bout de fil cassé qui pend
+        const l = entre(7, 22);
+        dPendants += `M${f(a.p[0])} ${f(a.p[1])}q${f(entre(-4, 4))} ${f(l * 0.6)} ${f(entre(-3, 5))} ${f(l)}`;
+      }
+      leve = true;
+      continue;
+    }
+    // le fil bombe un peu vers le moyeu entre deux rayons
+    const mx = (a.p[0] + b.p[0]) / 2, my = (a.p[1] + b.p[1]) / 2;
+    const q = [mx + (H[0] - mx) * 0.06, my + (H[1] - my) * 0.06];
+    dSpirale += `${leve ? `M${f(a.p[0])} ${f(a.p[1])}` : ''}Q${f(q[0])} ${f(q[1])} ${f(b.p[0])} ${f(b.p[1])}`;
+    leve = false;
+    if (hasard() < 0.055) gouttes += `<circle class="rosee" cx="${f(b.p[0])}" cy="${f(b.p[1])}" r="${f(entre(0.7, 1.6))}"/>`;
+  }
+  // le moyeu : quelques tours serrés et irréguliers, à petits traits droits
+  for (let k = 0; k < 5; k++) {
+    const pts = rayons.map((r) => sur(r, 0.045 + k * 0.017 + entre(-0.006, 0.006)));
+    dMoyeu += `M${pts.map((p) => `${f(p[0])} ${f(p[1])}`).join('L')}Z`;
+  }
+  let dAmarres = '';
+  for (const [[x1, y1], [x2, y2]] of AMARRES) dAmarres += `M${x1} ${y1}L${x2} ${y2}`;
+  const degrades = LOINTAINES.map(([[x1, y1], [x2, y2]], j) => `<linearGradient id="toile-loin-${j}" gradientUnits="userSpaceOnUse" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}">`
+    + '<stop offset=".25" stop-color="currentColor"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></linearGradient>').join('');
+  const lointaines = LOINTAINES.map(([[x1, y1], [x2, y2]], j) => `<path class="toile-amarres" style="stroke:url(#toile-loin-${j})" d="M${x1} ${y1}L${x2} ${y2}"/>`).join('');
+
+  // trois reflets de la rosée qui scintillent la nuit (en % du carré, positions de gouttes sur la spirale)
+  const reflets = [[0, 0.62], [7, 0.8], [13, 0.48]].map(([i, s], n) => {
+    const [x, y] = sur(rayons[i], s);
+    return `<span class="reflet r${n + 1}" style="left:${f(x / 3)}%;top:${f(y / 3)}%"></span>`;
+  }).join('');
+  return `<svg class="toile-dessin" viewBox="0 0 300 300" aria-hidden="true"><defs>${degrades}</defs>`
+    + `<path class="toile-amarres" d="${dAmarres}"/>${lointaines}<path class="toile-cadre" d="${dCadre}"/><path class="toile-rayons" d="${dRayons}"/>`
+    + `<path class="toile-spirale" d="${dSpirale}"/><path class="toile-moyeu" d="${dMoyeu}"/><path class="toile-pendants" d="${dPendants}"/>${gouttes}</svg>`
+    + `${reflets}<span class="toile-soie" style="left:${f(H[0] / 3)}%;top:${f(H[1] / 3)}%"></span>`
+    + `<span class="araignee" style="left:${f(H[0] / 3 - 5.5)}%;top:${f(H[1] / 3 - 7.2)}%">${ARAIGNEE}</span>`;
 }
 
 // Pour la planche de l'atelier (essais) : tous les dessins par leur nom
-export const DESSINS_HALLOWEEN = { ...DEFILE, ...YOKAI, chauve: CHAUVE_SOURIS, chat: CHAT, toile: toileAraignee() };
+export const DESSINS_HALLOWEEN = { ...DEFILE, ...YOKAI, chauve: CHAUVE_SOURIS, chat: CHAT, araignee: ARAIGNEE };

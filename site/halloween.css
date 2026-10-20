@@ -239,21 +239,108 @@ body.nuit .chat-oeil { fill: #ffdc52; }
 @keyframes chat-oreille { 0%, 80%, 86%, 100% { transform: rotate(0); } 83% { transform: rotate(-14deg); } }
 @keyframes chat-tete { 0%, 40%, 100% { transform: rotate(0); } 48%, 62% { transform: rotate(-9deg); } }
 
-/* ---------- La toile d'araignée, dans le coin en haut à droite de la carte ---------- */
-.toile-coin { position: absolute; top: 0; right: 0; width: 230px; height: 230px; pointer-events: none; color: #35251a; }
-.toile-coin svg { display: block; width: 100%; height: 100%; overflow: visible; }
-.toile-rayons { fill: none; stroke: currentColor; stroke-width: .9; opacity: .5; }
-.toile-fils { fill: none; stroke: currentColor; stroke-width: .7; opacity: .42; }
-.fil-araignee { animation: fil-araignee 8s ease-in-out infinite; }
-.araignee-bete { animation: araignee-bete 8s ease-in-out infinite; }
-@keyframes fil-araignee { 0%, 100% { transform: scaleY(1); } 45%, 60% { transform: scaleY(1.8); } }
-@keyframes araignee-bete { 0%, 100% { transform: translateY(0); } 45%, 60% { transform: translateY(52px); } }
-.araignee-pattes { fill: none; stroke: #1a1316; stroke-width: .9; stroke-linecap: round; stroke-linejoin: round; }
-.araignee-corps { fill: #1a1316; }
-body.nuit .toile-coin { color: #e9e0cc; }
-body.nuit .araignee-corps { fill: #2e2428; stroke: #b9aa9c; stroke-width: .4; }
-body.nuit .araignee-pattes { stroke: #b9aa9c; }
+/* ---------- La toile d'araignée, dans le coin en haut à droite de la carte (toileAraignee) ----------
+   Le dessin est fixe ; seuls bougent, en transform et opacity, la toile entière (le vent, autour du coin), l'araignée
+   qui descend au bout de son fil et remonte, le fil (scaleY, au même rythme) et, la nuit, les reflets de la rosée.
+   Les traits gardent leur épaisseur à l'écran quelle que soit la taille de la toile (non-scaling-stroke). */
+.toile-coin {
+  position: absolute; top: 0; right: 0; width: 300px; height: 300px; pointer-events: none; color: #2e2219;
+  transform-origin: 100% 0; animation: toile-vent 9s ease-in-out infinite alternate;
+}
+@keyframes toile-vent { from { transform: rotate(-.7deg); } to { transform: rotate(.5deg); } }
+.toile-dessin { position: absolute; inset: 0; width: 100%; height: 100%; display: block; overflow: visible; }
+.toile-dessin path { fill: none; stroke: currentColor; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; }
+.toile-amarres { stroke-width: 1; opacity: .5; }
+.toile-cadre { stroke-width: 1.1; opacity: .55; }
+.toile-rayons { stroke-width: .85; opacity: .5; }
+.toile-spirale { stroke-width: .65; opacity: .5; }
+.toile-moyeu { stroke-width: .6; opacity: .55; }
+.toile-pendants { stroke-width: .6; opacity: .45; }
+.toile-dessin .rosee { fill: #fbf7ea; stroke: currentColor; stroke-width: .4; vector-effect: non-scaling-stroke; opacity: .85; }
+body.nuit .toile-coin { color: #ebe5d8; }
+body.nuit .toile-dessin .rosee { fill: #fff; stroke: none; }
+body.nuit .toile-rayons { opacity: .44; }
+body.nuit .toile-spirale { opacity: .4; }
+.toile-coin .reflet {
+  position: absolute; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; display: none; opacity: 0;
+  background: radial-gradient(closest-side, #fff 0 22%, rgba(220, 235, 255, .45) 52%, rgba(220, 235, 255, 0));
+}
+body.nuit .toile-coin .reflet { display: block; animation: rosee-scintille 5.6s ease-in-out infinite; }
+.toile-coin .reflet.r2 { animation-delay: -1.9s; }
+.toile-coin .reflet.r3 { animation-delay: -3.8s; }
+@keyframes rosee-scintille { 0%, 68%, 100% { opacity: 0; transform: scale(.5); } 78% { opacity: 1; transform: scale(1.2); } 88% { opacity: .15; transform: scale(.8); } }
+/* l'araignée : au moyeu, elle se laisse tomber au bout de son fil, rebondit, se balance un peu, puis remonte */
+.toile-coin .toile-soie {
+  position: absolute; width: 1px; height: 33%; margin-left: -.5px; background: currentColor; opacity: .7;
+  transform-origin: 50% 0; transform: scaleY(0); animation: toile-soie 16s infinite;
+}
+.toile-coin .araignee { position: absolute; width: 11%; animation: araignee 16s infinite; }
+.toile-coin .araignee svg { display: block; width: 100%; height: auto; overflow: visible; }
+@keyframes araignee {
+  0%, 36% { transform: translateY(0); animation-timing-function: cubic-bezier(.5, 0, .9, .6); }
+  42% { transform: translateY(232%); animation-timing-function: ease-out; }
+  46% { transform: translateY(214%); animation-timing-function: ease-in-out; }
+  50% { transform: translateY(230%); animation-timing-function: ease-in-out; }
+  57% { transform: translateY(224%); animation-timing-function: ease-in-out; }
+  64% { transform: translateY(230%); animation-timing-function: ease-in-out; }
+  92%, 100% { transform: translateY(0); }
+}
+@keyframes toile-soie {
+  0%, 36% { transform: scaleY(0); animation-timing-function: cubic-bezier(.5, 0, .9, .6); }
+  42% { transform: scaleY(1.009); animation-timing-function: ease-out; }
+  46% { transform: scaleY(.93); animation-timing-function: ease-in-out; }
+  50% { transform: scaleY(1); animation-timing-function: ease-in-out; }
+  57% { transform: scaleY(.974); animation-timing-function: ease-in-out; }
+  64% { transform: scaleY(1); animation-timing-function: ease-in-out; }
+  92%, 100% { transform: scaleY(0); }
+}
+.ar-patte-encre { fill: none; stroke: #1a1412; stroke-width: 1.15; stroke-linecap: round; stroke-linejoin: round; }
+.ar-patte-anneaux { fill: none; stroke: #d8b23c; stroke-width: .8; stroke-dasharray: 1.3 2.9; stroke-dashoffset: -1.6; stroke-linejoin: round; }
+.ar-ventre { fill: #d6bd4a; stroke: #1e1712; stroke-width: .7; }
+.ar-bandes { fill: none; stroke: #2c3b43; stroke-width: 1.6; stroke-linecap: round; }
+.ar-clair { fill: none; stroke: #f3e6a8; stroke-width: .8; stroke-linecap: round; opacity: .6; }
+.ar-rouge { fill: #b8402a; }
+.ar-tete { fill: #2a2522; stroke: #120d0c; stroke-width: .6; }
+.ar-poils { fill: none; stroke: #cfc8ba; stroke-width: .5; stroke-linecap: round; }
+.ar-crocs { fill: none; stroke: #120d0c; stroke-width: .9; stroke-linecap: round; }
+.ar-patte.avant { animation: ar-tate 6.4s ease-in-out infinite; }
+@keyframes ar-tate { 0%, 82%, 100% { transform: rotate(0); } 86% { transform: rotate(-9deg); } 91% { transform: rotate(4deg); } }
+/* la nuit, un liseré clair : sinon ses pattes noires disparaîtraient sur la carte sombre */
+body.nuit .toile-coin .araignee svg { filter: drop-shadow(0 0 1px rgba(236, 228, 212, .75)); }
 body.mode-film .toile-coin, body.en-jeu .toile-coin, body.plongeon .toile-coin { display: none; }
+
+/* ---------- La chasse aux yōkai : ce qui distingue ses yōkai des légendes de toute l'année ----------
+   (demandé le 2026-10-20) un halo orange et violet qui palpite derrière le dessin, une citrouille-lanterne allumée
+   à ses pieds, et en tête de sa bulle « Spécial Halloween » (.bulle-evenement, aussi dans celle du défilé). */
+.yokai-cache::before {
+  content: ""; position: absolute; left: -46px; bottom: -16px; width: 92px; height: 86px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(closest-side, rgba(255, 176, 70, .62), rgba(240, 128, 40, .3) 50%, rgba(240, 128, 40, 0));
+  transition: opacity .4s;
+}
+/* la nuit, une lueur de feu follet : orange au cœur, violette autour */
+body.nuit .yokai-cache::before {
+  background: radial-gradient(closest-side, rgba(255, 168, 64, .55), rgba(236, 118, 36, .3) 46%, rgba(122, 62, 156, .22) 74%, rgba(122, 62, 156, 0));
+}
+.yokai-cache.anime::before { animation: yokai-halo 2.6s ease-in-out infinite alternate; }
+@keyframes yokai-halo { from { transform: scale(.88); opacity: .7; } to { transform: scale(1.06); opacity: 1; } }
+.yokai-cache::after {
+  content: ""; position: absolute; left: 10px; bottom: -9px; width: 25px; height: 23px; pointer-events: none; transition: opacity .4s;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 22'%3E%3Cpath d='M11.4 5.4C11.2 3.4 11.9 2 13.5 1.1L14.4 2.3C13.1 2.9 12.7 3.9 12.9 5.4Z' fill='%23596a2c' stroke='%233a2210' stroke-width='.6' stroke-linejoin='round'/%3E%3Cpath d='M12 5C9.6 4.2 6.4 4.4 4.2 6 1.8 7.8 1 11 1.6 14 2.4 18 5.6 20.6 9 20.8 10 20.9 11 20.7 12 20.4 13 20.7 14 20.9 15 20.8 18.4 20.6 21.6 18 22.4 14 23 11 22.2 7.8 19.8 6 17.6 4.4 14.4 4.2 12 5Z' fill='%23e07a24' stroke='%233a2210' stroke-width='.8' stroke-linejoin='round'/%3E%3Cpath d='M8 5.2C5.8 8.6 5.8 16.4 8.6 20.4M16 5.2C18.2 8.6 18.2 16.4 15.4 20.4M12 5.4V20.2' fill='none' stroke='%23a84e14' stroke-width='.7'/%3E%3Cpath d='M6.6 11.4 8.8 8.4 10.4 11.6ZM13.6 11.6 15.2 8.4 17.4 11.4ZM11.2 13.4 12 12.2 12.8 13.4ZM5.8 14.4C7.6 17.8 16.4 17.8 18.2 14.4L16.6 15.3 15.6 14.6 14.4 16.1 13 15 12 16.3 11 15 9.6 16.1 8.4 14.6 7.4 15.3Z' fill='%23ffd65a' stroke='%235a2a0a' stroke-width='.5' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+  filter: drop-shadow(0 1px 1px rgba(30, 20, 10, .45));
+}
+body.nuit .yokai-cache::after { filter: drop-shadow(0 0 3px rgba(255, 176, 64, .85)); }
+#carte.sans-legendes .yokai-cache::before, #carte.sans-legendes .yokai-cache::after { opacity: 0; }
+.bulle-evenement {
+  display: flex; align-items: center; gap: 6px; margin: -2px 26px 8px 0; padding-bottom: 6px; border-bottom: 1px dashed rgba(184, 86, 28, .5);
+  font: 600 11.5px/1.25 var(--police); letter-spacing: .07em; text-transform: uppercase; color: #b4561c;
+}
+html:lang(ja) .bulle-evenement { text-transform: none; letter-spacing: .04em; font-size: 12px; }
+.bulle-evenement svg { width: 17px; height: 17px; flex: none; color: #c8641e; }
+.bulle-evenement .bulle-compte {
+  margin-left: auto; padding: 2px 7px; border-radius: 999px; background: #c8641e; color: #fff8ec;
+  font-weight: 600; font-size: 11.5px; letter-spacing: .02em; text-transform: none; white-space: nowrap;
+}
+.bulle-halloween .maplibregl-popup-content { border-top: 3px solid #c8641e; }
 
 /* ---------- Les épingles portent un chapeau de sorcière (sauf de loin, en petits points) ---------- */
 body.halloween .repere-tete::after {
@@ -282,9 +369,10 @@ body.halloween #carte.loin .repere-tete::after { width: auto; height: auto; back
 .halloween-panneau .liste-legendes { margin-top: 4px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .chat-noir *, .toile-coin *, .defile-yokai * { animation: none !important; }
+  .chat-noir *, .toile-coin, .toile-coin *, .defile-yokai *, .yokai-cache::before { animation: none !important; }
 }
-body.qualite-tres-legere .chat-noir *, body.qualite-tres-legere .toile-coin * { animation-play-state: paused; }
+body.qualite-tres-legere .chat-noir *, body.qualite-tres-legere .toile-coin, body.qualite-tres-legere .toile-coin * { animation-play-state: paused; }
 @media (max-width: 720px) {
-  .toile-coin { width: 170px; height: 170px; }
+  /* plus petite, et descendue : son moyeu et l'araignée sous le bouton de la musique, à droite de la rangée de boutons */
+  .toile-coin { width: 210px; height: 210px; top: 44px; }
 }
