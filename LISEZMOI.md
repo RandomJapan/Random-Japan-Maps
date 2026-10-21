@@ -393,6 +393,14 @@ On y voit : ton logo, la plongée en 3D, la fiche d'un lieu avec ta vidéo, le d
 
 La voix et six bruitages ont été faits avec ton compte **Flora** (environ 2 $). **La refaire** : demande-moi (le programme est dans `outils/video/promo30/`).
 
+## La vidéo « tunnel » : de TikTok à la carte (octobre 2026)
+
+Une animation de 30 secondes en vertical (60 images par seconde) qui montre le chemin d'un visiteur : ton post Aogashima sur TikTok → un appui sur ton nom → ton profil → un appui sur le lien de la bio → la caméra plonge dans le lien et atterrit dans la carte → les épingles, la fiche d'Aogashima, les filtres → ton logo et la phrase de fin. Dans `videos/tunnel/` :
+- `carte-japon-tunnel-tiktok.mp4` : avec la musique (mets dans la légende : *Music: Amenoshita3 by PeriTune (CC BY 4.0)*) ;
+- `carte-japon-tunnel-tiktok-sans-musique.mp4` : la voix et les bruitages seuls, pour mettre un son TikTok.
+
+L'interface TikTok est reconstruite d'après tes captures (vues depuis un autre compte). La carte est de jour, sans Halloween, pour que la vidéo reste valable après le 31 octobre. La voix et quatre bruitages ont été faits avec ton compte **Flora** (environ 1,70 $). **La refaire ou la changer** : demande-moi (le programme est dans `outils/video/tunnel/`).
+
 ## Changer le logo
 
 1. Remplace les deux images du dossier `outils/logo-source/` par les nouvelles, en gardant les mêmes noms : `logo-carre.jpg` (image carrée) et `logo-large.jpg` (image en largeur).
