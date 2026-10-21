@@ -301,6 +301,9 @@ export function preparerAmbiance() {
       TEINTES.nuit = p.nuit;
       TEINTES.jour = jourDeLAn(m.jour.mois, m.jour.jour);
       papier.style.opacity = p.papier.toFixed(2);
+      // le fond de la page (la mer de jour) se voit là où le relief n'est pas encore dessiné : la couleur de la mer
+      // du moment, sinon ces carreaux sont clairs sur la mer de nuit
+      document.body.style.backgroundColor = p.mer;
       document.body.classList.toggle('nuit', m.nuit >= 0.5);
       map.triggerRepaint();
     }

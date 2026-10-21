@@ -231,6 +231,17 @@ export function brancherQualite(map, outils) {
       const garde = anciennes.get(t)?.[this._stacks.length - 1];
       return garde ? garde.texture : montrer.call(this, t);
     };
+    // MapLibre dessine dans la texture d'une tuile sur une zone de rttSize × rttSize (renderLayer), pas de sa taille
+    // à elle : en « légère », une texture de 2 048 à l'arrêt dessinée avec la zone de 1 536 du mouvement gardait une
+    // bande vide (la couleur de fond de la page, claire la nuit) et son relief rétréci dans un coin (2026-10-21, vu
+    // sur un téléphone). La zone de dessin prend donc la taille de la texture qu'on lie ; regler la remet à chaque image.
+    const lier = map.painter.bindRTT;
+    if (typeof lier === 'function') {
+      map.painter.bindRTT = function (o) {
+        if (this.renderToTexture && o?.size) this.renderToTexture.rttSize = o.size;
+        return lier.call(this, o);
+      };
+    }
     // la réserve rend sa dernière texture libre, remise à la taille demandée (une nouvelle allocation) : on lui
     // fait rendre plutôt une texture qui a déjà la bonne taille
     const peintre = map.painter, puiser = peintre.acquireRTT;
