@@ -425,7 +425,10 @@ export function brancherQualite(map, outils) {
   if (typeof map.painter?.render === 'function') {
     const rendu = map.painter.render;
     map.painter.render = function (style, options) {
-      const encore = regler(!!options?.moving);
+      // un « move » tout récent compte aussi : la rotation du départ (setBearing à chaque image) ne met pas
+      // options.moving ; sans cela, ses textures refaites restaient cachées jusqu'aux 4 s d'attente (2026-10-21 :
+      // l'interrupteur jour/nuit changeait la carte quelques secondes après l'appui)
+      const encore = regler(!!options?.moving || performance.now() - dernier < 100);
       faites = 0;
       try {
         return chrono ? chronometrer(rendu, this, arguments) : rendu.apply(this, arguments);
