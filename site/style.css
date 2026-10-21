@@ -1108,7 +1108,7 @@ body.en-jeu .saison { display: none; }
 .voyage-recu-boutons button { margin: 0; padding: 10px 8px; font-size: 14px; gap: 7px; }
 .voyage-recu-boutons svg { width: 18px; height: 18px; flex: none; }
 @media (max-width: 720px) {
-  .voyage-recu { bottom: calc(var(--bas) + 84px); }
+  .voyage-recu { bottom: calc(var(--bas) + 116px); } /* au-dessus de la barre du bas */
 }
 
 /* ---------- Visite guidée (visite.js) ---------- */
@@ -1437,6 +1437,85 @@ body.en-jeu .filtres, body.en-jeu .bandeau, body.en-jeu .aide { display: none; }
 .amis-alerte .btn-lancer, .amis-alerte .btn-secondaire { margin: 0; padding: 10px; font-size: 14.5px; }
 @keyframes alerte-arrive { from { transform: translate(-50%, -16px); opacity: 0; } }
 
+/* ---------- Téléphone : la barre du bas et son menu (index.html, app.js : ouvrirMenuMobile) ---------- */
+.barre-mobile { display: none; }
+@keyframes monte { from { opacity: 0; transform: translateY(28px); } }
+@media (max-width: 720px) {
+  .barre-mobile {
+    position: fixed; left: 50%; bottom: calc(var(--bas) + 10px); z-index: 5; transform: translateX(-50%);
+    display: flex; align-items: flex-end; gap: 20px;
+  }
+  body.en-visite .barre-mobile, body.en-jeu .barre-mobile, body.mode-film .barre-mobile, body.video-visible .barre-mobile { display: none; }
+  .btn-rond {
+    display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 0; border: 0; background: none;
+    color: var(--encre); font: 600 11.5px/1.25 var(--police); cursor: pointer;
+  }
+  .btn-rond .rond {
+    width: 52px; height: 52px; display: grid; place-items: center; border-radius: 50%;
+    box-shadow: var(--filet), var(--ombre); transition: background .2s, transform .15s;
+  }
+  .btn-rond .rond svg { width: 23px; height: 23px; }
+  .btn-rond:active .rond { transform: scale(.94); }
+  .btn-rond[aria-expanded="true"] .rond { background-color: var(--papier-fonce); }
+  .btn-rond .etiquette { padding: 1px 6px; border-radius: var(--rayon); background: rgba(239, 228, 200, .92); white-space: nowrap; }
+  /* le geste qui donne envie de rester : un lieu au hasard, d'un seul appui */
+  .btn-hasard-mobile .rond {
+    width: 74px; height: 74px; background: var(--rouge); color: var(--papier-clair);
+    border: 2px solid var(--papier-clair); box-shadow: 0 0 0 1px var(--rouge-survol), 0 6px 18px rgba(52, 36, 18, .42);
+  }
+  .btn-hasard-mobile .rond svg { width: 34px; height: 34px; }
+  .btn-hasard-mobile:active .rond { background: var(--rouge-survol); }
+
+  /* le menu : les fonctions en cases (titre et ×), puis la musique et la langue en lignes */
+  .menu-mobile { display: flex; flex-direction: column; gap: 12px; }
+  .menu-mobile-tete { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .menu-mobile-titre { margin: 0; font: 400 20px/1.2 var(--police-titre); }
+  .menu-mobile-fermer {
+    flex: none; width: 40px; height: 40px; display: grid; place-items: center; padding: 0;
+    border: 1px solid var(--trait); border-radius: 50%; background: var(--papier-clair); color: var(--encre);
+  }
+  .menu-mobile-fermer svg { width: 19px; height: 19px; }
+  .menu-mobile-grille { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .menu-mobile-grille > button {
+    position: relative; min-height: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+    padding: 8px 4px; border: 1px solid rgba(138, 107, 69, .6); border-radius: var(--rayon); background: var(--papier-clair);
+    color: var(--encre); font: 500 12.5px/1.25 var(--police); text-align: center; cursor: pointer;
+  }
+  .menu-mobile-grille > button:active { background: var(--papier-fonce); }
+  .menu-mobile-grille svg { width: 25px; height: 25px; flex: none; }
+  .menu-mobile-grille .rouge svg { color: var(--rouge); }
+  .menu-mobile-grille .orange svg { color: #c8641e; }
+  .menu-mobile-grille .compteur { position: absolute; top: 6px; right: 6px; font-size: 11px; }
+  .menu-mobile-grille .compteur:empty { display: none; }
+  .menu-mobile-ligne {
+    display: flex; align-items: center; gap: 14px; min-height: 50px; padding: 0 4px;
+    border: 0; border-top: 1px solid rgba(138, 107, 69, .35); background: none; color: var(--encre);
+    font: 500 15px var(--police); text-align: left;
+  }
+  button.menu-mobile-ligne { cursor: pointer; }
+  .menu-mobile-ligne > svg { width: 22px; height: 22px; flex: none; color: var(--rouge); }
+  .menu-mobile-ligne > span { flex: 1; }
+  .menu-mobile-ligne.joue > span::after { content: " ♪"; color: var(--rouge); } /* de la musique joue */
+  .langues-menu { display: flex; border: 1px solid var(--trait); border-radius: var(--rayon); overflow: hidden; }
+  .langues-menu button {
+    min-width: 44px; height: 38px; padding: 0 11px; border: 0; background: var(--papier-clair);
+    color: var(--encre-2); font: 500 13.5px var(--police);
+  }
+  .langues-menu button + button { border-left: 1px solid rgba(138, 107, 69, .4); }
+  .langues-menu button[aria-pressed="true"] { background: var(--rouge); color: var(--papier-clair); font-weight: 600; }
+}
+@media (max-width: 380px) {
+  /* l'heure seule, sans « au Japon » : elle laisse la place aux raccourcis du haut */
+  .heure-textes > span { font-size: 0; }
+  .heure-textes b { font-size: 16px; }
+}
+@media (max-width: 350px) {
+  /* les plus petits téléphones : la barre du bas plus serrée, à l'écart des boutons de droite */
+  .barre-mobile { gap: 8px; }
+  .btn-rond .rond { width: 46px; height: 46px; }
+  .btn-hasard-mobile .rond { width: 66px; height: 66px; }
+}
+
 /* ---------- Téléphone ---------- */
 @media (max-width: 720px) {
   /* Jeu : la carte du jeu en haut (elle cache l'en-tête), le grand bouton en bas, sous le pouce */
@@ -1453,22 +1532,49 @@ body.en-jeu .filtres, body.en-jeu .bandeau, body.en-jeu .aide { display: none; }
   }
   .bouton-jeu .texte-bouton { display: none; }
   .bouton-jeu { padding: 7px 9px; }
-  /* En-tête sur une seule ligne, pour laisser la place à la carte */
-  .entete { padding: 4px 10px 4px 4px; max-width: calc(100vw - 24px - 136px); }
-  .logo { width: 30px; height: 30px; border-width: 1.5px; }
-  .marque { gap: 8px; }
-  .titre { font-size: 15px; }
-  .sous-titre, .visites { display: none; }
-  .langues { padding: 2px; }
-  .langues button { padding: 7px 8px; font-size: 12px; }
-  .filtres { top: calc(var(--haut) + 48px); }
-  .musique { top: calc(var(--haut) + 44px); }
-  .bouton-categories { padding: 7px 11px; font-size: 13.5px; gap: 7px; }
-  .bouton-categories > svg { width: 16px; height: 16px; }
-  /* Visite et Favoris : juste l'icône (et le nombre), pour garder la rangée de boutons courte */
-  .bouton-visite .texte-bouton, .bouton-favoris .texte-bouton, .bouton-saisons .texte-bouton { display: none; }
-  .filtres-boutons { gap: 6px; }
-  .bouton-visite, .bouton-favoris, .bouton-saisons { padding: 7px 9px; }
+  /* Plein écran (2026-10-21, choisi par le propriétaire sur maquettes) : en haut à gauche le logo et l'heure, à droite
+     deux raccourcis (favoris, événement) ; en bas le menu, un lieu au hasard et la recherche (.barre-mobile) ; les
+     autres boutons sont dans le menu, qui les actionne. Les panneaux montent du bas de l'écran (la recherche descend
+     du haut : le clavier ne la cache pas). La langue, la musique et le rouleau du titre quittent l'écran. */
+  .entete { padding: 3px; border-radius: 50%; max-width: none; }
+  .logo { width: 42px; height: 42px; border-width: 1.5px; }
+  .marque-textes, .visites, .langues, .bandeau { display: none; }
+  .controles .heure-japon { position: fixed; top: var(--haut); left: 70px; right: auto; bottom: auto; padding: 4px 10px 4px 4px; gap: 7px; }
+  .heure-textes small { display: none; }
+  body.en-visite .heure-japon, body.video-visible .heure-japon { display: none; } /* la vidéo de la visite est en haut */
+  /* sa musique en cours : le bouton rouge reste, sous les raccourcis, pour la couper */
+  .musique { top: calc(var(--haut) + 54px); }
+  .btn-musique:not(.joue) { display: none; }
+  .filtres { top: var(--haut); left: auto; right: 12px; }
+  .filtres-boutons { gap: 8px; max-width: none; }
+  .filtres-boutons > .bouton-categories:not(#btn-favoris, #btn-halloween) { display: none !important; }
+  #btn-favoris, #btn-halloween { position: relative; width: 46px; height: 46px; padding: 0; justify-content: center; }
+  #btn-favoris > svg, #btn-halloween > svg { width: 22px; height: 22px; }
+  #btn-favoris .texte-bouton, #btn-halloween .texte-bouton { display: none; }
+  #btn-favoris .compteur, #btn-halloween .compteur {
+    position: absolute; top: -7px; right: -7px; min-width: 19px; padding: 2px 5px; box-sizing: border-box; border-radius: 10px;
+    background: var(--rouge); color: var(--papier-clair); font-size: 11px; font-weight: 600; line-height: 1.3; text-align: center;
+  }
+  #btn-halloween .compteur { background: #c8641e; }
+  #btn-favoris .compteur:empty { display: none; }
+  /* les pastilles (itinéraire, mois choisi, près de moi) : au milieu, sous la rangée du haut, l'une sous l'autre */
+  .filtres-boutons > .resume-itineraire {
+    position: fixed; top: calc(var(--haut) + 58px); left: 50%; transform: translateX(-50%); max-width: calc(100vw - 24px); height: 40px;
+  }
+  #resume-itineraire:not([hidden]) ~ #resume-saison,
+  #resume-itineraire:not([hidden]) ~ .resume-pres, #resume-saison:not([hidden]) ~ .resume-pres { top: calc(var(--haut) + 104px); }
+  #resume-itineraire:not([hidden]) ~ #resume-saison:not([hidden]) ~ .resume-pres { top: calc(var(--haut) + 150px); }
+  /* les panneaux : des feuilles qui montent du bas, sur toute la largeur */
+  .filtres > .menu, .musique > .menu, .menu-mobile {
+    position: fixed; z-index: 20; left: 0; right: 0; bottom: 0; width: auto; max-width: none; max-height: 82dvh; margin: 0;
+    border-bottom: 0; border-radius: 10px 10px 0 0; padding: 14px 16px calc(var(--bas) + 14px);
+    animation: monte .28s var(--ease);
+  }
+  /* la recherche descend du haut, sous la rangée du haut cachée : le clavier ne la cache pas */
+  .filtres > #menu-categories {
+    top: var(--haut); bottom: auto; left: 8px; right: 8px; max-height: calc(100dvh - var(--haut) - 24px);
+    border-bottom: 1px solid var(--trait); border-radius: var(--rayon); padding-bottom: 12px; animation: apparait .2s var(--ease);
+  }
   /* les sources sur une seule ligne pendant la visite, sous le nom du lieu */
   body.en-visite .maplibregl-ctrl-bottom-left .maplibregl-ctrl-attrib.maplibregl-compact { max-width: calc(100vw - 24px); }
   .visite-barre { gap: 2px; padding: 4px; }
@@ -1489,13 +1595,14 @@ body.en-jeu .filtres, body.en-jeu .bandeau, body.en-jeu .aide { display: none; }
   .visite-video.visible { transform: translate(-50%, 0); }
   .visite-video-ecran { height: min(54dvh, 112vw); }
   body.video-visible .entete, body.video-visible .filtres, body.video-visible .langues, body.video-visible .musique { visibility: hidden; }
-  .aide { bottom: calc(var(--bas) + 64px); }
+  .aide { bottom: calc(var(--bas) + 168px); }
+  .toast { bottom: calc(var(--bas) + 122px); }
   .controles { bottom: calc(var(--bas) + 16px); }
   .btn-rose { width: 50px; height: 50px; }
-  .bandeau { transform: scale(0.76); left: 6px; }
-  .maplibregl-ctrl-bottom-left { left: 186px; }
-  /* le texte des sources passe sur 2 lignes plutôt que sous le bouton Recentrer */
-  .maplibregl-ctrl-bottom-left .maplibregl-ctrl-attrib.maplibregl-compact { box-sizing: border-box; max-width: calc(100vw - 186px - 72px); }
+  /* les sources de la carte : à gauche, au-dessus de la barre du bas (en bas pendant une visite, sans la barre) */
+  .maplibregl-ctrl-bottom-left { left: 8px; bottom: calc(var(--bas) + 106px); }
+  body.en-visite .maplibregl-ctrl-bottom-left, body.mode-film .maplibregl-ctrl-bottom-left, body.en-jeu .maplibregl-ctrl-bottom-left { bottom: 0; }
+  .maplibregl-ctrl-bottom-left .maplibregl-ctrl-attrib.maplibregl-compact { box-sizing: border-box; max-width: calc(100vw - 16px - 72px); }
   .nom-mer { font-size: 15px; letter-spacing: 0.12em; }
   .nom-mer.petit, .nom-mer.petit:lang(ja) { font-size: 12.5px; }
   .nom-mer:lang(ja) { font-size: 16px; }
@@ -1669,8 +1776,7 @@ body.en-jeu .btn-pres, body.en-visite .btn-pres { display: none; }
 
 @media (max-width: 720px) {
   .pres-trajet { left: 0; right: 0; bottom: 0; width: auto; padding: 12px 16px calc(var(--bas) + 6px); border-radius: 10px 10px 0 0; }
-  body.avec-trajet .heure-japon { display: none; } /* l'horloge cacherait le début de la route */
-  .pres-loin { bottom: calc(var(--bas) + 90px); }
+  .pres-loin { bottom: calc(var(--bas) + 116px); }
   .defi .jeu-image { height: 21dvh; }
   .defi[data-phase="fin"] { max-height: 70dvh; }
 }

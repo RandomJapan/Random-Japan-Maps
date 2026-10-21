@@ -71,6 +71,16 @@ Depuis le 20 octobre 2026, TikTok ne donne plus l'image de couverture de tes vid
 
 ⚠️ Ne change pas les titres des colonnes (ligne 1), ni le nom des onglets **Lieux** et **Catégories**.
 
+## La carte sur téléphone (octobre 2026)
+
+Sur téléphone, la carte prend presque tout l'écran (tu as choisi l'interface « plein écran » sur les maquettes) :
+- en haut à gauche, le logo (il ouvre ton TikTok) et l'heure au Japon (touche le soleil ou la lune pour passer du jour à la nuit) ;
+- en haut à droite, deux raccourcis : tes favoris (le cœur, avec leur nombre) et l'événement en cours (la citrouille pendant Halloween) ;
+- en bas, trois boutons : **Menu**, le gros bouton rouge **Au hasard** (un appui, et la carte t'emmène dans un lieu au hasard) et **Chercher** ;
+- le menu contient tout le reste : les catégories, le hasard par région, la visite guidée, « Quand partir ? », les légendes, les favoris, Halloween, la musique et la langue.
+
+La langue se met toute seule dans celle du téléphone (français, anglais ou japonais ; anglais pour les autres langues), tant que le visiteur n'en a pas choisi une autre dans le menu. Sur ordinateur, rien n'a changé.
+
 ## Les modèles 3D
 
 Quand on zoome sur la carte, chaque lieu montre un petit modèle 3D posé sur le relief, avec son repère juste au-dessus :

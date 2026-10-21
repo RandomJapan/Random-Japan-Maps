@@ -373,6 +373,6 @@ body.halloween #carte.loin .repere-tete::after { width: auto; height: auto; back
 }
 body.qualite-tres-legere .chat-noir *, body.qualite-tres-legere .toile-coin, body.qualite-tres-legere .toile-coin * { animation-play-state: paused; }
 @media (max-width: 720px) {
-  /* plus petite, et descendue : son moyeu et l'araignée sous le bouton de la musique, à droite de la rangée de boutons */
-  .toile-coin { width: 210px; height: 210px; top: 44px; }
+  /* plus petite (2026-10-21) : un décor derrière les raccourcis du haut, son moyeu et l'araignée juste en dessous */
+  .toile-coin { width: 150px; height: 150px; top: 18px; }
 }

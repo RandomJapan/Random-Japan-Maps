@@ -66,8 +66,12 @@ function choisirLangue() {
     const memo = localStorage.getItem('langue');
     if (LANGUES.includes(memo)) return memo;
   } catch { /* navigation privée : pas grave */ }
-  const nav = (navigator.language || 'en').slice(0, 2).toLowerCase();
-  return LANGUES.includes(nav) ? nav : 'en';
+  // sinon la langue du navigateur : la première de ses langues préférées que la carte parle (fr-CA → fr, ja-JP → ja)
+  for (const l of navigator.languages?.length ? navigator.languages : [navigator.language || 'en']) {
+    const court = String(l).slice(0, 2).toLowerCase();
+    if (LANGUES.includes(court)) return court;
+  }
+  return 'en';
 }
 function t(cle, ...args) {
   const v = TEXTES[langue][cle] ?? TEXTES.en[cle];
@@ -1066,6 +1070,24 @@ function ouvrirMenu(ouvrir) {
   if (!estTelephone()) $('recherche').focus();
 }
 
+/**
+ * Le menu du téléphone (le bouton ☰ de la barre du bas) : une feuille avec toutes les fonctions. Ses cases ouvrent les
+ * vrais boutons (cachés sur téléphone) ; à l'ouverture, elles reprennent leurs compteurs et Halloween s'il a lieu.
+ */
+function ouvrirMenuMobile(ouvrir) {
+  $('panneau-menu').hidden = !ouvrir;
+  $('btn-menu-mobile').setAttribute('aria-expanded', String(ouvrir));
+  if (!ouvrir) return;
+  fermerPanneaux('panneau-menu');
+  $('menu-compteur-categories').textContent = $('compteur').textContent;
+  $('menu-compteur-legendes').textContent = $('compteur-legendes').textContent;
+  $('menu-compteur-favoris').textContent = $('compteur-favoris').textContent;
+  $('menu-halloween').hidden = $('btn-halloween').hidden;
+  $('menu-txt-halloween').textContent = $('txt-halloween').textContent;
+  $('menu-compteur-halloween').textContent = $('compteur-halloween').textContent;
+  $('menu-musique').classList.toggle('joue', $('btn-musique').classList.contains('joue'));
+}
+
 // ---------------------------------------------------------------- Les panneaux
 // Un seul ouvert à la fois : en ouvrir un ferme les autres ; un appui ailleurs sur la page, ou Échap, le ferme.
 // Pour chacun : son bouton et la fonction qui l'ouvre ou le ferme (avec ses petits effets : le résumé de
@@ -1079,6 +1101,7 @@ const PANNEAUX = {
   'panneau-saisons': ['btn-saisons', ouvrirSaisons],
   'panneau-musique': ['btn-musique', ouvrirMusique],
   'panneau-halloween': ['btn-halloween', ouvrirHalloween],
+  'panneau-menu': ['btn-menu-mobile', ouvrirMenuMobile],
 };
 
 /** Ferme tous les panneaux (sauf celui qu'on ouvre). */
@@ -1266,11 +1289,14 @@ function basculerFavori(l) {
   return favoris.has(l.id);
 }
 
-/** Le cœur de la fiche, le bouton « Favoris » (caché tant qu'il n'y en a pas) et les listes ouvertes. */
+/** Le bouton « Favoris » : caché tant qu'il n'y en a pas, sauf sur téléphone, où c'est un raccourci en haut de l'écran. */
+const voirBoutonFavoris = (n) => n > 0 || !$('panneau-favoris').hidden || estTelephone();
+
+/** Le cœur de la fiche, le bouton « Favoris » et les listes ouvertes. */
 function majFavoris() {
   const n = lieux.filter(estFavori).length;
-  $('btn-favoris').hidden = n === 0 && $('panneau-favoris').hidden;
-  $('compteur-favoris').textContent = n;
+  $('btn-favoris').hidden = !voirBoutonFavoris(n);
+  $('compteur-favoris').textContent = n || '';
   if (lieuActif) majCoeur(lieuActif);
   if (!$('panneau-favoris').hidden) remplirFavoris();
   if ($('visite-region').options.length) construireVisite();
@@ -1334,7 +1360,7 @@ function ouvrirFavoris(ouvrir) {
   $('btn-favoris').setAttribute('aria-expanded', String(ouvrir));
   majResume();
   if (!ouvrir) {
-    $('btn-favoris').hidden = !lieux.some(estFavori);
+    $('btn-favoris').hidden = !voirBoutonFavoris(lieux.filter(estFavori).length);
     return;
   }
   fermerPanneaux('panneau-favoris');
@@ -2266,6 +2292,27 @@ function brancherBoutons() {
     $(panneau).addEventListener('click', (e) => e.stopPropagation());
   }
   document.addEventListener('click', () => fermerPanneaux());
+  // Téléphone : la barre du bas (un lieu au hasard d'un seul appui, la recherche) et son menu
+  $('menu-mobile-titre').textContent = CONFIG.titre;
+  $('btn-hasard-mobile').addEventListener('click', (e) => {
+    e.stopPropagation();
+    fermerPanneaux();
+    lancerDe();
+  });
+  $('btn-chercher-mobile').addEventListener('click', (e) => {
+    e.stopPropagation();
+    ouvrirMenu(true);
+    $('recherche').focus();
+  });
+  $('menu-mobile-fermer').addEventListener('click', () => ouvrirMenuMobile(false));
+  $('panneau-menu').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-ouvre]');
+    if (!b) return;
+    ouvrirMenuMobile(false);
+    $(b.dataset.ouvre).click();
+  });
+  // le bouton des favoris reste en haut sur téléphone, même sans favori (une fenêtre qui change de taille)
+  matchMedia('(max-width: 720px)').addEventListener('change', majFavoris);
   $('panneau-favoris').addEventListener('click', (e) => {
     const retirer = e.target.closest('[data-retirer]');
     const ligne = e.target.closest('[data-lieu]');

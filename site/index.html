@@ -323,6 +323,82 @@
     </button>
   </div>
 
+  <!-- Téléphone seulement (2026-10-21) : en bas, le menu, le gros bouton « Au hasard » et la recherche ; le menu ouvre
+       une feuille avec toutes les fonctions (leurs vrais boutons, cachés sur téléphone, font le travail : data-ouvre) -->
+  <div class="barre-mobile" id="barre-mobile">
+    <button type="button" class="btn-rond" id="btn-menu-mobile" aria-expanded="false" aria-controls="panneau-menu">
+      <span class="rond panneau"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M4 7h16M4 12h16M4 17h16"/></svg></span>
+      <span class="etiquette" data-t="menuMobile">Menu</span>
+    </button>
+    <button type="button" class="btn-rond btn-hasard-mobile" id="btn-hasard-mobile">
+      <span class="rond"><svg class="de" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.6" fill="currentColor"/></svg></span>
+      <span class="etiquette" data-t="hasard">Random</span>
+    </button>
+    <button type="button" class="btn-rond" id="btn-chercher-mobile">
+      <span class="rond panneau"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="m20 20-4.5-4.5M17 10.5a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0Z"/></svg></span>
+      <span class="etiquette" data-t="chercherCourt">Search</span>
+    </button>
+  </div>
+  <div class="menu panneau menu-mobile" id="panneau-menu" hidden>
+    <div class="menu-mobile-tete">
+      <p class="menu-mobile-titre" id="menu-mobile-titre">Random Japan Place</p>
+      <button type="button" class="menu-mobile-fermer" id="menu-mobile-fermer" data-t-titre="fermer" data-t-aria="fermer">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </div>
+    <div class="menu-mobile-grille">
+      <button type="button" data-ouvre="btn-categories">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 5h18v2H3zm3 6h12v2H6zm3 6h6v2H9z"/></svg>
+        <span data-t="categories">Categories</span><span class="compteur" id="menu-compteur-categories"></span>
+      </button>
+      <button type="button" data-ouvre="btn-hasard" class="rouge">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.6" fill="currentColor"/></svg>
+        <span data-t="hasardFiltres">Random, by region</span>
+      </button>
+      <button type="button" data-ouvre="btn-visite" class="rouge">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M3 7.5h11.5v9H3zM14.5 10.5l6-3v9l-6-3"/></svg>
+        <span data-t="visiteTitre">Guided tour</span>
+      </button>
+      <button type="button" data-ouvre="btn-saisons" class="rouge">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M3.5 10h17M8 3v4M16 3v4"/><path fill="currentColor" d="M12 12.2c1.4 1.2 2.7 1.6 2.7 3.3a2.7 2.7 0 0 1-5.4 0c0-1.7 1.3-2.1 2.7-3.3Z"/></svg>
+        <span data-t="saisonsBouton">When to go</span>
+      </button>
+      <button type="button" data-ouvre="btn-legendes" class="rouge">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M9 3h6M9 21h6M7.5 5h9C19 7 19.6 10 19.6 12s-.6 5-3.1 7h-9C5 17 4.4 14 4.4 12S5 7 7.5 5ZM4.6 10h14.8M4.6 14h14.8"/></svg>
+        <span data-t="legendes">Legends</span><span class="compteur" id="menu-compteur-legendes"></span>
+      </button>
+      <button type="button" data-ouvre="btn-favoris" class="rouge">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 20.3s-7.4-4.5-9.2-9.1C1.5 7.8 3.7 4.6 7 4.6c2 0 3.6 1.1 5 2.9 1.4-1.8 3-2.9 5-2.9 3.3 0 5.5 3.2 4.2 6.6-1.8 4.6-9.2 9.1-9.2 9.1Z"/></svg>
+        <span data-t="favorisTitre">My favorites</span><span class="compteur" id="menu-compteur-favoris"></span>
+      </button>
+      <button type="button" data-ouvre="btn-halloween" class="orange" id="menu-halloween" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 6.4C11.6 4.6 12.2 3.2 13.8 2.4"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M12 6.6C10.4 5.7 8.4 5.6 6.7 6.5 3.9 7.8 2.6 10.7 2.8 13.7 3.1 17.3 5.4 20.1 8.4 20.6 9.7 20.8 10.9 20.5 12 19.9 13.1 20.5 14.3 20.8 15.6 20.6 18.6 20.1 20.9 17.3 21.2 13.7 21.4 10.7 20.1 7.8 17.3 6.5 15.6 5.6 13.6 5.7 12 6.6Z"/><path fill="none" stroke="currentColor" stroke-width="1.6" d="M12 6.8C10.4 10.4 10.4 16.4 12 19.8"/></svg>
+        <span id="menu-txt-halloween">Halloween</span><span class="compteur" id="menu-compteur-halloween"></span>
+      </button>
+      <button type="button" data-ouvre="btn-jeu" class="dev">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M12 21.2s-6.6-6.7-6.6-11.6a6.6 6.6 0 0 1 13.2 0c0 4.9-6.6 11.6-6.6 11.6Z"/><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M10.2 8.1a1.9 1.9 0 1 1 2.6 1.8c-.5.2-.8.6-.8 1.1v.3"/><circle cx="12" cy="13.2" r="1" fill="currentColor"/></svg>
+        <span data-t="jeu">Guess the place</span>
+      </button>
+      <button type="button" data-ouvre="btn-defi" class="dev">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M3.5 10h17M8 3v4M16 3v4"/><path fill="currentColor" d="m12 11.6 1.1 2.3 2.5.3-1.8 1.7.5 2.5-2.3-1.2-2.3 1.2.5-2.5-1.8-1.7 2.5-.3Z"/></svg>
+        <span data-t="defi">Daily</span>
+      </button>
+    </div>
+    <button type="button" class="menu-mobile-ligne" data-ouvre="btn-musique" id="menu-musique">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M9 17.5V6l11-2.2v11.4"/><circle cx="6.3" cy="17.6" r="2.7" fill="currentColor"/><circle cx="17.3" cy="15.3" r="2.7" fill="currentColor"/></svg>
+      <span data-t="musique">Music</span>
+    </button>
+    <div class="menu-mobile-ligne">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2"/><path fill="none" stroke="currentColor" stroke-width="1.6" d="M3.5 12h17M12 3.5c-2.6 2.4-3.6 5.3-3.6 8.5s1 6.1 3.6 8.5M12 3.5c2.6 2.4 3.6 5.3 3.6 8.5s-1 6.1-3.6 8.5"/></svg>
+      <span data-t="langueTitre">Language</span>
+      <nav class="langues-menu" data-t-aria="langueTitre">
+        <button type="button" data-langue="en">EN</button>
+        <button type="button" data-langue="fr">FR</button>
+        <button type="button" data-langue="ja">日本語</button>
+      </nav>
+    </div>
+  </div>
+
   <!-- Bandeau en rouleau, comme le cartouche de titre des vieilles cartes -->
   <div class="bandeau" aria-hidden="true">
     <svg class="bandeau-fond" viewBox="0 0 240 72" preserveAspectRatio="none">
