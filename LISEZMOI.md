@@ -108,6 +108,12 @@ Quand on voit tout le Japon, la mer bouge un peu, comme une vieille carte qui pr
 
 Tout disparaît quand on zoome sur un lieu. Si le téléphone est réglé pour réduire les animations, la mer reste immobile.
 
+## Rien que le Japon, et la mer jusqu'à l'horizon (octobre 2026)
+
+- **Seul le Japon a du relief.** Les pays voisins, leurs îles et leurs montagnes au loin sont devenus de la mer : la Corée, Sakhaline, Taïwan, les Kouriles du nord… Comme sur les cartes officielles japonaises, la carte garde les 4 îles au nord-est d'Hokkaidō (Kunashiri, Etorofu, Shikotan, Habomai) et l'îlot de Takeshima (ton choix).
+- **La mer va jusqu'à l'horizon.** Plus de « carré » au bout de la carte quand on l'incline : la mer continue, dans la brume, jusqu'au ciel. On peut incliner un peu plus qu'avant (78° au lieu de 72°) pour voir le ciel.
+- **Le soleil se couche.** Au coucher du soleil au Japon (et à son lever), en inclinant la carte vers l'ouest (vers l'est le matin), on voit le soleil descendre et passer derrière l'horizon, dans sa vraie direction. Pour le filmer à n'importe quelle heure : `?heure=16:50` dans l'adresse (l'heure exacte change avec la saison).
+
 ## Halloween (du 20 au 31 octobre)
 
 Pendant l'événement, la carte se déguise :

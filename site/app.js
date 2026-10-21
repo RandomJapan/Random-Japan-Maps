@@ -18,6 +18,7 @@ import { brancherVisite } from './visite.js';
 import { brancherPrecharge } from './precharge.js';
 import { brancherTuilesRelief } from './tuiles-relief.js';
 import { brancherSocle } from './socle.js';
+import { coucheHorizon } from './horizon.js';
 import { gererReperes } from './reperes.js';
 import { preparerAmbiance } from './ambiance.js';
 import { niveauDeDepart, brancherQualite } from './qualite.js';
@@ -317,7 +318,7 @@ const map = new maplibregl.Map({
   ...vueDepart(),
   minZoom: 3.6,
   maxZoom: 16,
-  maxPitch: 72,
+  maxPitch: 78, // très inclinée : la mer jusqu'à l'horizon, du ciel et le soleil couchant (horizon.js)
   // Clic droit + glisser (2026-10-09, « trop rapide, ça part dans tous les sens ») : par défaut la carte tournait
   // de 0,8° et s'inclinait de 0,5° par pixel (toute l'inclinaison en 140 px), et MapLibre inversait le sens de
   // rotation quand la souris passait dans la moitié haute de l'écran. Ici : plus lent, et toujours le même sens.
@@ -346,10 +347,8 @@ const map = new maplibregl.Map({
       },
       // maxzoom : au-delà, MapLibre agrandit les tuiles du dernier niveau au lieu d'en découper de nouvelles.
       // À chaque image, il cherche les tuiles à afficher pour chaque source : moins de niveaux, moins de calcul
-      // (les téléphones saccadaient au zoom). Les côtes et les masques (Natural Earth) sont grossiers : 7-8 suffit ;
+      // (les téléphones saccadaient au zoom). Les côtes (Natural Earth) sont grossières : 8 suffit ;
       // les lacs, rivières et frontières (simplifiés à ~60 m) sont exacts à 10.
-      voisins: { type: 'geojson', data: 'data/masque-voisins.geojson', maxzoom: 7 },
-      large: { type: 'geojson', data: 'data/masque-large.geojson', maxzoom: 7 },
       cote: { type: 'geojson', data: 'data/cote-japon.geojson', maxzoom: 8 },
       eaux: {
         type: 'geojson',
@@ -527,21 +526,8 @@ const map = new maplibregl.Map({
           'line-opacity': ['interpolate', ['linear'], ['zoom'], 6, 0.75, 8, 0],
         },
       },
-      ...ambiance.saison.avant('voisins'), // le tapis de feuilles ou de pétales tombés, de près
-      { id: 'voisins', type: 'fill', source: 'voisins', paint: { 'fill-color': MER } },
-      // Un trait épais de la couleur de la mer cache les petites différences de côte des pays voisins.
-      {
-        id: 'voisins-contour',
-        type: 'line',
-        source: 'voisins',
-        paint: {
-          'line-color': MER,
-          'line-width': ['interpolate', ['exponential', 1.6], ['zoom'], 3, 4, 6, 5, 8, 7, 10, 14, 12, 40],
-        },
-      },
-      // Le grand cache : tout ce qui est loin du Japon prend la couleur de la mer. Il cache les milliers
-      // d'îlots des voisins trop petits pour le cache ci-dessus (ils scintillaient quand la carte bougeait).
-      { id: 'large', type: 'fill', source: 'large', paint: { 'fill-color': MER, 'fill-antialias': false } },
+      // (les pays voisins ne sont plus cachés par des aplats couleur de mer : leur relief est mis à 0 m, tuiles-relief.js)
+      ...ambiance.saison.avant('fin'), // le tapis de feuilles ou de pétales tombés, de près
     ],
     terrain: { source: 'relief', exaggeration: exageration(vueDepart().zoom) },
     // Au-delà de l'horizon, du parchemin ; au loin, un voile clair, comme sur une vieille gravure
@@ -835,6 +821,9 @@ function allegerCorrespondances() {
 }
 map.once('load', stabiliserRelief);
 map.once('load', allegerCorrespondances);
+// La mer jusqu'à l'horizon, sous tout le reste (horizon.js) : ajoutée avant les premières textures du relief
+const ajouterHorizon = () => { try { map.addLayer(coucheHorizon(map), 'fond'); } catch (e) { console.warn('Horizon indisponible', e); } };
+if (map.style?._loaded) ajouterHorizon(); else map.once('style.load', ajouterHorizon);
 // Un relief grossier toujours chargé autour de la vue : un lancer rapide ne montre plus la mer à la place de la terre
 map.once('load', () => {
   try {

@@ -73,7 +73,9 @@ function soleil(date, { lng, lat }) {
   const temps = ((18.697374558 + 24.06570982441908 * j) % 24) * 15 * r;
   const angle = temps + lng * r - ad; // angle horaire
   const hauteur = Math.asin(Math.sin(lat * r) * Math.sin(dec) + Math.cos(lat * r) * Math.cos(dec) * Math.cos(angle)) / r;
-  return { hauteur, matin: Math.sin(angle) < 0 }; // avant midi, le soleil est à l'est (angle horaire négatif)
+  // la direction, en degrés depuis le nord vers l'est (le soleil couchant de horizon.js)
+  const azimut = (Math.atan2(Math.sin(angle), Math.cos(angle) * Math.sin(lat * r) - Math.tan(dec) * Math.cos(lat * r)) / r + 540) % 360;
+  return { hauteur, azimut, matin: Math.sin(angle) < 0 }; // avant midi, le soleil est à l'est (angle horaire négatif)
 }
 
 /** Une date (heure du Japon = UTC + 9). */
@@ -106,7 +108,7 @@ function partiesJapon(date) {
 
 /** Le moment : les poids du coucher (ou lever) et de la nuit, la saison du jour, la sorte de particules. */
 export function moment(date) {
-  const { hauteur, matin } = soleil(date, CENTRE);
+  const { hauteur, azimut, matin } = soleil(date, CENTRE);
   const nuit = lisse(-1, -9, hauteur);
   const soir = lisse(9, 0, hauteur) * (1 - nuit);
   const j = partiesJapon(date);
@@ -121,7 +123,7 @@ export function moment(date) {
       : md >= 711 && md <= 831 ? 'hanabi'
         : md >= 1010 && md <= 1205 ? 'feuilles'
           : md >= 1206 || md <= 315 ? 'neige' : null;
-  return { date, hauteur, matin, soir, nuit, saison, particules, jour: j };
+  return { date, hauteur, azimut, matin, soir, nuit, saison, particules, jour: j };
 }
 
 // ---------------------------------------------------------------- La palette
@@ -275,9 +277,9 @@ export function preparerAmbiance() {
     majLoin();
 
     function appliquer(p) {
-      for (const id of ['voisins', 'large', 'lacs']) map.setPaintProperty(id, 'fill-color', p.mer);
+      map.setPaintProperty('lacs', 'fill-color', p.mer);
       map.setPaintProperty('fond', 'background-color', p.mer);
-      for (const id of ['voisins-contour', 'rivieres']) map.setPaintProperty(id, 'line-color', p.mer);
+      map.setPaintProperty('rivieres', 'line-color', p.mer);
       for (const id of ['lignes-eau-1', 'lignes-eau-2', 'lignes-eau-3', 'rivieres-bord', 'lacs-bord']) map.setPaintProperty(id, 'line-color', p.eau);
       map.setPaintProperty('cote-ombre', 'line-color', p.ombreIles);
       map.setPaintProperty('cote-encre', 'line-color', p.encreCote);
@@ -361,6 +363,12 @@ export function preparerAmbiance() {
         if (!premier) appliquer(p); // au départ, le style de la carte a déjà ces couleurs
         teintesHorsCarte(p);
         details.maj(jourDeLAn(m.jour.mois, m.jour.jour), p);
+      }
+      // le soleil à l'horizon (horizon.js), quand la carte montre un coucher ou un lever de soleil
+      const s = m.soir > 0.02 ? { hauteur: m.hauteur, azimut: m.azimut, force: m.soir, matin: m.matin } : null;
+      if (JSON.stringify(s) !== JSON.stringify(TEINTES.soleil)) {
+        TEINTES.soleil = s;
+        map.triggerRepaint();
       }
       majHorloge();
       majParticules();

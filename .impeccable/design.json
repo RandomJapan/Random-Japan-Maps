@@ -513,8 +513,8 @@
         "section": "elevation"
       },
       {
-        "name": "The Open-Sea Mask Rule",
-        "body": "Everything farther than about 70 km from Japan, or nearer a neighbour than Japan, is painted the sea colour (masque-large.geojson), on top of the neighbours mask. Natural Earth misses thousands of tiny foreign islets, and from above they twinkled as sand specks whenever the map moved.",
+        "name": "The Japan Alone Rule",
+        "body": "Only Japan has relief: outside the Japan zone (within 70 km of its coast and nearer Japan than a neighbour; with the Northern Territories and Takeshima, the owner's choice) the relief tiles are set to 0 m, so foreign land, its islets and its mountains on the horizon become sea. The sea then runs to the horizon (horizon.js), fogged like the far relief, with the real setting or rising sun sinking behind it.",
         "section": "colors"
       },
       {

@@ -14,7 +14,7 @@ import urllib.request
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # pour trouver fabriquer_masque.py d'où qu'on lance
-from fabriquer_masque import URL, dedoublonner, est_kouriles, simplifier  # noqa: E402
+from fabriquer_masque import URL, dedoublonner, japonais, simplifier  # noqa: E402
 
 SORTIE = Path(__file__).resolve().parent.parent / "site" / "data" / "cote-japon.geojson"
 TOLERANCE = 0.004  # degrés (~400 m) : le trait ne se voit que de loin, il disparaît quand on zoome
@@ -33,13 +33,13 @@ def main():
     lignes = []
     for f in monde["features"]:
         pays = f["properties"].get("ADM0_A3")
-        if pays not in ("JPN", "RUS"):
+        if pays not in ("JPN", "RUS", "KOR"):
             continue
         geom = f["geometry"]
         parts = geom["coordinates"] if geom["type"] == "MultiPolygon" else [geom["coordinates"]]
         for poly in parts:
-            # Les Kouriles restent visibles sur la carte (le masque ne les cache pas) : on trace aussi leur côte.
-            if pays == "RUS" and not est_kouriles(poly[0]):
+            # le Japon, avec les Territoires du Nord et Takeshima (fabriquer_masque.japonais)
+            if not japonais(pays, poly[0]):
                 continue
             for anneau in poly:
                 ligne = trait(anneau)

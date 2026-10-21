@@ -11,4 +11,5 @@ export const TEINTES = {
   lumiere: 1, // la lumière des modèles 3D et des bateaux (1 le jour, moins la nuit)
   nuit: 0, // 0 le jour, 1 la nuit : les lanternes des modèles et la lueur des lieux (couche3d.js)
   jour: null, // le jour de l'année au Japon (1 à 365) : la saison des modèles 3D ; null : la carte classique, sans saison
+  soleil: null, // au coucher ou au lever : { hauteur, azimut (degrés), force (0 à 1), matin } ; le soleil de horizon.js
 };

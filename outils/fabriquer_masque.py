@@ -21,11 +21,22 @@ def dans_zone(anneau):
     return any(OUEST <= x <= EST and SUD <= y <= NORD for x, y in anneau)
 
 
-def est_kouriles(anneau):
-    # Les îles Kouriles (dont les « Territoires du Nord ») restent visibles.
-    xs = [p[0] for p in anneau]
-    ys = [p[1] for p in anneau]
-    return min(xs) > 145.0 and max(ys) < 51.5 and min(ys) > 43.0
+def dans(anneau, ouest, sud, est, nord):
+    return all(ouest <= x <= est and sud <= y <= nord for x, y in anneau)
+
+
+def japonais(pays, anneau):
+    """Les terres que la carte montre comme japonaises. Choix du propriétaire (2026-10-21), comme les cartes
+    officielles japonaises : les « Territoires du Nord » (Kunashiri, Etorofu, Shikotan, Habomai, tenus par la Russie)
+    et Takeshima (tenu par la Corée du Sud) en font partie ; le reste des Kouriles et Sakhaline, non. Natural Earth
+    range les Senkaku avec le Japon."""
+    if pays == "JPN":
+        return True
+    if pays == "RUS":
+        return dans(anneau, 145.0, 43.0, 149.0, 45.7)  # Urup, la suivante, commence à 149,4° E
+    if pays == "KOR":
+        return dans(anneau, 131.8, 37.2, 131.9, 37.3)
+    return False
 
 
 TOLERANCE = 0.01  # degrés (~1 km) : largement assez précis pour des pays qu'on cache
@@ -74,15 +85,13 @@ def main():
     polygones = []
     for f in monde["features"]:
         props = f["properties"]
-        if props.get("ADM0_A3") == "JPN":
-            continue
         geom = f["geometry"]
         parts = geom["coordinates"] if geom["type"] == "MultiPolygon" else [geom["coordinates"]]
         for poly in parts:
             exterieur = poly[0]
             if not dans_zone(exterieur):
                 continue
-            if props.get("ADM0_A3") == "RUS" and est_kouriles(exterieur):
+            if japonais(props.get("ADM0_A3"), exterieur):
                 continue
             anneaux = [arrondir(anneau) for anneau in poly]
             if len(anneaux[0]) >= 4:

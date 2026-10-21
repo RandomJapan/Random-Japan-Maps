@@ -547,7 +547,7 @@ export function animerMer(map, maplibregl, { mers = [], reperes, tuiles } = {}) 
       while (parcours + pas < longueur && distance(S.x + ux * (parcours + pas), S.y + uy * (parcours + pas)) >= LARGE_FIN) parcours += pas;
       if (parcours * Z5 < 60) continue;
       const E = { x: S.x + ux * parcours, y: S.y + uy * parcours };
-      // pas de terre cachée (îles des voisins, sous le grand cache) sur le chemin
+      // pas de terre sur le chemin (un îlot trop petit pour le trait de côte de Natural Earth)
       let terre = false;
       for (let t = 0; t <= 1 && !terre; t += 0.1) terre = (map.queryTerrainElevation(versLngLat(S.x + (E.x - S.x) * t, S.y + (E.y - S.y) * t)) || 0) > 5;
       if (terre) continue;
@@ -638,7 +638,7 @@ export function animerMer(map, maplibregl, { mers = [], reperes, tuiles } = {}) 
 
   /**
    * Un chemin [départ, arrivée] dans la mer qu'on voit : l'arrivée tirée au hasard à l'écran, bien au large, et le
-   * départ plus au sud ; tout le chemin reste loin des côtes et des terres cachées sous les masques.
+   * départ plus au sud ; tout le chemin reste loin des côtes.
    */
   function cheminTyphon() {
     const { clientWidth: l, clientHeight: h } = conteneur;

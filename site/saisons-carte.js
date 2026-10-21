@@ -385,7 +385,7 @@ const COUCHES = {
       'icon-pitch-alignment': 'map',
       'icon-rotation-alignment': 'map',
     },
-  }, 'voisins'],
+  }, 'fin'],
   'saison-neige': [{ type: 'fill', source: 'prefectures-neige', paint: { 'fill-antialias': false } }, 'ombrage'],
   'lacs-glace': [{ type: 'fill', source: 'eaux' }, 'lacs-bord'],
   'lacs-glace-motif': [{ type: 'fill', source: 'eaux', paint: { 'fill-pattern': 'motif-glace' } }, 'lacs-bord'],
@@ -538,13 +538,19 @@ export function brancherDetailsSaison(map, deps, jDepart) {
     setTimeout(une, 12000);
   }
 
+  /** La couche avant laquelle placer une couche de saison ; 'fin' : juste après les couches du style de départ. */
+  function ancre(avant) {
+    if (avant !== 'fin') return map.getLayer(avant) ? avant : undefined;
+    const ordre = map.getLayersOrder();
+    return ordre[ordre.indexOf('cote-encre') + 1];
+  }
   /** Ajoute une couche (et sa source) la première fois qu'elle sert : seulement si la saison change en cours de visite. */
   function ajouter(id) {
     if (map.getLayer(id)) return;
     const [def, avant] = COUCHES[id];
     if (!map.getSource(def.source)) map.addSource(def.source, SOURCES[def.source]());
     if (id === 'lacs-glace-motif' && !motifGlace) { map.addImage('motif-glace', dessinerGlace(), { pixelRatio: 2 }); motifGlace = true; }
-    map.addLayer({ id, ...def }, map.getLayer(avant) ? avant : undefined);
+    map.addLayer({ id, ...def }, ancre(avant));
   }
   /** Montre ou cache une couche : une couche sans rien à montrer n'est pas dessinée du tout. */
   function montrer(id, oui) {
