@@ -22,6 +22,7 @@ import { TEINTES } from './teintes.js';
 import { MOIS, jourDeLAn, dateDuJour } from './phenologie.js';
 import { creerParticules, animerParticules } from './particules.js';
 import { brancherDetailsSaison, styleSaison } from './saisons-carte.js';
+import { croixPanneau } from './commun.js';
 
 const CENTRE = { lng: 137.5, lat: 36 }; // le soleil est calculé au centre de Honshū
 const FUSEAU = 'Asia/Tokyo';
@@ -389,18 +390,19 @@ export function preparerAmbiance() {
       const nomJour = (n) => { const d = dateDuJour(n); return new Intl.DateTimeFormat(lang, { day: 'numeric', month: 'long', timeZone: 'UTC' }).format(Date.UTC(2026, d.mois - 1, d.jour)); };
       const champ = reglageDev.querySelector('[data-date]');
       if (champ && document.activeElement?.closest('.reglage-ambiance')) return; // on ne bouge pas un curseur qu'on tient
-      reglageDev.innerHTML = `<p class="reglage-titre">${deps.t('reglageTitre')}</p>`
+      reglageDev.innerHTML = `${croixPanneau(deps.t('fermer'))}<p class="reglage-titre">${deps.t('reglageTitre')}</p>`
         + `<div class="reglage-raccourcis">${RACCOURCIS.map(([icone, n]) => `<button type="button" data-jour="${n}" title="${nomJour(n)}">${icone}</button>`).join('')}</div>`
         + `<label>${deps.t('reglageDate')} <output>${nomJour(j)}</output><input type="range" min="1" max="365" step="1" value="${j}" data-date></label>`
         + `<label>${deps.t('reglageHeure')} <output>${String(Math.floor(heure)).padStart(2, '0')}:${String(Math.round((heure % 1) * 60)).padStart(2, '0')}</output>`
         + `<input type="range" min="0" max="23.75" step="0.25" value="${(Math.round(heure * 4) / 4).toFixed(2)}" data-heure></label>`
         + `<button type="button" class="reglage-reel" data-reel>${deps.t('reglageReel')}</button>`;
     }
-    boutonReglage.addEventListener('click', () => {
-      reglageDev.hidden = !reglageDev.hidden;
-      boutonReglage.setAttribute('aria-expanded', String(!reglageDev.hidden));
-      if (!reglageDev.hidden) remplirReglage();
-    });
+    const ouvrirReglage = (oui) => {
+      reglageDev.hidden = !oui;
+      boutonReglage.setAttribute('aria-expanded', String(oui));
+      if (oui) remplirReglage();
+    };
+    boutonReglage.addEventListener('click', () => ouvrirReglage(reglageDev.hidden));
     reglageDev.addEventListener('input', (e) => {
       const date = reglageDev.querySelector('[data-date]'), heure = reglageDev.querySelector('[data-heure]');
       if (!date || !heure) return;
@@ -415,6 +417,7 @@ export function preparerAmbiance() {
     reglageDev.addEventListener('click', (e) => {
       const bouton = e.target.closest('button');
       if (!bouton) return;
+      if (bouton.hasAttribute('data-fermer')) return ouvrirReglage(false);
       if (bouton.dataset.jour) fixer(+bouton.dataset.jour, reel.jour.heure + reel.jour.minute / 60);
       else if (bouton.hasAttribute('data-reel')) { reglage.fixe = fixeAdresse; force = null; }
       verifier();

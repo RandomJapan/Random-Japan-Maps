@@ -52,7 +52,8 @@ svg { display: block; }
 body:not(.mode-dev) .dev { display: none !important; }
 :focus-visible { outline: 2px solid var(--sarcelle); outline-offset: 2px; }
 
-#carte { position: fixed; inset: 0; }
+/* z-index : tout ce qui est dessiné sur la carte (épingles, bulles, défilé…) reste sous les boutons et les panneaux */
+#carte { position: fixed; inset: 0; z-index: 0; }
 
 /* Papier vieilli posé sur toute la carte (app.js le glisse sous les lieux) : bords brunis, taches, grain.
    Une image fixe, sans flou ni mélange de couleurs : rien n'est recalculé quand la carte bouge. */
@@ -274,6 +275,16 @@ a.musique-titre:hover { text-decoration: underline; text-underline-offset: 3px; 
   animation: apparait .2s var(--ease);
 }
 @keyframes apparait { from { opacity: 0; transform: translateY(-6px); } }
+/* La croix de chaque panneau (app.js, croixPanneau de commun.js) : en haut à droite, le texte passe à côté ;
+   elle reste en haut quand le panneau défile */
+.panneau-fermer {
+  position: sticky; top: 0; z-index: 2; float: right; margin: -4px -4px 6px 10px;
+  width: 32px; height: 32px; display: grid; place-items: center; padding: 0; cursor: pointer;
+  border: 1px solid var(--trait); border-radius: 50%; background: var(--papier-clair); color: var(--encre);
+  box-shadow: 0 1px 4px rgba(40, 26, 12, 0.18);
+}
+.panneau-fermer:hover { background: var(--papier-fonce); }
+.panneau-fermer svg { width: 16px; height: 16px; }
 .recherche {
   display: flex; align-items: center; gap: 8px; padding: 0 12px;
   background: var(--papier-clair); border: 1px solid var(--trait); border-radius: var(--rayon);
@@ -357,6 +368,7 @@ a.musique-titre:hover { text-decoration: underline; text-underline-offset: 3px; 
 }
 .controles .panneau { width: 42px; height: 42px; display: grid; place-items: center; transition: background .2s; }
 .controles .panneau svg { width: 20px; height: 20px; }
+.controles .panneau-fermer svg { width: 16px; height: 16px; } /* la croix des panneaux du mode développeur */
 .controles .panneau:hover { background-color: var(--papier-fonce); }
 /* Le bouton du mode développeur : seulement là où le lien secret a été ouvert ; rouge quand il est actif */
 .controles .btn-dev { display: none; }
@@ -784,6 +796,7 @@ body.plongeon .vol-grues, body.en-jeu .vol-grues { display: none; }
 .maplibregl-ctrl-attrib { background: rgba(246, 238, 219, 0.92) !important; color: var(--encre-3) !important; font-size: 10.5px; }
 .maplibregl-ctrl-attrib.maplibregl-compact, .maplibregl-ctrl-attrib-button { border-radius: 2px !important; }
 .maplibregl-ctrl-attrib.maplibregl-compact-show { border: 1px solid var(--trait); }
+.maplibregl-ctrl-attrib-button:focus:not(:focus-visible) { box-shadow: none; } /* pas d'anneau bleu après un appui du doigt */
 .maplibregl-ctrl-attrib a { color: var(--encre-2) !important; }
 .maplibregl-ctrl-bottom-left { bottom: var(--bas); }
 
@@ -1470,6 +1483,8 @@ body.en-jeu .filtres, body.en-jeu .bandeau, body.en-jeu .aide { display: none; }
   .menu-mobile { display: flex; flex-direction: column; gap: 12px; }
   .menu-mobile-tete { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .menu-mobile-titre { margin: 0; font: 400 20px/1.2 var(--police-titre); }
+  .panneau-fermer { width: 40px; height: 40px; margin: -6px -6px 6px 10px; }
+  .panneau-fermer svg { width: 19px; height: 19px; }
   .menu-mobile-fermer {
     flex: none; width: 40px; height: 40px; display: grid; place-items: center; padding: 0;
     border: 1px solid var(--trait); border-radius: 50%; background: var(--papier-clair); color: var(--encre);
@@ -1541,6 +1556,9 @@ body.en-jeu .filtres, body.en-jeu .bandeau, body.en-jeu .aide { display: none; }
   .marque-textes, .visites, .langues, .bandeau { display: none; }
   .controles .heure-japon { position: fixed; top: var(--haut); left: 70px; right: auto; bottom: auto; padding: 4px 10px 4px 4px; gap: 7px; }
   .heure-textes small { display: none; }
+  /* le réglage de la date (mode développeur) s'ouvre sous l'horloge, au bord gauche de l'écran */
+  .controles .reglage-ambiance { top: calc(100% + 8px); bottom: auto; left: -62px; right: auto; width: min(264px, calc(100vw - 16px)); }
+  .controles .panneau-qualite { bottom: 110px; } /* Fluidité (mode développeur) : au-dessus de la barre du bas */
   body.en-visite .heure-japon, body.video-visible .heure-japon { display: none; } /* la vidéo de la visite est en haut */
   /* sa musique en cours : le bouton rouge reste, sous les raccourcis, pour la couper */
   .musique { top: calc(var(--haut) + 54px); }
@@ -1599,10 +1617,17 @@ body.en-jeu .filtres, body.en-jeu .bandeau, body.en-jeu .aide { display: none; }
   .toast { bottom: calc(var(--bas) + 122px); }
   .controles { bottom: calc(var(--bas) + 16px); }
   .btn-rose { width: 50px; height: 50px; }
-  /* les sources de la carte : à gauche, au-dessus de la barre du bas (en bas pendant une visite, sans la barre) */
-  .maplibregl-ctrl-bottom-left { left: 8px; bottom: calc(var(--bas) + 106px); }
-  body.en-visite .maplibregl-ctrl-bottom-left, body.mode-film .maplibregl-ctrl-bottom-left, body.en-jeu .maplibregl-ctrl-bottom-left { bottom: 0; }
+  /* les sources de la carte : le « i » en bas à gauche, à côté de la barre du bas ; ouvertes, elles s'affichent dans
+     une bulle au-dessus de la barre (pendant une visite, un film ou le jeu, sans la barre : sur une ligne, tout en bas) */
+  .maplibregl-ctrl-bottom-left { left: 0; bottom: var(--bas); }
   .maplibregl-ctrl-bottom-left .maplibregl-ctrl-attrib.maplibregl-compact { box-sizing: border-box; max-width: calc(100vw - 16px - 72px); }
+  body:not(.en-visite):not(.mode-film):not(.en-jeu) .maplibregl-ctrl-bottom-left > .maplibregl-ctrl-attrib.maplibregl-compact-show { padding: 2px 24px 2px 0; }
+  body:not(.en-visite):not(.mode-film):not(.en-jeu) .maplibregl-ctrl-attrib.maplibregl-compact-show .maplibregl-ctrl-attrib-inner {
+    position: absolute; left: 0; bottom: calc(100% + 82px); box-sizing: border-box; width: max-content; max-width: calc(100vw - 20px);
+    padding: 4px 9px; line-height: 1.5; background: rgba(246, 238, 219, 0.95); border: 1px solid var(--trait); border-radius: 2px;
+    box-shadow: var(--ombre);
+  }
+  body.en-visite .maplibregl-ctrl-bottom-left, body.mode-film .maplibregl-ctrl-bottom-left, body.en-jeu .maplibregl-ctrl-bottom-left { left: 8px; bottom: 0; }
   .nom-mer { font-size: 15px; letter-spacing: 0.12em; }
   .nom-mer.petit, .nom-mer.petit:lang(ja) { font-size: 12.5px; }
   .nom-mer:lang(ja) { font-size: 16px; }

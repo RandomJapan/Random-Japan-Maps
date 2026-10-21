@@ -122,8 +122,10 @@
 
 /* ---------- Le défilé des cent démons (hyakki.js) ----------
    Un calque posé sur la carte (sous les épingles) ; chaque yōkai est placé à chaque image sur son point du chemin.
-   --taille : sa largeur à l'écran ; --pas : la durée d'un pas (chacun le sien, pour qu'ils ne marchent pas au pas). */
-.defile-yokai { position: absolute; left: 0; top: 0; width: 0; height: 0; pointer-events: none; }
+   --taille : sa largeur à l'écran ; --pas : la durée d'un pas (chacun le sien, pour qu'ils ne marchent pas au pas).
+   Les yōkai se rangent entre eux par leur z-index (le plus bas à l'écran devant) ; le z-index 0 du calque les garde
+   dedans : sans lui, ils passaient par-dessus les bulles des légendes et la fiche (2026-10-21, vu sur un téléphone). */
+.defile-yokai { position: absolute; left: 0; top: 0; z-index: 0; width: 0; height: 0; pointer-events: none; }
 body.plongeon .defile-yokai, body.en-jeu .defile-yokai { display: none; }
 .membre {
   position: absolute; left: 0; top: 0; width: var(--taille); height: var(--taille); margin: calc(var(--taille) * -.94) 0 0 calc(var(--taille) * -.5);

@@ -50,6 +50,8 @@ export function brancherMusique({ t, bouton, panneau }) {
 
   const audio = new Audio();
   audio.preload = 'none';
+  // le panneau est rempli à sa première ouverture (il n'a d'abord que la croix d'app.js)
+  const construit = () => !!panneau.querySelector('.musique-lecteur');
 
   function lireReglages() {
     let r = {};
@@ -245,7 +247,7 @@ export function brancherMusique({ t, bouton, panneau }) {
   }
 
   function remplir() {
-    if (!panneau.firstChild) construire();
+    if (!construit()) construire();
     charger();
   }
 
@@ -276,7 +278,7 @@ export function brancherMusique({ t, bouton, panneau }) {
 
   /** Le panneau : choix, volume, crédits (sans toucher au morceau affiché). */
   function majPanneau() {
-    if (!panneau.firstChild) return;
+    if (!construit()) return;
     majChoix();
     majVolumeAffiche();
     for (const b of panneau.querySelectorAll('[data-jouer], [data-suivant]')) b.disabled = !donnees;
@@ -289,7 +291,7 @@ export function brancherMusique({ t, bouton, panneau }) {
 
   /** Le style et l'ambiance choisis ; une ambiance sans morceau dans ce style est grisée. */
   function majChoix() {
-    if (!panneau.firstChild) return;
+    if (!construit()) return;
     for (const b of panneau.querySelectorAll('[data-style]')) {
       b.setAttribute('aria-pressed', String(b.dataset.style === reglages.style));
     }
@@ -326,7 +328,7 @@ export function brancherMusique({ t, bouton, panneau }) {
   }
 
   function majLangue() {
-    if (!panneau.firstChild) return;
+    if (!construit()) return;
     panneau.innerHTML = '';
     construire();
   }

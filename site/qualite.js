@@ -26,6 +26,8 @@
 //  plus avec 16 : il garde 8, comme les niveaux plus légers.
 // ================================================================
 
+import { croixPanneau } from './commun.js';
+
 export const NIVEAUX = ['fine', 'legere', 'tres-legere'];
 const MEMO = 'qualite'; // localStorage : { niveau, impose, puce, echec: { niveau, quand } }
 const FENETRE = 90; // écarts entre deux images de mouvement, par jugement (1,5 s à 60 images/s)
@@ -462,7 +464,7 @@ export function brancherQualite(map, outils) {
     const r = reglagesDe(niveau);
     const x = (v) => String(Math.round(v * 100) / 100);
     const repos = dynamique && r.finesseRepos !== r.finesse ? `<p class="qualite-note">${t('qualiteRepos', x(r.finesse), x(r.finesseRepos))}</p>` : '';
-    panneau.innerHTML = `<p class="reglage-titre">${t('qualiteTitre')}</p>
+    panneau.innerHTML = `${croixPanneau(t('fermer'))}<p class="reglage-titre">${t('qualiteTitre')}</p>
       <p class="qualite-puce">${puce.replace(/[<>&]/g, '') || '?'}</p>
       <p class="qualite-mesures">${mesures}</p>
       <div class="qualite-choix">${choix}</div>
@@ -471,14 +473,16 @@ export function brancherQualite(map, outils) {
       <p class="qualite-note">${t('qualiteLissage')}</p>`;
   }
 
-  bouton.addEventListener('click', () => {
-    panneau.hidden = !panneau.hidden;
-    bouton.setAttribute('aria-expanded', String(!panneau.hidden));
+  function ouvrir(oui) {
+    panneau.hidden = !oui;
+    bouton.setAttribute('aria-expanded', String(oui));
     clearInterval(minuterie);
-    if (!panneau.hidden) minuterie = setInterval(majPanneau, 1000);
+    if (oui) minuterie = setInterval(majPanneau, 1000);
     majPanneau();
-  });
+  }
+  bouton.addEventListener('click', () => ouvrir(panneau.hidden));
   panneau.addEventListener('click', (e) => {
+    if (e.target.closest('[data-fermer]')) return ouvrir(false);
     const n = e.target.closest('[data-niveau]')?.dataset.niveau;
     if (!n) return;
     impose = n === 'auto' ? null : n;

@@ -78,6 +78,8 @@ Sur téléphone, la carte prend presque tout l'écran (tu as choisi l'interface 
 - en haut à droite, deux raccourcis : tes favoris (le cœur, avec leur nombre) et l'événement en cours (la citrouille pendant Halloween) ;
 - en bas, trois boutons : **Menu**, le gros bouton rouge **Au hasard** (un appui, et la carte t'emmène dans un lieu au hasard) et **Chercher** ;
 - le menu contient tout le reste : les catégories, le hasard par région, la visite guidée, « Quand partir ? », les légendes, les favoris, Halloween, la musique et la langue.
+- en bas à gauche, le petit **i** ouvre les sources de la carte (OpenStreetMap, Mapterhorn…) : elles s'affichent 5 secondes à l'ouverture, puis se replient toutes seules (ou dès qu'on touche la carte), comme le permettent les règles d'OpenStreetMap ;
+- chaque panneau a sa croix en haut à droite pour le fermer.
 
 La langue se met toute seule dans celle du téléphone (français, anglais ou japonais ; anglais pour les autres langues), tant que le visiteur n'en a pas choisi une autre dans le menu. Sur ordinateur, rien n'a changé.
 

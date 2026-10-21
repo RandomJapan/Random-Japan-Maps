@@ -30,6 +30,10 @@ export const jourDuDefi = (debut, maintenant = Date.now()) => Math.floor((mainte
 /** L'instant (ms) où commence ce jour du défi : minuit à Tokyo. */
 export const debutDuJour = (debut, jour) => Date.parse(debut) + jour * JOUR - DECALAGE_JAPON;
 
+/** La croix en haut à droite d'un panneau (style.css, .panneau-fermer) ; titre : « Fermer » dans la langue de la page. */
+export const croixPanneau = (titre) => `<button type="button" class="panneau-fermer" data-fermer data-t-titre="fermer" data-t-aria="fermer" title="${echapper(titre)}" aria-label="${echapper(titre)}">`
+  + '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M7 7l10 10M17 7 7 17"/></svg></button>';
+
 /** Un écran tactile (téléphone, tablette) : on y partage par le menu du système plutôt que de télécharger ou copier. */
 export const tactile = () => matchMedia('(pointer: coarse)').matches;
 

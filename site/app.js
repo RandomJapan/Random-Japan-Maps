@@ -22,7 +22,7 @@ import { gererReperes } from './reperes.js';
 import { preparerAmbiance } from './ambiance.js';
 import { niveauDeDepart, brancherQualite } from './qualite.js';
 import { lireSaisons, blocFiche, contenuPanneau, lieuxDuMois, nomMois, iconeDuMois } from './saisons.js';
-import { echapper, envoyer, retirerParametres, tactile, jourDuDefi } from './commun.js';
+import { echapper, envoyer, retirerParametres, tactile, jourDuDefi, croixPanneau } from './commun.js';
 
 const $ = (id) => document.getElementById(id);
 // Pendant l'enregistrement du plongeon (enregistrement.js), c'est le format du film qui compte : vertical comme un
@@ -557,6 +557,25 @@ const map = new maplibregl.Map({
   },
 });
 map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
+// Les sources de la carte (© Mapterhorn, © OpenStreetMap…) : un « i » qui les ouvre. MapLibre les montre ouvertes au
+// départ et les replie quand on fait glisser la carte ; ouvertes, elles cachaient la carte sur téléphone (2026-10-21).
+// Les règles d'attribution d'OpenStreetMap acceptent qu'elles se replient seules si on a pu les voir : 5 s après l'écran
+// de chargement (replierSources dans demarrer), ou dès qu'on touche la carte. Pendant une visite ou un plongeon,
+// souvent filmés, elles restent ouvertes.
+const sources = map.getContainer().querySelector('.maplibregl-ctrl-attrib');
+function montrerSources(oui) {
+  if (!sources?.classList.contains('maplibregl-compact')) return; // pas encore de sources : MapLibre les ouvrira
+  sources.classList.toggle('maplibregl-compact-show', oui);
+  sources.toggleAttribute('open', oui);
+}
+const replierSources = () => { if (!document.body.classList.contains('en-visite')) montrerSources(false); };
+map.getCanvasContainer().addEventListener('pointerdown', replierSources);
+map.on('movestart', (e) => { if (e.originalEvent) replierSources(); });
+let sourcesEnVisite = false;
+new MutationObserver(() => {
+  const v = document.body.classList.contains('en-visite');
+  if (v !== sourcesEnVisite) montrerSources(sourcesEnVisite = v);
+}).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 map.on('error', (e) => console.warn('Carte :', e.error?.message || e));
 window.carte = map; // pratique pour inspecter la carte depuis la console du navigateur
 
@@ -2289,7 +2308,17 @@ function brancherBoutons() {
       e.stopPropagation();
       ouvrir($(panneau).hidden);
     });
-    $(panneau).addEventListener('click', (e) => e.stopPropagation());
+    $(panneau).addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (e.target.closest('.panneau-fermer')) ouvrir(false);
+    });
+    // Sa croix en haut à droite (2026-10-21 : sans elle, on ne savait pas toujours comment le fermer). Le menu du
+    // téléphone a la sienne dans son en-tête. Plusieurs panneaux sont remplis d'un coup (innerHTML) : elle y revient.
+    if (panneau === 'panneau-menu') continue;
+    const el = $(panneau);
+    const remettre = () => { if (!el.querySelector(':scope > .panneau-fermer')) el.insertAdjacentHTML('afterbegin', croixPanneau(t('fermer'))); };
+    remettre();
+    new MutationObserver(remettre).observe(el, { childList: true });
   }
   document.addEventListener('click', () => fermerPanneaux());
   // Téléphone : la barre du bas (un lieu au hasard d'un seul appui, la recherche) et son menu
@@ -2471,6 +2500,7 @@ async function demarrer() {
     $('chargement').classList.add('fini');
     // une fois effacé, l'écran de chargement sort de la page : son logo animé aurait tourné pour rien à chaque image
     setTimeout(() => { $('chargement').style.display = 'none'; }, 900);
+    setTimeout(replierSources, 5000);
     if (location.hash.length > 1) ouvrirDepuisAdresse();
     else if (rotation) setTimeout(() => requestAnimationFrame(tourner), 600);
     // Contours des préfectures (116 Ko) chargés en avance, sans gêner le démarrage : le dé s'ouvre tout de suite.
