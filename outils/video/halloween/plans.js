@@ -223,8 +223,10 @@
       v: { cles: [[0, 137.0, 36.0, 4.95, 34, 34], [7, 137.2, 36.3, 4.85, 30, 40]] } }),
   };
 
+  // le moteur sert aussi à d'autres films (promo30/plans.js : window.__plansSupp, injecté après ce fichier)
+  window.__planMoteur = { plan, voler, caler, lancerDefile, membres };
   window.__lancerPlan = (nom) => {
-    const film = PLANS[nom]();
+    const film = (PLANS[nom] || window.__plansSupp[nom])();
     // un doigt qui touche (commun.js) puis le vrai clic
     window.__toucherYokai = (id) => {
       const el = [...document.querySelectorAll('.yokai-cache')].find((e) => e.isConnected && e.getAttribute('aria-label')?.toLowerCase().includes(id === 'enma' ? 'enma' : id));

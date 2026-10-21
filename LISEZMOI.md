@@ -370,6 +370,17 @@ Chacune existe aussi en `-sans-musique.mp4` (le conteur et les bruitages restent
 
 La voix du conteur a été faite avec ton compte **Flora** (environ 0,12 $ par phrase). **Les refaire** : demande-moi (le programme est dans `outils/video/halloween/`).
 
+## La vidéo promo de 30 s (motion design, octobre 2026)
+
+Une pub de 30 secondes de la carte, voix off féminine en anglais, dans `videos/promo30/` :
+- `promo-carte-japon-tiktok.mp4` : **en vertical 9:16 pour TikTok** (le site de téléphone, les textes hors des zones que TikTok cache) ;
+- `promo-carte-japon-16x9.mp4` : la même en horizontal (YouTube, ton site) ;
+- chacune en `-sans-musique.mp4` (la voix et les bruitages restent), pour mettre un son TikTok.
+
+On y voit : ton logo, la plongée en 3D, la fiche d'un lieu avec ta vidéo, le dé, les favoris et leur route, les légendes, la mer vivante, les saisons, puis Halloween (jusqu'au 31 octobre : le défilé, la chasse aux yōkai) et l'adresse. Si tu gardes la musique, mets dans la légende : *Music: Amenoshita2 by PeriTune (CC BY 4.0)*.
+
+La voix et six bruitages ont été faits avec ton compte **Flora** (environ 2 $). **La refaire** : demande-moi (le programme est dans `outils/video/promo30/`).
+
 ## Changer le logo
 
 1. Remplace les deux images du dossier `outils/logo-source/` par les nouvelles, en gardant les mêmes noms : `logo-carre.jpg` (image carrée) et `logo-large.jpg` (image en largeur).

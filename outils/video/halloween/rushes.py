@@ -90,13 +90,14 @@ def tourner(nav, nom, reglages, vertical=False, facteur=0.1, ips=30):
     p = ctx.new_page()
     erreurs = []
     p.on('pageerror', lambda e: erreurs.append(str(e)))
-    p.goto(f"http://localhost:8123/?heure={reglages.get('heure', NUIT)}")
+    date = f"&date={reglages['date']}" if 'date' in reglages else ''
+    p.goto(f"http://localhost:8123/?heure={reglages.get('heure', NUIT)}{date}")
     p.wait_for_function(ATTENDRE, timeout=120000)
     if reglages.get('halloween', True):
         p.wait_for_function("document.body.classList.contains('halloween')", timeout=30000)
     p.wait_for_timeout(2500)
     p.evaluate(f"window.carte.setPixelRatio({k})")
-    for script in ['commun.js', 'halloween/plans.js']:
+    for script in ['commun.js', 'halloween/plans.js'] + reglages.get('scripts', []):
         p.add_script_tag(content=(VIDEO / script).read_text(encoding='utf-8'))
     p.evaluate(f"window.__lancerPlan({nom!r})")
     p.wait_for_function('window.__film', timeout=30000)
@@ -124,7 +125,7 @@ def tourner(nav, nom, reglages, vertical=False, facteur=0.1, ips=30):
                 boites.append(b)
             n += 1
     ctx.close()
-    dossier_sortie = SORTIE_V if vertical else SORTIE
+    dossier_sortie = reglages.get('sortie') or (SORTIE_V if vertical else SORTIE)
     dossier_sortie.mkdir(parents=True, exist_ok=True)
     sortie = dossier_sortie / f'{nom}.mp4'
     # JPEG plein écart (BT.601) → vidéo BT.709 plage TV, comme tourner.py ; une image clé par seconde
