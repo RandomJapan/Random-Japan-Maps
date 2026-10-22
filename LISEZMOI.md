@@ -281,7 +281,7 @@ C'est le troisième onglet du panneau Visite (mode développeur aussi), comme «
 
 ## Le mode développeur (rien que pour toi)
 
-Tes outils qui ne sont pas pour les visiteurs (pas encore, ou jamais) : le **plongeon**, le **point à point** et l'**affiche à incruster** (onglets Plongeon et Point à point de la visite), et le **jeu** et le **défi du jour**, pas encore sortis.
+Tes outils qui ne sont pas pour les visiteurs (pas encore, ou jamais) : le **plongeon**, le **point à point** et l'**affiche à incruster** (onglets Plongeon et Point à point de la visite), et le **jeu**, le **défi du jour** et la **balade 3D**, pas encore sortis.
 - **La première fois :** ouvre ton **lien secret** (celui que Claude t'a donné dans la conversation, qui finit par `?dev=…`) dans chaque navigateur où tu veux le mode : sur ton téléphone (Safari ou Chrome, pas le navigateur intégré de TikTok) et sur ton ordinateur. Le navigateur s'en souvient ensuite. Garde ce lien pour toi : il n'est écrit nulle part ailleurs.
 - **Ensuite :** un bouton `</>` apparaît en bas à droite, au-dessus de la rose des vents. **Rouge** = carte développeur (tes outils sont là). **Clair** = carte normale, exactement comme la voient les visiteurs. Un clic pour passer de l'une à l'autre ; la carte retient ton choix.
 - Ce bouton n'existe que dans tes navigateurs : les visiteurs ne le voient jamais.
@@ -320,6 +320,17 @@ Un **lieu mystère par jour, le même pour tout le monde**, comme le jeu Wordle.
 - Le défi change **à minuit, heure du Japon** (16 h ou 17 h en France). Le défi n° 1 est celui du 13 octobre 2026 : le jour de la sortie, Claude peut faire repartir les numéros à 1.
 - Les lieux du défi sont ceux qui ont une photo (comme le jeu). Un lieu tout juste ajouté attend 3 jours avant d'y entrer.
 - Le lien partagé (…/?defi) ouvre le défi pour tout le monde, même avant la sortie : c'est toi qui le partages.
+
+## La balade 3D (pas encore publique)
+
+Visiter un lieu en 3D avec un personnage, comme dans un jeu Pokémon : pour l'instant **Itsukushima** et **Aogashima**. Elle est cachée : en **mode développeur**, la fiche de ces deux lieux a un bouton **« Visiter en 3D »** (sous « Voir sur TikTok »). Les visiteurs ne le voient pas.
+- La première fois, Kon (le renard blanc d'Inari) demande si tu es un garçon ou une fille, puis il te suit et te souffle des indices.
+- **Sur ordinateur :** ZQSD (ou les flèches) pour marcher, Maj pour courir, E ou Espace pour parler et lire, glisser avec la souris pour tourner la caméra, la molette pour l'approcher, C pour le carnet. **Sur téléphone :** un joystick en bas à gauche, un bouton A en bas à droite, glisser pour la caméra.
+- On entend ses pas, différents sur l'herbe, le sable, le bois, la pierre ou dans l'eau, le vent qui fait bouger les arbres et l'herbe, la mer, les fumerolles, les insectes la nuit et quelques oiseaux. Dans l'eau, on éclabousse et l'on ressort mouillé quelques secondes (ça dégoutte) ; Kon s'ébroue ; on laisse ses traces de pas dans le sable. Tous ces sons sont fabriqués par le jeu lui-même : rien d'enregistré, aucun droit.
+- On parle aux passants, on lit les panneaux, et on collectionne **5 tampons par lieu** dans un carnet. Le vidéaste @random_japan_place propose de regarder ta vidéo TikTok du lieu (si le lecteur de TikTok ne démarre pas, la balade réessaie, puis propose de la voir sur TikTok). À Aogashima, le campeur fait tomber la nuit sur la Voie lactée.
+- Le style : d'abord en gros pixels ; le 22 octobre tu as demandé plus lisse, à la manière de Pokémon X et Y. L'image s'adapte toute seule si l'appareil peine (un peu moins fine, toujours fluide).
+- La flèche ← en haut à gauche ramène à la carte, sur la fiche du lieu.
+- Pour la rendre publique un jour, demande à Claude de montrer le bouton à tout le monde. Pour un nouveau lieu, demande-le aussi : chaque lieu est construit à la main.
 
 ## Près de moi
 

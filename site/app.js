@@ -32,6 +32,7 @@ const estTelephone = () => (document.body.classList.contains('enregistre')
   ? document.body.classList.contains('film-vertical') : matchMedia('(max-width: 720px)').matches);
 
 const SVG = {
+  balade: '<svg viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3 4 7.5v9L12 21l8-4.5v-9Z"/><path d="M4 7.5 12 12l8-4.5M12 12v9"/></g></svg>',
   coche: '<svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" d="m5 12.5 4.5 4.5L19 7.5"/></svg>',
   lecture: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M8 5.5v13a1 1 0 0 0 1.5.9l10.5-6.5a1 1 0 0 0 0-1.8L9.5 4.6A1 1 0 0 0 8 5.5Z"/></svg>',
   tiktok: '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M16.6 3c.4 2.1 1.8 3.6 4 3.9v3.2c-1.5 0-2.9-.4-4-1.2v6.3a6 6 0 1 1-6-6h.6v3.3a2.8 2.8 0 1 0 2.2 2.7V3Z"/></svg>',
@@ -2140,15 +2141,25 @@ async function remplirFiche(l) {
 }
 
 /**
- * Les deux boutons de la fiche (deux seulement, pour tenir sur une ligne ; partager est une icône sur la photo,
- * « Plus d'infos » un lien après le texte) : la vidéo TikTok, et l'itinéraire Google Maps, ou « Y aller » quand
- * « Près de moi » connaît la position du visiteur (la route se trace sur la carte, pres.js).
+ * Les lieux qu'on peut visiter dans la balade 3D (site/balade/) : id du lieu sur la carte → id du lieu de la
+ * balade (?lieu=). À compléter quand la balade gagne un lieu.
  */
+const BALADES = { 'itsukushima-jinja': 'itsukushima', aogashima: 'aogashima' };
+
+/**
+ * Les boutons de la fiche (deux pour les visiteurs, pour tenir sur une ligne ; partager est une icône sur la photo,
+ * « Plus d'infos » un lien après le texte) : la vidéo TikTok, et l'itinéraire Google Maps, ou « Y aller » quand
+ * « Près de moi » connaît la position du visiteur (la route se trace sur la carte, pres.js) ; en mode développeur,
+ * « Visiter en 3D » pour les lieux de la balade.
+ */
+
 function remplirBoutons(l) {
   const boutons = [];
   if (l.tiktok) boutons.push(`<a class="principal" href="${echapper(l.tiktok)}" target="_blank" rel="noopener">${SVG.tiktok}${echapper(t('voirTiktok'))}</a>`);
   if (pres?.position()) boutons.push(`<button type="button" data-aller>${SVG.route}${echapper(t('yAller'))}</button>`);
   else boutons.push(`<a href="https://www.google.com/maps/dir/?api=1&destination=${l.lat},${l.lng}" target="_blank" rel="noopener">${SVG.route}${echapper(t('itineraire'))}</a>`);
+  // la balade 3D : en mode développeur seulement, tant qu'elle n'est pas publique
+  if (BALADES[l.id]) boutons.push(`<a class="dev" href="balade/?lieu=${BALADES[l.id]}&langue=${langue}">${SVG.balade}${echapper(t('visiter3d'))}</a>`);
   $('fiche-boutons').innerHTML = boutons.join('');
 }
 

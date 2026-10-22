@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#3a3236">
+  <title>Balade 3D · Random Japan Place</title>
+  <link rel="icon" href="../img/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800&display=swap">
+  <link rel="stylesheet" href="balade.css">
+</head>
+<body>
+  <canvas id="jeu"></canvas>
+
+  <header class="titre cadre">
+    <a class="retour" href="../">←</a>
+    <div><b class="titre-nom"></b><span class="titre-ja"></span></div>
+  </header>
+  <div class="boutons-haut">
+    <button class="btn-carnet cadre" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M8 12.5l2.6 2.6L16.4 9" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="square"/></svg>
+      <span class="carnet-n">0/5</span>
+    </button>
+    <button class="btn-menu cadre" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2.8"/></svg></button>
+  </div>
+
+  <div class="bulle-action" hidden><kbd>A</kbd><span></span></div>
+  <p class="aide"></p>
+
+  <div class="dialogue cadre" hidden>
+    <div class="dialogue-nom" hidden></div>
+    <p class="dialogue-texte"></p>
+    <span class="dialogue-suite" hidden>▼</span>
+  </div>
+  <div class="dialogue-choix cadre" hidden></div>
+
+  <div class="joystick" aria-hidden="true"><span></span></div>
+  <button class="bouton-a" type="button" aria-label="A">A</button>
+
+  <div class="tampon-obtenu" hidden></div>
+  <div class="fond-carnet voile" hidden>
+    <div class="carnet cadre"><button class="fermer" type="button" aria-label="×">×</button><div class="carnet-contenu"></div></div>
+  </div>
+  <div class="fond-menu voile" hidden><div class="menu cadre"></div></div>
+  <div class="fond-video voile" hidden>
+    <div class="cadre-video cadre">
+      <p class="video-titre"></p>
+      <div class="video-lecteur"></div>
+      <a class="video-lien" target="_blank" rel="noopener"></a>
+      <button class="video-fermer" type="button"></button>
+    </div>
+  </div>
+
+  <div class="chargement"><div class="cadre"><span class="sablier"></span><p></p></div></div>
+  <script type="module" src="balade.js"></script>
+</body>
+</html>

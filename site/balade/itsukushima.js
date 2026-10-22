@@ -1,0 +1,818 @@
+// ================================================================
+//  Itsukushima (Miyajima) : le sanctuaire bâti sur la mer et son grand torii, à marée basse. On arrive sur
+//  la plage à l'est ; à l'ouest, le sanctuaire sur pilotis : on y entre par la galerie de l'est, on passe
+//  devant le pavillon de prière, on va jusqu'au bout de la plate-forme (le torii juste en face), on ressort
+//  par la galerie de l'ouest, devant la scène de nō. Au sud-est, la rue des boutiques et la colline de la
+//  pagode. On peut aussi marcher sur l'estran jusqu'au torii. D'après la vidéo du propriétaire.
+//  Repère : x vers l'est, z vers le sud, y vers le haut, en mètres ; la mer est au nord, à y = 0 ; l'estran
+//  est à −0,27 (sous 27 cm d'eau). ctx : { THREE, atelier, P (palette), peinture }.
+// ================================================================
+import { creerMonde, lisse, hasard, bruitDoux } from './monde.js';
+import { panneau, trepied } from './decor.js';
+import { MATIERES as M } from './textures.js';
+
+const PLANCHER = 1.72; // les planchers du sanctuaire (au-dessus de la mer haute)
+const BORD = 0.35; // on marche à cette distance des garde-corps
+const TORII = { x: 0, z: -70, ecart: 5.6, appui: 2.7 };
+const COLLINE = { x: 46, z: 34, haut: 5 };
+
+/** Le sol naturel : la baie (l'estran) devant le sanctuaire, la plage à l'est, la terre au sud et la colline. */
+function terrain(x, z) {
+  // la rive : vers z = −6 pour la plage (à l'est), z = 15 au fond de la baie (à l'ouest)
+  const rive = 15 + (-6 - 15) * lisse(10, 20, x);
+  const d = z - rive; // > 0 : vers la terre
+  let h;
+  if (d < -6) h = -0.27 - Math.min(0.08, (-6 - d) * 0.0015);
+  else if (d < 8) h = -0.27 + ((d + 6) / 14) * 1.27;
+  else h = 1.0 + Math.min(1.2, (d - 8) * 0.03);
+  if (z < -86) h -= Math.min(3, (-86 - z) * 0.25);
+  // les rides du sable, la colline de la pagode, les collines du sud
+  h += 0.03 * Math.sin(x * 0.7 + z * 0.3) * Math.sin(z * 0.9 + x * 0.1) * (d < 8 ? 1 : 0.3);
+  const c = Math.hypot(x - COLLINE.x, z - COLLINE.z);
+  h += COLLINE.haut * lisse(17, 7, c);
+  h += 4 * lisse(40, 60, z) * (1 - lisse(30, 60, c));
+  return h;
+}
+
+// les galeries et les pavillons : [x0, x1, z0, z1] (le plancher, garde-corps compris)
+const GALERIES = {
+  est1: [8, 21, 6, 10], // de l'entrée vers l'ouest, au bord de la baie
+  est2: [8, 12, -12, 10], // puis vers le nord
+  est3: [6, 12, -12, -8], // jusqu'au pavillon de purification
+  ouest1: [-22, -6, -12, -8], // du pavillon vers l'ouest
+  ouest2: [-26, -22, -12, 12], // puis vers le sud, jusqu'à la sortie
+};
+const HARAIDEN = [-6, 6, -12, -4]; // le pavillon de purification (ouvert, on y passe)
+const HAIDEN = [-5, 5, -4, 2]; // le pavillon de prière (fermé)
+const HONDEN = [-6, 6, 2, 14]; // le pavillon principal (fermé)
+const HIRABUTAI = [-9, 9, -26, -12]; // la grande plate-forme sur la mer
+const TAKABUTAI = [-2.5, 2.5, -21, -16]; // la scène de danse, sur la plate-forme
+const HITAKISAKI = [-2.5, 2.5, -31, -26]; // la pointe, face au torii
+const NO = { x: -16, z: -23 }; // la scène de nō
+
+/** Ce que le carnet et le menu savent du lieu, sans le construire. */
+export const infos = {
+  id: 'itsukushima', carte: 'itsukushima-jinja', video: '7647214222648151318',
+  nom: { en: 'Itsukushima', fr: 'Itsukushima', ja: '厳島神社' }, nomJa: '厳島神社',
+  tampons: [
+    { id: 'torii', motif: 'torii', ja: '大鳥居', encre: '#c8372d' },
+    { id: 'sanctuaire', motif: 'sanctuaire', ja: '御本社', encre: '#b8323a', forme: 'carre' },
+    { id: 'pagode', motif: 'pagode', ja: '五重塔', encre: '#2f4a8a' },
+    { id: 'daim', motif: 'daim', ja: '神鹿', encre: '#7a4a2a', forme: 'carre' },
+    { id: 'momiji', motif: 'momiji', ja: 'もみじ饅頭', encre: '#c4561e' },
+  ],
+  get textes() { return TEXTES; },
+};
+
+export function construire(ctx) {
+  const { THREE, atelier, P, peinture } = ctx;
+  const PI = Math.PI;
+  const objets = []; // { fin, x, y, z, ry, ombre }
+  const monde = creerMonde({ terrain, cadre: [-56, 64, -80, 46] });
+  const poser = (fin, x, z, o = {}) => objets.push({ fin, x, z, y: o.y ?? monde.hauteur(x, z), ry: o.ry || 0, ombre: o.ombre !== false });
+
+  // ---------------------------------------------------------------- Le grand torii (Ō-torii), dans la mer
+  // deux piliers de camphrier, chacun tenu par deux piliers d'appui (le style ryōbu), le linteau du bas qui
+  // dépasse, la plaque, le linteau du haut aux bouts relevés
+  {
+    const a = atelier();
+    const { ecart: ex, appui: az } = TORII;
+    for (const s of [-1, 1]) {
+      a.cylindre(0.6, 0.72, 13.6, 16, P.vermillon, { x: s * ex, y: 6.3, rz: s * 0.018 })
+        .cylindre(0.8, 0.82, 1.0, 16, P.noir, { x: s * ex, y: -0.05 });
+      for (const t of [-1, 1]) {
+        a.cylindre(0.3, 0.34, 8.8, 12, P.vermillon, { x: s * ex, y: 3.9, z: t * az })
+          .cylindre(0.4, 0.42, 0.8, 12, P.noir, { x: s * ex, y: -0.1, z: t * az })
+          .boite(0.26, 0.4, az, P.vermillon, { x: s * ex, y: 3.0, z: (t * az) / 2 })
+          .boite(0.26, 0.4, az, P.vermillon, { x: s * ex, y: 7.2, z: (t * az) / 2 })
+          .boite(0.95, 0.22, 0.95, P.noir, { x: s * ex, y: 8.35, z: t * az });
+      }
+    }
+    a.boite(15.8, 0.64, 0.5, P.vermillon, { y: 10.7 })
+      .boite(0.5, 1.9, 0.42, P.vermillon, { y: 12.0 })
+      .boite(1.7, 2.3, 0.2, P.or, { y: 12.0, z: 0.28 })
+      .boite(1.45, 2.05, 0.22, P.noir, { y: 12.0, z: 0.3 })
+      .piece(new THREE.BoxGeometry(20.5, 0.72, 0.85, 20, 1, 1), P.vermillon, { y: 13.25, deformer: (x, y, z) => [x, y + 0.45 * (x / 10.25) ** 2, z] })
+      .piece(new THREE.BoxGeometry(23.8, 0.9, 1.15, 24, 1, 1), P.vermillon, { y: 14.1, deformer: (x, y, z) => [x, y + 0.85 * (x / 11.9) ** 2 + 0.45 * (x / 11.9) ** 8, z] })
+      .piece(new THREE.BoxGeometry(24.4, 0.36, 1.45, 24, 1, 1), P.noir, { y: 14.7, deformer: (x, y, z) => [x, y + 0.87 * (x / 12.2) ** 2 + 0.47 * (x / 12.2) ** 8, z] });
+    poser(a.fin(0, peinture), TORII.x, TORII.z, { y: 0 });
+    for (const s of [-1, 1]) {
+      monde.cercle(TORII.x + s * TORII.ecart, TORII.z, 1.05);
+      for (const t of [-1, 1]) monde.cercle(TORII.x + s * TORII.ecart, TORII.z + t * TORII.appui, 0.6);
+    }
+  }
+
+  // ---------------------------------------------------------------- Les planchers sur pilotis
+  /** Un plancher [x0, x1, z0, z1] : planches, poutres, pilotis sombres jusqu'à l'estran. */
+  function plancher(a, [x0, x1, z0, z1], { pas = 2.4 } = {}) {
+    const lx = x1 - x0, lz = z1 - z0, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+    a.boite(lx, 0.22, lz, P.boisFonce, { x: cx, y: PLANCHER - 0.13, z: cz });
+    // les planches, en travers du plus long côté, chacune d'une teinte de bois un peu différente ; entre
+    // elles, le bois sombre des poutres fait les joints
+    const teinte = (u) => [P.bois, P.bois2, P.bois3][Math.floor(hasard(u * 3.1, x0 + z0) * 3)];
+    // (la dernière planche, plus étroite, s'arrête au bord : elle ne déborde pas sur le plancher voisin)
+    if (lx >= lz) for (let x = x0; x < x1 - 0.01; x += 0.6) { const l = Math.min(0.57, x1 - x); a.boite(l, 0.04, lz - 0.1, teinte(x), { x: x + l / 2, y: PLANCHER, z: cz, trait: false, nuance: 0.03 }); }
+    else for (let z = z0; z < z1 - 0.01; z += 0.6) { const l = Math.min(0.57, z1 - z); a.boite(lx - 0.1, 0.04, l, teinte(z), { x: cx, y: PLANCHER, z: z + l / 2, trait: false, nuance: 0.03 }); }
+    const nx = Math.max(1, Math.round(lx / pas)), nz = Math.max(1, Math.round(lz / pas));
+    for (let i = 0; i <= nx; i++) {
+      for (let j = 0; j <= nz; j++) {
+        const x = x0 + 0.2 + ((lx - 0.4) * i) / nx, z = z0 + 0.2 + ((lz - 0.4) * j) / nz;
+        const sol = terrain(x, z);
+        a.boite(0.26, PLANCHER - sol + 0.1, 0.26, P.noir, { x, y: (PLANCHER + sol) / 2 - 0.1, z });
+      }
+    }
+  }
+
+  /**
+   * Les garde-corps vermillon le long de bords : [[x0, z0, x1, z1], …], hauteur 0,8 m. Chaque côté est un
+   * peu plus haut que le précédent (quelques millimètres) : aux angles, deux lisses ne sont pas dans le même plan.
+   */
+  let lisses = 0;
+  function gardeCorps(a, bords) {
+    for (const [x0, z0, x1, z1] of bords) {
+      const l = Math.hypot(x1 - x0, z1 - z0), ry = Math.atan2(x1 - x0, z1 - z0);
+      const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, dy = (lisses++ % 4) * 0.006;
+      a.boite(0.13, 0.1, l, P.vermillon, { x: cx, y: PLANCHER + 0.78 + dy, z: cz, ry })
+        .boite(0.1, 0.08, l, P.vermillon, { x: cx, y: PLANCHER + 0.26 + dy, z: cz, ry });
+      const n = Math.max(1, Math.round(l / 0.6));
+      for (let i = 1; i < n; i++) {
+        const f = i / n;
+        a.boite(0.06, 0.52, 0.06, P.vermillon, { x: x0 + (x1 - x0) * f, y: PLANCHER + 0.52, z: z0 + (z1 - z0) * f, trait: false });
+      }
+    }
+  }
+
+  /** Les poteaux vermillon d'un pavillon ou d'une galerie, sur le plancher, tous les `pas` mètres le long des bords. */
+  function poteaux(a, [x0, x1, z0, z1], h, { pas = 2.4 } = {}) {
+    const nx = Math.max(1, Math.round((x1 - x0) / pas)), nz = Math.max(1, Math.round((z1 - z0) / pas));
+    for (let i = 0; i <= nx; i++) {
+      for (let j = 0; j <= nz; j++) {
+        if (i > 0 && i < nx && j > 0 && j < nz) continue;
+        const x = x0 + 0.2 + ((x1 - x0 - 0.4) * i) / nx, z = z0 + 0.2 + ((z1 - z0 - 0.4) * j) / nz;
+        a.boite(0.26, h, 0.26, P.vermillon, { x, y: PLANCHER + h / 2, z });
+      }
+    }
+  }
+
+  // ---- Les galeries (kairō) : plancher, poteaux, garde-corps sur les longs côtés, plafond blanc, toit à deux
+  // pentes en écorce de cyprès, lanternes de bronze pendues une travée sur deux
+  // Aux angles, deux galeries se croisent : une seule y pose son plancher et ses poteaux (sol : le plancher, s'il
+  // est plus court que la galerie), et le plafond et le toit de l'autre sont 2 cm plus haut (dy) ; dans le même
+  // plan, les deux scintillaient à l'écran.
+  function galerie([x0, x1, z0, z1], { bords = [], dy = 0, sol = [x0, x1, z0, z1] } = {}) {
+    const a = atelier();
+    const h = 2.6, selonX = x1 - x0 >= z1 - z0;
+    plancher(a, sol);
+    poteaux(a, sol, h);
+    gardeCorps(a, bords);
+    const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, L = selonX ? x1 - x0 : z1 - z0, l = selonX ? z1 - z0 : x1 - x0;
+    const ry = selonX ? 0 : PI / 2;
+    const r = dy ? 0.04 : 0; // (sa poutre un peu en retrait de celle de l'autre galerie)
+    a.boite(x1 - x0 - r, 0.24, z1 - z0 - r, P.vermillon, { x: cx, y: PLANCHER + h + 0.05 + dy, z: cz })
+      .boite(x1 - x0 - 0.3, 0.06, z1 - z0 - 0.3, P.blanc, { x: cx, y: PLANCHER + h + 0.2 + dy, z: cz, trait: false })
+      .pignon(L + 1.2, 1.1, l + 1.6, P.toit, { ry, x: cx, y: PLANCHER + h + 0.22 + dy, z: cz })
+      .boite(selonX ? L + 1.3 : 0.32, 0.24, selonX ? 0.32 : L + 1.3, P.toitBord, { x: cx, y: PLANCHER + h + 1.34 + dy, z: cz });
+    const n = Math.round(L / 2.4);
+    for (let i = 1; i < n; i += 2) {
+      const u = -L / 2 + ((i + 0.5) * L) / n;
+      const x = selonX ? cx + u : cx, z = selonX ? cz : cz + u;
+      a.cylindre(0.02, 0.02, 0.5, 4, P.noir, { x, y: PLANCHER + h - 0.35, z, trait: false })
+        .cylindre(0.2, 0.26, 0.42, 6, P.bronze, { x, y: PLANCHER + h - 0.8, z })
+        .boite(0.22, 0.22, 0.3, P.fenetre, { x, y: PLANCHER + h - 0.8, z, trait: false })
+        .cone(0.36, 0.22, 6, P.bronze, { x, y: PLANCHER + h - 0.48, z });
+    }
+    poser(a.fin(0, peinture), 0, 0, { y: 0 });
+    // pour la caméra : le toit, des poutres du plafond au faîte, débords compris
+    const [dx, dz] = selonX ? [0.6, 0.8] : [0.8, 0.6];
+    monde.toit(x0 - dx, x1 + dx, z0 - dz, z1 + dz, PLANCHER + h - 0.1, PLANCHER + h + 1.5);
+  }
+  const G = GALERIES;
+  galerie(G.est1, { bords: [[8.2, 10, 21, 10], [12, 6, 21, 6]], dy: 0.02, sol: [12, 21, 6, 10] });
+  galerie(G.est2, { bords: [[8, -8, 8, 10], [12, -12, 12, 6]] });
+  galerie(G.est3, { bords: [[9.4, -12, 12, -12], [6, -8, 8, -8]], dy: 0.02, sol: [6, 8, -12, -8] });
+  galerie(G.ouest1, { bords: [[-22, -12, -9.4, -12], [-22, -8, -6, -8]], dy: 0.02 });
+  galerie(G.ouest2, { bords: [[-26, -12, -26, 12], [-22, -8, -22, 12]] });
+
+  // les escaliers de l'entrée (à l'est, sur la plage) et de la sortie (au sud-ouest, sur la terre)
+  function escalier(x0, x1, z0, z1, axe) {
+    const a = atelier();
+    const n = 7, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+    // le haut est du côté du sanctuaire (x0 ou z0), le bas sur la terre (x1 ou z1)
+    const bas = axe === 'x' ? terrain(x1, cz) : terrain(cx, z1);
+    for (let i = 0; i < n; i++) {
+      const f = (i + 0.5) / n, h = PLANCHER + (bas - PLANCHER) * f;
+      // (les marches se recouvrent de 5 cm : leurs flancs, une sur deux 1 cm en retrait, ne sont pas dans le même plan)
+      const r = (i % 2) * 0.02;
+      if (axe === 'x') a.boite((x1 - x0) / n + 0.05, 0.18, z1 - z0 - r, P.bois, { x: x0 + f * (x1 - x0), y: h - 0.09, z: cz });
+      else a.boite(x1 - x0 - r, 0.18, (z1 - z0) / n + 0.05, P.bois, { x: cx, y: h - 0.09, z: z0 + f * (z1 - z0) });
+    }
+    poser(a.fin(0, peinture), 0, 0, { y: 0 });
+    if (axe === 'x') monde.rampe(x0, x1, z0 + BORD, z1 - BORD, 'x', PLANCHER, bas);
+    else monde.rampe(x0 + BORD, x1 - BORD, z0, z1, 'z', PLANCHER, bas);
+  }
+  escalier(21, 24, 6, 10, 'x');
+  escalier(-26, -22, 12, 15.5, 'z');
+
+  // ---- Le pavillon de purification (haraiden) : ouvert, un grand toit ; la boîte à offrandes et la cloche
+  // devant le pavillon de prière
+  {
+    const a = atelier();
+    plancher(a, HARAIDEN);
+    poteaux(a, HARAIDEN, 3.0, { pas: 3 });
+    gardeCorps(a, [[6, -8, 6, -4], [-6, -8, -6, -4]]);
+    a.boite(12.2, 0.3, 8.2, P.vermillon, { y: PLANCHER + 3.05, z: -8 })
+      .toitJapon(15, 11, 3.2, 0.3, { y: PLANCHER + 3.2, z: -8, releve: 0.6, rangs: 20, epaisseur: 0.2 })
+      .boite(7.5, 0.4, 0.5, P.toitBord, { y: PLANCHER + 6.4, z: -8 });
+    // la boîte à offrandes (saisen-bako), ses lattes, et la grosse cloche au bout de sa corde
+    a.boite(2.2, 0.75, 0.9, P.boisFonce, { y: PLANCHER + 0.37, z: -4.75 });
+    for (let x = -0.95; x <= 0.96; x += 0.19) a.boite(0.09, 0.05, 0.86, P.bois, { x, y: PLANCHER + 0.77, z: -4.75, rz: 0.5, trait: false });
+    a.boule(0.32, P.or, { y: PLANCHER + 3.0, z: -4.4 }, 1)
+      .piece(new THREE.CylinderGeometry(0.045, 0.045, 2.0, 6), '#e8452e', { y: PLANCHER + 1.85, z: -4.4, teinte: (x, y) => (Math.floor(y * 6) % 2 ? '#e8452e' : P.blanc) });
+    poser(a.fin(0, peinture), 0, 0, { y: 0 });
+    monde.mur(-1.1, -4.75, 1.1, -4.75, 0.7, PLANCHER - 0.5, PLANCHER + 3);
+    monde.toit(-7.5, 7.5, -13.5, -2.5, PLANCHER + 2.9, PLANCHER + 6.7);
+  }
+
+  // ---- Le pavillon de prière (haiden) et le pavillon principal (honden), fermés : murs blancs, poteaux
+  // vermillon, fenêtres à barreaux verts, grands toits d'écorce
+  for (const [r, h, toit] of [[HAIDEN, 3.2, [13, 8.5, 3.0]], [HONDEN, 3.8, [15.5, 14.5, 4.2]]]) {
+    const a = atelier();
+    const [x0, x1, z0, z1] = r, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, lx = x1 - x0, lz = z1 - z0;
+    plancher(a, r, { pas: 3 });
+    poteaux(a, r, h, { pas: 2.5 });
+    a.boite(lx - 0.5, h - 0.3, lz - 0.5, P.blanc, { x: cx, y: PLANCHER + h / 2 - 0.1, z: cz });
+    for (const s of [-1, 1]) {
+      for (let k = -1; k <= 1; k += 2) {
+        a.boite(1.4, 0.9, 0.08, P.herbeFonce, { x: cx + k * lx * 0.25, y: PLANCHER + h * 0.6, z: cz + s * (lz / 2 - 0.22), trait: false });
+        for (let b = -0.55; b <= 0.56; b += 0.22) a.boite(0.05, 0.94, 0.1, P.vermillon, { x: cx + k * lx * 0.25 + b, y: PLANCHER + h * 0.6, z: cz + s * (lz / 2 - 0.2), trait: false });
+      }
+    }
+    a.boite(lx + 0.3, 0.3, lz + 0.3, P.vermillon, { x: cx, y: PLANCHER + h + 0.05, z: cz })
+      .toitJapon(toit[0], toit[1], toit[2], 0.25, { x: cx, y: PLANCHER + h + 0.2, z: cz, releve: 0.6, rangs: 20, epaisseur: 0.2 })
+      .boite(toit[0] * 0.5, 0.42, 0.5, P.toitBord, { x: cx, y: PLANCHER + h + 0.2 + toit[2], z: cz });
+    poser(a.fin(0, peinture), 0, 0, { y: 0 });
+    monde.bloc(x0, x1, z0, z1, PLANCHER - 3, PLANCHER + h + 0.2);
+    monde.toit(cx - toit[0] / 2, cx + toit[0] / 2, cz - toit[1] / 2, cz + toit[1] / 2, PLANCHER + h - 0.1, PLANCHER + h + 0.7 + toit[2]);
+  }
+
+  // ---- La grande plate-forme (hirabutai), la scène de danse (takabutai), les deux pavillons des musiciens,
+  // la pointe (hitakisaki) et sa lanterne de bronze, face au torii
+  {
+    const a = atelier();
+    plancher(a, HIRABUTAI, { pas: 3 });
+    plancher(a, HITAKISAKI);
+    gardeCorps(a, [[-9, -12, -9, -26], [9, -12, 9, -26], [-9, -26, -2.5, -26], [2.5, -26, 9, -26], [-2.5, -26, -2.5, -31], [2.5, -26, 2.5, -31], [-2.5, -31, 2.5, -31]]);
+    // la scène de danse : un plancher plus haut, ses marches, sa balustrade laquée
+    const [sx0, sx1, sz0, sz1] = TAKABUTAI, hs = 0.9;
+    a.boite(sx1 - sx0, hs, sz1 - sz0, P.noir, { y: PLANCHER + hs / 2, z: (sz0 + sz1) / 2 })
+      .boite(sx1 - sx0 + 0.1, 0.06, sz1 - sz0 + 0.1, P.bois, { y: PLANCHER + hs + 0.03, z: (sz0 + sz1) / 2, trait: false });
+    for (const [x0, z0, x1, z1] of [[sx0, sz0, sx1, sz0], [sx0, sz0, sx0, sz1], [sx1, sz0, sx1, sz1]]) {
+      const l = Math.hypot(x1 - x0, z1 - z0), ry = Math.atan2(x1 - x0, z1 - z0);
+      a.boite(0.1, 0.08, l, P.vermillon, { x: (x0 + x1) / 2, y: PLANCHER + hs + 0.55, z: (z0 + z1) / 2, ry });
+      for (const f of [0, 0.5, 1]) a.boite(0.12, 0.6, 0.12, P.vermillon, { x: x0 + (x1 - x0) * f, y: PLANCHER + hs + 0.3, z: z0 + (z1 - z0) * f });
+    }
+    for (let i = 0; i < 3; i++) a.boite(1.6, 0.3 * (i + 1), 0.35, P.noir, { y: PLANCHER + 0.15 * (i + 1), z: sz1 + 0.9 - i * 0.35 });
+    // les deux pavillons des musiciens (gakubō), sur les côtés
+    for (const s of [-1, 1]) {
+      const x = s * 7.4, z = -15;
+      for (const [dx, dz] of [[-1.2, -1.6], [1.2, -1.6], [-1.2, 1.6], [1.2, 1.6]]) a.boite(0.22, 2.4, 0.22, P.vermillon, { x: x + dx, y: PLANCHER + 1.2, z: z + dz });
+      a.boite(2.8, 0.2, 3.6, P.vermillon, { x, y: PLANCHER + 2.45, z })
+        .toitJapon(4.2, 5, 1.4, 0.25, { x, y: PLANCHER + 2.5, z, releve: 0.3, rangs: 10, epaisseur: 0.12 });
+      monde.toit(x - 2.1, x + 2.1, z - 2.5, z + 2.5, PLANCHER + 2.3, PLANCHER + 4.1);
+    }
+    // la lanterne de bronze au bout de la pointe
+    a.cylindre(0.35, 0.45, 0.3, 8, P.pierre, { y: PLANCHER + 0.15, z: -30 })
+      .cylindre(0.12, 0.14, 1.5, 6, P.bronze, { y: PLANCHER + 1.0, z: -30 })
+      .cylindre(0.38, 0.32, 0.5, 6, P.bronze, { y: PLANCHER + 1.95, z: -30 })
+      .boite(0.36, 0.3, 0.44, P.fenetre, { y: PLANCHER + 1.95, z: -30, trait: false })
+      .cone(0.6, 0.45, 6, P.bronze, { y: PLANCHER + 2.4, z: -30 })
+      .boule(0.12, P.bronze, { y: PLANCHER + 2.7, z: -30 }, 1);
+    poser(a.fin(0, peinture), 0, 0, { y: 0 });
+    // ce qui arrête sur la plate-forme : la scène, ses marches, les pavillons des musiciens, la lanterne
+    for (const [x0, z0, x1, z1] of [[sx0, sz0, sx1, sz0], [sx0, sz0, sx0, sz1], [sx1, sz0, sx1, sz1], [sx0, sz1 + 1, sx1, sz1 + 1]]) monde.mur(x0, z0, x1, z1, 0.4, PLANCHER - 0.3, PLANCHER + 3);
+    monde.mur(sx0, sz0, sx0, sz1 + 1, 0.4, PLANCHER - 0.3, PLANCHER + 3);
+    monde.mur(sx1, sz0, sx1, sz1 + 1, 0.4, PLANCHER - 0.3, PLANCHER + 3);
+    for (const s of [-1, 1]) for (const [dx, dz] of [[-1.2, -1.6], [1.2, -1.6], [-1.2, 1.6], [1.2, 1.6]]) monde.cercle(s * 7.4 + dx, -15 + dz, 0.4, PLANCHER - 0.3, PLANCHER + 3);
+    monde.cercle(0, -30, 0.8, PLANCHER - 0.3, PLANCHER + 3);
+  }
+
+  // ---- La scène de nō, sur la mer à l'ouest de la plate-forme : quatre piliers, un toit à pignon, et sur le
+  // mur du fond le grand pin peint (kagami-ita) ; le pont des acteurs (hashigakari) vers la galerie
+  {
+    const a = atelier();
+    const { x, z } = NO, hn = PLANCHER + 0.2;
+    a.boite(6.2, 0.3, 6.2, P.bois, { x, y: hn - 0.15, z });
+    for (let i = 0; i < 9; i++) {
+      const px = x - 2.8 + (i % 3) * 2.8, pz = z - 2.8 + Math.floor(i / 3) * 2.8;
+      a.boite(0.26, hn - terrain(px, pz), 0.26, P.noir, { x: px, y: (hn + terrain(px, pz)) / 2 - 0.15, z: pz });
+    }
+    for (const [dx, dz] of [[-2.9, -2.9], [2.9, -2.9], [-2.9, 2.9], [2.9, 2.9]]) a.boite(0.3, 3.4, 0.3, P.bois, { x: x + dx, y: hn + 1.7, z: z + dz });
+    a.boite(6.2, 2.9, 0.15, P.bois, { x, y: hn + 1.6, z: z + 3.0 })
+      .boite(3.4, 2.0, 0.05, P.feuillage, { x, y: hn + 1.6, z: z + 2.9, trait: false })
+      .boite(0.3, 1.6, 0.06, P.tronc, { x: x + 0.3, y: hn + 1.2, z: z + 2.88, rz: 0.2, trait: false })
+      .boite(6.8, 0.3, 6.8, P.bois, { x, y: hn + 3.45, z })
+      .pignon(7.8, 2.2, 8.4, P.toit, { x, y: hn + 3.55, z })
+      .boite(8, 0.3, 0.4, P.toitBord, { x, y: hn + 5.75, z });
+    // le pont des acteurs, jusqu'à la galerie de l'ouest
+    a.boite(1.8, 0.2, 9, P.bois, { x: x - 0.5, y: hn - 0.1, z: z + 7.5 });
+    for (let i = 0; i < 4; i++) {
+      const px = x - 0.5 + (i % 2 ? 0.7 : -0.7), pz = z + 4 + Math.floor(i / 2) * 7;
+      a.boite(0.2, hn - terrain(px, pz), 0.2, P.noir, { x: px, y: (hn + terrain(px, pz)) / 2 - 0.15, z: pz });
+    }
+    a.pignon(9.4, 0.9, 2.6, P.toit, { ry: PI / 2, x: x - 0.5, y: hn + 2.3, z: z + 7.5 });
+    for (const s of [-1, 1]) for (let k = 0; k < 4; k++) a.boite(0.12, 2.3, 0.12, P.bois, { x: x - 0.5 + s * 0.85, y: hn + 1.15, z: z + 3.6 + k * 2.6 });
+    poser(a.fin(0, peinture), 0, 0, { y: 0 });
+    monde.toit(x - 3.9, x + 3.9, z - 4.2, z + 4.2, hn + 3.25, hn + 6.0);
+    monde.toit(x - 1.8, x + 0.8, z + 2.8, z + 12.2, hn + 2.2, hn + 3.3);
+    monde.bloc(x - 3.1, x + 3.1, z - 3.1, z + 3.1, -1, hn);
+  }
+
+  // ---------------------------------------------------------------- Ce qu'on peut piétiner : les planchers
+  // (un peu en retrait des garde-corps) ; les marches sont plus haut
+  {
+    const s = (x0, x1, z0, z1) => monde.surface(x0, x1, z0, z1, PLANCHER);
+    s(8 + BORD, 21, 6 + BORD, 10 - BORD); // est1 (ouverte à l'est sur l'escalier)
+    s(8 + BORD, 12 - BORD, -12 + BORD, 10 - BORD); // est2
+    s(6, 12 - BORD, -12 + BORD, -8 - BORD); // est3
+    s(6, 9.4, -12, -8 - BORD); // est3, ouverte au nord sur la plate-forme
+    s(-6, 6, -12, -8); // haraiden : l'avant, ouvert sur les galeries et la plate-forme
+    s(-6 + BORD, 6 - BORD, -8, -4); // haraiden : le fond, entre ses garde-corps
+    s(-9 + BORD, 9 - BORD, -26 + BORD, -12); // hirabutai
+    s(-2.5 + BORD, 2.5 - BORD, -31 + BORD, -26 + BORD + 0.01); // hitakisaki
+    s(-26 + BORD, -6, -12 + BORD, -8 - BORD); // ouest1
+    s(-9.4, -6, -12, -8 - BORD); // ouest1, ouverte au nord sur la plate-forme
+    s(-26 + BORD, -22 - BORD, -12 + BORD, 12); // ouest2
+    // les pavillons fermés et la scène de nō : pleins (on n'y entre pas, on ne passe pas dessous)
+    for (const [x0, x1, z0, z1] of [HAIDEN, HONDEN, [NO.x - 3.1, NO.x + 3.1, NO.z - 3.1, NO.z + 3.1], [NO.x - 1.4, NO.x + 0.4, NO.z + 3, NO.z + 12]]) monde.surface(x0, x1, z0, z1, PLANCHER + 3, { plein: true });
+    // la façade nord du pavillon de prière, pour qui marche dans le pavillon de purification
+    monde.mur(-5, -4, 5, -4, 0.3, PLANCHER - 0.3, PLANCHER + 3);
+  }
+
+  // ---------------------------------------------------------------- La plage, la terre, la colline
+  // les lanternes de pierre de la rive, les pins
+  for (const [x, z] of [[17, 2.6], [25, 3], [33, 3.2], [41, 3], [49, 2.8], [-34, 19], [-20, 19], [-6, 19], [8, 19.5], [22, 16]]) {
+    poser(atelier().lanterne(0, 0, 8.2).fin(0, peinture), x, z);
+    monde.cercle(x, z, 0.55);
+  }
+  for (const [x, z, s, sens] of [[16, 3, 17, -1], [30, 5, 18, 1], [44, 4.5, 17, -1], [61, 2, 19, 1], [-40, 20, 19, 1], [-28, 24, 17, -1], [-14, 23, 18, 1], [4, 24, 16, -1], [24, 22, 19, 1], [-48, 14, 18, -1]]) {
+    poser(atelier().pinJapon(0, 0, s, sens).fin(0, peinture), x, z);
+    monde.cercle(x + 0.05 * s * sens, z, 0.5);
+  }
+  // des érables (momiji) au sud, encore verts, quelques-uns qui rougissent
+  for (const [x, z, h, rouge] of [[-34, 33, 6, false], [-22, 34, 5.5, true], [-8, 33, 6.2, false], [10, 32, 5.8, true], [28, 31, 6, false], [-44, 30, 5.6, true]]) {
+    const a = atelier();
+    if (rouge) a.erable(0, 0, h); else a.arbre(0, 0, h, [P.feuillage, P.herbe, '#a8c45a']);
+    poser(a.fin(0, peinture), x, z);
+    monde.cercle(x, z, 0.5);
+  }
+
+  // la laisse de mer (des algues), des galets sur la plage et sur l'estran
+  {
+    const a = atelier();
+    for (let x = 16; x < 62; x += 1.6) {
+      if (hasard(x, 7) < 0.35) continue;
+      const z = -8.6 + Math.sin(x * 0.35) * 0.5 + (hasard(x, 3) - 0.5) * 0.6;
+      a.ruban([[x, terrain(x, z) + 0.02, z], [x + 0.8, terrain(x + 0.8, z + 0.2) + 0.02, z + 0.2], [x + 1.4, terrain(x + 1.4, z - 0.1) + 0.02, z - 0.1]], 0.1, P.algue);
+    }
+    for (let i = 0; i < 90; i++) {
+      const x = 15 + hasard(i, 1) * 46, z = -11 + hasard(i, 2) * 14;
+      a.rocher(x, terrain(x, z) + 0.03, z, 0.07 + hasard(i, 3) * 0.15, P.pierreFonce);
+    }
+    for (let i = 0; i < 40; i++) {
+      const x = -50 + hasard(i, 11) * 30, z = -40 + hasard(i, 12) * 30;
+      if (Math.abs(x - NO.x) < 5 && Math.abs(z - NO.z) < 9) continue;
+      a.rocher(x, terrain(x, z) + 0.02, z, 0.08 + hasard(i, 13) * 0.12, P.pierreFonce);
+    }
+    poser(a.fin(0, peinture), 0, 0, { y: 0, ombre: false });
+  }
+
+  // les hautes herbes, sur la terre au sud-ouest (on dit qu'il en sort parfois un daim sauvage…)
+  const HERBES = [-30, -10, 24, 29]; // [x0, x1, z0, z1]
+  {
+    const a = atelier();
+    const [x0, x1, z0, z1] = HERBES;
+    for (let x = x0; x < x1; x += 0.5) {
+      for (let z = z0; z < z1; z += 0.5) {
+        const px = x + (hasard(x, z) - 0.5) * 0.4, pz = z + (hasard(z, x) - 0.5) * 0.4, y = terrain(px, pz);
+        for (let k = 0; k < 3; k++) {
+          const h = 0.5 + hasard(px + k, pz) * 0.3;
+          a.cone(0.07, h, 3, k % 2 ? P.herbeFonce : P.herbe, { x: px + (k - 1) * 0.12, y: y + h / 2 - 0.03, z: pz + (hasard(k, px) - 0.5) * 0.15, rx: (hasard(pz, k) - 0.5) * 0.4, rz: (k - 1) * 0.25 });
+        }
+      }
+    }
+    poser(a.fin(0, peinture), 0, 0, { y: 0, ombre: false });
+  }
+
+  // la rue des boutiques (à l'est) et ses maisons de bois : murs blancs, étage sombre, avant-toit, noren
+  // (rideau fendu à l'entrée), enseigne. Construites face au nord (−z), puis tournées.
+  function boutique({ noren, enseigne, auvent = null, etalage = null }) {
+    const a = atelier();
+    a.boite(6, 3, 5, P.blanc, { y: 1.5, z: 0.6 })
+      .boite(6.2, 0.25, 5.2, P.boisFonce, { y: 3.05, z: 0.6 })
+      .boite(6, 2.2, 4.4, P.boisFonce, { y: 4.3, z: 0.8 })
+      .toitJapon(7.2, 6.4, 1.6, 0.3, { y: 5.35, z: 0.8, releve: 0.25, rangs: 12, epaisseur: 0.14, tuile: P.toitBord, tuile2: '#6a5e58' })
+      .boite(0.25, 2.6, 0.25, P.boisFonce, { x: -2.9, y: 1.3, z: -1.9 })
+      .boite(0.25, 2.6, 0.25, P.boisFonce, { x: 2.9, y: 1.3, z: -1.9 })
+      .boite(5.4, 2.4, 0.1, P.fenetre, { y: 1.3, z: -1.88, trait: false }) // 3 cm devant le mur (dans son plan, les deux scintillaient)
+      .pignon(6.6, 0.5, 1.6, P.toit, { y: 2.85, z: -2.6 });
+    for (let i = 0; i < 4; i++) a.boite(1.05, 0.9, 0.04, noren, { x: -1.6 + i * 1.07, y: 2.2, z: -2.15 });
+    a.boite(2.6, 0.75, 0.12, P.bois, { y: 3.6, z: -1.62 });
+    for (let i = 0; i < 3; i++) a.boite(0.4, 0.42, 0.03, enseigne, { x: -0.8 + i * 0.8, y: 3.6, z: -1.7, trait: false });
+    etalage?.(a);
+    auvent?.(a);
+    return a;
+  }
+  {
+    const mo = boutique({
+      noren: '#2f4a7a', enseigne: P.noir,
+      // le comptoir et ses plateaux de gâteaux en feuille d'érable ; le banc rouge et le grand parasol des maisons de thé
+      etalage: (a) => {
+        a.boite(4.6, 0.9, 1.1, P.bois, { y: 0.45, z: -2.7 });
+        for (let i = 0; i < 12; i++) a.boite(0.22, 0.06, 0.2, '#c98a4a', { x: -1.9 + (i % 6) * 0.42, y: 0.94, z: -2.95 + Math.floor(i / 6) * 0.45, ry: i, trait: false });
+      },
+      auvent: (a) => {
+        a.boite(2.2, 0.45, 0.8, '#e8452e', { x: 4.5, y: 0.42, z: -3.2 })
+          .cylindre(0.04, 0.04, 2.6, 6, P.boisFonce, { x: 4.5, y: 1.3, z: -3.6 })
+          .cone(1.8, 0.7, 12, '#e8452e', { x: 4.5, y: 2.7, z: -3.6 });
+      },
+    });
+    // tournées d'un quart de tour vers la rue (façade à l'ouest ou à l'est)
+    const yRue = (x, z) => terrain(x, z) - 0.05;
+    poser(mo.fin(0, peinture), 59, 4, { ry: PI / 2, y: yRue(59, 4) });
+    poser(boutique({ noren: '#b8422b', enseigne: P.vermillon }).fin(0, peinture), 59, 11.5, { ry: PI / 2, y: yRue(59, 11.5) });
+    poser(boutique({ noren: '#3f6a4a', enseigne: P.noir }).fin(0, peinture), 59, 19, { ry: PI / 2, y: yRue(59, 19) });
+    poser(boutique({ noren: '#6a3a7a', enseigne: P.noir }).fin(0, peinture), 43, 11.5, { ry: -PI / 2, y: yRue(43, 11.5) });
+    monde.mur(56.25, 0.9, 56.25, 7.1, 0.55); // le comptoir de la boutique de gâteaux
+    for (const z of [11.5, 19]) monde.mur(56.65, z - 3.1, 56.65, z + 3.1, 0.5);
+    monde.mur(45.4, 8.4, 45.4, 14.6, 0.45);
+    monde.mur(55.8, -1.6, 55.8, 0.6, 0.55); // le banc rouge et son parasol
+    for (const z of [4, 11.5, 19]) monde.bloc(56.6, 63.2, z - 3.6, z + 3.6, -2, 9);
+    monde.bloc(38.8, 45.4, 7.9, 15.1, -2, 9);
+  }
+
+  // la colline de la pagode : l'escalier de pierre depuis la rue, la pagode à cinq étages
+  {
+    const a = atelier();
+    for (let i = 0; i < 18; i++) {
+      const z = 21 + i * 0.6, x = 51 - i * 0.05, y = terrain(x, z);
+      a.boite(3.2, 0.25, 0.65, i % 2 ? P.pierre : P.pierreFonce, { x, y: y - 0.05, z });
+    }
+    poser(a.fin(0, peinture), 0, 0, { y: 0 });
+  }
+  {
+    const a = atelier();
+    const k = 24;
+    a.ishigaki(0.48 * k, 0.48 * k, 0.12 * k, 0.01 * k, { y: -0.08 * k });
+    let y = 0.04 * k;
+    for (let i = 0; i < 5; i++) {
+      const l = (0.3 - i * 0.032) * k, h = (i === 0 ? 0.1 : 0.075) * k;
+      a.boite(l, h, l, P.vermillon, { y: y + h / 2 });
+      for (const [rx, rz, ry] of [[0, 1, 0], [0, -1, 0], [1, 0, PI / 2], [-1, 0, PI / 2]]) {
+        a.boite(l * 0.56, h * 0.62, 0.15, i ? P.blanc : P.boisFonce, { x: (rx * l) / 2, y: y + h / 2, z: (rz * l) / 2, ry, trait: false });
+      }
+      a.boite(l + 0.035 * k, 0.022 * k, l + 0.035 * k, P.boisFonce, { y: y + h + 0.011 * k });
+      const lt = l + 0.21 * k;
+      a.toitJapon(lt, lt, 0.055 * k, 0.55, { y: y + h + 0.02 * k, releve: 0.035 * k, rangs: 8, epaisseur: 0.018 * k });
+      y += h + 0.065 * k;
+    }
+    a.cylindre(0.009 * k, 0.011 * k, 0.26 * k, 6, P.or, { y: y + 0.17 * k });
+    for (let i = 0; i < 9; i++) a.cylindre((0.026 - i * 0.0012) * k, (0.026 - i * 0.0012) * k, 0.007 * k, 10, P.or, { y: y + (0.07 + i * 0.019) * k });
+    const yP = terrain(COLLINE.x, COLLINE.z), px = COLLINE.x, pz = COLLINE.z + 2;
+    poser(a.fin(0, peinture), px, pz, { y: yP });
+    monde.cercle(px, pz, 6.6);
+    monde.surface(px - 5.8, px + 5.8, pz - 5.8, pz + 5.8, yP + 0.96, { plein: true });
+    monde.bloc(px - 3.7, px + 3.7, pz - 3.7, pz + 3.7, yP - 2, yP + 19);
+    monde.bloc(px - 6.3, px + 6.3, pz - 6.3, pz + 6.3, yP + 3.3, yP + 19);
+  }
+  // le stand du tampon, près de la pagode, et des lanternes sur la colline
+  const TAMPON_PAGODE = { x: 41.6, z: 29.5 };
+  {
+    const a = atelier();
+    a.boite(0.12, 1.1, 0.12, P.boisFonce, { y: 0.55 })
+      .boite(0.9, 0.12, 0.6, P.bois, { y: 1.12 })
+      .boite(0.7, 0.3, 0.45, P.boisFonce, { y: 1.33 })
+      .pignon(1.2, 0.35, 0.9, P.toit, { y: 1.62 })
+      .boite(0.16, 0.12, 0.16, '#d8452e', { x: 0.28, y: 1.24, z: -0.12, trait: false })
+      .boite(0.5, 0.18, 0.04, P.papier, { y: 1.33, z: -0.24, trait: false });
+    poser(a.fin(0, peinture), TAMPON_PAGODE.x, TAMPON_PAGODE.z, { ry: PI * 0.35 });
+    monde.cercle(TAMPON_PAGODE.x, TAMPON_PAGODE.z, 0.6);
+  }
+  for (const [x, z] of [[49, 22], [53.4, 22], [38.5, 33], [40, 39]]) {
+    poser(atelier().lanterne(0, 0, 6.5).fin(0, peinture), x, z);
+    monde.cercle(x, z, 0.45);
+  }
+
+  // ---- Les panneaux de bois (à lire)
+  const PANNEAUX = {
+    bienvenue: { x: 24, z: 1.8, ry: -0.3 },
+    torii: { x: 14.6, z: -9.4, ry: -0.8 },
+    daims: { x: 45, z: -1.2, ry: 0.2 },
+    entree: { x: 25.5, z: 11.6, ry: PI / 2 - 0.2 },
+    no: { x: -16, z: -11.55, ry: PI, y: PLANCHER },
+    pagode: { x: 44.5, z: 27.6, ry: 0.5 },
+  };
+  for (const p of Object.values(PANNEAUX)) {
+    poser(panneau(atelier(), P).fin(0, peinture), p.x, p.z, { ry: p.ry, y: p.y });
+    if (!p.y) monde.cercle(p.x, p.z, 0.75);
+    else monde.mur(p.x - 0.8, p.z, p.x + 0.8, p.z, 0.25, PLANCHER - 0.3, PLANCHER + 3);
+  }
+
+  // ---- Le trépied du vidéaste (il filme le torii), sur la plage
+  const VIDEASTE = { x: 22.5, z: -4, cap: Math.atan2(TORII.x - 22.5, TORII.z + 4) };
+  {
+    const a = trepied(atelier());
+    const tx = VIDEASTE.x + Math.sin(VIDEASTE.cap) * 0.8 + Math.cos(VIDEASTE.cap) * 0.5, tz = VIDEASTE.z + Math.cos(VIDEASTE.cap) * 0.8 - Math.sin(VIDEASTE.cap) * 0.5;
+    poser(a.fin(0, peinture), tx, tz, { y: terrain(tx, tz) + 1.3, ry: VIDEASTE.cap });
+    monde.cercle(tx, tz, 0.45);
+  }
+
+  // ---------------------------------------------------------------- Le décor lointain
+  // le mont Misen au sud, la côte d'Hiroshima au nord, des nuages
+  {
+    const a = atelier();
+    for (const [x, y, z, r, sy] of [[-70, -70, 360, 210, 0.62], [130, -90, 460, 240, 0.6], [-260, -60, 420, 180, 0.55], [40, -40, 250, 120, 0.55], [240, -40, 300, 120, 0.5]]) {
+      a.piece(new THREE.IcosahedronGeometry(r, 2), P.montagne, { x, y, z, sy, nuance: 0.07, deformer: (px, py, pz) => { const f = 1 + 0.1 * Math.sin(px * 0.05) * Math.sin(pz * 0.06); return [px * f, py * f, pz * f]; } });
+    }
+    poser(a.fin(0, peinture), 0, 0, { y: 0, ombre: false });
+  }
+  {
+    const a = atelier();
+    for (const [z, base, hMax, graine] of [[-760, -8, 120, 1], [-1050, -8, 190, 2]]) {
+      const tri = [];
+      const crete = (x) => base + hMax * (0.55 + 0.25 * Math.sin(x * 0.004 + graine) + 0.2 * Math.sin(x * 0.011 + graine * 3) * Math.sin(x * 0.0027));
+      for (let x = -3000; x < 3000; x += 40) {
+        const A = [x, base - 20, z], B = [x + 40, base - 20, z], Cc = [x + 40, crete(x + 40), z], D = [x, crete(x), z];
+        tri.push(A, B, Cc, A, Cc, D);
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(tri.flat(), 3));
+      a.piece(g, P.montagneLoin, { trait: false, nuance: 0.03 });
+    }
+    poser(a.fin(0, false), 0, 0, { y: 0, ombre: false });
+  }
+  {
+    const a = atelier();
+    for (const [x, y, z, s] of [[-500, 230, -820, 46], [-120, 260, -900, 60], [260, 210, -760, 40], [620, 250, -880, 55], [-820, 200, -700, 42], [80, 300, 600, 50], [-420, 260, 700, 46]]) {
+      for (const [dx, dy, dz, r] of [[0, 0, 0, 1], [1.2, -0.25, 0.1, 0.75], [-1.1, -0.3, 0, 0.7], [0.5, 0.45, 0, 0.6], [-0.4, 0.3, 0.2, 0.55]]) {
+        a.boule(r * s, P.nuage, { x: x + dx * s, y: y + dy * s, z: z + dz * s, sy: 0.7 }, 1);
+      }
+    }
+    poser(a.fin(0, false), 0, 0, { y: 0, ombre: false });
+  }
+
+  // ---------------------------------------------------------------- Les gens, les daims
+  const PEAU = P.peau, NOIR = '#2a2420';
+  const passants = [
+    { id: 'pretre', x: -2.6, z: -6.4, cap: PI, tenue: { taille: 1.12, peau: PEAU, cheveux: NOIR, coiffure: 'court', chapeau: { sorte: 'eboshi', c: '#2a2630' }, haut: P.blanc, col: P.blanc, manches: 'kimono', bas: { sorte: 'hakama', c: '#8fb4d8', c2: '#7fa2c8' }, chaussures: '#2a2630', semelle: '#2a2630' } },
+    { id: 'miko', x: -7.4, z: -18, cap: PI / 2, tenue: { taille: 1.05, peau: PEAU, cheveux: NOIR, coiffure: 'queue', haut: P.blanc, col: '#e8452e', manches: 'kimono', bas: { sorte: 'hakama', c: '#e0453a', c2: '#c93a30' }, chaussures: P.blanc, semelle: '#c9a65a' } },
+    { id: 'videaste', x: VIDEASTE.x, z: VIDEASTE.z, cap: VIDEASTE.cap, tenue: { taille: 1.1, peau: PEAU, cheveux: '#3a2a20', coiffure: 'court', chapeau: { sorte: 'bob', c: '#2f3440' }, haut: '#2f3440', manches: 'courtes', bas: { sorte: 'pantalon', c: '#c9b48a' }, chaussures: P.blanc, semelle: '#3a3236', appareil: true } },
+    { id: 'enfant', x: 34, z: -1, cap: 0, ronde: [[31, -1.5], [37, 0.5], [34, 3.2], [30, 1.5]], vitesse: 1.6, attente: [0.5, 2], tenue: { taille: 0.82, peau: PEAU, cheveux: NOIR, coiffure: 'court', chapeau: { sorte: 'ecolier', c: '#f6d13a' }, haut: P.blanc, manches: 'courtes', bas: { sorte: 'jupe', c: '#3d4a6a' }, chaussures: P.blanc, semelle: '#3a3236', sac: { sorte: 'randoseru', c: '#c8372d' } } },
+    { id: 'marchande', x: 57.0, z: 4.3, cap: -PI / 2, tenue: { taille: 1.06, peau: PEAU, cheveux: NOIR, coiffure: 'chignon', chapeau: { sorte: 'foulard', c: '#f3ead8' }, haut: '#d8452e', manches: 'longues', tablier: '#f6efe0', bas: { sorte: 'pantalon', c: '#3d4a6a' }, chaussures: '#3a3236', semelle: '#3a3236', yeux: 'plisses' } },
+    { id: 'touriste', x: 44, z: -1, cap: PI / 2, ronde: [[44, -1], [51, 6], [36, 0.5], [20, -0.5]], vitesse: 1.0, attente: [3, 7], tenue: { taille: 1.1, peau: PEAU, cheveux: '#c98a4a', coiffure: 'chignon', chapeau: { sorte: 'soleil', c: '#fff0cf', c2: '#4fa3c7' }, haut: '#4fa3c7', manches: 'courtes', bas: { sorte: 'short', c: '#f3ead8' }, chaussures: P.blanc, semelle: '#4fa3c7', appareil: true } },
+    { id: 'grandpere', x: 38.5, z: 0.6, cap: Math.atan2(TORII.x - 38.5, TORII.z - 0.6), tenue: { taille: 1.04, peau: '#f5d2b0', cheveux: '#e8e4dc', coiffure: 'chauve', haut: '#7a6652', manches: 'longues', bas: { sorte: 'pantalon', c: '#5a5650' }, chaussures: '#3a3236', semelle: '#3a3236', lunettes: true, canne: true, yeux: 'plisses' } },
+  ];
+  const daims = [
+    { x: 31, z: -5.5, cap: -PI / 2 - 0.3, male: true },
+    { x: 41, z: 0.6, cap: PI / 2 + 0.4, male: false },
+    { x: 50, z: 1.2, cap: 0.6, male: false },
+    { x: -18, z: 21.5, cap: 2.2, male: false },
+    { x: 46.5, z: 25, cap: -1, male: true },
+  ];
+
+  // ---------------------------------------------------------------- Ce qu'on peut faire (tout passe par `jeu`)
+  const interactions = [
+    { id: 'pretre', passant: 'pretre', verbe: 'parler', action: (jeu) => jeu.dire(jeu.tx(jeu.aTampon('sanctuaire') ? 'pretre2' : 'pretre'), 'pretre') },
+    {
+      id: 'miko', passant: 'miko', verbe: 'parler',
+      async action(jeu) {
+        const r = await jeu.choisir(jeu.tx('miko'), [jeu.t('oui'), jeu.t('non')], 'miko');
+        if (r !== 0) { await jeu.dire(jeu.tx('mikoNon'), 'miko'); return; }
+        const sorts = jeu.tx('omikuji');
+        await jeu.dire(sorts[Math.floor(Math.random() * sorts.length)], 'miko');
+      },
+    },
+    {
+      id: 'videaste', passant: 'videaste', verbe: 'parler',
+      async action(jeu) {
+        const r = await jeu.choisir(jeu.tx('videaste'), [jeu.t('oui'), jeu.t('non')], 'videaste');
+        if (r !== 0) { await jeu.dire(jeu.tx('videasteNon'), 'videaste'); return; }
+        await jeu.video();
+        await jeu.dire(jeu.tx('videasteApres'), 'videaste');
+      },
+    },
+    { id: 'enfant', passant: 'enfant', verbe: 'parler', action: (jeu) => jeu.dire(jeu.tx('enfant'), 'enfant') },
+    {
+      id: 'marchande', passant: 'marchande', verbe: 'parler',
+      async action(jeu) {
+        if (jeu.aTampon('momiji')) { await jeu.dire(jeu.tx('marchande2'), 'marchande'); return; }
+        const r = await jeu.choisir(jeu.tx('marchande'), [jeu.t('oui'), jeu.t('non')], 'marchande');
+        if (r !== 0) { await jeu.dire(jeu.tx('marchandeNon'), 'marchande'); return; }
+        await jeu.dire(jeu.tx('marchandeOui'));
+        await jeu.tampon('momiji');
+      },
+    },
+    { id: 'touriste', passant: 'touriste', verbe: 'parler', action: (jeu) => jeu.dire(jeu.tx('touriste'), 'touriste') },
+    { id: 'grandpere', passant: 'grandpere', verbe: 'parler', action: (jeu) => jeu.dire(jeu.tx('grandpere'), 'grandpere') },
+    {
+      id: 'offrande', x: 0, z: -5.6, y: PLANCHER, rayon: 1.6, verbe: 'prier',
+      async action(jeu) {
+        if (jeu.aTampon('sanctuaire')) { await jeu.dire(jeu.tx('offrande2')); return; }
+        jeu.saluer();
+        await jeu.dire(jeu.tx('offrande'));
+        await jeu.tampon('sanctuaire');
+      },
+    },
+    ...[-1, 1].map((s) => ({
+      id: `torii${s}`, x: TORII.x + s * TORII.ecart, z: TORII.z, rayon: 2.2, verbe: 'toucher',
+      async action(jeu) {
+        if (jeu.aTampon('torii')) { await jeu.dire(jeu.tx('torii2')); return; }
+        await jeu.dire(jeu.tx('toriiPilier'));
+        await jeu.tampon('torii');
+      },
+    })),
+    {
+      id: 'tamponPagode', x: TAMPON_PAGODE.x, z: TAMPON_PAGODE.z, rayon: 1.6, verbe: 'tamponner',
+      async action(jeu) {
+        if (jeu.aTampon('pagode')) { await jeu.dire([jeu.t('dejaTampon')]); return; }
+        await jeu.dire(jeu.tx('standTampon'));
+        await jeu.tampon('pagode');
+      },
+    },
+    ...Object.entries(PANNEAUX).map(([id, p]) => ({ id: `panneau-${id}`, x: p.x, z: p.z, y: p.y, rayon: 1.8, verbe: 'lire', action: (jeu) => jeu.dire(jeu.tx(`panneau-${id}`)) })),
+  ];
+  // les daims : on peut les caresser (le premier donne le tampon)
+  const actionDaim = async (jeu) => {
+    if (jeu.aTampon('daim')) { await jeu.dire(jeu.tx('daim2')); return; }
+    await jeu.dire(jeu.tx('daim'));
+    await jeu.tampon('daim');
+  };
+
+  return {
+    ...infos, textes: TEXTES,
+    objets, monde, terrain, passants, daims, interactions, actionDaim,
+    herbes: HERBES,
+    aspectSol: (x, z, h) => aspectSol(P, x, z, h),
+    rive: -9, // les lignes d'eau suivent la rive de la plage (z)
+    etendue: { x0: -320, x1: 320, z0: -320, z1: 140, pas: 4, fin: { x0: -70, x1: 75, z0: -100, z1: 60, pas: 1 } },
+    eau: { x0: -600, x1: 600, z0: -1400, z1: 30 },
+    // la brise de mer, qui pousse vers la terre (le sud) ; le milan noir tourne au-dessus de la baie, la
+    // bouscarle chante dans les arbres de la colline
+    vent: { dir: [0.3, 0.95], force: 0.85 }, oiseaux: ['milan', 'uguisu'], ambiances: ['vagues'],
+    soleil: [-0.42, 0.72, 0.55], // d'où vient la lumière (l'après-midi, du sud-ouest)
+    depart: { x: 28, z: -2.5, cap: Math.atan2(TORII.x - 28, TORII.z + 2.5) },
+    // les images fixes des captures : de dos vers le torii, ou de face, le torii derrière
+    photos: {
+      heros: { x: 27.4, z: -2.6, cap: Math.atan2(TORII.x - 27.4, TORII.z + 2.6), lacet: Math.atan2(TORII.x - 27.4, TORII.z + 2.6) + PI + 0.1, tangage: 0.13, distance: 5.6 },
+      perso: { x: 26.6, z: -2.4, cap: Math.atan2(TORII.x - 26.6, TORII.z + 2.4) + PI, lacet: Math.atan2(TORII.x - 26.6, TORII.z + 2.4) + PI + 0.05, tangage: 0.1, distance: 3.9 },
+    },
+  };
+}
+
+/** La couleur et la matière (textures.js) du sol naturel : estran, sable, herbe, la rue pavée et le chemin de la colline. */
+function aspectSol(P, x, z, h) {
+  if (x > 45.5 && x < 56.5 && z > -1 && z < 23) return [P.chemin, M.dalles];
+  if (Math.hypot(x - 51, z - 26) < 2.2 || Math.hypot(x - 46, z - 31) < 7.5) return [P.chemin, M.dalles];
+  if (h < 0.22) return [P.sableMouille, M.estran];
+  if (h < 1.05) return [P.sable, M.sable];
+  const n = bruitDoux(x, z, 6) * 0.5 + 0.5 * Math.sin(x * 0.11) * Math.sin(z * 0.13);
+  return n > 0.25 ? [P.herbe, M.herbe] : n > 0.1 ? [P.herbeFonce, M.herbe] : [P.sable, M.sable];
+}
+
+// ---------------------------------------------------------------- Les textes du lieu
+const TEXTES = {
+  fr: {
+    noms: { pretre: 'Le prêtre', miko: 'La miko', videaste: '@random_japan_place', enfant: 'L’écolière', marchande: 'La marchande', touriste: 'La touriste', grandpere: 'Le grand-père' },
+    tampons: {
+      torii: ['Le grand torii', 'Au bout de l’estran, dans la mer'],
+      sanctuaire: ['Le sanctuaire', 'Prie devant le pavillon'],
+      pagode: ['La pagode', 'Sur la colline'],
+      daim: ['Les daims', 'Fais-toi un ami à quatre pattes'],
+      momiji: ['Momiji manjū', 'Une spécialité, en ville'],
+    },
+    'panneau-bienvenue': ['« Itsukushima-jinja 厳島神社 »', 'Un sanctuaire shintō bâti sur la mer au XIIᵉ siècle par Taira no Kiyomori.', 'Patrimoine mondial de l’UNESCO depuis 1996. À marée haute, il semble flotter !'],
+    'panneau-torii': ['« Le grand torii 大鳥居 »', '16,6 m de haut. Ses piliers sont des troncs entiers de camphrier.', 'Il n’est pas planté dans le sol : il tient debout grâce à son propre poids !', 'À marée basse, on peut marcher jusqu’à lui.'],
+    'panneau-daims': ['ATTENTION AUX DAIMS !', 'Ils mangent le papier : plans, billets… et carnets de tampons !', 'Il est interdit de les nourrir.'],
+    'panneau-entree': ['« Entrée du sanctuaire »', 'Les galeries vermillon relient les pavillons au-dessus de la mer : 275 m en tout.', 'Va jusqu’au bout de la grande plate-forme : le torii est juste en face.'],
+    'panneau-no': ['« La scène de nō 能舞台 »', 'La seule scène de nō du Japon bâtie sur la mer.', 'Chaque printemps, on y joue encore du nō pour les dieux.'],
+    'panneau-pagode': ['« La pagode à cinq étages 五重塔 »', 'Bâtie en 1407, haute de 27,6 m.', 'Elle mêle l’architecture japonaise et celle de la Chine.'],
+    pretre: ['Bienvenue au sanctuaire d’Itsukushima.', 'Ici, on prie ainsi : deux saluts, deux claps, puis encore un salut.', 'La boîte à offrandes est juste là, devant le pavillon.'],
+    pretre2: ['Les divinités d’ici sont trois princesses de la mer.', 'Elles protègent les marins… et les voyageurs comme toi !'],
+    offrande: ['Tu lances une pièce de 5 yens dans la boîte.', '(5 yens se dit « go-en », comme « un lien heureux ».)', 'Deux saluts… deux claps… un salut.'],
+    offrande2: ['Tu pries encore un peu. Tu te sens en paix.'],
+    miko: ['Bonjour ! Tu veux tirer un omikuji ?', 'Ce petit papier te dit ta chance !'],
+    mikoNon: ['Pas de souci, reviens quand tu veux !'],
+    omikuji: [
+      ['大吉 Grande chance !', 'Tout ce que tu entreprends réussira. Même trouver tous les tampons !'],
+      ['吉 Chance !', 'Une belle rencontre t’attend au bout de la galerie.'],
+      ['中吉 Chance moyenne.', 'Un daim te suivra partout aujourd’hui. Surveille ton carnet !'],
+      ['小吉 Petite chance.', 'Ce que tu cherches est plus haut que tu ne crois. Regarde la colline !'],
+      ['末吉 Chance à venir.', 'Patience : la marée finit toujours par remonter.'],
+      ['凶 Malchance…', 'Pas de panique ! Noue ce papier au fil, et ta malchance restera ici.'],
+    ],
+    videaste: ['Salut ! Je filme les plus beaux lieux du Japon pour TikTok.', 'Mon compte, c’est @random_japan_place.', 'J’ai fait une vidéo d’Itsukushima. Tu veux la voir ?'],
+    videasteNon: ['D’accord ! Elle est aussi sur la carte, avec tous les autres lieux.'],
+    videasteApres: ['Ça t’a plu ? Abonne-toi pour voir les prochains lieux !'],
+    enfant: ['Un daim a mangé mon plan de l’île !', 'Maintenant, je ne sais plus où est la pagode…', 'Elle est sur la colline, derrière les boutiques, je crois ?'],
+    marchande: ['Momiji manjū toutes chaudes ! En forme de feuille d’érable !', 'C’est la spécialité de Miyajima. Tu en veux une ?'],
+    marchandeOui: ['Tu croques dedans… C’est fourré à la pâte de haricot rouge. Délicieux !'],
+    marchandeNon: ['Dommage ! Elles sont meilleures toutes chaudes.'],
+    marchande2: ['Reviens quand tu veux, il y en a aussi à la crème !'],
+    touriste: ['À marée haute, le torii a les pieds dans l’eau.', 'Mais aujourd’hui, c’est marée basse : on peut aller le toucher !'],
+    grandpere: ['Je viens ici depuis soixante-dix ans.', 'Autrefois, toute l’île était sacrée : on n’y posait pas le pied.', 'Les gens venaient prier en barque, en passant sous le grand torii !'],
+    toriiPilier: ['Tu poses la main sur le pilier de camphrier.', 'Il est énorme : presque 10 m de tour !'],
+    torii2: ['Le bois est tiède, chauffé par le soleil.'],
+    standTampon: ['Un tampon pour les visiteurs, et son encre rouge.', 'Tu le presses dans ton carnet…'],
+    daim: ['Le daim te regarde avec ses grands yeux noirs.', 'Il renifle ton carnet… et le lèche un peu.', 'Tu t’es fait un ami : un daim de Miyajima !'],
+    daim2: ['Le daim mâchouille tranquillement.'],
+  },
+  en: {
+    noms: { pretre: 'Priest', miko: 'Shrine maiden', videaste: '@random_japan_place', enfant: 'Schoolgirl', marchande: 'Shopkeeper', touriste: 'Tourist', grandpere: 'Old man' },
+    tampons: {
+      torii: ['The Great Torii', 'Out on the tidal flat, in the sea'],
+      sanctuaire: ['The shrine', 'Pray in front of the hall'],
+      pagode: ['The pagoda', 'On the hill'],
+      daim: ['The deer', 'Make a four-legged friend'],
+      momiji: ['Momiji manjū', 'A local treat, in town'],
+    },
+    'panneau-bienvenue': ['“Itsukushima-jinja 厳島神社”', 'A Shinto shrine built over the sea in the 12th century by Taira no Kiyomori.', 'UNESCO World Heritage since 1996. At high tide, it seems to float!'],
+    'panneau-torii': ['“The Great Torii 大鳥居”', '16.6 m tall. Its pillars are whole camphor trunks.', 'It is not buried in the ground: it stands up by its own weight!', 'At low tide, you can walk all the way to it.'],
+    'panneau-daims': ['BEWARE OF THE DEER!', 'They eat paper: maps, tickets… and stamp books!', 'Feeding them is not allowed.'],
+    'panneau-entree': ['“Shrine entrance”', 'The vermilion corridors link the halls above the sea: 275 m in all.', 'Walk to the end of the big platform: the torii stands right in front.'],
+    'panneau-no': ['“The Noh stage 能舞台”', 'The only Noh stage in Japan built over the sea.', 'Every spring, Noh is still performed here for the gods.'],
+    'panneau-pagode': ['“The five-storey pagoda 五重塔”', 'Built in 1407, it is 27.6 m tall.', 'It blends Japanese and Chinese architecture.'],
+    pretre: ['Welcome to Itsukushima Shrine.', 'Here we pray like this: bow twice, clap twice, then bow once more.', 'The offering box is right there, in front of the hall.'],
+    pretre2: ['The deities here are three princesses of the sea.', 'They protect sailors… and travellers like you!'],
+    offrande: ['You toss a 5-yen coin into the box.', '(5 yen is “go-en”, which also sounds like “a happy bond”.)', 'Two bows… two claps… one bow.'],
+    offrande2: ['You pray a little more. You feel at peace.'],
+    miko: ['Hello! Would you like to draw an omikuji?', 'This little paper tells your fortune!'],
+    mikoNon: ['No problem, come back anytime!'],
+    omikuji: [
+      ['大吉 Great blessing!', 'Everything you try will succeed. Even finding every stamp!'],
+      ['吉 Blessing!', 'A nice encounter awaits you at the end of the corridor.'],
+      ['中吉 Middle blessing.', 'A deer will follow you all day. Watch your stamp book!'],
+      ['小吉 Small blessing.', 'What you seek is higher than you think. Look at the hill!'],
+      ['末吉 Future blessing.', 'Be patient: the tide always comes back.'],
+      ['凶 Bad luck…', 'Don’t worry! Tie this paper to the rack and your bad luck stays here.'],
+    ],
+    videaste: ['Hi! I film the most beautiful places in Japan for TikTok.', 'My account is @random_japan_place.', 'I made a video of Itsukushima. Want to watch it?'],
+    videasteNon: ['Okay! It’s also on the map, with all the other places.'],
+    videasteApres: ['Did you like it? Follow me to see the next places!'],
+    enfant: ['A deer ate my map of the island!', 'Now I don’t know where the pagoda is…', 'It’s on the hill behind the shops, I think?'],
+    marchande: ['Hot momiji manjū! Shaped like maple leaves!', 'It’s the speciality of Miyajima. Would you like one?'],
+    marchandeOui: ['You take a bite… It’s filled with sweet red bean paste. Delicious!'],
+    marchandeNon: ['Too bad! They’re best when they’re hot.'],
+    marchande2: ['Come back anytime, we also have custard ones!'],
+    touriste: ['At high tide, the torii has its feet in the water.', 'But today it’s low tide: we can walk out and touch it!'],
+    grandpere: ['I’ve been coming here for seventy years.', 'Long ago, the whole island was sacred: no one set foot on it.', 'People came to pray by boat, sailing under the Great Torii!'],
+    toriiPilier: ['You put your hand on the camphor pillar.', 'It’s huge: almost 10 m around!'],
+    torii2: ['The wood is warm from the sun.'],
+    standTampon: ['A stamp for visitors, with its red ink pad.', 'You press it into your book…'],
+    daim: ['The deer looks at you with its big dark eyes.', 'It sniffs your stamp book… and gives it a little lick.', 'You made a friend: a Miyajima deer!'],
+    daim2: ['The deer chews peacefully.'],
+  },
+  ja: {
+    noms: { pretre: '神主さん', miko: '巫女さん', videaste: '@random_japan_place', enfant: '小学生', marchande: 'お店の人', touriste: '観光客', grandpere: 'おじいさん' },
+    tampons: {
+      torii: ['大鳥居', '海の中に 立っている'],
+      sanctuaire: ['御本社', '社殿の 前で おまいり'],
+      pagode: ['五重塔', '丘の 上'],
+      daim: ['神鹿', '四本足の ともだち'],
+      momiji: ['もみじ饅頭', '町の 名物'],
+    },
+    'panneau-bienvenue': ['「厳島神社」', '平安時代の 終わりに 平清盛が 海の上に 建てた 神社。', '1996年に 世界遺産に なった。しおが みちると 海に うかんで 見えるよ！'],
+    'panneau-torii': ['「大鳥居」', '高さ 16.6メートル。柱は クスノキの 大木で できている。', '地面に うめられていない。自分の 重さだけで 立っているんだ！', 'しおが ひいたら 歩いて 近くまで 行けるよ。'],
+    'panneau-daims': ['シカに ちゅうい！', '紙を 食べちゃうよ。地図、きっぷ……スタンプ帳も！', 'えさを あげては いけません。'],
+    'panneau-entree': ['「厳島神社 入口」', '朱色の 回廊が 海の上の 社殿を つないでいる。長さは 275メートル！', '平舞台の 先まで 行ってごらん。大鳥居が まっすぐ 見えるよ。'],
+    'panneau-no': ['「能舞台」', '海の上に ある 能舞台は 日本で ここだけ。', '春には 今も 神さまに 能を ほうのう している。'],
+    'panneau-pagode': ['「五重塔」', '1407年に 建てられた。高さは 27.6メートル。', '和様と 唐様が まざった つくりなんだ。'],
+    pretre: ['厳島神社へ ようこそ。', 'おまいりは 二礼 二拍手 一礼です。', 'さいせん箱は すぐ そこ、社殿の 前ですよ。'],
+    pretre2: ['ここの 神さまは 海の 三姉妹の 女神さま。', '船乗りや あなたのような 旅人を まもって くださるのです。'],
+    offrande: ['5円玉を さいせん箱に 入れた。', '「ご縁が ありますように」。', '二礼……二拍手……一礼。'],
+    offrande2: ['もう一度 手を あわせた。こころが おだやかに なった。'],
+    miko: ['こんにちは！ おみくじを ひいて いきますか？', 'あなたの 運勢が わかりますよ！'],
+    mikoNon: ['また いつでも どうぞ！'],
+    omikuji: [
+      ['大吉！', 'なにを やっても うまくいく。スタンプも ぜんぶ あつまるかも！'],
+      ['吉！', '回廊の 先で すてきな 出会いが あるでしょう。'],
+      ['中吉。', '今日は シカが ずっと ついてくる。スタンプ帳に 気をつけて！'],
+      ['小吉。', 'さがしものは 思ったより 高い ところに。丘を 見てごらん！'],
+      ['末吉。', 'あせらないで。しおは かならず みちてくる。'],
+      ['凶……', 'だいじょうぶ！ おみくじを むすべば わるい 運は ここに おいていけるよ。'],
+    ],
+    videaste: ['やあ！ 日本の すてきな 場所を TikTokで しょうかい しているんだ。', 'アカウントは @random_japan_place。', '厳島神社の 動画も あるよ。見てみる？'],
+    videasteNon: ['オッケー！ 地図にも ほかの 場所と いっしょに のっているよ。'],
+    videasteApres: ['気に入った？ フォローして 次の 場所も 見てね！'],
+    enfant: ['シカに 島の 地図を 食べられちゃった！', '五重塔って どこだっけ……', 'おみせの うしろの 丘の 上だったかな？'],
+    marchande: ['やきたての もみじまんじゅう！ もみじの 形だよ！', '宮島の 名物。ひとつ どう？'],
+    marchandeOui: ['ぱくっ。中は あんこ。おいしい！'],
+    marchandeNon: ['ざんねん！ やきたてが いちばん なのに。'],
+    marchande2: ['また きてね。カスタードも あるよ！'],
+    touriste: ['しおが みちると 鳥居の 足は 海の 中。', 'でも 今日は しおが ひいているから、さわりに 行けるよ！'],
+    grandpere: ['わしは 70年 ここに かよっておる。', 'むかしは 島 ぜんたいが 神さま そのもので、人は 足を ふみいれなかった。', 'だから 舟で 大鳥居を くぐって おまいりに きたんじゃよ。'],
+    toriiPilier: ['クスノキの 柱に 手を ふれた。', 'とても 太い。まわりは 10メートル 近くも ある！'],
+    torii2: ['柱は お日さまで あたたかい。'],
+    standTampon: ['きねんスタンプと 朱肉が おいてある。', 'スタンプ帳に ぎゅっと おした……'],
+    daim: ['シカが 大きな 黒い 目で こっちを 見ている。', 'スタンプ帳を くんくん……ぺろり。', '宮島の シカと なかよしに なった！'],
+    daim2: ['シカは のんびり もぐもぐ している。'],
+  },
+};

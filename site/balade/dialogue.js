@@ -1,0 +1,128 @@
+// ================================================================
+//  La boîte de dialogue de la balade, comme dans les jeux Pokémon : le texte s'écrit lettre par lettre en bas
+//  de l'écran, A (ou E, Espace, Entrée, un appui sur la boîte) le termine puis passe à la page suivante ;
+//  un petit menu Oui / Non quand il faut choisir. Une seule conversation à la fois.
+// ================================================================
+
+const VITESSE = 48; // lettres par seconde
+
+/**
+ * el : { boite, nom, texte, suite, choix } (éléments de la page) ; son : { bip(), choix() } ou null.
+ * Renvoie { dire(pages, o), choisir(pages, options, o), appuyer(), deplacer(sens), ouvert() }.
+ */
+export function creerDialogue(el, son = null) {
+  let ouvert = false;
+  let pages = [], page = 0, lettres = 0, total = 0, minuterie = null;
+  let fin = null; // résout la conversation
+  let options = null, choixCourant = 0, finChoix = null;
+
+  function ecrire() {
+    clearInterval(minuterie);
+    const texte = pages[page];
+    // Array.from : un caractère par lettre, même pour les kanji rares et les emojis
+    const morceaux = Array.from(texte);
+    total = morceaux.length;
+    lettres = 0;
+    el.texte.textContent = '';
+    el.suite.hidden = true;
+    minuterie = setInterval(() => {
+      lettres = Math.min(total, lettres + 1);
+      el.texte.textContent = morceaux.slice(0, lettres).join('');
+      if (lettres >= total) finirPage();
+    }, 1000 / VITESSE);
+  }
+
+  function finirPage() {
+    clearInterval(minuterie);
+    el.texte.textContent = pages[page];
+    lettres = total;
+    const derniere = page === pages.length - 1;
+    if (derniere && options) montrerChoix();
+    else el.suite.hidden = false;
+  }
+
+  function montrerChoix() {
+    el.choix.innerHTML = options.map((o, i) => `<button type="button" data-i="${i}">${o}</button>`).join('');
+    el.choix.hidden = false;
+    choixCourant = 0;
+    marquer();
+  }
+  function marquer() {
+    [...el.choix.children].forEach((b, i) => b.classList.toggle('actif', i === choixCourant));
+  }
+
+  function fermer() {
+    clearInterval(minuterie);
+    ouvert = false;
+    el.boite.hidden = true;
+    el.choix.hidden = true;
+    options = null;
+  }
+
+  function ouvrir(p, qui) {
+    pages = p.filter(Boolean);
+    page = 0;
+    ouvert = true;
+    el.nom.textContent = qui || '';
+    el.nom.hidden = !qui;
+    el.boite.hidden = false;
+    ecrire();
+  }
+
+  el.boite.addEventListener('pointerdown', (e) => { e.preventDefault(); appuyer(); });
+  el.choix.addEventListener('pointerdown', (e) => {
+    const b = e.target.closest('[data-i]');
+    if (!b) return;
+    e.preventDefault();
+    e.stopPropagation();
+    choixCourant = +b.dataset.i;
+    marquer();
+    valider();
+  });
+
+  function valider() {
+    const r = choixCourant, f = finChoix;
+    son?.choix();
+    fermer();
+    finChoix = null;
+    f?.(r);
+  }
+
+  /** A : finit la page en cours, ou passe à la suivante, ou ferme ; dans un choix : valide. */
+  function appuyer() {
+    if (!ouvert) return;
+    if (lettres < total) { finirPage(); return; }
+    if (options && page === pages.length - 1) { valider(); return; }
+    son?.bip();
+    if (page < pages.length - 1) { page++; ecrire(); return; }
+    const f = fin;
+    fermer();
+    fin = null;
+    f?.();
+  }
+
+  return {
+    ouvert: () => ouvert,
+    appuyer,
+    /** Haut / bas dans un choix (sens : -1 ou 1). */
+    deplacer(sens) {
+      if (!ouvert || !options || el.choix.hidden) return;
+      choixCourant = (choixCourant + sens + options.length) % options.length;
+      marquer();
+    },
+    /** Échap dans un choix : la dernière option (« Non »). */
+    annuler() {
+      if (!ouvert || !options || el.choix.hidden) return;
+      choixCourant = options.length - 1;
+      valider();
+    },
+    /** Dit des pages ; la promesse se résout quand on a tout lu. qui : le nom affiché (ou rien). */
+    dire(p, { qui } = {}) {
+      return new Promise((r) => { options = null; fin = r; ouvrir(p, qui); });
+    },
+    /** Dit des pages et finit par un choix ; la promesse donne l'indice de l'option choisie. */
+    choisir(p, opts, { qui } = {}) {
+      return new Promise((r) => { options = opts; finChoix = r; ouvrir(p, qui); });
+    },
+  };
+}

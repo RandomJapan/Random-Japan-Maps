@@ -10,8 +10,8 @@
 //  Fabriqués ici avec des formes simples : aucun fichier à télécharger.
 // ================================================================
 
-// Couleurs de peinture des modèles : des lavis un peu passés, ceux des vignettes des légendes
-const C = {
+// Couleurs de peinture des modèles : des lavis un peu passés, ceux des vignettes des légendes (aussi pour la balade 3D)
+export const C = {
   vermillon: '#b5452c', noir: '#2c2724', toit: '#4a4a4f', bois: '#8a5a36', boisFonce: '#5b3b25',
   platre: '#eee6d4', pierre: '#a59c8b', pierreFonce: '#7c7466', or: '#c9a13b', feuillage: '#6d8b47',
   pinVert: '#4f6d3d', herbe: '#93a865', eau: '#6aa6a0', ecume: '#e8efe6', sable: '#e0cc9e',
@@ -193,14 +193,18 @@ const hasard = (x, y, z) => { const s = Math.sin(x * 127.1 + y * 311.7 + z * 74.
 /** Un contour irrégulier pour parcelle() : rayon moyen r, bosses de ± ecart, toujours le même pour une graine. */
 const bosses = (r, ecart = 0.12, graine = 1) => (ang) => r * (1 + ecart * (Math.sin(ang * 3 + graine) * 0.6 + Math.sin(ang * 5 + graine * 2.3) * 0.4));
 
-/** Renvoie la fabrique d'« ateliers » : un atelier assemble des formes colorées en un seul objet (une seule forme à dessiner par modèle). */
-function ateliers(THREE) {
+/**
+ * Renvoie la fabrique d'« ateliers » : un atelier assemble des formes colorées en un seul objet (une seule forme à
+ * dessiner par modèle). repeindre : { couleur de C → autre couleur } (la balade 3D peint ses lieux dans plusieurs styles) ;
+ * matieres : { couleur (repeinte) → numéro de matière } (la balade 3D : l'attribut `matiere`, le bois, les tuiles…).
+ */
+export function ateliers(THREE, repeindre = null, matieres = null) {
   const couleur = new THREE.Color();
   const PI = Math.PI;
   const teintes = new Map(); // « #rrggbb » → [r, g, b], lu une seule fois
   const rvb = (c) => {
     let v = teintes.get(c);
-    if (!v) { couleur.set(c); v = [couleur.r, couleur.g, couleur.b]; teintes.set(c, v); }
+    if (!v) { couleur.set(repeindre?.[c] ?? c); v = [couleur.r, couleur.g, couleur.b]; teintes.set(c, v); }
     return v;
   };
   return function atelier() {
@@ -496,6 +500,7 @@ function ateliers(THREE) {
         const col = new Float32Array(n);
         const contour = new Float32Array(n);
         const saison = new Float32Array(n); // par sommet : sorte (SORTES), peinture (lavis × ombre du pied), hasard du triangle
+        const matiere = matieres ? new Float32Array(n / 3) : null;
         let i = 0;
         for (const m of morceaux) {
           const p = m.pos;
@@ -531,6 +536,7 @@ function ateliers(THREE) {
             const lavis = peinture ? 1 + m.nuance * (2 * hasard(cx, cy, cz) - 1) : 1;
             const sorte = SORTES[m.sorte ?? SORTE_COULEUR[teinte]] || 0;
             const tirage = hasard(cx * 3.1 + 7, cy * 5.7, cz * 2.3);
+            if (matiere) matiere.fill(matieres[repeindre?.[teinte] ?? teinte] || 0, (i + k) / 3, (i + k) / 3 + 3);
             for (let s = 0; s < 9; s += 3) {
               const y = p[k + s + 1] + decalage;
               const sol = peinture ? 0.74 + 0.26 * lisse(-0.06, 0.32, y) : 1;
@@ -549,6 +555,7 @@ function ateliers(THREE) {
         geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
         geo.setAttribute('contour', new THREE.BufferAttribute(contour, 3));
         geo.setAttribute('saison', new THREE.BufferAttribute(saison, 3));
+        if (matiere) geo.setAttribute('matiere', new THREE.BufferAttribute(matiere, 1));
         geo.translate(0, decalage, 0);
         geo.computeVertexNormals(); // chaque triangle a ses propres sommets : facettes nettes, style maquette
         geo.computeBoundingBox();
