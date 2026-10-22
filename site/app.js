@@ -1741,8 +1741,11 @@ function basculerDev(actif) {
   document.body.classList.toggle('mode-dev', actif);
   $('btn-dev').setAttribute('aria-pressed', String(actif));
   majBoutonDev();
-  if (actif) chargerOngletPlongeon();
-  else {
+  if (actif) {
+    chargerOngletPlongeon();
+    if (lieux.length) chargerVilles().then((v) => v.montrer(true)).catch(() => {});
+  } else {
+    villes?.montrer(false);
     // retour à la carte normale : rien des outils ne reste ouvert
     if (jeu?.enCours()) jeu.arreter();
     if (defi?.enCours()) defi.arreter();
@@ -1900,6 +1903,33 @@ function chargerPres() {
   return presCharge;
 }
 
+// ---------------------------------------------------------------- Grandes villes (mode développeur pour l'instant)
+// Leurs pins, leur contour et leur fiche avec le carrousel TikTok de la ville (villes.js). Chargé seulement en mode
+// développeur, quand les lieux sont là ; pour le rendre public : le charger pour tous dans demarrer.
+let villes = null; // une fois chargé : { ouvrir, quitter, ouverte, langue, montrer }
+let villesCharge = null;
+function chargerVilles() {
+  villesCharge ??= import('./villes.js').then(({ brancherVilles }) => (villes = brancherVilles(map, maplibregl, {
+    t, enLangue, langue: () => langue, reperes, lieux: () => lieux, champ, lireGPS, paddingFiche, estTelephone, SVG,
+    lireVilles: () => chargerCSV(CONFIG.tableau.villes, CONFIG.secours.villes),
+    nomPrefecture: (code) => enLangue(PREFECTURES[code]),
+    nomRegion: (code) => enLangue(regionDe(code)?.nom),
+    avant: () => {
+      if (visite.enCours()) visite.arreter();
+      arreterRotation();
+      lieuActif?.el.classList.remove('actif');
+      lieuActif = null;
+      tirageActif = false;
+      marquerDansMenu();
+    },
+    ouvrirLieu: (l) => ouvrirLieu(l),
+    fermerFiche: () => fermerFiche(),
+    envoyer: (url, titre) => envoyer({ titre, url }, { message: afficherMessage, copie: t('lienCopie') }),
+  })));
+  villesCharge.catch((e) => { console.warn('Grandes villes indisponibles', e); villesCharge = null; });
+  return villesCharge;
+}
+
 function demanderPosition() {
   return new Promise((ok, non) => {
     if (!navigator.geolocation) return non(new Error('Pas de géolocalisation'));
@@ -2035,6 +2065,7 @@ function paddingFiche() {
 function ouvrirLieu(lieu, { voler = true, hasard = false } = {}) {
   if (visite.enCours()) visite.arreter();
   arreterRotation();
+  villes?.quitter(); // la fiche passe de la ville au lieu
   lieuActif?.el.classList.remove('actif');
   lieuActif = lieu;
   tirageActif = hasard;
@@ -2064,6 +2095,7 @@ function fermerFiche() {
   if (!fiche.classList.contains('ouverte')) return;
   fiche.classList.remove('ouverte', 'agrandie');
   fiche.setAttribute('aria-hidden', 'true');
+  villes?.quitter();
   $('fiche-media').innerHTML = '';
   lieuActif?.el.classList.remove('actif');
   lieuActif = null;
@@ -2253,6 +2285,10 @@ function brancherPoignee() {
 
 function ouvrirDepuisAdresse() {
   const id = decodeURIComponent(location.hash.slice(1));
+  if (id.startsWith('ville-')) {
+    if (document.body.classList.contains('mode-dev')) chargerVilles().then((v) => v.ouvrir(id.slice(6))).catch(() => {});
+    return;
+  }
   const lieu = id && lieux.find((l) => l.id === id);
   if (lieu) {
     if (!lieu.cat.visible) { lieu.cat.visible = true; construireMenu(); appliquerFiltres(); }
@@ -2300,6 +2336,7 @@ function appliquerLangue() {
   if (!$('resultats').hidden) rechercher();
   if (lieuActif) remplirFiche(lieuActif);
   legendes?.majLangue();
+  villes?.langue();
   halloween?.then((h) => h?.majLangue());
   nomsRegions.majLangue(langue);
   compteur?.majLangue();
@@ -2531,6 +2568,7 @@ async function demarrer() {
     // Contours des préfectures (116 Ko) chargés en avance, sans gêner le démarrage : le dé s'ouvre tout de suite.
     setTimeout(() => preparerPrefectures().catch(() => {}), 3000);
     setTimeout(chargerLegendes, 1500);
+    if (document.body.classList.contains('mode-dev') && !location.hash.startsWith('#ville-')) setTimeout(() => chargerVilles().catch(() => {}), 1200);
     setTimeout(majHalloween, 1700);
     setInterval(majHalloween, 60000); // l'événement s'arrête à minuit, même la page ouverte
     if (lienVoyage) setTimeout(() => recevoirVoyage(lienVoyage), 300);

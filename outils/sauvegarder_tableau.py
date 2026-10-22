@@ -11,7 +11,8 @@ from pathlib import Path
 
 RACINE = Path(__file__).resolve().parent.parent
 CONFIG = RACINE / "site" / "config.js"
-ONGLETS = {"lieux": ("secours-lieux.csv", "Nom (EN)"), "categories": ("secours-categories.csv", "Catégorie")}
+ONGLETS = {"lieux": ("secours-lieux.csv", "Nom (EN)"), "categories": ("secours-categories.csv", "Catégorie"),
+           "villes": ("secours-villes.csv", "Ville")}
 
 
 def lien(onglet, config):

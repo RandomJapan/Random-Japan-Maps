@@ -753,6 +753,101 @@ body.plongeon .vol-grues, body.en-jeu .vol-grues { display: none; }
 .fiche-plus a:hover { color: var(--encre); }
 .fiche-plus svg { width: 15px; height: 15px; }
 
+/* ---------- Grandes villes (villes.js) ----------
+   Le pin : une ville en miniature dans un petit cadre, sans nom (choix du propriétaire : moins de texte sur la
+   carte) ; le nom n'apparaît que de près (#carte.noms-villes), au survol, ou ville ouverte. */
+.ville { width: 0; height: 0; border: 0; padding: 0; background: none; cursor: pointer; }
+.ville-dessin {
+  position: absolute; left: 0; bottom: 6px; transform: translateX(-50%);
+  width: 32px; height: 26px; display: grid; place-items: center;
+  background: var(--papier-clair); border-radius: 3px;
+  box-shadow: 0 0 0 1px var(--encre), inset 0 0 0 2px var(--papier-clair), inset 0 0 0 2.6px rgba(53, 37, 26, 0.6), 0 3px 7px rgba(40, 26, 12, 0.45);
+  transition: transform .15s;
+}
+.ville-dessin svg { width: 26px; height: 20px; }
+/* la petite pointe d'encre sous le cadre, posée sur l'hôtel de ville */
+.ville-dessin::after {
+  content: ""; position: absolute; left: 50%; top: calc(100% + 1px); transform: translateX(-50%);
+  border: 4px solid transparent; border-top: 5px solid var(--encre); border-bottom: 0;
+}
+.ville-nom {
+  position: absolute; left: 0; top: 3px; transform: translateX(-50%); white-space: nowrap; pointer-events: none;
+  font-family: var(--police-titre); font-size: 13.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--encre);
+  text-shadow: 0 0 2px var(--papier-clair), 0 0 4px var(--papier-clair), 0 0 7px rgba(246, 238, 219, 0.9);
+  opacity: 0; transition: opacity .2s;
+}
+#carte.noms-villes .ville-nom, .ville:hover .ville-nom, .ville:focus-visible .ville-nom, .ville.actif .ville-nom { opacity: 1; }
+.ville:hover .ville-dessin { transform: translateX(-50%) scale(1.12); }
+.ville:focus-visible { outline: none; }
+.ville:focus-visible .ville-dessin { box-shadow: 0 0 0 1px var(--encre), 0 0 0 4px var(--sarcelle); }
+.ville.actif .ville-dessin { box-shadow: 0 0 0 2px var(--rouge), 0 0 0 5px rgba(168, 50, 31, 0.28), inset 0 0 0 2px var(--papier-clair), 0 3px 8px rgba(40, 26, 12, 0.45); }
+#carte.loin .ville-dessin { width: 24px; height: 20px; bottom: 5px; }
+#carte.loin .ville-dessin svg { width: 19px; height: 15px; }
+body.en-jeu .ville, body.plongeon .ville, body.enregistre .ville, body.mode-film .ville { display: none; }
+
+/* Les lieux du carrousel, numérotés sur la carte */
+.point-ville { width: 0; height: 0; border: 0; padding: 0; background: none; cursor: pointer; }
+.point-ville-n {
+  position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); width: 24px; height: 24px; border-radius: 50%;
+  display: grid; place-items: center; background: var(--rouge); color: var(--papier-clair); border: 2px solid var(--papier-clair);
+  box-shadow: 0 0 0 1px var(--encre), 0 2px 6px rgba(40, 26, 12, 0.5); font: 700 12.5px/1 var(--police); transition: transform .15s;
+}
+.point-ville.actif { z-index: 3; }
+.point-ville.actif .point-ville-n { transform: translate(-50%, -50%) scale(1.25); box-shadow: 0 0 0 1px var(--encre), 0 0 0 6px rgba(168, 50, 31, 0.3), 0 3px 8px rgba(40, 26, 12, 0.5); }
+.point-ville-nom {
+  position: absolute; left: 0; bottom: 19px; transform: translateX(-50%); white-space: nowrap; pointer-events: none;
+  font-size: 12.5px; font-weight: 600; color: var(--encre); background: var(--papier-clair); padding: 4px 9px;
+  border: 1px solid var(--trait); border-radius: 2px; box-shadow: 0 2px 6px rgba(52, 36, 18, 0.3); opacity: 0; transition: opacity .15s;
+}
+.point-ville:hover .point-ville-nom, .point-ville.actif .point-ville-nom { opacity: 1; }
+.point-ville:focus-visible { outline: none; }
+.point-ville:focus-visible .point-ville-n { box-shadow: 0 0 0 1px var(--encre), 0 0 0 4px var(--sarcelle); }
+
+/* La fiche en mode « ville » : le carrousel TikTok en haut, puis la liste de ses lieux */
+.fiche.mode-ville :is(#fiche-autre, #fiche-partager, #fiche-favori, #fiche-saisons, #fiche-date, #fiche-boutons, #fiche-description, #fiche-plus) { display: none; }
+.fiche:not(.mode-ville) .fiche-ville { display: none; }
+.fiche.mode-ville .fiche-media:empty { display: none; }
+.fiche.mode-ville .fiche-corps { padding-top: 14px; }
+.fiche.mode-ville .fiche-nom { display: flex; align-items: center; gap: 14px; margin-top: 4px; }
+.sceau-ville {
+  flex: none; transform: rotate(-4deg); padding: 6px 5px; border-radius: 4px 3px 5px 3px;
+  background: var(--rouge); color: var(--papier-clair); box-shadow: inset 0 0 0 1.5px rgba(246, 238, 219, 0.85), inset 0 0 0 3px var(--rouge);
+  font-size: 17px; line-height: 1.02; letter-spacing: .04em; writing-mode: vertical-rl;
+}
+.ville-astuce { margin: 0; padding: 6px 12px 7px; background: #1c140d; color: rgba(246, 238, 219, 0.85); font-size: 12.5px; text-align: center; }
+/* plus large que haut : le lecteur TikTok remplit alors la largeur avec la photo, et la liste reste en vue */
+.fiche-media .video.carrousel { aspect-ratio: auto; height: min(46vh, 400px); max-height: none; }
+.ville-titre { margin: 16px 0 4px; padding-bottom: 5px; border-bottom: 1px solid rgba(138, 107, 69, 0.5); font-family: var(--police-titre); font-weight: 400; font-size: 16px; color: var(--encre-2); }
+.ville-liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
+.ville-liste button {
+  width: 100%; min-height: 36px; display: flex; align-items: center; gap: 10px; padding: 4px 6px; border: 0; border-radius: var(--rayon);
+  background: none; color: var(--encre); font: inherit; font-size: 14px; text-align: left; cursor: pointer;
+}
+.ville-liste button:hover { background: var(--papier-fonce); }
+.ville-liste button[aria-current="true"] { background: var(--papier-fonce); font-weight: 600; }
+.ville-n { flex: none; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; background: var(--rouge); color: var(--papier-clair); font-size: 11.5px; font-weight: 700; }
+.ville-liste [aria-current="true"] .ville-n { box-shadow: 0 0 0 3px rgba(168, 50, 31, 0.3); }
+.ville-aussi { margin: 16px 0 6px; font-size: 13px; color: var(--encre-3); }
+.ville-puces { display: flex; flex-wrap: wrap; gap: 6px; }
+.ville-puces button {
+  display: inline-flex; align-items: center; gap: 7px; min-height: 32px; padding: 4px 11px 4px 5px; border-radius: 16px;
+  border: 1px solid rgba(138, 107, 69, 0.6); background: var(--papier-clair); color: var(--encre); font: inherit; font-size: 13px; cursor: pointer;
+}
+.ville-puces button:hover { border-color: var(--encre-2); background: var(--papier-fonce); }
+.ville-puces .pastille { width: 20px; height: 20px; }
+.ville-boutons { display: flex; gap: 8px; margin: 18px 0 0; }
+.ville-boutons .principal {
+  flex: 1; min-height: 44px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: var(--rayon);
+  background: var(--rouge); color: var(--papier-clair); font-weight: 600; font-size: 14px; text-decoration: none;
+}
+.ville-boutons .principal:hover { background: var(--rouge-survol); }
+.ville-boutons svg { width: 17px; height: 17px; }
+.ville-partager { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid var(--trait); border-radius: var(--rayon); background: var(--papier-clair); color: var(--encre); cursor: pointer; }
+.ville-partager:hover { background: var(--papier-fonce); }
+@media (max-width: 720px) {
+  .fiche-media .video.carrousel { height: 34dvh; }
+}
+
 /* ---------- Chargement & message ---------- */
 /* Vagues seigaiha (le motif des mers sur les vieilles cartes japonaises), très discrètes, sur l'écran de chargement */
 .chargement {
