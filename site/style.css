@@ -785,6 +785,16 @@ body.plongeon .vol-grues, body.en-jeu .vol-grues { display: none; }
 #carte.loin .ville-dessin svg { width: 19px; height: 15px; }
 body.en-jeu .ville, body.plongeon .ville, body.enregistre .ville, body.mode-film .ville { display: none; }
 
+/* Un lieu de la carte qui est aussi dans le carrousel de la ville ouverte : son numéro sur l'épingle (pas de 2e point) */
+.repere-tete > .repere-carrousel { position: absolute; display: none; }
+.repere.carrousel .repere-coeur, .repere.carrousel .repere-etape { display: none; }
+.repere.carrousel .repere-carrousel {
+  display: grid; place-items: center; top: -7px; left: -8px; min-width: 19px; height: 19px; padding: 0 3px; border-radius: 10px;
+  background: var(--rouge); color: var(--papier-clair); box-shadow: 0 0 0 1.5px var(--papier-clair), 0 1px 3px rgba(40, 26, 12, 0.45);
+  font: 700 11px/1 var(--police);
+}
+#carte.loin .repere.carrousel .repere-carrousel { top: -13px; left: -11px; }
+
 /* Les lieux du carrousel, numérotés sur la carte */
 .point-ville { width: 0; height: 0; border: 0; padding: 0; background: none; cursor: pointer; }
 .point-ville-n {
@@ -817,6 +827,17 @@ body.en-jeu .ville, body.plongeon .ville, body.enregistre .ville, body.mode-film
 .ville-astuce { margin: 0; padding: 6px 12px 7px; background: #1c140d; color: rgba(246, 238, 219, 0.85); font-size: 12.5px; text-align: center; }
 /* plus large que haut : le lecteur TikTok remplit alors la largeur avec la photo, et la liste reste en vue */
 .fiche-media .video.carrousel { aspect-ratio: auto; height: min(46vh, 400px); max-height: none; }
+.ville-texte { margin: 12px 0 0; color: var(--encre); font-size: 14.5px; line-height: 1.65; }
+/* L'encadré d'un lieu du carrousel (la bulle des légendes, legendes.css ; sur téléphone, dans la fiche) */
+.ville-encadre { padding: 12px 16px 14px; background: var(--papier); color: var(--encre); font-size: 14px; line-height: 1.55; border-bottom: 1px solid rgba(138, 107, 69, 0.5); }
+.ville-encadre .bulle-titre, .bulle-ville .bulle-titre { display: flex; align-items: center; gap: 8px; }
+.bulle-ville .ville-n, .ville-encadre .ville-n { width: 22px; height: 22px; font: 700 11.5px/1 var(--police); }
+.bulle-video {
+  display: inline-flex; align-items: center; gap: 7px; margin-top: 10px; min-height: 36px; padding: 0 12px; border: 0; border-radius: var(--rayon);
+  background: var(--rouge); color: var(--papier-clair); font: 600 13.5px/1 var(--police); cursor: pointer;
+}
+.bulle-video:hover { background: var(--rouge-survol); }
+.bulle-video svg { width: 16px; height: 16px; }
 .ville-titre { margin: 16px 0 4px; padding-bottom: 5px; border-bottom: 1px solid rgba(138, 107, 69, 0.5); font-family: var(--police-titre); font-weight: 400; font-size: 16px; color: var(--encre-2); }
 .ville-liste { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
 .ville-liste button {

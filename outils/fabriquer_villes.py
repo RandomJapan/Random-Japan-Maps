@@ -1,4 +1,4 @@
-"""Fabrique le contour des grandes villes du Japon, dessiné sur la carte quand on clique sur une ville.
+"""Fabrique le contour des grandes villes du Japon (et des villes des carrousels TikTok du propriétaire), dessiné sur la carte quand on clique sur une ville.
 
 Les contours viennent d'OpenStreetMap (licence ODbL, déjà citée sur la carte), par l'API Overpass, comme les
 frontières des préfectures (même cache et mêmes nouveaux essais, voir fabriquer_eaux.py) :
@@ -41,6 +41,7 @@ VILLES = [
     ("nagoya", "名古屋市"), ("kanazawa", "金沢市"), ("kyoto", "京都市"), ("osaka", "大阪市"), ("kobe", "神戸市"),
     ("nara", "奈良市"), ("okayama", "岡山市"), ("hiroshima", "広島市"), ("takamatsu", "高松市"), ("matsuyama", "松山市"),
     ("fukuoka", "福岡市"), ("nagasaki", "長崎市"), ("kumamoto", "熊本市"), ("kagoshima", "鹿児島市"), ("naha", "那覇市"),
+    ("takayama", "高山市"),  # ajoutée le 2026-10-22 : le propriétaire en a fait un carrousel
 ]
 JAPON = 'area["ISO3166-1"="JP"]["admin_level"="2"]->.jp;'
 CENTRE_TOKYO = [139.7671, 35.6812]  # la gare de Tokyo

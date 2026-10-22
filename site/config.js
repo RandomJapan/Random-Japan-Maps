@@ -10,13 +10,15 @@ export const CONFIG = {
   tableau: {
     lieux: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTUzT0fUpIabpe865yMnXNPRU01WFUpoSA2ojpIIneR8K7e8pneCoWqNEXlj6wAUVWMLvgdL0WJe0Ow/pub?single=true&output=csv&gid=602979846',
     categories: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTUzT0fUpIabpe865yMnXNPRU01WFUpoSA2ojpIIneR8K7e8pneCoWqNEXlj6wAUVWMLvgdL0WJe0Ow/pub?single=true&output=csv&gid=2078332808',
-    // L'onglet « Villes » (les carrousels TikTok des grandes villes) : vide tant qu'il n'existe pas, la copie de secours sert
-    villes: '',
+    // Les grandes villes : leur description et leur carrousel TikTok, puis les lieux de chaque carrousel
+    villes: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTUzT0fUpIabpe865yMnXNPRU01WFUpoSA2ojpIIneR8K7e8pneCoWqNEXlj6wAUVWMLvgdL0WJe0Ow/pub?single=true&output=csv&gid=1022274676',
+    lieuxVilles: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTUzT0fUpIabpe865yMnXNPRU01WFUpoSA2ojpIIneR8K7e8pneCoWqNEXlj6wAUVWMLvgdL0WJe0Ow/pub?single=true&output=csv&gid=2041476488',
   },
   secours: {
     lieux: 'data/secours-lieux.csv',
     categories: 'data/secours-categories.csv',
     villes: 'data/secours-villes.csv',
+    lieuxVilles: 'data/secours-lieux-villes.csv',
   },
 
   // --- Infos générales ------------------------------------------------
@@ -122,12 +124,13 @@ export const TEXTES = {
     autreLien: 'More info',
     pageLieu: 'Page of this place',
     // Les grandes villes (villes.js)
-    ville: 'Big city',
-    villeAria: (nom) => `${nom}, big city`,
+    ville: 'City',
+    villeAria: (nom) => `${nom}, city`,
     villeLieux: (n, nom) => `${n} places to see in ${nom}`,
     villeAussi: 'Also on the map, in the city:',
     prefectureDe: (nom, code) => (code === 13 ? 'Tokyo Metropolis' : code === 1 ? nom : `${nom} Prefecture`),
     voirCarrousel: 'See the carousel on TikTok',
+    voirSaVideo: 'Watch its video',
     villeGlisser: 'Swipe the photos: the map takes you to each place',
     listeLieux: 'All places, as a list',
     copierLien: 'Copy link',
@@ -581,12 +584,13 @@ export const TEXTES = {
     autreLien: "Plus d'infos",
     pageLieu: 'La page de ce lieu',
     // Les grandes villes (villes.js)
-    ville: 'Grande ville',
-    villeAria: (nom) => `${nom}, grande ville`,
+    ville: 'Ville',
+    villeAria: (nom) => `${nom}, ville`,
     villeLieux: (n, nom) => `${n} lieux à voir à ${nom}`,
     villeAussi: 'Aussi sur la carte, dans la ville :',
     prefectureDe: (nom, code) => (code === 13 ? 'Métropole de Tokyo' : code === 1 ? 'Hokkaidō' : `Préfecture de ${nom}`),
     voirCarrousel: 'Voir le carrousel sur TikTok',
+    voirSaVideo: 'Voir sa vidéo',
     villeGlisser: 'Fais glisser les photos : la carte t’emmène à chaque lieu',
     listeLieux: 'Tous les lieux, en liste',
     copierLien: 'Copier le lien',
@@ -1039,12 +1043,13 @@ export const TEXTES = {
     autreLien: '詳細',
     pageLieu: 'このスポットのページ',
     // Les grandes villes (villes.js)
-    ville: '主要都市',
-    villeAria: (nom) => `${nom}（主要都市）`,
+    ville: '都市',
+    villeAria: (nom) => `${nom}（都市）`,
     villeLieux: (n, nom) => `${nom}のおすすめ${n}スポット`,
     villeAussi: '市内のほかのスポット：',
     prefectureDe: (nom) => nom,
     voirCarrousel: 'TikTokで写真を見る',
+    voirSaVideo: 'この場所の動画を見る',
     villeGlisser: '写真をスワイプすると、地図がその場所へ移動します',
     listeLieux: 'すべてのスポット（一覧）',
     copierLien: 'リンクをコピー',

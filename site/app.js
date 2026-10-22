@@ -936,7 +936,7 @@ function creerEpingle(lieu, rang) {
   el.type = 'button';
   el.className = 'repere';
   el.style.setProperty('--c', lieu.cat.couleur);
-  el.innerHTML = `<span class="repere-tete">${iconeHTML(lieu.cat.icone)}<span class="repere-coeur">${SVG.coeur}</span><span class="repere-nouveau"></span><span class="repere-etape"></span></span><span class="repere-nom"></span>`;
+  el.innerHTML = `<span class="repere-tete">${iconeHTML(lieu.cat.icone)}<span class="repere-coeur">${SVG.coeur}</span><span class="repere-nouveau"></span><span class="repere-etape"></span><span class="repere-carrousel"></span></span><span class="repere-nom"></span>`;
   el.classList.toggle('nouveau', lieu.nouveau);
   el.classList.toggle('favori', favoris.has(lieu.id));
   el.addEventListener('click', (e) => {
@@ -1741,11 +1741,8 @@ function basculerDev(actif) {
   document.body.classList.toggle('mode-dev', actif);
   $('btn-dev').setAttribute('aria-pressed', String(actif));
   majBoutonDev();
-  if (actif) {
-    chargerOngletPlongeon();
-    if (lieux.length) chargerVilles().then((v) => v.montrer(true)).catch(() => {});
-  } else {
-    villes?.montrer(false);
+  if (actif) chargerOngletPlongeon();
+  else {
     // retour à la carte normale : rien des outils ne reste ouvert
     if (jeu?.enCours()) jeu.arreter();
     if (defi?.enCours()) defi.arreter();
@@ -1903,15 +1900,21 @@ function chargerPres() {
   return presCharge;
 }
 
-// ---------------------------------------------------------------- Grandes villes (mode développeur pour l'instant)
-// Leurs pins, leur contour et leur fiche avec le carrousel TikTok de la ville (villes.js). Chargé seulement en mode
-// développeur, quand les lieux sont là ; pour le rendre public : le charger pour tous dans demarrer.
-let villes = null; // une fois chargé : { ouvrir, quitter, ouverte, langue, montrer }
+// ---------------------------------------------------------------- Grandes villes
+// Leurs pins, leur contour et leur fiche avec le carrousel TikTok de la ville (villes.js), chargé une fois les lieux
+// là (il en a besoin : les lieux de la carte dans la ville, ceux qui sont aussi dans le carrousel).
+let villes = null; // une fois chargé : { ouvrir, quitter, ouverte, langue }
 let villesCharge = null;
 function chargerVilles() {
   villesCharge ??= import('./villes.js').then(({ brancherVilles }) => (villes = brancherVilles(map, maplibregl, {
     t, enLangue, langue: () => langue, reperes, lieux: () => lieux, champ, lireGPS, paddingFiche, estTelephone, SVG,
-    lireVilles: () => chargerCSV(CONFIG.tableau.villes, CONFIG.secours.villes),
+    lireVilles: async () => {
+      const [villes, lieux] = await Promise.all([
+        chargerCSV(CONFIG.tableau.villes, CONFIG.secours.villes),
+        chargerCSV(CONFIG.tableau.lieuxVilles, CONFIG.secours.lieuxVilles),
+      ]);
+      return { villes, lieux };
+    },
     nomPrefecture: (code) => enLangue(PREFECTURES[code]),
     nomRegion: (code) => enLangue(regionDe(code)?.nom),
     avant: () => {
@@ -2286,7 +2289,7 @@ function brancherPoignee() {
 function ouvrirDepuisAdresse() {
   const id = decodeURIComponent(location.hash.slice(1));
   if (id.startsWith('ville-')) {
-    if (document.body.classList.contains('mode-dev')) chargerVilles().then((v) => v.ouvrir(id.slice(6))).catch(() => {});
+    chargerVilles().then((v) => v.ouvrir(id.slice(6))).catch(() => {});
     return;
   }
   const lieu = id && lieux.find((l) => l.id === id);
@@ -2568,7 +2571,7 @@ async function demarrer() {
     // Contours des préfectures (116 Ko) chargés en avance, sans gêner le démarrage : le dé s'ouvre tout de suite.
     setTimeout(() => preparerPrefectures().catch(() => {}), 3000);
     setTimeout(chargerLegendes, 1500);
-    if (document.body.classList.contains('mode-dev') && !location.hash.startsWith('#ville-')) setTimeout(() => chargerVilles().catch(() => {}), 1200);
+    if (!location.hash.startsWith('#ville-')) setTimeout(() => chargerVilles().catch(() => {}), 1200);
     setTimeout(majHalloween, 1700);
     setInterval(majHalloween, 60000); // l'événement s'arrête à minuit, même la page ouverte
     if (lienVoyage) setTimeout(() => recevoirVoyage(lienVoyage), 300);
