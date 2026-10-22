@@ -1537,6 +1537,16 @@ body.en-jeu .filtres, body.en-jeu .bandeau, body.en-jeu .aide { display: none; }
   body.en-jeu .entete, body.en-jeu .langues, body.en-jeu .musique { visibility: hidden; }
   .jeu { top: var(--haut); right: 12px; width: auto; max-height: 52dvh; padding: 10px 12px 12px; gap: 8px; }
   .jeu-image { height: 24dvh; }
+  /* pendant une manche, la carte du jeu se fait petite : la place pour se déplacer sur la carte et y toucher */
+  .jeu[data-phase="devine"]:not(.image-grande) .jeu-image { height: 16dvh; }
+  .jeu[data-phase="devine"] .jeu-texte { font-size: 13px; line-height: 1.35; }
+  .jeu[data-phase="devine"] .jeu-indice { padding: 6px; font-size: 13px; }
+  .jeu[data-phase="devine"] .jeu-tete { min-height: 26px; }
+  /* l'accueil plus haut, et « Jouer avec des amis » avant les meilleurs scores : on le voit sans faire défiler */
+  .jeu[data-phase="accueil"] { max-height: calc(100dvh - var(--haut) - var(--bas) - 150px); }
+  .jeu[data-phase="accueil"] .jeu-texte { font-size: 13.5px; line-height: 1.4; }
+  .jeu[data-phase="accueil"] .jeu-multi { order: 1; }
+  .jeu[data-phase="accueil"] .jeu-records { order: 2; }
   .jeu.image-grande .jeu-image { height: 44dvh; }
   /* à plusieurs, la révélation montre tous les joueurs : la photo se fait petite */
   .jeu[data-multi="oui"][data-phase="revele"]:not(.image-grande) .jeu-image { height: 12dvh; }
