@@ -1537,8 +1537,9 @@ body.en-jeu .filtres, body.en-jeu .bandeau, body.en-jeu .aide { display: none; }
   body.en-jeu .entete, body.en-jeu .langues, body.en-jeu .musique { visibility: hidden; }
   .jeu { top: var(--haut); right: 12px; width: auto; max-height: 52dvh; padding: 10px 12px 12px; gap: 8px; }
   .jeu-image { height: 24dvh; }
-  /* pendant une manche, la carte du jeu se fait petite : la place pour se déplacer sur la carte et y toucher */
-  .jeu[data-phase="devine"]:not(.image-grande) .jeu-image { height: 16dvh; }
+  /* pendant une manche (et sa révélation, sans saut de taille), la carte du jeu se fait petite : la place pour se
+     déplacer sur la carte, y toucher, puis voir les deux épingles */
+  .jeu:is([data-phase="devine"], [data-phase="revele"]):not(.image-grande) .jeu-image { height: 16dvh; }
   .jeu[data-phase="devine"] .jeu-texte { font-size: 13px; line-height: 1.35; }
   .jeu[data-phase="devine"] .jeu-indice { padding: 6px; font-size: 13px; }
   .jeu[data-phase="devine"] .jeu-tete { min-height: 26px; }
@@ -1550,9 +1551,10 @@ body.en-jeu .filtres, body.en-jeu .bandeau, body.en-jeu .aide { display: none; }
   .jeu.image-grande .jeu-image { height: 44dvh; }
   /* à plusieurs, la révélation montre tous les joueurs : la photo se fait petite */
   .jeu[data-multi="oui"][data-phase="revele"]:not(.image-grande) .jeu-image { height: 12dvh; }
-  /* au-dessus des sources (OpenStreetMap, Mapterhorn), qui doivent rester lisibles, et à gauche de la rose */
+  /* en bas, sous le pouce (baissé le 2026-10-22 à la demande du propriétaire) : juste au-dessus de la ligne des sources
+     (OpenStreetMap, Mapterhorn, tout en bas pendant le jeu), qui doivent rester lisibles, et à gauche de la rose */
   .jeu .jeu-action {
-    position: fixed; left: 50%; bottom: calc(var(--bas) + 86px); transform: translateX(-50%);
+    position: fixed; left: 50%; bottom: calc(var(--bas) + 30px); transform: translateX(-50%);
     width: min(300px, calc(100vw - 150px)); z-index: 9;
   }
   .bouton-jeu .texte-bouton { display: none; }
