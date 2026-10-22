@@ -5,7 +5,8 @@
 //  - pas(sol, o) : un pas, selon le sol (le joueur ; ou Kon, plus léger et plus vif) ; ebrouer(o) : Kon s'ébroue ;
 //  - ambiance(a, dt), plusieurs fois par seconde : le vent (sa force là où l'on est : la même rafale que celle
 //    qui fait bouger les arbres et l'herbe, styles.js), les feuilles s'il y a des arbres autour, la mer près
-//    du rivage, les fumerolles, les insectes la nuit ; et de temps en temps un oiseau ;
+//    du rivage, les fumerolles, les insectes la nuit ; et de temps en temps un oiseau ; oiseau(nom, o) : le cri
+//    d'un oiseau qu'on voit (les mouettes) ;
 //  - couper(oui) : le silence (pendant la vidéo TikTok).
 //  Rien ne sonne avant le premier geste, ni le son coupé (son.js).
 // ================================================================
@@ -14,15 +15,19 @@ import { SOLS, fabriquer } from './bruitage-calcul.js';
 
 const VARIANTES = 5;
 // les volumes : les pas et les oiseaux sortent de bruitage-calcul.js à une force fixe, les boucles à une
-// valeur efficace de 1 (un pas en marchant est un peu plus doux qu'un bip du dialogue ; le vent calme, à peine)
+// valeur efficace de 1 (un pas en marchant est un peu plus doux qu'un bip du dialogue ; le vent calme, à peine).
+// Le 2026-10-22, le propriétaire trouvait l'ambiance trop présente sous la musique, le vent surtout : le vent
+// −6 dB, les autres boucles −3 dB, les pas −2 dB. Mesuré : l'ambiance seule 3,5 dB (Itsukushima) à 7 dB
+// (Aogashima) sous la musique, à −29 LUFS ; en marchant, à peu près au niveau de la musique
 const V = {
-  pas: 0.18, course: 0.26, kon: 0.06, ebrouer: 0.12, oiseau: 0.05,
-  ventDoux: [0.007, 0.012], ventFort: 0.03, feuilles: [0.004, 0.024], vagues: 0.012, vapeur: 0.028, insectes: 0.008,
+  pas: 0.14, course: 0.2, kon: 0.045, ebrouer: 0.1, oiseau: 0.045, mouette: 0.05,
+  ventDoux: [0.0035, 0.006], ventFort: 0.015, feuilles: [0.003, 0.017], vagues: 0.0085, vapeur: 0.02, insectes: 0.0056,
 };
 const lisse = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
 
 /**
- * oiseaux : ceux qu'on peut entendre dans ce lieu ('milan', 'uguisu') ; ambiances : ses boucles en plus du
+ * oiseaux : ceux qu'on peut entendre dans ce lieu ('milan', 'uguisu' ; 'mouette' : seulement quand on les voit
+ * crier, oiseau()) ; ambiances : ses boucles en plus du
  * vent et des feuilles ('vagues', 'vapeur', 'insectes') : seulement celles du lieu (elles pèsent quelques
  * mégaoctets en mémoire).
  */
@@ -131,6 +136,10 @@ export function creerBruitage({ oiseaux = [], ambiances = [] } = {}) {
       const vitesse = (kon ? 1.45 : course ? 1.07 : 1) * (0.95 + Math.random() * 0.1);
       const gain = (kon ? V.kon : course ? V.course : V.pas) * force * (0.85 + Math.random() * 0.3);
       jouer(`pas/${sol}/${v}`, { gain, pan, vitesse });
+    },
+    /** Le cri d'un oiseau qu'on voit (nom : 'mouette'…), plus ou moins fort (force : sa distance), de quel côté (pan). */
+    oiseau(nom, { force = 1, pan = 0 } = {}) {
+      if (commence && son.pret()) jouer(`oiseau/${nom}`, { gain: (V[nom] ?? V.oiseau) * force, pan, vitesse: 0.92 + Math.random() * 0.18 });
     },
     /** Kon s'ébroue. */
     ebrouer({ pan = 0, force = 1 } = {}) {

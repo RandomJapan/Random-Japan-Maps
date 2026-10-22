@@ -14,10 +14,11 @@ import { MATIERES as M } from './textures.js';
 const PLANCHER = 1.72; // les planchers du sanctuaire (au-dessus de la mer haute)
 const BORD = 0.35; // on marche à cette distance des garde-corps
 const TORII = { x: 0, z: -70, ecart: 5.6, appui: 2.7 };
+const TORII_HAUT = 14.95; // le dessus du linteau du haut, à 3,6 m du milieu (un goéland s'y pose)
 const COLLINE = { x: 46, z: 34, haut: 5 };
 
 /** Le sol naturel : la baie (l'estran) devant le sanctuaire, la plage à l'est, la terre au sud et la colline. */
-function terrain(x, z) {
+function solNaturel(x, z) {
   // la rive : vers z = −6 pour la plage (à l'est), z = 15 au fond de la baie (à l'ouest)
   const rive = 15 + (-6 - 15) * lisse(10, 20, x);
   const d = z - rive; // > 0 : vers la terre
@@ -32,6 +33,27 @@ function terrain(x, z) {
   h += COLLINE.haut * lisse(17, 7, c);
   h += 4 * lisse(40, 60, z) * (1 - lisse(30, 60, c));
   return h;
+}
+
+// l'escalier de pierre de la colline : droit vers la pagode, du bout de la rue (au nord) jusqu'au plateau, ses
+// marches entre deux murets ; h0, h1 : le sol naturel à ses deux bouts. (Le premier, de biais sur le flanc
+// rond de la colline, s'y enfonçait d'un côté et flottait de l'autre : 2026-10-22.)
+const ESCALIER = { x: 46, z0: 19.5, z1: 27.6, h0: solNaturel(46, 19.5), h1: solNaturel(46, 27.6) };
+const rampe = (z) => ESCALIER.h0 + (ESCALIER.h1 - ESCALIER.h0) * Math.min(1, Math.max(0, (z - ESCALIER.z0) / (ESCALIER.z1 - ESCALIER.z0)));
+
+/**
+ * Le sol : le sol naturel, creusé pour l'escalier. Sous les marches (pleines jusque-là), il s'enfonce ; sous
+ * les murets, puis derrière eux, il ne dépasse pas leur haut, et rejoint la colline. Le maillage du sol a un
+ * point par mètre (x et z entiers) : ceux de |x − 46| ≤ 1 sont sous les marches, ceux de 2 sous les murets.
+ */
+function terrain(x, z) {
+  const h = solNaturel(x, z), E = ESCALIER, dx = Math.abs(x - E.x);
+  if (dx > 4.6 || z < E.z0 - 1 || z > E.z1 + 1) return h;
+  const dans = lisse(E.z0 - 0.2, E.z0 + 0.6, z) * lisse(E.z1 + 0.5, E.z1 + 0.1, z);
+  if (dans <= 0) return h;
+  const r = rampe(z), talus = Math.min(h, r + 0.3);
+  const v = dx <= 1.05 ? r - 0.6 : dx <= 2.1 ? talus : h + (talus - h) * (1 - lisse(2.1, 4.6, dx));
+  return h + (v - h) * dans;
 }
 
 // les galeries et les pavillons : [x0, x1, z0, z1] (le plancher, garde-corps compris)
@@ -280,20 +302,59 @@ export function construire(ctx) {
         .toitJapon(4.2, 5, 1.4, 0.25, { x, y: PLANCHER + 2.5, z, releve: 0.3, rangs: 10, epaisseur: 0.12 });
       monde.toit(x - 2.1, x + 2.1, z - 2.5, z + 2.5, PLANCHER + 2.3, PLANCHER + 4.1);
     }
-    // la lanterne de bronze au bout de la pointe
-    a.cylindre(0.35, 0.45, 0.3, 8, P.pierre, { y: PLANCHER + 0.15, z: -30 })
-      .cylindre(0.12, 0.14, 1.5, 6, P.bronze, { y: PLANCHER + 1.0, z: -30 })
-      .cylindre(0.38, 0.32, 0.5, 6, P.bronze, { y: PLANCHER + 1.95, z: -30 })
-      .boite(0.36, 0.3, 0.44, P.fenetre, { y: PLANCHER + 1.95, z: -30, trait: false })
-      .cone(0.6, 0.45, 6, P.bronze, { y: PLANCHER + 2.4, z: -30 })
-      .boule(0.12, P.bronze, { y: PLANCHER + 2.7, z: -30 }, 1);
     poser(a.fin(0, peinture), 0, 0, { y: 0 });
+    poser(lanterneBronze(atelier()).fin(0, peinture), 0, -30, { y: PLANCHER });
     // ce qui arrête sur la plate-forme : la scène, ses marches, les pavillons des musiciens, la lanterne
     for (const [x0, z0, x1, z1] of [[sx0, sz0, sx1, sz0], [sx0, sz0, sx0, sz1], [sx1, sz0, sx1, sz1], [sx0, sz1 + 1, sx1, sz1 + 1]]) monde.mur(x0, z0, x1, z1, 0.4, PLANCHER - 0.3, PLANCHER + 3);
     monde.mur(sx0, sz0, sx0, sz1 + 1, 0.4, PLANCHER - 0.3, PLANCHER + 3);
     monde.mur(sx1, sz0, sx1, sz1 + 1, 0.4, PLANCHER - 0.3, PLANCHER + 3);
     for (const s of [-1, 1]) for (const [dx, dz] of [[-1.2, -1.6], [1.2, -1.6], [-1.2, 1.6], [1.2, 1.6]]) monde.cercle(s * 7.4 + dx, -15 + dz, 0.4, PLANCHER - 0.3, PLANCHER + 3);
     monde.cercle(0, -30, 0.8, PLANCHER - 0.3, PLANCHER + 3);
+  }
+
+  /**
+   * La lanterne de bronze (tōrō) au bout de la pointe, vert-de-gris, environ 2,8 m, à six pans : le socle à
+   * deux gradins, le pilier et ses anneaux, la console, la cage à lumière (ses montants, ses fenêtres à
+   * croisillons, le papier qui s'allume la nuit), le toit creusé aux coins relevés en crosse, et le joyau.
+   */
+  function lanterneBronze(a) {
+    const B = P.bronze, S = 6, rot = PI / 6; // (un pan face au torii)
+    a.cylindre(0.4, 0.46, 0.12, S, B, { y: 0.06, ry: rot })
+      .cylindre(0.3, 0.35, 0.1, S, B, { y: 0.17, ry: rot })
+      .cylindre(0.1, 0.13, 1.06, 12, B, { y: 0.75 });
+    for (const y of [0.5, 0.95]) a.cylindre(0.128, 0.128, 0.05, 12, B, { y });
+    a.cylindre(0.31, 0.13, 0.16, S, B, { y: 1.36, ry: rot })
+      .cylindre(0.33, 0.33, 0.05, S, B, { y: 1.465, ry: rot });
+    // la cage : le papier (il s'allume la nuit), six montants, et sur chaque pan une fenêtre à croisillons
+    const hb = 1.49, hh = 1.98, rc = 0.25;
+    a.cylindre(0.215, 0.215, hh - hb - 0.024, S, P.fenetre, { y: (hb + hh) / 2, ry: rot, trait: false });
+    for (let k = 0; k < S; k++) {
+      const t = (k / S) * 2 * PI + rot, tm = t + PI / S, ap = rc * Math.cos(PI / S); // un coin ; le milieu d'un pan, et sa distance
+      a.boite(0.045, hh - hb, 0.045, B, { x: Math.sin(t) * rc, y: (hb + hh) / 2, z: Math.cos(t) * rc, ry: t });
+      const x = Math.sin(tm) * (ap - 0.03), z = Math.cos(tm) * (ap - 0.03), largeur = 2 * rc * Math.sin(PI / S) - 0.05;
+      for (const y of [hb + 0.03, hh - 0.03, (hb + hh) / 2]) a.boite(largeur, y === (hb + hh) / 2 ? 0.018 : 0.05, 0.03, B, { x, y, z, ry: tm, trait: y !== (hb + hh) / 2 });
+      // (le montant du milieu, moins épais et moins haut : ses faces ne sont pas dans le plan des barres qu'il croise)
+      a.boite(0.018, hh - hb - 0.03, 0.024, B, { x, y: (hb + hh) / 2, z, ry: tm, trait: false });
+    }
+    // le toit : un dessous plat, six pans creusés (pentus en haut, presque plats au bord), les coins en crosse
+    const R = 0.6, H = 0.4, base = hh + 0.03;
+    a.cylindre(0.56, 0.5, 0.05, S, B, { y: base, ry: rot })
+      .piece(new THREE.ConeGeometry(R, H, S, 6), B, {
+        y: base + 0.02 + H / 2, ry: rot,
+        deformer: (x, y, z) => {
+          const u = 0.5 - y / H; // 0 en haut, 1 au bord
+          return [x, H * Math.max(0, 1 - u) ** 1.9 - H / 2 + 0.05 * u ** 4, z]; // (max : 1 − u à peine négatif donnait NaN)
+        },
+      });
+    for (let k = 0; k < S; k++) {
+      const t = (k / S) * 2 * PI + rot;
+      a.baton([Math.sin(t) * R * 0.86, base + 0.05, Math.cos(t) * R * 0.86], [Math.sin(t) * R * 1.04, base + 0.13, Math.cos(t) * R * 1.04], 0.028, B, 6)
+        .boule(0.038, B, { x: Math.sin(t) * R * 1.05, y: base + 0.16, z: Math.cos(t) * R * 1.05 }, 1);
+    }
+    // le joyau (hōju) sur sa fleur de lotus
+    return a.cylindre(0.06, 0.1, 0.07, 8, B, { y: base + H + 0.05 })
+      .boule(0.085, B, { y: base + H + 0.15, sy: 0.9 }, 1)
+      .cone(0.05, 0.09, 8, B, { y: base + H + 0.26 });
   }
 
   // ---- La scène de nō, sur la mer à l'ouest de la plate-forme : quatre piliers, un toit à pignon, et sur le
@@ -425,15 +486,11 @@ export function construire(ctx) {
   {
     const mo = boutique({
       noren: '#2f4a7a', enseigne: P.noir,
-      // le comptoir et ses plateaux de gâteaux en feuille d'érable ; le banc rouge et le grand parasol des maisons de thé
+      // le comptoir et ses plateaux de gâteaux en feuille d'érable, assez en avant pour que la marchande se
+      // tienne derrière, devant la façade
       etalage: (a) => {
-        a.boite(4.6, 0.9, 1.1, P.bois, { y: 0.45, z: -2.7 });
-        for (let i = 0; i < 12; i++) a.boite(0.22, 0.06, 0.2, '#c98a4a', { x: -1.9 + (i % 6) * 0.42, y: 0.94, z: -2.95 + Math.floor(i / 6) * 0.45, ry: i, trait: false });
-      },
-      auvent: (a) => {
-        a.boite(2.2, 0.45, 0.8, '#e8452e', { x: 4.5, y: 0.42, z: -3.2 })
-          .cylindre(0.04, 0.04, 2.6, 6, P.boisFonce, { x: 4.5, y: 1.3, z: -3.6 })
-          .cone(1.8, 0.7, 12, '#e8452e', { x: 4.5, y: 2.7, z: -3.6 });
+        a.boite(4.6, 0.9, 0.9, P.bois, { y: 0.45, z: -3.05 });
+        for (let i = 0; i < 12; i++) a.boite(0.22, 0.06, 0.2, '#c98a4a', { x: -1.9 + (i % 6) * 0.42, y: 0.94, z: -3.28 + Math.floor(i / 6) * 0.44, ry: i, trait: false });
       },
     });
     // tournées d'un quart de tour vers la rue (façade à l'ouest ou à l'est)
@@ -442,26 +499,76 @@ export function construire(ctx) {
     poser(boutique({ noren: '#b8422b', enseigne: P.vermillon }).fin(0, peinture), 59, 11.5, { ry: PI / 2, y: yRue(59, 11.5) });
     poser(boutique({ noren: '#3f6a4a', enseigne: P.noir }).fin(0, peinture), 59, 19, { ry: PI / 2, y: yRue(59, 19) });
     poser(boutique({ noren: '#6a3a7a', enseigne: P.noir }).fin(0, peinture), 43, 11.5, { ry: -PI / 2, y: yRue(43, 11.5) });
-    monde.mur(56.25, 0.9, 56.25, 7.1, 0.55); // le comptoir de la boutique de gâteaux
+    monde.mur(55.95, 1.7, 55.95, 6.3, 0.5); // le comptoir de la boutique de gâteaux
     for (const z of [11.5, 19]) monde.mur(56.65, z - 3.1, 56.65, z + 3.1, 0.5);
     monde.mur(45.4, 8.4, 45.4, 14.6, 0.45);
-    monde.mur(55.8, -1.6, 55.8, 0.6, 0.55); // le banc rouge et son parasol
     for (const z of [4, 11.5, 19]) monde.bloc(56.6, 63.2, z - 3.6, z + 3.6, -2, 9);
     monde.bloc(38.8, 45.4, 7.9, 15.1, -2, 9);
-    // les maisons elles-mêmes : pleines (on entrait par les côtés et l'arrière, 2026-10-22) ; devant, le comptoir
-    // ou l'étal arrête déjà, et la marchande se tient entre le sien et la façade
-    for (const z of [4, 11.5, 19]) monde.surface(56.95, 62.4, z - 3.3, z + 3.3, terrain(59, z) + 7, { plein: true });
-    monde.surface(39.6, 45.05, 8.2, 14.8, terrain(43, 11.5) + 7, { plein: true });
+    // les maisons elles-mêmes : pleines (on entrait par les côtés et l'arrière, 2026-10-22), à partir de la
+    // façade ; devant, le comptoir ou l'étal arrête déjà, et la marchande se tient entre le sien et la façade
+    for (const z of [4, 11.5, 19]) monde.surface(57.12, 62.4, z - 3.3, z + 3.3, terrain(59, z) + 7, { plein: true });
+    monde.surface(39.6, 44.88, 8.2, 14.8, terrain(43, 11.5) + 7, { plein: true });
   }
 
-  // la colline de la pagode : l'escalier de pierre depuis la rue, la pagode à cinq étages
+  // le banc d'une maison de thé (shōgi), au coin de la boutique de gâteaux, face à la mer : un banc de bois
+  // couvert de feutre rouge (le hi-mōsen), un plateau de thé et de gâteaux, et le grand parasol rouge (nodate-gasa)
+  const BANC = { x: 55.9, z: -0.25 };
   {
-    const a = atelier();
-    for (let i = 0; i < 18; i++) {
-      const z = 21 + i * 0.6, x = 51 - i * 0.05, y = terrain(x, z);
-      a.boite(3.2, 0.25, 0.65, i % 2 ? P.pierre : P.pierreFonce, { x, y: y - 0.05, z });
+    const a = atelier(), rouge = '#c8302c', ombrelle = '#d63a2a';
+    // le banc : les pieds (plantés un peu dans le sol, en pente vers la plage), les traverses, l'assise
+    for (const [x, z] of [[-0.82, -0.2], [0.82, -0.2], [-0.82, 0.2], [0.82, 0.2]]) a.boite(0.07, 0.56, 0.07, P.boisFonce, { x, y: 0.16, z });
+    for (const z of [-0.2, 0.2]) a.boite(1.64, 0.05, 0.04, P.boisFonce, { y: 0.1, z, trait: false });
+    a.boite(1.8, 0.07, 0.54, P.bois, { y: 0.44 })
+      // le feutre rouge, qui retombe un peu devant et derrière
+      .boite(1.86, 0.02, 0.58, rouge, { y: 0.485 })
+      .boite(1.86, 0.11, 0.02, rouge, { y: 0.43, z: -0.3, trait: false })
+      .boite(1.86, 0.11, 0.02, rouge, { y: 0.43, z: 0.3, trait: false })
+      // le plateau laqué : une tasse de thé vert, deux gâteaux en feuille d'érable
+      .boite(0.36, 0.025, 0.24, P.noir, { x: 0.45, y: 0.508 })
+      .cylindre(0.045, 0.035, 0.07, 10, P.blanc, { x: 0.37, y: 0.555 })
+      .cylindre(0.038, 0.038, 0.006, 10, '#8fae4a', { x: 0.37, y: 0.593, trait: false }) // (le thé, à peine au-dessus du bord : pas dans son plan)
+      .boite(0.11, 0.035, 0.085, '#c98a4a', { x: 0.5, y: 0.538, z: -0.04, ry: 0.4 })
+      .boite(0.11, 0.035, 0.085, '#c98a4a', { x: 0.53, y: 0.543, z: 0.06, ry: -0.3 });
+    // le parasol : la hampe de bambou derrière le banc, la toile en cône aplati, ses baleines dessous
+    const hp = 2.3, R = 1.35, px = -0.15, pz = 0.55;
+    a.cylindre(0.03, 0.035, hp + 0.25, 8, P.bois, { x: px, y: (hp + 0.25) / 2 - 0.2, z: pz })
+      .cylindre(0.12, 0.16, 0.08, 8, P.boisFonce, { x: px, y: -0.02, z: pz })
+      .piece(new THREE.ConeGeometry(R, 0.42, 24, 3), ombrelle, { x: px, y: hp + 0.21, z: pz, deformer: (x, y, z) => [x, y - 0.07 * Math.sin(Math.PI * (0.21 - y) / 0.42), z] })
+      .cylindre(0.05, 0.03, 0.12, 8, P.boisFonce, { x: px, y: hp + 0.45, z: pz });
+    for (let i = 0; i < 12; i++) {
+      const t = (i / 12) * 2 * PI;
+      a.baton([px, hp - 0.12, pz], [px + Math.sin(t) * R * 0.97, hp + 0.005, pz + Math.cos(t) * R * 0.97], 0.012, P.boisFonce, 4, { trait: false });
+    }
+    // les fils colorés tressés sous la toile, autour de la hampe (les kagari-ito)
+    a.cylindre(0.2, 0.2, 0.025, 16, P.blanc, { x: px, y: hp + 0.33, z: pz, trait: false })
+      .cylindre(0.16, 0.16, 0.03, 16, '#3a6ea8', { x: px, y: hp + 0.35, z: pz, trait: false });
+    poser(a.fin(0, peinture), BANC.x, BANC.z, { y: terrain(BANC.x, BANC.z) });
+    monde.mur(BANC.x - 0.9, BANC.z, BANC.x + 0.9, BANC.z, 0.36);
+    monde.cercle(BANC.x + px, BANC.z + pz, 0.2);
+  }
+
+  // la colline de la pagode : l'escalier de pierre depuis la rue (des marches pleines entre deux murets, un
+  // palier en haut), la pagode à cinq étages
+  {
+    const a = atelier(), E = ESCALIER;
+    const n = Math.round((E.h1 - E.h0) / 0.2), t = (E.z1 - E.z0) / n;
+    for (let i = 0; i < n; i++) {
+      const z = E.z0 + (i + 0.5) * t, haut = rampe(z) + 0.01, bas = rampe(E.z0 + i * t) - 0.75;
+      // (une marche sur deux 2 cm plus étroite : les flancs de deux marches qui se chevauchent ne sont pas dans le même plan)
+      a.boite(i % 2 ? 2.96 : 2.98, haut - bas, t + 0.05, i % 2 ? P.pierre : P.pierreFonce, { x: E.x, y: (haut + bas) / 2, z });
+    }
+    a.boite(3.0, 0.8, 1.0, P.pierre, { x: E.x, y: E.h1 - 0.39, z: E.z1 + 0.5 });
+    // les murets, qui suivent la pente (des boîtes cisaillées : les bouts restent d'aplomb), et leur chaperon
+    const pente = (E.h1 - E.h0) / (E.z1 - E.z0), za = E.z0 - 0.3, zb = E.z1 + 0.3, zm = (za + zb) / 2;
+    const cisaille = (x, y, z) => [x, y + pente * (Math.min(E.z1, Math.max(E.z0, z + zm)) - zm), z];
+    for (const s of [-1, 1]) {
+      a.piece(new THREE.BoxGeometry(0.6, 1.55, zb - za, 1, 1, 29), P.pierre, { x: E.x + s * 1.8, y: rampe(zm) - 0.22, z: zm, deformer: cisaille })
+        .piece(new THREE.BoxGeometry(0.72, 0.12, zb - za + 0.08, 1, 1, 29), P.pierreFonce, { x: E.x + s * 1.8, y: rampe(zm) + 0.6, z: zm, deformer: cisaille });
+      monde.mur(E.x + s * 1.8, za, E.x + s * 1.8, zb, 0.32);
     }
     poser(a.fin(0, peinture), 0, 0, { y: 0 });
+    monde.rampe(E.x - 1.45, E.x + 1.45, E.z0, E.z1, 'z', E.h0 + 0.01, E.h1 + 0.01, { sol: 'pierre' });
+    monde.surface(E.x - 1.5, E.x + 1.5, E.z1, E.z1 + 1, E.h1 + 0.01, { sol: 'pierre' });
   }
   {
     const a = atelier();
@@ -501,7 +608,7 @@ export function construire(ctx) {
     poser(a.fin(0, peinture), TAMPON_PAGODE.x, TAMPON_PAGODE.z, { ry: PI * 0.35 });
     monde.cercle(TAMPON_PAGODE.x, TAMPON_PAGODE.z, 0.6);
   }
-  for (const [x, z] of [[49, 22], [53.4, 22], [38.5, 33], [40, 39]]) {
+  for (const [x, z] of [[43.6, 19.3], [48.4, 19.3], [43.3, 28.9], [48.7, 28.9], [38.5, 33], [40, 39]]) {
     poser(atelier().lanterne(0, 0, 6.5).fin(0, peinture), x, z);
     monde.cercle(x, z, 0.45);
   }
@@ -513,7 +620,7 @@ export function construire(ctx) {
     daims: { x: 45, z: -1.2, ry: 0.2 },
     entree: { x: 25.5, z: 11.6, ry: PI / 2 - 0.2 },
     no: { x: -16, z: -11.55, ry: PI, y: PLANCHER },
-    pagode: { x: 44.5, z: 27.6, ry: 0.5 },
+    pagode: { x: 50.5, z: 29.7, ry: 1.15 },
   };
   for (const p of Object.values(PANNEAUX)) {
     poser(panneau(atelier(), P).fin(0, peinture), p.x, p.z, { ry: p.ry, y: p.y });
@@ -571,7 +678,7 @@ export function construire(ctx) {
     { id: 'miko', x: -7.4, z: -18, cap: PI / 2, tenue: { taille: 1.05, peau: PEAU, cheveux: NOIR, coiffure: 'queue', haut: P.blanc, col: '#e8452e', manches: 'kimono', bas: { sorte: 'hakama', c: '#e0453a', c2: '#c93a30' }, chaussures: P.blanc, semelle: '#c9a65a' } },
     { id: 'videaste', x: VIDEASTE.x, z: VIDEASTE.z, cap: VIDEASTE.cap, tenue: { taille: 1.1, peau: PEAU, cheveux: '#3a2a20', coiffure: 'court', chapeau: { sorte: 'bob', c: '#2f3440' }, haut: '#2f3440', manches: 'courtes', bas: { sorte: 'pantalon', c: '#c9b48a' }, chaussures: P.blanc, semelle: '#3a3236', appareil: true } },
     { id: 'enfant', x: 34, z: -1, cap: 0, ronde: [[31, -1.5], [37, 0.5], [34, 3.2], [30, 1.5]], vitesse: 1.6, attente: [0.5, 2], tenue: { taille: 0.82, peau: PEAU, cheveux: NOIR, coiffure: 'court', chapeau: { sorte: 'ecolier', c: '#f6d13a' }, haut: P.blanc, manches: 'courtes', bas: { sorte: 'jupe', c: '#3d4a6a' }, chaussures: P.blanc, semelle: '#3a3236', sac: { sorte: 'randoseru', c: '#c8372d' } } },
-    { id: 'marchande', x: 57.0, z: 4.3, cap: -PI / 2, tenue: { taille: 1.06, peau: PEAU, cheveux: NOIR, coiffure: 'chignon', chapeau: { sorte: 'foulard', c: '#f3ead8' }, haut: '#d8452e', manches: 'longues', tablier: '#f6efe0', bas: { sorte: 'pantalon', c: '#3d4a6a' }, chaussures: '#3a3236', semelle: '#3a3236', yeux: 'plisses' } },
+    { id: 'marchande', x: 56.78, z: 4.3, cap: -PI / 2, tenue: { taille: 1.06, peau: PEAU, cheveux: NOIR, coiffure: 'chignon', chapeau: { sorte: 'foulard', c: '#f3ead8' }, haut: '#d8452e', manches: 'longues', tablier: '#f6efe0', bas: { sorte: 'pantalon', c: '#3d4a6a' }, chaussures: '#3a3236', semelle: '#3a3236', yeux: 'plisses' } },
     { id: 'touriste', x: 44, z: -1, cap: PI / 2, ronde: [[44, -1], [51, 6], [36, 0.5], [20, -0.5]], vitesse: 1.0, attente: [3, 7], tenue: { taille: 1.1, peau: PEAU, cheveux: '#c98a4a', coiffure: 'chignon', chapeau: { sorte: 'soleil', c: '#fff0cf', c2: '#4fa3c7' }, haut: '#4fa3c7', manches: 'courtes', bas: { sorte: 'short', c: '#f3ead8' }, chaussures: P.blanc, semelle: '#4fa3c7', appareil: true } },
     { id: 'grandpere', x: 38.5, z: 0.6, cap: Math.atan2(TORII.x - 38.5, TORII.z - 0.6), tenue: { taille: 1.04, peau: '#f5d2b0', cheveux: '#e8e4dc', coiffure: 'chauve', haut: '#7a6652', manches: 'longues', bas: { sorte: 'pantalon', c: '#5a5650' }, chaussures: '#3a3236', semelle: '#3a3236', lunettes: true, canne: true, yeux: 'plisses' } },
   ];
@@ -580,7 +687,7 @@ export function construire(ctx) {
     { x: 41, z: 0.6, cap: PI / 2 + 0.4, male: false },
     { x: 50, z: 1.2, cap: 0.6, male: false },
     { x: -18, z: 21.5, cap: 2.2, male: false },
-    { x: 46.5, z: 25, cap: -1, male: true },
+    { x: 52.2, z: 31.4, cap: -1.9, male: true },
   ];
 
   // ---------------------------------------------------------------- Ce qu'on peut faire (tout passe par `jeu`)
@@ -661,7 +768,20 @@ export function construire(ctx) {
     eau: { x0: -600, x1: 600, z0: -1400, z1: 30 },
     // la brise de mer, qui pousse vers la terre (le sud) ; le milan noir tourne au-dessus de la baie, la
     // bouscarle chante dans les arbres de la colline
-    vent: { dir: [0.3, 0.95], force: 0.85 }, oiseaux: ['milan', 'uguisu'], ambiances: ['vagues'],
+    vent: { dir: [0.3, 0.95], force: 0.85 }, oiseaux: ['milan', 'uguisu', 'mouette'], ambiances: ['vagues'],
+    // les goélands (mouettes.js) : trois qui tournent au-dessus de la baie ; d'autres posés sur l'estran près de
+    // l'arrivée, sur l'eau, et en haut du grand torii, qui s'envolent quand on approche
+    mouettes: {
+      vols: [{ x: 8, z: -34, r: 15, h: 13, sens: 1 }, { x: 34, z: -24, r: 10, h: 9, sens: -1 }, { x: -22, z: -52, r: 19, h: 17, sens: 1 }],
+      poses: [
+        { x: 34.6, z: -8.7, cap: 2.6, mer: [0, -1] },
+        { x: 36.9, z: -9.5, cap: -2.9, mer: [0, -1] },
+        { x: 41.2, z: -8.4, cap: 0.9, mer: [-0.3, -1] },
+        { x: 14, z: -24, cap: 1.4, mer: [0.2, -1] },
+        { x: -14, z: -40, cap: -0.6, mer: [0, -1] },
+        { x: -3.6, z: -70, y: TORII_HAUT, cap: PI / 2, mer: [0, -1], fuite: 7 },
+      ],
+    },
     soleil: [-0.42, 0.72, 0.55], // d'où vient la lumière (l'après-midi, du sud-ouest)
     depart: { x: 28, z: -2.5, cap: Math.atan2(TORII.x - 28, TORII.z + 2.5) },
     // les images fixes des captures : de dos vers le torii, ou de face, le torii derrière
@@ -675,10 +795,13 @@ export function construire(ctx) {
 /** La couleur et la matière (textures.js) du sol naturel : estran, sable, herbe, la rue pavée et le chemin de la colline. */
 function aspectSol(P, x, z, h) {
   if (x > 45.5 && x < 56.5 && z > -1 && z < 23) return [P.chemin, M.dalles];
-  if (Math.hypot(x - 51, z - 26) < 2.2 || Math.hypot(x - 46, z - 31) < 7.5) return [P.chemin, M.dalles];
+  // l'escalier de la colline et le parvis autour de la pagode
+  if ((Math.abs(x - ESCALIER.x) < 2.3 && z > ESCALIER.z0 - 1.3 && z < ESCALIER.z1 + 1) || Math.hypot(x - 46, z - 35.4) < 8.6) return [P.chemin, M.dalles];
   if (h < 0.22) return [P.sableMouille, M.estran];
   if (h < 1.05) return [P.sable, M.sable];
   const n = bruitDoux(x, z, 6) * 0.5 + 0.5 * Math.sin(x * 0.11) * Math.sin(z * 0.13);
+  // (sur la colline, de l'herbe seulement : des taches de sable y faisaient des chemins qui ne mènent nulle part)
+  if (Math.hypot(x - COLLINE.x, z - COLLINE.z) < 18) return n > 0.18 ? [P.herbe, M.herbe] : [P.herbeFonce, M.herbe];
   return n > 0.25 ? [P.herbe, M.herbe] : n > 0.1 ? [P.herbeFonce, M.herbe] : [P.sable, M.sable];
 }
 

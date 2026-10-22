@@ -20,6 +20,23 @@ export function bruitDoux(x, z, taille = 1) {
   return Math.min(1, Math.max(0, 0.5 + (n - 0.5) * 2.2));
 }
 
+/**
+ * Le point le plus proche d'une ligne brisée [[x, z, h?], …] : sa distance d, sa hauteur h (si les points en
+ * ont) et s, la longueur de ligne parcourue depuis le premier point jusqu'à lui.
+ */
+export function surLaLigne(points, x, z) {
+  let d = Infinity, h = 0, s = 0, cumul = 0;
+  for (let k = 0; k < points.length - 1; k++) {
+    const [x0, z0, h0 = 0] = points[k], [x1, z1, h1 = 0] = points[k + 1];
+    const dx = x1 - x0, dz = z1 - z0, l = Math.hypot(dx, dz);
+    const f = Math.min(1, Math.max(0, ((x - x0) * dx + (z - z0) * dz) / (l * l || 1)));
+    const e = Math.hypot(x - x0 - f * dx, z - z0 - f * dz);
+    if (e < d) { d = e; h = h0 + (h1 - h0) * f; s = cumul + f * l; }
+    cumul += l;
+  }
+  return { d, h, s };
+}
+
 /** La plus haute marche qu'on monte (ou descend) d'un pas, en mètres. */
 export const PAS = 0.6;
 /** Sous un plancher plus bas que cela au-dessus de la tête, on ne passe pas. */
@@ -31,8 +48,10 @@ const TETE = 2.6;
  * cette hauteur de sol, l'eau arrête (ou null) ; pente : sur le sol naturel, on ne monte pas une pente plus
  * raide (les parois d'un cratère ; null : pas de limite ; on peut toujours descendre). On y ajoute :
  * - des surfaces [x0, x1, z0, z1] à la hauteur h (planchers, ponts…), ou en pente (escaliers : rampe
- *   { axe: 'x' | 'z', h0, h1 }, de h0 au bord x0 / z0 à h1 au bord x1 / z1) ; plein : un bloc du sol à h
- *   (un pavillon fermé : ni dessus, ni dessous) ; passage : un pont assez haut pour passer dessous ;
+ *   { axe: 'x' | 'z', h0, h1 }, de h0 au bord x0 / z0 à h1 au bord x1 / z1 ; ou chemin : le long d'une ligne
+ *   brisée [[x, z, h], …], un escalier en biais) ; plein : un bloc du sol à h (un pavillon fermé : ni dessus,
+ *   ni dessous) ; passage : un pont assez haut pour passer dessous ; sol : ce qu'on entend en y marchant
+ *   (bruitage-calcul.js : 'pierre'… ; par défaut, du bois) ;
  * - des cercles [x, z, rayon] et des murs (segments) [x0, z0, x1, z1, demi-épaisseur], qui arrêtent entre
  *   les hauteurs bas et haut (par défaut : à toute hauteur) ;
  * - pour la caméra : des blocs [x0, x1, z0, z1, bas, haut] où elle n'entre pas (un pavillon fermé, une
@@ -41,26 +60,33 @@ const TETE = 2.6;
  */
 export function creerMonde({ terrain, cadre, profond = -0.6, pente = null }) {
   const surfaces = [], cercles = [], murs = [], blocs = [], toits = [];
-  const dedans = (s, x, z) => x >= s.x0 && x <= s.x1 && z >= s.z0 && z <= s.z1;
+  const dedans = (s, x, z) => x >= s.x0 && x <= s.x1 && z >= s.z0 && z <= s.z1 && (!s.ligne || surLaLigne(s.ligne, x, z).d <= s.demi);
   const hauteurDe = (s, x, z) => {
+    if (s.ligne) return surLaLigne(s.ligne, x, z).h;
     if (!s.rampe) return s.h;
     const { axe, h0, h1 } = s.rampe;
     const f = axe === 'x' ? (x - s.x0) / (s.x1 - s.x0) : (z - s.z0) / (s.z1 - s.z0);
     return h0 + (h1 - h0) * Math.min(1, Math.max(0, f));
   };
 
-  /** La hauteur où se tient quelqu'un en x, z qui arrive de la hauteur y : la plus haute surface qu'il atteint d'un pas. */
-  function hauteur(x, z, y = Infinity) {
+  /**
+   * Où se tient quelqu'un en x, z qui arrive de la hauteur y : la plus haute surface qu'il atteint d'un pas
+   * (jamais le dessus d'un bloc plein : posé dedans, un passant y montait, sur le toit d'une boutique), et
+   * laquelle (null : le sol naturel ; à égalité, la surface : un escalier posé à fleur du sol).
+   */
+  function poserPied(x, z, y) {
     const sol = terrain(x, z);
-    let choix = sol <= y + PAS ? sol : -Infinity, bas = sol;
+    let choix = sol <= y + PAS ? sol : -Infinity, bas = sol, surface = null;
     for (const s of surfaces) {
-      if (!dedans(s, x, z)) continue;
+      if (s.plein || !dedans(s, x, z)) continue;
       const h = hauteurDe(s, x, z);
-      if (h <= y + PAS && h > choix) choix = h;
+      if (h <= y + PAS && h >= choix) { choix = h; surface = s; }
       if (h < bas) bas = h;
     }
-    return choix > -Infinity ? choix : bas;
+    return choix > -Infinity ? { h: choix, surface } : { h: bas, surface: null };
   }
+  /** La hauteur où se tient quelqu'un en x, z qui arrive de la hauteur y (poserPied). */
+  const hauteur = (x, z, y = Infinity) => poserPied(x, z, y).h;
 
   /** Le point x, z le plus proche sur le segment, et la distance. */
   function versMur(m, x, z) {
@@ -85,14 +111,14 @@ export function creerMonde({ terrain, cadre, profond = -0.6, pente = null }) {
       const [, , , , r, bas = -Infinity, haut = Infinity] = m;
       if (y >= bas && y <= haut && versMur(m, x, z) < r) return false;
     }
-    const h = hauteur(x, z, y);
+    const { h, surface } = poserPied(x, z, y);
     for (const s of surfaces) {
-      if (s.rampe || s.passage || !dedans(s, x, z) || s.h <= y + PAS) continue;
+      if (s.rampe || s.ligne || s.passage || !dedans(s, x, z) || s.h <= y + PAS) continue;
       // un bloc plein (un pavillon fermé), ou un plancher trop bas pour passer dessous
       if (s.plein || s.h - y < TETE) return false;
     }
-    if (profond !== null && h === terrain(x, z) && h < profond) return false;
-    if (pente !== null && h > y + 0.005 && h === terrain(x, z) && raideur(x, z) > pente) return false;
+    if (profond !== null && !surface && h < profond) return false;
+    if (pente !== null && h > y + 0.005 && !surface && raideur(x, z) > pente) return false;
     return Math.abs(h - y) < PAS;
   }
 
@@ -100,6 +126,17 @@ export function creerMonde({ terrain, cadre, profond = -0.6, pente = null }) {
   function raideur(x, z) {
     const e = 0.3;
     return Math.hypot(terrain(x + e, z) - terrain(x - e, z), terrain(x, z + e) - terrain(x, z - e)) / (2 * e);
+  }
+
+  /** Ce qu'on entend en marchant sur la surface où l'on se tient en x, z, à la hauteur y ('bois' par défaut). */
+  function solSous(x, z, y) {
+    let sol = 'bois', ecart = 0.2;
+    for (const s of surfaces) {
+      if (s.plein || !dedans(s, x, z)) continue;
+      const e = Math.abs(hauteurDe(s, x, z) - y);
+      if (e < ecart) { ecart = e; sol = s.sol || 'bois'; }
+    }
+    return sol;
   }
 
   /** Le dessous du plus bas toit au-dessus de la hauteur y, en x, z (Infinity : à ciel ouvert). */
@@ -139,9 +176,14 @@ export function creerMonde({ terrain, cadre, profond = -0.6, pente = null }) {
   const dedans3 = (o, [x0, x1, z0, z1, bas, haut], m) => o.x >= x0 - m && o.x <= x1 + m && o.y >= bas - m && o.y <= haut + m && o.z >= z0 - m && o.z <= z1 + m;
 
   return {
-    terrain, cadre, surfaces, cercles, murs, blocs, toits, hauteur, libre, abri, visee, raideur,
+    terrain, cadre, surfaces, cercles, murs, blocs, toits, hauteur, libre, abri, visee, raideur, solSous,
     surface(x0, x1, z0, z1, h, o = {}) { surfaces.push({ x0, x1, z0, z1, h, ...o }); },
-    rampe(x0, x1, z0, z1, axe, h0, h1) { surfaces.push({ x0, x1, z0, z1, h: Math.max(h0, h1), rampe: { axe, h0, h1 } }); },
+    rampe(x0, x1, z0, z1, axe, h0, h1, o = {}) { surfaces.push({ x0, x1, z0, z1, h: Math.max(h0, h1), rampe: { axe, h0, h1 }, ...o }); },
+    /** Un chemin en pente le long de la ligne brisée points [[x, z, h], …], de demi-largeur demi (un escalier en biais). */
+    chemin(points, demi, o = {}) {
+      const xs = points.map((p) => p[0]), zs = points.map((p) => p[1]);
+      surfaces.push({ x0: Math.min(...xs) - demi, x1: Math.max(...xs) + demi, z0: Math.min(...zs) - demi, z1: Math.max(...zs) + demi, h: Math.max(...points.map((p) => p[2])), ligne: points, demi, ...o });
+    },
     cercle(x, z, r, bas, haut) { cercles.push([x, z, r, bas, haut]); },
     mur(x0, z0, x1, z1, r = 0.15, bas, haut) { murs.push([x0, z0, x1, z1, r, bas, haut]); },
     bloc(x0, x1, z0, z1, bas, haut) { blocs.push([x0, x1, z0, z1, bas, haut]); },

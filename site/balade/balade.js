@@ -6,8 +6,8 @@
 //  E, Espace ou Entrée : parler, lire (le bouton A) ; glisser : tourner la caméra ; molette : l'approcher ;
 //  C : le carnet ; Échap : fermer. Sur téléphone, un joystick en bas à gauche et un bouton A en bas à droite.
 //  On entend ses pas (selon le sol), le vent dans les arbres, la mer, les fumerolles (bruitage.js), et l'air du
-//  lieu, composé pour la balade (musique.js) ; dans
-//  l'eau, on éclabousse et l'on ressort mouillé (effets.js).
+//  lieu, composé pour la balade (musique.js) ; dans l'eau, on éclabousse et l'on ressort mouillé (effets.js) ;
+//  à Itsukushima, des goélands tournent sur la baie et s'envolent quand on approche (mouettes.js).
 //  ?lieu=itsukushima|aogashima ; ?perso=garcon|fille ; ?langue=en|fr|ja ;
 //  ?photo=heros|perso : une image fixe (captures) ; ?demo : une partie jouée image par image (vidéos) ;
 //  ?ciel=parchemin : un essai du style (styles.js) ; ?flou=0 : sans le flou du lointain ; ?aa=0 : sans anticrénelage.
@@ -23,6 +23,7 @@ import { creerDialogue } from './dialogue.js';
 import { creerCarnet, dessinTampon, aLeTampon, ajouterTampon, lireTampons } from './carnet.js';
 import { son } from './son.js';
 import { creerBruitage } from './bruitage.js';
+import { creerMouettes } from './mouettes.js';
 import { creerMusique } from './musique.js';
 import { creerEffets } from './effets.js';
 import * as itsukushima from './itsukushima.js';
@@ -152,12 +153,15 @@ function construire() {
     lieu.monde.cercle(d.x, d.z, 0.7);
     return { ...d, b };
   });
+  // les mouettes (Itsukushima) : des personnages aussi (pas d'ombre reçue)
+  const mouettes = lieu.mouettes ? creerMouettes(ctxPerso, { ...lieu.mouettes, terrain: lieu.terrain, niveau: lieu.eau?.niveau || 0 }) : null;
+  if (mouettes) { groupe.add(mouettes.groupe); sansOmbreRecue(mouettes.groupe); }
   const effets = creerEffets(THREE);
   groupe.add(effets.groupe);
   scene.add(groupe);
   M = {
     carte, effets, mouilleJoueur, mouilleKon, feuillage: densiteFeuillage(lieu), bruitage: creerBruitage({ oiseaux: lieu.oiseaux || [], ambiances: lieu.ambiances || [] }), musique: creerMusique(lieu.id), focale: 800,
-    style, ctx, mats, lieu, groupe, voyageurs, kon, passants, daims, eau, ciel, soleil, hemi, etoiles, vapeurs, touffes, finale: passeFinale(THREE, style, { echantillons: params.get('aa') === '0' ? 0 : 4, flou: params.get('flou') !== '0' }), cible: null, sauvage: null, nuit: { v: 0, cible: 0, fin: null } };
+    style, ctx, mats, lieu, groupe, voyageurs, kon, passants, daims, mouettes, eau, ciel, soleil, hemi, etoiles, vapeurs, touffes, finale: passeFinale(THREE, style, { echantillons: params.get('aa') === '0' ? 0 : 4, flou: params.get('flou') !== '0' }), cible: null, sauvage: null, nuit: { v: 0, cible: 0, fin: null } };
   choisirVoyageur(sorte || 'garcon');
   dimensionner();
 }
@@ -737,7 +741,12 @@ addEventListener('keydown', (e) => {
   if (e.code.startsWith('Arrow')) e.preventDefault();
 });
 addEventListener('keyup', (e) => touches.delete(e.code));
+// une touche lâchée hors de la page (fenêtre quittée, menu du clic droit ouvert) n'arrive jamais : le joueur
+// avançait tout seul. Pas de menu sur le jeu (le clic droit y tourne la caméra), et l'on oublie les touches
+// tenues dès que la page perd la main
 addEventListener('blur', () => touches.clear());
+addEventListener('contextmenu', (e) => { if (e.target === toile) e.preventDefault(); else touches.clear(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) touches.clear(); });
 const appuye = (...codes) => codes.some((c) => touches.has(c));
 
 // la caméra : on la fait tourner en glissant (souris ou doigt hors du joystick) ; un appui sans glisser parle
@@ -1112,7 +1121,7 @@ async function daimSauvage() {
 }
 
 // ---------------------------------------------------------------- Sous les pieds : les pas, l'eau, les sons
-// le son d'un pas selon la matière du sol (textures.js) ; les planchers sont tous en bois
+// le son d'un pas selon la matière du sol (textures.js) ; sur un plancher ou des marches, celui de la surface (du bois, sauf mention)
 const SON_DU_SOL = {
   [MATIERES.sable]: 'sable', [MATIERES.herbe]: 'herbe', [MATIERES.estran]: 'estran', [MATIERES.dalles]: 'pierre',
   [MATIERES.terre]: 'terre', [MATIERES.roche]: 'roche', [MATIERES.route]: 'route', [MATIERES.sousBois]: 'sousBois',
@@ -1132,7 +1141,7 @@ function matiereDuSol(x, z, h) {
 /** Sous les pieds en x, z, à la hauteur y : le sol (bruitage-calcul.js, SOLS), la profondeur d'eau, la hauteur du sol naturel. */
 function sousLesPieds(x, z, y) {
   const L = M.lieu, h = L.terrain(x, z);
-  if (y > h + 0.12) return { sol: 'bois', eau: 0, h };
+  if (y > h + 0.12) return { sol: L.monde.solSous(x, z, y), eau: 0, h };
   const e = L.eau, eau = e && x > e.x0 && x < e.x1 && z > e.z0 && z < e.z1 ? Math.max(0, (e.niveau || 0) - h) : 0;
   return { sol: eau > 0.03 ? 'eau' : SON_DU_SOL[matiereDuSol(x, z, h)] || 'terre', eau, h };
 }
@@ -1298,6 +1307,13 @@ function dessiner(dt, temps) {
     p.perso.animer(dt, p.etat.v, temps + p.x);
   }
   for (const d of M.daims) d.b.animer(dt, temps);
+  // les mouettes : leurs cris, plus doux de loin (ni pendant le départ, ni sur une image fixe)
+  if (M.mouettes) {
+    for (const c of M.mouettes.animer(dt, temps, etat, renard, M.nuit.v)) {
+      const d = Math.hypot(c.x - camera.position.x, c.y - camera.position.y, c.z - camera.position.z), force = c.fort / (1 + Math.max(0, d - 10) * 0.07);
+      if (!PHOTO && etat.mode !== 'depart' && force > 0.1) M.bruitage.oiseau('mouette', { force, pan: panDe(c.x, c.z) });
+    }
+  }
   if (M.sauvage) {
     const s = M.sauvage;
     s.d.animer(dt, temps);

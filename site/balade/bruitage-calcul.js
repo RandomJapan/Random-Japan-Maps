@@ -8,7 +8,8 @@
 //  - « ebrouer » : Kon qui s'ébroue en sortant de l'eau ;
 //  - « boucle/<nom> » : une ambiance qui tourne en boucle sans couture (ventDoux, ventFort, feuilles, vagues,
 //    vapeur, insectes) ;
-//  - « oiseau/milan » (le milan noir, « pîhyororo ») ou « oiseau/uguisu » (la bouscarle, « hôhokekyo »).
+//  - « oiseau/milan » (le milan noir, « pîhyororo »), « oiseau/uguisu » (la bouscarle, « hôhokekyo ») ou
+//    « oiseau/mouette » (le goéland à queue noire, qui miaule).
 //  Les pas et les oiseaux sortent à une force fixe (la plus forte valeur efficace sur 10 ms : 0,25 × la force
 //  du sol) ; les boucles, à une valeur efficace de 1 : bruitage.js règle les volumes.
 // ================================================================
@@ -205,6 +206,26 @@ function composer(sr, r, duree) {
       }
       normaliser([a]);
       return c.mettre(a, t0, gain);
+    },
+    /**
+     * Un cri nasillard (un goéland) : une note f(t) riche en harmoniques, passée par un formant (centre fc et
+     * largeur bw, en Hz, et un second plus grave), un peu rauque (un battement rapide), d'amplitude a(t).
+     */
+    cri(t0, duree, f, a, { fc = 2200, bw = 1300, rauque = 0.25 } = {}) {
+      const i0 = Math.round(t0 * sr), m = Math.ceil(duree * sr);
+      let ph = 0, pr = 0;
+      for (let i = 0; i < m && i0 + i < n; i++) {
+        const t = i / sr, f0 = f(t);
+        ph += (TAU * f0) / sr;
+        pr += (TAU * 64) / sr;
+        let v = 0;
+        for (let k = 1; k * f0 < sr * 0.45 && k <= 14; k++) {
+          const fk = k * f0, g = Math.exp(-(((fk - fc) / bw) ** 2)) + 0.3 * Math.exp(-(((fk - fc * 0.45) / (bw * 0.5)) ** 2));
+          v += (g * Math.sin(k * ph)) / Math.sqrt(k);
+        }
+        if (i0 + i >= 0) b[i0 + i] += a(t) * v * (1 - rauque + rauque * Math.sin(pr));
+      }
+      return c;
     },
     /** Une note sifflée (un oiseau, un insecte) : fréquence f(t), amplitude a(t), un peu de seconde harmonique. */
     ton(t0, duree, f, a, h2 = 0.12) {
@@ -456,6 +477,18 @@ const OISEAUX = {
     const c = composer(sr, r, 2.6);
     c.ton(0.05, 0.75, (t) => 2650 - 250 * t + 30 * Math.sin(TAU * 7 * t), ad(0.06, 0.1, 0.75))
       .ton(0.95, 1.1, (t) => 2500 - 600 * t + 320 * Math.sin(TAU * 8.5 * t) * Math.min(1, t / 0.15), (t) => ad(0.03, 0.3, 1.1)(t) * (1 - 0.4 * t));
+    return cadrer([echo(c.b, sr)], sr, 0.25);
+  },
+  // le goéland à queue noire (umineko, « le chat de la mer ») : trois miaulements nasillards, « myaa… myaa… kyao »
+  mouette(sr, r) {
+    const c = composer(sr, r, 1.75);
+    const miaou = (t0, d, fa, fb, fz) => c.cri(t0, d, (t) => {
+      const u = t / d;
+      return u < 0.35 ? fa + (fb - fa) * (u / 0.35) : fb + (fz - fb) * ((u - 0.35) / 0.65);
+    }, (t) => ad(0.03, 0.14, d)(t) * (0.8 + 0.2 * Math.sin((Math.PI * t) / d)), { fc: 2300, bw: 1300, rauque: 0.3 });
+    miaou(0.02, 0.46, 600, 960, 540);
+    miaou(0.6, 0.4, 660, 1040, 590);
+    miaou(1.16, 0.26, 760, 1150, 700);
     return cadrer([echo(c.b, sr)], sr, 0.25);
   },
   // la bouscarle du Japon (uguisu), l'oiseau du printemps : « hôôô… ho-ke-kyo ! »

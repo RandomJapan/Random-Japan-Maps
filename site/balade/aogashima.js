@@ -9,7 +9,7 @@
 //  à y = −40. Les distances sont resserrées (le vrai cratère fait plus d'un kilomètre).
 //  ctx : { THREE, atelier, P (palette), peinture }.
 // ================================================================
-import { creerMonde, lisse, hasard, bruitDoux } from './monde.js';
+import { creerMonde, lisse, hasard, bruitDoux, surLaLigne } from './monde.js';
 import { panneau, trepied } from './decor.js';
 import { MATIERES as M } from './textures.js';
 
@@ -65,6 +65,9 @@ const MARCHES = (() => {
   return pts;
 })();
 const [BAS, HAUT] = [MARCHES[0], MARCHES[MARCHES.length - 1]];
+// la partie en marches (sans le pas sur la crête), et sa longueur
+const VOLEE = MARCHES.slice(0, -1);
+const LONG_VOLEE = VOLEE.slice(1).reduce((l, p, k) => l + Math.hypot(p[0] - VOLEE[k][0], p[1] - VOLEE[k][1]), 0);
 // le passage dans la barrière de la crête, au haut de l'escalier : 1,3 m de chaque côté du chemin (comme la main courante)
 const OUVERTURE = ((d) => [ESCALIER.a1 - d, ESCALIER.a1 + d])(1.3 / (rayonPied(ESCALIER.a1) + PAROI + BARRIERE));
 const BOITE_ESCALIER = [Math.min(...MARCHES.map((p) => p[0])) - 5, Math.max(...MARCHES.map((p) => p[0])) + 5, Math.min(...MARCHES.map((p) => p[1])) - 5, Math.max(...MARCHES.map((p) => p[1])) + 5];
@@ -74,19 +77,6 @@ const CHEMINS = [
   [[HAUT[0], HAUT[1]], [-4, -79.5], [BELVEDERE.x - BELVEDERE.r, BELVEDERE.z]],
   [[HAUT[0], HAUT[1]], [6, -80.6], [13, -82.2], [OTONBU.x, OTONBU.z]],
 ];
-
-/** Le point le plus proche d'une ligne brisée [[x, z, h?], …] : sa distance, sa hauteur (si les points en ont). */
-function surLaLigne(points, x, z) {
-  let d = Infinity, h = 0;
-  for (let k = 0; k < points.length - 1; k++) {
-    const [x0, z0, h0 = 0] = points[k], [x1, z1, h1 = 0] = points[k + 1];
-    const dx = x1 - x0, dz = z1 - z0;
-    const f = Math.min(1, Math.max(0, ((x - x0) * dx + (z - z0) * dz) / (dx * dx + dz * dz)));
-    const e = Math.hypot(x - x0 - f * dx, z - z0 - f * dz);
-    if (e < d) { d = e; h = h0 + (h1 - h0) * f; }
-  }
-  return { d, h };
-}
 
 /**
  * Le sol : le fond du cratère (presque plat), la paroi très raide tout autour, la crête (un plateau au nord),
@@ -116,11 +106,18 @@ function terrain(x, z) {
     const cone = (e) => m.h * (1 - e / m.r) ** 1.35;
     h += dm >= m.cratere ? cone(dm) : cone(m.cratere) - 4 * (1 - (dm / m.cratere) ** 2);
   }
-  // l'escalier : une bande aplanie à la hauteur des marches
+  // l'escalier : une bande aplanie à la hauteur des marches. Sous elles, le sol s'enfonce (elles sont pleines
+  // jusque-là), et à leurs bouts, un accotement plus bas qu'elles : entre deux points du maillage (tous les
+  // mètres), le sol aplani ne passe plus par-dessus les marches (la paroi semblait couvrir l'escalier, 2026-10-22)
   const [bx0, bx1, bz0, bz1] = BOITE_ESCALIER;
   if (x > bx0 && x < bx1 && z > bz0 && z < bz1) {
     const c = surLaLigne(MARCHES, x, z);
-    if (c.d < 3.8) h += (c.h - h) * (1 - lisse(1.7, 3.8, c.d));
+    if (c.d < 4.6) {
+      h += (c.h - h) * (1 - lisse(2.8, 4.6, c.d));
+      const v = surLaLigne(VOLEE, x, z), dans = lisse(0, 0.5, v.s) * lisse(0, 0.5, LONG_VOLEE - v.s);
+      // (enfoncé seulement sous les marches et le chemin où l'on y marche : à côté, on passerait dessous)
+      if (dans > 0) h -= dans * (v.d < 1.1 ? 0.65 : 0.35 * (1 - lisse(2.0, 2.8, v.d)));
+    }
   }
   // le belvédère, creusé en gradins (la cuvette ; les gradins de pierre sont posés dessus)
   const db = Math.hypot(x - BELVEDERE.x, z - BELVEDERE.z);
@@ -318,23 +315,27 @@ export function construire(ctx) {
   }
 
   // ---------------------------------------------------------------- L'escalier de la paroi nord
-  // des marches de pierre tous les 45 cm, une dalle au palier, une main courante du côté du vide
+  // des marches de pierre tous les 45 cm, une dalle au palier, une main courante du côté du vide. Les marches
+  // sont des blocs pleins jusque sous le sol (enfoncé sous elles : voir le terrain) ; on y marche sur le chemin
+  // qui suit leur ligne
   {
     const a = atelier();
-    for (let k = 0; k < MARCHES.length - 2; k++) {
-      const [x0, z0, h0] = MARCHES[k], [x1, z1, h1] = MARCHES[k + 1];
+    for (let k = 0; k < VOLEE.length - 1; k++) {
+      const [x0, z0, h0] = VOLEE[k], [x1, z1, h1] = VOLEE[k + 1];
       const L = Math.hypot(x1 - x0, z1 - z0), ry = Math.atan2(x1 - x0, z1 - z0);
       if (Math.abs(h1 - h0) < 0.05) {
-        a.boite(2.4, 0.24, L + 0.3, P.pierre, { x: (x0 + x1) / 2, y: h0 - 0.1, z: (z0 + z1) / 2, ry });
+        a.boite(2.4, 0.9, L + 0.3, P.pierre, { x: (x0 + x1) / 2, y: h0 - 0.43, z: (z0 + z1) / 2, ry });
         continue;
       }
       const n = Math.max(1, Math.round(L / 0.45));
       for (let i = 0; i < n; i++) {
-        const f = (i + 0.5) / n;
+        const f = (i + 0.5) / n, haut = h0 + (h1 - h0) * f + 0.01, bas = h0 + (h1 - h0) * (i / n) - 0.75, e = haut - bas;
         // (une marche sur deux 2 cm plus étroite : les flancs de deux marches qui se chevauchent ne sont pas dans le même plan)
-        a.boite(i % 2 ? 2.18 : 2.22, 0.2, L / n + 0.05, i % 2 ? P.pierre : P.pierreFonce, { x: x0 + (x1 - x0) * f, y: h0 + (h1 - h0) * f - 0.09, z: z0 + (z1 - z0) * f, ry });
+        a.boite(i % 2 ? 2.18 : 2.22, e, L / n + 0.05, i % 2 ? P.pierre : P.pierreFonce, { x: x0 + (x1 - x0) * f, y: haut - e / 2, z: z0 + (z1 - z0) * f, ry });
       }
     }
+    // (jusqu'au pas sur la crête : au bout de la volée, le sol aplani remonte déjà, trop raide pour y monter)
+    monde.chemin(MARCHES, 1.15, { sol: 'pierre' });
     // la main courante : des poteaux à 1,3 m du chemin, vers le centre du cratère (le vide)
     const bord = (x, z, h) => { const r = Math.hypot(x, z); return [x - (x / r) * 1.3, h, z - (z / r) * 1.3]; };
     let prec = null;
@@ -342,7 +343,7 @@ export function construire(ctx) {
       const [x0, z0, h0] = MARCHES[k], [x1, z1, h1] = MARCHES[k + 1];
       for (const f of k === 0 ? [0.35, 0.7] : [0, 0.35, 0.7]) {
         const [x, y, z] = bord(x0 + (x1 - x0) * f, z0 + (z1 - z0) * f, h0 + (h1 - h0) * f);
-        a.boite(0.1, 0.95, 0.1, P.boisFonce, { x, y: y + 0.4, z });
+        a.boite(0.1, 1.55, 0.1, P.boisFonce, { x, y: y + 0.1, z }); // (planté dans l'accotement, plus bas que les marches)
         if (prec) {
           a.baton([prec[0], prec[1] + 0.88, prec[2]], [x, y + 0.88, z], 0.04, P.bois, 5);
           monde.mur(prec[0], prec[2], x, z, 0.12, Math.min(prec[1], y) - 0.6, Math.max(prec[1], y) + 2.2);
@@ -705,7 +706,8 @@ function aspectSol(P, x, z, h) {
   const bruit = bruitDoux(x, z, 4);
   if (h < MER + 9) return [pente > 1.6 || bruit > 0.6 ? P.rocheSombre : P.paroi, M.roche]; // la falaise du bord de mer
   const marches = surLaLigne(MARCHES, x, z).d;
-  if (marches < 1.7) return [P.pierre, M.pierre];
+  if (marches < 1.15) return [P.pierre, M.pierre];
+  if (marches < 2.1 + 0.3 * bruit) return [P.chemin, M.terre]; // l'accotement, au bout des marches
   if (marches < 5) return bruit > 0.5 ? [P.jungle, M.sousBois] : [P.herbeFonce, M.herbe];
   if (surLaLigne(ROUTE, x, z).d < 2.1) return [P.route, M.route];
   for (const c of CHEMINS) if (surLaLigne(c, x, z).d < 1.1) return [P.chemin, M.terre];
