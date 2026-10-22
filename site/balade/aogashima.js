@@ -463,6 +463,9 @@ export function construire(ctx) {
   const hasardDe = (graine) => { let s = graine; return () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; }; };
   const tire = hasardDe(2026);
   const VERTS = [P.jungle, P.jungleFonce, P.feuillage, P.pin];
+  // les buissons [x, z, rayon] : ils arrêtent (on entrait dedans, 2026-10-22), sauf sur un chemin ou la ronde d'un
+  // passant ; leurs cercles sont posés avec les gens (voir plus bas)
+  const buissons = [];
   // les bosquets du fond du cratère, en quatre morceaux (la caméra ne dessine que ceux qu'elle voit)
   {
     const quarts = [atelier(), atelier(), atelier(), atelier()];
@@ -496,7 +499,11 @@ export function construire(ctx) {
           const b = (k / 7) * 2 * PI + tire();
           a.cone(0.16, 1.0, 4, k % 2 ? P.fougere : P.jungle, { x: x + Math.sin(b) * 0.38, y: y + 0.42, z: z + Math.cos(b) * 0.38, rx: Math.cos(b) * 1.05, rz: -Math.sin(b) * 1.05, sz: 0.35, trait: false, sorte: 'feuillu' });
         }
-      } else a.boule(0.5 + tire() * 0.4, P.jungleFonce, { x, y: y + 0.3, z, sy: 0.7, sorte: 'feuillu' }, 1);
+      } else {
+        const r = 0.5 + tire() * 0.4;
+        a.boule(r, P.jungleFonce, { x, y: y + 0.3, z, sy: 0.7, sorte: 'feuillu' }, 1);
+        buissons.push([x, z, r]);
+      }
       n++;
     }
     poser(a.fin(0, peinture), 0, 0, { y: 0, ombre: false });
@@ -505,16 +512,20 @@ export function construire(ctx) {
   {
     const paroi = atelier(), flancs = atelier();
     for (let i = 0; i < 520; i++) {
-      const t = tire() * 2 * PI, r1 = rayonPied(t);
+      // (l'angle ramené entre −π et π, comme celui de la crête et du plateau : tiré de 0 à 2π, la moitié ouest du
+      // plateau, juste sous 0, passait pour une arête de 4 m, et de grosses boules y poussaient : on y entrait, 2026-10-22)
+      const t = tire() * 2 * PI, ta = t > PI ? t - 2 * PI : t, r1 = rayonPied(t);
       const surLaParoi = i < 300;
-      const rr = surLaParoi ? r1 + 1.5 + tire() * (PAROI * 0.55) : r1 + PAROI + largeurCrete(t) + 2 + tire() * 55;
+      const rr = surLaParoi ? r1 + 1.5 + tire() * (PAROI * 0.55) : r1 + PAROI + largeurCrete(ta) + 2 + tire() * 55;
       const x = rr * Math.sin(t), z = -rr * Math.cos(t), y = terrain(x, z);
       if (y < MER + 10 || surLaLigne(MARCHES, x, z).d < 5 || Math.hypot(x - xT, z - zT) < 7) continue;
       if (surLaParoi && y > hauteurCrete(t) - 9) continue;
       // pas d'arbres sur le plateau du nord (de l'herbe, et la vue)
-      if (!surLaParoi && t > PLATEAU[0] - 0.1 && t < PLATEAU[1] + 0.1 && rr < r1 + PAROI + largeurCrete(t) + 6) continue;
+      if (!surLaParoi && ta > PLATEAU[0] - 0.1 && ta < PLATEAU[1] + 0.1 && rr < r1 + PAROI + largeurCrete(ta) + 6) continue;
       const r = 1.8 + tire() * 1.8;
       (surLaParoi ? paroi : flancs).boule(r, VERTS[Math.floor(tire() * VERTS.length)], { x, y: y + r * 0.25, z, sy: 0.8, sorte: 'feuillu' }, 1);
+      // au pied de la paroi, on marche jusqu'à eux : ils arrêtent aussi (leur largeur au ras du sol)
+      if (surLaParoi) buissons.push([x, z, r * 0.95]);
     }
     poser(paroi.fin(0, peinture), 0, 0, { y: 0, ombre: false });
     poser(flancs.fin(0, peinture), 0, 0, { y: 0, ombre: false });
@@ -535,8 +546,9 @@ export function construire(ctx) {
         x = MARUYAMA.x + Math.sin(t) * dm; z = MARUYAMA.z + Math.cos(t) * dm;
         if (Math.hypot(x - SOMMET.x, z - SOMMET.z) < 4) continue;
       }
-      a.boule(0.55 + tire() * 0.45, tire() < 0.5 ? P.jungleFonce : P.jungle, { x, y: terrain(x, z) + 0.25, z, sy: 0.75, sorte: 'feuillu' }, 1);
-      if (sommet) monde.cercle(x, z, 0.6);
+      const r = 0.55 + tire() * 0.45;
+      a.boule(r, tire() < 0.5 ? P.jungleFonce : P.jungle, { x, y: terrain(x, z) + 0.25, z, sy: 0.75, sorte: 'feuillu' }, 1);
+      buissons.push([x, z, r]);
     }
     poser(a.fin(0, peinture), 0, 0, { y: 0 });
   }
@@ -586,6 +598,12 @@ export function construire(ctx) {
     { id: 'grandpere', x: -35.5, z: 19, cap: PI / 2 + 0.4, tenue: { taille: 1.02, peau: '#e8bf98', cheveux: '#e8e4dc', coiffure: 'chauve', chapeau: { sorte: 'paille', c: '#e6c87a', c2: '#3a3236' }, haut: '#5f7a5a', manches: 'longues', bas: { sorte: 'pantalon', c: '#5a5650' }, chaussures: '#3a3236', semelle: '#3a3236', canne: true, yeux: 'plisses' } },
     { id: 'videaste', x: VIDEASTE.x, z: VIDEASTE.z, cap: VIDEASTE.cap, tenue: { taille: 1.1, peau: PEAU, cheveux: '#3a2a20', coiffure: 'court', chapeau: { sorte: 'bob', c: '#2f3440' }, haut: '#2f3440', manches: 'courtes', bas: { sorte: 'pantalon', c: '#c9b48a' }, chaussures: P.blanc, semelle: '#3a3236', appareil: true } },
   ];
+  // le cercle de chaque buisson : son rayon et un peu du corps (le joueur s'arrête contre son feuillage) ; pas sur un
+  // chemin ou une ronde (il y bloquerait le passage : on y passe au travers, comme avant)
+  const lignes = [ROUTE, ...CHEMINS, MARCHES, ...passants.filter((p) => p.ronde).map((p) => [...p.ronde, p.ronde[0]])];
+  for (const [x, z, r] of buissons) {
+    if (lignes.every((l) => surLaLigne(l, x, z).d > r + 1.4)) monde.cercle(x, z, r + 0.15);
+  }
 
   // ---------------------------------------------------------------- Ce qu'on peut faire (tout passe par `jeu`)
   const parler = (id) => ({ id, passant: id, verbe: 'parler', action: (jeu) => jeu.dire(jeu.tx(id), id) });

@@ -5,7 +5,8 @@
 //  ZQSD ou WASD (les touches de la même place sur tous les claviers) ou les flèches : marcher ; Maj : courir ;
 //  E, Espace ou Entrée : parler, lire (le bouton A) ; glisser : tourner la caméra ; molette : l'approcher ;
 //  C : le carnet ; Échap : fermer. Sur téléphone, un joystick en bas à gauche et un bouton A en bas à droite.
-//  On entend ses pas (selon le sol), le vent dans les arbres, la mer, les fumerolles (bruitage.js) ; dans
+//  On entend ses pas (selon le sol), le vent dans les arbres, la mer, les fumerolles (bruitage.js), et l'air du
+//  lieu, composé pour la balade (musique.js) ; dans
 //  l'eau, on éclabousse et l'on ressort mouillé (effets.js).
 //  ?lieu=itsukushima|aogashima ; ?perso=garcon|fille ; ?langue=en|fr|ja ;
 //  ?photo=heros|perso : une image fixe (captures) ; ?demo : une partie jouée image par image (vidéos) ;
@@ -22,6 +23,7 @@ import { creerDialogue } from './dialogue.js';
 import { creerCarnet, dessinTampon, aLeTampon, ajouterTampon, lireTampons } from './carnet.js';
 import { son } from './son.js';
 import { creerBruitage } from './bruitage.js';
+import { creerMusique } from './musique.js';
 import { creerEffets } from './effets.js';
 import * as itsukushima from './itsukushima.js';
 import * as aogashima from './aogashima.js';
@@ -154,7 +156,7 @@ function construire() {
   groupe.add(effets.groupe);
   scene.add(groupe);
   M = {
-    carte, effets, mouilleJoueur, mouilleKon, feuillage: densiteFeuillage(lieu), bruitage: creerBruitage({ oiseaux: lieu.oiseaux || [], ambiances: lieu.ambiances || [] }), focale: 800,
+    carte, effets, mouilleJoueur, mouilleKon, feuillage: densiteFeuillage(lieu), bruitage: creerBruitage({ oiseaux: lieu.oiseaux || [], ambiances: lieu.ambiances || [] }), musique: creerMusique(lieu.id), focale: 800,
     style, ctx, mats, lieu, groupe, voyageurs, kon, passants, daims, eau, ciel, soleil, hemi, etoiles, vapeurs, touffes, finale: passeFinale(THREE, style, { echantillons: params.get('aa') === '0' ? 0 : 4, flou: params.get('flou') !== '0' }), cible: null, sauvage: null, nuit: { v: 0, cible: 0, fin: null } };
   choisirVoyageur(sorte || 'garcon');
   dimensionner();
@@ -812,6 +814,7 @@ function ouvrirMenu() {
     ${choix('menuVoyageur', [['garcon', t('garcon')], ['fille', t('fille')]], sorte)}
     ${choix('menuLieu', Object.entries(LIEUX).map(([id, { infos }]) => [id, nomDe(infos)]), M.lieu.id)}
     ${choix('menuSon', [['oui', t('sonOui')], ['non', t('sonNon')]], son.actif() ? 'oui' : 'non')}
+    ${choix('menuMusique', [['oui', t('sonOui')], ['non', t('sonNon')]], M.musique.actif() ? 'oui' : 'non')}
     ${choix('menuLangue', [['en', 'EN'], ['fr', 'FR'], ['ja', '日本語']], langue)}
     <a class="menu-carte" href="../#${M.lieu.carte}">${t('menuCarte')}</a>`;
   $('.fond-menu').hidden = false;
@@ -829,6 +832,7 @@ $('.menu').addEventListener('click', (e) => {
   } else if (d.menulieu) {
     if (d.menulieu !== M.lieu.id) { location.search = `?lieu=${d.menulieu}`; return; }
   } else if (d.menuson) son.regler(d.menuson === 'oui');
+  else if (d.menumusique) M.musique.regler(d.menumusique === 'oui');
   else if (d.menulangue) {
     langue = d.menulangue;
     memoire.ecrire('langue', langue);
@@ -874,6 +878,7 @@ function video() {
     $('.video-fermer').textContent = t('videoFermer');
     $('.fond-video').hidden = false;
     M.bruitage.couper(true);
+    M.musique.couper(true);
     const avant = etat.mode;
     etat.mode = 'video';
     const fermer = () => {
@@ -882,6 +887,7 @@ function video() {
       $('.fond-video').hidden = true;
       lecteur.innerHTML = '';
       M.bruitage.couper(false);
+      M.musique.couper(false);
       etat.mode = avant;
       removeEventListener('keydown', echap);
       fin();
@@ -1268,6 +1274,7 @@ function vivre(dt, temps, pasJoueur, pasKon) {
   const oiseaux = L.oiseaux || [];
   const oiseau = oiseaux.includes('uguisu') && feuilles > 0.3 && Math.random() < 0.7 ? 'uguisu' : oiseaux.includes('milan') ? 'milan' : null;
   M.bruitage.ambiance({ vent, feuilles, vagues: oreille.mer.vagues, panVagues: oreille.mer.pan, vapeur: Math.min(1, vapeur), panVapeur, nuit: M.nuit.v, oiseau }, d);
+  M.musique.maj(M.nuit.v);
 }
 
 function dessiner(dt, temps) {

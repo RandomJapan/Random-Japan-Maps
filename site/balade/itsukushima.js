@@ -448,6 +448,10 @@ export function construire(ctx) {
     monde.mur(55.8, -1.6, 55.8, 0.6, 0.55); // le banc rouge et son parasol
     for (const z of [4, 11.5, 19]) monde.bloc(56.6, 63.2, z - 3.6, z + 3.6, -2, 9);
     monde.bloc(38.8, 45.4, 7.9, 15.1, -2, 9);
+    // les maisons elles-mêmes : pleines (on entrait par les côtés et l'arrière, 2026-10-22) ; devant, le comptoir
+    // ou l'étal arrête déjà, et la marchande se tient entre le sien et la façade
+    for (const z of [4, 11.5, 19]) monde.surface(56.95, 62.4, z - 3.3, z + 3.3, terrain(59, z) + 7, { plein: true });
+    monde.surface(39.6, 45.05, 8.2, 14.8, terrain(43, 11.5) + 7, { plein: true });
   }
 
   // la colline de la pagode : l'escalier de pierre depuis la rue, la pagode à cinq étages
