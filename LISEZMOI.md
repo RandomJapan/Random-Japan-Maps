@@ -57,6 +57,31 @@ Depuis le 20 octobre 2026, TikTok ne donne plus l'image de couverture de tes vid
 > **Photo** : laisse la case vide, la carte prendra la vignette de ta vidéo (voir « La vignette du lieu » plus haut).
 > **Traductions** : tu peux écrire par-dessus une traduction automatique si elle ne te plaît pas.
 
+## Les grandes villes et tes carrousels (octobre 2026)
+
+Sur la carte, chaque grande ville a un petit pin dessiné (une ville en miniature). Un clic montre son contour en « plan ancien » et sa fiche : une courte description, et ton carrousel TikTok si tu en as fait un. Ses lieux sont numérotés sur la carte. Un clic sur un lieu ouvre un encadré avec ton texte, et le carrousel va à la bonne photo.
+
+### Ajouter un carrousel : le robot 🤖
+
+1. Sur TikTok, fais **Partager → Copier le lien** de ton carrousel.
+2. Dans l'onglet **Villes**, sur la première ligne vide, colle le lien dans **Lien TikTok**.
+3. Copie la **légende** du carrousel (le texte « 📍1- … 📍2- … » sous tes photos) et colle-la dans **Légende** de la même ligne. Le robot ne peut pas la lire lui-même : TikTok la lui cache.
+4. Attends une à deux minutes. Le robot :
+   - reconnaît la ville et chaque lieu numéroté, d'après ton texte ;
+   - les place avec Google Maps ;
+   - traduit tes textes en français et en japonais ;
+   - écrit une ligne par lieu dans l'onglet **Lieux des villes**, en **jaune** (à vérifier).
+5. Relis les lignes jaunes. Le plus important, c'est le **nom** de chaque lieu : le robot le devine d'après ta description, et il peut se tromper quand deux lieux se ressemblent. Corrige si besoin, puis remets le fond en blanc.
+
+Le carrousel apparaît sur la carte dès que le robot a fini.
+
+- **La ville est déjà sur la carte** (Kobe, Osaka…) : le robot met le carrousel dans sa ligne et supprime la ligne où tu l'avais collé. C'est normal.
+- **Une ville qui n'est pas encore sur la carte** (comme Takayama l'était) : le robot l'ajoute. Il écrit son nom japonais, sa position et une courte description. Son pin apparaît tout de suite, et son contour est dessiné **la nuit suivante**.
+- **Un lieu qu'il ne trouve pas sur Google Maps** : il reste dans la liste et dans le carrousel, mais sans point sur la carte. Pour lui en donner un, colle ses coordonnées dans **Coordonnées GPS** de sa ligne (clic droit sur le lieu dans Google Maps).
+- **Une seule photo par lieu, dans l'ordre** : le n° 1 de ta légende doit être la 1re photo après la couverture, etc.
+- **Un seul carrousel par ville.** Pour en changer : supprime ses lignes dans **Lieux des villes**, puis colle le nouveau lien et la nouvelle légende dans la ligne de la ville et efface sa case **Robot**.
+- **La colonne « Robot »** de l'onglet Villes marche comme celle des lieux : 📝 = il attend la légende, ⏳ = il travaille, 🤖 = fini (avec ses doutes), ❌ = il n'y arrive pas (lis le message, puis efface-le pour qu'il réessaie).
+
 ## Autres réglages dans le tableau
 
 | Je veux… | Je fais… |
