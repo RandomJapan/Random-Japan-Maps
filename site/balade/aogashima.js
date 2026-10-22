@@ -43,6 +43,9 @@ const hauteurCrete = (a) => 22 + 5 * Math.cos(a) + 1.2 * Math.sin(3 * a + 1.2) +
 /** La largeur du dessus de la crête : un plateau au nord (le belvédère, Ōtonbu), une arête ailleurs. */
 const largeurCrete = (a) => 4 + 13 * Math.exp(-((a / 0.42) ** 2));
 const PLATEAU = [-0.6, 0.7]; // les angles du plateau (seule partie de la crête où l'on va)
+const BARRIERE = 0.9; // la barrière de la crête, à 0,9 m du bord, sur le plateau
+/** Le pied de la barrière de la crête à l'angle t. */
+const surLaBarriere = (t) => { const r = rayonPied(t) + PAROI + BARRIERE; return [r * Math.sin(t), -r * Math.cos(t)]; };
 const Y_BELVEDERE = hauteurCrete(angle(BELVEDERE.x, BELVEDERE.z));
 
 /**
@@ -62,6 +65,8 @@ const MARCHES = (() => {
   return pts;
 })();
 const [BAS, HAUT] = [MARCHES[0], MARCHES[MARCHES.length - 1]];
+// le passage dans la barrière de la crête, au haut de l'escalier : 1,3 m de chaque côté du chemin (comme la main courante)
+const OUVERTURE = ((d) => [ESCALIER.a1 - d, ESCALIER.a1 + d])(1.3 / (rayonPied(ESCALIER.a1) + PAROI + BARRIERE));
 const BOITE_ESCALIER = [Math.min(...MARCHES.map((p) => p[0])) - 5, Math.max(...MARCHES.map((p) => p[0])) + 5, Math.min(...MARCHES.map((p) => p[1])) - 5, Math.max(...MARCHES.map((p) => p[1])) + 5];
 const CHEMINS = [
   [[-31, -11], [-18, -30], [0, -42], [18, -50], [BAS[0], BAS[1]]],
@@ -126,11 +131,16 @@ function terrain(x, z) {
   return h;
 }
 
-/** Où l'on peut aller : le fond du cratère (la paroi arrête d'elle-même, trop raide), et le plateau de la crête. */
+/**
+ * Où l'on peut aller : le fond du cratère (la paroi arrête d'elle-même, trop raide), et le plateau de la crête,
+ * derrière sa barrière. Le bord de la crête, entre la barrière et le vide, seulement au haut de l'escalier : de
+ * là, on glisserait sur la paroi jusqu'en bas.
+ */
 function dansLeCadre(x, z) {
   const r = Math.hypot(x, z), a = angle(x, z), r2 = rayonPied(a) + PAROI;
   if (r < r2 - 1) return true;
-  return a > PLATEAU[0] && a < PLATEAU[1] && r < r2 + largeurCrete(a) - 0.6;
+  if (a <= PLATEAU[0] || a >= PLATEAU[1] || r >= r2 + largeurCrete(a) - 0.6) return false;
+  return r > r2 + BARRIERE || surLaLigne(MARCHES, x, z).d < 1.5;
 }
 
 /** Ce que le carnet et le menu savent du lieu, sans le construire. */
@@ -340,6 +350,17 @@ export function construire(ctx) {
         prec = [x, y, z];
       }
     }
+    // au haut de l'escalier, elle tourne avec le chemin et rejoint la barrière de la crête (qui y plante son poteau)
+    const [ux, uz] = [Math.sin(ESCALIER.a1), -Math.cos(ESCALIER.a1)], [wx, wz] = [-Math.cos(ESCALIER.a1), -Math.sin(ESCALIER.a1)];
+    const rc = rayonPied(ESCALIER.a1) + PAROI - 1.3;
+    const tour = [[ux * rc, uz * rc], [ux * rc + wx * 1.3, uz * rc + wz * 1.3], surLaBarriere(OUVERTURE[0])];
+    tour.forEach(([x, z], i) => {
+      const y = terrain(x, z);
+      if (i < tour.length - 1) a.boite(0.1, 0.95, 0.1, P.boisFonce, { x, y: y + 0.4, z });
+      a.baton([prec[0], prec[1] + 0.88, prec[2]], [x, y + 0.88, z], 0.04, P.bois, 5);
+      monde.mur(prec[0], prec[2], x, z, 0.12, Math.min(prec[1], y) - 0.6, Math.max(prec[1], y) + 2.2);
+      prec = [x, y, z];
+    });
     poser(a.fin(0, peinture), 0, 0, { y: 0 });
   }
 
@@ -381,21 +402,22 @@ export function construire(ctx) {
     monde.surface(OTONBU.x - 1.9, OTONBU.x + 1.9, OTONBU.z - 1.9, OTONBU.z + 1.9, yO + 0.2);
     monde.cercle(OTONBU.x, OTONBU.z, 0.35, yO - 1, yO + 3);
   }
-  // une barrière de bois au bord de la crête, côté cratère (sauf au haut de l'escalier)
+  // une barrière de bois au bord de la crête, côté cratère, avec un passage au haut de l'escalier (OUVERTURE)
   {
     const a = atelier();
+    const [o0, o1] = OUVERTURE, angles = [o0, o1];
+    // un poteau tous les 2,6 m environ, sauf dans le passage et tout contre ses poteaux
+    for (let t = PLATEAU[0] + 0.05; t <= PLATEAU[1] - 0.05; t += 0.035) if (t < o0 - 0.012 || t > o1 + 0.012) angles.push(t);
+    angles.sort((p, q) => p - q);
     let prec = null;
-    for (let t = PLATEAU[0] + 0.05; t <= PLATEAU[1] - 0.05; t += 0.035) {
-      const ouvert = Math.abs(t - ESCALIER.a1) < 0.06; // le haut de l'escalier
-      const r = rayonPied(t) + PAROI + 0.9, x = r * Math.sin(t), z = -r * Math.cos(t), y = terrain(x, z);
-      if (!ouvert) {
-        a.boite(0.12, 1.0, 0.12, P.boisFonce, { x, y: y + 0.42, z });
-        if (prec) {
-          a.baton([prec[0], prec[1] + 0.85, prec[2]], [x, y + 0.85, z], 0.04, P.bois, 5);
-          monde.mur(prec[0], prec[2], x, z, 0.14, Math.min(prec[1], y) - 0.6, Math.max(prec[1], y) + 2.5);
-        }
+    for (const t of angles) {
+      const [x, z] = surLaBarriere(t), y = terrain(x, z);
+      a.boite(0.12, 1.0, 0.12, P.boisFonce, { x, y: y + 0.42, z });
+      if (prec && t !== o1) {
+        a.baton([prec[0], prec[1] + 0.85, prec[2]], [x, y + 0.85, z], 0.04, P.bois, 5);
+        monde.mur(prec[0], prec[2], x, z, 0.14, Math.min(prec[1], y) - 0.6, Math.max(prec[1], y) + 2.5);
       }
-      prec = ouvert ? null : [x, y, z];
+      prec = [x, y, z];
     }
     poser(a.fin(0, peinture), 0, 0, { y: 0 });
   }
