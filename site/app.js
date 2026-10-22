@@ -910,6 +910,7 @@ function tourner(temps) {
 }
 function arreterRotation() {
   rotation = false;
+  reperes.fluide(false); // les repères de nouveau arrondis au pixel : nets au repos
   cacherAide();
 }
 
@@ -2520,7 +2521,13 @@ async function demarrer() {
     setTimeout(() => { $('chargement').style.display = 'none'; }, 900);
     setTimeout(replierSources, 5000);
     if (location.hash.length > 1) ouvrirDepuisAdresse();
-    else if (rotation) setTimeout(() => requestAnimationFrame(tourner), 600);
+    else if (rotation) {
+      setTimeout(() => {
+        if (!rotation) return;
+        reperes.fluide(true); // sans quoi les points des lieux scintillent en tournant (reperes.js)
+        requestAnimationFrame(tourner);
+      }, 600);
+    }
     // Contours des préfectures (116 Ko) chargés en avance, sans gêner le démarrage : le dé s'ouvre tout de suite.
     setTimeout(() => preparerPrefectures().catch(() => {}), 3000);
     setTimeout(chargerLegendes, 1500);

@@ -14,11 +14,13 @@ const MARGE = 0.1; // un repère reste sur la carte jusqu'à 10 % de la taille d
  * @returns suivre(repère, { voulu, placer }) pour confier un repère (pas encore ajouté à la carte) ;
  *   montrer(repère, voulu, delai) pour le montrer ou le cacher (catégorie décochée, zoom hors de sa plage…),
  *   le retrait pouvant attendre `delai` ms (le temps d'un fondu) ;
- *   verifier(repère) après un setLngLat ; oublier(repère) pour le retirer pour de bon.
+ *   verifier(repère) après un setLngLat ; oublier(repère) pour le retirer pour de bon ;
+ *   fluide(oui) pendant la rotation douce du départ.
  */
 export function gererReperes(map) {
   const suivis = new Map(); // repère → { voulu, placer, sur, minuterie }
   let bornes = null; // [ouest, sud, est, nord], marge comprise
+  let fluides = false; // les repères placés à la fraction de pixel près (fluide)
 
   function majBornes() {
     const b = map.getBounds();
@@ -52,7 +54,22 @@ export function gererReperes(map) {
       if (!bornes) majBornes();
       const s = { voulu, placer, sur: false, minuterie: null };
       suivis.set(repere, s);
+      if (fluides) repere.setSubpixelPositioning(true);
       appliquer(repere, s);
+    },
+    /**
+     * La rotation douce du départ tourne la carte d'une fraction de degré à chaque image (setBearing, donc un
+     * moveend à chaque image), et MapLibre arrondit alors la place de chaque repère au pixel : les points des lieux
+     * sautaient d'un pixel, chacun à son tour, et scintillaient (vu par le propriétaire, 2026-10-22). oui : placés à
+     * la fraction de pixel près ; non : de nouveau arrondis, nets au repos (setLngLat les replace aussitôt).
+     */
+    fluide(oui) {
+      if (oui === fluides) return;
+      fluides = oui;
+      for (const repere of suivis.keys()) {
+        repere.setSubpixelPositioning(oui);
+        if (!oui) repere.setLngLat(repere.getLngLat());
+      }
     },
     montrer(repere, voulu, delai = 0) {
       const s = suivis.get(repere);
