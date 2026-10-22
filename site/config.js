@@ -588,7 +588,7 @@ export const TEXTES = {
     villeAria: (nom) => `${nom}, ville`,
     villeLieux: (n, nom) => `${n} lieux à voir à ${nom}`,
     villeAussi: 'Aussi sur la carte, dans la ville :',
-    prefectureDe: (nom, code) => (code === 13 ? 'Métropole de Tokyo' : code === 1 ? 'Hokkaidō' : `Préfecture de ${nom}`),
+    prefectureDe: (nom, code) => (code === 13 ? 'Métropole de Tokyo' : code === 1 ? 'Hokkaidō' : `Préfecture ${/^[AEIOUÉÈĀŌŪ]/i.test(nom) ? 'd’' : 'de '}${nom}`),
     voirCarrousel: 'Voir le carrousel sur TikTok',
     voirSaVideo: 'Voir sa vidéo',
     villeGlisser: 'Fais glisser les photos : la carte t’emmène à chaque lieu',

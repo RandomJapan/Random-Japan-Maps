@@ -1917,6 +1917,7 @@ function chargerVilles() {
     },
     nomPrefecture: (code) => enLangue(PREFECTURES[code]),
     nomRegion: (code) => enLangue(regionDe(code)?.nom),
+    prefectures: () => preparerPrefectures().then(() => trouverPrefecture),
     avant: () => {
       if (visite.enCours()) visite.arreter();
       arreterRotation();

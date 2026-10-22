@@ -6,10 +6,13 @@
 //  TikTok de la ville. Ses lieux (onglet « Lieux des villes ») sont numérotés sur la carte ; un lieu ouvre un
 //  petit encadré qui l'explique, et la carte et le carrousel se suivent dans les deux sens.
 //  Contours : data/villes.geojson (outils/fabriquer_villes.py), chargés au premier clic.
+//  Le robot du tableau ajoute les carrousels ; une ville qui n'est pas dans VILLES vient alors du tableau (son nom
+//  japonais et sa position), et son contour est fabriqué la nuit suivante.
 // ================================================================
 import { echapper, kmEntre, tactile } from './commun.js';
 
 // pref : le numéro de la préfecture ; loin : visible aussi en vue lointaine (sinon le Kansai serait illisible)
+// Les villes ajoutées par le robot du tableau viennent à la suite (nouvelleVille).
 export const VILLES = [
   { id: 'sapporo', nom: 'Sapporo', ja: '札幌', pref: 1, centre: [141.3543, 43.0619], loin: true },
   { id: 'hakodate', nom: 'Hakodate', ja: '函館', pref: 1, centre: [140.729, 41.7688], loin: true },
@@ -40,6 +43,10 @@ const ZOOM_LIEU = 14;       // en volant vers un lieu du carrousel
 const HACHURES_M = 400;     // écart des hachures sur le sol, en mètres (fixes sur le sol : elles grandissent en zoomant)
 const AVANT = 'cote-encre'; // les couches de la ville passent sous l'encre de la côte
 const MEME_LIEU_KM = 0.3;   // un lieu du carrousel à moins de 300 m d'un lieu de la carte est le même : un seul pin
+const ECART_LOIN_KM = 60;   // une ville ajoutée est visible de loin s'il n'y en a pas d'autre visible de loin plus près
+
+/** L'identifiant d'une ville d'après son nom anglais, comme le robot du tableau et fabriquer_villes.py : « Kōbe » → « kobe ». */
+const idVille = (nom) => String(nom || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
 // Une ville en miniature, à l'encre et à l'aquarelle (le pin choisi par le propriétaire, le « C » des exemples)
 const DESSIN = `<svg viewBox="0 0 48 36" aria-hidden="true">
@@ -102,8 +109,8 @@ function hachures(rings) {
 /**
  * @param o outils de app.js : t, enLangue, langue(), reperes, lieux(), lireVilles() (les lignes des onglets
  *   « Villes » et « Lieux des villes »), champ, lireGPS, paddingFiche, estTelephone, nomPrefecture(code),
- *   nomRegion(code), avant() (arrête la visite et la rotation, oublie le lieu ouvert), ouvrirLieu(l), fermerFiche(),
- *   envoyer(url, nom), SVG
+ *   nomRegion(code), prefectures() (promesse : (lng, lat) → numéro de préfecture), avant() (arrête la visite et la
+ *   rotation, oublie le lieu ouvert), ouvrirLieu(l), fermerFiche(), envoyer(url, nom), SVG
  */
 export function brancherVilles(map, maplibregl, o) {
   const $ = (id) => document.getElementById(id);
@@ -116,7 +123,7 @@ export function brancherVilles(map, maplibregl, o) {
   let noms = null;
 
   // ---- Les pins
-  for (const v of VILLES) {
+  function creerPin(v) {
     const el = document.createElement('button');
     el.type = 'button';
     el.className = 'ville';
@@ -128,6 +135,7 @@ export function brancherVilles(map, maplibregl, o) {
     // couvrait la ville et prenait le clic ; une épingle survolée repasse devant (.repere:hover, z-index 3)
     o.reperes.suivre(v.repere, { voulu: voulue(v) });
   }
+  for (const v of VILLES) creerPin(v);
   function voulue(v) {
     return !loin || v.loin || ouverte?.v === v;
   }
@@ -156,12 +164,34 @@ export function brancherVilles(map, maplibregl, o) {
   // ---- Les textes et les carrousels (onglets « Villes » et « Lieux des villes » du tableau)
   const idDe = (nom) => {
     const n = String(nom || '').trim();
-    return VILLES.find((v) => v.id === n.toLowerCase().replace(/[^a-z]/g, '') || v.ja === n.replace(/市$/, ''))?.id;
+    return VILLES.find((v) => v.id === idVille(n) || v.ja === n.replace(/市$/, ''))?.id;
   };
-  const pretes = o.lireVilles().then(({ villes, lieux }) => {
+  /**
+   * Une ville ajoutée par le robot du tableau (le carrousel d'une ville qui n'est pas dans VILLES) : son pin à la
+   * position écrite par le robot (l'hôtel de ville). Renvoie son identifiant, ou rien sans position.
+   */
+  async function nouvelleVille(nom, l) {
+    const id = idVille(nom);
+    const gps = o.lireGPS(o.champ(l, ['coordonneesgps', 'coordonnees', 'gps']));
+    if (!id || !gps || /tiktok/i.test(nom)) return null;
+    const trouver = await o.prefectures().catch(() => null);
+    const v = {
+      id, nom: nom.trim(), ja: o.champ(l, ['nom日本語', 'nomja']).replace(/[市町村]$/, '') || nom.trim(),
+      pref: trouver?.(gps.lng, gps.lat) || null, centre: [gps.lng, gps.lat],
+      loin: !VILLES.some((x) => x.loin && kmEntre({ lng: x.centre[0], lat: x.centre[1] }, gps) < ECART_LOIN_KM),
+    };
+    VILLES.push(v);
+    creerPin(v);
+    v.el.querySelector('.ville-nom').textContent = nomVille(v);
+    v.el.setAttribute('aria-label', o.t('villeAria', nomVille(v)));
+    return id;
+  }
+  const pretes = o.lireVilles().then(async ({ villes, lieux }) => {
     for (const l of villes) {
-      const id = idDe(o.champ(l, ['ville', 'villeen', 'nom', 'nomen']));
-      if (!id || /^(non|no)$/i.test(o.champ(l, ['afficher', 'visible']))) continue;
+      if (/^(non|no)$/i.test(o.champ(l, ['afficher', 'visible']))) continue;
+      const nom = o.champ(l, ['ville', 'villeen', 'nom', 'nomen']);
+      const id = idDe(nom) || await nouvelleVille(nom, l);
+      if (!id) continue;
       textes.set(id, {
         en: o.champ(l, ['descriptionen', 'description']),
         fr: o.champ(l, ['descriptionfr']),
@@ -174,9 +204,10 @@ export function brancherVilles(map, maplibregl, o) {
       const c = carrousels.get(idDe(o.champ(l, ['ville'])));
       const gps = o.lireGPS(o.champ(l, ['coordonneesgps', 'coordonnees', 'gps']));
       const n = parseInt(o.champ(l, ['n', 'no', 'numero', 'photo']), 10);
-      if (!c || !gps || !(n > 0)) continue;
+      if (!c || !(n > 0)) continue;
+      // sans position (le robot ne l'a pas trouvée) : dans la liste et le carrousel, mais pas de point sur la carte
       c.lieux.push({
-        n, ...gps, nom: o.champ(l, ['nom', 'nomen']), ja: o.champ(l, ['nom日本語', 'nomja']),
+        n, lng: gps?.lng ?? null, lat: gps?.lat ?? null, nom: o.champ(l, ['nom', 'nomen']), ja: o.champ(l, ['nom日本語', 'nomja']),
         texte: { en: o.champ(l, ['texteen', 'texte']), fr: o.champ(l, ['textefr']), ja: o.champ(l, ['texte日本語', 'texteja']) },
         lieu: null,
       });
@@ -234,6 +265,7 @@ export function brancherVilles(map, maplibregl, o) {
   function creerPoints(c) {
     const points = [];
     for (const l of c?.lieux || []) {
+      if (l.lng == null) continue;
       l.lieu = o.lieux().find((x) => kmEntre(x, l) < MEME_LIEU_KM) || null;
       if (l.lieu) {
         l.lieu.el.classList.add('carrousel');
@@ -257,7 +289,8 @@ export function brancherVilles(map, maplibregl, o) {
 
   /**
    * L'encadré d'un lieu du carrousel : son nom et ce qu'en dit la légende du TikTok. Sur ordinateur, une bulle sur
-   * la carte ; sur téléphone, la fiche ne laisse qu'un tiers de carte : l'encadré va dans la fiche, sous la photo.
+   * la carte ; sur téléphone, la fiche ne laisse qu'un tiers de carte : l'encadré va dans la fiche, sous la photo
+   * (comme pour un lieu sans position).
    */
   function bulle(l) {
     ouverte.bulle?.remove();
@@ -272,7 +305,7 @@ export function brancherVilles(map, maplibregl, o) {
       + `<p class="bulle-texte">${echapper(l.texte[o.langue()] || l.texte.en)}</p>`
       + (l.lieu ? `<button type="button" class="bulle-video">${o.SVG.lecture}${echapper(o.t('voirSaVideo'))}</button>` : '');
     div.querySelector('.bulle-video')?.addEventListener('click', () => o.ouvrirLieu(l.lieu));
-    if (o.estTelephone()) {
+    if (o.estTelephone() || l.lng == null) {
       div.className = 'ville-encadre';
       $('fiche-media').append(div);
       return;
@@ -287,6 +320,13 @@ export function brancherVilles(map, maplibregl, o) {
   }
 
   // ---- La caméra
+  /** Sans contour (une ville ajoutée, avant la nuit) : la ville et les lieux de son carrousel. */
+  function bornesAutour(v) {
+    const pts = [v.centre, ...(carrousels.get(v.id)?.lieux || []).filter((l) => l.lng != null).map((l) => [l.lng, l.lat])];
+    const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
+    const [mx, my] = pts.length > 1 ? [0.02, 0.015] : [0.12, 0.1];
+    return [[Math.min(...xs) - mx, Math.min(...ys) - my], [Math.max(...xs) + mx, Math.max(...ys) + my]];
+  }
   /** Le rectangle des grands morceaux de la ville (≥ 10 % du plus grand) : Fukuoka va jusqu'à l'îlot d'Oronoshima, à 40 km en mer. */
   function bornesDe(f) {
     const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
@@ -307,8 +347,7 @@ export function brancherVilles(map, maplibregl, o) {
   function cadrerVille(f, duree = 2200) {
     const p = o.paddingFiche();
     const marge = o.estTelephone() ? 14 : 36; // sur téléphone, la fiche laisse peu de carte
-    const [x, y] = ouverte.v.centre;
-    const b = f ? bornesDe(f) : [[x - 0.12, y - 0.1], [x + 0.12, y + 0.1]];
+    const b = f ? bornesDe(f) : bornesAutour(ouverte.v);
     const merc = ([lng, lat]) => [(lng + 180) / 360, (1 - Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360)) / Math.PI) / 2];
     // le rectangle de la ville, tourné comme la carte
     const a = (map.getBearing() * Math.PI) / 180;
@@ -334,9 +373,10 @@ export function brancherVilles(map, maplibregl, o) {
     const lang = o.langue();
     const ja = lang === 'ja';
     // le sceau rouge porte les kanji de la ville ; en japonais, le titre l'est déjà
-    $('fiche-nom').innerHTML = `${ja ? '' : `<span class="sceau-ville" lang="ja">${echapper(v.ja)}</span>`}<span>${echapper(nomVille(v))}</span>`;
-    $('fiche-nom-jp').textContent = ja ? v.nom : '';
-    $('fiche-categorie').textContent = [o.t('ville'), o.t('prefectureDe', o.nomPrefecture(v.pref), v.pref), o.nomRegion(v.pref)].filter(Boolean).join(' · ');
+    const sceau = !ja && v.ja !== v.nom;
+    $('fiche-nom').innerHTML = `${sceau ? `<span class="sceau-ville" lang="ja">${echapper(v.ja)}</span>` : ''}<span>${echapper(nomVille(v))}</span>`;
+    $('fiche-nom-jp').textContent = ja && v.ja !== v.nom ? v.nom : '';
+    $('fiche-categorie').textContent = [o.t('ville'), v.pref && o.t('prefectureDe', o.nomPrefecture(v.pref), v.pref), v.pref && o.nomRegion(v.pref)].filter(Boolean).join(' · ');
 
     const desc = textes.get(v.id);
     let html = desc && (desc[lang] || desc.en) ? `<p class="ville-texte">${echapper(desc[lang] || desc.en)}</p>` : '';
@@ -416,10 +456,11 @@ export function brancherVilles(map, maplibregl, o) {
     if (suivre) commander('navigateTo', n);
     else if (deja) return;
     bulle(l);
-    // sur téléphone, la fiche remonte en haut : la photo du carrousel et l'encadré du lieu
-    if (l && o.estTelephone()) $('fiche-defil').scrollTo({ top: 0, behavior: 'smooth' });
+    // sur téléphone (ou sans position), la fiche remonte en haut : la photo du carrousel et l'encadré du lieu
+    if (l && (o.estTelephone() || l.lng == null)) $('fiche-defil').scrollTo({ top: 0, behavior: 'smooth' });
     if (!voler) return;
     if (!n) return cadrerVille(ouverte.feature, 1600);
+    if (l.lng == null) return;
     // sur ordinateur, le lieu un peu à gauche : sa bulle est à sa droite ; un lieu de la carte un peu plus bas, la
     // tête de son épingle (et la bulle) montant bien au-dessus de son modèle 3D
     const p = o.paddingFiche();
@@ -479,7 +520,12 @@ export function brancherVilles(map, maplibregl, o) {
   }
 
   return {
-    ouvrir: (id) => { const v = VILLES.find((x) => x.id === id); if (v) ouvrir(v); },
+    // une ville ajoutée par le robot n'est connue qu'une fois le tableau lu
+    async ouvrir(id) {
+      if (!VILLES.some((x) => x.id === id)) await pretes;
+      const v = VILLES.find((x) => x.id === id);
+      if (v) ouvrir(v);
+    },
     quitter,
     ouverte: () => !!ouverte,
     /** Changement de langue : les noms des pins, des points, l'encadré et la fiche. */

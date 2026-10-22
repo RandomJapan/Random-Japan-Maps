@@ -12,11 +12,20 @@ Le pin de la ville se pose sur l'hôtel de ville (le membre admin_centre de la r
 
 Résultat : site/data/villes.geojson (un multipolygone par ville, propriétés id, ja, centre)
 Lancer :  python outils/fabriquer_villes.py      (demande Pillow et shapely : pip install shapely)
+
+Les villes ajoutées par le robot du tableau (le carrousel d'une ville qui n'est pas dans VILLES : l'onglet « Villes »
+a alors son nom japonais et sa position) : chaque nuit, la mise en ligne lance
+          python outils/fabriquer_villes.py --nouvelles
+qui ajoute au fichier le contour de chacune qui n'en a pas encore : la commune où se trouve sa position.
 """
+import csv
 import io
 import json
 import math
+import re
+import sys
 import tempfile
+import unicodedata
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -128,6 +137,57 @@ def arrondir(coords):
     return [arrondir(c) for c in coords]
 
 
+def contour(id_, rels, centre, ja):
+    """La ville (sa ou ses communes) découpée par la côte, en entité GeoJSON."""
+    brut, _ = commune(rels)
+    terre = nettoyer(decouper(brut, id_))
+    if terre.is_empty:
+        raise RuntimeError(f"{id_} : rien à terre")
+    if not centre:
+        centre = [round(c, 4) for c in max(terre.geoms, key=km2).representative_point().coords[0]]
+    points = sum(len(p.exterior.coords) + sum(len(t.coords) for t in p.interiors) for p in terre.geoms)
+    print(f"{id_:10} {ja:6} {len(terre.geoms):3} morceaux {points:5} points  {km2(brut):6.0f} km² dans OSM, {km2(terre):5.0f} à terre  centre {centre}")
+    return {"type": "Feature", "properties": {"id": id_, "ja": ja, "centre": centre},
+            "geometry": {"type": "MultiPolygon", "coordinates": arrondir(mapping(terre)["coordinates"])}}
+
+
+def sans_accents(texte):
+    return "".join(c for c in unicodedata.normalize("NFD", texte or "") if not unicodedata.combining(c)).lower()
+
+
+def id_ville(nom):
+    """L'identifiant d'une ville d'après son nom anglais, comme sur la carte (villes.js) : « Kōbe » → « kobe »."""
+    return re.sub(r"[^a-z0-9]", "", sans_accents(nom))
+
+
+def nouvelles():
+    """Ajoute le contour des villes de l'onglet « Villes » (copie de secours) qui ont une position et pas de contour."""
+    # les en-têtes simplifiés comme sur la carte : « Coordonnées GPS » → coordonneesgps, « Nom (日本語) » → nom日本語
+    simple = lambda s: re.sub(r"[^a-z0-9぀-ヿ一-鿿]", "", sans_accents(s))
+    lignes = list(csv.DictReader(io.StringIO((RACINE / "site" / "data" / "secours-villes.csv").read_text(encoding="utf-8"))))
+    collection = json.loads(SORTIE.read_text(encoding="utf-8"))
+    connues = {f["properties"]["id"] for f in collection["features"]} | {id_ for id_, _ in VILLES}
+    ajouts = 0
+    for brute in lignes:
+        l = {simple(k): (v or "").strip() for k, v in brute.items() if k}
+        nom = l.get("ville", "")
+        id_ = id_ville(nom)
+        nombres = re.findall(r"-?\d+(?:\.\d+)?", l.get("coordonneesgps", ""))
+        if not id_ or id_ in connues or "tiktok" in nom.lower() or len(nombres) < 2 or l.get("afficher", "").lower() in ("non", "no"):
+            continue
+        lat, lng = float(nombres[0]), float(nombres[1])
+        rels = overpass(f'[out:json][timeout:180];is_in({lat},{lng})->.a;rel(pivot.a)["boundary"="administrative"]["admin_level"="7"];out geom;', f"ville-{id_}")["elements"]
+        if len(rels) != 1:
+            print(f"{nom} : {len(rels)} communes trouvées à {lat}, {lng}, pas de contour")
+            continue
+        collection["features"].append(contour(id_, rels, [round(lng, 4), round(lat, 4)], rels[0]["tags"].get("name", "")))
+        connues.add(id_)
+        ajouts += 1
+    if ajouts:
+        SORTIE.write_text(json.dumps(collection, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    print(f"{ajouts} nouvelle(s) ville(s) -> {SORTIE}")
+
+
 def main():
     villes = []
     for id_, nom in VILLES:
@@ -143,20 +203,11 @@ def main():
             if len(rels) != 23:
                 raise RuntimeError(f"Tokyo : {len(rels)} arrondissements au lieu de 23")
             centre, ja = CENTRE_TOKYO, "東京"
-        brut, _ = commune(rels)
-        terre = nettoyer(decouper(brut, id_))
-        if terre.is_empty:
-            raise RuntimeError(f"{id_} : rien à terre")
-        if not centre:
-            centre = [round(c, 4) for c in max(terre.geoms, key=km2).representative_point().coords[0]]
-        points = sum(len(p.exterior.coords) + sum(len(t.coords) for t in p.interiors) for p in terre.geoms)
-        print(f"{id_:10} {ja:6} {len(terre.geoms):3} morceaux {points:5} points  {km2(brut):6.0f} km² dans OSM, {km2(terre):5.0f} à terre  centre {centre}")
-        villes.append({"type": "Feature", "properties": {"id": id_, "ja": ja, "centre": centre},
-                       "geometry": {"type": "MultiPolygon", "coordinates": arrondir(mapping(terre)["coordinates"])}})
+        villes.append(contour(id_, rels, centre, ja))
 
     SORTIE.write_text(json.dumps({"type": "FeatureCollection", "features": villes}, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     print(f"{len(villes)} villes -> {SORTIE} ({SORTIE.stat().st_size // 1024} Ko)")
 
 
 if __name__ == "__main__":
-    main()
+    nouvelles() if "--nouvelles" in sys.argv[1:] else main()

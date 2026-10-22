@@ -8,6 +8,11 @@
  *  en jaune « À vérifier ». La colonne « Robot » montre ce qu'il fait,
  *  ses doutes et ses erreurs.
  *
+ *  Carrousels de photos (« 8 places you HAVE to visit in … ») : colle le lien
+ *  dans une ligne vide de l'onglet « Villes » et la légende du carrousel dans
+ *  « Légende ». Le robot reconnaît la ville et chaque lieu numéroté, les place
+ *  avec Google Maps, traduit les textes et écrit les lignes de « Lieux des villes ».
+ *
  *  IA : Gemini de Google, version gratuite. Elle ne fait pas de recherche web,
  *  alors le robot cherche lui-même dans Wikipédia et Google Maps, puis donne
  *  ces informations à Gemini pour écrire la fiche.
@@ -35,6 +40,13 @@ const COLONNE_SAISONS = 'Saisons';
 const SAISONS = ['cerisiers', 'fleurs', 'verdure', 'été', 'automne', 'hiver', 'fête'];
 const COLONNES_OBLIGATOIRES = ['Nom (EN)', 'Nom (FR)', 'Nom (日本語)', 'Catégorie', 'Coordonnées GPS', 'Lien TikTok',
   'Description (EN)', 'Description (FR)', 'Description (日本語)', 'Afficher ?', 'À vérifier'];
+// Les carrousels des villes : une ligne par ville dans « Villes », une ligne par photo dans « Lieux des villes »
+const ONGLET_VILLES = 'Villes';
+const ONGLET_LIEUX_VILLES = 'Lieux des villes';
+const COLONNES_VILLES = ['Ville', 'Description (EN)', 'Description (FR)', 'Description (日本語)', 'Lien TikTok', 'Légende', 'Afficher ?'];
+const COLONNES_LIEUX_VILLES = ['Ville', 'N°', 'Nom', 'Nom (日本語)', 'Coordonnées GPS', 'Texte (EN)', 'Texte (FR)', 'Texte (日本語)'];
+const RAYON_VILLE_KM = 80; // un lieu de carrousel plus loin de la ville : position refusée (Shirakawa-go est à 33 km de Takayama)
+const SANS_LEGENDE_VILLE = '📝 Colle la légende du carrousel (le texte sous les photos sur TikTok) dans « Légende » : le robot ne peut pas la lire lui-même.';
 
 // --- Installation ----------------------------------------------------------
 /** À lancer une fois : le robot passe toutes les 10 minutes, et tout de suite quand on colle un lien TikTok. */
@@ -43,6 +55,8 @@ function installerRobot() {
   ScriptApp.newTrigger('robotCarte').timeBased().everyMinutes(10).create();
   ScriptApp.newTrigger('quandModifie').forSpreadsheet(ID_TABLEAU).onEdit().create();
   colonnes_(feuilleLieux_());
+  const villes = tableau_().getSheetByName(ONGLET_VILLES);
+  if (villes) colonnesVilles_(villes);
   console.log('Robot installé ✅');
   verifierCle();
 }
@@ -67,11 +81,17 @@ function verifierCle() {
   return true;
 }
 
-/** Déclencheur « à la modification » : si on vient de coller un lien TikTok dans « Lieux », on lance le robot. */
+/**
+ * Déclencheur « à la modification » : si on vient de coller un lien TikTok dans « Lieux » ou « Villes », ou la
+ * légende d'un carrousel dans « Villes » (souvent collée après le lien), on lance le robot.
+ */
 function quandModifie(e) {
-  if (!e || !e.range || e.range.getSheet().getName() !== ONGLET_LIEUX) return;
+  if (!e || !e.range) return;
+  const feuille = e.range.getSheet();
+  if (feuille.getName() !== ONGLET_LIEUX && feuille.getName() !== ONGLET_VILLES) return;
   const texte = e.range.getValues().flat().join(' ');
-  if (/tiktok\.com/i.test(texte)) robotCarte();
+  const legende = feuille.getName() === ONGLET_VILLES && String(feuille.getRange(1, e.range.getColumn()).getValue()).trim() === 'Légende';
+  if (/tiktok\.com/i.test(texte) || (legende && texte.trim())) robotCarte();
 }
 
 // --- Le robot ---------------------------------------------------------------
@@ -104,6 +124,8 @@ function robotCarte() {
       SpreadsheetApp.flush();
       if (ligneSupprimee) break; // les numéros de ligne ont bougé : la suite au prochain passage
     }
+    // puis un carrousel de ville (8 lieux à chercher : le reste au prochain passage)
+    if (Date.now() - debut < 2 * 60 * 1000) robotVilles_();
   } finally {
     verrou.releaseLock();
   }
@@ -225,26 +247,13 @@ function nomDansLegende_(legende) {
 // --- La vidéo TikTok ------------------------------------------------------
 /** nomDonne : le nom du lieu écrit à la main dans la ligne, qui sert de légende si TikTok ne la donne pas. */
 function lireVideo_(texte, nomDonne) {
-  const trouve = String(texte).match(/https?:\/\/[^\s"'<>]*tiktok\.com[^\s"'<>]*/i);
-  if (!trouve) throw erreur_('Je ne trouve pas de lien TikTok dans cette case.');
-  let url = trouve[0];
-  let id = (url.match(/\/video\/(\d+)/) || [])[1];
-  // Lien court (vm.tiktok.com/…, tiktok.com/t/…) : on suit les redirections pour trouver la vraie adresse
-  for (let i = 0; i < 4 && !id; i++) {
-    const r = UrlFetchApp.fetch(url, { followRedirects: false, muteHttpExceptions: true, headers: { 'User-Agent': 'Mozilla/5.0' } });
-    const entetes = r.getHeaders();
-    const suite = entetes.Location || entetes.location;
-    if (!suite) break;
-    url = suite.startsWith('http') ? suite : 'https://www.tiktok.com' + suite;
-    id = (url.match(/\/video\/(\d+)/) || [])[1];
-  }
-  const propre = url.split('?')[0];
-  const r = UrlFetchApp.fetch('https://www.tiktok.com/oembed?url=' + encodeURIComponent(propre), { muteHttpExceptions: true });
+  const lien = lireLien_(texte);
+  const r = UrlFetchApp.fetch('https://www.tiktok.com/oembed?url=' + encodeURIComponent(lien.url), { muteHttpExceptions: true });
   if (r.getResponseCode() !== 200) {
     throw erreur_(`TikTok ne trouve pas cette vidéo (code ${r.getResponseCode()}) : vérifie le lien.`, r.getResponseCode() >= 500);
   }
   const o = JSON.parse(r.getContentText());
-  id = id || o.embed_product_id;
+  let id = lien.id || o.embed_product_id;
   if (!id) throw erreur_('Je ne trouve pas le numéro de la vidéo dans ce lien.');
   // Depuis le 2026-10-20, l'oEmbed de TikTok ne donne plus la légende (title). Sans légende, l'IA croyait que la
   // vidéo ne montrait aucun lieu et la rangeait dans « À trier ». On prend alors le nom écrit à la main dans la
@@ -256,8 +265,28 @@ function lireVideo_(texte, nomDonne) {
   }
   const legende = String(o.title || nomDonne || (integree && integree.legende) || '').trim();
   if (!legende) throw erreur_(SANS_LEGENDE, true);
-  const auteur = o.author_unique_id || (integree && integree.auteur) || (propre.match(/@([\w.]+)/) || [])[1] || 'random_japan_place';
-  return { id: String(id), url: `https://www.tiktok.com/@${auteur}/video/${id}`, legende, auteur };
+  const auteur = o.author_unique_id || (integree && integree.auteur) || lien.auteur || 'random_japan_place';
+  return { id: String(id), url: `https://www.tiktok.com/@${auteur}/${lien.genre}/${id}`, legende, auteur };
+}
+
+/**
+ * Le lien TikTok écrit dans une case : { url (sans les ?…), id, genre ('video', ou 'photo' pour un carrousel),
+ * auteur }. Un lien court (vm.tiktok.com/…, tiktok.com/t/…) est suivi jusqu'à la vraie adresse.
+ */
+function lireLien_(texte) {
+  const trouve = String(texte).match(/https?:\/\/[^\s"'<>]*tiktok\.com[^\s"'<>]*/i);
+  if (!trouve) throw erreur_('Je ne trouve pas de lien TikTok dans cette case.');
+  let url = trouve[0];
+  const numero = (u) => u.match(/\/(video|photo)\/(\d+)/);
+  for (let i = 0; i < 4 && !numero(url); i++) {
+    const r = UrlFetchApp.fetch(url, { followRedirects: false, muteHttpExceptions: true, headers: { 'User-Agent': 'Mozilla/5.0' } });
+    const entetes = r.getHeaders();
+    const suite = entetes.Location || entetes.location;
+    if (!suite) break;
+    url = suite.startsWith('http') ? suite : 'https://www.tiktok.com' + suite;
+  }
+  const m = numero(url);
+  return { url: url.split('?')[0], id: m ? m[2] : '', genre: m ? m[1] : 'video', auteur: (url.match(/@([\w.]+)/) || [])[1] || '' };
 }
 
 /** La légende et l'auteur d'une vidéo, lus dans la page de son lecteur intégré (celle que les sites affichent). */
@@ -281,7 +310,7 @@ function lireIntegree_(id) {
 function trouverDoublon_(donnees, col, id, ligneCourante) {
   for (let i = 1; i < donnees.length; i++) {
     if (i + 1 === ligneCourante) continue;
-    if (String(donnees[i][col['Lien TikTok'] - 1]).includes(`/video/${id}`)) return i + 1;
+    if (new RegExp(`/(?:video|photo)/${id}(?!\\d)`).test(String(donnees[i][col['Lien TikTok'] - 1]))) return i + 1;
   }
   return 0;
 }
@@ -329,7 +358,7 @@ function chercherCarte_(recherche, id) {
       id, titre: res.formatted_address,
       extrait: `Google Maps result for "${recherche}": ${res.formatted_address} — ` +
         (vague ? 'only an area, not the place itself.' : `a precise place (${types.join(', ')}).`),
-      lat: res.geometry.location.lat, lng: res.geometry.location.lng, precis: !vague, url: '',
+      lat: res.geometry.location.lat, lng: res.geometry.location.lng, precis: !vague, url: '', types,
     };
   } catch (e) {
     console.warn('Google Maps indisponible', e);
@@ -493,10 +522,19 @@ function feuilleLieux_() {
   return f;
 }
 
-/** Numéro de chaque colonne d'après la ligne 1 ; ajoute les colonnes « Robot » et « Saisons » si elles manquent. */
+/** Numéro de chaque colonne de « Lieux » d'après la ligne 1 ; ajoute les colonnes « Robot » et « Saisons » si elles manquent. */
 function colonnes_(feuille) {
+  return entetes_(feuille, [[COLONNE_ROBOT, 420], [COLONNE_SAISONS, 220]], COLONNES_OBLIGATOIRES);
+}
+
+/** Les colonnes de « Villes » ; le robot y ajoute le nom japonais et la position d'une nouvelle ville, et ses messages. */
+function colonnesVilles_(feuille) {
+  return entetes_(feuille, [['Nom (日本語)', 110], ['Coordonnées GPS', 170], [COLONNE_ROBOT, 420]], COLONNES_VILLES);
+}
+
+function entetes_(feuille, ajouter, obligatoires) {
   let entetes = feuille.getRange(1, 1, 1, feuille.getLastColumn()).getValues()[0].map((v) => String(v).trim());
-  for (const [nom, largeur] of [[COLONNE_ROBOT, 420], [COLONNE_SAISONS, 220]]) {
+  for (const [nom, largeur] of ajouter) {
     if (entetes.includes(nom)) continue;
     const n = entetes.length + 1;
     feuille.getRange(1, 1).copyTo(feuille.getRange(1, n), SpreadsheetApp.CopyPasteType.PASTE_FORMAT, false);
@@ -506,8 +544,8 @@ function colonnes_(feuille) {
   }
   const col = {};
   entetes.forEach((nom, i) => { if (nom && !col[nom]) col[nom] = i + 1; });
-  const manque = COLONNES_OBLIGATOIRES.filter((nom) => !col[nom]);
-  if (manque.length) throw new Error('Colonnes introuvables dans « Lieux » : ' + manque.join(', '));
+  const manque = obligatoires.filter((nom) => !col[nom]);
+  if (manque.length) throw new Error(`Colonnes introuvables dans « ${feuille.getName()} » : ${manque.join(', ')}`);
   return col;
 }
 
@@ -526,6 +564,254 @@ function versATrier_(video, identification) {
     ? 'Compilation : plusieurs lieux (ajoutée par le robot)' : 'Pas un lieu précis (ajoutée par le robot)';
   f.appendRow([video.url, video.legende, identification.remarque ? `${pourquoi}. ${identification.remarque}` : pourquoi, '']);
 }
+
+// --- Carrousels des villes -------------------------------------------------------
+// Un carrousel « 8 places you HAVE to visit in Fukuoka » : la photo 0 est la couverture, puis une photo par lieu,
+// et la légende décrit chaque lieu dans l'ordre (« 📍1- … 📍2- … »), le plus souvent sans le nommer. Sur la carte,
+// la ville a son pin et sa fiche avec le carrousel ; chaque lieu, un point numéroté et un encadré (son texte).
+
+/**
+ * Onglet « Villes » : une ligne avec un lien TikTok (dans « Lien TikTok » ou dans « Ville ») et sans message fini
+ * du robot est un carrousel à ajouter. Les carrousels déjà en place (leurs lieux sont dans « Lieux des villes »)
+ * restent tels quels. Un seul carrousel par passage (8 lieux à chercher, deux questions à l'IA).
+ */
+function robotVilles_() {
+  try {
+    const feuille = tableau_().getSheetByName(ONGLET_VILLES);
+    const feuilleLieux = tableau_().getSheetByName(ONGLET_LIEUX_VILLES);
+    if (!feuille || !feuilleLieux) return;
+    const col = colonnesVilles_(feuille);
+    const donnees = feuille.getDataRange().getValues();
+    const faites = villesAvecLieux_(feuilleLieux);
+    for (let i = 1; i < donnees.length; i++) {
+      const cellule = (nom) => String(donnees[i][col[nom] - 1] || '').trim();
+      const ville = cellule('Ville');
+      const robot = cellule(COLONNE_ROBOT);
+      const lien = [cellule('Lien TikTok'), ville].find((t) => /tiktok\.com/i.test(t));
+      if (!lien || robot.startsWith('❌') || robot.startsWith('🤖')) continue;
+      if (!robot && !/tiktok\.com/i.test(ville) && faites.has(cle_(ville))) continue; // déjà en place
+      const travail = traiterVille_(feuille, col, i + 1, donnees, feuilleLieux, faites);
+      SpreadsheetApp.flush();
+      if (travail) return;
+    }
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+/** Ajoute un carrousel. Renvoie true si le robot y a travaillé (le reste attend le prochain passage). */
+function traiterVille_(feuille, col, ligne, donnees, feuilleLieux, faites) {
+  const cellule = (nom, l = ligne) => (col[nom] ? String(donnees[l - 1][col[nom] - 1] || '').trim() : '');
+  const ecrire = (nom, valeur) => feuille.getRange(ligne, col[nom]).setValue(valeur);
+  const robot = cellule(COLONNE_ROBOT);
+  const ville = cellule('Ville');
+  const texteLien = [cellule('Lien TikTok'), ville].find((t) => /tiktok\.com/i.test(t));
+  let legende = cellule('Légende');
+  if (!legende && !robot) {
+    // TikTok ne donne presque plus les légendes aux serveurs de Google : on essaie une fois, sinon on la demande
+    try {
+      const lien = lireLien_(texteLien);
+      legende = (lien.id && (lireIntegree_(lien.id) || {}).legende) || '';
+      if (legende) ecrire('Légende', legende);
+    } catch (e) { /* on demande la légende */ }
+  }
+  if (!legende) {
+    if (!robot.startsWith('📝')) ecrire(COLONNE_ROBOT, SANS_LEGENDE_VILLE);
+    return false;
+  }
+  const essai = (Number((robot.match(/essai (\d+)/) || [])[1]) || 0) + 1;
+  if (essai > ESSAIS_MAX) {
+    ecrire(COLONNE_ROBOT, `❌ Le robot n'y arrive pas. Remplis « ${ONGLET_LIEUX_VILLES} » à la main, ou efface ce message pour réessayer.`);
+    return false;
+  }
+  ecrire(COLONNE_ROBOT, `⏳ Le robot travaille… (essai ${essai})`);
+  SpreadsheetApp.flush();
+  try {
+    const lien = lireLien_(texteLien);
+    if (!lien.id) throw erreur_('Je ne trouve pas le numéro du carrousel dans ce lien.');
+    const indice = /tiktok\.com/i.test(ville) ? '' : ville;
+    const connues = donnees.slice(1).map((l) => String(l[col['Ville'] - 1] || '').trim()).filter((v) => v && !/tiktok\.com/i.test(v));
+    const a = analyserCarrousel_(legende, indice, connues);
+    const cle = cle_(a.ville_en);
+    // la ville a déjà sa ligne (les grandes villes sont toutes là) : le carrousel va dans cette ligne
+    let cible = ligne;
+    for (let j = 2; j <= donnees.length; j++) if (j !== ligne && cle_(cellule('Ville', j)) === cle) { cible = j; break; }
+    const autreLien = cible !== ligne ? cellule('Lien TikTok', cible) : '';
+    if (/tiktok\.com/i.test(autreLien) && !autreLien.includes(lien.id)) {
+      throw erreur_(`${a.ville_en} a déjà un carrousel (ligne ${cible}) : la carte n'en montre qu'un par ville. Pour le remplacer, supprime ses lieux dans « ${ONGLET_LIEUX_VILLES} », colle ce lien et cette légende dans sa ligne, puis supprime cette ligne-ci.`);
+    }
+    if (faites.has(cle)) {
+      throw erreur_(`Les lieux de ${a.ville_en} sont déjà dans « ${ONGLET_LIEUX_VILLES} ». Pour que le robot les refasse, supprime-les, puis efface ce message.`);
+    }
+    const nomVille = cible !== ligne ? cellule('Ville', cible) : a.ville_en;
+    const nouvelle = !cellule('Description (EN)', cible);
+    const place = placerCarrousel_(a);
+    const description = nouvelle ? decrireVille_(a) : null;
+
+    // « Lieux des villes » : une ligne par lieu, en jaune (à vérifier)
+    const colL = entetes_(feuilleLieux, [], COLONNES_LIEUX_VILLES);
+    const largeur = feuilleLieux.getLastColumn();
+    const gps = (p) => (p ? `${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}` : '');
+    const lignes = place.lieux.map((p) => {
+      const l = new Array(largeur).fill('');
+      const mettre = (nom, valeur) => { l[colL[nom] - 1] = valeur; };
+      mettre('Ville', nomVille);
+      mettre('N°', p.n);
+      mettre('Nom', p.nom_en);
+      mettre('Nom (日本語)', p.nom_ja);
+      mettre('Coordonnées GPS', gps(p.gps));
+      mettre('Texte (EN)', p.texte_en);
+      mettre('Texte (FR)', p.texte_fr);
+      mettre('Texte (日本語)', p.texte_ja);
+      return l;
+    });
+    const plageLieux = feuilleLieux.getRange(feuilleLieux.getLastRow() + 1, 1, lignes.length, largeur);
+    plageLieux.setValues(lignes);
+    plageLieux.setBackground(COULEUR_A_VERIFIER);
+
+    // « Villes » : le lien, la légende, et pour une nouvelle ville son nom japonais, sa position et sa description
+    const notes = [`🤖 ${lignes.length} lieux ajoutés dans « ${ONGLET_LIEUX_VILLES} » (en jaune : à vérifier).`];
+    const doutes = place.lieux.filter((p) => p.certitude !== 'haute');
+    if (doutes.length) notes.push(`Pas tout à fait sûr de : ${doutes.map((p) => `n° ${p.n} (${p.nom_en})`).join(', ')}.`);
+    const oublies = a.oublies.map((n) => `n° ${n}`);
+    if (oublies.length) notes.push(`Pas reconnu : ${oublies.join(', ')}. Ajoute sa ligne à la main.`);
+    const approx = place.lieux.filter((p) => p.gps && p.gps.approx);
+    if (approx.length) notes.push(`Position approximative (le quartier) : ${approx.map((p) => `n° ${p.n}`).join(', ')}.`);
+    const sansGps = place.lieux.filter((p) => !p.gps);
+    if (sansGps.length) notes.push(`Position introuvable : ${sansGps.map((p) => `n° ${p.n}`).join(', ')}. Colle ses coordonnées dans « Coordonnées GPS » (clic droit sur le lieu dans Google Maps), sinon il n'a pas de point sur la carte.`);
+    if (nouvelle) notes.push('Nouvelle ville : son pin est déjà sur la carte, son contour sera dessiné la nuit prochaine. Relis sa description.');
+    if (a.remarque) notes.push(a.remarque);
+    const plage = feuille.getRange(cible, 1, 1, feuille.getLastColumn());
+    const valeurs = plage.getValues()[0];
+    const mettre = (nom, valeur, siVide) => {
+      if (!col[nom] || (siVide && String(valeurs[col[nom] - 1]).trim())) return;
+      valeurs[col[nom] - 1] = valeur;
+    };
+    mettre('Ville', nomVille);
+    mettre('Lien TikTok', `https://www.tiktok.com/@${lien.auteur || 'random_japan_place'}/${lien.genre}/${lien.id}`);
+    mettre('Légende', legende);
+    mettre('Nom (日本語)', a.ville_ja, true);
+    mettre('Coordonnées GPS', gps(place.centre), true);
+    if (description) {
+      mettre('Description (EN)', description.description_en, true);
+      mettre('Description (FR)', description.description_fr, true);
+      mettre('Description (日本語)', description.description_ja, true);
+    }
+    mettre('Afficher ?', 'Oui', true);
+    mettre(COLONNE_ROBOT, notes.join(' '));
+    plage.setValues([valeurs]);
+    plage.setBackground(COULEUR_A_VERIFIER);
+    if (cible !== ligne) feuille.deleteRow(ligne);
+    faites.add(cle);
+  } catch (err) {
+    const texte = String(err && err.message || err);
+    const reessayer = err && err.reessayer && essai < ESSAIS_MAX;
+    ecrire(COLONNE_ROBOT, reessayer
+      ? `⏳ Petit souci (${texte}). Nouvel essai dans 10 minutes… (essai ${essai})`
+      : `❌ ${texte} Efface ce message pour réessayer.`);
+    console.error(err);
+  }
+  return true;
+}
+
+const CONSIGNES_CARROUSEL = `You help a robot add a TikTok photo carousel to an interactive map of Japan. The travel account @random_japan_place posts carousels such as "8 places you HAVE to visit in Fukuoka": photo 0 is the cover, then one photo per place, and the caption describes each place in order ("📍1- … 📍2- …"), usually without naming it. Reply with a single JSON object and nothing else:
+{"ville_en": string, "ville_ja": string, "prefecture_en": string, "prefecture_ja": string, "lieux": [{"n": number, "nom_en": string, "nom_ja": string, "recherche_carte": string, "texte_en": string, "texte_fr": string, "texte_ja": string, "certitude": "haute" | "moyenne" | "basse"}], "remarque": string}
+- ville_en: the city or town the carousel is about, as travellers write it in English ("Fukuoka", "Takayama"); the hashtags help. When it is one of the known cities given, use exactly that spelling. ville_ja: its official Japanese municipality name ("福岡市", "高山市", "白川村"). prefecture_en and prefecture_ja: its prefecture ("Gifu", "岐阜県"; "Tokyo", "東京都").
+- lieux: one item per numbered place of the caption, in order; n is the number written in the caption.
+- Recognise each place from its description and the city, with your knowledge of Japan (in Fukuoka, "Japan's largest seated wooden Buddha… pitch-black tunnel underneath it" is Tochoji Temple). nom_en: its usual English name with clean capitals ("Tochoji Temple", "Ohori Park", "Kenrokuen Garden", "Glover Garden"). nom_ja: its official Japanese name ("東長寺", "大濠公園"), never made up. When an item is a dish, a market, a district or an activity rather than one building, name it as travellers would ("Nakasu Yatai", "Omicho Market", "Hida Beef Sushi") and use the spot of this city where the caption suggests to find it.
+- recherche_carte: a Japanese Google Maps query that finds that exact spot: Japanese name, municipality and prefecture ("東長寺 福岡県福岡市博多区"). A place can lie outside the city when the caption says so (a village 50 minutes away): then give its own municipality.
+- texte_en: the caption's own text for that place, copied word for word (without the number, the 📍 and the hashtags). texte_fr and texte_ja: the same text in natural French and natural Japanese (です/ます style), adding nothing.
+- certitude: "haute" when the description clearly matches one place you know, "moyenne" when it is your best guess, "basse" when you cannot really tell.
+- remarque: one short sentence in French for the channel owner when something is uncertain, otherwise "".`;
+
+const CONSIGNES_VILLE = `You write the short introduction of a Japanese city for an interactive map of Japan: it shows under the city's name, above the TikTok carousel of its places. Reply with a single JSON object and nothing else:
+{"description_en": string, "description_fr": string, "description_ja": string}
+- Two sentences, the same in the three languages: what the city is, then a striking piece of its history or what it is famous for. Factual and warm, in your own words (never copy the sources). Only facts from the Wikipedia extract or facts you are certain of. Natural French; natural Japanese in です/ます style.
+- The map's style, for Kanazawa: "Seat of the rich Maeda lords for nearly 300 years, and spared by the bombings of the war: its geisha districts and samurai streets are still intact." / "Fief des riches seigneurs Maeda pendant près de 300 ans, épargnée par les bombardements de la guerre : ses quartiers de geishas et ses rues de samouraïs sont restés intacts." / "約300年にわたり加賀藩前田家が治めた城下町。戦災を免れ、茶屋街や武家屋敷の街並みが今も残っています。"`;
+
+/** 1re question : la ville et ses lieux numérotés (noms, recherche Google Maps, textes en 3 langues). */
+function analyserCarrousel_(legende, indice, connues) {
+  const a = demanderGemini_(MODELES_REDIGER, CONSIGNES_CARROUSEL,
+    `Caption: ${JSON.stringify(legende)}` + (indice ? `\nCity written by the channel owner: ${indice}` : '') +
+    `\nKnown cities on the map: ${connues.join(', ')}`);
+  const net = (o, k) => String(o[k] == null ? '' : o[k]).trim();
+  for (const k of ['ville_en', 'ville_ja', 'prefecture_en', 'prefecture_ja', 'remarque']) a[k] = net(a, k);
+  // le texte anglais est celui de la légende, découpé ici plutôt que recopié par l'IA
+  const textes = textesDeLegende_(legende);
+  const vus = new Set();
+  a.lieux = (Array.isArray(a.lieux) ? a.lieux : []).map((p) => {
+    const n = parseInt(p.n, 10);
+    const certitude = net(p, 'certitude');
+    return {
+      n, nom_en: net(p, 'nom_en'), nom_ja: net(p, 'nom_ja'), recherche_carte: net(p, 'recherche_carte'),
+      texte_en: textes[n] || net(p, 'texte_en'), texte_fr: net(p, 'texte_fr'), texte_ja: net(p, 'texte_ja'),
+      certitude: ['haute', 'moyenne', 'basse'].includes(certitude) ? certitude : 'moyenne',
+    };
+  }).filter((p) => p.n > 0 && p.n <= 30 && p.nom_en && !vus.has(p.n) && vus.add(p.n));
+  a.oublies = Object.keys(textes).map(Number).filter((n) => !vus.has(n));
+  if (!a.ville_en) throw erreur_('L\'IA ne reconnaît pas la ville de ce carrousel : écris son nom dans « Ville ».');
+  if (!a.lieux.length) throw erreur_('Je ne trouve pas les lieux numérotés dans la légende (📍1- …, 📍2- …).');
+  return a;
+}
+
+/** Les textes numérotés de la légende : « 📍1- Texte… 📍2- … #fukuoka #fyp » → { 1: 'Texte…', 2: '…' }. */
+function textesDeLegende_(legende) {
+  const sans = String(legende || '').replace(/(\s*#[^\s#]+)+\s*$/u, '');
+  const parties = sans.split(/📍\s*(\d{1,2})\s*[-–.:)]?\s*/u);
+  const textes = {};
+  for (let i = 1; i + 1 < parties.length; i += 2) if (parties[i + 1].trim()) textes[Number(parties[i])] = parties[i + 1].trim();
+  return textes;
+}
+
+/**
+ * La position de la ville (son hôtel de ville) et de chaque lieu : Google Maps (un lieu précis, à moins de
+ * RAYON_VILLE_KM de la ville), sinon l'article Wikipédia japonais du lieu, sinon le quartier (approx).
+ */
+function placerCarrousel_(a) {
+  const pref = a.prefecture_ja || '';
+  const ja = a.ville_ja || '';
+  const centre = (ja && chercherCarte_(`${pref}${ja}${/[町村]$/.test(ja) ? '役場' : '役所'}`, 'google_maps'))
+    || chercherCarte_(`${a.ville_en}, ${a.prefecture_en}, Japan`, 'google_maps');
+  const pres = (c, km) => c && c.lat != null && auJapon_(c) && (!centre || distanceKm_(c, centre) < km);
+  const lieux = a.lieux.map((p) => {
+    const recherches = [p.recherche_carte, p.nom_ja && `${p.nom_ja} ${pref}${ja}`, `${p.nom_en}, ${a.ville_en}, ${a.prefecture_en}, Japan`];
+    let gps = null;
+    let quartier = null;
+    for (const q of recherches.filter(Boolean)) {
+      const c = chercherCarte_(q, 'google_maps');
+      if (c && c.precis && pres(c, RAYON_VILLE_KM)) { gps = { lat: c.lat, lng: c.lng, source: 'Google Maps' }; break; }
+      if (!quartier && c && (c.types || []).some((t) => /^(sublocality|neighborhood)/.test(t)) && pres(c, 15)) quartier = c;
+    }
+    if (!gps && p.nom_ja) {
+      const w = chercherWikipedia_('ja', p.nom_ja, 1)[0];
+      if (w && pres(w, RAYON_VILLE_KM)) gps = { lat: w.lat, lng: w.lng, source: 'Wikipédia' };
+    }
+    if (!gps && quartier) gps = { lat: quartier.lat, lng: quartier.lng, source: 'Google Maps', approx: true };
+    return Object.assign({}, p, { gps });
+  });
+  return { centre: centre ? { lat: centre.lat, lng: centre.lng } : null, lieux };
+}
+
+/** 2e question, pour une nouvelle ville : sa courte description en 3 langues (avec l'article Wikipédia de la ville). */
+function decrireVille_(a) {
+  const wiki = chercherWikipedia_('en', `${a.ville_en} ${a.prefecture_en}`, 1);
+  const d = demanderGemini_(MODELES_REDIGER, CONSIGNES_VILLE, [
+    `City: ${a.ville_en} (${a.ville_ja}), ${a.prefecture_en} Prefecture`, '', 'Wikipedia:',
+    wiki.length ? `${wiki[0].titre}\n${wiki[0].extrait}` : '(none)',
+  ].join('\n'));
+  const net = (k) => String(d[k] == null ? '' : d[k]).trim();
+  return net('description_en') ? { description_en: net('description_en'), description_fr: net('description_fr'), description_ja: net('description_ja') } : null;
+}
+
+/** Les villes qui ont déjà leurs lieux dans « Lieux des villes ». */
+function villesAvecLieux_(feuille) {
+  const valeurs = feuille.getDataRange().getValues();
+  const i = valeurs[0].map((v) => String(v).trim()).indexOf('Ville');
+  return new Set(i < 0 ? [] : valeurs.slice(1).map((l) => cle_(l[i])).filter(Boolean));
+}
+
+/** Le nom d'une ville pour comparer (comme son identifiant sur la carte) : « Kōbe » → « kobe ». */
+const cle_ = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
 // --- Saisons ------------------------------------------------------------------
 /** Garde des saisons propres : les mots connus et des mois de 1 à 12 (« automne 11-12; hiver 1 »), ou « toute l'année ». */
@@ -579,5 +865,29 @@ function testerAvecIA() {
     console.log(JSON.stringify((r.sources || []).map((s) => [s.id, s.titre, s.lat, s.lng])));
     console.log(JSON.stringify(r.fiche, null, 1));
     console.log(JSON.stringify(r.gps), r.wikipedia, `durée : ${Math.round((Date.now() - debut) / 1000)} s`);
+  }
+}
+
+// Carrousels : [lien, légende] (la légende telle que le propriétaire la colle dans « Villes »)
+const CARROUSELS_TEST = [
+  ['https://www.tiktok.com/@random_japan_place/photo/7697959914647325985', '📍1- Ranked among the "New Three Great Night Views of the World", with Hong Kong and Monaco. 📍2- 19th-century Western mansions overlooking the harbor. Home to Japan\'s oldest Western-style wooden house. 📍3- Japan\'s oldest surviving church (1864), a National Treasure. 📍4- A stone bridge from 1634. Its reflection makes a pair of glasses. Find the heart-shaped stone on the riverbank. 📍5- A fan-shaped artificial island. For 200 years, it was Japan\'s only window to Europe. 📍6- One of Japan\'s three big Chinatowns. Try champon, Nagasaki\'s signature noodle dish. 📍7- A bright red Chinese temple built in the 1600s, unlike any temple in the rest of Japan. 📍8- An abandoned coal-mining island. In 1960 it was one of the most densely populated places on Earth. Empty since 1974. #nagasaki #japantravel #japanvibes #japantrip #fyp'],
+  ['https://www.tiktok.com/@random_japan_place/photo/7698738603957947680', '📍1- Edo-period merchant streets, almost unchanged. Look for the cedar balls hanging outside sake breweries. 📍2- A riverside market held every morning for centuries. Local pickles, miso and fresh fruit. 📍3- Seared wagyu sushi served on a rice cracker. Eat it while walking the old town. 📍4- The red bridge over the Miyagawa river. Best in autumn and cherry blossom season. 📍5- The last surviving government office of the Edo shogunate. Over 300 years old. 📍6- A UNESCO village of thatched gassho houses, 50 minutes away. Magical under the snow. 📍7- Japan\'s only double-decker gondola, climbing over 2,000 m into the Northern Alps. 📍8- Giant festival floats covered in gold and lacquer, some with mechanical puppets. The Takayama Festival is called one of Japan\'s most beautiful. #takayama #japantravel #japanvibes #japantrip #fyp'],
+];
+
+/** Carrousels : la ville, chaque lieu (nom, position, textes) et la description de la ville, sans rien écrire (2 questions à Gemini par carrousel). */
+function testerCarrousels() {
+  const valeurs = tableau_().getSheetByName(ONGLET_VILLES).getDataRange().getValues();
+  const i = valeurs[0].map((v) => String(v).trim()).indexOf('Ville');
+  const connues = valeurs.slice(1).map((l) => String(l[i]).trim()).filter((v) => v && !/tiktok\.com/i.test(v));
+  for (const [lien, legende] of CARROUSELS_TEST) {
+    const debut = Date.now();
+    const a = analyserCarrousel_(legende, '', connues);
+    const p = placerCarrousel_(a);
+    console.log(`${lien}\n${a.ville_en} (${a.ville_ja}, ${a.prefecture_en}) hôtel de ville ${JSON.stringify(p.centre)} ${a.remarque} oubliés : ${a.oublies}`);
+    for (const l of p.lieux) {
+      const g = l.gps ? `${l.gps.lat.toFixed(4)}, ${l.gps.lng.toFixed(4)} (${l.gps.source}${l.gps.approx ? ', quartier' : ''})` : 'sans GPS';
+      console.log(`${l.n}. ${l.nom_en} | ${l.nom_ja} | ${l.certitude} | ${g}\n  EN ${l.texte_en}\n  FR ${l.texte_fr}\n  JA ${l.texte_ja}`);
+    }
+    console.log(JSON.stringify(decrireVille_(a), null, 1), `durée : ${Math.round((Date.now() - debut) / 1000)} s`);
   }
 }

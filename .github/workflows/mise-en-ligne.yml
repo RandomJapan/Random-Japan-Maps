@@ -1,7 +1,8 @@
 # Met le site en ligne sur GitHub Pages.
 # - à chaque modification du site (git push)
 # - chaque nuit : recopie d'abord le tableau Google Sheets dans la copie de secours
-#   (et télécharge la couverture TikTok des nouveaux lieux, et une photo libre pour le jeu)
+#   (et télécharge la couverture TikTok des nouveaux lieux, une photo libre pour le jeu,
+#   et dessine le contour des villes que le robot du tableau a ajoutées)
 # - à chaque fois : fabrique les pages des lieux (outils/fabriquer_pages.py)
 # - à la main : onglet « Actions » de GitHub > « Mise en ligne » > « Run workflow »
 name: Mise en ligne
@@ -35,9 +36,10 @@ jobs:
         if: github.event_name != 'push'
         run: |
           python3 outils/sauvegarder_tableau.py
-          pip install --quiet pillow
+          pip install --quiet pillow shapely
           python3 outils/telecharger_couvertures.py || echo "Couvertures : on réessaiera la nuit prochaine"
           python3 outils/photos_jeu.py || echo "Photos du jeu : on réessaiera la nuit prochaine"
+          python3 outils/fabriquer_villes.py --nouvelles || echo "Contours des nouvelles villes : on réessaiera la nuit prochaine"
           if [ -n "$(git status --porcelain site/data site/photos)" ]; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
