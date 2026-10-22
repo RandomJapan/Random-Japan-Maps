@@ -2166,7 +2166,25 @@ function remplirBoutons(l) {
 function lancerVideo(id) {
   if (!id) return;
   const src = `https://www.tiktok.com/player/v1/${id}?autoplay=1&music_info=1&description=0&rel=0`;
-  $('fiche-media').innerHTML = `<div class="video-cadre"><iframe class="video" src="${src}" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" title="TikTok"></iframe></div>`;
+  const media = $('fiche-media');
+  media.innerHTML = `<div class="video-cadre"><iframe class="video" src="${src}" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" title="TikTok"></iframe></div>`;
+  // Sur iPhone (WebKit), la fiche gardait la longueur à faire défiler d'avant la vidéo (la photo, bien plus basse) :
+  // la description revenait en arrière comme au bout de la fiche (vu dans le navigateur de Snapchat, 2026-10-22).
+  // Lui couper le défilement le temps d'une image, puis le lui rendre, la lui fait recompter ; encore une fois quand
+  // le lecteur a chargé.
+  recompterDefilement();
+  media.querySelector('iframe').addEventListener('load', recompterDefilement, { once: true });
+}
+
+/** Fait recompter à la fiche ce qu'on peut y faire défiler (iPhone : voir lancerVideo). */
+function recompterDefilement() {
+  const defil = $('fiche-defil');
+  const haut = defil.scrollTop;
+  defil.style.overflowY = 'hidden';
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    defil.style.overflowY = '';
+    defil.scrollTop = haut;
+  }));
 }
 
 let minuterieMessage;
