@@ -131,9 +131,22 @@ export const VENT_GLSL = `
   }
   vec3 souffleObjet(vec3 objet, vec3 saison) {
     float sorte = floor(saison.x + 0.5);
-    if (sorte < 0.5 || sorte > 4.5) return vec3(0.0);
+    if (sorte > 20.5) sorte -= 20.0;
+    if (sorte < 0.5 || (sorte > 4.5 && sorte < 10.5) || sorte > 12.5) return vec3(0.0);
     vec3 p = (modelMatrix * vec4(objet, 1.0)).xyz;
-    return souffle(p, sorte > 3.5 ? 0.55 : 1.0) * mat3(modelMatrix);
+    return souffle(p, abs(sorte - 4.0) < 0.5 ? 0.55 : abs(sorte - 11.0) < 0.5 ? 0.45 : 1.0) * mat3(modelMatrix);
+  }`;
+
+/**
+ * Les houppiers des arbres à feuilles caduques (sortes 21 à 23 : modeles3d.js, arbre(…, { caduc })) tombent : un
+ * triangle sur six à l'automne, tous l'hiver (chacun à son tirage : la saison qui change les fait tomber peu à peu) ;
+ * on voit alors les branches, dessous. Un triangle tombé se replie en un point (rien n'est dessiné), son trait et son
+ * ombre aussi. Il faut l'uniforme saisons.
+ */
+export const CHUTE_GLSL = `
+  bool tombee(vec3 saison) {
+    if (saison.x < 20.5) return false;
+    return saison.z < saisons.z * 1.02 || saison.z < saisons.y * 0.17;
   }`;
 
 /**
@@ -204,22 +217,64 @@ export function eclairerParLampes(s, lampes, force = 1) {
 export const SAISONS_GLSL = `
   uniform vec3 saisons;
   float hasardSaison(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-  vec3 feuillageSaison(vec3 c, float sorte, float tirage, vec3 p) {
+  // (une petite fleur ronde, çà et là sur la surface : des pastilles de quelques centimètres, en 3D)
+  float fleurs(vec3 p, float taille, float part) {
+    vec3 q = p / taille, i = floor(q), f = fract(q) - 0.5;
+    vec3 h = vec3(hasardSaison(i.xy + i.z * 1.7), hasardSaison(i.yz + 3.1), hasardSaison(i.zx + 7.3));
+    return step(length(f - (h - 0.5) * 0.45), 0.27) * step(h.x, part);
+  }
+  // graine : un tirage par arbre ou par buisson (modeles3d.js) ; detail : les fleurs dessinées (pas pour le trait)
+  vec3 feuillageSaison(vec3 c, float sorte, float tirage, float graine, vec3 p, bool detail) {
     if (saisons.x + saisons.y + saisons.z < 0.001) return c;
     float s = floor(sorte + 0.5);
+    if (s > 20.5) s -= 20.0;
+    float l = dot(c, vec3(0.299, 0.587, 0.114));
+    if (abs(s - 11.0) < 0.5) {
+      // un buisson (azalée, tsutsuji) : en fleurs au printemps (magenta, rose ou blanc, un buisson d'une couleur),
+      // rouge vif à l'automne pour un sur deux (dōdan-tsutsuji), vert sombre l'hiver, sous la neige
+      float b = graine;
+      vec3 fleur = b < 0.34 ? vec3(0.93, 0.36, 0.62) : b < 0.67 ? vec3(1.0, 0.68, 0.79) : vec3(0.98, 0.95, 0.95);
+      float f = detail ? max(fleurs(p, 0.09, 0.8), fleurs(p + 0.031, 0.06, 0.45)) : 0.0;
+      vec3 pr = mix(c * vec3(0.95, 1.1, 0.85), fleur * (0.86 + 0.3 * l), f);
+      vec3 au = b < 0.5 ? vec3(0.84, 0.2, 0.13) * (0.65 + 0.7 * l) : c * vec3(1.12, 0.95, 0.6);
+      vec3 hi = c * vec3(0.78, 0.86, 0.84);
+      return c + (pr - c) * saisons.x + (au - c) * saisons.y + (hi - c) * saisons.z;
+    }
+    if (abs(s - 12.0) < 0.5) {
+      // la forêt persistante (les houppiers serrés des pentes, les palmes) : au printemps, des cerisiers sauvages
+      // (yamazakura) çà et là ; à l'automne, quelques taches dorées ; l'hiver, vert sombre sous la neige
+      float b = graine;
+      vec3 pr = b < 0.2 ? mix(vec3(1.0, 0.82, 0.86), vec3(1.0, 0.95, 0.96), tirage) * (0.75 + 0.5 * l) : c * vec3(1.0, 1.12, 0.84) + vec3(0.03, 0.05, 0.0);
+      vec3 au = b < 0.28 ? (b < 0.12 ? vec3(0.92, 0.48, 0.18) : vec3(0.93, 0.72, 0.25)) * (0.62 + 0.75 * l) : c * vec3(1.04, 0.98, 0.8);
+      vec3 hi = c * vec3(0.8, 0.88, 0.86);
+      return c + (pr - c) * saisons.x + (au - c) * saisons.y + (hi - c) * saisons.z;
+    }
     if (s < 0.5 || s > 5.5 || abs(s - 4.0) < 0.5) return c;
-    float l = dot(c, vec3(0.299, 0.587, 0.114)), arbre = hasardSaison(floor(p.xz / 3.2) + 0.37);
+    float arbre = graine;
     vec3 rose = mix(vec3(1.0, 0.72, 0.8), vec3(1.0, 0.93, 0.95), tirage * 0.7) * (0.72 + 0.55 * l);
     vec3 tendre = c * vec3(1.0, 1.12, 0.82) + vec3(0.04, 0.06, 0.0);
-    vec3 pr = s == 1.0 ? (arbre < 0.5 ? rose : tendre) : s == 3.0 ? rose : tendre;
+    vec3 pr = s == 1.0 ? (arbre < 0.5 ? rose : tendre) : s == 3.0 ? rose : s == 2.0 ? vec3(0.5, 0.74, 0.3) * (0.7 + 0.6 * l) : tendre;
     vec3 teinteA = arbre < 0.33 ? vec3(0.95, 0.7, 0.22) : arbre < 0.66 ? vec3(0.92, 0.45, 0.16) : vec3(0.8, 0.24, 0.14);
-    vec3 au = s == 1.0 ? teinteA * (0.62 + 0.75 * l) : s == 2.0 ? vec3(0.84, 0.17, 0.12) * (0.65 + 0.7 * l) : s == 3.0 ? vec3(0.9, 0.5, 0.25) * (0.65 + 0.7 * l) : c * vec3(1.18, 0.98, 0.55);
+    vec3 au = s == 1.0 ? teinteA * (0.62 + 0.75 * l) * (0.92 + 0.16 * tirage) : s == 2.0 ? vec3(0.84, 0.17, 0.12) * (0.65 + 0.7 * l) : s == 3.0 ? vec3(0.9, 0.5, 0.25) * (0.65 + 0.7 * l) : c * vec3(1.18, 0.98, 0.55);
     vec3 hi = s == 5.0 ? c * vec3(1.05, 0.95, 0.7) : mix(c, vec3(0.55, 0.48, 0.42) * (0.6 + 0.6 * l), 0.7);
     return c + (pr - c) * saisons.x + (au - c) * saisons.y + (hi - c) * saisons.z;
   }
   vec3 neigeSaison(vec3 c, vec3 n) {
     if (saisons.z < 0.001) return c;
     return mix(c, vec3(0.93, 0.95, 1.0), smoothstep(0.35, 0.8, n.y) * saisons.z * 0.92);
+  }
+  // sur un feuillage (sortes 1 à 4, 11, 12), la neige suit sa forme lissée (pas ses facettes : on aurait dit des
+  // rochers), en un manteau épais au bord ondulé
+  vec3 neigeFeuillage(vec3 c, float sorte, vec3 nf, vec3 nl, vec3 p) {
+    if (saisons.z < 0.001) return c;
+    float s = floor(sorte + 0.5);
+    if (s > 20.5) s -= 20.0;
+    bool feuillage = (s > 0.5 && s < 4.5) || abs(s - 11.0) < 0.5 || abs(s - 12.0) < 0.5;
+    if (!feuillage || dot(nl, nl) < 0.01) return neigeSaison(c, nf);
+    vec3 n = normalize(nl);
+    float ondule = (hasardSaison(floor(p.xz * 2.3)) - 0.5) * 0.12 + sin(p.x * 3.1 + p.z * 2.3) * sin(p.z * 2.7 - p.x * 1.3) * 0.12;
+    float k = smoothstep(0.12, 0.42, n.y + ondule);
+    return mix(c, vec3(0.93, 0.95, 1.0) * (0.9 + 0.1 * n.y), k * saisons.z * 0.95);
   }`;
 
 /** Un bruit lisse (GLSL) : 0 à 1, une bosse par unité. */
@@ -251,6 +306,25 @@ const PEINDRE_GLSL = `
     else if (a.x > a.z) uv = vec2(p.z, p.y);
     else uv = vec2(p.x, p.y);
     vec4 t = texture(details, vec3(uv / echelles[int(couche)], couche));
+    return mix(t.rgb, base * t.rgb * 2.0, t.a);
+  }`;
+
+/**
+ * Peindre le sol : comme peindre, mais les trois projections (de dessus, de face, de côté) mêlées selon la normale
+ * lissée du terrain. Avec la normale de chaque triangle, une pente raide (la paroi du cratère d'Aogashima, aux
+ * triangles de 4 m) passait d'une projection à l'autre d'un triangle au suivant : des facettes, comme pixelisées
+ * (le propriétaire, 2026-10-23).
+ */
+const PEINDRE_SOL_GLSL = `
+  vec3 peindreSol(vec3 base, float couche, vec3 p, vec3 n) {
+    if (couche < 0.5) return base;
+    vec3 w = pow(abs(n), vec3(4.0));
+    w /= w.x + w.y + w.z;
+    float e = echelles[int(couche)];
+    vec4 t = vec4(0.0);
+    if (w.y > 0.01) t += w.y * texture(details, vec3(p.xz / e, couche));
+    if (w.x > 0.01) t += w.x * texture(details, vec3(p.zy / e, couche));
+    if (w.z > 0.01) t += w.z * texture(details, vec3(p.xy / e, couche));
     return mix(t.rgb, base * t.rgb * 2.0, t.a);
   }`;
 
@@ -319,20 +393,68 @@ const CARTE_SOL_GLSL = `
 
 /**
  * Le sol selon la saison (après la peinture ; couche : la matière, textures.js) : au printemps, l'herbe plus tendre et
- * des pétales tombés çà et là ; à l'automne, l'herbe dorée et les feuilles mortes sous les arbres ; l'hiver, la neige
- * partout où c'est assez plat, sauf le sable mouillé, moins épaisse sur les dalles et la route (on y marche).
+ * des pétales tombés sous les cerisiers ; à l'automne, l'herbe dorée et les feuilles mortes sous les arbres (jaunes,
+ * orangées, rouges comme leur arbre ; des étoiles d'érable sous les érables) ; l'hiver, la neige partout où c'est
+ * assez plat, sauf le sable mouillé, moins épaisse sur les dalles et la route (on y marche).
+ * La canopée (balade.js, carteCanopee) : au mètre, sous les arbres à feuilles caduques, leur densité (r), la part
+ * d'arbres en fleurs de cerisier (g), la teinte de leur automne (b : 0 jaune, 0,5 orangé, 1 rouge).
  */
 const SOL_SAISON_GLSL = `
   uniform vec3 saisons;
+  uniform sampler2D canopee;
+  uniform vec4 zoneCanopee; // x0, z0, pas, 1 si la carte existe
+  uniform vec2 tailleCanopee;
+  vec4 lireCanopee(vec2 xz) {
+    if (zoneCanopee.w < 0.5) return vec4(0.0);
+    return texture(canopee, ((xz - zoneCanopee.xy) / zoneCanopee.z + 0.5) / tailleCanopee);
+  }
+  // une feuille tombée (ou un pétale) dans chaque case de côté t, une sur part ; forme : 0 une feuille ovale, 1 une
+  // étoile d'érable, 2 un pétale encoché ; h : son tirage (sa teinte). Renvoie ce qu'elle couvre (0 à 1).
+  float feuilleSol(vec2 p, float t, float part, float forme, out float h) {
+    vec2 q = p / t, i = floor(q), f = fract(q) - 0.5;
+    h = hasard2(i + 0.37);
+    if (hasard2(i + 5.1) > part) return 0.0;
+    float a = hasard2(i + 9.7) * 6.2832;
+    vec2 o = (vec2(hasard2(i + 2.3), hasard2(i + 8.9)) - 0.5) * 0.45;
+    vec2 d = mat2(cos(a), -sin(a), sin(a), cos(a)) * (f - o);
+    float e;
+    if (forme > 1.5) e = length(d * vec2(1.0, 1.5)) - 0.17 + 0.05 * smoothstep(0.08, 0.0, abs(d.y)) * step(0.0, d.x);
+    else if (forme > 0.5) e = length(d) - (0.2 + 0.11 * cos(5.0 * atan(d.y, d.x)));
+    else e = length(d * vec2(1.0, 2.1)) - 0.27;
+    float w = fwidth(e) * 0.8 + 1e-4;
+    return 1.0 - smoothstep(-w, w, e);
+  }
   vec3 solSaison(vec3 c, float couche, vec3 p, vec3 n) {
     if (saisons.x + saisons.y + saisons.z < 0.001) return c;
     vec3 pr = c, au = c;
     if (couche == ${MATIERES.herbe}.0) {
-      pr = mix(c * vec3(0.98, 1.1, 0.85) + vec3(0.02, 0.04, 0.0), vec3(1.0, 0.8, 0.86), smoothstep(0.8, 0.88, bruitLisse(p.xz * 1.7)) * 0.75);
+      pr = c * vec3(0.98, 1.1, 0.85) + vec3(0.02, 0.04, 0.0);
       au = c * vec3(1.2, 1.0, 0.58);
     } else if (couche == ${MATIERES.sousBois}.0) au = mix(c, vec3(0.74, 0.43, 0.2), 0.65);
+    // sous les arbres : les pétales (printemps), les feuilles mortes (automne) ; pas sur le sable mouillé
+    if (couche != ${MATIERES.estran}.0 && couche != ${MATIERES.sable}.0 && saisons.x + saisons.y > 0.001) {
+      vec4 k = lireCanopee(p.xz);
+      if (k.r > 0.02) {
+        float h, h2;
+        if (saisons.x > 0.001 && k.g > 0.02) {
+          float v = max(feuilleSol(p.xz, 0.095, k.r * k.g * 0.9, 2.0, h), feuilleSol(p.xz + 0.031, 0.07, k.r * k.g * 0.6, 2.0, h2));
+          pr = mix(pr, mix(vec3(0.98, 0.62, 0.74), vec3(1.0, 0.82, 0.88), h), v);
+        }
+        if (saisons.y > 0.001) {
+          float erable = step(0.72, k.b);
+          float v1 = feuilleSol(p.xz, 0.15, k.r * 0.75, erable, h);
+          float v2 = feuilleSol(p.xz + 0.057, 0.11, k.r * 0.55, erable, h2);
+          float hh = v1 > v2 ? h : h2;
+          float t = clamp(k.b + (hh - 0.5) * 0.55, 0.0, 1.0);
+          vec3 f = t < 0.5 ? mix(vec3(0.95, 0.74, 0.2), vec3(0.92, 0.46, 0.15), t * 2.0) : mix(vec3(0.92, 0.46, 0.15), vec3(0.78, 0.17, 0.12), t * 2.0 - 1.0);
+          if (hh > 0.86) f = vec3(0.6, 0.38, 0.22);
+          au = mix(au, f * (0.9 + 0.2 * hh), max(v1, v2));
+        }
+      }
+    }
     float couvre = couche == ${MATIERES.estran}.0 ? 0.0 : (couche == ${MATIERES.dalles}.0 || couche == ${MATIERES.route}.0) ? 0.5 + 0.4 * bruitLisse(p.xz * 0.9) : 1.0;
-    vec3 hi = mix(c, vec3(0.92, 0.94, 0.99) * (0.94 + 0.06 * bruitLisse(p.xz * 3.0)), smoothstep(0.55, 0.85, n.y) * couvre * 0.95);
+    float pente = n.y + (bruitLisse(p.xz * 0.45) - 0.5) * 0.22 + (bruitLisse(p.xz * 2.3) - 0.5) * 0.08;
+    vec3 hi = mix(c, vec3(0.92, 0.94, 0.99) * (0.94 + 0.06 * bruitLisse(p.xz * 3.0)), smoothstep(0.5, 0.78, pente) * couvre * 0.95);
     return c + (pr - c) * saisons.x + (au - c) * saisons.y + (hi - c) * saisons.z;
   }`;
 
@@ -382,12 +504,12 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
   corps.onBeforeCompile = (s) => {
     Object.assign(s.uniforms, uniformesCoupe(0.6, 0), communs, vent, { lueur, saisons });
     s.vertexShader = s.vertexShader
-      .replace('#include <common>', `#include <common>\nattribute float matiere;\nattribute vec3 saison;\nvarying float vMatiere;\nvarying float vLueur;\nvarying vec3 vCoupe;\nvarying vec3 vCoupeN;\nvarying vec2 vSaison;${VENT_GLSL}`)
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed += souffleObjet(transformed, saison);')
-      .replace('#include <project_vertex>', '#include <project_vertex>\nvSaison = saison.xz;\nvMatiere = matiere;\nvLueur = abs(saison.x - 8.0) < 0.5 ? 1.0 : abs(saison.x - 9.0) < 0.5 ? 2.0 : abs(saison.x - 10.0) < 0.5 ? 3.0 : 0.0;\nvCoupe = (modelMatrix * vec4(transformed, 1.0)).xyz;\nvCoupeN = normalize(mat3(modelMatrix) * objectNormal);');
+      .replace('#include <common>', `#include <common>\nattribute float matiere;\nattribute vec3 saison;\nattribute vec3 contour;\nuniform vec3 saisons;\nvarying float vMatiere;\nvarying float vLueur;\nvarying vec3 vCoupe;\nvarying vec3 vCoupeN;\nvarying vec3 vLisse;\nvarying vec3 vSaison;${VENT_GLSL}${CHUTE_GLSL}`)
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed += souffleObjet(transformed, saison);\nif (tombee(saison)) transformed = vec3(0.0);')
+      .replace('#include <project_vertex>', '#include <project_vertex>\nvLisse = mat3(modelMatrix) * contour;\nvSaison = saison;\nvMatiere = matiere;\nvLueur = abs(saison.x - 8.0) < 0.5 ? 1.0 : abs(saison.x - 9.0) < 0.5 ? 2.0 : abs(saison.x - 10.0) < 0.5 ? 3.0 : 0.0;\nvCoupe = (modelMatrix * vec4(transformed, 1.0)).xyz;\nvCoupeN = normalize(mat3(modelMatrix) * objectNormal);');
     eclairerParLampes(s, lampes);
     s.fragmentShader = s.fragmentShader
-      .replace('#include <common>', `#include <common>\nvarying float vMatiere;\nvarying float vLueur;\nvarying vec2 vSaison;\nuniform float lueur;${COUPE_GLSL}${PEINDRE_GLSL}${SAISONS_GLSL}`)
+      .replace('#include <common>', `#include <common>\nvarying float vMatiere;\nvarying float vLueur;\nvarying vec3 vLisse;\nvarying vec3 vSaison;\nuniform float lueur;${COUPE_GLSL}${PEINDRE_GLSL}${SAISONS_GLSL}`)
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
         if (vLueur > 2.5) totalEmissiveRadiance += diffuseColor.rgb * vec3(1.0, 0.86, 0.68) * 0.55 * lueur;
         else if (vLueur > 1.5) totalEmissiveRadiance += diffuseColor.rgb * (0.75 + 0.5 * lueur);
@@ -396,18 +518,18 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
       .replace('#include <color_fragment>', `#include <color_fragment>
         {
           vec3 nf = normalize(cross(dFdx(vCoupe), dFdy(vCoupe)));
-          diffuseColor.rgb = feuillageSaison(diffuseColor.rgb, vSaison.x, vSaison.y, vCoupe);
-          diffuseColor.rgb = neigeSaison(peindre(diffuseColor.rgb, floor(vMatiere + 0.5), vCoupe, nf), nf);
+          diffuseColor.rgb = feuillageSaison(diffuseColor.rgb, vSaison.x, vSaison.z, vSaison.y, vCoupe, true);
+          diffuseColor.rgb = neigeFeuillage(peindre(diffuseColor.rgb, floor(vMatiere + 0.5), vCoupe, nf), vSaison.x, nf, vLisse, vCoupe);
         }`);
   };
   corps.customProgramCacheKey = () => 'corps-decor';
   // l'ombre du décor bouge avec lui (les feuillages)
   const profondeur = new THREE.MeshDepthMaterial();
   profondeur.onBeforeCompile = (s) => {
-    Object.assign(s.uniforms, vent);
+    Object.assign(s.uniforms, vent, { saisons });
     s.vertexShader = s.vertexShader
-      .replace('#include <common>', `#include <common>\nattribute vec3 saison;${VENT_GLSL}`)
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed += souffleObjet(transformed, saison);');
+      .replace('#include <common>', `#include <common>\nattribute vec3 saison;\nuniform vec3 saisons;${VENT_GLSL}${CHUTE_GLSL}`)
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed += souffleObjet(transformed, saison);\nif (tombee(saison)) transformed = vec3(0.0);');
   };
   profondeur.customProgramCacheKey = () => 'profondeur-vent';
   // les personnages : deux tons nets (la rampe par défaut de three.js, adoucie sur un pixel), jamais effacés ;
@@ -419,15 +541,18 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
   // le sol : la carte du sol autour du jeu, ailleurs la couleur de ses sommets et la matière d'un sommet par
   // triangle (« flat » : entre l'herbe, 2, et le sous-bois, 8, pas de bandes des matières 3 à 7)
   const carte = { carteSol: { value: null }, zoneSol: { value: new THREE.Vector4(0, 0, 1, 0) }, tailleSol: { value: new THREE.Vector2(1, 1) } };
+  // la canopée (balade.js, carteCanopee) : où tombent les feuilles et les pétales
+  const canopee = { canopee: { value: null }, zoneCanopee: { value: new THREE.Vector4(0, 0, 1, 0) }, tailleCanopee: { value: new THREE.Vector2(1, 1) } };
   const sol = new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: douce });
   sol.onBeforeCompile = (s) => {
     Object.assign(s.uniforms, communs, carte, { saisons });
     eclairerParLampes(s, lampes);
+    Object.assign(s.uniforms, canopee);
     s.vertexShader = s.vertexShader
-      .replace('#include <common>', '#include <common>\nattribute float motif;\nvarying float vMotif;\nvarying vec3 vMonde;')
-      .replace('#include <project_vertex>', '#include <project_vertex>\nvMotif = motif;\nvMonde = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+      .replace('#include <common>', '#include <common>\nattribute float motif;\nvarying float vMotif;\nvarying vec3 vMonde;\nvarying vec3 vMondeN;')
+      .replace('#include <project_vertex>', '#include <project_vertex>\nvMotif = motif;\nvMonde = (modelMatrix * vec4(transformed, 1.0)).xyz;\nvMondeN = mat3(modelMatrix) * objectNormal;');
     s.fragmentShader = s.fragmentShader
-      .replace('#include <common>', `#include <common>\nvarying float vMotif;\nvarying vec3 vMonde;${BRUIT_GLSL}${PEINDRE_GLSL}${CARTE_SOL_GLSL}${SOL_SAISON_GLSL}`)
+      .replace('#include <common>', `#include <common>\nvarying float vMotif;\nvarying vec3 vMonde;\nvarying vec3 vMondeN;${BRUIT_GLSL}${PEINDRE_GLSL}${PEINDRE_SOL_GLSL}${CARTE_SOL_GLSL}${SOL_SAISON_GLSL}`)
       .replace('#include <color_fragment>', `#include <color_fragment>
         {
           float couche = floor(vMotif + 0.5);
@@ -435,8 +560,9 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
           if (lireCarteSol(vMonde.xz, couleur, couche)) diffuseColor.rgb = couleur;
           // de grandes taches plus ou moins claires : la texture ne se voit pas se répéter
           diffuseColor.rgb *= 0.94 + 0.12 * bruitLisse(vMonde.xz * 0.13);
-          vec3 nf = normalize(cross(dFdx(vMonde), dFdy(vMonde)));
-          diffuseColor.rgb = solSaison(peindre(diffuseColor.rgb, couche, vMonde, nf), couche, vMonde, nf);
+          // (la normale lissée du terrain, pas celle de chaque triangle : pas de facettes)
+          vec3 nl = normalize(vMondeN);
+          diffuseColor.rgb = solSaison(peindreSol(diffuseColor.rgb, couche, vMonde, nl), couche, vMonde, nl);
         }`);
   };
   sol.customProgramCacheKey = () => 'sol-carte';
@@ -456,7 +582,7 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
     },
     vertexShader: `
       attribute vec3 contour;
-      ${avecCoupe ? `attribute vec3 saison;${VENT_GLSL}${SAISONS_GLSL}` : ''}
+      ${avecCoupe ? `attribute vec3 saison;${VENT_GLSL}${SAISONS_GLSL}${CHUTE_GLSL}` : ''}
       uniform float epaisseur;
       uniform vec2 ecran;
       varying vec3 vCouleur;
@@ -466,7 +592,7 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
       void main() {
         // la coque gonfle le long des normales lissées, d'autant plus qu'elle est loin : toujours à peu près
         // « epaisseur » pixels (un peu moins au loin, où les traits se serrent)
-        vec3 pos = position${avecCoupe ? ' + souffleObjet(position, saison)' : ''};
+        vec3 pos = position${avecCoupe ? ' + souffleObjet(position, saison);\n        if (tombee(saison)) pos = vec3(0.0)' : ''};
         vec4 mv = modelViewMatrix * vec4(pos, 1.0);
         vFace = 0.0;
         if (dot(contour, contour) > 0.01) {
@@ -478,7 +604,7 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
           mv.xyz += n * (px * 2.0 / (ecran.y * projectionMatrix[1][1])) * max(-mv.z, 0.0);
         }
         gl_Position = projectionMatrix * mv;
-        vCouleur = ${avecCoupe ? 'feuillageSaison(color, saison.x, saison.z, (modelMatrix * vec4(pos, 1.0)).xyz)' : 'color'};
+        vCouleur = ${avecCoupe ? 'feuillageSaison(color, saison.x, saison.z, saison.y, (modelMatrix * vec4(pos, 1.0)).xyz, false)' : 'color'};
         vDistance = -mv.z;
         ${avecCoupe ? 'vCoupe = (modelMatrix * vec4(pos, 1.0)).xyz;\nvCoupeN = dot(contour, contour) > 0.01 ? normalize(mat3(modelMatrix) * contour) : vec3(0.0);' : ''}
       }`,
@@ -540,7 +666,7 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
   };
   return {
     corps, corpsPerso, sol, trait: creerTrait(true, epaisseurs.decor), traitPerso: creerTrait(false, epaisseurs.perso),
-    brume, coupe, ecran, epaisseurs, carte, details, vent, profondeur, persoMouille, lueur, lampes, saisons,
+    brume, coupe, ecran, epaisseurs, carte, canopee, details, vent, profondeur, persoMouille, lueur, lampes, saisons,
   };
 }
 

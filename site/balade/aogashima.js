@@ -608,7 +608,7 @@ export function construire(ctx) {
         for (let k = 0; k < 18; k++) {
           const b = (k / 18) * 2 * PI + hasard(x + k, z) * 0.22, L = 1.05 + hasard(k, x) * 0.3, leve = k % 2 ? 1.25 : 0.65;
           a.piece(new THREE.BoxGeometry(0.3, 0.02, L, 2, 1, 7), k % 3 ? P.jungle : P.fougere, {
-            x: tx, y: y + h + 0.06, z: tz, ry: b, sorte: 'feuillu',
+            x: tx, y: y + h + 0.06, z: tz, ry: b, sorte: 'persistant',
             // le long de la palme (z, de la touffe vers sa pointe) : elle s'effile, monte puis retombe
             deformer: (px, py, pz) => { const t = pz / L + 0.5; return [px * (1 - 0.8 * t), py + L * (leve * t - 1.15 * t * t), (t * L)]; },
           });
@@ -1176,9 +1176,11 @@ export function construire(ctx) {
       if (Math.hypot(x, z) > rayonPied(angle(x, z)) - 1.5 || proche(x, z) || degage(x, z)) continue;
       const y = terrain(x, z), h = 4 + tire() * 3.5, a = quarts[(x > 0 ? 1 : 0) + (z > 0 ? 2 : 0)];
       a.baton([x, y - 0.1, z], [x + 0.1, y + h * 0.5, z], 0.09 * h * 0.35, P.tronc, 5);
-      for (const [dx, dy, dz, r] of [[0, 0.72, 0, 0.36], [-0.22, 0.6, 0.1, 0.27], [0.22, 0.62, -0.08, 0.27]]) {
-        a.boule(r * h, VERTS[Math.floor(tire() * VERTS.length)], { x: x + dx * h, y: y + dy * h, z: z + dz * h, sy: 0.85, sorte: 'feuillu' }, 1);
-      }
+      // (des arbres à feuilles caduques : l'hiver, leurs houppiers tombent, et l'on voit leurs branches)
+      const touffes = [[0, 0.72, 0, 0.36], [-0.22, 0.6, 0.1, 0.27], [0.22, 0.62, -0.08, 0.27]].map(([dx, dy, dz, r]) => [x + dx * h, y + dy * h, z + dz * h, r * h]);
+      const graine = hasard(x * 0.71 + 3.1, z * 0.53 - 1.7); // (pas tire() : la suite des tirages, donc le reste du décor, ne bouge pas)
+      for (const [tx, ty, tz, r] of touffes) a.boule(r, VERTS[Math.floor(tire() * VERTS.length)], { x: tx, y: ty, z: tz, sy: 0.85, sorte: 'houppier', graine }, 1);
+      a.ramure([x + 0.1, y + h * 0.48, z], touffes, h * 0.75, P.tronc);
       monde.cercle(x, z, 0.45);
       n++;
     }
@@ -1201,11 +1203,11 @@ export function construire(ctx) {
         // une fougère : des frondes en rosette, penchées vers l'extérieur
         for (let k = 0; k < 7; k++) {
           const b = (k / 7) * 2 * PI + tire();
-          a.cone(0.16, 1.0, 4, k % 2 ? P.fougere : P.jungle, { x: x + Math.sin(b) * 0.38, y: y + 0.42, z: z + Math.cos(b) * 0.38, rx: Math.cos(b) * 1.05, rz: -Math.sin(b) * 1.05, sz: 0.35, trait: false, sorte: 'feuillu' });
+          a.cone(0.16, 1.0, 4, k % 2 ? P.fougere : P.jungle, { x: x + Math.sin(b) * 0.38, y: y + 0.42, z: z + Math.cos(b) * 0.38, rx: Math.cos(b) * 1.05, rz: -Math.sin(b) * 1.05, sz: 0.35, trait: false, sorte: 'persistant' });
         }
       } else {
         const r = 0.5 + tire() * 0.4;
-        a.boule(r, P.jungleFonce, { x, y: y + 0.3, z, sy: 0.7, sorte: 'feuillu' }, 1);
+        a.buisson(x, y + 0.3, z, r, P.jungleFonce);
         buissons.push([x, z, r]);
       }
       n++;
@@ -1227,7 +1229,7 @@ export function construire(ctx) {
       // pas d'arbres sur le plateau du nord (de l'herbe, et la vue)
       if (!surLaParoi && ta > PLATEAU[0] - 0.1 && ta < PLATEAU[1] + 0.1 && rr < r1 + PAROI + largeurCrete(ta) + 6) continue;
       const r = 1.8 + tire() * 1.8;
-      (surLaParoi ? paroi : flancs).boule(r, VERTS[Math.floor(tire() * VERTS.length)], { x, y: y + r * 0.25, z, sy: 0.8, sorte: 'feuillu' }, 1);
+      (surLaParoi ? paroi : flancs).boule(r, VERTS[Math.floor(tire() * VERTS.length)], { x, y: y + r * 0.25, z, sy: 0.8, sorte: 'persistant' }, 1);
       // au pied de la paroi, on marche jusqu'à eux : ils arrêtent aussi (leur largeur au ras du sol)
       if (surLaParoi) buissons.push([x, z, r * 0.95]);
     }
@@ -1252,7 +1254,7 @@ export function construire(ctx) {
         if (Math.hypot(x - SOMMET.x, z - SOMMET.z) < 4 || Math.hypot(x - TRESOR.x, z - TRESOR.z) < 4) continue;
       }
       const r = 0.55 + tire() * 0.45;
-      a.boule(r, tire() < 0.5 ? P.jungleFonce : P.jungle, { x, y: terrain(x, z) + 0.25, z, sy: 0.75, sorte: 'feuillu' }, 1);
+      a.buisson(x, terrain(x, z) + 0.25, z, r, tire() < 0.5 ? P.jungleFonce : P.jungle);
       buissons.push([x, z, r]);
     }
     poser(a.fin(0, peinture), 0, 0, { y: 0 });

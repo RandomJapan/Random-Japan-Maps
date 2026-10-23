@@ -610,7 +610,8 @@ export function construire(ctx) {
   // des érables (momiji) au sud, encore verts, quelques-uns qui rougissent
   for (const [x, z, h, rouge] of [[-34, 33, 6, false], [-22, 34, 5.5, true], [-8, 33, 6.2, false], [10, 32, 5.8, true], [28, 31, 6, false], [-44, 30, 5.6, true]]) {
     const a = atelier();
-    if (rouge) a.erable(0, 0, h); else a.arbre(0, 0, h, [P.feuillage, P.herbe, '#a8c45a']);
+    // (à feuilles caduques : l'hiver, on voit leurs branches)
+    if (rouge) a.erable(0, 0, h, { caduc: true }); else a.arbre(0, 0, h, [P.feuillage, P.herbe, '#a8c45a'], { caduc: true });
     poser(a.fin(0, peinture), x, z);
     monde.cercle(x, z, 0.5);
   }

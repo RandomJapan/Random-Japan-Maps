@@ -134,6 +134,11 @@ function construire() {
   mats.carte.carteSol.value = carte.texture;
   mats.carte.zoneSol.value.set(carte.x0, carte.z0, carte.pas, 1);
   mats.carte.tailleSol.value.set(carte.nx, carte.nz);
+  // sous les arbres à feuilles caduques : où tombent les feuilles et les pétales (styles.js, solSaison)
+  const canopee = carteCanopee(decor, lieu.etendue.fin);
+  mats.canopee.canopee.value = canopee.texture;
+  mats.canopee.zoneCanopee.value.set(canopee.x0, canopee.z0, canopee.pas, 1);
+  mats.canopee.tailleCanopee.value.set(canopee.nx, canopee.nz);
   groupe.add(terrain(lieu, mats, lieu.etendue, 0, lieu.etendue.fin), terrain(lieu, mats, lieu.etendue.fin, 0.03, null, carte));
   const touffes = creerTouffes(lieu, carte, mats);
   groupe.add(touffes.groupe);
@@ -288,6 +293,57 @@ function carteDuSol(lieu, f, pas = 0.5) {
   texture.needsUpdate = true;
   const lire = (i, j) => { const k = (j * nx + i) * 4; return [(d[k] << 16) | (d[k + 1] << 8) | d[k + 2], d[k + 3]]; };
   return { texture, nx, nz, x0: f.x0, z0: f.z0, pas, lire };
+}
+
+/**
+ * La canopée des arbres à feuilles caduques (sortes 1 à 3 et 21 à 23 des modèles), vue d'en haut, au mètre, sur
+ * l'étendue fine du lieu : leur densité (r), la part d'arbres qui fleurissent en cerisiers au printemps (g : comme
+ * feuillageSaison, styles.js, selon la graine de l'arbre) et la teinte de leur automne (b : 0 jaune, 0,5 orangé,
+ * 1 rouge, les érables). Floutée sur deux mètres : les feuilles tombent un peu autour de l'arbre.
+ */
+function carteCanopee(decor, f, pas = 1) {
+  const nx = Math.round((f.x1 - f.x0) / pas) + 1, nz = Math.round((f.z1 - f.z0) / pas) + 1, n = nx * nz;
+  let dens = new Float32Array(n), rose = new Float32Array(n), teinte = new Float32Array(n);
+  const v = new THREE.Vector3(), w = new THREE.Vector3();
+  for (const m of decor) {
+    const pos = m.geometry.attributes.position, sa = m.geometry.attributes.saison;
+    if (!sa) continue;
+    m.updateWorldMatrix(true, false);
+    for (let i = 0; i + 2 < pos.count; i += 3) {
+      let k = Math.round(sa.getX(i));
+      if (k > 20) k -= 20;
+      if (k < 1 || k > 3) continue;
+      v.set(pos.getX(i), pos.getY(i), pos.getZ(i)).add(w.set(pos.getX(i + 1), pos.getY(i + 1), pos.getZ(i + 1)))
+        .add(w.set(pos.getX(i + 2), pos.getY(i + 2), pos.getZ(i + 2))).multiplyScalar(1 / 3).applyMatrix4(m.matrixWorld);
+      const ci = Math.round((v.x - f.x0) / pas), cj = Math.round((v.z - f.z0) / pas);
+      if (ci < 0 || cj < 0 || ci >= nx || cj >= nz) continue;
+      const g = sa.getY(i), c = cj * nx + ci;
+      dens[c] += 1;
+      rose[c] += k === 3 || (k === 1 && g < 0.5) ? 1 : 0;
+      teinte[c] += k === 2 ? 1 : k === 3 ? 0.5 : g < 0.33 ? 0 : g < 0.66 ? 0.5 : 1;
+    }
+  }
+  // (deux flous en croix de rayon 2 : les feuilles se répandent autour du houppier)
+  const flou = (a) => {
+    const b = new Float32Array(n), c = new Float32Array(n);
+    for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) { let t = 0; for (let d = -2; d <= 2; d++) { const ii = i + d; if (ii >= 0 && ii < nx) t += a[j * nx + ii]; } b[j * nx + i] = t / 5; }
+    for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) { let t = 0; for (let d = -2; d <= 2; d++) { const jj = j + d; if (jj >= 0 && jj < nz) t += b[jj * nx + i]; } c[j * nx + i] = t / 5; }
+    return c;
+  };
+  for (let fois = 0; fois < 2; fois++) { dens = flou(dens); rose = flou(rose); teinte = flou(teinte); }
+  const d = new Uint8Array(n * 4);
+  for (let c = 0; c < n; c++) {
+    const q = dens[c];
+    d[c * 4] = Math.round(Math.min(1, Math.max(0, (q - 0.4) / 6)) * 255);
+    d[c * 4 + 1] = q > 1e-3 ? Math.round((rose[c] / q) * 255) : 0;
+    d[c * 4 + 2] = q > 1e-3 ? Math.round((teinte[c] / q) * 255) : 0;
+    d[c * 4 + 3] = 255;
+  }
+  const texture = new THREE.DataTexture(d, nx, nz, THREE.RGBAFormat);
+  texture.minFilter = texture.magFilter = THREE.LinearFilter;
+  texture.generateMipmaps = false;
+  texture.needsUpdate = true;
+  return { texture, nx, nz, x0: f.x0, z0: f.z0, pas };
 }
 
 /**
@@ -1781,6 +1837,7 @@ function changerSaison(s, { tout = false } = {}) {
   memoire.ecrire('baladeSaison', s);
   M.saisonCible = POIDS_SAISON[s];
   if (tout) M.mats.saisons.value.set(...M.saisonCible);
+  M.effets.effacerEmpreintes();
   M.chutes.regler(s);
 }
 
@@ -2020,6 +2077,18 @@ function normaleDuSol(x, z) {
   return [nx / l, 1 / l, nz / l];
 }
 const dansLaCarte = (x, z) => { const f = M.lieu.etendue.fin; return x > f.x0 + 1 && x < f.x1 - 1 && z > f.z0 + 1 && z < f.z1 - 1; };
+/**
+ * La hauteur du sol tel qu'il est dessiné (le maillage fin : des triangles au mètre, 3 cm au-dessus du terrain ; dans
+ * un creux ou sur une bosse, il passe au-dessus ou au-dessous de la courbe du terrain : une empreinte posée sur le
+ * terrain s'y enfonçait).
+ */
+function solDessine(x, z) {
+  const f = M.lieu.etendue.fin, T = M.lieu.terrain, p = f.pas;
+  const x0 = f.x0 + Math.floor((x - f.x0) / p) * p, z0 = f.z0 + Math.floor((z - f.z0) / p) * p, u = (x - x0) / p, v = (z - z0) / p;
+  const ha = T(x0, z0), hb = T(x0 + p, z0), hd = T(x0, z0 + p), hf = T(x0 + p, z0 + p);
+  // (les deux triangles de la case : a, d, b puis b, d, f ; leur diagonale va de b à d)
+  return (u + v <= 1 ? ha + (hb - ha) * u + (hd - ha) * v : hf + (hd - hf) * (1 - u) + (hb - hf) * (1 - v)) + 0.03;
+}
 
 /** Un pied (ou une paire de pattes du compagnon) qui se pose : son bruit, ses éclaboussures ou son empreinte. */
 function unPas(qui, cote) {
@@ -2048,12 +2117,22 @@ function unPas(qui, cote) {
   } else if (sol === 'bois') {
     if (o.v > 0.12) E.empreinte(x, p.y + 0.02, z, p.cap, [0, 1, 0], sorte, { teinte: 0.45, force: o.v, duree: 7 });
   } else if (dansLaCarte(x, z)) {
-    // dans le sable, on laisse ses pas ; ailleurs, seulement des traces mouillées en sortant de l'eau
-    const n = normaleDuSol(x, z), y = h + 0.03;
-    if (sol === 'sable') E.empreinte(x, y, z, p.cap, n, sorte, { teinte: 0.58, force: 0.9, duree: 30 });
+    // dans le sable et dans la neige, on laisse ses pas (dans la neige, ils restent sept minutes) ; ailleurs,
+    // seulement des traces mouillées en sortant de l'eau
+    const n = normaleDuSol(x, z), y = solDessine(x, z);
+    if (sol === 'neige') E.empreinte(x, y, z, p.cap, n, sorte, { teinte: -1, force: 1, duree: 420 });
+    else if (sol === 'sable') E.empreinte(x, y, z, p.cap, n, sorte, { teinte: 0.58, force: 0.9, duree: 30 });
     else if (sol === 'estran') E.empreinte(x, y, z, p.cap, n, sorte, { teinte: 0.5, force: 1, duree: 26 });
     else if (o.v > 0.12) E.empreinte(x, y, z, p.cap, n, sorte, { teinte: 0.45, force: o.v * (sol === 'herbe' || sol === 'sousBois' ? 0.5 : 1), duree: 7 });
   }
+}
+
+/** Un passant pose un pied (cote : 1 gauche, −1 droit) : dans la neige, son empreinte reste. */
+function pasDansLaNeige(q, cote) {
+  const lx = Math.cos(q.cap), lz = -Math.sin(q.cap), fx = Math.sin(q.cap), fz = Math.cos(q.cap);
+  const x = q.x + lx * cote * 0.085 + fx * 0.12, z = q.z + lz * cote * 0.085 + fz * 0.12;
+  if (!dansLaCarte(x, z) || sousLesPieds(x, z, q.y).sol !== 'neige') return;
+  M.effets.empreinte(x, solDessine(x, z), z, q.cap, normaleDuSol(x, z), cote > 0 ? 0 : 1, { teinte: -1, force: 1, duree: 420 });
 }
 
 /**
@@ -2184,7 +2263,9 @@ function dessiner(dt, temps) {
   for (const p of M.passants) {
     p.perso.objet.position.set(p.etat.x, p.etat.y, p.etat.z);
     p.perso.objet.rotation.y = p.etat.cap;
-    p.perso.animer(dt, p.etat.v, temps + p.x);
+    const pied = p.perso.animer(dt, p.etat.v, temps + p.x);
+    // (l'hiver du calendrier : les passants aussi laissent leurs pas dans la neige)
+    if (pied && p.etat.v > 0.2 && M.mats.saisons.value.z > 0.5) pasDansLaNeige(p.etat, pied);
   }
   // la nuit, les daims se couchent (chacun à son tour)
   for (const d of M.daims) {

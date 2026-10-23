@@ -597,16 +597,17 @@ export function creerHeros(ctx, sorte = 'garcon') {
   // poses clés [temps, bras droit [rx, rz], bras gauche [rx, rz], tour du corps, penché, jambe droite, jambe gauche] ;
   // entre deux, le mouvement est adouci. Quatre mesures : creuser et lancer (comme les mineurs du Tankō-bushi), deux
   // claps et un tour sur soi, le balancement les bras en l'air, les mains qui ondulent et un saut.
+  // (les bras levés s'écartent en V : avec cette grosse tête, un bras levé tout droit y entrait, 2026-10-23)
   const DANSE = [
-    [0, [-2.45, -0.4], [0.15, 0.25], 0.28, 0, -0.28, 0.05], [1, [-2.75, -0.55], [0.05, 0.2], 0.3, 0, -0.1, 0],
-    [2, [0.15, -0.25], [-2.45, 0.4], -0.28, 0, 0.05, -0.28], [3, [0.05, -0.2], [-2.75, 0.55], -0.3, 0, 0, -0.1],
+    [0, [-2.25, -1.2], [0.15, 0.25], 0.28, 0, -0.28, 0.05], [1, [-2.4, -1.3], [0.05, 0.2], 0.3, 0, -0.1, 0],
+    [2, [0.15, -0.25], [-2.25, 1.2], -0.28, 0, 0.05, -0.28], [3, [0.05, -0.2], [-2.4, 1.3], -0.3, 0, 0, -0.1],
     [4, [-1.35, 0.42], [-1.35, -0.42], 0, 0, 0, 0], [4.5, [-1.2, -0.35], [-1.2, 0.35], 0, 0, 0.1, 0.1],
     [5, [-1.35, 0.42], [-1.35, -0.42], 0, 0, 0, 0], [5.5, [-0.4, -1.3], [-0.4, 1.3], 0, 0, 0, 0],
     [7.5, [-0.4, -1.3], [-0.4, 1.3], 0, 0, 0, 0],
-    [8, [-2.6, -0.85], [0.35, 0.65], 0, -0.13, 0.15, -0.05], [9, [0.35, -0.65], [-2.6, 0.85], 0, 0.13, -0.05, 0.15],
-    [10, [-2.6, -0.85], [0.35, 0.65], 0, -0.13, 0.15, -0.05], [11, [0.35, -0.65], [-2.6, 0.85], 0, 0.13, -0.05, 0.15],
+    [8, [-2.35, -1.3], [0.35, 0.65], 0, -0.13, 0.15, -0.05], [9, [0.35, -0.65], [-2.35, 1.3], 0, 0.13, -0.05, 0.15],
+    [10, [-2.35, -1.3], [0.35, 0.65], 0, -0.13, 0.15, -0.05], [11, [0.35, -0.65], [-2.35, 1.3], 0, 0.13, -0.05, 0.15],
     [12, [-1.55, -0.15], [-1.55, 0.15], 0.2, 0, -0.15, 0.1], [13, [-1.55, -0.15], [-1.55, 0.15], -0.2, 0, 0.1, -0.15],
-    [14, [-2.95, -0.3], [-2.95, 0.3], 0, 0, -0.25, -0.25], [15, [-0.6, -0.2], [-0.6, 0.2], 0, 0, 0, 0], [16, [-2.45, -0.4], [0.15, 0.25], 0.28, 0, -0.28, 0.05],
+    [14, [0.3, -2.08], [0.3, 2.08], 0, 0, -0.25, -0.25], [15, [-0.6, -0.2], [-0.6, 0.2], 0, 0, 0, 0], [16, [-2.25, -1.2], [0.15, 0.25], 0.28, 0, -0.28, 0.05],
   ];
   const lisseDanse = (t) => t * t * (3 - 2 * t);
   function poseDanse(b) {
@@ -634,27 +635,30 @@ export function creerHeros(ctx, sorte = 'garcon') {
   /** Le geste g au temps t (secondes depuis qu'il a commencé). */
   function poseGeste(g, t) {
     const B = bras[0], G = bras[1];
+    // (les bras levés s'écartent en V, à côté de la tête : levés tout droit, ils entraient dedans, 2026-10-23 ;
+    // le cœur se fait des deux mains devant la poitrine)
     if (g === 'victoire') {
-      // le bras droit levé haut (« Ouais ! »), la tête penchée, l'autre main sur la hanche
-      B.rotation.x = -2.85; B.rotation.z = -0.2 + 0.05 * Math.sin(t * 3);
+      // le bras droit levé (« Ouais ! »), le poing qui bat, la tête penchée, l'autre main sur la hanche
+      B.rotation.x = 0.3; B.rotation.z = -2.04 - 0.07 * Math.sin(t * 6);
       G.rotation.x = 0.1; G.rotation.z = 0.75;
-      tete.rotation.z = 0.15; danseur.rotation.z = -0.05;
+      tete.rotation.z = -0.12; danseur.rotation.z = 0.04;
     } else if (g === 'saut') {
       const s = Math.max(0, Math.sin(t * PI * 1.6));
       danseur.position.y = 0.3 * s;
-      B.rotation.x = G.rotation.x = -2.5 * s - 0.3; B.rotation.z = -0.35 * s - 0.12; G.rotation.z = 0.35 * s + 0.12;
+      B.rotation.x = G.rotation.x = -0.3 + 0.6 * s; B.rotation.z = -0.12 - 1.98 * s; G.rotation.z = 0.12 + 1.98 * s;
       jambes[0].rotation.x = jambes[1].rotation.x = 0.35 * s;
     } else if (g === 'salut') {
       // une grande révérence
       corps.rotation.x = 0.62; tete.rotation.x = 0.25;
       B.rotation.x = G.rotation.x = 0.15; B.rotation.z = -0.05; G.rotation.z = 0.05;
     } else if (g === 'coeur') {
-      // les bras au-dessus de la tête, les mains qui se rejoignent : un cœur
-      B.rotation.x = G.rotation.x = -2.95; B.rotation.z = 0.32; G.rotation.z = -0.32;
-      tete.rotation.z = 0.08 * Math.sin(t * 2);
+      // les deux mains qui se rejoignent devant la poitrine : un cœur ; la tête penchée de côté
+      B.rotation.x = G.rotation.x = -1.05; B.rotation.z = 0.74; G.rotation.z = -0.74;
+      tete.rotation.z = 0.16 + 0.04 * Math.sin(t * 2);
     } else if (g === 'coucou') {
-      B.rotation.x = -2.6; B.rotation.z = -0.55 + 0.35 * Math.sin(t * 9);
-      G.rotation.x = 0; tete.rotation.z = 0.1;
+      // la main levée de côté, qui fait au revoir
+      B.rotation.x = -0.45; B.rotation.z = -2.0 + 0.2 * Math.sin(t * 9);
+      G.rotation.x = 0; tete.rotation.z = -0.1;
     } else if (g === 'creuser') {
       // penché en avant, les mains qui grattent la terre l'une après l'autre
       corps.rotation.x = 0.62; corps.position.y = -0.06; tete.rotation.x = 0.35;
@@ -1104,7 +1108,12 @@ const FORMES = {
       pattes: [[-1, 1], [1, 1], [-1, -1], [1, -1]].map(([sx, sz]) => ({ p: sz > 0 ? [sx * 0.065, 0.24, 0.15] : [sx * 0.075, 0.27, -0.14], a: patte(sz > 0) })),
       bascule: [0, 0],
       // (où vont ses accessoires : le tour du cou [centre, inclinaison, rayon], le devant du cou, le haut de la tête)
-      accessoires: { cou: { c: [0, 0.42, 0.19], rx: PI / 2 - 0.5, r: 0.082 }, devant: [0, 0.395, 0.272], crane: { p: [0, 0.16, -0.01], r: 0.112 }, foulard: '#2f6fb0' },
+      // (Kon a déjà son collier rouge, son bavoir et son grelot : le foulard couvre le collier et pend devant le bavoir ;
+      // le grand grelot remplace le sien)
+      accessoires: {
+        cou: { c: [0, 0.42, 0.19], rx: PI / 2 - 0.5, r: 0.082 }, devant: [0, 0.395, 0.272], crane: { p: [0, 0.16, -0.01], r: 0.112 }, foulard: '#2f6fb0',
+        bandana: { r: 0.083, tube: 0.019 }, triangle: [0, 0.365, 0.302], triangleR: 0.07, collier: false, grelot: [0, 0.303, 0.288], grelotR: 0.04,
+      },
     };
   },
   // Pon, le tanuki : rond, brun gris, la bande sombre des épaules, le masque noir autour des yeux et le museau
@@ -1191,7 +1200,11 @@ const FORMES = {
       corps, tete: { p: [0, 0.25, 0.32], a: tete }, yeux, queue: { p: [0, 0.15, -0.3], a: queue },
       pattes: [[-1, 1], [1, 1], [-1, -1], [1, -1]].map(([sx, sz]) => ({ p: sz > 0 ? [sx * 0.07, 0.11, 0.16] : [sx * 0.08, 0.12, -0.2], a: patte(sz > 0) })),
       bascule: [0.06, -0.2],
-      accessoires: { cou: { c: [0, 0.218, 0.25], rx: PI / 2 - 0.45, r: 0.08 }, devant: [0, 0.2, 0.322], crane: { p: [0, 0.075, -0.01], r: 0.085 }, foulard: '#e8b941' },
+      // (Chapu a déjà son foulard bleu : le foulard jaune le recouvre, le grelot y est pendu)
+      accessoires: {
+        cou: { c: [0, 0.215, 0.25], rx: PI / 2 - 0.45, r: 0.072 }, devant: [0, 0.2, 0.322], crane: { p: [0, 0.075, -0.01], r: 0.085 }, foulard: '#e8b941',
+        bandana: { r: 0.072, tube: 0.023 }, triangle: [0, 0.15, 0.314], triangleR: 0.075, collier: false, grelot: [0, 0.125, 0.337], grelotR: 0.028,
+      },
     };
   },
   // ---- Les trois compagnons secrets (2026-10-23 : on les achète au marchand avec les koban des secrets)
@@ -1247,7 +1260,7 @@ const FORMES = {
       corps, tete: { p: [0, 0.5, 0.21], a: tete }, yeux, queue: { p: [0, 0.33, -0.21], a: queue },
       pattes: [[-1, 1], [1, 1], [-1, -1], [1, -1]].map(([sx, sz]) => ({ p: sz > 0 ? [sx * 0.072, 0.24, 0.15] : [sx * 0.082, 0.27, -0.14], a: patte(sz > 0) })),
       bascule: [0, 0],
-      accessoires: { cou: { c: [0, 0.432, 0.17], rx: PI / 2 - 0.45, r: 0.112 }, devant: [0, 0.405, 0.28], crane: { p: [0, 0.235, -0.03], r: 0.14 }, foulard: '#2f8a5a' },
+      accessoires: { cou: { c: [0, 0.432, 0.17], rx: PI / 2 - 0.45, r: 0.112 }, devant: [0, 0.405, 0.28], crane: { p: [0, 0.125, -0.035], r: 0.14 }, foulard: '#2f8a5a' },
     };
   },
   // Fuwa, le bébé dragon des mers (un petit Ryūjin) : un long corps blanc nacré qui ondule (des anneaux, animés par
@@ -1300,7 +1313,7 @@ const FORMES = {
       // (les pattes de derrière tiennent au troisième anneau : elles suivent ses ondulations)
       pattes: [{ p: [-0.058, Y - 0.04, 0.08], a: patte(false) }, { p: [0.058, Y - 0.04, 0.08], a: patte(true) }, { p: [-0.05, -0.035, 0], a: patte(false), anneau: 3 }, { p: [0.05, -0.035, 0], a: patte(false), anneau: 3 }],
       bascule: [Y, 0], vol: true,
-      accessoires: { cou: { c: [0, Y + 0.05, 0.11], rx: PI / 2 - 0.85, r: 0.072 }, devant: [0, Y + 0.0, 0.16], crane: { p: [0, 0.1, -0.025], r: 0.08 }, foulard: '#e889a8' },
+      accessoires: { cou: { c: [0, Y + 0.005, 0.075], rx: PI / 2 - 0.55, r: 0.07 }, devant: [0, Y - 0.04, 0.13], crane: { p: [0, 0.1, -0.025], r: 0.08 }, foulard: '#e889a8', triangleR: 0.05 },
     };
   },
   // Saya, l'esprit d'un vieil arbre (un kodama : dans les contes, c'est lui qui répond, en écho, dans la forêt) : un
@@ -1382,10 +1395,12 @@ export function creerCompagnon(ctx, espece, o = {}) {
   let accessoire = null;
   const FORMES_ACC = {
     // un foulard noué au cou, à pois blancs, sa pointe qui tombe devant
+    // (A.bandana : son anneau { r, tube } ; A.triangle, A.triangleR : sa pointe, si le compagnon en a besoin d'autres)
     'cp-bandana'() {
       const a = atelier(), c = A.foulard, pois = (x, y, z) => (Math.floor(x * 90 + 50) % 3 === 0 && Math.floor(y * 90 + 50) % 3 === 0 && Math.floor(z * 90 + 50) % 2 === 0 ? '#fbf6ea' : c);
-      a.piece(new THREE.TorusGeometry(A.cou.r + 0.012, 0.022, 6, 18), c, { x: A.cou.c[0], y: A.cou.c[1], z: A.cou.c[2], rx: A.cou.rx, teinte: pois })
-        .piece(new THREE.ConeGeometry(0.06, 0.11, 3), c, { x: A.devant[0], y: A.devant[1] - 0.035, z: A.devant[2] + 0.01, rx: PI + 0.35, sz: 0.3, teinte: pois });
+      const b = A.bandana || {}, t = A.triangle || [A.devant[0], A.devant[1] - 0.035, A.devant[2] + 0.01], tr = A.triangleR ?? 0.06;
+      a.piece(new THREE.TorusGeometry(b.r ?? A.cou.r + 0.012, b.tube ?? 0.022, 6, 18), c, { x: A.cou.c[0], y: A.cou.c[1], z: A.cou.c[2], rx: A.cou.rx, teinte: pois })
+        .piece(new THREE.ConeGeometry(tr, tr * 1.83, 3), c, { x: t[0], y: t[1], z: t[2], rx: PI + 0.35, sz: 0.3, teinte: pois });
       return { a, sur: corps };
     },
     // un petit chapeau de paille conique (comme ceux des statues de tanuki), ses rangs de paille
@@ -1395,13 +1410,14 @@ export function creerCompagnon(ctx, espece, o = {}) {
         .boule(r * 0.08, '#c9a65a', { x: A.crane.p[0], y: A.crane.p[1] + r * 0.38, z: A.crane.p[2] - 0.004 }, 1);
       return { a, sur: tete };
     },
-    // un collier rouge et un gros grelot doré (comme ceux des sanctuaires)
+    // un collier rouge et un gros grelot doré (comme ceux des sanctuaires) ; A.collier false : il a déjà de quoi le
+    // pendre (le collier de Kon, le foulard de Chapu) ; A.grelot, A.grelotR : où et de quelle taille
     'cp-grelot'() {
-      const a = atelier();
-      a.piece(new THREE.TorusGeometry(A.cou.r + 0.006, 0.011, 5, 18), '#d8302c', { x: A.cou.c[0], y: A.cou.c[1], z: A.cou.c[2], rx: A.cou.rx })
-        .boule(0.033, '#e8b941', { x: A.devant[0], y: A.devant[1] - 0.03, z: A.devant[2] + 0.012 }, 1)
-        .boite(0.05, 0.005, 0.012, '#7a5a20', { x: A.devant[0], y: A.devant[1] - 0.038, z: A.devant[2] + 0.04, trait: false })
-        .boule(0.008, '#7a5a20', { x: A.devant[0], y: A.devant[1] - 0.048, z: A.devant[2] + 0.042, trait: false }, 0);
+      const a = atelier(), g = A.grelot || [A.devant[0], A.devant[1] - 0.03, A.devant[2] + 0.012], gr = A.grelotR ?? 0.033, k = gr / 0.033;
+      if (A.collier !== false) a.piece(new THREE.TorusGeometry(A.cou.r + 0.006, 0.011, 5, 18), '#d8302c', { x: A.cou.c[0], y: A.cou.c[1], z: A.cou.c[2], rx: A.cou.rx });
+      a.boule(gr, '#e8b941', { x: g[0], y: g[1], z: g[2] }, 1)
+        .boite(0.05 * k, 0.005 * k, 0.012 * k, '#7a5a20', { x: g[0], y: g[1] - 0.008 * k, z: g[2] + 0.028 * k, trait: false })
+        .boule(0.008 * k, '#7a5a20', { x: g[0], y: g[1] - 0.018 * k, z: g[2] + 0.03 * k, trait: false }, 0);
       return { a, sur: corps };
     },
   };

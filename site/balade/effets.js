@@ -173,7 +173,8 @@ export function creerEffets(THREE) {
   groupe.add(ronds);
 
   // ---------------------------------------------------------------- Les empreintes
-  const NE = 128;
+  // (assez pour que les pas restent longtemps dans la neige : le voyageur, son compagnon, les passants)
+  const NE = 640;
   const geoE = new THREE.InstancedBufferGeometry();
   geoE.index = plan.index;
   geoE.setAttribute('position', plan.attributes.position);
@@ -205,6 +206,8 @@ export function creerEffets(THREE) {
         vec3 d = normalize(f - n * dot(f, n)), c = cross(n, d);
         // une semelle d'enfant : 9 × 21 cm ; une patte de renard : 6 × 6 cm
         vec2 t = iN.w < 1.5 ? vec2(0.045, 0.105) : vec2(0.03, 0.03);
+        // (dans la neige, le pied s'enfonce : le creux est plus large que la semelle)
+        if (iT.w < 0.0) t *= 1.6;
         vQ = position.xz;
         vSorte = iN.w;
         vT = vec3(age, iT.z, iT.w);
@@ -218,6 +221,8 @@ export function creerEffets(THREE) {
       float ovale(vec2 q, vec2 c, vec2 r) { return length((q - c) / r); }
       void main() {
         if (vT.x < 0.0 || vT.x > 1.0) discard;
+        // (teinte négative : dans la neige, un creux bleuté, plus sombre au fond)
+        bool neige = vT.z < 0.0;
         // q.x en travers (vers l'intérieur du pied pour les deux pieds), q.y du talon (−1) à la pointe (1)
         vec2 q = vec2(vQ.x * (vSorte > 0.5 && vSorte < 1.5 ? -1.0 : 1.0), -vQ.y);
         float forme;
@@ -236,7 +241,8 @@ export function creerEffets(THREE) {
         }
         float a = forme * vT.y * (1.0 - smoothstep(0.55, 1.0, vT.x));
         if (a < 0.01) discard;
-        gl_FragColor = vec4(mix(vec3(1.0), vec3(vT.z), a), 1.0);
+        vec3 teinte = neige ? mix(vec3(0.6, 0.68, 0.88), vec3(0.42, 0.5, 0.74), smoothstep(0.35, 1.0, forme)) : vec3(vT.z);
+        gl_FragColor = vec4(mix(vec3(1.0), teinte, a), 1.0);
       }`,
   }));
   empreintes.frustumCulled = false;
@@ -402,6 +408,11 @@ export function creerEffets(THREE) {
       eN.setXYZW(i, n[0], n[1], n[2], sorte);
       eT.setXYZW(i, temps.value, duree, force, teinte);
       ePos.needsUpdate = eN.needsUpdate = eT.needsUpdate = true;
+    },
+    /** Toutes les empreintes effacées (la saison change : la neige fond, ses pas avec elle). */
+    effacerEmpreintes() {
+      eT.array.fill(-1e4);
+      eT.needsUpdate = true;
     },
     /** Chaque image : l'heure (le jeu), la focale (pixels, pour la taille des gouttes), la nuit (0 à 1). */
     maj(dt, t, f, n) {

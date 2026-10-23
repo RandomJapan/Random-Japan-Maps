@@ -59,7 +59,12 @@ export function matiereContour(THREE, couleur = C.encre) {
  * les conifères, l'herbe et la mousse du sol, le tapis de pétales, l'eau (gelée l'hiver dans le nord), et les
  * lumières (lanternes, fenêtres, phare) qui s'allument la nuit. La neige, elle, tombe sur tout ce qui regarde le ciel.
  */
-const SORTES = { feuillu: 1, erable: 2, cerisier: 3, conifere: 4, herbe: 5, tapis: 6, eau: 7, lumiere: 8, lampe: 9, illumine: 10 };
+// (la balade, 2026-10-23 : buisson, persistant — une forêt toujours verte —, et les houppiers des arbres à feuilles
+// caduques, qui tombent l'hiver : 20 de plus que la sorte de leur couleur)
+const SORTES = {
+  feuillu: 1, erable: 2, cerisier: 3, conifere: 4, herbe: 5, tapis: 6, eau: 7, lumiere: 8, lampe: 9, illumine: 10,
+  buisson: 11, persistant: 12, houppier: 21, houppierErable: 22, houppierCerisier: 23,
+};
 // La sorte d'une pièce d'après sa couleur, quand l'atelier ne l'a pas dite
 const SORTE_COULEUR = {
   [C.herbe]: 'herbe', [C.mousse]: 'herbe', [C.mousseFonce]: 'herbe', [C.feuillage]: 'feuillu',
@@ -231,7 +236,7 @@ export function ateliers(THREE, repeindre = null, matieres = null, sortes = null
           for (let i = 0; i < p.count; i++) p.setXYZ(i, ...o.deformer(p.getX(i), p.getY(i), p.getZ(i)));
         }
         g.applyMatrix4(m);
-        morceaux.push({ pos: g.attributes.position.array, c, teinte: o.teinte, couleurs: o.couleurs, trait: o.trait !== false, nuance: o.nuance ?? 0.05, sorte: o.sorte });
+        morceaux.push({ pos: g.attributes.position.array, c, teinte: o.teinte, couleurs: o.couleurs, trait: o.trait !== false, nuance: o.nuance ?? 0.05, sorte: o.sorte, graine: o.graine });
         return a;
       },
       boite: (l, h, p, c, o) => a.piece(new THREE.BoxGeometry(l, h, p), c, o),
@@ -432,17 +437,54 @@ export function ateliers(THREE, repeindre = null, matieres = null, sortes = null
           deformer: (px, py, pz) => { const k = 0.78 + 0.44 * hasard(px * 9 + x, py * 9 + y, pz * 9 + z); return [px * k, py * k, pz * k]; },
         });
       },
-      /** Un arbre feuillu (érable, cerisier…) : tronc, deux branches et des touffes de feuillage. */
+      /**
+       * Un arbre feuillu (érable, cerisier…) : tronc, deux branches et des touffes de feuillage. o.caduc : ses
+       * houppiers tombent l'hiver (la balade) ; il a alors, cachées dessous, des branches jusqu'à chaque touffe, et
+       * leurs rameaux.
+       */
       arbre(x, z, h, feuilles = [C.feuillage, C.mousse], o = {}) {
-        const y0 = o.y ?? 0;
+        const y0 = o.y ?? 0, fourche = [x + 0.02 * h, y0 + h * 0.45, z], graine = o.graine ?? hasard(x * 1.3, z * 0.7, h);
         a.baton([x, y0 - 0.06, z], [x + 0.02 * h, y0 + h * 0.5, z], 0.035 * h, C.brun, 6)
-          .baton([x + 0.02 * h, y0 + h * 0.45, z], [x - 0.18 * h, y0 + h * 0.68, z + 0.05 * h], 0.022 * h, C.brun, 5)
-          .baton([x + 0.02 * h, y0 + h * 0.45, z], [x + 0.2 * h, y0 + h * 0.7, z - 0.04 * h], 0.022 * h, C.brun, 5);
-        for (const [dx, dy, dz, r] of [[0, 0.78, 0, 0.3], [-0.2, 0.68, 0.06, 0.22], [0.21, 0.7, -0.05, 0.22], [0.04, 0.66, 0.2, 0.2], [-0.03, 0.7, -0.2, 0.2], [0.08, 0.92, 0.04, 0.18]]) {
+          .baton(fourche, [x - 0.18 * h, y0 + h * 0.68, z + 0.05 * h], 0.022 * h, C.brun, 5)
+          .baton(fourche, [x + 0.2 * h, y0 + h * 0.7, z - 0.04 * h], 0.022 * h, C.brun, 5);
+        const touffes = [[0, 0.78, 0, 0.3], [-0.2, 0.68, 0.06, 0.22], [0.21, 0.7, -0.05, 0.22], [0.04, 0.66, 0.2, 0.2], [-0.03, 0.7, -0.2, 0.2], [0.08, 0.92, 0.04, 0.18]];
+        for (const [dx, dy, dz, r] of touffes) {
           const c = feuilles[Math.floor(hasard(x + dx, z + dz, dy) * feuilles.length)];
-          const sorte = ['erable', 'cerisier'].includes(SORTE_COULEUR[c]) ? SORTE_COULEUR[c] : 'feuillu';
-          a.boule(r * h, c, { x: x + dx * h, y: y0 + dy * h, z: z + dz * h, sy: 0.8, sorte }, 1);
+          let sorte = ['erable', 'cerisier'].includes(SORTE_COULEUR[c]) ? SORTE_COULEUR[c] : 'feuillu';
+          if (o.caduc) sorte = { feuillu: 'houppier', erable: 'houppierErable', cerisier: 'houppierCerisier' }[sorte];
+          a.boule(r * h, c, { x: x + dx * h, y: y0 + dy * h, z: z + dz * h, sy: 0.8, sorte, graine }, 1);
         }
+        if (o.caduc) a.ramure(fourche, touffes.map(([dx, dy, dz, r]) => [x + dx * h, y0 + dy * h, z + dz * h, r * h]), h);
+        return a;
+      },
+      /**
+       * Un buisson (une azalée taillée, comme dans les jardins japonais) en x, y, z, de rayon r : une touffe ronde
+       * et quatre plus petites autour, tournées au hasard ; une seule graine (il fleurit ou rougit tout entier).
+       */
+      buisson(x, y, z, r, c, o = {}) {
+        const graine = o.graine ?? hasard(x * 2.1, z * 1.7, r), t = hasard(z, x, r) * 6.28, ct = Math.cos(t), st = Math.sin(t);
+        for (const [dx, dy, dz, k] of [[0, 0.08, 0, 0.88], [0.55, -0.12, 0.2, 0.62], [-0.5, -0.1, -0.15, 0.66], [0.1, -0.16, -0.55, 0.58], [-0.18, -0.12, 0.55, 0.56]]) {
+          a.boule(r * k, c, { x: x + (dx * ct - dz * st) * r, y: y + dy * r, z: z + (dx * st + dz * ct) * r, sy: 0.8, sorte: o.sorte ?? 'buisson', graine }, 1);
+        }
+        return a;
+      },
+      /**
+       * Les branches d'un arbre dont les feuilles tombent : de la fourche [x, y, z] jusqu'au cœur de chaque touffe
+       * [x, y, z, rayon], puis trois ou quatre rameaux qui s'écartent vers le bord de la touffe, et des brindilles.
+       */
+      ramure(fourche, touffes, h, c = C.brun) {
+        touffes.forEach(([tx, ty, tz, r], i) => {
+          a.baton(fourche, [tx, ty - r * 0.15, tz], 0.012 * h, c, 5);
+          const n = 3 + (i % 2);
+          for (let k = 0; k < n; k++) {
+            const t = (k / n) * 2 * Math.PI + hasard(tx, tz, k) * 1.4, leve = 0.25 + 0.6 * hasard(tz, tx, k);
+            const dx = Math.cos(t) * Math.cos(leve), dy = Math.sin(leve), dz = Math.sin(t) * Math.cos(leve);
+            const bout = [tx + dx * r * 0.82, ty - r * 0.15 + dy * r * 0.7, tz + dz * r * 0.82];
+            a.baton([tx, ty - r * 0.15, tz], bout, 0.0055 * h, c, 4);
+            // une brindille au bout, qui remonte
+            a.baton(bout, [bout[0] + dx * r * 0.25, bout[1] + r * 0.32, bout[2] + dz * r * 0.25], 0.0032 * h, c, 3, { trait: false });
+          }
+        });
         return a;
       },
       erable: (x, z, h, o) => a.arbre(x, z, h, [C.erable, C.erableClair, '#b8452a'], o),
@@ -531,6 +573,9 @@ export function ateliers(THREE, repeindre = null, matieres = null, sortes = null
               contour[i + k] = v[0] / l; contour[i + k + 1] = v[1] / l; contour[i + k + 2] = v[2] / l;
             }
           }
+          // (la balade : la graine de la pièce, un tirage pour tout l'arbre ou tout le buisson — un arbre en fleurs l'est
+          // tout entier —, à la place de la force de la peinture, dont la balade ne se sert pas)
+          const graine = m.graine ?? hasard(p[0] * 0.37 + 1.3, p[2] * 0.41 - 2.1, p[1] * 0.23 + 7.7);
           for (let k = 0, t = 0; k < p.length; k += 9, t++) {
             const cx = (p[k] + p[k + 3] + p[k + 6]) / 3, cy = (p[k + 1] + p[k + 4] + p[k + 7]) / 3, cz = (p[k + 2] + p[k + 5] + p[k + 8]) / 3;
             const teinte = m.couleurs ? m.couleurs[t] : m.teinte ? m.teinte(cx, cy, cz) : m.c;
@@ -546,7 +591,7 @@ export function ateliers(THREE, repeindre = null, matieres = null, sortes = null
               col[i + k + s + 1] = g * lavis * sol;
               col[i + k + s + 2] = b * lavis * sol;
               saison[i + k + s] = sorte;
-              saison[i + k + s + 1] = lavis * sol;
+              saison[i + k + s + 1] = matiere ? graine : lavis * sol;
               saison[i + k + s + 2] = tirage;
             }
           }
