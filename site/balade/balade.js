@@ -456,8 +456,9 @@ function densiteFeuillage(lieu) {
     if (!sa) continue;
     const c = Math.cos(o.ry), si = Math.sin(o.ry);
     for (let k = 0; k < p.length; k += 9) {
+      // (les feuillus, érables, cerisiers, conifères ; les buissons, la forêt persistante ; les houppiers qui tombent l'hiver)
       const sorte = Math.round(sa[k]);
-      if (sorte < 1 || sorte > 4) continue;
+      if (!((sorte >= 1 && sorte <= 4) || sorte === 11 || sorte === 12 || (sorte >= 21 && sorte <= 23))) continue;
       const i = Math.floor((o.x + p[k] * c + p[k + 2] * si - e.x0) / pas), j = Math.floor((o.z - p[k] * si + p[k + 2] * c - e.z0) / pas);
       if (i >= 0 && j >= 0 && i < nx && j < nz) n[j * nx + i]++;
     }

@@ -8,7 +8,7 @@
 //  Son secret (2026-10-23) : la carte au trésor. La dernière page du cahier des voyageurs, dans l'abri de la crête, est
 //  une carte dessinée par des enfants de l'île, avec une croix ; à l'est du petit volcan, près d'un camélia, dans un petit
 //  creux, on creuse : une vieille boîte en fer, une photo de classe, une lettre (l'éruption de 1785, le retour des
-//  habitants cinquante ans plus tard) et un koban (tresors.js). Bunbuku, le marchand, attend derrière les palmiers.
+//  habitants cinquante ans plus tard) et un koban (tresors.js). Bunbuku, le marchand, attend au milieu de la forêt, à l'est du cratère.
 //  Repère : x vers l'est, z vers le sud, y vers le haut, en mètres ; le fond du cratère vers y = 0, la mer
 //  à y = −40. Les distances sont resserrées (le vrai cratère fait plus d'un kilomètre).
 //  ctx : { THREE, atelier, P (palette), peinture }.
@@ -39,10 +39,13 @@ const PIN_VENT = { x: -25.6, z: -77.6 };
 const JUMELLES = { x: -15.1, z: -83.1 };
 const STELE = { x: -10.9, z: -78.6 };
 const HACHIJO = { x: -220, y: MER + 30, z: -1240 }; // l'île de Hachijō, sur l'horizon (le décor lointain)
-// le secret : le petit creux où la boîte est enterrée, à l'est du petit volcan ; le camélia à côté ; le marchand
+// le secret : le petit creux où la boîte est enterrée, à l'est du petit volcan ; le camélia à côté ; le marchand, au
+// milieu de la forêt de l'est du cratère (2026-10-23 : il était derrière le champ de palmiers), dans une clairière
+// ouverte vers l'ouest (ouverture : l'angle de la trouée, comme cap), son lampion à côté
 const TRESOR = { x: 27, z: 14, r: 2.4, creux: 0.45 };
 const TSUBAKI = { x: 28.9, z: 12.4 };
-const MARCHAND = { x: -48, z: -15.5 };
+const MARCHAND = { x: 45, z: -3, clairiere: 4.5, ouverture: -Math.PI / 2 - 0.15 };
+const LAMPION = { x: MARCHAND.x + 0.35, z: MARCHAND.z + 1.25 };
 const CAP_ABRI = Math.atan2(-AZUMAYA.x, -AZUMAYA.z); // l'abri ouvre son devant sur la caldeira (vers le centre)
 /** Du repère de l'abri (x à sa droite, z vers la caldeira) au lieu : [x, z]. */
 const versAbri = (lx, lz) => [AZUMAYA.x + lx * Math.cos(CAP_ABRI) + lz * Math.sin(CAP_ABRI), AZUMAYA.z - lx * Math.sin(CAP_ABRI) + lz * Math.cos(CAP_ABRI)];
@@ -1155,7 +1158,7 @@ export function construire(ctx) {
     if (x > CAMPING.x0 - 3 && x < CAMPING.x1 + 3 && z > CAMPING.z0 - 3 && z < CAMPING.z1 + 3) return true;
     if (x > PALMERAIE.x0 - 2 && x < PALMERAIE.x1 + 2 && z > PALMERAIE.z0 - 2 && z < PALMERAIE.z1 + 2) return true;
     if (surLaLigne(MARCHES, x, z).d < 6) return true;
-    if (Math.hypot(x - TRESOR.x, z - TRESOR.z) < 5 || Math.hypot(x - MARCHAND.x, z - MARCHAND.z) < 3.5) return true;
+    if (Math.hypot(x - TRESOR.x, z - TRESOR.z) < 5 || Math.hypot(x - MARCHAND.x, z - MARCHAND.z) < MARCHAND.clairiere + 0.5) return true;
     return false;
   };
   // le pré entre le tunnel et Maruyama, et le pied de l'escalier : la vue sur le petit volcan reste dégagée
@@ -1186,6 +1189,55 @@ export function construire(ctx) {
     }
     for (const a of quarts) poser(a.fin(0, peinture), 0, 0, { y: 0 });
   }
+  // le bois de Bunbuku : deux couronnes d'arbres serrés autour de sa clairière (les petits devant, les grands derrière,
+  // pour que la caméra y tienne), une trouée vers l'ouest, d'où l'on vient ; des fougères et des pierres moussues ;
+  // son lampion, pendu à un bambou (allumé la nuit : on le trouve de loin). Un hasard à lui (pas tire() : le reste du
+  // décor ne bouge pas)
+  {
+    const a = atelier(), Q = MARCHAND;
+    const ecartOuverture = (t) => Math.abs(Math.atan2(Math.sin(t - Q.ouverture), Math.cos(t - Q.ouverture)));
+    const couronnes = [[11, 6.2, 1.3, 4, 1.2], [15, 9.4, 2.6, 5.2, 2.4]]; // [nombre, rayon, écart, hauteur, en plus]
+    couronnes.forEach(([nb, R, dR, h0, dh], c) => {
+      for (let k = 0; k < nb; k++) {
+        const t = ((k + 0.5) / nb) * 2 * PI + (hasard(k * 1.7 + c, 9.1) - 0.5) * 0.35;
+        if (ecartOuverture(t) < (c ? 0.32 : 0.42)) continue;
+        const rr = R + hasard(k * 0.9 + c * 5, 4.3) * dR, x = Q.x + Math.sin(t) * rr, z = Q.z + Math.cos(t) * rr;
+        // (pas contre un arbre du cratère : leurs houppiers se mêleraient, face contre face)
+        if (Math.hypot(x, z) > rayonPied(angle(x, z)) - 1.5 || monde.cercles.some(([cx, cz, r]) => Math.hypot(cx - x, cz - z) < r + 1.8)) continue;
+        const y = terrain(x, z), h = h0 + hasard(k + c * 11, 2.2) * dh;
+        a.baton([x, y - 0.1, z], [x + 0.08, y + h * 0.5, z], 0.09 * h * 0.35, P.tronc, 5);
+        const touffes = [[0, 0.72, 0, 0.36], [-0.22, 0.6, 0.1, 0.27], [0.22, 0.62, -0.08, 0.27]].map(([dx, dy, dz, r]) => [x + dx * h, y + dy * h, z + dz * h, r * h]);
+        const graine = hasard(x * 0.71 + 3.1, z * 0.53 - 1.7);
+        touffes.forEach(([tx, ty, tz, r], i) => a.boule(r, VERTS[Math.floor(hasard(k + i * 3, c + 7.7) * VERTS.length)], { x: tx, y: ty, z: tz, sy: 0.85, sorte: 'houppier', graine }, 1));
+        a.ramure([x + 0.08, y + h * 0.48, z], touffes, h * 0.75, P.tronc);
+        monde.cercle(x, z, 0.45);
+      }
+    });
+    // le sous-bois : des fougères en rosette au pied des arbres, des pierres couvertes de mousse
+    for (let k = 0; k < 16; k++) {
+      const t = (k / 16) * 2 * PI + hasard(k, 3.3) * 0.4, rr = 3.4 + hasard(k, 5.5) * 4.5;
+      if (ecartOuverture(t) < 0.45 && rr < 7) continue;
+      const x = Q.x + Math.sin(t) * rr, z = Q.z + Math.cos(t) * rr, y = terrain(x, z);
+      if (Math.hypot(x - LAMPION.x, z - LAMPION.z) < 1) continue;
+      if (k % 4 === 3) {
+        a.rocher(x, y + 0.05, z, 0.22 + hasard(k, 8.8) * 0.16, P.paroi).boule(0.16, P.jungleFonce, { x, y: y + 0.22, z, sy: 0.4, trait: false, sorte: 'herbe' }, 0);
+        continue;
+      }
+      for (let f = 0; f < 7; f++) {
+        const b = (f / 7) * 2 * PI + hasard(k, f);
+        a.cone(0.16, 1.0, 4, f % 2 ? P.fougere : P.jungle, { x: x + Math.sin(b) * 0.38, y: y + 0.42, z: z + Math.cos(b) * 0.38, rx: Math.cos(b) * 1.05, rz: -Math.sin(b) * 1.05, sz: 0.35, trait: false, sorte: 'persistant' });
+      }
+    }
+    // le lampion : un bambou planté, une potence, le chōchin rouge
+    const yl = terrain(LAMPION.x, LAMPION.z);
+    a.baton([LAMPION.x, yl - 0.2, LAMPION.z], [LAMPION.x, yl + 2.15, LAMPION.z], 0.03, '#a3a35c', 6)
+      .baton([LAMPION.x, yl + 2.08, LAMPION.z], [LAMPION.x - 0.32, yl + 2.08, LAMPION.z], 0.015, '#a3a35c', 5)
+      .baton([LAMPION.x - 0.3, yl + 2.08, LAMPION.z], [LAMPION.x - 0.3, yl + 1.97, LAMPION.z], 0.004, '#3a3236', 3, { trait: false })
+      .chochin(LAMPION.x - 0.3, yl + 1.82, LAMPION.z, 3);
+    lumieres.push({ x: LAMPION.x - 0.3, y: yl + 1.82, z: LAMPION.z, halo: 0.55, sol: yl, r: 4.2 });
+    monde.cercle(LAMPION.x, LAMPION.z, 0.12);
+    poser(a.fin(0, peinture), 0, 0, { y: 0 });
+  }
   // les fougères et les buissons au pied des arbres et le long des chemins
   {
     const a = atelier();
@@ -1197,7 +1249,7 @@ export function construire(ctx) {
       // ni dans le sauna, à côté du camion, dans le champ de palmiers, devant le tunnel ni à côté du miroir
       if ((x > SAUNA.x - 6 && x < SAUNA.x + 5.5 && z > SAUNA.z - 6 && z < SAUNA.z + 9) || (x > PALMERAIE.x0 - 1 && x < PALMERAIE.x1 + 1 && z > PALMERAIE.z0 - 1 && z < PALMERAIE.z1 + 1)) continue;
       if (Math.hypot(x - T_X, z - T_Z) < 13 || Math.hypot(x - MIROIR.x, z - MIROIR.z) < 1.5) continue;
-      if (Math.hypot(x - TRESOR.x, z - TRESOR.z) < 4 || Math.hypot(x - MARCHAND.x, z - MARCHAND.z) < 2.5) continue;
+      if (Math.hypot(x - TRESOR.x, z - TRESOR.z) < 4 || Math.hypot(x - MARCHAND.x, z - MARCHAND.z) < MARCHAND.clairiere) continue;
       const y = terrain(x, z);
       if (tire() < 0.6) {
         // une fougère : des frondes en rosette, penchées vers l'extérieur
@@ -1568,9 +1620,9 @@ export function construire(ctx) {
   return {
     ...infos, textes: TEXTES,
     objets, monde, terrain, trouSol, etiquettes, passants, daims: [], interactions, actionDaim: null, vapeurs, bancs, lumieres, actionBete, animes,
-    // (le secret, tresors.js ; le marchand, derrière les palmiers ; les sons à fabriquer en plus ; les feux d'artifice,
+    // (le secret, tresors.js ; le marchand, dans sa clairière, tourné vers la trouée ; les sons à fabriquer en plus ; les feux d'artifice,
     // tirés du cratère du petit volcan)
-    secret: 'tresor', marchand: { ...MARCHAND, cap: Math.atan2(-42 - MARCHAND.x, -16 - MARCHAND.z) }, sons: ['pelle', 'boite'],
+    secret: 'tresor', marchand: { x: MARCHAND.x, z: MARCHAND.z, cap: MARCHAND.ouverture }, sons: ['pelle', 'boite'],
     feux: { x: MARUYAMA.x, y: 9, z: MARUYAMA.z, large: 46, haut: [40, 62] },
     // les bêtes (betes.js) : trois grives des îles d'Izu (chacune entre ses coins : le bois près du sauna, l'herbe
     // du sentier, le camping), quatre lézards au chaud (autour des fumerolles, au pied du sauna), un chat roux qui

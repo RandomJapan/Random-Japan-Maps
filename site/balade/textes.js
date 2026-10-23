@@ -113,7 +113,7 @@ export const TEXTES = {
     tresors: {
       secrets: { corbeaux: 'The sacred crows', tresor: 'The treasure box' },
       trouve: (lieu) => [`You found the secret of ${lieu}!`, 'You get a koban: an old gold coin from the Edo period.'],
-      marchandOu: { itsukushima: 'They say a tanuki merchant has set up under the pines, between the shrine and the hill. He loves koban…', aogashima: 'They say a tanuki merchant has set up behind the palm field. He loves koban…' },
+      marchandOu: { itsukushima: 'They say a tanuki merchant has set up under the pines, between the shrine and the hill. He loves koban…', aogashima: 'They say a tanuki merchant has set up deep in the forest, on the east side of the crater. He loves koban…' },
       secretReste: ['Your stamp book trembles… There is still a secret here. The most attentive will find it!'],
       carnetSecret: 'There is still a secret here… The most attentive will find it.', carnetSecretTrouve: (nom) => `Secret found: ${nom}`, carnetKoban: (n) => `Koban: ${n}`,
       menuKoban: 'Koban', menuDanser: 'Dance', menuFeux: 'Fireworks', menuPhoto: 'Camera', menuSaison: 'Season',
@@ -246,7 +246,7 @@ export const TEXTES = {
     tresors: {
       secrets: { corbeaux: 'Les corbeaux sacrés', tresor: 'La boîte au trésor' },
       trouve: (lieu) => [`Tu as trouvé le secret ${/^[aeiouyhâéèêîôû]/i.test(lieu) ? 'd’' : 'de '}${lieu} !`, 'Tu gagnes un koban : une vieille pièce d’or de l’époque d’Edo.'],
-      marchandOu: { itsukushima: 'Il paraît qu’un marchand tanuki s’est installé sous les pins, entre le sanctuaire et la colline. Il adore les koban…', aogashima: 'Il paraît qu’un marchand tanuki s’est installé derrière le champ de palmiers. Il adore les koban…' },
+      marchandOu: { itsukushima: 'Il paraît qu’un marchand tanuki s’est installé sous les pins, entre le sanctuaire et la colline. Il adore les koban…', aogashima: 'Il paraît qu’un marchand tanuki s’est installé au milieu de la forêt, à l’est du cratère. Il adore les koban…' },
       secretReste: ['Ton carnet frémit… Il reste un secret ici. Les plus attentifs le trouveront !'],
       carnetSecret: 'Il reste un secret ici… Les plus attentifs le trouveront.', carnetSecretTrouve: (nom) => `Secret trouvé : ${nom}`, carnetKoban: (n) => `Koban : ${n}`,
       menuKoban: 'Koban', menuDanser: 'Danser', menuFeux: 'Feux d’artifice', menuPhoto: 'Appareil photo', menuSaison: 'Saison',
@@ -379,7 +379,7 @@ export const TEXTES = {
     tresors: {
       secrets: { corbeaux: '神鴉', tresor: 'たからの　はこ' },
       trouve: (lieu) => [`${lieu}の　ひみつを　見つけた！`, '小判を　てに　いれた！　江戸時代の　古い　金貨だ。'],
-      marchandOu: { itsukushima: '神社と　丘の　あいだ、松の　木の　下に　タヌキの　商人が　いるらしい。小判が　大すきだって……', aogashima: 'ヤシ畑の　うしろに　タヌキの　商人が　いるらしい。小判が　大すきだって……' },
+      marchandOu: { itsukushima: '神社と　丘の　あいだ、松の　木の　下に　タヌキの　商人が　いるらしい。小判が　大すきだって……', aogashima: 'クレーターの　東の　森の　おくに　タヌキの　商人が　いるらしい。小判が　大すきだって……' },
       secretReste: ['スタンプ帳が　ふるえた……ここには　まだ　ひみつが　ある。よく　見る　人だけが　見つけられる！'],
       carnetSecret: 'ここには　まだ　ひみつが　ある……', carnetSecretTrouve: (nom) => `ひみつ：${nom}`, carnetKoban: (n) => `小判：${n}まい`,
       menuKoban: '小判', menuDanser: 'おどる', menuFeux: '花火', menuPhoto: 'カメラ', menuSaison: 'きせつ',
