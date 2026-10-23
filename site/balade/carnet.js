@@ -63,6 +63,33 @@ const MOTIFS = {
   belvedere: `<path d="M8 96 Q30 70 46 74 Q60 50 78 60 Q96 64 112 96 Z"/>
     <rect x="70" y="30" width="4" height="34"/><path d="M58 30 L92 30 L96 36 L58 36 Z"/><path d="M58 40 L86 40 L90 46 L58 46 Z"/>
     <path d="M14 104 q8 -4 16 0 t16 0 t16 0 t16 0 t16 0 t16 0" fill="none" stroke-width="3"/>`,
+  // Gokayama (2026-10-23) : la maison au toit de chaume devant les montagnes (le belvédère) ; le torii sous les cèdres ;
+  // les feuilles de papier qui sèchent au soleil ; la sasara de la kokiriko et ses baguettes ; les canons à eau
+  gassho: `<path d="M6 70 L30 46 L44 58 L62 36 L80 52 L92 42 L114 70" fill="none" stroke-width="3"/>
+    <path d="M24 88 L60 22 L96 88 Z"/><path d="M44 88 L60 58 L76 88 Z" class="vide"/>
+    <rect x="53" y="66" width="14" height="5"/><rect x="50" y="76" width="20" height="5"/>
+    <rect x="34" y="88" width="52" height="12"/><rect x="55" y="90" width="10" height="10" class="vide"/>`,
+  jinja: `<path d="M12 96 L24 34 L36 96 Z"/><path d="M84 96 L96 34 L108 96 Z"/>
+    <path d="M30 44 Q60 36 90 44 L89 51 Q60 43 31 51 Z"/><rect x="37" y="56" width="46" height="5"/>
+    <rect x="42" y="49" width="6" height="47"/><rect x="72" y="49" width="6" height="47"/>
+    <path d="M45 67 Q60 74 75 67" fill="none" stroke-width="3.2"/><rect x="51" y="70" width="3" height="8"/><rect x="66" y="70" width="3" height="8"/>
+    <rect x="18" y="96" width="84" height="4"/>`,
+  washi: `<circle cx="22" cy="22" r="8"/>
+    <path d="M22 100 L44 22 L56 24 L36 100 Z"/><path d="M41 32 L52 34 L38 84 L27 82 Z" class="vide"/>
+    <path d="M64 100 L86 22 L98 24 L78 100 Z"/><path d="M83 32 L94 34 L80 84 L69 82 Z" class="vide"/>
+    <rect x="12" y="100" width="96" height="4"/>`,
+  sasara: `${Array.from({ length: 15 }, (_, k) => {
+    const a = Math.PI + (k * Math.PI) / 14, c = Math.cos(a), s = Math.sin(a);
+    return `<path d="M${(60 + c * 20).toFixed(1)} ${(66 + s * 20).toFixed(1)} L${(60 + c * 38).toFixed(1)} ${(66 + s * 38).toFixed(1)}" fill="none" stroke-width="4.5"/>`;
+  }).join('')}
+    <rect x="17" y="64" width="9" height="12" rx="2"/><rect x="94" y="64" width="9" height="12" rx="2"/>
+    <path d="M21 76 L18 88 M99 76 L102 88" fill="none" stroke-width="2.5"/>
+    <path d="M36 100 L84 86 M36 86 L84 100" fill="none" stroke-width="5" stroke-linecap="round"/>`,
+  hosui: `<path d="M17 86 Q34 10 66 42" fill="none" stroke-width="5" stroke-dasharray="8 4" stroke-linecap="round"/>
+    <path d="M103 86 Q86 10 54 42" fill="none" stroke-width="5" stroke-dasharray="8 4" stroke-linecap="round"/>
+    <circle cx="66" cy="48" r="2.5"/><circle cx="54" cy="50" r="2.5"/><circle cx="60" cy="44" r="2"/>
+    <path d="M32 100 L60 54 L88 100 Z"/><path d="M50 100 L60 80 L70 100 Z" class="vide"/>
+    <rect x="13" y="84" width="8" height="16"/><rect x="99" y="84" width="8" height="16"/>`,
 };
 
 /** Un tampon en SVG : t = { id, motif, ja (nom japonais), encre, forme ('rond' | 'carre') }, lieuJa (le lieu en japonais). */

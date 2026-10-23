@@ -57,6 +57,28 @@ function cligneur(yeux) {
  * Les habits sont en morceaux (le haut, le bas, le cou, le sac ; les bras et les jambes chacun le sien) : une tenue
  * achetée au marchand (2026-10-23 : happi, yukata, kimono d'or, armure) remplace ceux qu'elle couvre (HABITS).
  */
+/**
+ * Le mino (蓑) : la cape de paille des paysans de la montagne contre la pluie et la neige (Gokayama, 2026-10-23), sur
+ * les épaules et le dos, en trois rangs de paille qui se recouvrent comme des tuiles, le bas effiloché ; ouverte
+ * devant (les bras en sortent) ; un col de corde tressée, noué devant. Dans l'atelier a, autour d'un buste dont les
+ * épaules sont à la hauteur y (0,78 pour le voyageur), plus large de k.
+ */
+export function capeMino(THREE, a, { y = 0.78, k = 1 } = {}) {
+  const PI = Math.PI, PA = '#c9a65a', PB = '#a8874a', PC = '#d9bd78';
+  const paille = (c1, c2, n) => (x, py, z) => (Math.floor(((Math.atan2(x, z) + PI) / (2 * PI)) * n + Math.sin(py * 40) * 0.3) % 2 ? c1 : c2);
+  // (de bas en haut : chaque rang par-dessus le haut du précédent, plus large que lui là où ils se recouvrent)
+  for (const [y0, y1, r0, r1, n] of [[-0.48, -0.18, 0.37, 0.27, 46], [-0.32, -0.08, 0.335, 0.25, 42], [-0.18, 0.01, 0.3, 0.21, 36]]) {
+    const h = y1 - y0;
+    const effiloche = (x, py, z) => [x, py + (py < -h / 2 + 0.001 ? -0.035 * (0.5 + 0.5 * Math.sin(Math.atan2(x, z) * 23)) : 0), z];
+    a.piece(new THREE.CylinderGeometry(r1 * k, r0 * k, h, n, 3, true, PI - 1.95, 3.9), PA, { y: y + (y0 + y1) / 2, deformer: effiloche, teinte: paille(PA, PB, n) })
+      // l'envers (vu par devant, sous les bras) : le même rang, retourné, un rien plus petit
+      .piece(new THREE.CylinderGeometry(r1 * k - 0.012, r0 * k - 0.012, h, n, 1, true, PI - 1.95, 3.9), PB, { y: y + (y0 + y1) / 2, sx: -1, trait: false });
+  }
+  a.piece(new THREE.TorusGeometry(0.2 * k, 0.022, 5, 22), PC, { y: y - 0.005, rx: PI / 2, teinte: (x, py, z) => (Math.floor(Math.atan2(x, z) * 9) % 2 ? PC : PB) });
+  for (const s of [-1, 1]) a.baton([s * 0.03, y - 0.015, 0.2 * k], [s * 0.05, y - 0.12, 0.215 * k], 0.009, PB, 4);
+  return a;
+}
+
 export function creerHeros(ctx, sorte = 'garcon') {
   const { THREE, atelier, P, maillage } = ctx;
   const PI = Math.PI, fille = sorte === 'fille', PEAU = P.peau, H = fille ? P.cheveuxFille : P.cheveux;
@@ -564,12 +586,17 @@ export function creerHeros(ctx, sorte = 'garcon') {
   };
   const habits = {};
   let habitPorte = null, long = false;
+  // le sac à dos : la tenue le garde ou non (garde : 'sac'), et le mino le cache (sur le dos, à sa place)
+  let sacGarde = true, dosPorte = null;
+  const majSac = () => { mSac.visible = sacGarde && !dosPorte; };
   /** Mettre la tenue id (HABITS ; 'habit-defaut' ou inconnue : les habits de tous les jours). */
   function habiller(id) {
     if (habitPorte) for (const m of habitPorte.meshes) m.visible = false;
     const f = HABITS[id];
     if (!f) {
-      mHaut.visible = mBas.visible = mSac.visible = true;
+      mHaut.visible = mBas.visible = true;
+      sacGarde = true;
+      majSac();
       for (const m of [...brasBase, ...jambesBase]) m.visible = true;
       habitPorte = null;
       long = false;
@@ -586,7 +613,8 @@ export function creerHeros(ctx, sorte = 'garcon') {
     for (const m of h.meshes) m.visible = true;
     mHaut.visible = false;
     mBas.visible = h.garde.includes('bas');
-    mSac.visible = h.garde.includes('sac');
+    sacGarde = h.garde.includes('sac');
+    majSac();
     for (const m of brasBase) m.visible = !h.bras;
     for (const m of jambesBase) m.visible = !h.jambes;
     long = h.long;
@@ -665,6 +693,30 @@ export function creerHeros(ctx, sorte = 'garcon') {
       B.rotation.x = -0.75 - 0.55 * Math.sin(t * 7); G.rotation.x = -0.75 - 0.55 * Math.sin(t * 7 + PI);
       B.rotation.z = -0.05; G.rotation.z = 0.05;
       jambes[0].rotation.x = -0.25; jambes[1].rotation.x = 0.25;
+    } else if (g === 'prier') {
+      // au sanctuaire : deux saluts profonds, deux battements de mains, un dernier salut (comme on prie au Japon) ;
+      // ensuite, les mains jointes
+      const s1 = [[0, 0.9], [1.0, 0.9], [3.3, 1.0]].reduce((v, [d, l]) => v + Math.sin(Math.min(1, Math.max(0, (t - d) / l)) * PI), 0);
+      corps.rotation.x = 0.55 * s1; tete.rotation.x = 0.2 * s1;
+      const mains = lisseDanse(Math.min(1, Math.max(0, (t - 1.85) / 0.2))), clap = (t > 2.15 && t < 2.32) || (t > 2.62 && t < 2.79) ? 1 : 0;
+      B.rotation.x = G.rotation.x = -1.1 * mains;
+      B.rotation.z = (0.42 + 0.32 * (t > 3.2 ? 1 : clap)) * mains - 0.05 * (1 - mains);
+      G.rotation.z = -B.rotation.z;
+    } else if (g === 'washi') {
+      // faire une feuille de papier : le cadre (sukigeta) tenu des deux mains au-dessus de la cuve, qu'on balance
+      // d'avant en arrière pour étaler les fibres
+      const o = Math.sin(t * 5.2);
+      corps.rotation.x = 0.34 + 0.05 * o; tete.rotation.x = 0.3;
+      B.rotation.x = G.rotation.x = -1.0 - 0.2 * o; B.rotation.z = 0.3; G.rotation.z = -0.3;
+    } else if (g === 'kokiriko') {
+      // la danse de la kokiriko : les bras qui montent et descendent devant soi (comme la sasara qu'on fait claquer),
+      // un pas de côté, le corps qui tourne un peu (environ 100 battements par minute)
+      const b = t * (100 / 60) * PI, s = 0.5 + 0.5 * Math.sin(b), d = Math.sin(b / 2);
+      B.rotation.x = G.rotation.x = -0.7 - 1.05 * s; B.rotation.z = 0.28; G.rotation.z = -0.28;
+      danseur.rotation.y = 0.32 * d;
+      jambes[0].rotation.x = 0.28 * Math.max(0, d); jambes[1].rotation.x = 0.28 * Math.max(0, -d);
+      danseur.position.y = 0.03 * Math.abs(Math.sin(b));
+      tete.rotation.z = 0.07 * d;
     } else if (g === 'offrir') {
       // se pencher et poser quelque chose devant soi, des deux mains
       const s = Math.sin(Math.min(1, t / 1.2) * PI);
@@ -682,15 +734,28 @@ export function creerHeros(ctx, sorte = 'garcon') {
     asseoir(oui) { assis = oui; },
     /** La danse des fêtes (oui), ou plus ; t0 : où en est la musique (en battements), pour danser en mesure. */
     danser(oui, t0 = 0) { danse = oui; tDanse = t0; },
-    /** Un geste ('victoire', 'saut', 'salut', 'coeur', 'coucou', 'creuser', 'offrir'), ou null : plus de geste. */
+    /** Un geste ('victoire', 'saut', 'salut', 'coeur', 'coucou', 'creuser', 'offrir', 'prier', 'washi', 'kokiriko'), ou null. */
     geste(g) { if (g !== geste) tGeste = 0; geste = g; },
     /**
-     * Porter la pièce id (tenues.js) à sa place ('tete', 'yeux', 'habit') : sur la tête, elle remplace la casquette ou
+     * Porter la pièce id (tenues.js) à sa place ('tete', 'yeux', 'habit', 'dos') : sur la tête, elle remplace la casquette ou
      * le chapeau ('defaut' : les remettre ; 'nue' : rien) ; 'aucune' : rien sur les yeux ; 'habit-defaut' : les habits de
-     * tous les jours. (Ce qu'on laisse sous ses pas et ce que porte le compagnon ne sont pas sur le voyageur.)
+     * tous les jours ; sur le dos, le sac ('sac') ou le mino. (Ce qu'on laisse sous ses pas et ce que porte le compagnon
+     * ne sont pas sur le voyageur.)
      */
     porter(place, id) {
       if (place === 'habit') { habiller(id); return; }
+      // sur le dos : le sac de tous les jours ('sac'), ou le mino (la cape de paille de Gokayama), qui le cache
+      if (place === 'dos') {
+        if (dosPorte) dosPorte.visible = false;
+        dosPorte = null;
+        if (id === 'mino') {
+          if (!pieces.mino) { pieces.mino = maillage(capeMino(THREE, atelier()).fin(0, false)); corps.add(pieces.mino); }
+          pieces.mino.visible = true;
+          dosPorte = pieces.mino;
+        }
+        majSac();
+        return;
+      }
       if (place !== 'tete' && place !== 'yeux') return;
       if (place === 'tete') {
         coiffe.visible = id === 'defaut';
@@ -772,6 +837,9 @@ export function creerHeros(ctx, sorte = 'garcon') {
  * talons ; 'danse' : l'acteur, son éventail ; 'jouer' : un musicien, assis aussi) et instrument ('fue', la flûte ;
  * 'kotsuzumi', le tambour d'épaule ; 'otsuzumi', celui de la hanche ; 'taiko', sur son support ; 'eventail', fermé
  * devant soi).
+ * Pour Gokayama (2026-10-23) : chapeau 'sugegasa' (le chapeau de paille conique), mino (la cape de paille, sur le dos),
+ * instrument 'sasara' (la binzasara : des lamelles de bois enfilées en arc, qu'on fait claquer) ou 'kokiriko' (les deux
+ * baguettes de bambou), pose 'kokiriko' (le danseur, debout) ou 'balai' (balayer la cour du sanctuaire).
  * Renvoie { objet, animer(dt, vitesse, temps), saluer(), asseoir(oui) }.
  */
 export function creerPersonnage(ctx, T) {
@@ -830,6 +898,7 @@ export function creerPersonnage(ctx, T) {
       .boite(0.06, 0.06, 0.01, P.or, { y: 0.6, z: -0.325, trait: false });
     for (const s of [-1, 1]) b.boite(0.045, 0.3, 0.02, T.sac.c, { x: s * 0.1, y: 0.66, z: 0.16, rx: -0.12 });
   }
+  if (T.mino) capeMino(THREE, b, { y: 0.79, k: 1.04 });
   if (T.appareil) {
     b.boite(0.14, 0.09, 0.06, '#2a2a30', { y: 0.62, z: 0.2 })
       .cylindre(0.032, 0.032, 0.05, 10, '#3a3a44', { y: 0.62, z: 0.25, rx: PI / 2 })
@@ -860,6 +929,22 @@ export function creerPersonnage(ctx, T) {
     b.boite(0.3, 0.025, 0.04, '#3a2420', { y: 0.32, z: 0.3, ry: 0.1 });
   }
   corps.add(maillage(b.fin(0, false)));
+  // la sasara (binzasara) de la kokiriko : une centaine de lamelles de bois enfilées en arc (ici, une vingtaine), tenue
+  // par ses deux poignées ; elle monte, descend et claque pendant la danse (voir animer)
+  let sasara = null;
+  if (I === 'sasara') {
+    const sa = atelier();
+    for (let k = 0; k <= 22; k++) {
+      const a = PI * (k / 22);
+      sa.boite(0.011, 0.11, 0.045, k % 2 ? '#e8d29a' : '#d9bf80', { x: Math.cos(a) * 0.15, y: Math.sin(a) * 0.15, rz: a - PI / 2, trait: k % 4 === 0 });
+    }
+    for (const sx of [-1, 1]) {
+      sa.cylindre(0.017, 0.017, 0.09, 6, '#5a3a24', { x: sx * 0.15, y: -0.04 })
+        .baton([sx * 0.15, -0.085, 0], [sx * 0.17, -0.2, 0.02], 0.006, sx > 0 ? '#d8302c' : '#f3efe4', 3, { trait: false });
+    }
+    sasara = pivot(ctx, 0, 0.6, 0.25, maillage(sa.fin(0, false)));
+    corps.add(sasara);
+  }
 
   // les bras (pivot à l'épaule) : manche, avant-bras, main ; les larges manches d'un kimono
   const bras = [-1, 1].map((s) => {
@@ -881,6 +966,13 @@ export function creerPersonnage(ctx, T) {
         .baton([0, -0.3, 0.02], [0, -0.3, 0.32], 0.012, '#3a2420', 4, { trait: false });
     }
     if (T.instrument === 'taiko') a.baton([0, -0.3, 0.02], [0, -0.32, 0.26], 0.012, '#3a2420', 4, { trait: false });
+    // les baguettes de la kokiriko : deux bâtons de bambou peints, un dans chaque main
+    if (T.instrument === 'kokiriko') a.baton([0, -0.3, 0.02], [-s * 0.02, -0.34, 0.25], 0.011, '#d8c27a', 5, { trait: false }).boite(0.026, 0.026, 0.03, '#d8302c', { x: -s * 0.018, y: -0.337, z: 0.21, trait: false });
+    // le balai de bambou (la main droite) : le long manche, la touffe de brindilles au bout
+    if (T.pose === 'balai' && s === -1) {
+      a.baton([0, -0.28, 0.02], [0.06, -0.92, 0.36], 0.014, '#b8955a', 5)
+        .cone(0.13, 0.36, 9, '#c9a65a', { x: 0.075, y: -1.06, z: 0.43, rx: PI - 0.5, sz: 0.4 });
+    }
     const br = pivot(ctx, s * 0.205, 0.75, 0, maillage(a.fin(0, false)));
     br.rotation.z = s * 0.12;
     corps.add(br);
@@ -966,6 +1058,10 @@ export function creerPersonnage(ctx, T) {
     t.cylindre(0.13, 0.15, 0.05, 12, P.or, { y: 0.55, z: 0.03, rx: -0.2 })
       .cone(0.05, 0.13, 6, P.or, { y: 0.64, z: 0.05 })
       .boule(0.035, '#e8452e', { y: 0.72, z: 0.06 }, 1);
+  } else if (H?.sorte === 'sugegasa') {
+    // le chapeau de paille conique des paysans (sugegasa), et son cordon sous le menton
+    t.cone(0.52, 0.26, 20, H.c, { y: 0.63, rx: -0.08, teinte: (x, y, z) => (Math.floor(Math.hypot(x, z) / 0.06) % 2 ? H.c : H.c2 || H.c) })
+      .baton([-0.27, 0.42, 0.04], [0, 0.02, 0.17], 0.008, '#5a3a24', 4, { trait: false }).baton([0.27, 0.42, 0.04], [0, 0.02, 0.17], 0.008, '#5a3a24', 4, { trait: false });
   } else if (H?.sorte === 'bandeau') {
     t.piece(new THREE.TorusGeometry(0.31, 0.035, 5, 20), H.c, { y: 0.38, rx: PI / 2 - 0.25 })
       .boite(0.08, 0.06, 0.06, H.c, { y: 0.44, z: -0.3 });
@@ -1034,6 +1130,11 @@ export function creerPersonnage(ctx, T) {
         } else if (I === 'taiko') {
           const c2 = coup(temps * 0.55 + decalage + 0.5);
           bras[0].rotation.x = -0.75 - 0.5 * c; bras[1].rotation.x = -0.75 - 0.5 * c2;
+        } else if (I === 'kokiriko') {
+          // les deux baguettes qu'on frappe l'une contre l'autre, en mesure (« kon, kon »)
+          const k = coup(temps * (100 / 60) + decalage);
+          bras[0].rotation.x = bras[1].rotation.x = -1.05;
+          bras[0].rotation.z = -0.16 - 0.32 * (1 - k); bras[1].rotation.z = 0.16 + 0.32 * (1 - k);
         }
         return 0;
       }
@@ -1045,6 +1146,27 @@ export function creerPersonnage(ctx, T) {
         bras[1].rotation.x = -0.35 - 0.2 * (0.5 + 0.5 * Math.sin(u + 2));
         corps.rotation.x = 0.06 + courbe;
         tete.rotation.x = 0.05 + Math.sin(u * 0.5) * 0.08;
+      } else if (T.pose === 'kokiriko') {
+        // la danse de la kokiriko : des pas glissés de côté, le corps qui tourne, la sasara qu'on lève et qu'on abaisse
+        // en la faisant claquer (« jararan »), au rythme de la chanson (environ 100 battements par minute)
+        const b = temps * (100 / 60) * PI + decalage, s = 0.5 + 0.5 * Math.sin(b), d = Math.sin(b / 2);
+        bras[0].rotation.x = bras[1].rotation.x = -0.75 - 1.05 * s;
+        bras[0].rotation.z = -0.3; bras[1].rotation.z = 0.3;
+        if (sasara) {
+          sasara.rotation.x = 0.25 - 0.95 * s;
+          sasara.position.set(0, 0.6 + 0.22 * s, 0.25 + 0.06 * s);
+          sasara.scale.x = 0.86 + 0.14 * Math.abs(Math.sin(b * 2));
+        }
+        corps.rotation.y = 0.35 * d;
+        jambes[0].rotation.x = 0.25 * Math.max(0, d); jambes[1].rotation.x = 0.25 * Math.max(0, -d);
+        corps.position.y = 0.03 * Math.abs(Math.sin(b)) + respire;
+        tete.rotation.z = 0.08 * d;
+      } else if (T.pose === 'balai') {
+        // balayer : le balai va et vient de côté, le corps penché qui suit
+        const u = temps * 1.6 + decalage, o = Math.sin(u);
+        bras[0].rotation.x = -0.55 + 0.25 * o; bras[1].rotation.x = -0.8 + 0.2 * o;
+        bras[0].rotation.z = -0.2 + 0.3 * o; bras[1].rotation.z = 0.4 + 0.25 * o;
+        corps.rotation.y = 0.3 * o; corps.rotation.x = 0.2 + courbe;
       }
       return pose;
     },

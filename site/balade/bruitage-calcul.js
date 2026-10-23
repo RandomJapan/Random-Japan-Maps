@@ -21,6 +21,12 @@
 //  - les trésors (2026-10-23) : « oiseau/corbeau » (les corbeaux sacrés d'Itsukushima, « kaa, kaa »), « pelle » (on
 //    creuse la terre à la main), « boite » (la vieille boîte en fer qu'on ouvre), « feu/depart » (une fusée qui
 //    siffle en montant), « feu/boum » (l'éclat, grave, et son écho), « feu/crepite » (les mille éclats).
+//  - Gokayama (2026-10-23) : « boucle/riviere » (la rivière Shō, en bas de sa gorge), « boucle/ruisseau » (le ruisseau
+//    qui traverse le village), « boucle/grenouilles » (les rainettes des rizières, la nuit), « boucle/kokiriko » (la
+//    musique de la danse : la flûte, la sasara qui claque, les baguettes de bambou, le tambour) ; « oiseau/aosagi » (le
+//    héron cendré, un « gwaa » rauque), « bete/ouaf » (le shiba du minshuku, « wan ! ») ; « creux » (la planche qui sonne
+//    creux), « jets » (les canons à eau qui s'ouvrent, l'eau qui jaillit et retombe en pluie), « papier » (l'eau de la cuve
+//    du papier qu'on balance), « cloche » (la cloche du sanctuaire qu'on agite), « claque » (un battement de mains).
 //  Les pas et les oiseaux sortent à une force fixe (la plus forte valeur efficace sur 10 ms : 0,25 × la force
 //  du sol) ; les boucles, à une valeur efficace de 1 : bruitage.js règle les volumes.
 // ================================================================
@@ -475,6 +481,79 @@ const BOUCLES = {
     }
     return normaliser([boucler(g, sr, F), boucler(d, sr, F)]);
   },
+  // la rivière Shō, en bas de sa gorge : un grondement grave, l'eau qui court (un bruit qui ondule), des glouglous ;
+  // chaque oreille la sienne
+  riviere(sr, r) {
+    const L = 12, F = 0.6, T = L + F, n = Math.ceil(T * sr), lent = houle(r, 3.1, 1.3, 0.7);
+    const canaux = [0, 1].map((k) => {
+      const fond = brun(n, r);
+      filtrer(fond, sr, 'bas', 380, 0.7);
+      normaliser([fond], 0.55);
+      const eau = blanc(n, r);
+      filtrer(eau, sr, 'bande', 850 + k * 160, 0.55);
+      filtrer(eau, sr, 'bas', 2600);
+      normaliser([eau], 0.35);
+      const gl = composer(sr, r, T).bulles(300, { de: 0, a: T, f: [360, 1300], g: [0.04, 0.2] });
+      const x = new Float32Array(n);
+      for (let i = 0; i < n; i++) { const t = i / sr; x[i] = fond[i] + eau[i] * (0.7 + 0.3 * lent(t + k * 2)) + gl.b[i] * 0.55; }
+      return boucler(x, sr, F);
+    });
+    return normaliser(canaux);
+  },
+  // le ruisseau du village : un babil de petites bulles, serré, sur un léger souffle d'eau
+  ruisseau(sr, r) {
+    const L = 8, F = 0.4, T = L + F, n = Math.ceil(T * sr);
+    const c = composer(sr, r, T).bulles(1400, { de: 0, a: T, f: [520, 2600], g: [0.05, 0.32] });
+    const x = blanc(n, r);
+    filtrer(x, sr, 'bande', 2400, 0.6);
+    normaliser([x], 0.12);
+    for (let i = 0; i < n; i++) c.b[i] += x[i];
+    return normaliser([boucler(c.b, sr, F)]);
+  },
+  // les rainettes des rizières, la nuit : chacune son chant, des « kerokero » rauques en rafales, à gauche, à droite
+  grenouilles(sr, r) {
+    const L = 10, F = 0.4, T = L + F;
+    const g = composer(sr, r, T), d = composer(sr, r, T);
+    for (let k = 0; k < 7; k++) {
+      const c = k % 2 ? g : d, f0 = 480 + r() * 420, cadence = 6 + r() * 4, force = 0.35 + r() * 0.65;
+      for (let t = r() * 2; t < T - 1; t += 1.2 + r() * 2.4) {
+        const n = 3 + Math.floor(r() * 6);
+        for (let j = 0; j < n; j++) {
+          c.cri(t + j / cadence, 0.07, (u) => f0 * (1 + (0.25 * u) / 0.07), (u) => ad(0.006, 0.03, 0.07)(u) * force, { fc: f0 * 2.2, bw: 700, rauque: 0.65 });
+        }
+      }
+    }
+    const n = g.b.length, x = new Float32Array(n), y = new Float32Array(n);
+    for (let i = 0; i < n; i++) { x[i] = g.b[i] + d.b[i] * 0.35; y[i] = d.b[i] + g.b[i] * 0.35; }
+    return normaliser([boucler(echo(x, sr), sr, F), boucler(echo(y, sr), sr, F)]);
+  },
+  // la kokiriko (Gokayama) : la flûte de fête qui chante la mélodie, la sasara (des lamelles de bois qui claquent en
+  // cascade : « jararan »), les deux baguettes de bambou (« kon, kon »), le tambour ; une phrase de seize temps
+  kokiriko(sr, r) {
+    const temps = 60 / 100, L = 16 * temps, F = 0.5, T = L + F;
+    const fl = composer(sr, r, T), pc = composer(sr, r, T);
+    // la flûte : une mélodie sur la gamme des chants populaires (la do ré mi sol), une octave plus haut ; [en
+    // demi-temps, durée en demi-temps, note]
+    const notes = [[0, 2, 76], [2, 1, 74], [3, 1, 72], [4, 2, 69], [6, 2, 72], [8, 2, 74], [10, 1, 76], [11, 1, 74], [12, 4, 72],
+      [16, 2, 69], [18, 1, 72], [19, 1, 74], [20, 2, 76], [22, 2, 79], [24, 2, 76], [26, 1, 74], [27, 1, 72], [28, 4, 69]];
+    for (const [b, d, m] of notes) {
+      const f = 440 * 2 ** ((m + 12 - 69) / 12), t0 = 0.05 + b * temps * 0.5, du = d * temps * 0.5 * 0.95;
+      fl.ton(t0, du, (t) => f * (1 + 0.01 * Math.sin(TAU * 6.2 * t) * Math.min(1, t / 0.2)) * (t < 0.04 ? 0.985 + (0.015 * t) / 0.04 : 1), (t) => ad(0.03, 0.12, du)(t) * 0.5, 0.18)
+        .bruit(t0, { type: 'bande', f: f * 2, q: 2.5, duree: Math.min(0.12, du), forme: ad(0.01, 0.08, Math.min(0.12, du)), gain: 0.12 });
+    }
+    // la sasara sur le deuxième et le quatrième temps, les baguettes à contretemps, le tambour sur le premier
+    for (let b = 0; b < L / temps - 0.5; b++) {
+      const t0 = 0.05 + b * temps;
+      if (b % 2 === 1) pc.grains(16, { zones: [[t0, t0 + 0.09, 1]], f: [2000, 5200], d: [0.002, 0.006], g: [0.3, 0.8], q: 3 });
+      pc.modes(t0 + temps / 2, [[1750, 0.45, 0.025], [3900, 0.18, 0.01]]);
+      if (b % 4 === 0) pc.modes(t0, [[110, 0.9, 0.18], [190, 0.4, 0.1]]).bruit(t0, { type: 'bas', f: 300, tau: 0.03, gain: 0.3 });
+    }
+    normaliser([fl.b]);
+    normaliser([pc.b], 0.85);
+    const n = fl.b.length, g = new Float32Array(n), d = new Float32Array(n);
+    for (let i = 0; i < n; i++) { g[i] = fl.b[i] * 0.9 + pc.b[i] * 0.6; d[i] = fl.b[i] * 0.6 + pc.b[i] * 0.9; }
+    return normaliser([boucler(echo(g, sr), sr, F), boucler(echo(d, sr), sr, F)]);
+  },
   // la scène de nō (Itsukushima) : la flûte nōkan (un souffle perçant qui glisse d'une note à l'autre, avec son cri
   // aigu, le « hishigi »), le petit tambour d'épaule (« pon », qui chante en descendant), le grand tambour de la
   // hanche (« kan », sec et claquant), le tambour plat (« ten ») ; une phrase de seize secondes, sans les voix
@@ -554,6 +633,13 @@ const OISEAUX = {
     kaa(0.52, 0.32, 0.96);
     return cadrer([echo(c.b, sr)], sr, 0.25);
   },
+  // le héron cendré (aosagi), qui s'envole d'une rizière : un « gwaa » grave et rauque, puis un plus court
+  aosagi(sr, r) {
+    const c = composer(sr, r, 1.0);
+    c.cri(0.02, 0.36, (t) => 360 - 120 * t, ad(0.02, 0.12, 0.36), { fc: 900, bw: 600, rauque: 0.7 })
+      .cri(0.48, 0.2, (t) => 330 - 80 * t, ad(0.02, 0.08, 0.2), { fc: 850, bw: 550, rauque: 0.7 });
+    return cadrer([echo(c.b, sr)], sr, 0.25);
+  },
   // la bouscarle du Japon (uguisu), l'oiseau du printemps : « hôôô… ho-ke-kyo ! »
   uguisu(sr, r) {
     const c = composer(sr, r, 2.4);
@@ -616,8 +702,15 @@ const CRIS = {
     return cadrer([echo(c.b, sr)], sr, 0.25);
   },
 };
-// ---------------------------------------------------------------- Les chats
+// ---------------------------------------------------------------- Les chats (et le chien de Gokayama)
 const BETES = {
+  // le shiba du minshuku : un « wan ! » bref, qui monte et retombe
+  ouaf(sr, r) {
+    const c = composer(sr, r, 0.45);
+    c.cri(0.01, 0.17, (t) => { const u = t / 0.17; return u < 0.35 ? 480 + 380 * (u / 0.35) : 860 - 320 * ((u - 0.35) / 0.65); }, ad(0.008, 0.06, 0.17), { fc: 1250, bw: 850, rauque: 0.3 })
+      .bruit(0.01, { type: 'bas', f: 500, tau: 0.03, gain: 0.25 });
+    return cadrer([echo(c.b, sr)], sr, 0.25);
+  },
   // « miaou » : une note qui monte puis retombe, par un formant (la bouche qui s'ouvre et se referme)
   miaou(sr, r) {
     const c = composer(sr, r, 0.8);
@@ -663,6 +756,53 @@ function boite(sr) {
     .bruit(1.0, { type: 'haut', f: 2500, attaque: 0.0005, tau: 0.01, gain: 0.3 });
   return cadrer([echo(c.b, sr)], sr, 0.25);
 }
+// ---------------------------------------------------------------- Gokayama
+/** La planche qui sonne creux : un « toc » de bois, et la fosse dessous qui résonne, grave. */
+function creux(sr) {
+  const r = alea(graine('creux')), c = composer(sr, r, 0.7);
+  c.modes(0.01, [[165, 0.9, 0.11], [340, 0.5, 0.07], [720, 0.28, 0.035], [1500, 0.12, 0.015]])
+    .bruit(0.01, { f: 1800, q: 1.2, attaque: 0.0005, tau: 0.008, gain: 0.5 })
+    .bruit(0.015, { type: 'bas', f: 140, grave: true, attaque: 0.01, tau: 0.12, gain: 0.6 });
+  return cadrer([echo(c.b, sr)], sr, 0.25);
+}
+/**
+ * Les canons à eau (environ 9 s) : les vannes qu'on ouvre (un choc de métal), le grondement de l'eau qui monte, son
+ * souffle tenu, la pluie qui retombe sur les toits de chaume, puis tout s'arrête.
+ */
+function jets(sr) {
+  const r = alea(graine('jets')), D = 9.5, c = composer(sr, r, D);
+  const tenu = (t) => lisse(0.3, 1.6, t) * (1 - lisse(7.6, 9.2, t));
+  c.modes(0.05, [[320, 0.5, 0.1], [870, 0.3, 0.05], [1900, 0.15, 0.02]])
+    .bruit(0.2, { type: 'bas', f: 420, grave: true, duree: D - 0.3, forme: tenu, gain: 0.9 })
+    .bruit(0.2, { f: (t) => 900 + 600 * lisse(0, 1.5, t), q: 0.5, duree: D - 0.3, forme: (t) => tenu(t) * 0.9, gain: 0.7 })
+    .bruit(0.2, { type: 'haut', f: 3000, duree: D - 0.3, forme: (t) => tenu(t) * (0.6 + 0.4 * Math.sin(TAU * 0.7 * t)), gain: 0.25 })
+    .grains(900, { zones: [[1.8, 8.6, 1]], f: [1200, 6000], d: [0.0008, 0.003], g: [0.05, 0.25], q: 1.3 });
+  return cadrer([c.b, c.b.slice()], sr, 0.22);
+}
+/** L'eau de la cuve du papier, qu'on balance dans le cadre : deux vagues qui clapotent, des gouttes. */
+function papier(sr) {
+  const r = alea(graine('papier')), c = composer(sr, r, 1.4);
+  c.bruit(0.02, { type: 'bas', f: 900, duree: 1.2, forme: (t) => ad(0.05, 0.3, 1.2)(t) * Math.abs(Math.sin(TAU * 0.85 * t)), gain: 0.8 })
+    .bulles(30, { de: 0.1, a: 1.2, f: [500, 1800], g: [0.08, 0.3] });
+  return cadrer([c.b], sr, 0.22);
+}
+/** La cloche du sanctuaire (suzu) qu'on agite avec sa corde : un grelot de cuivre, plusieurs coups. */
+function cloche(sr) {
+  const r = alea(graine('cloche')), c = composer(sr, r, 1.6);
+  for (let k = 0; k < 7; k++) {
+    const t0 = 0.03 + k * 0.11 + r() * 0.03, f = 1650 * (1 + (r() - 0.5) * 0.05);
+    c.modes(t0, [[f, 0.6 * (1 - k * 0.08), 0.25], [f * 2.71, 0.25, 0.1], [f * 4.9, 0.12, 0.05]])
+      .bruit(t0, { type: 'haut', f: 3000, attaque: 0.0005, tau: 0.006, gain: 0.25 });
+  }
+  return cadrer([echo(c.b, sr)], sr, 0.22);
+}
+/** Un battement de mains (au sanctuaire). */
+function claque(sr) {
+  const r = alea(graine('claque')), c = composer(sr, r, 0.35);
+  c.bruit(0.005, { f: 1500, q: 0.8, attaque: 0.0008, tau: 0.018, gain: 1 }).bruit(0.005, { type: 'bas', f: 300, tau: 0.02, gain: 0.4 });
+  return cadrer([echo(c.b, sr)], sr, 0.25);
+}
+
 /** Les feux d'artifice : la fusée qui siffle en montant ; l'éclat grave et son écho sur les montagnes ; les mille éclats. */
 const FEUX = {
   depart(sr, r) {
@@ -705,6 +845,11 @@ export function fabriquer(quoi, sr) {
   if (sorte === 'pouf') return pouf(sr);
   if (sorte === 'pelle') return pelle(sr);
   if (sorte === 'boite') return boite(sr);
+  if (sorte === 'creux') return creux(sr);
+  if (sorte === 'jets') return jets(sr);
+  if (sorte === 'papier') return papier(sr);
+  if (sorte === 'cloche') return cloche(sr);
+  if (sorte === 'claque') return claque(sr);
   if (sorte === 'feu') return FEUX[nom](sr, alea(graine(quoi)));
   throw new Error(`son inconnu : ${quoi}`);
 }

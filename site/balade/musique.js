@@ -3,7 +3,9 @@
 //  peu nostalgique »). Deux airs originaux, composés pour la carte (aucune musique existante, rien à
 //  télécharger, aucun droit) et joués note à note par le navigateur (Web Audio) :
 //  - Itsukushima : un air calme du Japon ancien, koto, flûte de bambou et taiko ;
-//  - Aogashima : un air d'île et d'aventure, plus vif, marimba, flûte, petite batterie.
+//  - Aogashima : un air d'île et d'aventure, plus vif, marimba, flûte, petite batterie ;
+//  - Gokayama (2026-10-23) : un air de montagne, mélancolique et chaleureux, sur la gamme des chants populaires (la
+//    mineur, la do ré mi sol), flûte de bambou, shamisen, et les claquements de la sasara et des baguettes de la kokiriko.
 //  La nuit, le même air plus lent, en boîte à musique. Une introduction, puis la boucle (A, A', B).
 //  Pour danser (la danse achetée au marchand, 2026-10-23), un troisième air, celui d'une fête d'été (bon-odori) : la
 //  flûte de fête (shinobue), le shamisen, le grand tambour et la clochette de cuivre (atarigane) ; fete(oui).
@@ -91,6 +93,41 @@ const AIRS = {
     },
     jour: { tempo: 126, lead: 'flute', arpege: 'marimba', basse: 'rebond', nappe: true, batterie: 'legere' },
     nuit: { tempo: 84, lead: 'boite', arpege: 'marimbaDoux', basse: 'pizzDoux', nappe: true, batterie: null },
+  },
+  // La mineur, la gamme des chants populaires (min'yō : la do ré mi sol) : le village au toit de chaume dans la montagne ;
+  // la sasara (binzasara) et les baguettes de la kokiriko battent la mesure
+  gokayama: {
+    gamme: [9, 11, 0, 2, 4, 5, 7], // la mineur (pour la seconde voix)
+    intro: ['Am', 'Am'],
+    A: {
+      accords: ['Am', 'C', 'G', 'Am', 'F', 'C', 'Dm G', 'Am'],
+      melodie: [
+        [76, 4], [74, 2], [72, 2], [69, 6], [72, 2],
+        [74, 4], [72, 2], [69, 2], [67, 8],
+        [67, 2], [69, 2], [72, 4], [74, 4], [76, 4],
+        [74, 6], [72, 2], [69, 8],
+        [72, 4], [74, 2], [76, 2], [79, 6], [76, 2],
+        [74, 4], [76, 2], [74, 2], [72, 4], [69, 4],
+        [67, 4], [69, 4], [72, 2], [69, 2], [67, 4],
+        [69, 12], [null, 4],
+      ],
+      fin2: [[69, 8], [72, 4], [76, 4]],
+    },
+    B: {
+      accords: ['F', 'C', 'Am', 'Em', 'F', 'G', 'Dm', 'Am'],
+      melodie: [
+        [81, 4], [79, 2], [76, 2], [79, 8],
+        [76, 4], [74, 2], [72, 2], [74, 8],
+        [72, 2], [74, 2], [76, 4], [79, 6], [76, 2],
+        [74, 4], [72, 4], [76, 4], [74, 4],
+        [72, 4], [69, 4], [72, 4], [74, 4],
+        [76, 6], [74, 2], [72, 8],
+        [69, 4], [72, 2], [74, 2], [72, 4], [69, 4],
+        [67, 4], [69, 12],
+      ],
+    },
+    jour: { tempo: 96, lead: 'shakuhachi', arpege: 'shamisen', basse: 'pizz', nappe: true, batterie: 'kokiriko' },
+    nuit: { tempo: 72, lead: 'boite', arpege: 'kotoDoux', basse: 'pizzDoux', nappe: true, batterie: null },
   },
   // Ré majeur, la gamme yo (ré mi sol la si) : l'air de la danse des fêtes d'été, sautillant (112 battements : la
   // danse du voyageur est réglée dessus, personnages.js)
@@ -195,6 +232,12 @@ export function partition(lieu, moment) {
         // le grand tambour des fêtes : « don, don-don, ka » ; la clochette de cuivre (« chan-chiki ») sur chaque temps
         e.push({ b: t0, i: 'taiko', v: 1 }, { b: t0 + 1.5, i: 'taiko', v: 0.6 }, { b: t0 + 2, i: 'taiko', v: 0.85 }, { b: t0 + 3, i: 'bois', v: 0.9 });
         for (let o = 0; o < 4; o += 1) e.push({ b: t0 + o, i: 'kane', v: 0.9 }, { b: t0 + o + 0.5, i: 'kane', v: 0.45 });
+      } else if (arr.batterie === 'kokiriko') {
+        // la kokiriko : un coup de tambour sur le premier et le troisième temps, la sasara qui claque sur le deuxième et
+        // le quatrième (« jararan »), les baguettes de bambou à contretemps
+        e.push({ b: t0, i: 'taiko', v: 0.75 }, { b: t0 + 2, i: 'taiko', v: 0.45 });
+        for (const o of [1, 3]) e.push({ b: t0 + o, i: 'sasara', v: 1 });
+        for (const o of [0.5, 1.5, 2.5, 3.5]) e.push({ b: t0 + o, i: 'bois', v: 0.4 });
       } else if (arr.batterie === 'legere') {
         e.push({ b: t0, i: 'grosse', v: 1 }, { b: t0 + 1.5, i: 'grosse', v: 0.5 }, { b: t0 + 2, i: 'grosse', v: 0.9 });
         e.push({ b: t0 + 1, i: 'caisse', v: 1 }, { b: t0 + 3, i: 'caisse', v: 1 });
@@ -223,9 +266,9 @@ export function partition(lieu, moment) {
 const VOLUME = { jour: 0.125, nuit: 0.26, fete: 0.13 };
 const NIVEAU = {
   shakuhachi: 0.16, flute: 0.15, boite: 0.11, koto: 0.085, marimba: 0.075, pizz: 0.2, basse: 0.13, cordes: 0.018,
-  taiko: 0.42, grosse: 0.3, caisse: 0.05, shaker: 0.018, bois: 0.05, fue: 0.11, shamisen: 0.09, kane: 0.035,
+  taiko: 0.42, grosse: 0.3, caisse: 0.05, shaker: 0.018, bois: 0.05, fue: 0.11, shamisen: 0.09, kane: 0.035, sasara: 0.1,
 };
-const PLACE = { koto: -0.3, marimba: 0.3, shaker: 0.35, bois: -0.25, cordes: 0, pizz: -0.1, basse: 0, shamisen: -0.3, kane: 0.35 };
+const PLACE = { koto: -0.3, marimba: 0.3, shaker: 0.35, bois: -0.25, cordes: 0, pizz: -0.1, basse: 0, shamisen: -0.3, kane: 0.35, sasara: 0.3 };
 
 export function creerMusique(lieu) {
   let ctx = null, sortie = null, reverbe = null, bruit = null, ondes = {};
@@ -444,6 +487,11 @@ export function creerMusique(lieu) {
         break;
       }
       case 'shaker': souffle(t, 0.05, 7500, 1.2, niveau, vers); break;
+      case 'sasara': {
+        // la binzasara : des lamelles de bois qui claquent les unes contre les autres, en cascade (« jararan »)
+        for (let k = 0; k < 9; k++) souffle(t + k * 0.0095 + Math.random() * 0.004, 0.02, 2400 + Math.random() * 2000, 3, niveau * (1 - k / 11), vers);
+        break;
+      }
       case 'bois': {
         const o = osc('sine', 1250, t);
         env.gain.setValueAtTime(niveau, t);

@@ -64,6 +64,9 @@ export function matiereContour(THREE, couleur = C.encre) {
 const SORTES = {
   feuillu: 1, erable: 2, cerisier: 3, conifere: 4, herbe: 5, tapis: 6, eau: 7, lumiere: 8, lampe: 9, illumine: 10,
   buisson: 11, persistant: 12, houppier: 21, houppierErable: 22, houppierCerisier: 23,
+  // (la balade, Gokayama : le chaume des toits, que la neige couvre même en pente ; le riz des rizières, une herbe qui
+  // jaunit à l'automne et qu'on moissonne : il tombe, comme les houppiers, 20 + la sorte de l'herbe)
+  chaume: 13, riz: 25,
 };
 // La sorte d'une pièce d'après sa couleur, quand l'atelier ne l'a pas dite
 const SORTE_COULEUR = {

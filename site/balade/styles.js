@@ -30,6 +30,10 @@ const PALETTE = {
   // Aogashima : la jungle du cratère, la roche volcanique, la terre des fumerolles, le béton de l'île
   jungle: '#5a9d4c', jungleFonce: '#43823f', fougere: '#7dbb5a', paroi: '#8a7d70', rocheSombre: '#5f5651',
   terreRouge: '#b8775a', terreClaire: '#ddd5c6', route: '#c2bcb0', beton: '#dcd7cb', tole: '#5d8a86',
+  // Gokayama (2026-10-23) : le chaume des grands toits, le bois noirci par la fumée du foyer, le papier des shōji, les
+  // rizières, les cèdres, la rivière turquoise en contrebas
+  chaume: '#b39a6d', chaumeFonce: '#8d7653', chaumeClair: '#c8b283', boisNoir: '#5b4537', boisGris: '#9a8f82', shoji: '#f3ecda',
+  riz: '#78b84a', rizClair: '#9ccd5e', boue: '#7a6a52', eauRiziere: '#9cc6bc', cedre: '#3d6f45', cedreFonce: '#2f5a3a',
   peau: '#ffdcbc', joue: '#ff9e98', cheveux: '#553a2a', cheveuxFille: '#74452c', casquette: '#2f9aa0', visiere: '#24797e',
   haut: '#e8583e', hautFille: '#f59aa6', short: '#3d5a8f', chaussures: '#ffffff', semelle: '#5a4c56', sac: '#f2bd45', sangle: '#99673f',
   ruban: '#e0453a', chapeau: '#fff0cf', oeil: '#2a2230', reflet: '#ffffff',
@@ -73,6 +77,9 @@ function matieres(P) {
   mettre(M.feuillage, 'pin', 'feuillage', 'jungle', 'jungleFonce', 'fougere', 'herbe', 'herbeFonce', 'montagne');
   mettre(M.laque, 'vermillon', 'vermillonFonce');
   mettre(M.tole, 'tole');
+  mettre(M.chaume, 'chaume', 'chaumeFonce', 'chaumeClair');
+  mettre(M.bois, 'boisNoir', 'boisGris');
+  mettre(M.feuillage, 'cedre', 'cedreFonce');
   return t;
 }
 
@@ -270,6 +277,12 @@ export const SAISONS_GLSL = `
     float s = floor(sorte + 0.5);
     if (s > 20.5) s -= 20.0;
     bool feuillage = (s > 0.5 && s < 4.5) || abs(s - 11.0) < 0.5 || abs(s - 12.0) < 0.5;
+    // (le chaume des toits de Gokayama, sorte 13 : un manteau épais, même sur ses pentes à 60°, comme sur les photos
+    // d'hiver ; ses bords ondulés)
+    if (abs(s - 13.0) < 0.5) {
+      float o = sin(p.x * 2.1 + p.z * 1.7) * 0.05 + (hasardSaison(floor(p.xz * 3.0)) - 0.5) * 0.06;
+      return mix(c, vec3(0.93, 0.95, 1.0) * (0.92 + 0.08 * nf.y), smoothstep(0.08, 0.3, nf.y + o) * saisons.z * 0.97);
+    }
     if (!feuillage || dot(nl, nl) < 0.01) return neigeSaison(c, nf);
     vec3 n = normalize(nl);
     float ondule = (hasardSaison(floor(p.xz * 2.3)) - 0.5) * 0.12 + sin(p.x * 3.1 + p.z * 2.3) * sin(p.z * 2.7 - p.x * 1.3) * 0.12;
@@ -293,12 +306,12 @@ const BRUIT_GLSL = `
  */
 const PEINDRE_GLSL = `
   uniform highp sampler2DArray details;
-  uniform float echelles[16];
+  uniform float echelles[${ECHELLES.length}];
   vec3 peindre(vec3 base, float couche, vec3 p, vec3 n) {
     if (couche < 0.5) return base;
     vec3 a = abs(n);
     vec2 uv;
-    if (couche == ${MATIERES.tuiles}.0 && a.y > 0.15 && length(n.xz) > 0.05) {
+    if ((couche == ${MATIERES.tuiles}.0 || couche == ${MATIERES.chaume}.0) && a.y > 0.15 && length(n.xz) > 0.05) {
       // le long de la pente (y de la texture) et en travers (x) ; la pente vraie : la distance à plat / cos
       vec2 d = normalize(n.xz);
       uv = vec2(dot(p.xz, vec2(-d.y, d.x)), dot(p.xz, d) / max(a.y, 0.3));

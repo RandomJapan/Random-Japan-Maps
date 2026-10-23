@@ -12,8 +12,9 @@ import { lireTampons } from './carnet.js';
 import { aAchete } from './tresors.js';
 
 // (le 2026-10-23, des pièces qu'on achète au marchand avec les koban des secrets, tresors.js : achat ; et trois places
-// de plus : la tenue entière, ce qu'on laisse sous ses pas, ce que porte le compagnon)
-export const PLACES = ['tete', 'yeux', 'habit', 'pas', 'compagnon'];
+// de plus : la tenue entière, ce qu'on laisse sous ses pas, ce que porte le compagnon ; puis, avec Gokayama, ce qu'on
+// porte sur le dos : le sac, ou le mino, la cape de paille)
+export const PLACES = ['tete', 'yeux', 'habit', 'dos', 'pas', 'compagnon'];
 /**
  * Les pièces, par place (une seule pièce par place à la fois) ; lieu : le lieu dont il faut tous les tampons ; achat :
  * l'article du marchand qui la débloque (tresors.js) ; sans l'un ni l'autre : dès le départ. 'defaut' : la casquette du
@@ -32,6 +33,8 @@ export const PIECES = [
   { id: 'yukata', place: 'habit', achat: 'yukata' },
   { id: 'kimonoOr', place: 'habit', achat: 'kimonoOr' },
   { id: 'armure', place: 'habit', achat: 'armure' },
+  { id: 'sac', place: 'dos' },
+  { id: 'mino', place: 'dos', lieu: 'gokayama' },
   { id: 'trace-aucune', place: 'pas' },
   { id: 'trace-petales', place: 'pas', achat: 'traces' },
   { id: 'trace-etoiles', place: 'pas', achat: 'traces' },
@@ -41,7 +44,7 @@ export const PIECES = [
   { id: 'cp-chapeau', place: 'compagnon', achat: 'accessoires' },
   { id: 'cp-grelot', place: 'compagnon', achat: 'accessoires' },
 ];
-const PAR_DEFAUT = { tete: 'defaut', yeux: 'aucune', habit: 'habit-defaut', pas: 'trace-aucune', compagnon: 'cp-defaut' };
+const PAR_DEFAUT = { tete: 'defaut', yeux: 'aucune', habit: 'habit-defaut', dos: 'sac', pas: 'trace-aucune', compagnon: 'cp-defaut' };
 const CLE = 'baladeTenue', CLE_VUES = 'baladeTenuesVues';
 
 const lire = (cle, defaut) => { try { return JSON.parse(localStorage.getItem(cle)) ?? defaut; } catch { return defaut; } };
@@ -161,6 +164,21 @@ const DESSINS = {
     <path d="M3 13 L13 11 L14 27 L4 28 Z M45 13 L35 11 L34 27 L44 28 Z" fill="#3f3d4a" stroke="${ENCRE}" stroke-width="2" stroke-linejoin="round"/>
     <path d="M4 18 L13.5 17 M4 23 L14 22 M44 18 L34.5 17 M44 23 L34 22" stroke="#5a7ac0" stroke-width="1.3"/>
     <path d="M11 33 L9 44 H19 L20 33 M28 33 L29 44 H39 L37 33" fill="#b8322a" stroke="${ENCRE}" stroke-width="1.8" stroke-linejoin="round"/>`,
+  // sur le dos : le sac de tous les jours (jaune et son tapis roulé ; rose et son porte-bonheur) ; le mino, la cape de
+  // paille de Gokayama, en trois rangs qui s'effilochent, son col de corde
+  sacGarcon: `<path d="M12 16 Q12 9 24 9 Q36 9 36 16 V40 Q36 43 33 43 H15 Q12 43 12 40 Z" fill="#f2bd45" stroke="${ENCRE}" stroke-width="2.2" stroke-linejoin="round"/>
+    <path d="M12 17 Q24 23 36 17 V25 Q24 30 12 25 Z" fill="#d99a2a" stroke="${ENCRE}" stroke-width="1.8" stroke-linejoin="round"/>
+    <rect x="17" y="31" width="14" height="9" rx="2" fill="#d99a2a" stroke="${ENCRE}" stroke-width="1.6"/>
+    <rect x="9" y="5" width="30" height="7" rx="3.5" fill="#3f8a7a" stroke="${ENCRE}" stroke-width="1.8"/>`,
+  sacFille: `<path d="M12 16 Q12 9 24 9 Q36 9 36 16 V40 Q36 43 33 43 H15 Q12 43 12 40 Z" fill="#f6a5a0" stroke="${ENCRE}" stroke-width="2.2" stroke-linejoin="round"/>
+    <path d="M12 17 Q24 23 36 17 V25 Q24 30 12 25 Z" fill="#e07f7c" stroke="${ENCRE}" stroke-width="1.8" stroke-linejoin="round"/>
+    <rect x="17" y="31" width="14" height="9" rx="2" fill="#e07f7c" stroke="${ENCRE}" stroke-width="1.6"/>
+    <path d="M37 22 V30" stroke="${ENCRE}" stroke-width="1.2"/><rect x="35" y="30" width="5" height="7" fill="#e0453a" stroke="${ENCRE}" stroke-width="1.2"/>`,
+  mino: `<path d="M17 8 Q24 5 31 8 L37 22 L40 38 Q24 44 8 38 L11 22 Z" fill="#c9a65a" stroke="${ENCRE}" stroke-width="2.2" stroke-linejoin="round"/>
+    <path d="M10 22 Q24 27 38 22 M9 31 Q24 36 39 31" fill="none" stroke="#a8874a" stroke-width="2"/>
+    ${[11, 15, 19, 23, 27, 31, 35, 38].map((x) => `<path d="M${x} 38 l1 5" stroke="#a8874a" stroke-width="1.6" stroke-linecap="round"/>`).join('')}
+    ${[14, 18, 22, 26, 30, 34].map((x) => `<path d="M${x} 12 L${x - 2 + (x - 24) * 0.2} 36" stroke="#b8975a" stroke-width="1"/>`).join('')}
+    <ellipse cx="24" cy="8.5" rx="8" ry="3" fill="#d9bd78" stroke="${ENCRE}" stroke-width="1.6"/>`,
   // sous tes pas : rien ; des pétales ; des étoiles ; des feuilles d'érable
   'trace-aucune': `<path d="M8 32 Q10 24 18 24 L28 26 Q36 27 36 32 Q36 37 28 37 H12 Q8 37 8 32 Z" fill="#ffffff" stroke="${ENCRE}" stroke-width="2"/>
     <path d="M8 34.5 H36" stroke="#d8452e" stroke-width="2.4"/>`,
@@ -187,7 +205,8 @@ const DESSINS = {
 };
 /** L'icône d'une pièce (pour le voyageur sorte : son couvre-chef de départ, ses habits de chaque jour). */
 export function icone(id, sorte, taille = 48) {
-  const cle = id === 'defaut' ? (sorte === 'fille' ? 'defautFille' : 'defautGarcon') : id === 'habit-defaut' ? (sorte === 'fille' ? 'habitFille' : 'habitGarcon') : id;
+  const cle = id === 'defaut' ? (sorte === 'fille' ? 'defautFille' : 'defautGarcon') : id === 'habit-defaut' ? (sorte === 'fille' ? 'habitFille' : 'habitGarcon')
+    : id === 'sac' ? (sorte === 'fille' ? 'sacFille' : 'sacGarcon') : id;
   const d = DESSINS[cle] || '';
   return `<svg class="piece-svg" viewBox="0 0 48 48" width="${taille}" height="${taille}" aria-hidden="true">${d}</svg>`;
 }

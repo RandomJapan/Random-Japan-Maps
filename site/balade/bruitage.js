@@ -30,6 +30,10 @@ const V = {
   miaou: 0.05, ronron: 0.07, corbeau: 0.06, pelle: 0.09, boite: 0.09, depart: 0.035, boum: 0.16, crepite: 0.05,
   ventDoux: [0.0035, 0.006], ventFort: 0.015, feuilles: [0.00075, 0.0043], vagues: 0.0085, vapeur: 0.02, insectes: 0.0056,
   no: 0.0085,
+  // Gokayama (2026-10-23) : la rivière en bas de sa gorge, le ruisseau du village, les grenouilles des rizières, la
+  // kokiriko (comme le nō) ; le héron, le chien ; la planche creuse, les canons à eau, le papier, la cloche, les mains
+  riviere: 0.011, ruisseau: 0.008, grenouilles: 0.006, kokiriko: 0.0085, aosagi: 0.05, ouaf: 0.06,
+  creux: 0.12, jets: 0.1, papier: 0.08, cloche: 0.07, claque: 0.1,
 };
 const lisse = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
 
@@ -45,7 +49,7 @@ export function creerBruitage({ oiseaux = [], ambiances = [], betes = [], extras
   const tampons = new Map(); // « pas/herbe/2 » → AudioBuffer
   const boucles = {}; // nom → { g (volume), p (gauche-droite) }
   const derniers = {}; // sol → dernière variante jouée (jamais deux fois la même de suite)
-  const actuel = { vent: 0.3, feuilles: 0, vagues: 0, panVagues: 0, vapeur: 0, panVapeur: 0, nuit: 0, oiseau: null, no: 0, panNo: 0 };
+  const actuel = { vent: 0.3, feuilles: 0, vagues: 0, panVagues: 0, vapeur: 0, panVapeur: 0, nuit: 0, oiseau: null, no: 0, panNo: 0, eauSon: 'vagues', scene: 'no', ruisseau: 0, panRuisseau: 0, grenouilles: 0 };
   let prochainOiseau = 18 + Math.random() * 20;
 
   /** Au premier moment où le son joue : la sortie, puis la fabrication de tous les sons. */
@@ -118,10 +122,13 @@ export function creerBruitage({ oiseaux = [], ambiances = [], betes = [], extras
     viser('ventDoux', V.ventDoux[0] + V.ventDoux[1] * v);
     viser('ventFort', V.ventFort * lisse(0.35, 1, v));
     viser('feuilles', a.feuilles * (V.feuilles[0] + V.feuilles[1] * lisse(0.25, 1, v)));
-    viser('vagues', a.vagues * V.vagues, a.panVagues);
+    // (l'eau la plus proche : la mer, ou la rivière à Gokayama ; la musique d'une scène : le nō, la kokiriko)
+    viser(a.eauSon, a.vagues * V[a.eauSon], a.panVagues);
     viser('vapeur', a.vapeur * V.vapeur, a.panVapeur);
     viser('insectes', a.nuit * V.insectes);
-    viser('no', a.no * V.no, a.panNo);
+    viser(a.scene, a.no * V[a.scene], a.panNo);
+    viser('ruisseau', a.ruisseau * V.ruisseau, a.panRuisseau);
+    viser('grenouilles', a.grenouilles * V.grenouilles);
   }
 
   /** Joue un son, en lançant la fabrication s'il le faut (au départ, avant le premier pas) : s'il n'est pas prêt, rien. */
@@ -169,7 +176,7 @@ export function creerBruitage({ oiseaux = [], ambiances = [], betes = [], extras
     oiseau(nom, { force = 1, pan = 0 } = {}) {
       if (commence && son.pret()) jouer(`oiseau/${nom}`, { gain: (V[nom] ?? V.oiseau) * force, pan, vitesse: 0.92 + Math.random() * 0.18 });
     },
-    /** Un chat qui miaule ou qui ronronne (nom : 'miaou', 'ronron'), plus ou moins fort (force), de quel côté (pan). */
+    /** Un chat qui miaule ou qui ronronne, un chien qui aboie (nom : 'miaou', 'ronron', 'ouaf'), plus ou moins fort (force), de quel côté (pan). */
     bete(nom, { force = 1, pan = 0 } = {}) {
       if (commence && son.pret()) jouer(`bete/${nom}`, { gain: V[nom] * force, pan, vitesse: 0.95 + Math.random() * 0.1 });
     },
@@ -185,7 +192,8 @@ export function creerBruitage({ oiseaux = [], ambiances = [], betes = [], extras
      * Ce qu'on entend ici, maintenant : vent (la force de la rafale, 0,25 à environ 1,2), feuilles (0 à 1 : les
      * arbres autour), vagues et panVagues (la mer : proche de 0 à 1, et de quel côté), vapeur et panVapeur (les
      * fumerolles), nuit (0 à 1), oiseau (celui qui chanterait ici : 'milan', 'uguisu' ou null), no et panNo (la
-     * musique de la scène de nō : 0 loin, 1 tout près). dt : secondes depuis l'appel précédent.
+     * musique d'une scène, scene : 'no' ou 'kokiriko' : 0 loin, 1 tout près), eauSon (la boucle de l'eau : 'vagues'
+     * ou 'riviere'), ruisseau et panRuisseau, grenouilles (0 à 1). dt : secondes depuis l'appel précédent.
      */
     ambiance(a, dt) {
       const pret = son.pret();

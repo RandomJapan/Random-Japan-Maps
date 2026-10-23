@@ -9,14 +9,16 @@
 //  On entend ses pas (selon le sol), le vent dans les arbres, la mer, les fumerolles (bruitage.js), et l'air du
 //  lieu, composé pour la balade (musique.js) ; dans l'eau, on éclabousse et l'on ressort mouillé (effets.js) ;
 //  à Itsukushima, des goélands tournent sur la baie et s'envolent quand on approche (mouettes.js) ; à Aogashima,
-//  des grives, des lézards, des chats, des papillons et des milans (betes.js). Des bancs où s'asseoir ; un passant
+//  des grives, des lézards, des chats, des papillons et des milans (betes.js) ; à Gokayama (2026-10-23), des hérons dans
+//  les rizières, des grenouilles, des libellules rouges, un chien, des lucioles la nuit. Des bancs où s'asseoir ; un passant
 //  fait tomber la nuit et revenir le jour (les étoiles, les lanternes allumées, l'air de nuit : lueurs.js).
 //  Tous les tampons d'un lieu font gagner une pièce de tenue (tenues.js) : on l'essaie dans la garde-robe, vu de face.
-//  Chaque lieu cache un secret (2026-10-23 : les corbeaux sacrés d'Itsukushima, la boîte au trésor d'Aogashima) : il
+//  Chaque lieu cache un secret (2026-10-23 : les corbeaux sacrés d'Itsukushima, la boîte au trésor d'Aogashima, le
+//  plancher qui sonne creux de Gokayama) : il
 //  donne un koban, la monnaie de Bunbuku, le marchand ambulant (tresors.js), qui vend des objets précieux : la danse des
 //  fêtes, la traînée sous les pas, les accessoires du compagnon, les feux d'artifice (feux.js), des tenues entières,
 //  l'appareil photo (photo.js), trois compagnons secrets et le calendrier magique (calendrier.js : les saisons).
-//  ?lieu=itsukushima|aogashima ; ?perso=garcon|fille ; ?compagnon=kon|pon|chapu ; ?langue=en|fr|ja ;
+//  ?lieu=itsukushima|aogashima|gokayama ; ?perso=garcon|fille ; ?compagnon=kon|pon|chapu ; ?langue=en|fr|ja ;
 //  ?photo=heros|perso : une image fixe (captures) ; ?demo : une partie jouée image par image (vidéos) ;
 //  ?ciel=parchemin : un essai du style (styles.js) ; ?flou=0 : sans le flou du lointain ; ?aa=0 : sans anticrénelage.
 // ================================================================
@@ -44,14 +46,18 @@ import { creerChutes, SAISONS } from './calendrier.js';
 import { creerPhoto } from './photo.js';
 import * as itsukushima from './itsukushima.js';
 import * as aogashima from './aogashima.js';
+import * as gokayama from './gokayama.js';
 
 // chaque lieu : { infos (noms, tampons, textes : sans rien construire), construire(ctx) }
-const LIEUX = { itsukushima, aogashima };
+const LIEUX = { itsukushima, aogashima, gokayama };
 const params = new URLSearchParams(location.search);
 const PHOTO = params.get('photo');
 const DEMO = params.has('demo');
 const LIEU = LIEUX[params.get('lieu')] ? params.get('lieu') : 'itsukushima';
 const MARCHE = 3.4, COURSE = 6.6; // m/s
+// au-delà, un passant n'a plus son trait d'encre (un ou deux pixels à cette distance) : six appels de dessin de moins
+// chacun, ce qui compte quand on voit tout un village d'en haut (le belvédère de Gokayama)
+const TRAIT_PASSANT = 60;
 const $ = (s) => document.querySelector(s);
 
 let langue = LANGUES.includes(params.get('langue')) ? params.get('langue') : choisirLangue();
@@ -183,7 +189,9 @@ function construire() {
     const etatP = creerPassant(p);
     etatP.y = p.assis != null ? p.assis - ASSIS : lieu.monde.hauteur(p.x, p.z);
     if (p.assis != null) perso.asseoir(true);
-    return { ...p, perso, etat: etatP };
+    const traits = [];
+    perso.objet.traverse((q) => { if (q.material === mats.traitPerso) traits.push(q); });
+    return { ...p, perso, etat: etatP, traits, loin: false };
   });
   const daims = lieu.daims.map((d, i) => {
     const b = creerDaim(ctx, d.male, [0, 0.95, 0.5, 0.25, 0.7][i] ?? i * 0.37);
@@ -226,7 +234,7 @@ function construire() {
   groupe.add(chutes.groupe);
   scene.add(groupe);
   M = {
-    carte, effets, lueurs, betes, mouilleJoueur, mouilleKon, feuillage: densiteFeuillage(lieu), bruitage: creerBruitage({ oiseaux: lieu.oiseaux || [], ambiances: lieu.ambiances || [], betes: lieu.betes?.chats?.length ? ['miaou', 'ronron'] : [], extras: lieu.sons || [] }), musique: creerMusique(lieu.id), focale: 800,
+    carte, effets, lueurs, betes, mouilleJoueur, mouilleKon, feuillage: densiteFeuillage(lieu), bruitage: creerBruitage({ oiseaux: lieu.oiseaux || [], ambiances: lieu.ambiances || [], betes: [...(lieu.betes?.chats?.length ? ['miaou', 'ronron'] : []), ...(lieu.betes?.chiens?.length ? ['ouaf'] : [])], extras: lieu.sons || [] }), musique: creerMusique(lieu.id), focale: 800,
     marchand, feux, chutes, sac: new Set(), trace: null, saison: 'ete', flash: { v: 0, c: new THREE.Color() }, hemiBase: { intensite: 0, couleur: new THREE.Color() },
     style, ctx, mats, lieu, groupe, decor, voyageurs, compagnons, kon: null, cadre: null, passants, daims, mouettes, eau, ciel, soleil, hemi, etoiles, vapeurs, touffes, finale: passeFinale(THREE, style, { echantillons: params.get('aa') === '0' ? 0 : 4, flou: params.get('flou') !== '0' }), cible: null, sauvage: null, nuit: { v: 0, cible: 0, fin: null } };
   choisirVoyageur(sorte || 'garcon');
@@ -875,7 +883,7 @@ const carnet = creerCarnet({ fond: $('.fond-carnet'), page: $('.carnet') }, {
 /** Le nom (dans la langue du moment) et la description d'une pièce de tenue, pour le voyageur s. */
 // (la casquette ou le chapeau de paille, la veste rouge ou le chemisier rose : selon le voyageur)
 const clePiece = (id, s = sorte) => (id === 'defaut' ? (s === 'fille' ? 'defautFille' : 'defautGarcon')
-  : id === 'habit-defaut' ? (s === 'fille' ? 'habitFille' : 'habitGarcon') : id);
+  : id === 'habit-defaut' ? (s === 'fille' ? 'habitFille' : 'habitGarcon') : id === 'sac' ? (s === 'fille' ? 'sacFille' : 'sacGarcon') : id);
 const nomPiece = (id, s) => t('tenue').noms[clePiece(id, s)];
 const descriptionPiece = (id, s) => t('tenue').descriptions[clePiece(id, s)];
 
@@ -1511,8 +1519,16 @@ const jeu = {
   aDansSac: (o) => M.sac.has(o),
   donner: (o) => { M.sac.add(o); },
   prendre: (o) => { M.sac.delete(o); },
-  /** Un geste du voyageur ('creuser', 'offrir'… : personnages.js), ou null. */
+  /** Un geste du voyageur ('creuser', 'offrir', 'prier', 'washi', 'kokiriko'… : personnages.js), ou null. */
   geste: (g) => M.joueur.geste(g),
+  /**
+   * Le voyageur posé en x, z, tourné vers cap (une scène où il doit se tenir à une place : à côté de la planche du
+   * secret, sur l'estrade de la kokiriko) ; y : la hauteur du sol voulu (une estrade), sinon celle où il est.
+   */
+  placer(x, z, cap, y) {
+    Object.assign(etat, { x, z, y: M.lieu.monde.hauteur(x, z, (y ?? etat.y) + 0.5), vx: 0, vz: 0 });
+    if (cap !== undefined) etat.cap = cap;
+  },
   /** Un son : 'magie' (son.js), ou un son du bruitage ('pelle', 'boite'). */
   son: (nom) => { if (nom === 'magie') son.magie(); else M.bruitage.jouerSon(nom); },
   /** Des mottes de terre jetées en (x, y, z), qui retombent à la hauteur sol. */
@@ -2228,9 +2244,25 @@ function vivre(dt, temps, pasJoueur, pasKon) {
   }
   const oiseaux = L.oiseaux || [];
   const oiseau = oiseaux.includes('uguisu') && feuilles > 0.3 && Math.random() < 0.7 ? 'uguisu' : oiseaux.includes('milan') ? 'milan' : null;
-  // les musiciens d'une scène (le nō d'Itsukushima) : on les entend en s'approchant, et la musique de la balade baisse
+  // les musiciens d'une scène (le nō d'Itsukushima, la kokiriko de Gokayama) : on les entend en s'approchant, et la
+  // musique de la balade baisse
   const sc = L.musiciens, no = sc ? 1 - lisse(sc.pres, sc.loin, Math.hypot(sc.x - x, sc.z - z)) : 0;
-  M.bruitage.ambiance({ vent, feuilles, vagues: oreille.mer.vagues, panVagues: oreille.mer.pan, vapeur: Math.min(1, vapeur), panVapeur, nuit: M.nuit.v, oiseau, no, panNo: sc ? panDe(sc.x, sc.z) : 0 }, d);
+  // (Gokayama) le ruisseau le plus proche (L.ruisseaux : des lignes brisées) ; la nuit, les grenouilles des rizières
+  // (L.mares : leurs milieux)
+  let ruisseau = 0, panRuisseau = 0, grenouilles = 0;
+  for (const ligne of L.ruisseaux || []) {
+    for (let k = 0; k < ligne.length - 1; k++) {
+      const [x0, z0] = ligne[k], [x1, z1] = ligne[k + 1], dx = x1 - x0, dz = z1 - z0;
+      const f = Math.min(1, Math.max(0, ((x - x0) * dx + (z - z0) * dz) / (dx * dx + dz * dz || 1)));
+      const px = x0 + f * dx, pz = z0 + f * dz, v = 1 - lisse(1.5, 20, Math.hypot(x - px, z - pz));
+      if (v > ruisseau) { ruisseau = v; panRuisseau = panDe(px, pz); }
+    }
+  }
+  if (M.nuit.v > 0.02) for (const [mx, mz] of L.mares || []) grenouilles = Math.max(grenouilles, (1 - lisse(8, 55, Math.hypot(mx - x, mz - z))) * M.nuit.v);
+  M.bruitage.ambiance({
+    vent, feuilles, vagues: oreille.mer.vagues, panVagues: oreille.mer.pan, vapeur: Math.min(1, vapeur), panVapeur, nuit: M.nuit.v, oiseau, no,
+    panNo: sc ? panDe(sc.x, sc.z) : 0, scene: sc?.son || 'no', eauSon: L.eau?.son || 'vagues', ruisseau, panRuisseau, grenouilles,
+  }, d);
   M.musique.maj(M.nuit.v, 1 - 0.8 * no);
 }
 
@@ -2286,7 +2318,7 @@ function dessiner(dt, temps) {
     for (const c of M.betes.animer(dt, temps, etat, renard, M.nuit.v, etat.mode !== 'jeu')) {
       const d = Math.hypot(c.x - camera.position.x, c.y - camera.position.y, c.z - camera.position.z), force = c.fort / (1 + Math.max(0, d - 6) * 0.12);
       if (PHOTO || etat.mode === 'depart' || force < 0.08) continue;
-      if (c.nom === 'miaou') M.bruitage.bete('miaou', { force, pan: panDe(c.x, c.z) });
+      if (c.nom === 'miaou' || c.nom === 'ouaf') M.bruitage.bete(c.nom, { force, pan: panDe(c.x, c.z) });
       else M.bruitage.oiseau(c.nom, { force, pan: panDe(c.x, c.z) });
     }
   }
@@ -2393,7 +2425,11 @@ function dessiner(dt, temps) {
   // ce qui cache le joueur s'efface en pointillés (styles.js) ; un passant collé à la caméra s'efface tout entier
   M.mats.coupe.oeil.value.copy(camera.position);
   M.mats.coupe.cible.value.set(etat.x, etat.y + 0.95, etat.z);
-  for (const p of M.passants) p.perso.objet.visible = Math.hypot(camera.position.x - p.etat.x, camera.position.z - p.etat.z) > 1.1;
+  for (const p of M.passants) {
+    const d = Math.hypot(camera.position.x - p.etat.x, camera.position.z - p.etat.z), loin = d > TRAIT_PASSANT;
+    p.perso.objet.visible = d > 1.1;
+    if (loin !== p.loin) { p.loin = loin; for (const t of p.traits) t.visible = !loin; }
+  }
 
   // le soleil suit le joueur (les ombres se calculent autour de lui), par pas d'un texel de la carte d'ombres :
   // sinon, à chaque pas du joueur, les bords des ombres glissent d'une fraction de texel et scintillent
@@ -2418,7 +2454,9 @@ function dessiner(dt, temps) {
   $('.bouton-a').classList.toggle('pret', !!cible);
   document.body.classList.toggle('occupe', etat.mode !== 'jeu');
 
-  // l'image : la scène lissée, puis la passe finale à l'écran (le lointain flou)
+  // l'image : la scène lissée, puis la passe finale à l'écran (le lointain flou) ; ce qui est caché (les compagnons
+  // qu'on n'a pas choisis, l'autre voyageur, les bêtes au loin…) ne recalcule pas ses matrices
+  for (const c of M.groupe.children) c.matrixWorldAutoUpdate = c.visible;
   M.finale.rendre(rendu, scene, camera);
 }
 

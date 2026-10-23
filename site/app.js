@@ -2181,7 +2181,7 @@ async function remplirFiche(l) {
  * Les lieux qu'on peut visiter dans la balade 3D (site/balade/) : id du lieu sur la carte → id du lieu de la
  * balade (?lieu=). À compléter quand la balade gagne un lieu.
  */
-const BALADES = { 'itsukushima-jinja': 'itsukushima', aogashima: 'aogashima' };
+const BALADES = { 'itsukushima-jinja': 'itsukushima', aogashima: 'aogashima', gokayama: 'gokayama' };
 
 /**
  * Les boutons de la fiche (deux pour les visiteurs, pour tenir sur une ligne ; partager est une icône sur la photo,

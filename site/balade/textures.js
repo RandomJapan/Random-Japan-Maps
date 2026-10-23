@@ -9,9 +9,9 @@
 // ================================================================
 
 /** Les matières (le numéro de leur couche). Le sol (aspectSol des lieux) et les objets (matiereDe). */
-export const MATIERES = { sable: 1, herbe: 2, estran: 3, dalles: 4, terre: 5, roche: 6, route: 7, sousBois: 8, bois: 9, tuiles: 10, pierre: 11, enduit: 12, feuillage: 13, laque: 14, tole: 15 };
+export const MATIERES = { sable: 1, herbe: 2, estran: 3, dalles: 4, terre: 5, roche: 6, route: 7, sousBois: 8, bois: 9, tuiles: 10, pierre: 11, enduit: 12, feuillage: 13, laque: 14, tole: 15, chaume: 16 };
 /** La taille d'une répétition de chaque couche, en mètres (la couche 0 ne change rien). */
-export const ECHELLES = [1, 1.3, 1.7, 2.6, 3, 2, 3.2, 2.2, 1.8, 1.3, 1, 1.6, 2.2, 1.1, 2, 1];
+export const ECHELLES = [1, 1.3, 1.7, 2.6, 3, 2, 3.2, 2.2, 1.8, 1.3, 1, 1.6, 2.2, 1.1, 2, 1, 2.4];
 
 const N = 256; // texels par côté
 
@@ -326,6 +326,22 @@ const COUCHES = {
     f.partout((x) => 0.86 + 0.2 * (0.5 + 0.5 * Math.sin((x / N) * Math.PI * 2 * 16)));
     const h = f.hasard;
     for (let i = 0; i < 10; i++) f.disque(h() * N, h() * N, 2 + h() * 5, (px, py, couv) => f.mul(px, py, [1.08, 0.9, 0.76], couv * (0.4 + g(px, py) * 0.5)));
+  },
+  // le chaume des grands toits (Gokayama, 2026-10-23) : des brins de paille serrés le long de la pente (y : vers le
+  // bas), plus ou moins dorés ou gris ; tous les quarts de feuille, un rang (une couche posée sur la précédente)
+  // marqué d'une ombre ; çà et là, la paille vieillie, plus sombre, et un peu de mousse
+  chaume(f) {
+    const g = f.grille(8), g2 = f.grille(4), h = f.hasard;
+    f.partout((x, y) => {
+      const r = ((y / N) * 4 + g(x, y) * 0.35) % 1;
+      return (0.92 + (g2(x, y) - 0.5) * 0.22) * (r > 0.93 ? 0.7 : r > 0.86 ? 0.84 : r < 0.05 ? 1.1 : 1);
+    });
+    for (let i = 0; i < 3200; i++) {
+      const x = h() * N, y = h() * N, l = 8 + h() * 26, k = 0.72 + h() * 0.5, penche = (h() - 0.5) * 3;
+      f.trait(x, y, x + penche, y + l, 1 + h() * 0.6, (px, py, couv, t) => f.mul(px, py, k * (0.94 + 0.12 * t), couv * 0.85));
+    }
+    for (let i = 0; i < 14; i++) f.disque(h() * N, h() * N, 6 + h() * 14, (px, py, couv) => f.mul(px, py, [0.82, 0.8, 0.72], couv * (0.3 + g(px, py) * 0.4)));
+    for (let i = 0; i < 8; i++) f.disque(h() * N, h() * N, 3 + h() * 7, (px, py, couv) => f.mul(px, py, [0.8, 1.02, 0.7], couv * 0.45));
   },
 };
 
