@@ -10,7 +10,7 @@
 //  ctx : { THREE, atelier, P (palette), peinture }.
 // ================================================================
 import { creerMonde, lisse, hasard, bruitDoux, surLaLigne } from './monde.js';
-import { panneau, trepied } from './decor.js';
+import { panneau, trepied, PAPIER_PANNEAU } from './decor.js';
 import { MATIERES as M } from './textures.js';
 
 const MER = -40;
@@ -23,8 +23,9 @@ const SAUNA = { x: -38, z: 10 };
 const MARMITE = { x: -30.6, z: 17 };
 const CAMPING = { x0: -9, x1: 15, z0: 37, z1: 51 };
 const TUNNEL = { a: -0.92 };
-// la route (du tunnel au camping) et les chemins de terre (vers l'escalier, au petit volcan, sur la crête)
-const ROUTE = [[-41.5, -31.7], [-36, -24], [-31.5, -12], [-30.5, 0], [-31, 10], [-27, 22], [-19, 33], [-8, 39], [4, 41]];
+const PALMERAIE = { x0: -46, x1: -38.5, z0: -22, z1: -11 }; // le champ de palmiers (les « roebelenii » de l'île)
+const CAMION = { x: -38.5, z: 16.6 }; // le petit camion (kei) garé à côté du sauna
+const MIROIR = { x: -28.4, z: -12.6 }; // le miroir de virage, au carrefour du chemin de l'escalier
 
 // ---------------------------------------------------------------- Le relief
 const angle = (x, z) => Math.atan2(x, -z); // 0 au nord, positif vers l'est
@@ -50,7 +51,8 @@ const Y_BELVEDERE = hauteurCrete(angle(BELVEDERE.x, BELVEDERE.z));
 
 /**
  * L'escalier de la paroi nord : une longue volée en diagonale, de l'est (au pied) vers l'ouest (sur la crête),
- * qui suit la pente ; un palier au milieu. [x, z, hauteur] le long du chemin.
+ * qui suit la pente ; un palier au milieu, un autre en haut (dans le prolongement de la volée : posé au bout, de
+ * biais, il faisait un muret au bout des dernières marches), puis un pas sur la crête. [x, z, hauteur].
  */
 const ESCALIER = { a0: 0.5, a1: -0.08 };
 const MARCHES = (() => {
@@ -60,16 +62,19 @@ const MARCHES = (() => {
     const h = 0.4 + (haut - 0.4) * part, r = rayonPied(a) + PAROI * profilInverse(h / hauteurCrete(a));
     pts.push([r * Math.sin(a), -r * Math.cos(a), h]);
   }
-  const r = rayonPied(a1) + PAROI + 3.5;
-  pts.push([r * Math.sin(a1), -r * Math.cos(a1), haut]); // un pas sur la crête
+  const [xa, za] = pts[pts.length - 1], [xb, zb] = pts[pts.length - 2], l = Math.hypot(xa - xb, za - zb);
+  const xp = xa + ((xa - xb) / l) * 1.3, zp = za + ((za - zb) / l) * 1.3, rp = Math.hypot(xp, zp);
+  pts.push([xp, zp, haut], [xp + (xp / rp) * 3.5, zp + (zp / rp) * 3.5, haut]); // le palier du haut, un pas sur la crête
   return pts;
 })();
 const [BAS, HAUT] = [MARCHES[0], MARCHES[MARCHES.length - 1]];
 // la partie en marches (sans le pas sur la crête), et sa longueur
 const VOLEE = MARCHES.slice(0, -1);
 const LONG_VOLEE = VOLEE.slice(1).reduce((l, p, k) => l + Math.hypot(p[0] - VOLEE[k][0], p[1] - VOLEE[k][1]), 0);
+const RAMPE = 1.25; // la main courante (côté vide) et le mur invisible (côté pente), à cette distance du milieu des marches
 // le passage dans la barrière de la crête, au haut de l'escalier : 1,3 m de chaque côté du chemin (comme la main courante)
-const OUVERTURE = ((d) => [ESCALIER.a1 - d, ESCALIER.a1 + d])(1.3 / (rayonPied(ESCALIER.a1) + PAROI + BARRIERE));
+const A_HAUT = angle(HAUT[0], HAUT[1]);
+const OUVERTURE = ((d) => [A_HAUT - d, A_HAUT + d])(1.3 / (rayonPied(A_HAUT) + PAROI + BARRIERE));
 const BOITE_ESCALIER = [Math.min(...MARCHES.map((p) => p[0])) - 5, Math.max(...MARCHES.map((p) => p[0])) + 5, Math.min(...MARCHES.map((p) => p[1])) - 5, Math.max(...MARCHES.map((p) => p[1])) + 5];
 const CHEMINS = [
   [[-31, -11], [-18, -30], [0, -42], [18, -50], [BAS[0], BAS[1]]],
@@ -78,12 +83,58 @@ const CHEMINS = [
   [[HAUT[0], HAUT[1]], [6, -80.6], [13, -82.2], [OTONBU.x, OTONBU.z]],
 ];
 
+// ---------------------------------------------------------------- Le tunnel (青宝トンネル)
+// Sa façade au pied de la paroi, au nord-ouest, tournée vers le centre du cratère. Son repère : lx le long de la
+// façade, d vers l'intérieur de la paroi (0 : le devant de la façade), y au-dessus de la route (T_Y).
+const T_R = rayonPied(TUNNEL.a) + 0.8, T_X = T_R * Math.sin(TUNNEL.a), T_Z = -T_R * Math.cos(TUNNEL.a);
+const T_FX = -Math.sin(TUNNEL.a), T_FZ = Math.cos(TUNNEL.a); // le devant (vers le centre du cratère)
+const T_LX = Math.cos(TUNNEL.a), T_LZ = Math.sin(TUNNEL.a); // le long de la façade
+/** Le tube : sa demi-largeur, la hauteur de ses murs (la voûte en demi-cercle au-dessus), sa longueur dessinée. */
+const TUBE = { l: 2.7, mur: 3.0, fond: 18 };
+/** La façade : sa profondeur (le sol de la paroi la recouvre par derrière), et ses gradins [demi-largeur, hauteur]. */
+const FACADE = { prof: 5.5, gradins: [[5.6, 8.6], [7.4, 6.4], [9.0, 4.2]] };
+/** Un point du lieu dans le repère du tunnel : [lx, d]. */
+const versTunnel = (x, z) => { const dx = x - T_X, dz = z - T_Z; return [dx * T_LX + dz * T_LZ, -(dx * T_FX + dz * T_FZ)]; };
+/** Un point du repère du tunnel dans le lieu : [x, z]. */
+const duTunnel = (lx, d) => [T_X + lx * T_LX - d * T_FX, T_Z + lx * T_LZ - d * T_FZ];
+const hautFacade = (lx) => { const a = Math.abs(lx); for (const [l, h] of FACADE.gradins) if (a <= l) return h; return 0; };
+const T_Y = relief(...duTunnel(0, -0.4)); // la route, devant la façade
+
+// la route (du tunnel au camping) et les chemins de terre (vers l'escalier, au petit volcan, sur la crête)
+const ROUTE = [duTunnel(0, -0.6), [-41.5, -31.7], [-36, -24], [-31.5, -12], [-30.5, 0], [-31, 10], [-27, 22], [-19, 33], [-8, 39], [4, 41]];
+
 /**
- * Le sol : le fond du cratère (presque plat), la paroi très raide tout autour, la crête (un plateau au nord),
+ * Le sol : le relief, et au tunnel : sous l'entrée, le sol passe sous la chaussée ; derrière la façade, il monte
+ * jusqu'à son dessus (la paroi la recouvre) ; entre les deux, dans le tube, la grille fine a un trou (trouSol) :
+ * sinon, ce talus d'un mètre se verrait dans l'entrée, devant le fond du tunnel.
+ */
+function terrain(x, z) {
+  const h = relief(x, z);
+  if (Math.abs(x - T_X) > 13 || Math.abs(z - T_Z) > 13) return h;
+  const [lx, d] = versTunnel(x, z), a = Math.abs(lx);
+  if (d < 0.25 || d > 9 || a > 8.6) return h;
+  const dessus = Math.max(h, hautFacade(Math.min(a, 8.99)) - 0.25), route = T_Y - 0.45;
+  const v = route + (dessus - route) * lisse(1.6, 3.2, d);
+  return h + (v - h) * (1 - lisse(5.5, 9, d)) * (1 - lisse(7.8, 8.6, a));
+}
+
+/** Les cases (x0, z0, x1, z1) de la grille fine à ne pas dessiner : le talus du sol dans le tube du tunnel. */
+function trouSol(x0, z0, x1, z1) {
+  if (x1 < T_X - 12 || x0 > T_X + 12 || z1 < T_Z - 12 || z0 > T_Z + 12) return false;
+  let dmin = Infinity, dmax = -Infinity, amin = Infinity;
+  for (const [x, z] of [[x0, z0], [x1, z0], [x0, z1], [x1, z1]]) {
+    const [lx, d] = versTunnel(x, z);
+    dmin = Math.min(dmin, d); dmax = Math.max(dmax, d); amin = Math.min(amin, Math.abs(lx));
+  }
+  return amin < TUBE.l + 0.9 && dmax > 1.6 && dmin < 3.2;
+}
+
+/**
+ * Le relief : le fond du cratère (presque plat), la paroi très raide tout autour, la crête (un plateau au nord),
  * puis les flancs de l'île jusqu'à la mer et ses falaises ; Maruyama et son cratère ; l'escalier taillé
  * dans la paroi ; le belvédère creusé en gradins, la butte d'Ōtonbu.
  */
-function terrain(x, z) {
+function relief(x, z) {
   const r = Math.hypot(x, z), a = angle(x, z);
   const r1 = rayonPied(a), r2 = r1 + PAROI, crete = hauteurCrete(a), r3 = r2 + largeurCrete(a);
   let h;
@@ -106,25 +157,29 @@ function terrain(x, z) {
     const cone = (e) => m.h * (1 - e / m.r) ** 1.35;
     h += dm >= m.cratere ? cone(dm) : cone(m.cratere) - 4 * (1 - (dm / m.cratere) ** 2);
   }
-  // l'escalier : une bande aplanie à la hauteur des marches. Sous elles, le sol s'enfonce (elles sont pleines
-  // jusque-là), et à leurs bouts, un accotement plus bas qu'elles : entre deux points du maillage (tous les
-  // mètres), le sol aplani ne passe plus par-dessus les marches (la paroi semblait couvrir l'escalier, 2026-10-22)
-  const [bx0, bx1, bz0, bz1] = BOITE_ESCALIER;
-  if (x > bx0 && x < bx1 && z > bz0 && z < bz1) {
-    const c = surLaLigne(MARCHES, x, z);
-    if (c.d < 4.6) {
-      h += (c.h - h) * (1 - lisse(2.8, 4.6, c.d));
-      const v = surLaLigne(VOLEE, x, z), dans = lisse(0, 0.5, v.s) * lisse(0, 0.5, LONG_VOLEE - v.s);
-      // (enfoncé seulement sous les marches et le chemin où l'on y marche : à côté, on passerait dessous)
-      if (dans > 0) h -= dans * (v.d < 1.1 ? 0.65 : 0.35 * (1 - lisse(2.0, 2.8, v.d)));
-    }
-  }
   // le belvédère, creusé en gradins (la cuvette ; les gradins de pierre sont posés dessus)
   const db = Math.hypot(x - BELVEDERE.x, z - BELVEDERE.z);
   if (db < BELVEDERE.r + 4) h += (Y_BELVEDERE - BELVEDERE.creux * (1 - lisse(1.5, BELVEDERE.r, db)) - h) * (1 - lisse(BELVEDERE.r + 1, BELVEDERE.r + 4, db));
   // la butte d'Ōtonbu
   const dt = Math.hypot(x - OTONBU.x, z - OTONBU.z);
   if (dt < OTONBU.r) h += OTONBU.haut * (1 - lisse(3, OTONBU.r, dt)); // (le haut, plat : la plate-forme)
+  // l'escalier, en dernier : une bande aplanie à la hauteur des marches. Sous elles, le sol s'enfonce (elles sont
+  // pleines jusque-là), et à leurs bouts, un accotement plus bas qu'elles : entre deux points du maillage (tous
+  // les mètres), le sol aplani ne passe plus par-dessus les marches. (Fait avant le belvédère, son pourtour, qui
+  // remonte vers lui, relevait encore le sol de 1 à 2 m sur le haut de la volée : 2026-10-23.)
+  const [bx0, bx1, bz0, bz1] = BOITE_ESCALIER;
+  if (x > bx0 && x < bx1 && z > bz0 && z < bz1) {
+    const c = surLaLigne(MARCHES, x, z);
+    if (c.d < 4.8) {
+      // (dans le coude du haut, à côté des dernières marches : leur hauteur, pas celle du pas sur la crête)
+      const cv = surLaLigne(VOLEE, x, z), hc = cv.d < c.d + 1.5 ? Math.min(c.h, cv.h) : c.h;
+      h += (hc - h) * (1 - lisse(3.2, 4.8, c.d));
+      // (jusqu'au bout du palier de pierre posé sur la crête, au haut de la volée)
+      const v = surLaLigne(MARCHES, x, z), dans = lisse(0, 0.5, v.s) * (1 - lisse(LONG_VOLEE - 0.1, LONG_VOLEE + 0.4, v.s));
+      // (enfoncé seulement sous les marches et le chemin où l'on y marche : à côté, on passerait dessous)
+      if (dans > 0) h -= dans * (v.d < 1.1 ? 0.65 : 0.35 * (1 - lisse(2.3, 3.2, v.d)));
+    }
+  }
   return h;
 }
 
@@ -163,67 +218,334 @@ export function construire(ctx) {
   /** L'angle qui tourne vers (vx, vz) le devant (+z) d'un objet posé en (x, z). */
   const vers = (x, z, vx, vz) => Math.atan2(vx - x, vz - z);
   const vapeurs = [];
+  // les textes peints (etiquettes.js) : ecrire(pose de l'objet { x, y, z, ry }, étiquette dans son repère)
+  const etiquettes = [];
+  const ecrire = (o, e) => {
+    const c = Math.cos(o.ry || 0), sn = Math.sin(o.ry || 0);
+    etiquettes.push({ ...e, x: o.x + e.x * c + e.z * sn, y: o.y + e.y, z: o.z - e.x * sn + e.z * c, ry: (o.ry || 0) + (e.ry || 0) });
+  };
 
   // ---------------------------------------------------------------- Le tunnel (青宝トンネル), dans la paroi
-  // la seule route vers le fond du cratère : une façade de béton, l'ouverture sombre en arc, ses lampes
-  const rT = rayonPied(TUNNEL.a) + 0.8, xT = rT * Math.sin(TUNNEL.a), zT = -rT * Math.cos(TUNNEL.a);
-  const ryT = vers(xT, zT, 0, 0);
+  // la seule route vers le fond du cratère. La façade de béton en gradins (la paroi la recouvre par derrière),
+  // l'arche et son bandeau, la plaque du nom ; dedans, le tube qui s'enfonce en s'assombrissant, ses trottoirs, ses
+  // lampes orange, les lignes blanches de la chaussée. Construit face à +z (le cratère), y = 0 : la route.
+  const xT = T_X, zT = T_Z, ryT = vers(T_X, T_Z, 0, 0);
   {
-    const a = atelier();
-    a.boite(8.4, 6.6, 1.6, P.beton, { y: 2.9 })
-      .boite(9, 0.5, 2, P.beton, { y: 6.35 })
-      .boite(4.4, 3.4, 0.6, '#1d1a1b', { y: 1.7, z: 0.55, trait: false })
-      .piece(new THREE.CylinderGeometry(2.2, 2.2, 0.6, 16, 1, false, PI / 2, PI), '#1d1a1b', { y: 3.4, z: 0.55, rx: PI / 2, trait: false })
-      .boite(3.4, 0.7, 0.08, P.blanc, { y: 5.4, z: 0.84 });
-    for (let i = 0; i < 4; i++) a.boite(0.36, 0.12, 0.02, P.noir, { x: -1.1 + i * 0.73, y: 5.4, z: 0.89, trait: false });
-    for (const [x, y, s] of [[-1.3, 3.5, 0.2], [0.9, 3.0, 0.13], [-0.4, 2.7, 0.08]]) a.boite(s, s * 0.6, 0.02, '#f0b04a', { x, y, z: 0.87, trait: false });
-    // la route qui en sort : deux bordures de béton
-    for (const s of [-1, 1]) a.boite(0.3, 0.3, 4, P.beton, { x: s * 2.6, y: 0.1, z: 2.6 });
-    poser(a.fin(0, peinture), xT, zT, { ry: ryT, y: terrain(xT, zT) - 0.3 });
-    const fx = Math.sin(ryT), fz = Math.cos(ryT), cx = Math.cos(ryT), cz = -Math.sin(ryT);
-    monde.mur(xT + fx * 1.2 - cx * 3, zT + fz * 1.2 - cz * 3, xT + fx * 1.2 + cx * 3, zT + fz * 1.2 + cz * 3, 0.5);
-    monde.bloc(xT - 3.4, xT + 3.4, zT - 3.4, zT + 3.4, -2, 7);
+    const a = atelier(), { l: W, mur: HM, fond } = TUBE, PROF = FACADE.prof;
+    const BETON = '#d6d1c4', NUIT = '#1e1c1a';
+    /** La couleur c à d mètres dans le tunnel : de plus en plus sombre. */
+    const sombre = (c, d) => melanger(c, NUIT, Math.min(1, Math.max(0, d) / fond) ** 0.55);
+    // le contour de l'ouverture (élargi de e) : les murs, la voûte en demi-cercle, la chaussée
+    const arche = (f, e = 0) => {
+      f.moveTo(-W - e, 0); f.lineTo(-W - e, HM); f.absarc(0, HM, W + e, PI, 0, true); f.lineTo(W + e, 0); f.lineTo(-W - e, 0);
+      return f;
+    };
+    // le gradin du milieu, percé de l'ouverture sur toute sa profondeur : ses faces dedans font l'entrée du tube
+    const [l0, h0] = FACADE.gradins[0];
+    const forme = new THREE.Shape();
+    forme.moveTo(-l0, -0.6); forme.lineTo(l0, -0.6); forme.lineTo(l0, h0); forme.lineTo(-l0, h0); forme.lineTo(-l0, -0.6);
+    forme.holes.push(arche(new THREE.Path()));
+    const dedans = (x, y, z) => Math.abs(x) < W + 0.01 && y > -0.01 && y < HM + W + 0.01 && z < -0.01 && z > -PROF + 0.01;
+    a.piece(new THREE.ExtrudeGeometry(forme, { depth: PROF, bevelEnabled: false, steps: 5, curveSegments: 16 }), BETON, {
+      z: -PROF, nuance: 0.03,
+      teinte: (x, y, z) => (!dedans(x, y, z) ? BETON : sombre(y < 0.02 ? '#7c7872' : y < 0.9 ? '#b9b3a6' : '#cdc7ba', -z)),
+    });
+    // les gradins des côtés (des murs de soutènement) et leurs chaperons ; celui du milieu
+    for (const sg of [-1, 1]) {
+      for (let k = 1; k < FACADE.gradins.length; k++) {
+        const [l, h] = FACADE.gradins[k], lp = FACADE.gradins[k - 1][0];
+        a.boite(l - lp, h + 0.6, PROF, BETON, { x: (sg * (l + lp)) / 2, y: (h - 0.6) / 2, z: -PROF / 2, nuance: 0.03 })
+          .boite(l - lp + 0.02, 0.2, 0.42, '#c9c3b6', { x: (sg * (l + lp)) / 2, y: h + 0.1, z: 0.08 });
+      }
+    }
+    a.boite(2 * l0 + 0.04, 0.24, 0.5, '#c9c3b6', { y: h0 + 0.12, z: 0.06 });
+    // le bandeau en relief autour de l'arche
+    const bandeau = new THREE.Shape(), E = 0.55;
+    bandeau.moveTo(-W - E, 0); bandeau.lineTo(-W - E, HM); bandeau.absarc(0, HM, W + E, PI, 0, true); bandeau.lineTo(W + E, 0);
+    bandeau.lineTo(W, 0); bandeau.lineTo(W, HM); bandeau.absarc(0, HM, W, 0, PI, false); bandeau.lineTo(-W, 0); bandeau.lineTo(-W - E, 0);
+    a.piece(new THREE.ExtrudeGeometry(bandeau, { depth: 0.26, bevelEnabled: false, curveSegments: 16 }), '#e4dfd3', {});
+    // la plaque du nom, au-dessus de l'arche
+    a.boite(3.9, 0.98, 0.14, '#8d887e', { y: 7.15, z: 0.07 });
+    ecrire({ x: T_X, z: T_Z, y: T_Y, ry: ryT }, { texte: '青宝トンネル', sous: 'SEIHŌ TUNNEL', x: 0, y: 7.15, z: 0.146, l: 3.66, h: 0.78, fond: '#f2eee3', encre: '#2a2622', cadre: '#9a948a' });
+    // le tube : ses murs, sa voûte et sa chaussée, tournés vers dedans, par tranches de plus en plus sombres
+    const profil = [[-W, 0], [-W, 0.9], [-W, HM]];
+    for (let i = 1; i < 16; i++) { const t = PI - (i / 16) * PI; profil.push([W * Math.cos(t), HM + W * Math.sin(t)]); }
+    profil.push([W, HM], [W, 0.9], [W, 0], [-W, 0]);
+    const tri = [], couleurs = [], tranches = 9;
+    for (let j = 0; j < tranches; j++) {
+      const za = -PROF - (j * (fond - PROF)) / tranches, zb = -PROF - ((j + 1) * (fond - PROF)) / tranches, dm = -(za + zb) / 2;
+      for (let i = 0; i < profil.length - 1; i++) {
+        const [x0, y0] = profil[i], [x1, y1] = profil[i + 1];
+        const A = [x0, y0, za], B = [x1, y1, za], Cc = [x1, y1, zb], D = [x0, y0, zb];
+        // la normale de (A, B, Cc), tournée vers l'axe du tube ; sinon, l'autre sens
+        const nx = (y1 - y0) * (zb - za), ny = -(x1 - x0) * (zb - za);
+        const versAxe = nx * -((x0 + x1) / 2) + ny * (HM * 0.8 - (y0 + y1) / 2) > 0;
+        tri.push(...(versAxe ? [A, B, Cc, A, Cc, D] : [A, Cc, B, A, D, Cc]));
+        const c = sombre(y0 + y1 < 0.05 ? '#7c7872' : (y0 + y1) / 2 < 0.9 ? '#b9b3a6' : '#cdc7ba', dm);
+        couleurs.push(c, c);
+      }
+    }
+    const tube = new THREE.BufferGeometry();
+    tube.setAttribute('position', new THREE.Float32BufferAttribute(tri.flat(), 3));
+    a.piece(tube, '#cdc7ba', { couleurs, trait: false, nuance: 0.02 });
+    a.piece(new THREE.ShapeGeometry(arche(new THREE.Shape()), 16), NUIT, { z: -fond, trait: false });
+    // les trottoirs le long des murs, les lignes blanches de la chaussée, de l'entrée au fond
+    const nT = 12;
+    for (let j = 0; j < nT; j++) {
+      const za = -(j * fond) / nT, zb = -((j + 1) * fond) / nT, dm = -(za + zb) / 2, lz = za - zb;
+      for (const sg of [-1, 1]) {
+        a.boite(0.72, 0.22, lz, sombre('#bdb7aa', dm), { x: sg * (W - 0.36), y: 0.11, z: (za + zb) / 2, trait: false, nuance: 0.01 })
+          .boite(0.12, 0.012, lz, sombre('#f2efe6', dm), { x: sg * (W - 0.95), y: 0.006, z: (za + zb) / 2, trait: false, nuance: 0.01 });
+      }
+    }
+    // les lampes orange, en haut des murs (des lampes : elles brillent toujours)
+    for (let d = 1.6; d < fond - 0.5; d += 2.6) {
+      for (const sg of [-1, 1]) a.boite(0.1, 0.16, 0.62, '#ffc061', { x: sg * (W - 0.05), y: HM - 0.25, z: -d, trait: false, sorte: 'lampe' });
+    }
+    poser(a.fin(0, peinture), T_X, T_Z, { ry: ryT, y: T_Y });
+    // on n'entre pas dans le tunnel (une barrière qu'on ne voit pas, devant la façade)
+    const [m0, m1] = [duTunnel(-9.3, -0.35), duTunnel(9.3, -0.35)];
+    monde.mur(m0[0], m0[1], m1[0], m1[1], 0.35);
+    // pour la caméra : la façade, en blocs (son repère est tourné)
+    for (const lx of [-7.2, -3.6, 0, 3.6, 7.2]) { const [x, z] = duTunnel(lx, 2.9); monde.bloc(x - 2.2, x + 2.2, z - 2.2, z + 2.2, T_Y - 2, T_Y + 9); }
   }
 
-  // ---------------------------------------------------------------- Le sauna et la marmite du volcan
-  // le sauna (ふれあいサウナ) : un bâtiment de béton, toit de tôle, la porte au rideau bleu, sa cheminée qui fume
+  // ---- Au bord de la route : des balises blanches à catadioptre orange en sortant du tunnel, la vitesse limite,
+  // et le miroir de virage orange au carrefour du chemin de l'escalier (on en voit à tous les coins de rue au Japon)
   {
     const a = atelier();
-    a.boite(8, 3.2, 6, P.beton, { y: 1.5 })
-      .pignon(8.9, 0.75, 6.9, P.tole, { y: 3.1 })
-      .boite(9, 0.18, 7, P.tole, { y: 3.06 })
-      .boite(1.5, 2.2, 0.12, '#7a5a3a', { x: -2, y: 1.0, z: 3.02 })
-      .boite(1.55, 0.95, 0.06, '#2f5f8a', { x: -2, y: 1.75, z: 3.1, trait: false })
-      .boite(0.5, 0.42, 0.02, P.blanc, { x: -2, y: 1.72, z: 3.14, trait: false })
-      .boite(2.6, 0.7, 0.1, P.bois, { x: 1.4, y: 2.6, z: 3.05 })
-      .cylindre(0.2, 0.2, 2.2, 8, '#8f8c88', { x: 2.6, y: 4.0, z: -1 });
-    for (let i = 0; i < 3; i++) a.boite(0.5, 0.1, 0.02, P.noir, { x: 0.8 + i * 0.6, y: 2.6, z: 3.11, trait: false });
-    for (const x of [0.6, 2.6]) a.boite(1.3, 0.9, 0.06, '#5b7a8c', { x, y: 1.4, z: 3.03, trait: false });
-    for (const z of [-1.5, 1.2]) a.boite(0.06, 0.8, 1.2, '#5b7a8c', { x: 4.02, y: 1.6, z, trait: false });
-    const y = terrain(SAUNA.x, SAUNA.z) - 0.1;
-    poser(a.fin(0, peinture), SAUNA.x, SAUNA.z, { ry: PI / 2, y });
-    monde.surface(SAUNA.x - 3.2, SAUNA.x + 3.2, SAUNA.z - 4.2, SAUNA.z + 4.2, y + 3.5, { plein: true });
-    monde.bloc(SAUNA.x - 3.6, SAUNA.x + 3.6, SAUNA.z - 4.6, SAUNA.z + 4.6, y - 2, y + 4.6);
-    vapeurs.push({ x: SAUNA.x - 1, z: SAUNA.z - 2.6, y: y + 5.1, n: 10, haut: 4, large: 0.6, taille: 1.1 });
+    /** Le point de la route à s mètres du tunnel, décalé de dec (> 0 : à droite en sortant), et la direction. */
+    const surRoute = (s0, dec) => {
+      let sr = s0;
+      for (let k = 0; k < ROUTE.length - 1; k++) {
+        const [x0, z0] = ROUTE[k], [x1, z1] = ROUTE[k + 1], l = Math.hypot(x1 - x0, z1 - z0), ux = (x1 - x0) / l, uz = (z1 - z0) / l;
+        if (sr <= l) return [x0 + ux * sr - uz * dec, z0 + uz * sr + ux * dec, Math.atan2(ux, uz)];
+        sr -= l;
+      }
+      return null;
+    };
+    for (let sr = 4; sr <= 26; sr += 4.4) {
+      for (const dec of [-2.6, 2.6]) {
+        const [x, z, cap] = surRoute(sr, dec), y = terrain(x, z);
+        a.boite(0.07, 0.85, 0.07, P.blanc, { x, y: y + 0.4, z, ry: cap })
+          .cylindre(0.05, 0.05, 0.14, 10, '#f08a2a', { x, y: y + 0.72, z, rx: PI / 2, ry: cap, ordre: 'YXZ', trait: false });
+        monde.cercle(x, z, 0.15);
+      }
+    }
+    // la vitesse limite (30 km/h), tournée vers qui sort du tunnel, à gauche de la route (on roule à gauche au Japon)
+    {
+      const [x, z, cap] = surRoute(8, -3.0), y = terrain(x, z);
+      a.cylindre(0.04, 0.04, 2.3, 8, '#a9adb0', { x, y: y + 1.12, z })
+        .cylindre(0.31, 0.31, 0.02, 20, '#a9adb0', { x, y: y + 2.05, z, rx: PI / 2, ry: cap, ordre: 'YXZ' });
+      etiquettes.push({ texte: '30', forme: 'rond', fond: '#ffffff', cadre: '#d8302c', encre: '#2a4a9a', x: x - Math.sin(cap) * 0.017, y: y + 2.05, z: z - Math.cos(cap) * 0.017, ry: cap + PI, l: 0.6, h: 0.6 });
+      monde.cercle(x, z, 0.2);
+    }
+    {
+      const { x, z } = MIROIR, y = terrain(x, z), cap = Math.atan2(-31 - x, -11 - z); // il regarde le carrefour
+      const o = (d, h) => ({ x: x + Math.sin(cap) * d, y: y + h, z: z + Math.cos(cap) * d });
+      a.cylindre(0.045, 0.05, 2.75, 8, '#e8732e', { x, y: y + 1.37, z })
+        .boite(0.12, 0.3, 0.12, '#e8732e', { ...o(0.06, 2.75), ry: cap })
+        .piece(new THREE.CylinderGeometry(0.36, 0.36, 0.07, 22), '#e8732e', { ...o(0.12, 2.75), rx: PI / 2 - 0.12, ry: cap, ordre: 'YXZ' })
+        .piece(new THREE.CylinderGeometry(0.31, 0.31, 0.02, 22), '#c9dde6', { ...o(0.165, 2.75), rx: PI / 2 - 0.12, ry: cap, ordre: 'YXZ', trait: false })
+        .piece(new THREE.CylinderGeometry(0.4, 0.4, 0.04, 22, 1, false, -PI / 2, PI), '#e8732e', { ...o(0.15, 3.12), rx: 0.3, ry: cap, ordre: 'YXZ' });
+      monde.cercle(x, z, 0.3);
+    }
+    poser(a.fin(0, peinture), 0, 0, { y: 0 });
   }
-  // la marmite géothermique (地熱釜) : un comptoir de pierre sous un auvent, trois marmites fermées de bois
+
+  // ---------------------------------------------------------------- Le sauna (ふれあいサウナ), où l'on entre
+  // un bâtiment de béton au toit de tôle, le rideau bleu « ゆ » à la porte, un distributeur de boissons devant.
+  // Dedans : l'entrée (les casiers à chaussures, un banc, la boîte du prix), puis la salle de vapeur (les gradins de
+  // bois, les caillebotis, les grilles d'où monte la vapeur du volcan, le sablier de douze minutes, le
+  // thermomètre) : on s'y assoit. Construit face à +z, puis tourné d'un quart de tour : son devant regarde la route.
+  const S = { haut: 3.2, sol: 0.3, porte: [-2.9, -1.5], cloison: -0.4, passage: [0.9, 2.3] };
+  const yS = terrain(SAUNA.x, SAUNA.z) - 0.05, solS = yS + S.sol;
+  /** Du repère du sauna au lieu (un quart de tour). */
+  const versSauna = (lx, lz) => [SAUNA.x + lz, SAUNA.z - lx];
+  const poseS = { x: SAUNA.x, z: SAUNA.z, y: yS, ry: PI / 2 };
+  const SIEGE = { x: versSauna(2.15, -2.42)[0], z: versSauna(2.15, -2.42)[1], y: solS + 0.45, cap: PI / 2 };
+  {
+    const a = atelier(), B = '#dcd7cb', CLAIR = '#e2c79a', H = S.haut, y0 = S.sol, yh = y0 + H, [p0, p1] = S.porte, [q0, q1] = S.passage, X = S.cloison;
+    // la dalle, les murs (la porte devant ; une cloison entre l'entrée et la salle de vapeur), le plafond de bois, le toit
+    a.boite(9.2, 0.8, 7.2, P.beton, { y: y0 - 0.4 })
+      .boite(9, H, 0.2, B, { y: y0 + H / 2, z: -3.4 })
+      .boite(0.2, H, 6.6, B, { x: -4.4, y: y0 + H / 2 }).boite(0.2, H, 6.6, B, { x: 4.4, y: y0 + H / 2 })
+      .boite(p0 + 4.5, H, 0.2, B, { x: (p0 - 4.5) / 2, y: y0 + H / 2, z: 3.4 })
+      .boite(4.5 - p1, H, 0.2, B, { x: (p1 + 4.5) / 2, y: y0 + H / 2, z: 3.4 })
+      .boite(p1 - p0, H - 2.2, 0.2, B, { x: (p0 + p1) / 2, y: y0 + 2.2 + (H - 2.2) / 2, z: 3.4 })
+      .boite(0.14, H - 0.06, q0 + 3.3, B, { x: X, y: y0 + (H - 0.06) / 2, z: (q0 - 3.3) / 2 })
+      .boite(0.14, H - 0.06, 3.3 - q1, B, { x: X, y: y0 + (H - 0.06) / 2, z: (q1 + 3.3) / 2 })
+      .boite(0.14, H - 2.26, q1 - q0, B, { x: X, y: y0 + 2.2 + (H - 2.26) / 2, z: (q0 + q1) / 2 })
+      .boite(8.6, 0.06, 6.6, CLAIR, { y: yh - 0.03 })
+      .boite(9.6, 0.16, 7.6, P.tole, { y: yh + 0.08 })
+      .pignon(9.9, 0.85, 7.9, P.tole, { y: yh + 0.16 })
+      .cylindre(0.2, 0.2, 1.6, 10, '#8f8c88', { x: 2.6, y: yh + 1.4, z: -1.2 });
+    // la porte : son cadre de bois, la marche devant, le rideau (noren) bleu, l'enseigne
+    for (const x of [p0 - 0.05, p1 + 0.05]) a.boite(0.1, 2.2, 0.26, P.bois, { x, y: y0 + 1.1, z: 3.4 });
+    a.boite(p1 - p0 + 0.2, 0.1, 0.26, P.bois, { x: (p0 + p1) / 2, y: y0 + 2.2, z: 3.4 })
+      .boite(1.8, 0.55, 0.7, P.beton, { x: (p0 + p1) / 2, y: -0.425, z: 3.85 })
+      .cylindre(0.02, 0.02, 1.5, 6, P.boisFonce, { x: (p0 + p1) / 2, y: y0 + 2.12, z: 3.6, rz: PI / 2 });
+    for (const x of [p0 + 0.35, p1 - 0.35]) a.boite(0.66, 0.68, 0.02, '#2f5f8a', { x, y: y0 + 1.76, z: 3.6, trait: false });
+    ecrire(poseS, { texte: 'ゆ', fond: '#2f5f8a', encre: '#ffffff', x: p0 + 0.35, y: y0 + 1.78, z: 3.615, l: 0.42, h: 0.42 });
+    a.boite(2.9, 0.72, 0.1, P.bois, { x: (p0 + p1) / 2, y: y0 + 2.76, z: 3.56 });
+    ecrire(poseS, { texte: 'ふれあいサウナ', fond: '#f3e7cf', encre: '#6a2a1a', x: (p0 + p1) / 2, y: y0 + 2.76, z: 3.615, l: 2.72, h: 0.56 });
+    // les fenêtres en verre dépoli (elles traversent le mur : jamais dans son plan)
+    a.boite(1.4, 0.7, 0.24, '#a9c3cb', { x: 2.4, y: y0 + 2.2, z: 3.4, trait: false })
+      .boite(0.24, 0.7, 1.2, '#a9c3cb', { x: 4.4, y: y0 + 2.2, z: 0.6, trait: false })
+      .boite(1.2, 0.5, 0.24, '#a9c3cb', { x: -2.4, y: y0 + 2.5, z: -3.4, trait: false });
+    // l'entrée : les casiers à chaussures (getabako), un banc, la boîte du prix et son écriteau, la lampe
+    a.boite(0.42, 1.2, 2.0, P.bois, { x: -4.09, y: y0 + 0.6, z: -1.9 });
+    for (let rg = 0; rg < 4; rg++) for (let cl = 0; cl < 5; cl++) a.boite(0.012, 0.2, 0.32, '#5a3e28', { x: -3.873, y: y0 + 0.18 + rg * 0.28, z: -2.7 + cl * 0.4, trait: false });
+    a.boite(2.4, 0.06, 0.42, P.bois, { x: -2.4, y: y0 + 0.44, z: -3.05 });
+    for (const x of [-3.4, -1.4]) a.boite(0.06, 0.42, 0.36, P.boisFonce, { x, y: y0 + 0.21, z: -3.05 });
+    a.boite(0.3, 0.04, 0.5, P.bois, { x: X - 0.22, y: y0 + 1.0, z: -1.2 })
+      .boite(0.22, 0.2, 0.3, '#7a5232', { x: X - 0.22, y: y0 + 1.12, z: -1.2 })
+      .boite(0.12, 0.012, 0.03, '#2a2420', { x: X - 0.22, y: y0 + 1.226, z: -1.2, trait: false });
+    ecrire(poseS, { texte: '入浴料 300円', fond: '#fbf3df', encre: '#3a2420', x: X - 0.075, y: y0 + 1.6, z: -1.2, ry: -PI / 2, l: 0.9, h: 0.38 });
+    a.cylindre(0.2, 0.16, 0.08, 12, '#fff1c8', { x: -2.4, y: yh - 0.1, z: 0, sorte: 'lampe' });
+    // la salle de vapeur : le carrelage, les caillebotis de bois, les deux gradins, les grilles de vapeur, le seau
+    a.boite(4.6, 0.02, 6.6, P.pierreFonce, { x: 2.0, y: y0 + 0.01, z: 0 });
+    for (let x = -0.15; x < 3.3; x += 0.15) a.boite(0.1, 0.03, 5.2, CLAIR, { x, y: y0 + 0.035, z: 0.6, trait: false });
+    a.boite(4.6, 0.43, 0.04, P.bois, { x: 2.0, y: y0 + 0.235, z: -2.12 })
+      .boite(4.6, 0.88, 0.04, P.bois, { x: 2.0, y: y0 + 0.46, z: -2.72 });
+    for (let i = 0; i < 4; i++) {
+      a.boite(4.6, 0.035, 0.13, CLAIR, { x: 2.0, y: y0 + 0.437, z: -2.2 - i * 0.15 })
+        .boite(4.6, 0.035, 0.13, CLAIR, { x: 2.0, y: y0 + 0.887, z: -2.8 - i * 0.15 });
+    }
+    for (const z of [0.4, 2.0]) {
+      a.boite(0.7, 0.03, 0.7, '#3a3a3a', { x: 3.8, y: y0 + 0.035, z });
+      for (let i = 0; i < 5; i++) a.boite(0.66, 0.012, 0.05, '#77787a', { x: 3.8, y: y0 + 0.056, z: z - 0.26 + i * 0.13, trait: false });
+      const [vx, vz] = versSauna(3.8, z);
+      vapeurs.push({ x: vx, z: vz, y: solS + 0.06, n: 5, haut: 2.4, large: 0.3, taille: 0.75 });
+    }
+    a.cylindre(0.17, 0.14, 0.26, 12, P.bois, { x: 3.6, y: y0 + 0.15, z: -1.4 })
+      .cylindre(0.175, 0.175, 0.03, 12, '#5a5a60', { x: 3.6, y: y0 + 0.21, z: -1.4, trait: false })
+      .cylindre(0.155, 0.155, 0.03, 12, '#5a5a60', { x: 3.6, y: y0 + 0.08, z: -1.4, trait: false })
+      .cylindre(0.06, 0.05, 0.07, 8, P.bois, { x: 3.62, y: y0 + 0.32, z: -1.28 })
+      .baton([3.62, y0 + 0.32, -1.28], [3.5, y0 + 0.3, -1.68], 0.012, P.boisFonce, 4);
+    // le sablier de douze minutes et le thermomètre, au mur ; « 高温注意 » à la porte ; la lampe dans sa cage
+    a.cylindre(0.24, 0.24, 0.06, 18, '#3a2420', { x: 4.27, y: y0 + 2.0, z: -1.0, rz: PI / 2 })
+      .boite(0.04, 0.62, 0.24, '#7a5232', { x: 4.28, y: y0 + 1.95, z: -0.35 });
+    ecrire(poseS, { fond: null, dessin: douzeMinutes, x: 4.235, y: y0 + 2.0, z: -1.0, ry: -PI / 2, l: 0.44, h: 0.44 });
+    ecrire(poseS, { fond: null, dessin: thermometre, x: 4.255, y: y0 + 1.95, z: -0.35, ry: -PI / 2, l: 0.2, h: 0.58 });
+    ecrire(poseS, { texte: '高温注意', fond: '#f6d33a', encre: '#2a2420', x: X + 0.075, y: y0 + 1.85, z: q0 - 0.45, ry: PI / 2, l: 0.62, h: 0.28 });
+    a.cylindre(0.11, 0.11, 0.16, 10, '#fff1c8', { x: 2.0, y: y0 + 2.55, z: -3.22, rx: PI / 2, sorte: 'lampe' });
+    for (const dx of [-0.1, 0, 0.1]) a.boite(0.015, 0.24, 0.2, '#3a3236', { x: 2.0 + dx, y: y0 + 2.55, z: -3.2, trait: false });
+    // le distributeur de boissons, contre le mur de devant, et sa poubelle à canettes
+    a.boite(1.0, 1.83, 0.72, '#2f6fb8', { x: -3.6, y: 0.915, z: 3.88 })
+      .boite(1.02, 0.1, 0.74, '#f2f2f2', { x: -3.6, y: 1.88, z: 3.88 })
+      .boite(0.86, 0.38, 0.02, '#f4f4f4', { x: -3.6, y: 0.6, z: 4.25 })
+      .boite(0.06, 0.12, 0.02, '#2a2a2e', { x: -3.3, y: 0.66, z: 4.265, trait: false })
+      .boite(0.7, 0.2, 0.03, '#2a2a2e', { x: -3.6, y: 0.22, z: 4.255, trait: false })
+      .boite(0.38, 0.72, 0.38, '#e8e4dc', { x: -4.3, y: 0.36, z: 3.75 })
+      .cylindre(0.09, 0.09, 0.02, 12, '#2a2a2e', { x: -4.3, y: 0.725, z: 3.75, trait: false });
+    ecrire(poseS, { fond: '#ffffff', dessin: canettes, lumineux: true, x: -3.6, y: 1.3, z: 4.245, l: 0.84, h: 0.8 });
+    ecrire(poseS, { texte: 'あきかん', fond: '#e8e4dc', encre: '#3a6a3a', x: -4.3, y: 0.52, z: 3.945, l: 0.32, h: 0.13 });
+    poser(a.fin(0, peinture), SAUNA.x, SAUNA.z, { ry: PI / 2, y: yS });
+    vapeurs.push({ x: versSauna(2.6, -1.2)[0], z: versSauna(2.6, -1.2)[1], y: solS + H + 2.3, n: 10, haut: 4, large: 0.6, taille: 1.1 });
+
+    // ce qui arrête (dans le lieu) : les murs (la porte, le passage), les gradins, les casiers, le banc, le seau,
+    // le distributeur ; les sols : l'entrée, les caillebotis, la marche
+    const m = (lx0, lz0, lx1, lz1, rr) => monde.mur(...versSauna(lx0, lz0), ...versSauna(lx1, lz1), rr);
+    m(-4.5, -3.4, 4.5, -3.4, 0.3); m(-4.4, -3.5, -4.4, 3.5, 0.3); m(4.4, -3.5, 4.4, 3.5, 0.3);
+    m(-4.5, 3.4, p0, 3.4, 0.3); m(p1, 3.4, 4.5, 3.4, 0.3);
+    m(X, -3.5, X, q0, 0.28); m(X, q1, X, 3.5, 0.28);
+    m(-0.3, -2.12, 4.3, -2.12, 0.25);
+    m(-3.88, -2.9, -3.88, -0.9, 0.28);
+    m(-3.6, -2.84, -1.2, -2.84, 0.24);
+    m(3.45, -1.4, 3.75, -1.4, 0.24);
+    m(-4.5, 3.88, -3.1, 3.88, 0.42);
+    const zone = (lx0, lx1, lz0, lz1) => { const [xa, za] = versSauna(lx0, lz0), [xb, zb] = versSauna(lx1, lz1); return [Math.min(xa, xb), Math.max(xa, xb), Math.min(za, zb), Math.max(za, zb)]; };
+    monde.surface(...zone(-4.3, X, -3.3, 3.3), solS, { sol: 'pierre' });
+    monde.surface(...zone(X, 4.3, -3.3, 3.3), solS + 0.05, { sol: 'bois' });
+    monde.surface(...zone(p0 - 0.2, p1 + 0.2, 3.5, 4.2), solS - 0.15, { sol: 'pierre' });
+    // pour la caméra : chaque mur, la cloison, et le toit (dessous, elle se rapproche et passe sous le plafond)
+    const bas = yS - 1, haut = solS + H;
+    for (const z4 of [[-4.5, 4.5, -3.5, -3.3], [-4.5, -4.3, -3.5, 3.5], [4.3, 4.5, -3.5, 3.5], [-4.5, p0, 3.3, 3.5], [p1, 4.5, 3.3, 3.5], [X - 0.07, X + 0.07, -3.3, q0], [X - 0.07, X + 0.07, q1, 3.3]]) monde.bloc(...zone(...z4), bas, haut);
+    for (const z4 of [[p0, p1, 3.3, 3.5], [X - 0.07, X + 0.07, q0, q1]]) monde.bloc(...zone(...z4), solS + 2.2, haut);
+    monde.toit(...zone(-4.8, 4.8, -3.8, 3.8), haut - 0.06, haut + 1.1);
+  }
+
+  // la marmite géothermique (地熱釜) : un comptoir de pierre sous un auvent, trois marmites ; dans celle du milieu,
+  // ouverte, un panier d'œufs au-dessus de la vapeur ; des patates douces à côté ; l'écriteau
   {
     const a = atelier();
     a.boite(3.4, 0.9, 1.3, P.pierre, { y: 0.45 })
       .boite(3.5, 0.06, 1.4, P.pierreFonce, { y: 0.92, trait: false });
-    for (let k = 0; k < 3; k++) {
+    for (const k of [0, 2]) {
       a.boite(0.82, 0.12, 0.82, '#6a4a32', { x: -1.08 + k * 1.08, y: 1.0 })
         .boite(0.4, 0.07, 0.07, '#4a3222', { x: -1.08 + k * 1.08, y: 1.1 });
     }
+    // le panier (zaru) d'œufs, posé sur la marmite ouverte
+    a.boite(0.8, 0.03, 0.8, '#2a2420', { y: 0.96, trait: false })
+      .cylindre(0.33, 0.27, 0.12, 14, '#c9a65a', { y: 1.02 });
+    for (let i = 0; i < 7; i++) a.ovale(0.055, i % 3 ? '#f4ead8' : '#e9d3b2', { x: Math.sin(i * 2.4) * 0.15 * (i ? 1 : 0), y: 1.11, z: Math.cos(i * 2.4) * 0.15 * (i ? 1 : 0), sy: 1.25, trait: false }, 8);
+    for (let i = 0; i < 4; i++) a.ovale(0.06, '#8a3a6a', { x: 1.0 + (i % 2) * 0.16, y: 1.09 + Math.floor(i / 2) * 0.05, z: -0.5 + i * 0.07, sx: 1.8, ry: i, trait: false }, 6);
     for (const [x, z] of [[-1.9, -0.8], [1.9, -0.8], [-1.9, 0.8], [1.9, 0.8]]) a.boite(0.12, 2.4, 0.12, P.boisFonce, { x, y: 1.2, z });
     a.pignon(4.6, 0.6, 2.9, P.tole, { y: 2.38 })
       .boite(1.1, 0.42, 0.04, P.papier, { y: 2.0, z: 0.9, trait: false });
-    for (let i = 0; i < 2; i++) a.boite(0.7 - i * 0.2, 0.06, 0.01, P.noir, { y: 2.05 - i * 0.12, z: 0.93, trait: false });
     const y = terrain(MARMITE.x, MARMITE.z) - 0.05;
     poser(a.fin(0, peinture), MARMITE.x, MARMITE.z, { ry: PI / 2, y });
+    ecrire({ x: MARMITE.x, z: MARMITE.z, y, ry: PI / 2 }, { texte: '地熱釜', sous: 'じねつがま', fond: P.papier, encre: '#3a2420', x: 0, y: 2.0, z: 0.924, l: 1.06, h: 0.4 });
     monde.surface(MARMITE.x - 0.7, MARMITE.x + 0.7, MARMITE.z - 1.8, MARMITE.z + 1.8, y + 1.1, { plein: true });
     monde.bloc(MARMITE.x - 1.45, MARMITE.x + 1.45, MARMITE.z - 2.3, MARMITE.z + 2.3, y - 1, y + 3.1);
-    for (let k = 0; k < 3; k++) vapeurs.push({ x: MARMITE.x, z: MARMITE.z + 1.08 - k * 1.08, y: y + 1.1, n: 6, haut: 1.3, large: 0.25, taille: 0.5 });
+    for (let k = 0; k < 3; k++) vapeurs.push({ x: MARMITE.x, z: MARMITE.z + 1.08 - k * 1.08, y: y + 1.1, n: k === 1 ? 9 : 6, haut: 1.3, large: 0.25, taille: 0.5 });
+  }
+
+  // ---- Le petit camion (kei-tora) blanc d'un habitant, garé à côté du sauna, ses caisses de patates douces ;
+  // sa plaque jaune (celle des petites voitures au Japon) : les îles d'Izu sont à Tokyo, plaque de Shinagawa
+  {
+    const a = atelier(), BL = '#f1f0ec', VITRE = '#41607a', N = '#2a2a2e';
+    // (chaque pièce à quelques centimètres des autres sur les côtés : dans le même plan, elles scintillaient)
+    for (const [x, z] of [[-0.66, 1.05], [0.66, 1.05], [-0.66, -1.05], [0.66, -1.05]]) {
+      a.cylindre(0.27, 0.27, 0.18, 14, N, { x, y: 0.27, z, rz: PI / 2 })
+        .cylindre(0.13, 0.13, 0.2, 10, '#b9bcbf', { x, y: 0.27, z, rz: PI / 2, trait: false });
+    }
+    a.boite(1.3, 0.3, 3.3, '#5a5a60', { y: 0.45 })
+      .boite(1.46, 1.05, 1.15, BL, { y: 1.0, z: 1.05 })
+      .boite(1.38, 0.5, 0.06, VITRE, { y: 1.27, z: 1.64, rx: -0.12, trait: false })
+      .boite(0.06, 0.42, 0.8, VITRE, { x: -0.735, y: 1.27, z: 1.0, trait: false })
+      .boite(0.06, 0.42, 0.8, VITRE, { x: 0.735, y: 1.27, z: 1.0, trait: false })
+      .boite(1.48, 0.16, 0.1, '#c8c8c8', { y: 0.5, z: 1.66 })
+      .boite(1.36, 0.07, 2.05, '#e2e1dc', { y: 0.66, z: -0.6 })
+      .boite(0.05, 0.32, 2.05, BL, { x: -0.68, y: 0.85, z: -0.6 }).boite(0.05, 0.32, 2.05, BL, { x: 0.68, y: 0.85, z: -0.6 })
+      .boite(1.31, 0.32, 0.05, BL, { y: 0.85, z: -1.6 })
+      .boite(1.31, 0.55, 0.05, BL, { y: 0.97, z: 0.44 });
+    for (const sg of [-1, 1]) a.boite(0.2, 0.12, 0.03, '#fff6c8', { x: sg * 0.5, y: 0.78, z: 1.64, trait: false, sorte: 'lumiere' });
+    for (const [x, z] of [[-0.32, -0.3], [0.3, -0.95]]) {
+      a.boite(0.5, 0.3, 0.38, '#f2c443', { x, y: 0.85, z });
+      for (let i = 0; i < 4; i++) a.ovale(0.07, '#8a3a6a', { x: x - 0.15 + i * 0.1, y: 1.0, z: z + (i % 2 ? 0.06 : -0.06), sx: 1.5, trait: false }, 6);
+    }
+    a.ovale(0.22, '#d9c08a', { x: 0.28, y: 0.86, z: -0.2, sy: 0.6, sz: 1.3 }, 8);
+    const pose = { x: CAMION.x, z: CAMION.z, y: terrain(CAMION.x, CAMION.z) - 0.02, ry: PI / 2 };
+    poser(a.fin(0, peinture), pose.x, pose.z, pose);
+    ecrire(pose, { texte: '品川 480', fond: '#f6d33a', encre: '#2a4a2a', cadre: '#2a4a2a', x: 0, y: 0.5, z: 1.716, l: 0.33, h: 0.17 });
+    monde.mur(CAMION.x - 1.7, CAMION.z, CAMION.x + 1.75, CAMION.z, 0.85);
+  }
+
+  // ---- Le champ de palmiers : sur l'île, on cultive de petits palmiers (Phoenix roebelenii) qu'on vend comme
+  // plantes vertes dans tout le Japon. En rangs, sur la terre sombre en sillons
+  {
+    const a = atelier(), { x0, x1, z0, z1 } = PALMERAIE;
+    for (let x = x0 + 1.3; x < x1 - 0.6; x += 2.5) {
+      for (let z = z0 + 1.3; z < z1 - 0.6; z += 2.6) {
+        // un tronc court et rugueux, une touffe dense de palmes qui montent puis retombent en arc
+        const h = 0.7 + hasard(x, z) * 0.8, pente = (hasard(z, x) - 0.5) * 0.5, y = terrain(x, z);
+        const tx = x + Math.sin(pente * 6) * h * 0.12, tz = z + Math.cos(pente * 6) * h * 0.12;
+        a.baton([x, y - 0.1, z], [tx, y + h, tz], 0.1, '#8a6a4a', 7, { teinte: (px, py) => (Math.floor(py * 10) % 2 ? '#8a6a4a' : '#6f5238') })
+          .boule(0.16, '#6f5238', { x: tx, y: y + h, z: tz, sy: 0.8 }, 1);
+        for (let k = 0; k < 18; k++) {
+          const b = (k / 18) * 2 * PI + hasard(x + k, z) * 0.22, L = 1.05 + hasard(k, x) * 0.3, leve = k % 2 ? 1.25 : 0.65;
+          a.piece(new THREE.BoxGeometry(0.3, 0.02, L, 2, 1, 7), k % 3 ? P.jungle : P.fougere, {
+            x: tx, y: y + h + 0.06, z: tz, ry: b, sorte: 'feuillu',
+            // le long de la palme (z, de la touffe vers sa pointe) : elle s'effile, monte puis retombe
+            deformer: (px, py, pz) => { const t = pz / L + 0.5; return [px * (1 - 0.8 * t), py + L * (leve * t - 1.15 * t * t), (t * L)]; },
+          });
+        }
+        monde.cercle(x, z, 0.3);
+      }
+    }
+    poser(a.fin(0, peinture), 0, 0, { y: 0 });
   }
 
   // ---------------------------------------------------------------- Les fumerolles (ひんぎゃ)
@@ -264,16 +586,59 @@ export function construire(ctx) {
     tente(-4, 41.5, '#e8732e', 'dome', 0.4);
     tente(-1.5, 47.5, '#3f86c4', 'toit', 0.2);
     tente(10, 48, '#f2c443', 'dome', -0.6);
-    // l'abri de la cuisine (炊事場) : un toit sur quatre poteaux, un évier de béton
-    const xs = 12, zs = 39.5, ys = terrain(xs, zs);
-    for (const [dx, dz] of [[-1.8, -1.2], [1.8, -1.2], [-1.8, 1.2], [1.8, 1.2]]) {
-      a.boite(0.14, 2.4, 0.14, P.boisFonce, { x: xs + dx, y: ys + 1.2, z: zs + dz });
+    // l'abri de la cuisine (炊事場) : un toit de tôle sur quatre poteaux, l'évier de béton et ses deux bacs d'inox,
+    // ses robinets, le foyer (kamado) et ses braises, la marmite et la bouilloire, l'ampoule, l'enseigne pendue ;
+    // dehors, le bois coupé et les poubelles du tri (« もえる » : ce qui brûle, « もえない » : le reste)
+    const xs = 12, zs = 39.5, ys = terrain(xs, zs), zc = zs + 0.45, yc = ys + 0.85;
+    for (const [dx, dz] of [[-2.3, -1.3], [2.3, -1.3], [-2.3, 1.3], [2.3, 1.3]]) {
+      a.boite(0.14, 2.45, 0.14, P.boisFonce, { x: xs + dx, y: ys + 1.2, z: zs + dz });
       monde.cercle(xs + dx, zs + dz, 0.25);
     }
-    a.pignon(4.6, 0.7, 3.2, P.tole, { x: xs, y: ys + 2.38, z: zs })
-      .boite(3, 0.85, 0.8, P.beton, { x: xs, y: ys + 0.42, z: zs + 0.4 });
-    monde.surface(xs - 1.6, xs + 1.6, zs - 0.05, zs + 0.85, ys + 0.9, { plein: true });
-    monde.bloc(xs - 2.3, xs + 2.3, zs - 1.6, zs + 1.6, ys - 1, ys + 3.2);
+    for (const dz of [-1.3, 1.3]) a.boite(4.9, 0.14, 0.12, P.boisFonce, { x: xs, y: ys + 2.38, z: zs + dz });
+    a.pignon(5.6, 0.75, 3.6, P.tole, { x: xs, y: ys + 2.45, z: zs })
+      .boite(2.6, 0.85, 0.75, P.beton, { x: xs - 0.7, y: ys + 0.42, z: zc })
+      .boite(2.6, 0.45, 0.12, P.beton, { x: xs - 0.7, y: yc + 0.22, z: zc + 0.32 })
+      .cylindre(0.025, 0.025, 2.6, 8, '#d4d9dc', { x: xs - 0.7, y: yc + 0.47, z: zc + 0.26, rz: PI / 2 });
+    for (const dx of [-1.35, -0.05]) {
+      a.boite(1.05, 0.03, 0.55, '#a9b3b8', { x: xs + dx, y: yc + 0.012, z: zc - 0.05 })
+        .boite(0.9, 0.03, 0.42, '#6f7a80', { x: xs + dx, y: yc + 0.016, z: zc - 0.05, trait: false });
+      for (const t of [-0.25, 0.25]) {
+        const x = xs + dx + t, z = zc + 0.24;
+        a.cylindre(0.022, 0.022, 0.28, 8, '#d4d9dc', { x, y: yc + 0.17, z })
+          .cylindre(0.018, 0.018, 0.16, 8, '#d4d9dc', { x, y: yc + 0.3, z: z - 0.08, rx: PI / 2 })
+          .boite(0.1, 0.025, 0.025, '#d4d9dc', { x, y: yc + 0.34, z });
+      }
+    }
+    a.boite(1.3, 0.75, 0.75, P.pierreFonce, { x: xs + 1.45, y: ys + 0.37, z: zc });
+    for (const dx of [-0.3, 0.3]) {
+      a.boite(0.3, 0.26, 0.02, '#2a2420', { x: xs + 1.45 + dx, y: ys + 0.27, z: zc - 0.384, trait: false })
+        .boite(0.2, 0.08, 0.02, '#e0602a', { x: xs + 1.45 + dx, y: ys + 0.19, z: zc - 0.39, trait: false, sorte: 'lumiere' });
+    }
+    a.cylindre(0.25, 0.2, 0.24, 14, '#3a3a40', { x: xs + 1.15, y: ys + 0.87, z: zc - 0.02 })
+      .cylindre(0.26, 0.26, 0.03, 14, '#4a4a52', { x: xs + 1.15, y: ys + 1.0, z: zc - 0.02 })
+      .boule(0.035, '#2a2a30', { x: xs + 1.15, y: ys + 1.03, z: zc - 0.02 }, 1)
+      .ovale(0.15, '#c9cdd0', { x: xs + 1.78, y: ys + 0.86, z: zc, sy: 0.75 }, 12)
+      .baton([xs + 1.9, ys + 0.86, zc], [xs + 2.02, ys + 0.95, zc], 0.02, '#c9cdd0', 6)
+      .piece(new THREE.TorusGeometry(0.1, 0.012, 5, 12, PI), '#3a3236', { x: xs + 1.78, y: ys + 0.95, z: zc });
+    // l'ampoule sous son abat-jour, l'enseigne pendue à la poutre de devant
+    a.baton([xs - 0.5, ys + 2.45, zs], [xs - 0.5, ys + 2.15, zs], 0.008, '#2a2420', 4)
+      .cone(0.16, 0.1, 10, '#3f6a5a', { x: xs - 0.5, y: ys + 2.12, z: zs })
+      .ovale(0.05, '#fff4c8', { x: xs - 0.5, y: ys + 2.04, z: zs, trait: false, sorte: 'lumiere' }, 8)
+      .boite(1.3, 0.48, 0.05, P.bois, { x: xs, y: ys + 1.98, z: zs - 1.3 });
+    for (const dx of [-0.5, 0.5]) a.baton([xs + dx, ys + 2.3, zs - 1.3], [xs + dx, ys + 2.2, zs - 1.3], 0.01, '#2a2420', 4);
+    etiquettes.push({ texte: '炊事場', fond: '#f6efe0', encre: '#2a2420', x: xs, y: ys + 1.98, z: zs - 1.3 - 0.031, ry: PI, l: 1.2, h: 0.4 });
+    // le bois coupé
+    for (let rg = 0; rg < 3; rg++) for (let i = 0; i < 4 - rg; i++) a.cylindre(0.08, 0.08, 0.7, 8, i % 2 ? '#a87a4a' : '#9a6d40', { x: xs + 3.0 - 0.24 + i * 0.16 + rg * 0.08, y: ys + 0.08 + rg * 0.15, z: zs + 0.1, rx: PI / 2 });
+    // les poubelles du tri
+    for (const [dz, c, texte] of [[-0.35, '#3f8a5a', 'もえる'], [0.35, '#3f6aa0', 'もえない']]) {
+      a.boite(0.45, 0.7, 0.45, c, { x: xs - 3.0, y: ys + 0.35, z: zs + dz })
+        .boite(0.5, 0.06, 0.5, c, { x: xs - 3.0, y: ys + 0.73, z: zs + dz });
+      etiquettes.push({ texte, fond: '#ffffff', encre: c, x: xs - 3.0 - 0.229, y: ys + 0.48, z: zs + dz, ry: -PI / 2, l: 0.38, h: 0.16 });
+    }
+    monde.mur(xs - 2.0, zc, xs + 2.1, zc, 0.6);
+    monde.mur(xs + 2.75, zs + 0.1, xs + 3.35, zs + 0.1, 0.45);
+    monde.mur(xs - 3.0, zs - 0.6, xs - 3.0, zs + 0.6, 0.45);
+    monde.toit(xs - 2.8, xs + 2.8, zs - 1.8, zs + 1.8, ys + 2.3, ys + 3.3);
     // la table de pique-nique
     const xt = 3, zt = 40.5, yt = terrain(xt, zt);
     a.boite(1.8, 0.08, 0.8, P.bois, { x: xt, y: yt + 0.74, z: zt });
@@ -334,34 +699,57 @@ export function construire(ctx) {
         a.boite(i % 2 ? 2.18 : 2.22, e, L / n + 0.05, i % 2 ? P.pierre : P.pierreFonce, { x: x0 + (x1 - x0) * f, y: haut - e / 2, z: z0 + (z1 - z0) * f, ry });
       }
     }
+    const n = MARCHES.length - 1; // MARCHES[n] : le pas sur la crête ; MARCHES[n − 1] : le bout du palier du haut
     // (jusqu'au pas sur la crête : au bout de la volée, le sol aplani remonte déjà, trop raide pour y monter)
     monde.chemin(MARCHES, 1.15, { sol: 'pierre' });
-    // la main courante : des poteaux à 1,3 m du chemin, vers le centre du cratère (le vide)
-    const bord = (x, z, h) => { const r = Math.hypot(x, z); return [x - (x / r) * 1.3, h, z - (z / r) * 1.3]; };
+    // les côtés du chemin : le côté du vide (vers le centre du cratère) de chaque tronçon, et à chaque coude la
+    // bissectrice, pour rester à la même distance du milieu des marches
+    const cote = [];
+    for (let k = 0; k < n; k++) {
+      const [x0, z0] = MARCHES[k], [x1, z1] = MARCHES[k + 1], l = Math.hypot(x1 - x0, z1 - z0);
+      let nx = -(z1 - z0) / l, nz = (x1 - x0) / l;
+      const avant = cote[k - 1];
+      if (avant ? nx * avant[0] + nz * avant[1] < 0 : nx * x0 + nz * z0 > 0) { nx = -nx; nz = -nz; }
+      cote.push([nx, nz]);
+    }
+    /** Le point à d mètres du milieu du chemin (d > 0 : côté vide ; d < 0 : côté pente), au point k de MARCHES : [x, z, h]. */
+    const decale = (k, d) => {
+      const u = cote[Math.max(0, k - 1)], v = cote[Math.min(n - 1, k)];
+      let mx = u[0] + v[0], mz = u[1] + v[1];
+      const lm = Math.hypot(mx, mz), e = d / ((mx * v[0] + mz * v[1]) / lm);
+      return [MARCHES[k][0] + (mx / lm) * e, MARCHES[k][1] + (mz / lm) * e, MARCHES[k][2]];
+    };
+    // la main courante, côté vide, juste au bout des marches (plantée dans l'accotement), et ce qui y arrête : le
+    // corps du marcheur (sa grosse tête) n'y entre plus. Avant, tirée de 1,3 m droit vers le centre du cratère, de
+    // biais par rapport aux marches, elle plantait en bas ses poteaux sur les marches, et l'on s'y coinçait (2026-10-23)
+    const poteaux = [];
+    for (let k = 0; k < n - 1; k++) {
+      const p0 = decale(k, RAMPE), p1 = decale(k + 1, RAMPE);
+      for (const f of k === 0 ? [0.35, 0.7] : [0, 0.35, 0.7]) poteaux.push(p0.map((v, i) => v + (p1[i] - v) * f));
+    }
+    poteaux.push(decale(n - 1, RAMPE));
     let prec = null;
-    for (let k = 0; k < MARCHES.length - 2; k++) {
-      const [x0, z0, h0] = MARCHES[k], [x1, z1, h1] = MARCHES[k + 1];
-      for (const f of k === 0 ? [0.35, 0.7] : [0, 0.35, 0.7]) {
-        const [x, y, z] = bord(x0 + (x1 - x0) * f, z0 + (z1 - z0) * f, h0 + (h1 - h0) * f);
-        a.boite(0.1, 1.55, 0.1, P.boisFonce, { x, y: y + 0.1, z }); // (planté dans l'accotement, plus bas que les marches)
-        if (prec) {
-          a.baton([prec[0], prec[1] + 0.88, prec[2]], [x, y + 0.88, z], 0.04, P.bois, 5);
-          monde.mur(prec[0], prec[2], x, z, 0.12, Math.min(prec[1], y) - 0.6, Math.max(prec[1], y) + 2.2);
-        }
-        prec = [x, y, z];
+    for (const [x, z, y] of poteaux) {
+      a.boite(0.1, 1.55, 0.1, P.boisFonce, { x, y: y + 0.1, z }); // (planté dans l'accotement, plus bas que les marches)
+      if (prec) {
+        a.baton([prec[0], prec[2] + 0.88, prec[1]], [x, y + 0.88, z], 0.04, P.bois, 5);
+        monde.mur(prec[0], prec[1], x, z, 0.38, Math.min(prec[2], y) - 0.6, Math.max(prec[2], y) + 2.2);
       }
+      prec = [x, z, y];
     }
     // au haut de l'escalier, elle tourne avec le chemin et rejoint la barrière de la crête (qui y plante son poteau)
-    const [ux, uz] = [Math.sin(ESCALIER.a1), -Math.cos(ESCALIER.a1)], [wx, wz] = [-Math.cos(ESCALIER.a1), -Math.sin(ESCALIER.a1)];
-    const rc = rayonPied(ESCALIER.a1) + PAROI - 1.3;
-    const tour = [[ux * rc, uz * rc], [ux * rc + wx * 1.3, uz * rc + wz * 1.3], surLaBarriere(OUVERTURE[0])];
-    tour.forEach(([x, z], i) => {
-      const y = terrain(x, z);
-      if (i < tour.length - 1) a.boite(0.1, 0.95, 0.1, P.boisFonce, { x, y: y + 0.4, z });
-      a.baton([prec[0], prec[1] + 0.88, prec[2]], [x, y + 0.88, z], 0.04, P.bois, 5);
-      monde.mur(prec[0], prec[2], x, z, 0.12, Math.min(prec[1], y) - 0.6, Math.max(prec[1], y) + 2.2);
-      prec = [x, y, z];
-    });
+    {
+      const [x, z] = surLaBarriere(OUVERTURE[0]), y = terrain(x, z);
+      a.baton([prec[0], prec[2] + 0.88, prec[1]], [x, y + 0.88, z], 0.04, P.bois, 5);
+      monde.mur(prec[0], prec[1], x, z, 0.38, Math.min(prec[2], y) - 0.6, Math.max(prec[2], y) + 2.2);
+    }
+    // côté pente, un mur qu'on ne voit pas : on reste sur les marches (pas sur l'accotement, entre elles et la pente)
+    let m0 = decale(0, -RAMPE).map((v, i) => v + (decale(1, -RAMPE)[i] - v) * 0.25);
+    for (let k = 1; k <= n - 1; k++) {
+      const m1 = decale(k, -RAMPE);
+      monde.mur(m0[0], m0[1], m1[0], m1[1], 0.38, Math.min(m0[2], m1[2]) - 0.6, Math.max(m0[2], m1[2]) + 2.2);
+      m0 = m1;
+    }
     poser(a.fin(0, peinture), 0, 0, { y: 0 });
   }
 
@@ -433,9 +821,13 @@ export function construire(ctx) {
     camping: { x: -6.5, z: 36.2, vx: -10, vz: 33 },
     belvedere: { x: -3.2, z: -76.2, vx: -6, vz: -74 },
   };
-  for (const p of Object.values(PANNEAUX)) {
+  // leur titre en japonais, sur le papier (et des lignes d'écriture dessous)
+  const TITRES = { bienvenue: '青ヶ島へようこそ', sauna: 'ふれあいサウナ', hingya: 'ひんぎゃ', maruyama: '丸山', otonbu: '大凸部へ', camping: 'キャンプ場', belvedere: '展望台' };
+  for (const [id, p] of Object.entries(PANNEAUX)) {
     // le papier du panneau est sur sa face −z : on le tourne vers (vx, vz)
-    poser(panneau(atelier(), P).fin(0, peinture), p.x, p.z, { ry: vers(p.x, p.z, p.vx, p.vz) + PI });
+    const pose = { x: p.x, z: p.z, y: terrain(p.x, p.z), ry: vers(p.x, p.z, p.vx, p.vz) + PI };
+    poser(panneau(atelier(), P, { ecrit: true }).fin(0, peinture), p.x, p.z, pose);
+    ecrire(pose, { ...PAPIER_PANNEAU, texte: TITRES[id], lignes: 3, fond: P.papier, encre: id === 'hingya' ? '#b8322a' : '#2a2420' });
     monde.cercle(p.x, p.z, 0.75);
   }
 
@@ -456,6 +848,7 @@ export function construire(ctx) {
     if (Math.hypot(x - HINGYA.x, z - HINGYA.z) < HINGYA.r + 4) return true;
     if (Math.hypot(x - xT, z - zT) < 15 || (x > -45 && x < -26 && z > -24 && z < 22)) return true;
     if (x > CAMPING.x0 - 3 && x < CAMPING.x1 + 3 && z > CAMPING.z0 - 3 && z < CAMPING.z1 + 3) return true;
+    if (x > PALMERAIE.x0 - 2 && x < PALMERAIE.x1 + 2 && z > PALMERAIE.z0 - 2 && z < PALMERAIE.z1 + 2) return true;
     if (surLaLigne(MARCHES, x, z).d < 6) return true;
     return false;
   };
@@ -493,6 +886,9 @@ export function construire(ctx) {
       const t = tire() * 2 * PI, rr = Math.sqrt(tire()) * 60, x = rr * Math.sin(t), z = -rr * Math.cos(t);
       if (Math.hypot(x, z) > rayonPied(angle(x, z)) - 1 || surLaLigne(ROUTE, x, z).d < 3 || Math.hypot(x - HINGYA.x, z - HINGYA.z) < HINGYA.r + 1.5) continue;
       if (x > CAMPING.x0 && x < CAMPING.x1 && z > CAMPING.z0 && z < CAMPING.z1) continue;
+      // ni dans le sauna, à côté du camion, dans le champ de palmiers, devant le tunnel ni à côté du miroir
+      if ((x > SAUNA.x - 6 && x < SAUNA.x + 5.5 && z > SAUNA.z - 6 && z < SAUNA.z + 9) || (x > PALMERAIE.x0 - 1 && x < PALMERAIE.x1 + 1 && z > PALMERAIE.z0 - 1 && z < PALMERAIE.z1 + 1)) continue;
+      if (Math.hypot(x - T_X, z - T_Z) < 13 || Math.hypot(x - MIROIR.x, z - MIROIR.z) < 1.5) continue;
       const y = terrain(x, z);
       if (tire() < 0.6) {
         // une fougère : des frondes en rosette, penchées vers l'extérieur
@@ -671,6 +1067,26 @@ export function construire(ctx) {
       },
     },
     ...Object.entries(PANNEAUX).map(([id, p]) => ({ id: `panneau-${id}`, x: p.x, z: p.z, rayon: 1.8, verbe: 'lire', action: (jeu) => jeu.dire(jeu.tx(`panneau-${id}`)) })),
+    { id: 'tunnel', x: duTunnel(0, -2.4)[0], z: duTunnel(0, -2.4)[1], rayon: 2.6, verbe: 'regarder', action: (jeu) => jeu.dire(jeu.tx('tunnel')) },
+    {
+      // le sauna : on s'assoit sur le gradin du bas, la vapeur envahit tout, on ressort en sueur (Kon aussi)
+      id: 'sauna', x: versSauna(2.15, -1.55)[0], z: versSauna(2.15, -1.55)[1], y: solS + 0.05, rayon: 1.9, verbe: 'asseoir',
+      async action(jeu) {
+        const r = await jeu.choisir(jeu.tx('saunaQuestion'), [jeu.t('oui'), jeu.t('non')]);
+        if (r !== 0) return;
+        jeu.asseoir(SIEGE, { lacet: SIEGE.cap - 0.45, tangage: 0.16, distance: 2.6 });
+        jeu.vapeur(true);
+        await jeu.attendre(1400);
+        await jeu.dire(jeu.tx('saunaDedans'));
+        jeu.transpirer();
+        await jeu.dire(jeu.tx('saunaKon'), 'kon');
+        jeu.vapeur(false);
+        await jeu.attendre(900);
+        jeu.asseoir(null);
+        await jeu.dire(jeu.tx('saunaFin'));
+      },
+    },
+    { id: 'distributeur', x: versSauna(-3.6, 4.75)[0], z: versSauna(-3.6, 4.75)[1], rayon: 1.5, verbe: 'acheter', action: (jeu) => jeu.dire(jeu.tx('distributeur')) },
   ];
 
   // ---------------------------------------------------------------- Pour la caméra et les captures
@@ -680,7 +1096,7 @@ export function construire(ctx) {
   const capHeros = vers(heros.x, heros.z, ...dM);
   return {
     ...infos, textes: TEXTES,
-    objets, monde, terrain, passants, daims: [], interactions, actionDaim: null, vapeurs,
+    objets, monde, terrain, trouSol, etiquettes, passants, daims: [], interactions, actionDaim: null, vapeurs,
     aspectSol: (x, z, h) => aspectSol(P, x, z, h),
     centreRive: [0, 0], // les lignes d'eau font le tour de l'île
     etendue: { x0: -420, x1: 420, z0: -420, z1: 420, pas: 4, fin: { x0: -100, x1: 100, z0: -104, z1: 100, pas: 1 } },
@@ -698,6 +1114,61 @@ export function construire(ctx) {
   };
 }
 
+/** Le mélange de deux couleurs « #rrggbb » (t : 0 à 1). */
+function melanger(c1, c2, t) {
+  const v = (c, i) => parseInt(c.slice(i, i + 2), 16);
+  return '#' + [1, 3, 5].map((i) => Math.round(v(c1, i) * (1 - t) + v(c2, i) * t).toString(16).padStart(2, '0')).join('');
+}
+const POLICE = '"M PLUS Rounded 1c", sans-serif';
+/** Le sablier de douze minutes des saunas japonais (une horloge à aiguille rouge) : le cadran, transparent autour. */
+function douzeMinutes(c, W, H) {
+  const R = Math.min(W, H) / 2;
+  c.translate(W / 2, H / 2);
+  c.fillStyle = '#fbf8f0'; c.beginPath(); c.arc(0, 0, R * 0.96, 0, 2 * Math.PI); c.fill();
+  c.strokeStyle = '#2a2420'; c.lineWidth = R * 0.07; c.stroke();
+  for (let i = 0; i < 12; i++) {
+    const t = (i / 12) * 2 * Math.PI;
+    c.lineWidth = R * (i % 3 ? 0.03 : 0.06);
+    c.beginPath(); c.moveTo(Math.sin(t) * R * 0.7, -Math.cos(t) * R * 0.7); c.lineTo(Math.sin(t) * R * 0.85, -Math.cos(t) * R * 0.85); c.stroke();
+  }
+  c.fillStyle = '#2a2420'; c.font = `800 ${Math.round(R * 0.3)}px ${POLICE}`; c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.fillText('12', 0, -R * 0.45);
+  c.strokeStyle = '#d8302c'; c.lineWidth = R * 0.06;
+  c.beginPath(); c.moveTo(0, 0); c.lineTo(Math.sin(2.2) * R * 0.78, -Math.cos(2.2) * R * 0.78); c.stroke();
+  c.fillStyle = '#d8302c'; c.beginPath(); c.arc(0, 0, R * 0.08, 0, 2 * Math.PI); c.fill();
+}
+/** Le thermomètre du sauna, sur sa planchette : la colonne rouge monte haut. */
+function thermometre(c, W, H) {
+  c.fillStyle = '#c99a64'; c.fillRect(0, 0, W, H);
+  c.fillStyle = '#f7f2e6'; c.fillRect(W * 0.3, H * 0.12, W * 0.4, H * 0.76);
+  c.fillStyle = '#2a2420';
+  for (let i = 0; i <= 10; i++) c.fillRect(W * 0.33, H * (0.82 - i * 0.065), W * (i % 5 ? 0.1 : 0.2), Math.max(1, H * 0.008));
+  c.fillStyle = '#d8302c'; c.fillRect(W * 0.47, H * 0.3, W * 0.07, H * 0.55);
+  c.beginPath(); c.arc(W * 0.505, H * 0.86, W * 0.1, 0, 2 * Math.PI); c.fill();
+  c.fillStyle = '#2a2420'; c.font = `800 ${Math.round(W * 0.22)}px ${POLICE}`; c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.fillText('℃', W * 0.5, H * 0.065);
+}
+/** La vitrine éclairée d'un distributeur : trois rangs de canettes et de bouteilles, leurs prix, leurs boutons. */
+function canettes(c, W, H) {
+  const g = c.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#ffffff'); g.addColorStop(1, '#dfe8ee');
+  c.fillStyle = g; c.fillRect(0, 0, W, H);
+  const COUL = [['#2f8a4a', '#e8e4d0'], ['#7a4a2a', '#f0e0c0'], ['#d8302c', '#ffffff'], ['#f0a020', '#ffffff'], ['#2a5ab0', '#ffffff'], ['#e8e4d0', '#3a8a5a']];
+  c.textAlign = 'center'; c.textBaseline = 'middle';
+  for (let rg = 0; rg < 3; rg++) {
+    for (let k = 0; k < 6; k++) {
+      const x = W * (0.07 + k * 0.152), y = H * (0.04 + rg * 0.32), w = W * 0.1, h = H * 0.19;
+      const [fond, bande] = COUL[(rg * 2 + k) % COUL.length];
+      c.fillStyle = fond; c.fillRect(x, y, w, h);
+      c.fillStyle = bande; c.fillRect(x, y + h * 0.38, w, h * 0.22);
+      c.fillStyle = '#cfd6da'; c.fillRect(x, y, w, h * 0.08);
+      c.fillStyle = '#2a2a2e'; c.font = `700 ${Math.round(h * 0.3)}px ${POLICE}`;
+      c.fillText(['120', '130', '150', '100', '160', '140'][(k + rg) % 6], x + w / 2, y + h * 1.25);
+      c.fillStyle = '#36c46a'; c.fillRect(x + w * 0.2, y + h * 1.45, w * 0.6, h * 0.12);
+    }
+  }
+}
+
 /** La couleur et le motif (styles.js) du sol : la mer et ses falaises, la forêt, la paroi, la route, les chemins, les lieux. */
 function aspectSol(P, x, z, h) {
   if (h < MER + 1) return [P.rocheSombre, M.roche];
@@ -705,12 +1176,19 @@ function aspectSol(P, x, z, h) {
   const pente = Math.hypot(terrain(x + 0.5, z) - h, terrain(x, z + 0.5) - h) / 0.5;
   const bruit = bruitDoux(x, z, 4);
   if (h < MER + 9) return [pente > 1.6 || bruit > 0.6 ? P.rocheSombre : P.paroi, M.roche]; // la falaise du bord de mer
+  // au tunnel : sous et derrière la façade, de la roche taillée (pas d'herbe qui percerait le dessus de la façade)
+  {
+    const [lx, d] = versTunnel(x, z);
+    if (d > 0.1 && d < 9 && Math.abs(lx) < 9.4) return [P.rocheSombre, M.roche];
+  }
   const marches = surLaLigne(MARCHES, x, z).d;
   if (marches < 1.15) return [P.pierre, M.pierre];
   if (marches < 2.1 + 0.3 * bruit) return [P.chemin, M.terre]; // l'accotement, au bout des marches
   if (marches < 5) return bruit > 0.5 ? [P.jungle, M.sousBois] : [P.herbeFonce, M.herbe];
   if (surLaLigne(ROUTE, x, z).d < 2.1) return [P.route, M.route];
   for (const c of CHEMINS) if (surLaLigne(c, x, z).d < 1.1) return [P.chemin, M.terre];
+  // le champ de palmiers : la terre sombre, en sillons
+  if (x > PALMERAIE.x0 && x < PALMERAIE.x1 && z > PALMERAIE.z0 && z < PALMERAIE.z1) return [Math.floor((x - PALMERAIE.x0) / 1.25) % 2 ? '#8a6a4f' : '#7d5f47', M.terre];
   // les fumerolles : la terre rouge, pâlie autour des bouches de vapeur
   const dh = Math.hypot(x - HINGYA.x, z - HINGYA.z);
   if (dh < HINGYA.r + 0.8) return [EVENTS.some(([ex, ez]) => Math.hypot(x - ex, z - ez) < 1.3) ? P.terreClaire : P.terreRouge, M.terre];
@@ -754,7 +1232,7 @@ const TEXTES = {
       etoiles: ['Le ciel étoilé', 'Au camping'],
     },
     'panneau-bienvenue': ['« Bienvenue à Aogashima 青ヶ島 »', 'L’île habitée la plus au sud des îles d’Izu, à 360 km de Tokyo… et pourtant, c’est encore Tokyo !', 'Environ 170 habitants : le plus petit village du Japon.'],
-    'panneau-sauna': ['« Sauna géothermique ふれあいサウナ »', 'Pas besoin de feu : c’est la vapeur du volcan qui chauffe le sauna.', 'À côté, la marmite géothermique : on y cuit des œufs et des patates douces.'],
+    'panneau-sauna': ['« Sauna géothermique ふれあいサウナ »', 'Pas besoin de feu : c’est la vapeur du volcan qui chauffe le sauna.', 'Entre donc : la salle de vapeur est juste à droite de l’entrée.', 'À côté, la marmite géothermique : on y cuit des œufs et des patates douces.'],
     'panneau-hingya': ['« ひんぎゃ Hingya »', 'C’est ainsi qu’on appelle ici les fumerolles : la vapeur brûlante qui sort du sol.', 'Les habitants s’en servent même pour faire leur sel, le « sel de hingya ».', 'DANGER : ne passe pas la corde !'],
     'panneau-maruyama': ['« Maruyama 丸山 »', 'Le petit volcan au milieu du grand : une double caldeira, c’est très rare dans le monde.', 'En 1785, une grande éruption a obligé tous les habitants à fuir l’île.'],
     'panneau-otonbu': ['« Vers Ōtonbu 大凸部 »', 'Par l’escalier : le point le plus haut de l’île, 423 m.', 'De là-haut, on voit toute la double caldeira… et l’océan tout autour.'],
@@ -782,6 +1260,12 @@ const TEXTES = {
     sommet2: ['Le vent souffle sur le cratère du petit volcan.'],
     otonbu: ['Tu es tout en haut d’Aogashima : 423 m.', 'D’un côté, la double caldeira. De l’autre, l’océan à perte de vue.', 'Au loin, au nord, l’île de Hachijō.'],
     otonbu2: ['Le vent de la mer fait onduler l’herbe de la crête.'],
+    tunnel: ['Le tunnel 青宝 (Seihō) : la seule route qui entre dans le cratère.', 'De l’autre côté, le port et le village. C’est par là que tu es arrivé !'],
+    saunaQuestion: ['Les gradins de bois baignent dans la vapeur chaude du volcan.', 'Tu t’assois un moment ?'],
+    saunaDedans: ['Ouf… il fait près de 60 °C !', 'La vapeur monte des grilles du sol : elle vient tout droit du volcan.', 'L’aiguille rouge du sablier de douze minutes tourne… Tu respires lentement.'],
+    saunaKon: ['Chaud… chaud… chaud ! Mon pelage est tout trempé !'],
+    saunaFin: ['Tu ressors tout léger, la peau toute douce.', 'Ici, ni bois ni gaz : c’est le volcan qui chauffe le sauna.'],
+    distributeur: ['Un distributeur de boissons, même au fond d’un cratère !', 'Tu choisis un thé vert bien frais… Clonk ! La bouteille tombe.', 'Au Japon, il y en a presque partout : plus de quatre millions !'],
   },
   en: {
     noms: { gardienne: 'Sauna keeper', garde: 'Ranger', campeur: 'Camper', randonneuse: 'Hiker', enfant: 'Island boy', grandpere: 'Old man', videaste: '@random_japan_place' },
@@ -793,7 +1277,7 @@ const TEXTES = {
       etoiles: ['The starry sky', 'At the campsite'],
     },
     'panneau-bienvenue': ['“Welcome to Aogashima 青ヶ島”', 'The southernmost inhabited island of the Izu Islands, 360 km from Tokyo… and yet it is still Tokyo!', 'About 170 people live here: the smallest village in Japan.'],
-    'panneau-sauna': ['“Geothermal sauna ふれあいサウナ”', 'No fire needed: the volcano’s steam heats the sauna.', 'Next to it, the geothermal pot: people steam eggs and sweet potatoes in it.'],
+    'panneau-sauna': ['“Geothermal sauna ふれあいサウナ”', 'No fire needed: the volcano’s steam heats the sauna.', 'Go on in: the steam room is just to the right of the entrance.', 'Next to it, the geothermal pot: people steam eggs and sweet potatoes in it.'],
     'panneau-hingya': ['“ひんぎゃ Hingya”', 'That is the local word for the steam vents: scalding steam rising from the ground.', 'Islanders even use it to make their salt, “hingya salt”.', 'DANGER: do not cross the rope!'],
     'panneau-maruyama': ['“Maruyama 丸山”', 'The little volcano inside the big one: a double caldera, very rare in the world.', 'In 1785, a huge eruption forced every islander to flee.'],
     'panneau-otonbu': ['“To Ōtonbu 大凸部”', 'Up the stairs: the highest point of the island, 423 m.', 'From the top, you see the whole double caldera… and the ocean all around.'],
@@ -821,6 +1305,12 @@ const TEXTES = {
     sommet2: ['The wind blows over the little volcano’s crater.'],
     otonbu: ['You’re at the very top of Aogashima: 423 m.', 'On one side, the double caldera. On the other, the ocean as far as the eye can see.', 'Far to the north, the island of Hachijō.'],
     otonbu2: ['The sea wind ripples the grass on the ridge.'],
+    tunnel: ['The Seihō (青宝) tunnel: the only road into the crater.', 'On the other side: the port and the village. That’s how you came in!'],
+    saunaQuestion: ['The wooden benches are bathed in the volcano’s hot steam.', 'Sit down for a while?'],
+    saunaDedans: ['Phew… it’s almost 60 °C!', 'The steam rises from the grates in the floor: straight from the volcano.', 'The red hand of the twelve-minute timer goes round… You breathe slowly.'],
+    saunaKon: ['Hot… hot… hot! My fur is soaked!'],
+    saunaFin: ['You come out feeling light, your skin all soft.', 'No wood, no gas here: the volcano heats the sauna.'],
+    distributeur: ['A vending machine, even at the bottom of a crater!', 'You pick an ice-cold green tea… Clunk! The bottle drops.', 'In Japan they are almost everywhere: more than four million of them!'],
   },
   ja: {
     noms: { gardienne: 'サウナの おばあさん', garde: 'レンジャーさん', campeur: 'キャンパーさん', randonneuse: 'ハイカーさん', enfant: '島の 子ども', grandpere: 'おじいさん', videaste: '@random_japan_place' },
@@ -832,7 +1322,7 @@ const TEXTES = {
       etoiles: ['星空', 'キャンプ場で'],
     },
     'panneau-bienvenue': ['「青ヶ島へ ようこそ」', '伊豆諸島で いちばん 南の 有人島。東京から 360キロ……でも ここも 東京都！', '人口は 約170人。日本で いちばん 小さな 村です。'],
-    'panneau-sauna': ['「ふれあいサウナ」', '火は つかわない。火山の 蒸気で あたためる サウナ。', 'となりの 地熱釜で、たまごや さつまいもを ふかせるよ。'],
+    'panneau-sauna': ['「ふれあいサウナ」', '火は つかわない。火山の 蒸気で あたためる サウナ。', '中に 入れるよ。蒸気の へやは 入口の すぐ 右。', 'となりの 地熱釜で、たまごや さつまいもを ふかせるよ。'],
     'panneau-hingya': ['「ひんぎゃ」', '島の ことばで、地面から ふきでる 熱い 蒸気の こと。', '島の 人は この 蒸気で 塩も つくる。「ひんぎゃの塩」だよ。', 'きけん！ ロープの 中に 入らないで。'],
     'panneau-maruyama': ['「丸山」', '大きな 火山の 中の 小さな 火山。二重式火山は 世界でも めずらしい。', '1785年の 大噴火で、島の 人は みんな 島を はなれた。'],
     'panneau-otonbu': ['「大凸部へ」', '階段を のぼると 島で いちばん 高い ところ、423メートル。', 'てっぺんからは 二重の カルデラと まわりの 海が 見えるよ。'],
@@ -860,5 +1350,11 @@ const TEXTES = {
     sommet2: ['丸山の 火口に 風が ふいている。'],
     otonbu: ['青ヶ島で いちばん 高い ところ、423メートル！', 'かたほうには 二重の カルデラ、もう かたほうには はてしない 海。', '北の ほうに 八丈島が 見える。'],
     otonbu2: ['海からの 風が 尾根の 草を ゆらしている。'],
+    tunnel: ['青宝トンネル。カルデラの 中に 入る ただ 一本の 道。', 'むこうには 港と 村。きみも ここを 通って きたんだね！'],
+    saunaQuestion: ['木の だんだんの いすが、火山の 熱い 湯気に つつまれている。', 'すこし すわって みる？'],
+    saunaDedans: ['ふう……60度 ちかく ある！', '床の あみから 湯気が のぼる。火山から そのまま きているんだ。', '12分計の 赤い 針が まわる……ゆっくり いきを する。'],
+    saunaKon: ['あつい……あつい……あつーい！ 毛が びしょびしょ だよ！'],
+    saunaFin: ['外に でると、からだが かるい。はだも すべすべ。', 'ここでは 木も ガスも つかわない。火山が サウナを あたためて いるんだ。'],
+    distributeur: ['カルデラの 底にも 自動販売機！', 'つめたい 緑茶を えらぶ……ガコン！ ボトルが おちてきた。', '日本には 400万台 いじょうも あるんだって！'],
   },
 };

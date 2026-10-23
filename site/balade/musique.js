@@ -183,7 +183,7 @@ const PLACE = { koto: -0.3, marimba: 0.3, shaker: 0.35, bois: -0.25, cordes: 0, 
 
 export function creerMusique(lieu) {
   let ctx = null, sortie = null, reverbe = null, bruit = null, ondes = {};
-  let actif = true, coupe = false, moment = null, p = null, lecture = null, minuterie = null;
+  let actif = true, coupe = false, moment = null, p = null, lecture = null, minuterie = null, attenue = 1;
   try { actif = localStorage.getItem('baladeMusique') !== 'non'; } catch { /* navigation privée */ }
 
   /** Au premier moment où le son joue : la sortie, une réverbération (une salle douce), un peu de bruit blanc. */
@@ -372,7 +372,7 @@ export function creerMusique(lieu) {
     p = partition(lieu, m);
     lecture = { phase: intro ? 'intro' : 'boucle', i: 0, t0: ctx.currentTime + 0.15 };
     sortie.gain.cancelScheduledValues(ctx.currentTime);
-    sortie.gain.setTargetAtTime(VOLUME[m], ctx.currentTime, 0.4);
+    sortie.gain.setTargetAtTime(VOLUME[m] * attenue, ctx.currentTime, 0.4);
     clearInterval(minuterie);
     minuterie = setInterval(avancer, 60);
     avancer();
@@ -414,11 +414,18 @@ export function creerMusique(lieu) {
       try { localStorage.setItem('baladeMusique', oui ? 'oui' : 'non'); } catch { /* navigation privée */ }
       if (!oui) { arreter(); moment = null; }
     },
-    /** Plusieurs fois par seconde : nuit de 0 à 1. Commence la musique dès que le son joue ; change d'air au crépuscule. */
-    maj(nuit) {
+    /**
+     * Plusieurs fois par seconde : nuit de 0 à 1 ; baisse (1 : le volume normal ; moins : près d'autres musiciens,
+     * la scène de nō). Commence la musique dès que le son joue ; change d'air au crépuscule.
+     */
+    maj(nuit, baisse = 1) {
       const pret = son.pret();
       if (!pret || !actif || coupe) return;
       if (!ctx) preparer(pret);
+      if (lecture && Math.abs(baisse - attenue) > 0.02) {
+        attenue = baisse;
+        sortie.gain.setTargetAtTime(VOLUME[moment] * attenue, ctx.currentTime, 0.5);
+      }
       const voulu = nuit > 0.5 ? 'nuit' : 'jour';
       if (!lecture && moment === null) commencer(voulu);
       else if (lecture && voulu !== moment) {

@@ -59,7 +59,7 @@ export function matiereContour(THREE, couleur = C.encre) {
  * les conifères, l'herbe et la mousse du sol, le tapis de pétales, l'eau (gelée l'hiver dans le nord), et les
  * lumières (lanternes, fenêtres, phare) qui s'allument la nuit. La neige, elle, tombe sur tout ce qui regarde le ciel.
  */
-const SORTES = { feuillu: 1, erable: 2, cerisier: 3, conifere: 4, herbe: 5, tapis: 6, eau: 7, lumiere: 8 };
+const SORTES = { feuillu: 1, erable: 2, cerisier: 3, conifere: 4, herbe: 5, tapis: 6, eau: 7, lumiere: 8, lampe: 9 };
 // La sorte d'une pièce d'après sa couleur, quand l'atelier ne l'a pas dite
 const SORTE_COULEUR = {
   [C.herbe]: 'herbe', [C.mousse]: 'herbe', [C.mousseFonce]: 'herbe', [C.feuillage]: 'feuillu',

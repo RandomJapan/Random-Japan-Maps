@@ -5,7 +5,8 @@
 //  - pas(sol, o) : un pas, selon le sol (le joueur ; ou Kon, plus léger et plus vif) ; ebrouer(o) : Kon s'ébroue ;
 //  - ambiance(a, dt), plusieurs fois par seconde : le vent (sa force là où l'on est : la même rafale que celle
 //    qui fait bouger les arbres et l'herbe, styles.js), les feuilles s'il y a des arbres autour, la mer près
-//    du rivage, les fumerolles, les insectes la nuit ; et de temps en temps un oiseau ; oiseau(nom, o) : le cri
+//    du rivage, les fumerolles, les insectes la nuit, la musique de la scène de nō ; et de temps en temps un
+//    oiseau ; oiseau(nom, o) : le cri
 //    d'un oiseau qu'on voit (les mouettes) ;
 //  - couper(oui) : le silence (pendant la vidéo TikTok).
 //  Rien ne sonne avant le premier geste, ni le son coupé (son.js).
@@ -22,6 +23,7 @@ const VARIANTES = 5;
 const V = {
   pas: 0.14, course: 0.2, kon: 0.045, ebrouer: 0.1, oiseau: 0.045, mouette: 0.05,
   ventDoux: [0.0035, 0.006], ventFort: 0.015, feuilles: [0.003, 0.017], vagues: 0.0085, vapeur: 0.02, insectes: 0.0056,
+  no: 0.0085,
 };
 const lisse = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
 
@@ -36,7 +38,7 @@ export function creerBruitage({ oiseaux = [], ambiances = [] } = {}) {
   const tampons = new Map(); // « pas/herbe/2 » → AudioBuffer
   const boucles = {}; // nom → { g (volume), p (gauche-droite) }
   const derniers = {}; // sol → dernière variante jouée (jamais deux fois la même de suite)
-  const actuel = { vent: 0.3, feuilles: 0, vagues: 0, panVagues: 0, vapeur: 0, panVapeur: 0, nuit: 0, oiseau: null };
+  const actuel = { vent: 0.3, feuilles: 0, vagues: 0, panVagues: 0, vapeur: 0, panVapeur: 0, nuit: 0, oiseau: null, no: 0, panNo: 0 };
   let prochainOiseau = 18 + Math.random() * 20;
 
   /** Au premier moment où le son joue : la sortie, puis la fabrication de tous les sons. */
@@ -102,6 +104,7 @@ export function creerBruitage({ oiseaux = [], ambiances = [] } = {}) {
     viser('vagues', a.vagues * V.vagues, a.panVagues);
     viser('vapeur', a.vapeur * V.vapeur, a.panVapeur);
     viser('insectes', a.nuit * V.insectes);
+    viser('no', a.no * V.no, a.panNo);
   }
 
   /** Joue un son fabriqué (s'il est prêt) : gain, pan (−1 à gauche, 1 à droite), vitesse (et hauteur). */
@@ -148,8 +151,8 @@ export function creerBruitage({ oiseaux = [], ambiances = [] } = {}) {
     /**
      * Ce qu'on entend ici, maintenant : vent (la force de la rafale, 0,25 à environ 1,2), feuilles (0 à 1 : les
      * arbres autour), vagues et panVagues (la mer : proche de 0 à 1, et de quel côté), vapeur et panVapeur (les
-     * fumerolles), nuit (0 à 1), oiseau (celui qui chanterait ici : 'milan', 'uguisu' ou null). dt : secondes
-     * depuis l'appel précédent.
+     * fumerolles), nuit (0 à 1), oiseau (celui qui chanterait ici : 'milan', 'uguisu' ou null), no et panNo (la
+     * musique de la scène de nō : 0 loin, 1 tout près). dt : secondes depuis l'appel précédent.
      */
     ambiance(a, dt) {
       const pret = son.pret();

@@ -7,7 +7,7 @@
 //  - « pas/<sol>/<n> » : un pas (deux contacts, le talon puis la pointe), variante n ; sols : SOLS ;
 //  - « ebrouer » : Kon qui s'ébroue en sortant de l'eau ;
 //  - « boucle/<nom> » : une ambiance qui tourne en boucle sans couture (ventDoux, ventFort, feuilles, vagues,
-//    vapeur, insectes) ;
+//    vapeur, insectes ; no : la musique de la scène de nō d'Itsukushima, flûte et tambours) ;
 //  - « oiseau/milan » (le milan noir, « pîhyororo »), « oiseau/uguisu » (la bouscarle, « hôhokekyo ») ou
 //    « oiseau/mouette » (le goéland à queue noire, qui miaule).
 //  Les pas et les oiseaux sortent à une force fixe (la plus forte valeur efficace sur 10 ms : 0,25 × la force
@@ -457,6 +457,34 @@ const BOUCLES = {
       d[i] = a.b[i] * 0.25 + b.b[i] * 0.85 + c.b[i] * 0.5;
     }
     return normaliser([boucler(g, sr, F), boucler(d, sr, F)]);
+  },
+  // la scène de nō (Itsukushima) : la flûte nōkan (un souffle perçant qui glisse d'une note à l'autre, avec son cri
+  // aigu, le « hishigi »), le petit tambour d'épaule (« pon », qui chante en descendant), le grand tambour de la
+  // hanche (« kan », sec et claquant), le tambour plat (« ten ») ; une phrase de seize secondes, sans les voix
+  no(sr, r) {
+    const L = 16, F = 0.5, T = L + F;
+    const fl = composer(sr, r, T), tb = composer(sr, r, T);
+    // la flûte : des notes glissées [début, durée, de, à], un vibrato lent, beaucoup de souffle autour de la note
+    for (const [t0, d, fa, fb] of [[0.1, 1.5, 990, 1180], [1.75, 1.2, 1180, 1050], [3.2, 2.3, 880, 900], [5.9, 0.9, 1320, 2650], [7.2, 2.1, 1050, 980], [9.8, 1.4, 1180, 1190], [11.5, 2.7, 990, 870], [14.6, 1.2, 880, 990]]) {
+      const glisse = Math.min(0.35, d * 0.4);
+      const f = (t) => { const u = Math.min(1, t / glisse); return (fa + (fb - fa) * u * u * (3 - 2 * u)) * (1 + 0.012 * Math.sin(TAU * 5.2 * t) * Math.min(1, t / 0.4)); };
+      fl.ton(t0, d, f, (t) => ad(0.05, 0.25, d)(t) * 0.5, 0.25)
+        .bruit(t0, { type: 'bande', f: (fa + fb) / 2, q: 2.5, duree: d, forme: ad(0.04, 0.2, d), gain: 0.2 });
+    }
+    // les tambours
+    const pon = (t0, g = 1) => tb.ton(t0, 0.5, (t) => 300 + 140 * Math.exp(-t / 0.03), (t) => Math.exp(-t / 0.13) * Math.min(1, t / 0.002) * g, 0.2)
+      .bruit(t0, { type: 'bande', f: 900, q: 1.2, tau: 0.012, gain: 0.25 * g });
+    const kan = (t0, g = 1) => tb.bruit(t0, { type: 'bande', f: 2800, q: 1.6, tau: 0.018, gain: 0.9 * g }).modes(t0, [[1150, 0.35 * g, 0.035], [2300, 0.15 * g, 0.02]]);
+    const ten = (t0, g = 1) => tb.modes(t0, [[190, 0.6 * g, 0.12], [345, 0.35 * g, 0.08]]).bruit(t0, { type: 'bande', f: 1800, q: 1, tau: 0.01, gain: 0.3 * g });
+    for (const t of [1.2, 3.0, 5.6, 7.1, 9.5, 11.2, 13.8]) pon(t, 0.8 + 0.2 * r());
+    for (const t of [2.1, 6.2, 10.4, 14.6]) kan(t);
+    for (const [t, g] of [[4.0, 0.6], [4.25, 0.6], [4.5, 1], [12.0, 0.6], [12.25, 0.6], [12.5, 1]]) ten(t, g);
+    normaliser([fl.b]);
+    normaliser([tb.b], 0.9);
+    // la flûte un peu à gauche, les tambours un peu à droite ; l'écho de la baie
+    const n = fl.b.length, g = new Float32Array(n), d = new Float32Array(n);
+    for (let i = 0; i < n; i++) { g[i] = fl.b[i] * 0.9 + tb.b[i] * 0.6; d[i] = fl.b[i] * 0.6 + tb.b[i] * 0.9; }
+    return normaliser([boucler(echo(g, sr), sr, F), boucler(echo(d, sr), sr, F)]);
   },
 };
 

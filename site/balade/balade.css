@@ -217,3 +217,20 @@ body.tactile .dialogue-choix { bottom: calc(var(--bas) + 248px); }
 
 /* les captures : la scène seule */
 body.photo > *:not(#jeu) { display: none !important; }
+
+/* La vapeur du sauna d'Aogashima, sur tout l'écran : des voiles blancs qui montent lentement (transformées
+   seulement : rien à repeindre) */
+.vapeur-ecran { position: fixed; inset: 0; pointer-events: none; overflow: hidden; opacity: 0; transition: opacity 2.4s ease; background: rgba(255, 250, 244, 0.28); }
+.vapeur-ecran.visible { opacity: 1; }
+.vapeur-ecran::before, .vapeur-ecran::after {
+  content: ''; position: absolute; left: -20%; right: -20%; height: 140%; top: 0;
+  background: radial-gradient(40% 22% at 30% 70%, rgba(255, 255, 255, 0.75), transparent 70%),
+    radial-gradient(35% 18% at 72% 55%, rgba(255, 255, 255, 0.6), transparent 70%),
+    radial-gradient(45% 20% at 50% 95%, rgba(255, 255, 255, 0.7), transparent 70%);
+  animation: vapeur-monte 9s linear infinite;
+}
+.vapeur-ecran::after { animation-duration: 13s; animation-delay: -6s; transform: scaleX(-1); }
+@keyframes vapeur-monte { from { transform: translateY(35%); opacity: 0; } 25% { opacity: 1; } 80% { opacity: 1; } to { transform: translateY(-45%); opacity: 0; } }
+.vapeur-ecran::after { animation-name: vapeur-monte-b; }
+@keyframes vapeur-monte-b { from { transform: scaleX(-1) translateY(35%); opacity: 0; } 25% { opacity: 1; } 80% { opacity: 1; } to { transform: scaleX(-1) translateY(-45%); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .vapeur-ecran::before, .vapeur-ecran::after { animation: none; opacity: 0.8; } }

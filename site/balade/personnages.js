@@ -22,6 +22,11 @@ function pivot(ctx, x, y, z, ...morceaux) {
  * col (le col croisé d'un kimono), bas { sorte : 'short', 'jupe', 'hakama', 'pantalon' ; c, c2 }, chaussures,
  * semelle, sac { sorte : 'dos', 'randoseru' ; c, c2 }, tablier, lunettes, appareil (photo, au cou), canne,
  * yeux ('plisses' : un sourire).
+ * Pour le nō (Itsukushima) : coiffure 'kazura' (la longue perruque noire et son bandeau), chapeau 'tengan' (la
+ * petite couronne d'or), masque (le masque blanc d'une jeune femme, ko-omote), pose ('seiza' : assis sur les
+ * talons ; 'danse' : l'acteur, son éventail ; 'jouer' : un musicien, assis aussi) et instrument ('fue', la flûte ;
+ * 'kotsuzumi', le tambour d'épaule ; 'otsuzumi', celui de la hanche ; 'taiko', sur son support ; 'eventail', fermé
+ * devant soi).
  */
 export function tenueVoyageur(P, sorte) {
   const commun = { peau: P.peau, chaussures: P.chaussures, semelle: P.semelle, sac: { sorte: 'dos', c: P.sac, c2: P.sangle }, manches: 'courtes' };
@@ -54,6 +59,9 @@ export function creerPersonnage(ctx, T) {
   const bas = T.bas || { sorte: 'short', c: P.short };
   const jambeCouleur = bas.sorte === 'pantalon' ? bas.c : T.peau;
   const long = bas.sorte === 'hakama';
+  // assis sur les talons (seiza) : tout le corps descend, les jambes repliées dessous, cachées par le hakama
+  const seiza = T.pose === 'seiza' || T.pose === 'jouer';
+  if (seiza) echelle.position.y = -0.3 * (T.taille || 1);
 
   // les jambes (pivot à la hanche) et leurs chaussures
   const jambes = [-1, 1].map((s) => {
@@ -101,6 +109,29 @@ export function creerPersonnage(ctx, T) {
       .ovale(0.016, '#9fd0e8', { y: 0.62, z: 0.276, trait: false }, 6);
     for (const s of [-1, 1]) b.boite(0.015, 0.2, 0.012, '#2a2a30', { x: s * 0.07, y: 0.73, z: 0.17, rz: -s * 0.3, trait: false });
   }
+  // les instruments du nō, tenus devant soi ou posés (les mains suivent : voir animer)
+  const I = T.instrument;
+  const sablier = (h) => (x, y, z) => { const k = 0.55 + 0.45 * ((2 * y) / h) ** 2; return [x * k, y, z * k]; };
+  if (I === 'fue') b.cylindre(0.016, 0.016, 0.42, 6, '#3a2420', { x: 0.14, y: 0.93, z: 0.28, rz: PI / 2, ry: -0.35 });
+  else if (I === 'kotsuzumi') {
+    // le petit tambour en sablier, sur l'épaule droite : deux peaux, le corps laqué, les cordes orange
+    const o = { y: 0.89, z: 0.1, rz: PI / 2 + 0.3 };
+    b.cylindre(0.1, 0.1, 0.03, 12, '#f3ead8', { ...o, x: -0.17, y: 0.86 }).cylindre(0.1, 0.1, 0.03, 12, '#f3ead8', { ...o, x: -0.37, y: 0.92 })
+      .piece(new THREE.CylinderGeometry(0.06, 0.06, 0.2, 10), '#2a1a14', { ...o, x: -0.27, deformer: sablier(0.2) })
+      .baton([-0.17, 0.83, 0.18], [-0.37, 0.89, 0.18], 0.012, '#e8732e', 4, { trait: false });
+  } else if (I === 'otsuzumi') {
+    const o = { y: 0.5, z: 0.06, rz: PI / 2 };
+    b.cylindre(0.11, 0.11, 0.03, 12, '#f3ead8', { ...o, x: 0.2 }).cylindre(0.11, 0.11, 0.03, 12, '#f3ead8', { ...o, x: 0.42 })
+      .piece(new THREE.CylinderGeometry(0.065, 0.065, 0.22, 10), '#2a1a14', { ...o, x: 0.31, deformer: sablier(0.22) });
+  } else if (I === 'taiko') {
+    // le tambour plat sur son petit support, devant les genoux
+    b.cylindre(0.16, 0.16, 0.12, 14, '#3a2420', { y: 0.46, z: 0.36, rx: -0.25 })
+      .cylindre(0.165, 0.165, 0.02, 14, '#f3ead8', { y: 0.53, z: 0.34, rx: -0.25, trait: false });
+    for (const s of [-1, 1]) b.baton([s * 0.12, 0.3, 0.42], [s * 0.1, 0.44, 0.3], 0.015, '#3a2420', 4);
+  } else if (I === 'eventail') {
+    // l'éventail fermé, posé à plat devant les genoux (le chœur)
+    b.boite(0.3, 0.025, 0.04, '#3a2420', { y: 0.32, z: 0.3, ry: 0.1 });
+  }
   corps.add(maillage(b.fin(0, false)));
 
   // les bras (pivot à l'épaule) : manche, avant-bras, main ; les larges manches d'un kimono
@@ -117,6 +148,12 @@ export function creerPersonnage(ctx, T) {
         .ovale(0.058, T.peau, { y: -0.29 }, 10);
     }
     if (T.canne && s === 1) a.baton([0, -0.3, 0.02], [0.02, -0.72, 0.12], 0.022, '#7a5232', 6);
+    if (T.pose === 'danse' && s === -1) {
+      // l'éventail ouvert du nō (chūkei) : un demi-disque doré au cœur rouge, tenu par la main
+      a.piece(new THREE.CircleGeometry(0.3, 14, -PI * 0.35, PI * 0.7), P.or, { y: -0.3, z: 0.05, rx: -PI / 2, ry: PI / 2, teinte: (x, y, z) => (Math.hypot(x, z) < 0.12 ? '#c8372d' : P.or) })
+        .baton([0, -0.3, 0.02], [0, -0.3, 0.32], 0.012, '#3a2420', 4, { trait: false });
+    }
+    if (T.instrument === 'taiko') a.baton([0, -0.3, 0.02], [0, -0.32, 0.26], 0.012, '#3a2420', 4, { trait: false });
     const br = pivot(ctx, s * 0.205, 0.75, 0, maillage(a.fin(0, false)));
     br.rotation.z = s * 0.12;
     corps.add(br);
@@ -138,6 +175,17 @@ export function creerPersonnage(ctx, T) {
     for (const s of [-1, 1]) t.piece(new THREE.TorusGeometry(0.06, 0.009, 4, 14), '#3a3236', { x: s * 0.105, y: 0.22, z: 0.29, trait: false });
     t.boite(0.07, 0.012, 0.01, '#3a3236', { y: 0.235, z: 0.3, trait: false });
   }
+  if (T.masque) {
+    // le masque blanc (ko-omote) : un ovale un peu plus petit que le visage, les sourcils peints haut sur le
+    // front, les yeux fendus, la petite bouche rouge
+    const MQ = '#f7f1e6';
+    t.ovale(0.2, MQ, { y: 0.21, z: 0.12, sy: 1.28, sz: 0.95 }, 14);
+    for (const s of [-1, 1]) {
+      t.ovale(0.028, '#2a2420', { x: s * 0.075, y: 0.37, z: 0.27, sy: 0.55, sz: 0.4, trait: false }, 6)
+        .boite(0.06, 0.012, 0.01, '#2a2420', { x: s * 0.08, y: 0.24, z: 0.305, rz: s * 0.12, trait: false });
+    }
+    t.ovale(0.022, '#c8372d', { y: 0.075, z: 0.29, sx: 1.4, sy: 0.6, sz: 0.5, trait: false }, 6);
+  }
   const C1 = T.cheveux;
   if (T.coiffure === 'chauve') {
     // le crâne dégarni : une couronne de cheveux sur les côtés et derrière
@@ -157,6 +205,11 @@ export function creerPersonnage(ctx, T) {
       .boite(0.1, 0.07, 0.04, P.blanc, { y: -0.08, z: -0.29 });
   } else if (T.coiffure === 'chignon') {
     t.ovale(0.26, C1, { y: 0.17, z: -0.1, sx: 1.05, sz: 0.85 }, 14).boule(0.11, C1, { y: 0.5, z: -0.2 }, 1);
+  } else if (T.coiffure === 'kazura') {
+    // la perruque du nō : de longs cheveux noirs qui tombent dans le dos, et le bandeau rouge et or
+    t.ovale(0.28, C1, { y: 0.14, z: -0.09, sx: 1.06, sy: 1.02, sz: 0.88 }, 14)
+      .boite(0.4, 0.62, 0.08, C1, { y: -0.2, z: -0.24, rx: 0.08 })
+      .piece(new THREE.TorusGeometry(0.315, 0.022, 5, 22), '#c8372d', { y: 0.37, rx: PI / 2 - 0.22, teinte: (x) => (Math.floor(x * 30 + 50) % 3 ? '#c8372d' : P.or) });
   }
   const H = T.chapeau;
   if (H?.sorte === 'casquette') {
@@ -181,6 +234,11 @@ export function creerPersonnage(ctx, T) {
       .cone(0.09, 0.14, 4, H.c, { y: 0.28, z: -0.3, rx: -PI / 2 - 0.4 });
   } else if (H?.sorte === 'bob') {
     t.cylindre(0.26, 0.31, 0.2, 18, H.c, { y: 0.55, rx: -0.1 }).cylindre(0.42, 0.42, 0.02, 20, H.c, { y: 0.46, rx: -0.1 });
+  } else if (H?.sorte === 'tengan') {
+    // la petite couronne d'or des êtres célestes (la danse de « Hagoromo »)
+    t.cylindre(0.13, 0.15, 0.05, 12, P.or, { y: 0.55, z: 0.03, rx: -0.2 })
+      .cone(0.05, 0.13, 6, P.or, { y: 0.64, z: 0.05 })
+      .boule(0.035, '#e8452e', { y: 0.72, z: 0.06 }, 1);
   } else if (H?.sorte === 'bandeau') {
     t.piece(new THREE.TorusGeometry(0.31, 0.035, 5, 20), H.c, { y: 0.38, rx: PI / 2 - 0.25 })
       .boite(0.08, 0.06, 0.06, H.c, { y: 0.44, z: -0.3 });
@@ -188,11 +246,14 @@ export function creerPersonnage(ctx, T) {
   const tete = pivot(ctx, 0, 0.82, 0, maillage(t.fin(0, false)));
   corps.add(tete);
 
-  let phase = 0, salut = 0, foulee = 0;
+  let phase = 0, salut = 0, foulee = 0, assis = false;
+  const decalage = (T.taille || 1) * 7.3 + (T.haut?.length || 0);
   return {
     objet: racine,
     /** Une petite courbette (on lui parle, il remercie…). */
     saluer() { salut = 1; },
+    /** Assis sur un banc (oui) ou debout : les jambes tendues devant (la racine posée à la hauteur du siège moins ASSIS). */
+    asseoir(oui) { assis = oui; },
     /**
      * vitesse : m/s au sol (0 : à l'arrêt) ; temps : secondes. Renvoie le pied qui vient de se poser (1 : la
      * jambe de x > 0, la gauche ; −1 : la droite), ou 0 : un pied touche le sol au bout de chaque balancement.
@@ -215,6 +276,49 @@ export function creerPersonnage(ctx, T) {
       corps.rotation.x = 0.08 * marche + courbe;
       tete.rotation.x = -0.05 * marche + Math.sin(temps * 1.1) * 0.02 * (1 - marche) + courbe * 0.3;
       tete.rotation.z = Math.sin(phase) * 0.04 * marche;
+      if (assis) {
+        // sur un banc : les jambes devant, un peu tombantes, les mains sur les cuisses
+        jambes[0].rotation.x = jambes[1].rotation.x = -1.3;
+        bras[0].rotation.x = bras[1].rotation.x = -0.55;
+        corps.rotation.x = -0.05 + courbe;
+        return 0;
+      }
+      if (seiza) {
+        // sur les talons : les jambes repliées dessous, les mains sur les genoux (ou sur l'instrument)
+        jambes[0].rotation.x = jambes[1].rotation.x = PI / 2 - 0.05;
+        bras[0].rotation.x = bras[1].rotation.x = -0.5;
+        bras[0].rotation.z = -0.12; bras[1].rotation.z = 0.12;
+        corps.rotation.x = 0.04 + courbe;
+        corps.position.y = respire;
+        // les coups du musicien : vifs, de temps en temps (chacun à son rythme)
+        const coup = (u) => { const f = (u % 1 + 1) % 1; return f < 0.12 ? Math.sin((f / 0.12) * PI) : 0; };
+        const c = coup(temps * 0.55 + decalage);
+        if (I === 'fue') {
+          // la flûte à la bouche, tenue des deux mains vers la gauche du musicien
+          bras[1].rotation.x = -1.45; bras[1].rotation.z = 0.35;
+          bras[0].rotation.x = -1.35; bras[0].rotation.z = -0.55;
+        } else if (I === 'kotsuzumi') {
+          // la main gauche tient le tambour sur l'épaule droite, la droite le frappe de côté
+          bras[1].rotation.x = -2.0; bras[1].rotation.z = -0.9;
+          bras[0].rotation.x = -0.9 - 0.5 * c; bras[0].rotation.z = -0.5;
+        } else if (I === 'otsuzumi') {
+          bras[1].rotation.x = -0.6; bras[1].rotation.z = 0.25;
+          bras[0].rotation.x = -1.2 - 0.4 * c; bras[0].rotation.z = 0.6 - 0.5 * c;
+        } else if (I === 'taiko') {
+          const c2 = coup(temps * 0.55 + decalage + 0.5);
+          bras[0].rotation.x = -0.75 - 0.5 * c; bras[1].rotation.x = -0.75 - 0.5 * c2;
+        }
+        return 0;
+      }
+      if (T.pose === 'danse') {
+        // le nō : des gestes lents ; l'éventail (main droite) se lève, montre au loin, redescend ; le corps reste droit
+        const u = temps * 0.42 + decalage;
+        bras[0].rotation.x = -0.35 - 0.95 * (0.5 + 0.5 * Math.sin(u)) - 0.4 * marche;
+        bras[0].rotation.z = -0.25 - 0.3 * (0.5 + 0.5 * Math.sin(u * 0.7 + 1));
+        bras[1].rotation.x = -0.35 - 0.2 * (0.5 + 0.5 * Math.sin(u + 2));
+        corps.rotation.x = 0.06 + courbe;
+        tete.rotation.x = 0.05 + Math.sin(u * 0.5) * 0.08;
+      }
       return pose;
     },
   };

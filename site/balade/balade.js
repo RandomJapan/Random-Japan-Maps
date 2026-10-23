@@ -17,7 +17,8 @@ import { ateliers } from '../modeles3d.js';
 import { MATIERES } from './textures.js';
 import { creerStyle, matieresStyle, passeFinale, rafale, VENT_GLSL, VITESSE_RAFALE } from './styles.js';
 import { creerVoyageur, creerPersonnage, creerRenard, creerDaim } from './personnages.js';
-import { creerPassant, avancerPassant, tourner } from './monde.js';
+import { creerPassant, avancerPassant, tourner, lisse } from './monde.js';
+import { creerEtiquettes } from './etiquettes.js';
 import { TEXTES, LANGUES, choisirLangue } from './textes.js';
 import { creerDialogue } from './dialogue.js';
 import { creerCarnet, dessinTampon, aLeTampon, ajouterTampon, lireTampons } from './carnet.js';
@@ -98,6 +99,8 @@ function construire() {
     m.rotation.y = o.ry;
     groupe.add(m);
   }
+  // les textes des plaques et des enseignes (le nom du tunnel…)
+  if (lieu.etiquettes?.length && params.get('etiquettes') !== '0') groupe.add(creerEtiquettes(THREE, lieu.etiquettes, { anisotropie: Math.min(8, rendu.capabilities.getMaxAnisotropy()) }));
   const carte = carteDuSol(lieu, lieu.etendue.fin);
   mats.carte.carteSol.value = carte.texture;
   mats.carte.zoneSol.value.set(carte.x0, carte.z0, carte.pas, 1);
@@ -369,7 +372,8 @@ function choisirVoyageur(s) {
  * Le sol : une grille de hauteurs (le terrain du lieu), aux couleurs du lieu et avec ses matières (styles.js).
  * Une grille fine autour du jeu, posée sur la grande ; la grande a un trou dessous (trou : l'étendue de la
  * fine), sinon, dans les creux (un cratère, un escalier taillé dans la pente), ses grandes facettes la percent.
- * carte : la carte du sol (carteDuSol), d'où la grille fine prend ses couleurs sans les recalculer.
+ * carte : la carte du sol (carteDuSol), d'où la grille fine prend ses couleurs sans les recalculer ; la grille
+ * fine laisse aussi les trous que le lieu demande (lieu.trouSol(x0, z0, x1, z1) : vrai pour sauter cette case).
  */
 function terrain(lieu, mats, e, leve = 0, trou = null, carte = null) {
   const nx = Math.round((e.x1 - e.x0) / e.pas), nz = Math.round((e.z1 - e.z0) / e.pas);
@@ -391,10 +395,10 @@ function terrain(lieu, mats, e, leve = 0, trou = null, carte = null) {
   for (let j = 0; j < nz; j++) {
     for (let i = 0; i < nx; i++) {
       const a = j * (nx + 1) + i, b = a + 1, d = a + nx + 1, f = d + 1;
-      if (trou) {
-        const x0 = e.x0 + i * e.pas, z0 = e.z0 + j * e.pas, x1 = x0 + e.pas, z1 = z0 + e.pas;
-        if (x0 >= trou.x0 && x1 <= trou.x1 && z0 >= trou.z0 && z1 <= trou.z1) continue;
-      }
+      const x0 = e.x0 + i * e.pas, z0 = e.z0 + j * e.pas, x1 = x0 + e.pas, z1 = z0 + e.pas;
+      if (trou && x0 >= trou.x0 && x1 <= trou.x1 && z0 >= trou.z0 && z1 <= trou.z1) continue;
+      // les trous de la grille fine que le lieu demande (l'entrée d'un tunnel : le sol y monterait devant)
+      if (carte && lieu.trouSol?.(x0, z0, x1, z1)) continue;
       index.push(a, d, b, b, d, f);
     }
   }
@@ -679,6 +683,7 @@ function appliquerNuit(v) {
   if (M.eau) M.eau.material.uniforms.nuit.value = v;
   if (M.vapeurs) M.vapeurs.material.uniforms.nuit.value = v;
   M.etoiles.material.uniforms.nuit.value = v;
+  M.mats.lueur.value = v; // les lanternes s'allument
 }
 
 // ---------------------------------------------------------------- Les textes, l'interface
@@ -981,6 +986,10 @@ async function tampon(id) {
   if ((lireTampons()[L.id] || []).length === L.tampons.length) await dialogue.dire(t('konTout'), { qui: t('kon') });
 }
 const attendre = (ms) => new Promise((r) => setTimeout(r, ms));
+// assis : le siège { x, z, y (le dessus), cap } ; le joueur n'en bouge plus (sa racine, ASSIS plus bas que le dessus) ;
+// il se relève là où il était debout (le siège, lui, est dans ce qui arrête : on y restait coincé)
+let siege = null, vueAvantSiege = null, debout = null;
+const ASSIS = 0.38;
 
 /** Ce que les lieux peuvent faire (leurs actions reçoivent cet objet). */
 const jeu = {
@@ -988,8 +997,32 @@ const jeu = {
   dire: (pages, qui) => dialogue.dire(pages, { qui: qui && nomQui(qui) }),
   choisir: (pages, options, qui) => dialogue.choisir(pages, options, { qui: qui && nomQui(qui) }),
   aTampon: (id) => aLeTampon(M.lieu.id, id),
-  tampon, video,
+  tampon, video, attendre,
   saluer: () => M.joueur.saluer(),
+  /**
+   * S'asseoir sur un siège { x, z, y (son dessus), cap } (la caméra : vue { lacet, tangage, distance }), ou se
+   * lever (null) : la caméra reprend sa place.
+   */
+  asseoir(s, vue = null) {
+    if (s && !siege) debout = { x: etat.x, z: etat.z, y: etat.y };
+    else if (!s && siege && debout) Object.assign(etat, debout);
+    siege = s;
+    M.joueur.asseoir(!!s);
+    if (s) {
+      vueAvantSiege = { lacet: cam.lacet, tangage: cam.tangage, distance: cam.distance };
+      if (vue) Object.assign(cam, vue);
+    } else if (vueAvantSiege) {
+      Object.assign(cam, vueAvantSiege);
+      vueAvantSiege = null;
+    }
+  },
+  /** La vapeur (d'un sauna) qui envahit l'écran (oui), ou se dissipe. */
+  vapeur: (oui) => $('.vapeur-ecran').classList.toggle('visible', oui),
+  /** On ressort en sueur : les habits trempés sèchent dans une dizaine de secondes ; Kon s'ébrouera. */
+  transpirer() {
+    Object.assign(mouille.joueur, { v: 1, ligne: 1.45, hors: -8 });
+    Object.assign(mouille.kon, { v: 0.9, ligne: 0.5, hors: -8, ebroue: false });
+  },
   /**
    * La nuit tombe (oui) ou le jour revient, en un peu plus d'une seconde ; se résout une fois fait. La nuit, la
    * caméra descend et lève les yeux vers le ciel (les étoiles), puis reprend sa place au jour.
@@ -1057,17 +1090,31 @@ function avancer(dt) {
   const k = Math.min(1, dt * 10);
   etat.vx += (dx * vmax - etat.vx) * k;
   etat.vz += (dz * vmax - etat.vz) * k;
-  // on glisse le long des obstacles : d'abord le mouvement entier, sinon chaque axe à part
+  // on glisse le long des obstacles : d'abord le mouvement entier, sinon le même tourné de plus en plus (moins vite :
+  // la part qui longe l'obstacle), d'un côté puis de l'autre ; enfin chaque axe à part. (Le long d'une main
+  // courante en biais, ni l'axe x ni l'axe z ne passaient : on restait coincé, 2026-10-23.)
   const nx = etat.x + etat.vx * dt, nz = etat.z + etat.vz * dt;
-  if (monde.libre(nx, nz, etat.y, autres)) { etat.x = nx; etat.z = nz; } else if (monde.libre(nx, etat.z, etat.y, autres)) { etat.x = nx; etat.vz *= 0.5; } else if (monde.libre(etat.x, nz, etat.y, autres)) { etat.z = nz; etat.vx *= 0.5; } else { etat.vx = etat.vz = 0; }
+  let bouge = monde.libre(nx, nz, etat.y, autres);
+  if (bouge) { etat.x = nx; etat.z = nz; }
+  for (let i = 1; !bouge && i <= 8; i++) {
+    const a = Math.ceil(i / 2) * 0.32 * (i % 2 ? 1 : -1), c = Math.cos(a), s = Math.sin(a);
+    const vx = (etat.vx * c + etat.vz * s) * c, vz = (etat.vz * c - etat.vx * s) * c;
+    if (monde.libre(etat.x + vx * dt, etat.z + vz * dt, etat.y, autres)) { etat.x += vx * dt; etat.z += vz * dt; etat.vx = vx; etat.vz = vz; bouge = true; }
+  }
+  if (!bouge) {
+    if (monde.libre(nx, etat.z, etat.y, autres)) { etat.x = nx; etat.vz *= 0.5; } else if (monde.libre(etat.x, nz, etat.y, autres)) { etat.z = nz; etat.vx *= 0.5; } else { etat.vx = etat.vz = 0; }
+  }
   etat.vitesse = Math.hypot(etat.vx, etat.vz);
   etat.y += (monde.hauteur(etat.x, etat.z, etat.y) - etat.y) * Math.min(1, dt * 18);
   if (m > 0.05) etat.cap = tourner(etat.cap, Math.atan2(dx, dz), dt * 10);
+  if (siege) Object.assign(etat, { x: siege.x, z: siege.z, y: siege.y - ASSIS, cap: siege.cap, vx: 0, vz: 0, vitesse: 0 });
   if (m > 0.05 && libre) $('.aide').classList.add('vue');
 
   // Kon suit, un peu en arrière et sur le côté ; il s'assoit quand il est arrivé
   if (etat.mode !== 'depart') {
-    const cx = etat.x - Math.sin(etat.cap) * 1.3 + Math.cos(etat.cap) * 0.75, cz = etat.z - Math.cos(etat.cap) * 1.3 - Math.sin(etat.cap) * 0.75;
+    // (le joueur assis : Kon vient devant lui, un peu de côté ; derrière, c'est le banc)
+    const recul = siege ? -0.9 : 1.3;
+    const cx = etat.x - Math.sin(etat.cap) * recul + Math.cos(etat.cap) * 0.75, cz = etat.z - Math.cos(etat.cap) * recul - Math.sin(etat.cap) * 0.75;
     const ex = cx - renard.x, ez = cz - renard.z, d = Math.hypot(ex, ez);
     const vr = d > 0.35 ? Math.min(COURSE * 1.15, d * 2.8) : 0;
     renard.vitesse += (vr - renard.vitesse) * Math.min(1, dt * 6);
@@ -1282,8 +1329,10 @@ function vivre(dt, temps, pasJoueur, pasKon) {
   }
   const oiseaux = L.oiseaux || [];
   const oiseau = oiseaux.includes('uguisu') && feuilles > 0.3 && Math.random() < 0.7 ? 'uguisu' : oiseaux.includes('milan') ? 'milan' : null;
-  M.bruitage.ambiance({ vent, feuilles, vagues: oreille.mer.vagues, panVagues: oreille.mer.pan, vapeur: Math.min(1, vapeur), panVapeur, nuit: M.nuit.v, oiseau }, d);
-  M.musique.maj(M.nuit.v);
+  // les musiciens d'une scène (le nō d'Itsukushima) : on les entend en s'approchant, et la musique de la balade baisse
+  const sc = L.musiciens, no = sc ? 1 - lisse(sc.pres, sc.loin, Math.hypot(sc.x - x, sc.z - z)) : 0;
+  M.bruitage.ambiance({ vent, feuilles, vagues: oreille.mer.vagues, panVagues: oreille.mer.pan, vapeur: Math.min(1, vapeur), panVapeur, nuit: M.nuit.v, oiseau, no, panNo: sc ? panDe(sc.x, sc.z) : 0 }, d);
+  M.musique.maj(M.nuit.v, 1 - 0.8 * no);
 }
 
 function dessiner(dt, temps) {
