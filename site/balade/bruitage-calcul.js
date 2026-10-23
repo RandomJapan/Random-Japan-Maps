@@ -13,8 +13,14 @@
 //    « kyoron kyoron tsîî ») ;
 //  - « bete/miaou », « bete/ronron » : les chats d'Aogashima ;
 //  - « cri/kon » (le renard : deux jappements, « kon kon »), « cri/pon » (le tanuki se tambourine le ventre :
-//    « pon, poko, pon »), « cri/chapu » (la loutre : trois petits cris aigus, et un plouf) ; « tambour » (un seul
-//    coup sur le ventre du tanuki, quand il s'ennuie) ; « pouf » (un compagnon qui s'en va dans un nuage).
+//    « pon, poko, pon »), « cri/chapu » (la loutre : trois petits cris aigus, et un plouf), et les compagnons
+//    secrets (2026-10-23) : « cri/gao » (le shisa : un petit rugissement, « gao ! »), « cri/fuwa » (le bébé dragon :
+//    un trille de clochettes et un souffle), « cri/saya » (l'esprit de l'arbre : du bois qu'on frappe, « kon, koro,
+//    kon », et des feuilles) ; « tambour » (un seul coup sur le ventre du tanuki, quand il s'ennuie) ; « pouf » (un
+//    compagnon qui s'en va dans un nuage) ;
+//  - les trésors (2026-10-23) : « oiseau/corbeau » (les corbeaux sacrés d'Itsukushima, « kaa, kaa »), « pelle » (on
+//    creuse la terre à la main), « boite » (la vieille boîte en fer qu'on ouvre), « feu/depart » (une fusée qui
+//    siffle en montant), « feu/boum » (l'éclat, grave, et son écho), « feu/crepite » (les mille éclats).
 //  Les pas et les oiseaux sortent à une force fixe (la plus forte valeur efficace sur 10 ms : 0,25 × la force
 //  du sol) ; les boucles, à une valeur efficace de 1 : bruitage.js règle les volumes.
 // ================================================================
@@ -321,6 +327,12 @@ export const SOLS = {
       .grains(70, { zones: [[0.004, 0.11, 1], [dt, dt + 0.1, 0.8]], f: [2200, 8500], d: [0.0005, 0.002], g: [0.06, 0.32], q: 1.2 });
     if (r() < 0.25) c.modes(0.02 + r() * 0.05, [[1800 + r() * 900, 1, 0.004]], 0.2);
   },
+  // la neige (l'hiver du calendrier magique) : le pied qui tasse, un crissement sec, un petit couinement
+  neige(c, r, dt) {
+    c.bruit(0.004, { type: 'bas', f: 200, tau: 0.035, gain: 0.5 })
+      .grains(90, { zones: [[0.006, 0.09, 1], [dt, dt + 0.08, 0.8]], f: [900, 3500], d: [0.001, 0.0035], g: [0.12, 0.45], q: 2.2 })
+      .bruit(0.02, { f: (t) => 1300 + 900 * t / 0.08, q: 6, attaque: 0.01, tau: 0.035, gain: 0.12 });
+  },
   // l'eau où l'on patauge : le « plouf » qui descend, des bulles, des gouttes qui retombent, le pied qui ressort
   eau(c, r, dt) {
     c.bruit(0.006, { f: (t) => 330 + 1500 * Math.exp(-t / 0.045), q: 1.1, attaque: 0.006, tau: 0.075, gain: 0.8 })
@@ -331,7 +343,7 @@ export const SOLS = {
   },
 };
 // la force de chaque sol, l'un par rapport à l'autre (l'herbe est plus douce que le plancher)
-const FORCE_SOL = { herbe: 0.7, sable: 0.65, estran: 0.8, bois: 1, pierre: 0.85, route: 0.8, terre: 0.75, roche: 0.9, sousBois: 0.72, eau: 0.95 };
+const FORCE_SOL = { herbe: 0.7, sable: 0.65, estran: 0.8, bois: 1, pierre: 0.85, route: 0.8, terre: 0.75, roche: 0.9, sousBois: 0.72, eau: 0.95, neige: 0.75 };
 const DUREE_SOL = { eau: 0.55, bois: 0.42 };
 
 function pas(sol, variante, sr) {
@@ -534,6 +546,14 @@ const OISEAUX = {
     c.ton(1.05, 0.45, (t) => 6400 - 500 * t, (t) => ad(0.05, 0.25, 0.45)(t) * 0.45, 0.04);
     return cadrer([echo(c.b, sr)], sr, 0.25);
   },
+  // le corbeau à gros bec (hashibuto-garasu) : deux « kaa » rauques, nasillards, qui retombent
+  corbeau(sr, r) {
+    const c = composer(sr, r, 1.3);
+    const kaa = (t0, d, h) => c.cri(t0, d, (t) => h * (560 + 160 * Math.min(1, t / 0.06) - 220 * Math.max(0, t - 0.06) / d), ad(0.02, 0.12, d), { fc: 1250, bw: 700, rauque: 0.55 });
+    kaa(0.02, 0.36, 1);
+    kaa(0.52, 0.32, 0.96);
+    return cadrer([echo(c.b, sr)], sr, 0.25);
+  },
   // la bouscarle du Japon (uguisu), l'oiseau du printemps : « hôôô… ho-ke-kyo ! »
   uguisu(sr, r) {
     const c = composer(sr, r, 2.4);
@@ -563,6 +583,30 @@ const CRIS = {
     const c = composer(sr, r, 1.1);
     ventre(c, 0.01, 1); ventre(c, 0.24, 0.55); ventre(c, 0.34, 0.6); ventre(c, 0.58, 1);
     return cadrer([c.b], sr, 0.25);
+  },
+  // le shisa : un petit rugissement rond, « gao ! », un grondement qui monte puis tombe
+  gao(sr, r) {
+    const c = composer(sr, r, 0.7);
+    c.cri(0.02, 0.42, (t) => 190 + 260 * Math.sin(Math.min(1, t / 0.42) * Math.PI), ad(0.03, 0.16, 0.42), { fc: 900, bw: 650, rauque: 0.45 })
+      .bruit(0.02, { type: 'bas', f: 260, grave: true, duree: 0.42, forme: ad(0.03, 0.18, 0.42), gain: 0.5 });
+    return cadrer([echo(c.b, sr)], sr, 0.25);
+  },
+  // le bébé dragon : un trille de petites cloches qui monte (« piroriin »), et un souffle d'air
+  fuwa(sr, r) {
+    const c = composer(sr, r, 1.0);
+    [0, 4, 7, 12, 16].forEach((d, k) => {
+      const f = 1046.5 * 2 ** (d / 12);
+      c.modes(0.03 + k * 0.07, [[f, 0.5, 0.18], [f * 2.76, 0.18, 0.06], [f * 5.4, 0.07, 0.03]]);
+    });
+    c.bruit(0.0, { f: (t) => 900 + 1800 * t, q: 0.8, duree: 0.5, forme: ad(0.15, 0.3, 0.5), gain: 0.25 });
+    return cadrer([echo(c.b, sr)], sr, 0.25);
+  },
+  // l'esprit de l'arbre : des morceaux de bois creux qu'on frappe (« kon, koro, kon »), et des feuilles qui bruissent
+  saya(sr, r) {
+    const c = composer(sr, r, 0.9);
+    for (const [t0, f] of [[0.02, 620], [0.17, 760], [0.26, 690], [0.42, 560]]) c.modes(t0, [[f, 0.8, 0.05], [f * 2.4, 0.3, 0.025], [f * 3.9, 0.12, 0.012]]);
+    c.grains(70, { zones: [[0.45, 0.85, 1]], f: [2500, 8000], d: [0.0006, 0.002], g: [0.04, 0.16], q: 1.2 });
+    return cadrer([echo(c.b, sr)], sr, 0.25);
   },
   chapu(sr, r) {
     const c = composer(sr, r, 0.75);
@@ -599,6 +643,55 @@ function pouf(sr) {
   return cadrer([c.b], sr, 0.22);
 }
 
+/** On creuse à la main : la terre qu'on gratte et qu'on rejette (deux poignées), un caillou qui roule. */
+function pelle(sr) {
+  const r = alea(graine('pelle')), c = composer(sr, r, 0.9);
+  for (const t0 of [0.02, 0.42]) {
+    c.bruit(t0, { f: (t) => 1200 - 500 * t, q: 0.9, attaque: 0.03, tau: 0.09, gain: 0.7 })
+      .grains(60, { zones: [[t0, t0 + 0.25, 1]], f: [700, 3500], d: [0.001, 0.004], g: [0.1, 0.4], q: 1.4 })
+      .bruit(t0 + 0.2, { type: 'bas', f: 220, tau: 0.04, gain: 0.5 });
+  }
+  c.modes(0.7, [[1500, 0.3, 0.01], [2600, 0.15, 0.006]]);
+  return cadrer([c.b], sr, 0.25);
+}
+/** La vieille boîte en fer (une boîte à gâteaux) : on la sort de la terre (toc), le couvercle grince et s'ouvre (clac). */
+function boite(sr) {
+  const r = alea(graine('boite')), c = composer(sr, r, 1.6);
+  c.modes(0.02, [[420, 0.6, 0.08], [1130, 0.35, 0.05], [2310, 0.2, 0.03]])
+    .craquer(0.45, { duree: 0.5, f0: 90, f1: 170, gain: 0.35 })
+    .modes(1.0, [[610, 0.7, 0.12], [1580, 0.4, 0.07], [3020, 0.22, 0.04], [4400, 0.1, 0.02]])
+    .bruit(1.0, { type: 'haut', f: 2500, attaque: 0.0005, tau: 0.01, gain: 0.3 });
+  return cadrer([echo(c.b, sr)], sr, 0.25);
+}
+/** Les feux d'artifice : la fusée qui siffle en montant ; l'éclat grave et son écho sur les montagnes ; les mille éclats. */
+const FEUX = {
+  depart(sr, r) {
+    const c = composer(sr, r, 1.4);
+    c.bruit(0.0, { f: (t) => 700 + 2600 * t, q: 4, duree: 1.3, forme: (t) => ad(0.08, 0.4, 1.3)(t) * 0.8, gain: 0.6 })
+      .ton(0.0, 1.3, (t) => 900 + 1900 * t, (t) => ad(0.1, 0.5, 1.3)(t) * 0.25, 0.05)
+      .bruit(0.0, { type: 'bas', f: 300, tau: 0.04, gain: 0.4 });
+    return cadrer([c.b], sr, 0.25);
+  },
+  boum(sr, r) {
+    const c = composer(sr, r, 3.2);
+    c.bruit(0.0, { type: 'bas', f: (t) => 260 - 160 * Math.min(1, t / 0.4), grave: true, attaque: 0.004, tau: 0.35, gain: 1.4 })
+      .bruit(0.0, { f: 700, q: 0.7, attaque: 0.001, tau: 0.04, gain: 0.7 })
+      .bruit(0.0, { type: 'haut', f: 1800, attaque: 0.0005, tau: 0.012, gain: 0.35 });
+    // l'écho, loin et sourd, sur les collines
+    const x = c.b, y = x.slice();
+    for (const [d, g] of [[0.55, 0.32], [1.1, 0.18], [1.7, 0.09]]) {
+      const k = Math.round(d * sr), z = filtrer(x.slice(), sr, 'bas', 500, 0.7);
+      for (let i = k; i < y.length; i++) y[i] += z[i - k] * g;
+    }
+    return cadrer([y], sr, 0.25);
+  },
+  crepite(sr, r) {
+    const c = composer(sr, r, 1.8);
+    c.grains(260, { zones: [[0.05, 1.5, 1]], f: [1500, 7000], d: [0.0008, 0.003], g: [0.1, 0.6], q: 1.6 });
+    return cadrer([echo(c.b, sr)], sr, 0.2);
+  },
+};
+
 /** Le son demandé (voir l'en-tête), en canaux de Float32Array. */
 export function fabriquer(quoi, sr) {
   const [sorte, nom, n] = quoi.split('/');
@@ -610,6 +703,9 @@ export function fabriquer(quoi, sr) {
   if (sorte === 'bete') return BETES[nom](sr, alea(graine(quoi)));
   if (sorte === 'tambour') { const c = composer(sr, alea(graine(quoi)), 0.5); ventre(c, 0.005, 1); return cadrer([c.b], sr, 0.25); }
   if (sorte === 'pouf') return pouf(sr);
+  if (sorte === 'pelle') return pelle(sr);
+  if (sorte === 'boite') return boite(sr);
+  if (sorte === 'feu') return FEUX[nom](sr, alea(graine(quoi)));
   throw new Error(`son inconnu : ${quoi}`);
 }
 

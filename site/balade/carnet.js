@@ -101,9 +101,10 @@ function biais(id) {
 /**
  * Le carnet. el : { fond (le voile), page (son contenu) } ; lieux() → [{ id, nom, nomJa, tampons, textes }]
  * (dans la langue du moment) ; t(cle) : les textes de l'interface ; texteLieu(lieu, tampon) → { nom, indice } ;
- * recompense(lieu, complet) : le HTML de ce que rapportent tous ses tampons (tenues.js).
+ * recompense(lieu, complet) : le HTML de ce que rapportent tous ses tampons (tenues.js) ; secret(lieu, complet) : celui
+ * de son secret (tresors.js : trouvé, ou qu'il en reste un, une fois tous les tampons trouvés), et les koban qu'on a.
  */
-export function creerCarnet(el, { lieux, t, texteLieu, recompense = () => '' }) {
+export function creerCarnet(el, { lieux, t, texteLieu, recompense = () => '', secret = () => '' }) {
   let ouvert = false, onglet = null;
 
   function contenu() {
@@ -124,7 +125,7 @@ export function creerCarnet(el, { lieux, t, texteLieu, recompense = () => '' }) 
       <p class="carnet-compte">${t('carnetCompte')(pris.length, L.tampons.length)}</p>
       <ol class="carnet-cases">${cases}</ol>
       ${complet ? `<p class="carnet-complet"><span class="sceau">完</span>${t('carnetComplet')}</p>` : ''}
-      ${recompense(L, complet)}`;
+      ${recompense(L, complet)}${secret(L, complet)}`;
   }
 
   el.page.addEventListener('click', (e) => {

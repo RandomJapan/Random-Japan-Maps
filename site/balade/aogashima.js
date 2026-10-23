@@ -5,6 +5,10 @@
 //  étoilé, le petit volcan et son cratère ; un escalier en lacets monte sur la crête, au belvédère et au
 //  point le plus haut de l'île, Ōtonbu, face à toute la caldeira et à l'océan. D'après la vidéo du
 //  propriétaire (la caldeira vue du ciel, le petit volcan rayé de vert, le belvédère rond en gradins).
+//  Son secret (2026-10-23) : la carte au trésor. La dernière page du cahier des voyageurs, dans l'abri de la crête, est
+//  une carte dessinée par des enfants de l'île, avec une croix ; à l'est du petit volcan, près d'un camélia, dans un petit
+//  creux, on creuse : une vieille boîte en fer, une photo de classe, une lettre (l'éruption de 1785, le retour des
+//  habitants cinquante ans plus tard) et un koban (tresors.js). Bunbuku, le marchand, attend derrière les palmiers.
 //  Repère : x vers l'est, z vers le sud, y vers le haut, en mètres ; le fond du cratère vers y = 0, la mer
 //  à y = −40. Les distances sont resserrées (le vrai cratère fait plus d'un kilomètre).
 //  ctx : { THREE, atelier, P (palette), peinture }.
@@ -12,6 +16,7 @@
 import { creerMonde, interactionsBancs, lisse, hasard, bruitDoux, surLaLigne } from './monde.js';
 import { panneau, trepied, PAPIER_PANNEAU } from './decor.js';
 import { MATIERES as M } from './textures.js';
+import { secretTrouve } from './tresors.js';
 
 const MER = -40;
 const MARUYAMA = { x: 5, z: 7, r: 26, h: 16, cratere: 4.6 };
@@ -34,6 +39,10 @@ const PIN_VENT = { x: -25.6, z: -77.6 };
 const JUMELLES = { x: -15.1, z: -83.1 };
 const STELE = { x: -10.9, z: -78.6 };
 const HACHIJO = { x: -220, y: MER + 30, z: -1240 }; // l'île de Hachijō, sur l'horizon (le décor lointain)
+// le secret : le petit creux où la boîte est enterrée, à l'est du petit volcan ; le camélia à côté ; le marchand
+const TRESOR = { x: 27, z: 14, r: 2.4, creux: 0.45 };
+const TSUBAKI = { x: 28.9, z: 12.4 };
+const MARCHAND = { x: -48, z: -15.5 };
 const CAP_ABRI = Math.atan2(-AZUMAYA.x, -AZUMAYA.z); // l'abri ouvre son devant sur la caldeira (vers le centre)
 /** Du repère de l'abri (x à sa droite, z vers la caldeira) au lieu : [x, z]. */
 const versAbri = (lx, lz) => [AZUMAYA.x + lx * Math.cos(CAP_ABRI) + lz * Math.sin(CAP_ABRI), AZUMAYA.z - lx * Math.sin(CAP_ABRI) + lz * Math.cos(CAP_ABRI)];
@@ -176,6 +185,9 @@ function relief(x, z) {
   // le belvédère, creusé en gradins (la cuvette ; les gradins de pierre sont posés dessus)
   const db = Math.hypot(x - BELVEDERE.x, z - BELVEDERE.z);
   if (db < BELVEDERE.r + 4) h += (Y_BELVEDERE - BELVEDERE.creux * (1 - lisse(1.5, BELVEDERE.r, db)) - h) * (1 - lisse(BELVEDERE.r + 1, BELVEDERE.r + 4, db));
+  // le petit creux du trésor
+  const dc = Math.hypot(x - TRESOR.x, z - TRESOR.z);
+  if (dc < TRESOR.r) h -= TRESOR.creux * (1 - (dc / TRESOR.r) ** 2) ** 2;
   // la butte d'Ōtonbu
   const dt = Math.hypot(x - OTONBU.x, z - OTONBU.z);
   if (dt < OTONBU.r) h += OTONBU.haut * (1 - lisse(3, OTONBU.r, dt)); // (le haut, plat : la plate-forme)
@@ -1143,6 +1155,7 @@ export function construire(ctx) {
     if (x > CAMPING.x0 - 3 && x < CAMPING.x1 + 3 && z > CAMPING.z0 - 3 && z < CAMPING.z1 + 3) return true;
     if (x > PALMERAIE.x0 - 2 && x < PALMERAIE.x1 + 2 && z > PALMERAIE.z0 - 2 && z < PALMERAIE.z1 + 2) return true;
     if (surLaLigne(MARCHES, x, z).d < 6) return true;
+    if (Math.hypot(x - TRESOR.x, z - TRESOR.z) < 5 || Math.hypot(x - MARCHAND.x, z - MARCHAND.z) < 3.5) return true;
     return false;
   };
   // le pré entre le tunnel et Maruyama, et le pied de l'escalier : la vue sur le petit volcan reste dégagée
@@ -1182,6 +1195,7 @@ export function construire(ctx) {
       // ni dans le sauna, à côté du camion, dans le champ de palmiers, devant le tunnel ni à côté du miroir
       if ((x > SAUNA.x - 6 && x < SAUNA.x + 5.5 && z > SAUNA.z - 6 && z < SAUNA.z + 9) || (x > PALMERAIE.x0 - 1 && x < PALMERAIE.x1 + 1 && z > PALMERAIE.z0 - 1 && z < PALMERAIE.z1 + 1)) continue;
       if (Math.hypot(x - T_X, z - T_Z) < 13 || Math.hypot(x - MIROIR.x, z - MIROIR.z) < 1.5) continue;
+      if (Math.hypot(x - TRESOR.x, z - TRESOR.z) < 4 || Math.hypot(x - MARCHAND.x, z - MARCHAND.z) < 2.5) continue;
       const y = terrain(x, z);
       if (tire() < 0.6) {
         // une fougère : des frondes en rosette, penchées vers l'extérieur
@@ -1235,7 +1249,7 @@ export function construire(ctx) {
       } else {
         const t = tire() * 2 * PI, dm = 10 + tire() * 14;
         x = MARUYAMA.x + Math.sin(t) * dm; z = MARUYAMA.z + Math.cos(t) * dm;
-        if (Math.hypot(x - SOMMET.x, z - SOMMET.z) < 4) continue;
+        if (Math.hypot(x - SOMMET.x, z - SOMMET.z) < 4 || Math.hypot(x - TRESOR.x, z - TRESOR.z) < 4) continue;
       }
       const r = 0.55 + tire() * 0.45;
       a.boule(r, tire() < 0.5 ? P.jungleFonce : P.jungle, { x, y: terrain(x, z) + 0.25, z, sy: 0.75, sorte: 'feuillu' }, 1);
@@ -1243,6 +1257,76 @@ export function construire(ctx) {
     }
     poser(a.fin(0, peinture), 0, 0, { y: 0 });
   }
+
+  // ---------------------------------------------------------------- Le secret : la boîte enterrée (2026-10-23)
+  // le camélia (tsubaki, l'arbre des îles d'Izu : ses fleurs rouges tombent entières) qui marque l'endroit, trois pierres
+  // autour du petit creux ; dans le creux, la boîte en fer enterrée (elle sort de terre quand on creuse, son couvercle
+  // s'ouvre : la lettre roulée, la photo, le koban)
+  const animes = [];
+  {
+    const a = atelier(), { x, z } = TSUBAKI, y = terrain(x, z), VERT = '#2f6a3a', VERT2 = '#3a7a42';
+    a.baton([x, y - 0.1, z], [x + 0.08, y + 1.1, z - 0.05], 0.08, P.tronc, 6)
+      .baton([x + 0.06, y + 0.9, z], [x - 0.35, y + 1.6, z + 0.2], 0.05, P.tronc, 5)
+      .baton([x + 0.06, y + 0.95, z], [x + 0.45, y + 1.7, z - 0.2], 0.05, P.tronc, 5);
+    for (const [dx, dy, dz, rr] of [[0, 2.0, 0, 0.95], [-0.55, 1.65, 0.25, 0.7], [0.55, 1.75, -0.25, 0.72], [0.1, 2.55, 0.05, 0.6], [-0.2, 1.4, -0.45, 0.55]]) {
+      a.boule(rr, rr > 0.7 ? VERT : VERT2, { x: x + dx, y: y + dy, z: z + dz, sy: 0.85, sorte: 'conifere' }, 1);
+    }
+    // les fleurs rouges (et leur cœur jaune), sur le feuillage et tombées par terre, tout autour
+    for (let k = 0; k < 34; k++) {
+      const t = hasard(k, 1.3) * 2 * PI, u = hasard(k, 2.9), yy = 1.25 + u * 1.5, rr = 0.75 + 0.25 * Math.sin(u * 3);
+      const fx = x + Math.sin(t) * rr * (1 - (u - 0.5) ** 2), fz = z + Math.cos(t) * rr * (1 - (u - 0.5) ** 2);
+      a.ovale(0.075, '#c8302c', { x: fx, y: y + yy, z: fz, sy: 0.65, trait: false }, 8).ovale(0.03, '#f2c443', { x: fx, y: y + yy + 0.045, z: fz, trait: false }, 5);
+    }
+    for (let k = 0; k < 14; k++) {
+      const t = hasard(k, 7.7) * 2 * PI, rr = 0.6 + hasard(k, 3.1) * 1.5, fx = x + Math.sin(t) * rr, fz = z + Math.cos(t) * rr;
+      a.ovale(0.07, '#b8282a', { x: fx, y: terrain(fx, fz) + 0.03, z: fz, sy: 0.5, trait: false }, 8);
+    }
+    for (const [dx, dz, rr] of [[-1.5, 1.3, 0.3], [-1.0, -1.7, 0.24], [1.6, 1.5, 0.27]]) {
+      const px = TRESOR.x + dx, pz = TRESOR.z + dz;
+      a.rocher(px, terrain(px, pz) + 0.05, pz, rr, P.rocheSombre);
+      monde.cercle(px, pz, rr + 0.1);
+    }
+    poser(a.fin(0, peinture), 0, 0, { y: 0 });
+    monde.cercle(x, z, 0.35);
+  }
+  const boite = (() => {
+    const yT = terrain(TRESOR.x, TRESOR.z), BLEU = '#5a7fa8', ROUILLE = '#9a5a3a';
+    const rouille = (x, y, z) => (Math.sin(x * 61 + z * 37) * Math.sin(y * 53 + x * 29) > 0.55 ? ROUILLE : BLEU);
+    const objet = new THREE.Group(), corps = ctx.maillage(atelier()
+      .boite(0.36, 0.12, 0.26, BLEU, { y: 0.06, teinte: rouille })
+      .boite(0.34, 0.012, 0.24, '#e9e4d6', { y: 0.118, trait: false }) // le fond intérieur, clair
+      .cylindre(0.025, 0.025, 0.2, 8, '#fbf6ea', { x: -0.06, y: 0.135, rz: Math.PI / 2 }) // la lettre roulée
+      .boite(0.1, 0.006, 0.08, '#f3ead8', { x: 0.09, y: 0.128, z: 0.04, ry: 0.3, trait: false }) // la photo
+      .fin(0, false));
+    const couvercle = new THREE.Group();
+    couvercle.position.set(0, 0.12, -0.13);
+    couvercle.add(ctx.maillage(atelier().boite(0.37, 0.03, 0.27, BLEU, { y: 0.015, z: 0.135, teinte: rouille })
+      .piece(new THREE.CircleGeometry(0.07, 18), '#e8b941', { y: 0.031, z: 0.135, rx: -Math.PI / 2, trait: false }).fin(0, false)));
+    const piece = ctx.maillage(atelier().ovale(0.03, '#f2c84f', { sy: 0.15, sz: 1.4 }, 10).fin(0, false));
+    piece.position.set(0.1, 0.135, -0.06);
+    objet.add(corps, couvercle, piece);
+    objet.position.set(TRESOR.x, yT - 0.3, TRESOR.z);
+    objet.rotation.y = 0.4;
+    objet.visible = false;
+    let sortie = 0, ouverture = 0, enMouvement = false;
+    if (secretTrouve('tresor')) { objet.visible = true; sortie = ouverture = 1; piece.visible = false; }
+    return {
+      objet,
+      sortir() { objet.visible = true; enMouvement = true; },
+      vider() { piece.visible = false; },
+      maj(dt) {
+        if (enMouvement) {
+          sortie = Math.min(1, sortie + dt / 1.1);
+          if (sortie >= 1) ouverture = Math.min(1, ouverture + dt / 0.9);
+          if (ouverture >= 1) enMouvement = false;
+        }
+        const s1 = sortie * sortie * (3 - 2 * sortie), s2 = ouverture * ouverture * (3 - 2 * ouverture);
+        objet.position.y = yT - 0.3 + 0.28 * s1;
+        couvercle.rotation.x = -1.9 * s2;
+      },
+    };
+  })();
+  animes.push({ objet: boite.objet, maj: (dt) => { boite.maj(dt); return []; } });
 
   // ---------------------------------------------------------------- Le village, sur le flanc nord (vu de la crête)
   {
@@ -1406,7 +1490,48 @@ export function construire(ctx) {
         jeu.cadrer(null);
       },
     },
-    { id: 'cahier', x: versAbri(0.22, -0.08)[0], z: versAbri(0.22, -0.08)[1], y: SOL_ABRI, rayon: 1.25, haut: 1.3, verbe: 'lire', action: (jeu) => jeu.dire(jeu.tx('cahier')) },
+    {
+      // le cahier des voyageurs, et sa dernière page : la carte au trésor (on s'en souvient : tresors.js, indice)
+      id: 'cahier', x: versAbri(0.22, -0.08)[0], z: versAbri(0.22, -0.08)[1], y: SOL_ABRI, rayon: 1.25, haut: 1.3, verbe: 'lire',
+      async action(jeu) {
+        await jeu.dire(jeu.tx('cahier'));
+        jeu.image(carteTresor(), 'carte-tresor');
+        await jeu.dire(jeu.tx('cahierCarte'));
+        jeu.image(null);
+        jeu.voirIndice('carte-tresor');
+        if (!jeu.secretTrouve('tresor')) await jeu.dire(jeu.tx('carteCompagnon')[jeu.compagnon], 'compagnon');
+      },
+    },
+    {
+      // creuser au pied du camélia (seulement si l'on a vu la carte : sans elle, rien ne dit de creuser là)
+      id: 'creuser', x: TRESOR.x, z: TRESOR.z, rayon: 1.9, haut: 0.9, verbe: 'creuser', si: (jeu) => jeu.indiceVu('carte-tresor') && !jeu.secretTrouve('tresor'),
+      async action(jeu) {
+        const y = terrain(TRESOR.x, TRESOR.z);
+        // la caméra de côté : on voit les mains dans la terre, puis la boîte
+        jeu.cadrerDeCote(TRESOR.x, y, TRESOR.z, { distance: 3.6, haut: 1.4 });
+        await jeu.dire(jeu.tx('creuserDebut'));
+        jeu.geste('creuser');
+        for (let k = 0; k < 3; k++) {
+          jeu.son('pelle');
+          jeu.terre(TRESOR.x, y + 0.08, TRESOR.z, y - 0.05, 12);
+          await jeu.attendre(850);
+        }
+        jeu.geste(null);
+        jeu.son('boite');
+        boite.sortir();
+        await jeu.attendre(1100);
+        await jeu.dire(jeu.tx('boiteTrouvee'));
+        jeu.image(photoClasse(), 'photo-classe');
+        await jeu.dire(jeu.tx('photoClasse'));
+        jeu.image(lettre(), 'lettre');
+        await jeu.dire(jeu.tx('lettre'));
+        jeu.image(null);
+        boite.vider();
+        await jeu.trouverSecret('tresor');
+        jeu.cadrer(null);
+      },
+    },
+    { id: 'boite', x: TRESOR.x, z: TRESOR.z, rayon: 1.7, haut: 0.7, verbe: 'regarder', si: (jeu) => jeu.secretTrouve('tresor'), action: (jeu) => jeu.dire(jeu.tx('boiteApres')) },
     {
       // les jumelles : une pièce, et l'on voit Hachijō-jima sur l'horizon, dans les deux ronds des jumelles
       id: 'jumelles', ...((q) => ({ x: q[0], z: q[2] }))(versJumelles(0, 0, -0.55)), rayon: 1.4, haut: 1.75, verbe: 'regarder',
@@ -1440,7 +1565,11 @@ export function construire(ctx) {
   const capHeros = vers(heros.x, heros.z, ...dM);
   return {
     ...infos, textes: TEXTES,
-    objets, monde, terrain, trouSol, etiquettes, passants, daims: [], interactions, actionDaim: null, vapeurs, bancs, lumieres, actionBete,
+    objets, monde, terrain, trouSol, etiquettes, passants, daims: [], interactions, actionDaim: null, vapeurs, bancs, lumieres, actionBete, animes,
+    // (le secret, tresors.js ; le marchand, derrière les palmiers ; les sons à fabriquer en plus ; les feux d'artifice,
+    // tirés du cratère du petit volcan)
+    secret: 'tresor', marchand: { ...MARCHAND, cap: Math.atan2(-42 - MARCHAND.x, -16 - MARCHAND.z) }, sons: ['pelle', 'boite'],
+    feux: { x: MARUYAMA.x, y: 9, z: MARUYAMA.z, large: 46, haut: [40, 62] },
     // les bêtes (betes.js) : trois grives des îles d'Izu (chacune entre ses coins : le bois près du sauna, l'herbe
     // du sentier, le camping), quatre lézards au chaud (autour des fumerolles, au pied du sauna), un chat roux qui
     // dort près de la marmite et un chat noir et blanc près du distributeur, des papillons (la crête, le camping,
@@ -1467,6 +1596,92 @@ export function construire(ctx) {
       perso: { x: depart.x, z: depart.z, cap: depart.cap + PI, lacet: depart.cap + PI + 0.05, tangage: 0.1, distance: 3.9 },
     },
   };
+}
+
+// ---------------------------------------------------------------- Le trésor : la carte, la photo, la lettre (SVG)
+/** Un trait de crayon d'enfant (le filtre le fait trembler). */
+const CRAYON = `<filter id="crayon" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="4"/></filter>`;
+/** Du lieu (x, z, en mètres) à la carte dessinée (400 × 400, le nord en haut). */
+const surCarte = (x, z) => [200 + x * 2.35, 205 + z * 2.35];
+/**
+ * La carte au trésor : une page de cahier à lignes ; au crayon de couleur, le grand cratère, le petit volcan et son
+ * chemin en spirale, les fumerolles, les tentes du camping, l'escalier, le tunnel, le sauna ; la croix rouge à l'est du
+ * petit volcan, près d'un arbre aux fleurs rouges et de trois cailloux ; « たからもの ここ！ » (le trésor, ici !).
+ */
+function carteTresor() {
+  const [mx, mz] = surCarte(MARUYAMA.x, MARUYAMA.z), [tx, tz] = surCarte(TRESOR.x, TRESOR.z), [cx, cz] = surCarte(TSUBAKI.x, TSUBAKI.z);
+  const [hx, hz] = surCarte(HINGYA.x, HINGYA.z), [sx, sz] = surCarte(SAUNA.x, SAUNA.z), [kx, kz] = surCarte(4, 44);
+  const [ux, uz] = surCarte(T_X, T_Z), [bx, bz] = surCarte(BAS[0], BAS[1]), [ax, az] = surCarte(HAUT[0], HAUT[1]);
+  let lignes = '';
+  for (let y = 30; y < 400; y += 22) lignes += `<path d="M0 ${y} H400" stroke="#b9d3e8" stroke-width="1.2"/>`;
+  let escalier = `M${bx} ${bz}`;
+  for (let k = 1; k <= 8; k++) { const f = k / 8; escalier += ` L${(bx + (ax - bx) * f + (k % 2 ? 7 : -7)).toFixed(1)} ${(bz + (az - bz) * f).toFixed(1)}`; }
+  return `<svg viewBox="0 0 400 400" class="dessin-enfant" aria-hidden="true"><defs>${CRAYON}</defs>
+    <rect width="400" height="400" fill="#fbf8ee"/>${lignes}<path d="M38 0 V400" stroke="#f0b0b0" stroke-width="1.5"/>
+    <g filter="url(#crayon)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <ellipse cx="200" cy="205" rx="152" ry="147" stroke="#7a5a3a" stroke-width="5"/>
+      <ellipse cx="200" cy="205" rx="176" ry="171" stroke="#5f9a45" stroke-width="3" stroke-dasharray="10 7"/>
+      <path d="M${mx - 48} ${mz + 26} Q${mx} ${mz - 62} ${mx + 48} ${mz + 26}" stroke="#3f8a3a" stroke-width="5" fill="#bfe0a0"/>
+      <path d="M${mx - 28} ${mz + 12} Q${mx} ${mz - 30} ${mx + 26} ${mz + 4} Q${mx + 6} ${mz - 14} ${mx - 10} ${mz - 8}" stroke="#9a7a4a" stroke-width="2.5"/>
+      <path d="M${hx - 12} ${hz + 8} q4 -10 0 -18 q-4 -8 0 -16 M${hx + 4} ${hz + 8} q4 -10 0 -18 q-4 -8 0 -16" stroke="#d8402e" stroke-width="3"/>
+      <path d="M${kx - 26} ${kz + 10} l12 -18 l12 18 z M${kx + 4} ${kz + 12} l12 -18 l12 18 z" stroke="#e8732e" stroke-width="3" fill="#ffd2a8"/>
+      <path d="${escalier}" stroke="#4a4a4a" stroke-width="3"/>
+      <path d="M${ux - 14} ${uz + 10} v-10 a14 14 0 0 1 28 0 v10" stroke="#4a4a4a" stroke-width="4"/>
+      <rect x="${sx - 14}" y="${sz - 10}" width="28" height="20" stroke="#3f6aa0" stroke-width="3"/>
+      <path d="M${sx - 6} ${sz - 14} q3 -6 0 -12 M${sx + 6} ${sz - 14} q3 -6 0 -12" stroke="#9ab" stroke-width="2"/>
+      <circle cx="${cx + 8}" cy="${cz - 10}" r="17" stroke="#2f6a3a" stroke-width="3" fill="#7ab36a"/>
+      <circle cx="${cx + 2}" cy="${cz - 16}" r="4.5" fill="#d8302c" stroke="#d8302c"/><circle cx="${cx + 15}" cy="${cz - 6}" r="4.5" fill="#d8302c" stroke="#d8302c"/><circle cx="${cx + 4}" cy="${cz - 2}" r="4" fill="#d8302c" stroke="#d8302c"/>
+      <circle cx="${tx - 16}" cy="${tz + 12}" r="3.5" fill="#888" stroke="#666"/><circle cx="${tx - 10}" cy="${tz - 14}" r="3" fill="#888" stroke="#666"/><circle cx="${tx + 15}" cy="${tz + 14}" r="3.2" fill="#888" stroke="#666"/>
+      <path d="M${tx - 11} ${tz - 11} L${tx + 11} ${tz + 11} M${tx + 11} ${tz - 11} L${tx - 11} ${tz + 11}" stroke="#d8302c" stroke-width="7"/>
+      <path d="M${tx + 30} ${tz + 52} Q${tx + 24} ${tz + 30} ${tx + 10} ${tz + 18}" stroke="#d8302c" stroke-width="3"/>
+      <path d="M352 52 l-4 -14 l-4 14 m4 -14 v34" stroke="#3a3236" stroke-width="3"/>
+      <circle cx="330" cy="352" r="15" stroke="#f2b33a" stroke-width="4" fill="#ffe08a"/>
+    </g>
+    <text x="60" y="40" font-size="24" font-weight="800" fill="#3a5ab0" font-family="'M PLUS Rounded 1c', sans-serif">あおがしま たからのちず</text>
+    <text x="348" y="30" font-size="15" font-weight="800" fill="#3a3236" font-family="'M PLUS Rounded 1c', sans-serif" text-anchor="middle">きた</text>
+    <text x="${tx + 2}" y="${tz + 76}" font-size="21" font-weight="800" fill="#d8302c" font-family="'M PLUS Rounded 1c', sans-serif" text-anchor="middle">たからもの ここ！</text>
+    <text x="${mx}" y="${mz + 50}" font-size="15" font-weight="700" fill="#3f8a3a" font-family="'M PLUS Rounded 1c', sans-serif" text-anchor="middle">まるやま</text>
+    <text x="${cx + 44}" y="${cz - 26}" font-size="14" font-weight="700" fill="#b8282a" font-family="'M PLUS Rounded 1c', sans-serif" text-anchor="middle">つばき</text>
+  </svg>`;
+}
+/**
+ * La photo de classe (sépia, bord blanc) : les neuf élèves de l'école de l'île et leur maîtresse devant l'école, la
+ * crête du cratère derrière ; dans la marge, « 1985年 夏 青ヶ島小学校 ».
+ */
+function photoClasse() {
+  const eleve = (x, y, k) => {
+    const h = 34 + (k % 3) * 4, c = ['#6a5038', '#5a4430', '#7a5e42'][k % 3];
+    return `<g transform="translate(${x} ${y})"><rect x="-11" y="${-h}" width="22" height="${h - 12}" rx="7" fill="${c}"/><circle cy="${-h - 9}" r="11" fill="#d9bf98"/>`
+      + `<path d="M-11 ${-h - 12} q11 -12 22 0" fill="#3a2a20"/><circle cx="-4" cy="${-h - 9}" r="1.4" fill="#2a2020"/><circle cx="4" cy="${-h - 9}" r="1.4" fill="#2a2020"/>`
+      + `<path d="M-3 ${-h - 4} q3 2.5 6 0" stroke="#2a2020" stroke-width="1.2" fill="none"/><rect x="-9" y="-12" width="7" height="12" fill="#4a3a2a"/><rect x="2" y="-12" width="7" height="12" fill="#4a3a2a"/></g>`;
+  };
+  let classe = '';
+  [[120, 228], [158, 230], [196, 228], [234, 230], [272, 228]].forEach(([x, y], k) => { classe += eleve(x, y, k); });
+  [[139, 262], [177, 264], [215, 262], [253, 264]].forEach(([x, y], k) => { classe += eleve(x, y, k + 5); });
+  return `<svg viewBox="0 0 400 330" class="photo-ancienne" aria-hidden="true">
+    <rect width="400" height="330" fill="#fbf8f0"/>
+    <g transform="translate(22 20)"><rect width="356" height="250" fill="#c8b08a"/>
+      <path d="M0 110 Q60 60 120 84 Q190 40 250 80 Q310 56 356 92 V250 H0 Z" fill="#a8916c"/>
+      <rect x="40" y="96" width="270" height="74" fill="#d8c4a0"/><path d="M30 98 L175 64 L320 98 Z" fill="#8f7856"/>
+      ${[70, 115, 160, 205, 250].map((x) => `<rect x="${x}" y="114" width="28" height="26" fill="#9f8a68"/>`).join('')}
+      <g transform="translate(-22 -20)">${classe}</g>
+      <g transform="translate(296 170)"><rect x="-13" y="-58" width="26" height="58" rx="8" fill="#5a6a7a"/><circle cy="-68" r="12" fill="#d9bf98"/><path d="M-12 -72 q12 -14 24 0 q-2 -8 -12 -9 q-10 1 -12 9" fill="#2a2020"/></g>
+      <rect width="356" height="250" fill="none" stroke="#8a7458" stroke-width="2"/></g>
+    <text x="200" y="306" font-size="20" font-weight="700" fill="#5a4a3a" text-anchor="middle" font-family="'M PLUS Rounded 1c', sans-serif">1985年 夏　青ヶ島小学校　みんなで</text>
+  </svg>`;
+}
+/** La lettre : une feuille à lignes, une écriture d'enfant (des lignes de « mots » au crayon), un dessin de koban. */
+function lettre() {
+  let mots = '';
+  for (let l = 0; l < 9; l++) {
+    let x = 34;
+    while (x < 340) { const w = 14 + ((l * 7 + x) % 23); mots += `<path d="M${x} ${66 + l * 30} q${w / 3} -4 ${w / 2} 0 t${w / 2} 0" stroke="#3a4a7a" stroke-width="2.4" fill="none"/>`; x += w + 9; }
+  }
+  return `<svg viewBox="0 0 400 360" class="dessin-enfant" aria-hidden="true"><defs>${CRAYON}</defs>
+    <rect width="400" height="360" fill="#fbf8ee"/>${Array.from({ length: 11 }, (_, k) => `<path d="M0 ${50 + k * 30} H400" stroke="#b9d3e8" stroke-width="1.2"/>`).join('')}
+    <text x="34" y="36" font-size="20" font-weight="800" fill="#3a4a7a" font-family="'M PLUS Rounded 1c', sans-serif">このはこを みつけた ひとへ</text>
+    <g filter="url(#crayon)">${mots}<ellipse cx="350" cy="320" rx="16" ry="23" fill="#f2c84f" stroke="#a87a22" stroke-width="3"/></g>
+  </svg>`;
 }
 
 /** Le mélange de deux couleurs « #rrggbb » (t : 0 à 1). */
@@ -1613,7 +1828,7 @@ const TEXTES = {
     campeurJour: ['Et voilà le soleil qui se lève sur la crête ! Bonne balade !'],
     campeurReste: ['D’accord ! Regarde bien : une étoile filante, ça passe vite.'],
     randonneuse: ['Je fais le tour du petit volcan.', 'Tout en haut, on est dans un volcan… lui-même dans un volcan !'],
-    enfant: ['Tu es venu en bateau ? Il est souvent annulé à cause des vagues !', 'Sinon, il y a l’hélicoptère, mais il n’a que quelques places.', 'Ici, tout le monde se connaît !'],
+    enfant: ['Tu es venu en bateau ? Il est souvent annulé à cause des vagues !', 'Sinon, il y a l’hélicoptère, mais il n’a que quelques places.', 'Ici, tout le monde se connaît !', 'À l’école, on raconte qu’une ancienne classe a caché un trésor dans le cratère… Mais personne ne l’a jamais trouvé !'],
     grandpere: ['En 1785, le volcan a explosé. Tout le monde a fui vers Hachijō.', 'Il a fallu près de cinquante ans pour que les habitants reviennent.', 'On appelle ça le « kanjū » : le retour au pays.'],
     videaste: ['Salut ! Je filme les plus beaux lieux du Japon pour TikTok.', 'Mon compte, c’est @random_japan_place.', 'J’ai fait une vidéo d’Aogashima. Tu veux la voir ?'],
     videasteNon: ['D’accord ! Elle est aussi sur la carte, avec tous les autres lieux.'],
@@ -1629,12 +1844,18 @@ const TEXTES = {
       kon: ['Chaud… chaud… chaud ! Mon pelage est tout trempé !'],
       pon: ['Pon… je fonds comme un mochi grillé… Après, on mange des œufs du volcan ?'],
       chapu: ['Chapu ! C’est comme une rivière… mais dans l’air ! Encore, encore !'],
+      gao: ['Gao… Sur mon île aussi il fait chaud, mais là, c’est un four à patates douces !'],
+      fuwa: ['Fuwa… Un dragon des mers ne craint pas la vapeur ! (Mais mes moustaches frisent.)'],
+      saya: ['Mes feuilles… se recroquevillent… Un arbre n’est pas fait pour le sauna !'],
     },
     abri: ['Le vent souffle sur la crête…', 'D’ici, tout le cratère : la jungle du fond, les vapeurs des fumerolles, le petit volcan Maruyama… et l’océan, tout autour.'],
     abriCompagnon: {
       kon: ['« On se croirait au bord du bol d’un géant… Les dieux doivent aimer cet endroit. »'],
       pon: ['« Une pause bien méritée ! Tu as un onigiri dans ton sac ? Non ? Tant pis… »'],
       chapu: ['« Regarde la mer, toute bleue ! J’irais bien y plonger… mais c’est un peu loin, en bas. »'],
+      gao: ['« D’ici, je garderais toute l’île. C’est le meilleur poste de gardien ! »'],
+      fuwa: ['« Toute cette mer… Mon grand-père le dragon doit dormir quelque part là-dessous. »'],
+      saya: ['« Le vent chante dans les herbes… Les vieux arbres de la paroi te disent bonjour. »'],
     },
     cahier: ['Un cahier sur la table : « 思い出ノート », le cahier des souvenirs. Les voyageurs y laissent un mot.', '« Le bateau n’a pas pu accoster trois jours de suite. Je suis venue en hélicoptère : neuf places, vingt minutes ! »', '« Vu la Voie lactée depuis le camping. Je reviendrai. »', '« Les œufs de la marmite du volcan sont les meilleurs du monde. — un garçon de Tokyo, 8 ans »'],
     jumelles: ['Des jumelles à pièces : 100 yens. Tu glisses une pièce… clic !'],
@@ -1657,6 +1878,9 @@ const TEXTES = {
       kon: ['« Les étoiles… On dirait les lanternes des dieux. »'],
       pon: ['« Une pause sous les étoiles ! Tu as un onigiri dans ton sac ? Non ? Tant pis… »'],
       chapu: ['« Tant d’étoiles ! On dirait des bulles qui brillent dans une rivière toute noire ! »'],
+      gao: ['« La nuit, je veille. Dors tranquille, je garde le cratère. »'],
+      fuwa: ['« Les étoiles brillent comme ma perle ! »'],
+      saya: ['« Regarde mes yeux : ils brillent comme les lucioles ! »'],
     },
     // les bêtes
     grive: ['Une grive des îles d’Izu : l’akakokko ! Tête noire, ventre roux, bec jaune.', 'Elle ne vit que dans les îles d’Izu et quelques îles du sud du Japon. C’est un « monument naturel » protégé.'],
@@ -1669,7 +1893,25 @@ const TEXTES = {
       kon: ['« Un chat ! Aux sanctuaires d’Inari, il y en a souvent qui dorment au soleil. »'],
       pon: ['« Pon ! Tu crois qu’il voudra bien partager ses croquettes ? »'],
       chapu: ['« Un chat ! Il paraît qu’ils n’aiment pas l’eau… Bizarre ! »'],
+      gao: ['« Un chat ! On est un peu cousins, lui et moi… mais moi, je suis un lion ! »'],
+      fuwa: ['« Il a l’air tout doux… Je peux flotter au-dessus de lui ? »'],
+      saya: ['« Il dort au chaud, sur la terre du volcan. Les racines aiment ça aussi. »'],
     },
+    // le secret : la carte au trésor du cahier, la boîte enterrée
+    cahierCarte: ['La dernière page… une carte dessinée au crayon de couleur, par des enfants !', '« あおがしま たからのちず » : la carte au trésor d’Aogashima. Une croix rouge, près d’un arbre aux fleurs rouges…'],
+    carteCompagnon: {
+      kon: ['« La croix est à l’est du petit volcan, près d’un arbre aux fleurs rouges et de trois cailloux… Allons voir ! »'],
+      pon: ['« Un trésor ?! Pon pon ! À l’est du petit volcan… près d’un arbre rouge ! Vite ! »'],
+      chapu: ['« Une chasse au trésor ! La croix… à côté du petit volcan, vers le soleil levant ! »'],
+      gao: ['« Gao ! À l’est de Maruyama, un arbre à fleurs rouges, trois pierres… Je monte la garde pendant que tu creuses ! »'],
+      fuwa: ['« Fuwa ! Vu du ciel, ce serait facile… À l’est du petit volcan, près des fleurs rouges ! »'],
+      saya: ['« Un camélia… Je l’entends d’ici. À l’est du petit volcan. Les racines savent où est la boîte. »'],
+    },
+    creuserDebut: ['C’est ici : le camélia, les trois cailloux, le petit creux… comme sur la carte !', 'Tu creuses avec les mains…'],
+    boiteTrouvee: ['Tes doigts touchent quelque chose de dur… Une vieille boîte en fer, toute rouillée !', 'Le couvercle grince et s’ouvre.'],
+    photoClasse: ['Dedans, une photo : neuf enfants et leur maîtresse, devant l’école de l’île.', '« 1985年 夏 » : l’été 1985.'],
+    lettre: ['Et une lettre, roulée dans un ruban :', '« À toi qui trouves cette boîte ! Nous sommes les élèves de l’école d’Aogashima.', 'Il y a deux cents ans, en 1785, le volcan s’est réveillé. Nos ancêtres ont dû fuir jusqu’à Hachijō.', 'Presque cinquante ans plus tard, en 1835, menés par Sasaki Jirōdayū, ils sont revenus et ont reconstruit le village. C’est le « kanjū », le retour.', 'Alors, n’oublie pas : on revient toujours chez soi.', 'Garde le koban porte-bonheur, et laisse la lettre pour le prochain voyageur ! »'],
+    boiteApres: ['La vieille boîte en fer, dans son petit creux.', 'Tu y as laissé la lettre et la photo, pour le prochain voyageur.'],
   },
   en: {
     noms: { gardienne: 'Sauna keeper', garde: 'Ranger', campeur: 'Camper', randonneuse: 'Hiker', enfant: 'Island boy', grandpere: 'Old man', videaste: '@random_japan_place' },
@@ -1703,7 +1945,7 @@ const TEXTES = {
     campeurJour: ['And here comes the sun over the rim! Enjoy your walk!'],
     campeurReste: ['Okay! Keep your eyes open: shooting stars are quick.'],
     randonneuse: ['I’m walking around the little volcano.', 'At the top, you’re in a volcano… inside a volcano!'],
-    enfant: ['Did you come by boat? It’s often cancelled because of the waves!', 'Otherwise there’s the helicopter, but it only has a few seats.', 'Here, everybody knows everybody!'],
+    enfant: ['Did you come by boat? It’s often cancelled because of the waves!', 'Otherwise there’s the helicopter, but it only has a few seats.', 'Here, everybody knows everybody!', 'At school, they say an old class hid a treasure somewhere in the crater… But nobody has ever found it!'],
     grandpere: ['In 1785, the volcano exploded. Everyone fled to Hachijō.', 'It took almost fifty years for the islanders to come back.', 'We call it “kanjū”: the return home.'],
     videaste: ['Hi! I film the most beautiful places in Japan for TikTok.', 'My account is @random_japan_place.', 'I made a video of Aogashima. Want to watch it?'],
     videasteNon: ['Okay! It’s also on the map, with all the other places.'],
@@ -1719,12 +1961,18 @@ const TEXTES = {
       kon: ['Hot… hot… hot! My fur is soaked!'],
       pon: ['Pon… I’m melting like a grilled mochi… Volcano eggs after this?'],
       chapu: ['Chapu! It’s like a river… but in the air! Again, again!'],
+      gao: ['Gao… It’s warm on my island too, but this is a sweet-potato oven!'],
+      fuwa: ['Fuwa… A sea dragon isn’t afraid of steam! (But my whiskers are curling.)'],
+      saya: ['My leaves… are curling up… Trees aren’t made for saunas!'],
     },
     abri: ['The wind blows over the rim…', 'From here, the whole crater: the jungle below, the steam of the vents, little Maruyama… and the ocean all around.'],
     abriCompagnon: {
       kon: ['“It feels like sitting on the rim of a giant’s bowl… The gods must love this place.”'],
       pon: ['“A well-earned break! Got an onigiri in your bag? No? Oh well…”'],
       chapu: ['“Look at the sea, so blue! I’d love a dive… but it’s a long way down.”'],
+      gao: ['“From here, I could guard the whole island. The best guard post ever!”'],
+      fuwa: ['“All that sea… My grandfather the dragon must be sleeping somewhere down there.”'],
+      saya: ['“The wind is singing in the grass… The old trees of the cliff say hello.”'],
     },
     cahier: ['A notebook on the table: “思い出ノート”, the memory book. Travellers leave a few words in it.', '“The boat couldn’t dock three days in a row. I came by helicopter: nine seats, twenty minutes!”', '“Saw the Milky Way from the campsite. I’ll be back.”', '“The eggs from the volcano pot are the best in the world. — a boy from Tokyo, age 8”'],
     jumelles: ['Coin-operated binoculars: 100 yen. You slip in a coin… click!'],
@@ -1746,6 +1994,9 @@ const TEXTES = {
       kon: ['“The stars… They look like the gods’ lanterns.”'],
       pon: ['“A break under the stars! Got an onigiri in your bag? No? Oh well…”'],
       chapu: ['“So many stars! Like shiny bubbles in a pitch-black river!”'],
+      gao: ['“At night, I keep watch. Sleep well, I’m guarding the crater.”'],
+      fuwa: ['“The stars shine like my pearl!”'],
+      saya: ['“Look at my eyes: they glow like fireflies!”'],
     },
     grive: ['An Izu thrush: the akakokko! Black head, rusty belly, yellow bill.', 'It only lives on the Izu Islands and a few islands in southern Japan. It is a protected “natural monument”.'],
     lezard: ['An Okada’s skink (okada-tokage) is warming itself on the volcano’s warm ground.', 'The young ones have bright blue tails. It lives almost only on the Izu Islands.', 'Gently… If you run, it dashes off!'],
@@ -1757,7 +2008,24 @@ const TEXTES = {
       kon: ['“A cat! At Inari shrines, there are often some napping in the sun.”'],
       pon: ['“Pon! Do you think it would share its cat food?”'],
       chapu: ['“A cat! They say cats don’t like water… Weird!”'],
+      gao: ['“A cat! We’re sort of cousins, him and me… but I’m a lion!”'],
+      fuwa: ['“He looks so soft… Can I float above him?”'],
+      saya: ['“He sleeps in the warmth of the volcano. Roots like that too.”'],
     },
+    cahierCarte: ['The last page… a map drawn with coloured pencils, by children!', '“あおがしま たからのちず”: the treasure map of Aogashima. A red cross, near a tree with red flowers…'],
+    carteCompagnon: {
+      kon: ['“The cross is east of the little volcano, near a tree with red flowers and three pebbles… Let’s go and see!”'],
+      pon: ['“A treasure?! Pon pon! East of the little volcano… near a red tree! Hurry!”'],
+      chapu: ['“A treasure hunt! The cross… next to the little volcano, towards the sunrise!”'],
+      gao: ['“Gao! East of Maruyama, a tree with red flowers, three stones… I’ll stand guard while you dig!”'],
+      fuwa: ['“Fuwa! From the sky it would be easy… East of the little volcano, near the red flowers!”'],
+      saya: ['“A camellia… I can hear it from here. East of the little volcano. The roots know where the box is.”'],
+    },
+    creuserDebut: ['This is it: the camellia, the three pebbles, the little hollow… just like on the map!', 'You dig with your hands…'],
+    boiteTrouvee: ['Your fingers touch something hard… An old tin box, all rusty!', 'The lid creaks open.'],
+    photoClasse: ['Inside, a photo: nine children and their teacher, in front of the island school.', '“1985年 夏”: summer 1985.'],
+    lettre: ['And a letter, rolled up in a ribbon:', '“To you who found this box! We are the pupils of Aogashima school.', 'Two hundred years ago, in 1785, the volcano woke up. Our ancestors had to flee all the way to Hachijō.', 'Almost fifty years later, in 1835, led by Sasaki Jirōdayū, they came back and rebuilt the village. It is called the “kanjū”, the return.', 'So don’t forget: you always come back home.', 'Keep the lucky koban, and leave the letter for the next traveller!”'],
+    boiteApres: ['The old tin box, in its little hollow.', 'You left the letter and the photo in it, for the next traveller.'],
   },
   ja: {
     noms: { gardienne: 'サウナの おばあさん', garde: 'レンジャーさん', campeur: 'キャンパーさん', randonneuse: 'ハイカーさん', enfant: '島の 子ども', grandpere: 'おじいさん', videaste: '@random_japan_place' },
@@ -1791,7 +2059,7 @@ const TEXTES = {
     campeurJour: ['ほら、外輪山から お日さまが のぼってきた！ いい さんぽを！'],
     campeurReste: ['オッケー！ よく 見ててね。流れ星は 一瞬だよ。'],
     randonneuse: ['丸山の まわりを 歩いているの。', 'てっぺんに 立つと、火山の 中の 火山に いるって わかるよ！'],
-    enfant: ['船で 来たの？ 波が 高いと すぐ 欠航するんだよ！', 'ヘリコプターも あるけど、席が すこししか ないんだ。', 'この 島では みんな 知り合いだよ！'],
+    enfant: ['船で 来たの？ 波が 高いと すぐ 欠航するんだよ！', 'ヘリコプターも あるけど、席が すこししか ないんだ。', 'この 島では みんな 知り合いだよ！', '学校の うわさ なんだけど、むかしの クラスが 火口の どこかに たからものを うめたんだって……まだ だれも 見つけて ないよ！'],
     grandpere: ['1785年、火山が 大噴火して、島の 人は 八丈島へ にげたんじゃ。', 'みんなが もどって こられたのは、50年 ちかく あとの こと。', 'それを 「還住」と いうんじゃよ。'],
     videaste: ['やあ！ 日本の すてきな 場所を TikTokで しょうかい しているんだ。', 'アカウントは @random_japan_place。', '青ヶ島の 動画も あるよ。見てみる？'],
     videasteNon: ['オッケー！ 地図にも ほかの 場所と いっしょに のっているよ。'],
@@ -1807,12 +2075,18 @@ const TEXTES = {
       kon: ['あつい……あつい……あつーい！ 毛が びしょびしょ だよ！'],
       pon: ['ポン……やいた おもちみたいに とけちゃう……あとで 地熱釜の たまご たべよ？'],
       chapu: ['チャプ！ 空の 中の 川みたい！ もっと もっと！'],
+      gao: ['ガオ……ぼくの 島も あついけど、ここは さつまいもを やく かまどだ！'],
+      fuwa: ['フワ……海の りゅうは 湯気なんて こわくない！（でも ひげが くるくるに なっちゃう。）'],
+      saya: ['葉っぱが……ちぢんで いく……木は サウナに むいてないよ！'],
     },
     abri: ['外輪山を 風が ふきぬける……', 'ここから カルデラが ぜんぶ 見える。底の ジャングル、ひんぎゃの 湯気、小さな 丸山……そして まわりは 一面の 海。'],
     abriCompagnon: {
       kon: ['「巨人の おわんの ふちに すわってる みたい……神さまも きっと この けしきが すきだね。」'],
       pon: ['「ひとやすみ ひとやすみ！ リュックに おにぎり ない？ ない？ ざんねん……」'],
       chapu: ['「海が まっさお！ とびこみたいな……でも 下まで ちょっと 遠すぎる かも。」'],
+      gao: ['「ここからなら 島ぜんぶを 守れる。さいこうの 見はり台だ！」'],
+      fuwa: ['「この 海の どこかで、りゅうの おじいちゃんが ねむって いるんだ。」'],
+      saya: ['「風が 草の 中で うたってる……がけの 古い 木たちが こんにちは って。」'],
     },
     cahier: ['テーブルの 上に ノート。「思い出ノート」……旅人が ひとこと 書いていく。', '「船が 3日も つけなかった。ヘリで 来ました。9人のり、20分！」', '「キャンプ場から 天の川が 見えた。また 来ます。」', '「地熱釜の たまごは 世界一 おいしい。—— 東京の 8さいの 男の子」'],
     jumelles: ['100円の 望遠鏡。コインを 入れて……カチッ！'],
@@ -1834,6 +2108,9 @@ const TEXTES = {
       kon: ['「星が……神さまの ちょうちんみたいだね。」'],
       pon: ['「星空の 下で ひとやすみ！ おにぎり もってない？ ない？ ざんねん……」'],
       chapu: ['「星が いっぱい！ まっくらな 川で ひかる あわ みたい！」'],
+      gao: ['「夜は ぼくが 見はるよ。安心して ねてね、火口は 守るから。」'],
+      fuwa: ['「星が ぼくの しんじゅ みたいに ひかってる！」'],
+      saya: ['「ぼくの 目を 見て。ホタルみたいに ひかってるでしょ！」'],
     },
     grive: ['アカコッコだ！ 頭は 黒、おなかは 赤茶色、くちばしは 黄色。', '伊豆諸島と 南の 島に しか いない 鳥。国の 天然記念物 なんだ。'],
     lezard: ['オカダトカゲが 火山の あたたかい 地面で ひなたぼっこ。', '子どもの しっぽは あざやかな 青。ほとんど 伊豆諸島 だけに すんでいる。', 'そーっと……走ったら にげちゃうよ！'],
@@ -1845,6 +2122,23 @@ const TEXTES = {
       kon: ['「ねこだ！ お稲荷さんでも よく 日なたで ねているよ。」'],
       pon: ['「ポン！ ねこの ごはん、わけて くれるかな？」'],
       chapu: ['「ねこだ！ ねこは 水が きらいなんだって……ふしぎ！」'],
+      gao: ['「ねこだ！ ぼくたち ちょっと いとこ なんだ……でも ぼくは ライオン！」'],
+      fuwa: ['「ふわふわ だね……上に ういても いい？」'],
+      saya: ['「火山の あたたかい 土の 上で ねてる。根っこも それが すきなんだ。」'],
     },
+    cahierCarte: ['さいごの ページ……子どもが 色えんぴつで かいた 地図だ！', '「あおがしま たからのちず」。赤い 花の 木の そばに、赤い バツじるし……'],
+    carteCompagnon: {
+      kon: ['「バツは 丸山の 東がわ。赤い 花の 木と 三つの 小石の そば……行って みよう！」'],
+      pon: ['「おたから!? ポンポン！ 丸山の 東……赤い 木の そば！ いそげ！」'],
+      chapu: ['「たからさがし！ バツは……丸山の となり、お日さまが のぼる ほう！」'],
+      gao: ['「ガオ！ 丸山の 東、赤い 花の 木、三つの 石……ほる あいだ ぼくが 見はるよ！」'],
+      fuwa: ['「フワ！ 空から なら かんたんなのに……丸山の 東、赤い 花の そば！」'],
+      saya: ['「ツバキだ……ここまで 声が きこえる。丸山の 東。根っこが はこの ありかを しってる。」'],
+    },
+    creuserDebut: ['ここだ。ツバキ、三つの 小石、小さな くぼみ……地図と おなじ！', '手で ほって みた……'],
+    boiteTrouvee: ['ゆびに なにか かたい ものが……さびた 古い ブリキの はこだ！', 'ふたが ギィッと ひらいた。'],
+    photoClasse: ['中には 写真。島の 学校の まえで、9人の 子どもと 先生。', '「1985年 夏」。'],
+    lettre: ['それと、リボンで まいた 手紙：', '「この はこを みつけた ひとへ！ ぼくたちは 青ヶ島小学校の 生徒です。', '二百年まえの 1785年、火山が 目を さましました。ご先祖さまは 八丈島まで にげました。', 'それから 五十年 ちかく たった 1835年、佐々木次郎太夫に みちびかれて 島に もどり、村を つくりなおしました。これを「還住（かんじゅう）」と いいます。', 'だから わすれないで。人は いつか ふるさとに かえるんだ。', 'しあわせの 小判は あなたに。手紙は つぎの 旅人の ために のこしてね！」'],
+    boiteApres: ['小さな くぼみの 中の、古い ブリキの はこ。', '手紙と 写真は つぎの 旅人の ために のこした。'],
   },
 };

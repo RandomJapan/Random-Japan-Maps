@@ -10,7 +10,9 @@
 //    du rivage, les fumerolles, les insectes la nuit, la musique de la scène de nō ; et de temps en temps un
 //    oiseau ; oiseau(nom, o) : le cri
 //    d'un oiseau qu'on voit (les mouettes, les grives d'Aogashima) ; bete(nom, o) : un chat qui miaule, qui ronronne ;
-//  - couper(oui) : le silence (pendant la vidéo TikTok).
+//  - couper(oui) : le silence (pendant la vidéo TikTok) ;
+//  - les trésors (2026-10-23) : sons(liste) fabrique des sons de plus quand il le faut (les feux d'artifice, la
+//    pelle…) ; feu(nom, o) : une fusée, un éclat (avec le retard du son : delai), les mille éclats ; jouerSon(nom, o).
 //  Rien ne sonne avant le premier geste, ni le son coupé (son.js).
 // ================================================================
 import { son } from './son.js';
@@ -24,7 +26,7 @@ const VARIANTES = 5;
 // (Aogashima) sous la musique, à −29 LUFS ; en marchant, à peu près au niveau de la musique
 const V = {
   pas: 0.14, course: 0.2, kon: 0.045, ebrouer: 0.1, oiseau: 0.045, mouette: 0.05, akakokko: 0.04, cri: 0.07, tambour: 0.03, pouf: 0.08,
-  miaou: 0.05, ronron: 0.07,
+  miaou: 0.05, ronron: 0.07, corbeau: 0.06, pelle: 0.09, boite: 0.09, depart: 0.035, boum: 0.16, crepite: 0.05,
   ventDoux: [0.0035, 0.006], ventFort: 0.015, feuilles: [0.003, 0.017], vagues: 0.0085, vapeur: 0.02, insectes: 0.0056,
   no: 0.0085,
 };
@@ -36,8 +38,9 @@ const lisse = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a)
  * vent et des feuilles ('vagues', 'vapeur', 'insectes') : seulement celles du lieu (elles pèsent quelques
  * mégaoctets en mémoire) ; betes : les cris de ses bêtes ('miaou', 'ronron').
  */
-export function creerBruitage({ oiseaux = [], ambiances = [], betes = [] } = {}) {
-  let ctx = null, sortie = null, commence = false, coupe = false;
+export function creerBruitage({ oiseaux = [], ambiances = [], betes = [], extras = [] } = {}) {
+  let ctx = null, sortie = null, commence = false, coupe = false, travailleur = null, recevoir = null, surPlace = null;
+  const enAttente = [];
   const tampons = new Map(); // « pas/herbe/2 » → AudioBuffer
   const boucles = {}; // nom → { g (volume), p (gauche-droite) }
   const derniers = {}; // sol → dernière variante jouée (jamais deux fois la même de suite)
@@ -51,10 +54,10 @@ export function creerBruitage({ oiseaux = [], ambiances = [], betes = [] } = {})
     sortie = ctx.createGain();
     sortie.connect(son.sortie());
     // (les cris d'abord : le choix du compagnon les fait entendre dès le départ)
-    const sr = ctx.sampleRate, liste = ['cri/kon', 'cri/pon', 'cri/chapu', 'pouf', 'tambour'];
+    const sr = ctx.sampleRate, liste = ['cri/kon', 'cri/pon', 'cri/chapu', 'cri/gao', 'cri/fuwa', 'cri/saya', 'pouf', 'tambour'];
     for (const sol of Object.keys(SOLS)) for (let v = 0; v < VARIANTES; v++) liste.push(`pas/${sol}/${v}`);
-    liste.push('boucle/ventDoux', 'boucle/ventFort', 'boucle/feuilles', 'ebrouer', ...ambiances.map((a) => `boucle/${a}`), ...oiseaux.map((o) => `oiseau/${o}`), ...betes.map((b) => `bete/${b}`));
-    const recevoir = ({ quoi, canaux }) => {
+    liste.push('boucle/ventDoux', 'boucle/ventFort', 'boucle/feuilles', 'ebrouer', ...ambiances.map((a) => `boucle/${a}`), ...oiseaux.map((o) => `oiseau/${o}`), ...betes.map((b) => `bete/${b}`), ...extras, ...enAttente.splice(0));
+    recevoir = ({ quoi, canaux }) => {
       if (!canaux) return;
       const b = ctx.createBuffer(canaux.length, canaux[0].length, sr);
       canaux.forEach((c, i) => b.copyToChannel(c, i));
@@ -62,7 +65,7 @@ export function creerBruitage({ oiseaux = [], ambiances = [], betes = [] } = {})
       if (quoi.startsWith('boucle/')) lancerBoucle(quoi.slice(7), b);
     };
     // sans worker (ou s'il échoue) : un son à la fois, entre deux images
-    const surPlace = (reste) => {
+    surPlace = (reste) => {
       const quoi = reste.shift();
       if (!quoi) return;
       try { recevoir({ quoi, canaux: fabriquer(quoi, sr) }); } catch { /* ce son-là manquera */ }
@@ -71,11 +74,20 @@ export function creerBruitage({ oiseaux = [], ambiances = [], betes = [] } = {})
     try {
       const w = new Worker(new URL('./bruitage-calcul.js', import.meta.url), { type: 'module' });
       w.onmessage = (e) => recevoir(e.data);
-      w.onerror = () => { w.terminate(); surPlace(liste.filter((q) => !tampons.has(q))); };
+      w.onerror = () => { w.terminate(); travailleur = null; surPlace(liste.filter((q) => !tampons.has(q))); };
       w.postMessage({ sr, liste });
+      travailleur = w;
     } catch {
       surPlace(liste);
     }
+  }
+  /** Fabrique des sons de plus (s'ils ne le sont pas déjà) ; avant le premier son, ils attendent la liste du départ. */
+  function sons(liste) {
+    const manque = liste.filter((q) => !tampons.has(q));
+    if (!manque.length) return;
+    if (!commence) { enAttente.push(...manque); return; }
+    if (travailleur) travailleur.postMessage({ sr: ctx.sampleRate, liste: manque });
+    else surPlace?.(manque);
   }
 
   function lancerBoucle(nom, b) {
@@ -188,6 +200,16 @@ export function creerBruitage({ oiseaux = [], ambiances = [], betes = [] } = {})
     },
     /** Fabrique les sons dès maintenant, si le son joue déjà (les cris du départ seront prêts à temps). */
     preparer() { const pret = son.pret(); if (pret && !commence) commencer(pret); },
+    sons,
+    /** Un son des trésors ('pelle', 'boite'…), plus ou moins fort, de quel côté. */
+    jouerSon(nom, { force = 1, pan = 0 } = {}) { if (commence && son.pret()) jouer(nom, { gain: (V[nom] ?? 0.08) * force, pan, vitesse: 0.97 + Math.random() * 0.06 }); },
+    /** Les feux d'artifice : nom 'depart', 'boum' ou 'crepite' ; delai : le temps que met le son à arriver (en s). */
+    feu(nom, { force = 1, pan = 0, delai = 0 } = {}) {
+      if (!commence || !son.pret()) return;
+      const q = `feu/${nom}`, gain = V[nom] * force, vitesse = (nom === 'boum' ? 0.85 + Math.random() * 0.3 : 0.95 + Math.random() * 0.1);
+      if (delai > 0.01) setTimeout(() => jouer(q, { gain, pan, vitesse }), delai * 1000);
+      else jouer(q, { gain, pan, vitesse });
+    },
     /** Le silence (oui), ou le retour du bruitage. */
     couper(oui) {
       coupe = oui;

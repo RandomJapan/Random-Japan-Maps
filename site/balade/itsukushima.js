@@ -4,18 +4,30 @@
 //  devant le pavillon de prière, on va jusqu'au bout de la plate-forme (le torii juste en face), on ressort
 //  par la galerie de l'ouest, devant la scène de nō. Au sud-est, la rue des boutiques et la colline de la
 //  pagode. On peut aussi marcher sur l'estran jusqu'au torii. D'après la vidéo du propriétaire.
+//  Son secret (2026-10-23) : les corbeaux sacrés. Une douceur posée sur la pierre plate cachée derrière la pagode, deux
+//  corbeaux qui la prennent et mènent jusqu'au bosquet de bambous du sud-ouest, qui s'ouvre sur un petit sanctuaire
+//  oublié ; un koban sur son plateau d'offrandes (tresors.js). Bunbuku, le marchand, attend sous les pins du sud.
 //  Repère : x vers l'est, z vers le sud, y vers le haut, en mètres ; la mer est au nord, à y = 0 ; l'estran
 //  est à −0,27 (sous 27 cm d'eau). ctx : { THREE, atelier, P (palette), peinture }.
 // ================================================================
 import { creerMonde, interactionsBancs, lisse, hasard, bruitDoux } from './monde.js';
 import { panneau, trepied, PAPIER_PANNEAU } from './decor.js';
 import { MATIERES as M } from './textures.js';
+import { creerCorbeaux } from './corbeaux.js';
+import { secretTrouve } from './tresors.js';
 
 const PLANCHER = 1.72; // les planchers du sanctuaire (au-dessus de la mer haute)
 const BORD = 0.35; // on marche à cette distance des garde-corps
 const TORII = { x: 0, z: -70, ecart: 5.6, appui: 2.7 };
 const TORII_HAUT = 14.95; // le dessus du linteau du haut, à 3,6 m du milieu (un goéland s'y pose)
 const COLLINE = { x: 46, z: 34, haut: 5 };
+// le secret : la pierre plate des offrandes, derrière la pagode ; le bosquet de bambous fermé (sa porte, à l'est) et le
+// petit sanctuaire oublié au milieu
+const PIERRE = { x: 49.6, z: 44.0 };
+const BOSQUET = { x: 15, z: 40.6, r: 4.5, porte: Math.PI / 2, ouverture: 0.34 };
+const HOKORA = { x: 12.7, z: 40.6 };
+const TORII_CACHE = { x: 14.9, z: 40.6 };
+const SANBO = { x: 13.75, z: 40.6 };
 
 /** Le sol naturel : la baie (l'estran) devant le sanctuaire, la plage à l'est, la terre au sud et la colline. */
 function solNaturel(x, z) {
@@ -815,6 +827,215 @@ export function construire(ctx) {
     lumieres.push({ x, y: terrain(x, z) + 1.3, z, halo: 0.45, sol: terrain(x, z), r: 2.1 });
   }
 
+  // ---------------------------------------------------------------- Le secret : les corbeaux sacrés (2026-10-23)
+  const animes = []; // ce qui bouge et qu'on anime (balade.js) : { objet, maj(dt, temps, contexte) → les cris }
+  const groupeSecret = new THREE.Group();
+  let ouvert = secretTrouve('corbeaux'), ouverture = ouvert ? 1 : 0;
+  // la pierre plate des offrandes, à demi cachée derrière la pagode, sur deux rochers, un peu de mousse
+  const yPierre = terrain(PIERRE.x, PIERRE.z) + 0.3;
+  {
+    const a = atelier(), y0 = terrain(PIERRE.x, PIERRE.z);
+    a.rocher(PIERRE.x - 0.28, y0 + 0.06, PIERRE.z + 0.12, 0.32, P.pierreFonce).rocher(PIERRE.x + 0.34, y0 + 0.04, PIERRE.z - 0.1, 0.27, P.pierre)
+      .boite(0.96, 0.12, 0.72, P.pierre, { x: PIERRE.x, y: yPierre - 0.06, z: PIERRE.z, ry: 0.3, nuance: 0.06 })
+      .ovale(0.12, P.herbeFonce, { x: PIERRE.x - 0.32, y: yPierre - 0.005, z: PIERRE.z + 0.2, sx: 1.4, sy: 0.12, trait: false }, 8);
+    poser(a.fin(0, peinture), 0, 0, { y: 0 });
+    monde.cercle(PIERRE.x, PIERRE.z, 0.62);
+  }
+  // le gâteau posé (on le voit sur la pierre jusqu'à ce qu'un corbeau le prenne)
+  const manjuPose = ctx.maillage(atelier().boite(0.12, 0.04, 0.09, '#c98a4a', { ry: 0.5 }).boite(0.09, 0.005, 0.06, '#e8b46a', { y: 0.022, ry: 0.5, trait: false }).fin(0, false));
+  manjuPose.position.set(PIERRE.x + 0.05, yPierre + 0.02, PIERRE.z);
+  manjuPose.visible = false;
+  groupeSecret.add(manjuPose);
+
+  // le bosquet de bambous : un cercle de tiges serrées autour d'une clairière, sauf une porte à l'est, fermée par
+  // d'autres bambous (les deux battants : ils s'écartent comme des portes quand les corbeaux y mènent)
+  const B = BOSQUET, yB = terrain(B.x, B.z), VERT = '#7fa84a', VERT2 = '#93b85a', NOEUD = '#5f8a3a', FEUILLE = '#5f9a45';
+  /** Une tige de bambou en (x, z) : ses nœuds, ses feuilles en haut (raides au vent : « conifere »). */
+  const bambou = (a, x, z, h, rr, y0, k) => {
+    a.cylindre(rr * 0.85, rr, h, 7, k % 3 ? VERT : VERT2, { x, y: y0 + h / 2 - 0.1, z });
+    for (let y = 0.6 + (k % 4) * 0.12; y < h - 0.4; y += 0.55 + (k % 3) * 0.08) a.cylindre(rr * 1.12, rr * 1.12, 0.035, 7, NOEUD, { x, y: y0 + y, z, trait: false });
+    for (let f = 0; f < 6; f++) {
+      const t = k * 1.7 + f * 1.05, yf = y0 + h * (0.68 + 0.05 * f);
+      a.cone(0.06, 0.62, 3, FEUILLE, { x: x + Math.sin(t) * 0.28, y: yf, z: z + Math.cos(t) * 0.28, rx: Math.cos(t) * 1.25, rz: -Math.sin(t) * 1.25, sz: 0.25, sorte: 'conifere' });
+    }
+  };
+  const dansPorte = (t) => Math.abs(((t - B.porte + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI) < B.ouverture;
+  {
+    const a = atelier();
+    let k = 0;
+    const tiges = [[B.x + 5.6, B.z + 2.1, 0.085]]; // (le grand bambou, plus bas : les autres s'en écartent aussi)
+    for (let i = 0; i < 150; i++) {
+      const t = hasard(i, 3.3) * 2 * Math.PI, rr = B.r - 0.4 + hasard(i, 7.1) * 1.7, ep = 0.055 + hasard(i, 5.2) * 0.035;
+      if (dansPorte(t)) continue;
+      const x = B.x + Math.sin(t) * rr, z = B.z + Math.cos(t) * rr;
+      // (deux tiges ne se touchent pas : leurs nœuds, à la même hauteur, scintilleraient)
+      if (tiges.some(([u, v, e]) => Math.hypot(x - u, z - v) < (e + ep) * 1.15 + 0.02)) continue;
+      tiges.push([x, z, ep]);
+      bambou(a, x, z, 6 + hasard(i, 1.9) * 2.6, ep, terrain(x, z), k++);
+    }
+    // le grand bambou au bord de la porte, dehors : un corbeau s'y pose en dernier, pour qu'on le voie de loin
+    bambou(a, B.x + 5.6, B.z + 2.1, 8.6, 0.085, terrain(B.x + 5.6, B.z + 2.1), 7);
+    poser(a.fin(0, peinture), 0, 0, { y: 0 });
+    monde.cercle(B.x + 5.6, B.z + 2.1, 0.2);
+    // ce qui arrête : un mur tout autour (des segments), sauf la porte ; la porte a le sien, ôté quand elle s'ouvre
+    const n = 22, R = B.r + 0.35;
+    for (let j = 0; j < n; j++) {
+      const t0 = (j / n) * 2 * Math.PI, t1 = ((j + 1) / n) * 2 * Math.PI;
+      if (dansPorte((t0 + t1) / 2)) continue;
+      monde.mur(B.x + Math.sin(t0) * R, B.z + Math.cos(t0) * R, B.x + Math.sin(t1) * R, B.z + Math.cos(t1) * R, 0.55);
+    }
+    // la caméra n'y entre pas (dans la clairière, elle reste en deçà des tiges) : seize blocs le long du cercle
+    for (let j = 0; j < 16; j++) {
+      const t0 = (j / 16) * 2 * Math.PI, t1 = ((j + 1) / 16) * 2 * Math.PI;
+      if (dansPorte((t0 + t1) / 2)) continue;
+      const xs = [Math.sin(t0) * R, Math.sin(t1) * R].map((v) => B.x + v), zs = [Math.cos(t0) * R, Math.cos(t1) * R].map((v) => B.z + v);
+      monde.bloc(Math.min(...xs) - 0.25, Math.max(...xs) + 0.25, Math.min(...zs) - 0.25, Math.max(...zs) + 0.25, yB - 1, yB + 8);
+    }
+  }
+  // la porte : deux battants de bambous, chacun pivote autour de son bord extérieur (ses tiges, dans le repère du battant)
+  const R = B.r + 0.2, ta = B.porte - B.ouverture, tb = B.porte + B.ouverture;
+  const battants = [[ta, 1], [tb, -1]].map(([t, sens], j) => {
+    const a = atelier(), hx = B.x + Math.sin(t) * R, hz = B.z + Math.cos(t) * R;
+    for (let i = 0; i < 6; i++) {
+      const u = (i + 0.5) / 6, tt = t + sens * u * B.ouverture, rr = R + (hasard(i, j) - 0.5) * 0.5;
+      const x = B.x + Math.sin(tt) * rr - hx, z = B.z + Math.cos(tt) * rr - hz;
+      bambou(a, x, z, 6.4 + hasard(i, j + 4) * 2, 0.06 + hasard(j, i) * 0.03, terrain(B.x + Math.sin(tt) * rr, B.z + Math.cos(tt) * rr) - yB, i + 3 * j);
+    }
+    const g = ctx.maillage(a.fin(0, peinture));
+    const pivotB = new THREE.Group();
+    pivotB.position.set(hx, yB, hz);
+    pivotB.add(g);
+    groupeSecret.add(pivotB);
+    return { pivotB, sens };
+  });
+  const xPorte = B.x + Math.sin(B.porte) * R, zPorte = B.z + Math.cos(B.porte) * R;
+  monde.mur(B.x + Math.sin(ta) * R, B.z + Math.cos(ta) * R, B.x + Math.sin(tb) * R, B.z + Math.cos(tb) * R, 0.55);
+  const murPorte = monde.murs[monde.murs.length - 1];
+  const ouvrirPorte = () => { ouvert = true; const i = monde.murs.indexOf(murPorte); if (i >= 0) monde.murs.splice(i, 1); };
+  if (ouvert) ouvrirPorte();
+
+  // le petit sanctuaire oublié (hokora) : un socle de pierre, la châsse de bois gris couverte de mousse, son toit, la
+  // corde sacrée ; devant, le petit torii délavé ; deux corbeaux de pierre sur leurs socles ; le plateau d'offrandes
+  // (sanbō) ; une lanterne de pierre ; un rai de lumière qui tombe des bambous
+  {
+    const a = atelier(), BOIS_GRIS = '#8f7d68', y0 = terrain(HOKORA.x, HOKORA.z);
+    a.boite(1.2, 0.45, 1.0, P.pierreFonce, { y: 0.2 })
+      .boite(0.74, 0.62, 0.58, BOIS_GRIS, { y: 0.74 })
+      .boite(0.5, 0.42, 0.02, '#5a4a3a', { y: 0.74, z: 0.3, trait: false })
+      .toitJapon(1.0, 0.9, 0.38, 0.2, { y: 1.05, releve: 0.05, rangs: 6, epaisseur: 0.05 })
+      .ovale(0.18, P.herbeFonce, { x: 0.2, y: 1.18, z: 0.1, sx: 1.4, sy: 0.25, trait: false }, 8)
+      .shimenawa([[-0.38, 1.0, 0.33], [0, 0.96, 0.36], [0.38, 1.0, 0.33]], 0.022, [[-0.15, 0.95, 0.37], [0.15, 0.95, 0.37]]);
+    for (let k = 0; k < 5; k++) a.boite(0.012, 0.36, 0.012, '#3a3030', { x: -0.2 + k * 0.1, y: 0.74, z: 0.312, trait: false });
+    poser(a.fin(0, peinture), HOKORA.x, HOKORA.z, { y: y0, ry: Math.PI / 2 });
+    monde.cercle(HOKORA.x, HOKORA.z, 0.72);
+    // le petit torii, devant, et les deux corbeaux de pierre sur leurs socles
+    const t = atelier(), yt = terrain(TORII_CACHE.x, TORII_CACHE.z), DELAVE = '#c86a4e';
+    for (const sz of [-0.62, 0.62]) t.cylindre(0.07, 0.08, 1.95, 10, DELAVE, { z: sz, y: 0.95 }).cylindre(0.1, 0.1, 0.12, 10, P.noir, { z: sz, y: 0.02 });
+    t.boite(0.14, 0.1, 1.6, DELAVE, { y: 1.62 }).boite(0.16, 0.14, 1.95, DELAVE, { y: 1.98, deformer: (x, y, z) => [x, y + 0.05 * (z / 0.97) ** 2, z] })
+      .boite(0.18, 0.06, 2.0, P.noir, { y: 2.08, deformer: (x, y, z) => [x, y + 0.06 * (z / 1.0) ** 2, z] });
+    poser(t.fin(0, peinture), TORII_CACHE.x, TORII_CACHE.z, { y: yt });
+    for (const sz of [-0.62, 0.62]) monde.cercle(TORII_CACHE.x, TORII_CACHE.z + sz, 0.14);
+    const statue = (x, z, sens) => {
+      const c = atelier(), y = terrain(x, z), G = '#8e8a82';
+      c.boite(0.4, 0.42, 0.4, P.pierreFonce, { y: 0.2 }).ovale(0.14, G, { y: 0.56, sx: 0.8, sz: 1.5 }, 10).ovale(0.09, G, { y: 0.68, z: 0.14 }, 8)
+        .cone(0.03, 0.12, 6, G, { y: 0.67, z: 0.27, rx: Math.PI / 2 + 0.2 }).boite(0.12, 0.02, 0.16, G, { y: 0.5, z: -0.24, rx: -0.3 })
+        .ovale(0.1, '#7a8a5a', { y: 0.63, z: -0.02, sx: 0.8, sy: 0.25, trait: false }, 6);
+      poser(c.fin(0, peinture), x, z, { y, ry: sens });
+      monde.cercle(x, z, 0.3);
+    };
+    statue(13.7, 39.55, Math.PI / 2 + 0.3);
+    statue(13.7, 41.65, Math.PI / 2 - 0.3);
+    // le plateau d'offrandes (sanbō) : un petit support de bois clair, percé, et son plateau
+    const s3 = atelier(), ys = terrain(SANBO.x, SANBO.z);
+    s3.boite(0.3, 0.3, 0.3, '#d8c09a', { y: 0.15 }).boite(0.36, 0.035, 0.36, '#d8c09a', { y: 0.32 })
+      .boite(0.36, 0.04, 0.01, '#d8c09a', { y: 0.355, z: 0.175 }).boite(0.36, 0.04, 0.01, '#d8c09a', { y: 0.355, z: -0.175 })
+      .boite(0.01, 0.04, 0.36, '#d8c09a', { x: 0.175, y: 0.355 }).boite(0.01, 0.04, 0.36, '#d8c09a', { x: -0.175, y: 0.355 })
+      .ovale(0.07, '#5a4a3a', { y: 0.15, z: 0.152, sz: 0.1, trait: false }, 8);
+    poser(s3.fin(0, peinture), SANBO.x, SANBO.z, { y: ys });
+    monde.cercle(SANBO.x, SANBO.z, 0.25);
+    poser(atelier().lanterne(0, 0, 5.2).fin(0, peinture), 16.5, 42.4);
+    monde.cercle(16.5, 42.4, 0.35);
+    lumieres.push({ x: 16.5, y: terrain(16.5, 42.4) + 1.05, z: 42.4, halo: 0.35, sol: terrain(16.5, 42.4), r: 1.8 });
+    // des feuilles de bambou tombées, des touffes de mousse
+    const f = atelier();
+    for (let i = 0; i < 70; i++) {
+      const t2 = hasard(i, 9.1) * 2 * Math.PI, rr = Math.sqrt(hasard(i, 2.7)) * (B.r - 0.6), x = B.x + Math.sin(t2) * rr, z = B.z + Math.cos(t2) * rr;
+      f.boite(0.04, 0.004, 0.16, hasard(i, 4.4) > 0.5 ? '#c9b26a' : '#9fb05a', { x, y: terrain(x, z) + 0.035, z, ry: hasard(i, 8.8) * 6, trait: false });
+    }
+    poser(f.fin(0, false), 0, 0, { y: 0, ombre: false });
+  }
+  // le koban sur le plateau (il brille et tourne doucement) ; le rai de lumière qui tombe sur le sanctuaire
+  const koban = ctx.maillage(atelier().ovale(0.045, '#f2c84f', { sy: 1.4, sz: 0.18 }, 12).ovale(0.034, '#d9a63e', { sy: 1.4, sz: 0.2, trait: false }, 10).fin(0, false));
+  koban.position.set(SANBO.x, terrain(SANBO.x, SANBO.z) + 0.43, SANBO.z);
+  koban.visible = !secretTrouve('corbeaux');
+  groupeSecret.add(koban);
+  // (le rai : additif, plus fort au milieu de sa hauteur, effacé en haut, en bas et sur ses bords, vus de biais)
+  const rai = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 1.4, 9, 20, 1, true), new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+    uniforms: { force: { value: 0.1 } },
+    vertexShader: `
+      varying vec2 vUv;
+      varying float vFace;
+      void main() {
+        vUv = uv;
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        vFace = abs(dot(normalize(normalMatrix * normal), normalize(-mv.xyz)));
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader: `
+      uniform float force;
+      varying vec2 vUv;
+      varying float vFace;
+      void main() {
+        float a = force * smoothstep(0.0, 0.35, vUv.y) * (1.0 - smoothstep(0.75, 1.0, vUv.y)) * vFace * vFace;
+        gl_FragColor = vec4(vec3(1.0, 0.94, 0.76) * a, 1.0);
+      }`,
+  }));
+  rai.position.set(HOKORA.x + 0.6, yB + 4.5, HOKORA.z);
+  rai.rotation.z = 0.12;
+  groupeSecret.add(rai);
+  // les corbeaux : de la pierre, ils passent par la lanterne de la colline, l'érable du sud, le grand bambou de la
+  // porte, et se posent sur le petit torii
+  const yTorii = terrain(TORII_CACHE.x, TORII_CACHE.z) + 2.14;
+  const corbeaux = creerCorbeaux(ctx.perso || ctx, {
+    pierre: { x: PIERRE.x, y: yPierre + 0.04, z: PIERRE.z },
+    perches: [
+      { x: 40, y: terrain(40, 39) + 1.92, z: 39 },
+      { x: 28, y: terrain(28, 31) + 6.15, z: 31 },
+      { x: B.x + 5.6, y: terrain(B.x + 5.6, B.z + 2.1) + 8.55, z: B.z + 2.1 },
+    ],
+    nid: [{ x: TORII_CACHE.x, y: yTorii, z: TORII_CACHE.z - 0.75, cap: -Math.PI / 2 }, { x: TORII_CACHE.x, y: yTorii, z: TORII_CACHE.z + 0.75, cap: -Math.PI / 2 }],
+    arrivee: [44, 30, 30],
+    prendre: () => { manjuPose.visible = false; },
+  });
+  groupeSecret.add(corbeaux.groupe);
+  if (secretTrouve('corbeaux')) corbeaux.installer();
+  animes.push({
+    objet: groupeSecret,
+    maj(dt, temps, c) {
+      const cris = corbeaux.animer(dt, temps, c.joueur, c.nuit).map((q) => ({ ...q, nom: 'corbeau' }));
+      // la porte s'ouvre quand les corbeaux sont au sanctuaire et qu'on arrive devant
+      if (!ouvert && corbeaux.guideFini() && Math.hypot(c.joueur.x - xPorte, c.joueur.z - zPorte) < 5.5) {
+        ouvrirPorte();
+        c.scene(async (jeu) => {
+          jeu.son('magie');
+          await jeu.attendre(900);
+          await jeu.dire(jeu.tx('bambousOuverts'));
+          await jeu.dire(jeu.tx('bambousCompagnon')[jeu.compagnon], 'compagnon');
+        });
+      }
+      if (ouvert && ouverture < 1) ouverture = Math.min(1, ouverture + dt / 1.8);
+      const o = ouverture * ouverture * (3 - 2 * ouverture);
+      for (const { pivotB, sens } of battants) { pivotB.rotation.y = sens * 1.25 * o; pivotB.rotation.z = -sens * 0.12 * o; }
+      koban.rotation.y = temps * 1.4;
+      rai.material.uniforms.force.value = 0.09 + 0.03 * Math.sin(temps * 0.8);
+      return cris;
+    },
+  });
+
+  // ---- Bunbuku, le marchand ambulant : sous les pins du sud, entre le sanctuaire et la colline
+  const MARCHAND = { x: 27.2, z: 25.2, cap: Math.atan2(26 - 27.2, 19 - 25.2) };
+
   // ---- Les panneaux de bois (à lire)
   const PANNEAUX = {
     bienvenue: { x: 24, z: 1.8, ry: -0.3 },
@@ -974,11 +1195,21 @@ export function construire(ctx) {
       id: 'marchande', passant: 'marchande', verbe: 'parler',
       async action(jeu) {
         if (jeu.estNuit) { await jeu.dire(jeu.tx('marchandeNuit'), 'marchande'); return; } // (la boutique ferme : elle ne vend pas la nuit)
-        if (jeu.aTampon('momiji')) { await jeu.dire(jeu.tx('marchande2'), 'marchande'); return; }
+        if (jeu.aTampon('momiji')) {
+          // (une autre, pour la route : on peut en emporter une ; c'est elle qu'on offre aux corbeaux)
+          if (jeu.aDansSac('manju')) { await jeu.dire(jeu.tx('marchande2'), 'marchande'); return; }
+          const r = await jeu.choisir(jeu.tx('marchandeEncore'), [jeu.t('oui'), jeu.t('non')], 'marchande');
+          if (r !== 0) { await jeu.dire(jeu.tx('marchande2'), 'marchande'); return; }
+          jeu.donner('manju');
+          await jeu.dire(jeu.tx('marchandeEmporte'));
+          return;
+        }
         const r = await jeu.choisir(jeu.tx('marchande'), [jeu.t('oui'), jeu.t('non')], 'marchande');
         if (r !== 0) { await jeu.dire(jeu.tx('marchandeNon'), 'marchande'); return; }
         await jeu.dire(jeu.tx('marchandeOui'));
         await jeu.tampon('momiji');
+        jeu.donner('manju');
+        await jeu.dire(jeu.tx('marchandeEmporte'));
       },
     },
     { id: 'touriste', passant: 'touriste', verbe: 'parler', action: (jeu) => jeu.dire(jeu.txn('touriste'), 'touriste') },
@@ -1038,6 +1269,55 @@ export function construire(ctx) {
     { id: 'musubi', x: 7.7, z: -23.2, y: PLANCHER, rayon: 1.6, verbe: 'regarder', action: (jeu) => jeu.dire(jeu.tx('musubi')) },
     { id: 'tonneaux', x: 15.25, z: 8.6, y: PLANCHER, rayon: 1.7, verbe: 'regarder', action: (jeu) => jeu.dire(jeu.tx('tonneaux')) },
     ...interactionsBancs(bancs),
+    // le secret : la pierre plate (on y pose une douceur), le bosquet fermé, le koban, le sanctuaire caché
+    {
+      id: 'pierre', x: PIERRE.x, z: PIERRE.z, rayon: 1.7, haut: 1.0,
+      verbe: (jeu) => (jeu.aDansSac('manju') && corbeaux.mode() === 'cache' && !jeu.secretTrouve('corbeaux') ? 'poser' : 'regarder'),
+      async action(jeu) {
+        if (jeu.secretTrouve('corbeaux')) { await jeu.dire(jeu.tx('pierreApres')); return; }
+        if (corbeaux.mode() !== 'cache') { await jeu.dire(jeu.tx('pierreVide')); return; }
+        if (!jeu.aDansSac('manju')) {
+          await jeu.dire(jeu.tx('pierre'));
+          await jeu.dire(jeu.tx('pierreCompagnon')[jeu.compagnon], 'compagnon');
+          return;
+        }
+        jeu.geste('offrir');
+        await jeu.attendre(800);
+        manjuPose.visible = true;
+        jeu.prendre('manju');
+        await jeu.attendre(500);
+        jeu.geste(null);
+        await jeu.dire(jeu.tx('pierrePose'));
+        // la caméra de côté (le voyageur ne cache pas la pierre), le ciel au-dessus : ils arrivent
+        jeu.cadrerDeCote(PIERRE.x, yPierre, PIERRE.z, { distance: 4.6, haut: 1.1, champ: 62 });
+        corbeaux.venir();
+        await jeu.attendre(900);
+        // (on les entend d'abord ; on dit qu'ils se posent quand ils se sont posés ; la caméra reste de côté le temps
+        // qu'ils repartent, sinon ils passent à travers elle)
+        const [cri, poses] = jeu.tx('corbeauxArrivent');
+        await jeu.dire([cri]);
+        for (let k = 0; k < 50 && corbeaux.mode() === 'arrivee'; k++) await jeu.attendre(200);
+        await jeu.dire([poses]);
+        for (let k = 0; k < 60 && corbeaux.mode() !== 'guide'; k++) await jeu.attendre(200);
+        await jeu.attendre(1600);
+        jeu.cadrer(null);
+        await jeu.dire(jeu.tx('corbeauxCompagnon')[jeu.compagnon], 'compagnon');
+      },
+    },
+    { id: 'bosquet', x: xPorte + 1.3, z: zPorte, rayon: 2.4, verbe: 'regarder', si: () => !ouvert, action: (jeu) => jeu.dire(jeu.tx('bosquet')) },
+    {
+      id: 'koban', x: SANBO.x, z: SANBO.z, rayon: 1.5, haut: 0.95, verbe: 'prendre', si: (jeu) => ouvert && !jeu.secretTrouve('corbeaux'),
+      async action(jeu) {
+        await jeu.dire(jeu.tx('sanctuaireCache'));
+        jeu.geste('offrir');
+        await jeu.attendre(700);
+        koban.visible = false;
+        await jeu.attendre(300);
+        jeu.geste(null);
+        await jeu.trouverSecret('corbeaux');
+      },
+    },
+    { id: 'hokora', x: HOKORA.x + 0.5, z: HOKORA.z, rayon: 1.6, haut: 1.5, verbe: 'prier', si: (jeu) => ouvert && jeu.secretTrouve('corbeaux'), action: async (jeu) => { jeu.saluer(); await jeu.dire(jeu.tx('hokora')); } },
   ];
   // les daims : on peut les caresser (le premier donne le tampon)
   const actionDaim = async (jeu) => {
@@ -1048,8 +1328,11 @@ export function construire(ctx) {
 
   return {
     ...infos, textes: TEXTES,
-    objets, monde, terrain, etiquettes, passants, daims, interactions, actionDaim, bancs, lumieres,
+    objets, monde, terrain, etiquettes, passants, daims, interactions, actionDaim, bancs, lumieres, animes,
     herbes: HERBES,
+    // (le secret, tresors.js ; le marchand ; les sons à fabriquer en plus ; les feux d'artifice, sur la mer derrière le torii)
+    secret: 'corbeaux', marchand: MARCHAND, sons: ['oiseau/corbeau'],
+    feux: { x: 0, y: 0, z: -108, large: 70, haut: [30, 52] },
     aspectSol: (x, z, h) => aspectSol(P, x, z, h),
     rive: -9, // les lignes d'eau suivent la rive de la plage (z)
     etendue: { x0: -320, x1: 320, z0: -320, z1: 140, pas: 4, fin: { x0: -70, x1: 75, z0: -100, z1: 60, pas: 1 } },
@@ -1164,6 +1447,9 @@ function bambous(c, W, H) {
 /** La couleur et la matière (textures.js) du sol naturel : estran, sable, herbe, la rue pavée et le chemin de la colline. */
 function aspectSol(P, x, z, h) {
   if (x > 45.5 && x < 56.5 && z > -1 && z < 23) return [P.chemin, M.dalles];
+  // (le bosquet de bambous : de la mousse, et le petit chemin de dalles jusqu'au sanctuaire caché)
+  const db = Math.hypot(x - BOSQUET.x, z - BOSQUET.z);
+  if (db < BOSQUET.r + 0.8) return Math.abs(z - BOSQUET.z) < 0.45 && x > HOKORA.x + 0.6 && x < BOSQUET.x + BOSQUET.r - 0.3 ? [P.pierre, M.dalles] : [bruitDoux(x, z, 1.5) > 0.5 ? P.herbeFonce : '#5f8f45', M.herbe];
   // l'escalier de la colline et le parvis autour de la pagode
   if ((Math.abs(x - ESCALIER.x) < 2.3 && z > ESCALIER.z0 - 1.3 && z < ESCALIER.z1 + 1) || Math.hypot(x - 46, z - 35.4) < 8.6) return [P.chemin, M.dalles];
   if (h < 0.22) return [P.sableMouille, M.estran];
@@ -1192,7 +1478,7 @@ const TEXTES = {
     'panneau-no': ['« La scène de nō 能舞台 »', 'La seule scène de nō du Japon bâtie sur la mer.', 'Chaque printemps, on y joue encore du nō pour les dieux.', 'Aujourd’hui, on y joue « Hagoromo » : regarde depuis la grande plate-forme !'],
     'panneau-pagode': ['« La pagode à cinq étages 五重塔 »', 'Bâtie en 1407, haute de 27,6 m.', 'Elle mêle l’architecture japonaise et celle de la Chine.'],
     pretre: ['Bienvenue au sanctuaire d’Itsukushima.', 'Ici, on prie ainsi : deux saluts, deux claps, puis encore un salut.', 'La boîte à offrandes est juste là, devant le pavillon.'],
-    pretre2: ['Les divinités d’ici sont trois princesses de la mer.', 'Elles protègent les marins… et les voyageurs comme toi !'],
+    pretre2: ['Les divinités d’ici sont trois princesses de la mer.', 'Elles protègent les marins… et les voyageurs comme toi !', 'On raconte aussi que deux corbeaux ont guidé les dieux jusqu’à l’île. Ce sont les « corbeaux des dieux ».', 'Autrefois, on leur laissait une douceur sur une pierre plate, derrière la pagode… Mais plus personne ne sait où elle est.'],
     offrande: ['Tu lances une pièce de 5 yens dans la boîte.', '(5 yens se dit « go-en », comme « un lien heureux ».)', 'Deux saluts… deux claps… un salut.'],
     offrande2: ['Tu pries encore un peu. Tu te sens en paix.'],
     miko: ['Bonjour ! Tu veux tirer un omikuji ?', 'Ce petit papier te dit ta chance !'],
@@ -1213,8 +1499,10 @@ const TEXTES = {
     marchandeOui: ['Tu croques dedans… C’est fourré à la pâte de haricot rouge. Délicieux !'],
     marchandeNon: ['Dommage ! Elles sont meilleures toutes chaudes.'],
     marchande2: ['Reviens quand tu veux, il y en a aussi à la crème !'],
+    marchandeEncore: ['Encore une, pour la route ? Je te l’emballe dans un petit papier !'],
+    marchandeEmporte: ['Elle te glisse une momiji manjū dans un petit papier, pour plus tard.', '(Tu la ranges dans ton sac.)'],
     touriste: ['À marée haute, le torii a les pieds dans l’eau.', 'Mais aujourd’hui, c’est marée basse : on peut aller le toucher !'],
-    grandpere: ['Je viens ici depuis soixante-dix ans.', 'Autrefois, toute l’île était sacrée : on n’y posait pas le pied.', 'Les gens venaient prier en barque, en passant sous le grand torii !'],
+    grandpere: ['Je viens ici depuis soixante-dix ans.', 'Autrefois, toute l’île était sacrée : on n’y posait pas le pied.', 'Les gens venaient prier en barque, en passant sous le grand torii !', 'Et les corbeaux… ne les chasse jamais. Ici, ce sont les messagers des dieux. Ils adorent les douceurs.'],
     toriiPilier: ['Tu poses la main sur le pilier de camphrier.', 'Il est énorme : presque 10 m de tour !'],
     torii2: ['Le bois est tiède, chauffé par le soleil.'],
     standTampon: ['Un tampon pour les visiteurs, et son encre rouge.', 'Tu le presses dans ton carnet…'],
@@ -1242,6 +1530,40 @@ const TEXTES = {
     daimNuit: ['Le daim somnole, couché sur le sable.', 'Tu le caresses tout doucement… Il pose sa tête contre ta main.', 'Tu t’es fait un ami : un daim de Miyajima !'],
     daim2Nuit: ['Chut… Le daim dort.'],
     torii2Nuit: ['Le bois a gardé un peu de la chaleur du soleil.'],
+    // le secret : les corbeaux sacrés
+    pierre: ['Une pierre plate, bien lisse, cachée derrière la pagode.', 'Il y a des miettes dessus… On dirait qu’on y laisse des offrandes.'],
+    pierreCompagnon: {
+      kon: ['« Une pierre aux offrandes… Les messagers des dieux aiment qu’on pense à eux. Une douceur, peut-être ? »'],
+      pon: ['« Des miettes de gâteau ! Pon… On devrait y poser une momiji manjū. (Mais pas la mienne.) »'],
+      chapu: ['« Ça sent le gâteau ! Quelqu’un mange ici… mais qui ? »'],
+      gao: ['« Gao ! Une pierre pour les offrandes, comme celles des gardiens de mon île. Il faudrait y poser quelque chose de bon ! »'],
+      fuwa: ['« Fuwa… Je sens la magie ici. Les gardiens du ciel viennent peut-être chercher une douceur ? »'],
+      saya: ['« Les arbres d’ici se souviennent… On posait des gâteaux sur cette pierre, pour les oiseaux noirs. »'],
+    },
+    pierrePose: ['Tu poses la momiji manjū sur la pierre plate…'],
+    corbeauxArrivent: ['Croâ ! Croâ !', 'Deux grands corbeaux descendent du ciel et se posent sur la pierre !'],
+    corbeauxCompagnon: {
+      kon: ['« Les corbeaux des dieux ! Ils emportent l’offrande… Suivons-les ! »'],
+      pon: ['« Hé ! Ma… euh, ta manjū ! Ils l’emportent ! Vite, suivons-les ! »'],
+      chapu: ['« Ils s’envolent ! Hop hop, on les suit ! »'],
+      gao: ['« Gao ! Ils veulent nous montrer quelque chose. Suivons-les ! »'],
+      fuwa: ['« Ils volent presque aussi bien que moi ! On les suit ? »'],
+      saya: ['« Ils nous appellent… Suivons-les, de branche en branche. »'],
+    },
+    pierreVide: ['La pierre est vide : les corbeaux ont emporté la douceur.', 'Où sont-ils allés ?'],
+    pierreApres: ['La pierre aux offrandes des corbeaux des dieux.', 'Tu te souviens du chemin qu’ils t’ont montré.'],
+    bosquet: ['Un bosquet de bambous si serré qu’on ne peut pas passer.', 'De l’autre côté… on dirait qu’un rayon de lumière tombe entre les tiges.'],
+    bambousOuverts: ['Les bambous s’écartent doucement, comme deux portes…', 'Derrière, une clairière : un petit sanctuaire oublié, couvert de mousse !'],
+    bambousCompagnon: {
+      kon: ['« Un sanctuaire caché… Les corbeaux nous l’ont confié. Allons-y avec respect. »'],
+      pon: ['« Pon ! Un trésor caché, j’en suis sûr ! »'],
+      chapu: ['« Waouh ! Un passage secret ! Chapu chapu ! »'],
+      gao: ['« Gao… Un lieu gardé. Je vais veiller sur toi. »'],
+      fuwa: ['« Fuwaaa… On dirait un rêve ! »'],
+      saya: ['« Les bambous nous laissent passer… Ils te font confiance. »'],
+    },
+    sanctuaireCache: ['Sur le plateau d’offrandes, quelque chose brille…', 'Une vieille pièce d’or, ovale : un koban !', 'Les corbeaux se posent sur le petit torii et te regardent. On dirait qu’ils te l’offrent.'],
+    hokora: ['Un petit sanctuaire oublié, gardé par deux corbeaux de pierre.', 'Tu joins les mains. Les vrais corbeaux, sur le torii, inclinent la tête.'],
   },
   en: {
     noms: { pretre: 'Priest', miko: 'Shrine maiden', videaste: '@random_japan_place', enfant: 'Schoolgirl', marchande: 'Shopkeeper', touriste: 'Tourist', grandpere: 'Old man', batelier: 'Boatman' },
@@ -1259,7 +1581,7 @@ const TEXTES = {
     'panneau-no': ['“The Noh stage 能舞台”', 'The only Noh stage in Japan built over the sea.', 'Every spring, Noh is still performed here for the gods.', 'Today they are playing “Hagoromo”: watch from the big platform!'],
     'panneau-pagode': ['“The five-storey pagoda 五重塔”', 'Built in 1407, it is 27.6 m tall.', 'It blends Japanese and Chinese architecture.'],
     pretre: ['Welcome to Itsukushima Shrine.', 'Here we pray like this: bow twice, clap twice, then bow once more.', 'The offering box is right there, in front of the hall.'],
-    pretre2: ['The deities here are three princesses of the sea.', 'They protect sailors… and travellers like you!'],
+    pretre2: ['The deities here are three princesses of the sea.', 'They protect sailors… and travellers like you!', 'They also say two crows guided the gods to the island. They are the “crows of the gods”.', 'Long ago, people left them a treat on a flat stone, behind the pagoda… But nobody remembers where it is anymore.'],
     offrande: ['You toss a 5-yen coin into the box.', '(5 yen is “go-en”, which also sounds like “a happy bond”.)', 'Two bows… two claps… one bow.'],
     offrande2: ['You pray a little more. You feel at peace.'],
     miko: ['Hello! Would you like to draw an omikuji?', 'This little paper tells your fortune!'],
@@ -1280,8 +1602,10 @@ const TEXTES = {
     marchandeOui: ['You take a bite… It’s filled with sweet red bean paste. Delicious!'],
     marchandeNon: ['Too bad! They’re best when they’re hot.'],
     marchande2: ['Come back anytime, we also have custard ones!'],
+    marchandeEncore: ['Another one for the road? I’ll wrap it in a little paper!'],
+    marchandeEmporte: ['She slips a momiji manjū into a little paper for you, for later.', '(You put it in your bag.)'],
     touriste: ['At high tide, the torii has its feet in the water.', 'But today it’s low tide: we can walk out and touch it!'],
-    grandpere: ['I’ve been coming here for seventy years.', 'Long ago, the whole island was sacred: no one set foot on it.', 'People came to pray by boat, sailing under the Great Torii!'],
+    grandpere: ['I’ve been coming here for seventy years.', 'Long ago, the whole island was sacred: no one set foot on it.', 'People came to pray by boat, sailing under the Great Torii!', 'And the crows… never chase them away. Here, they are messengers of the gods. They love sweets.'],
     toriiPilier: ['You put your hand on the camphor pillar.', 'It’s huge: almost 10 m around!'],
     torii2: ['The wood is warm from the sun.'],
     standTampon: ['A stamp for visitors, with its red ink pad.', 'You press it into your book…'],
@@ -1308,6 +1632,39 @@ const TEXTES = {
     daimNuit: ['The deer is dozing, lying on the sand.', 'You stroke it very gently… It rests its head against your hand.', 'You made a friend: a Miyajima deer!'],
     daim2Nuit: ['Shh… The deer is asleep.'],
     torii2Nuit: ['The wood still holds a little of the sun’s warmth.'],
+    pierre: ['A flat, smooth stone, hidden behind the pagoda.', 'There are crumbs on it… It looks like people leave offerings here.'],
+    pierreCompagnon: {
+      kon: ['“An offering stone… The messengers of the gods like to be remembered. A sweet, perhaps?”'],
+      pon: ['“Cake crumbs! Pon… We should put a momiji manjū here. (But not mine.)”'],
+      chapu: ['“It smells like cake! Somebody eats here… but who?”'],
+      gao: ['“Gao! An offering stone, like the guardians’ stones on my island. We should leave something tasty!”'],
+      fuwa: ['“Fuwa… I can feel magic here. Maybe the guardians of the sky come for a treat?”'],
+      saya: ['“The trees here remember… People put cakes on this stone, for the black birds.”'],
+    },
+    pierrePose: ['You place the momiji manjū on the flat stone…'],
+    corbeauxArrivent: ['Caw! Caw!', 'Two big crows swoop down from the sky and land on the stone!'],
+    corbeauxCompagnon: {
+      kon: ['“The crows of the gods! They are taking the offering… Let’s follow them!”'],
+      pon: ['“Hey! My… er, your manjū! They’re taking it! Quick, follow them!”'],
+      chapu: ['“They’re flying away! Hop hop, let’s follow!”'],
+      gao: ['“Gao! They want to show us something. Let’s follow them!”'],
+      fuwa: ['“They fly almost as well as I do! Shall we follow them?”'],
+      saya: ['“They are calling us… Let’s follow them, from branch to branch.”'],
+    },
+    pierreVide: ['The stone is empty: the crows took the treat.', 'Where did they go?'],
+    pierreApres: ['The offering stone of the crows of the gods.', 'You remember the path they showed you.'],
+    bosquet: ['A bamboo grove so dense that you can’t get through.', 'On the other side… it looks like a ray of light is falling between the stalks.'],
+    bambousOuverts: ['The bamboos slowly part, like two doors…', 'Behind them, a clearing: a small forgotten shrine, covered in moss!'],
+    bambousCompagnon: {
+      kon: ['“A hidden shrine… The crows have trusted us with it. Let’s go in respectfully.”'],
+      pon: ['“Pon! A hidden treasure, I’m sure of it!”'],
+      chapu: ['“Wow! A secret passage! Chapu chapu!”'],
+      gao: ['“Gao… A guarded place. I’ll watch over you.”'],
+      fuwa: ['“Fuwaaa… It’s like a dream!”'],
+      saya: ['“The bamboos let us through… They trust you.”'],
+    },
+    sanctuaireCache: ['Something is shining on the offering tray…', 'An old oval gold coin: a koban!', 'The crows land on the little torii and watch you. It looks like they are giving it to you.'],
+    hokora: ['A small forgotten shrine, guarded by two stone crows.', 'You put your hands together. The real crows, on the torii, bow their heads.'],
   },
   ja: {
     noms: { pretre: '神主さん', miko: '巫女さん', videaste: '@random_japan_place', enfant: '小学生', marchande: 'お店の人', touriste: '観光客', grandpere: 'おじいさん', batelier: '船頭さん' },
@@ -1325,7 +1682,7 @@ const TEXTES = {
     'panneau-no': ['「能舞台」', '海の上に ある 能舞台は 日本で ここだけ。', '春には 今も 神さまに 能を ほうのう している。', '今日は「羽衣」。平舞台から 見てごらん！'],
     'panneau-pagode': ['「五重塔」', '1407年に 建てられた。高さは 27.6メートル。', '和様と 唐様が まざった つくりなんだ。'],
     pretre: ['厳島神社へ ようこそ。', 'おまいりは 二礼 二拍手 一礼です。', 'さいせん箱は すぐ そこ、社殿の 前ですよ。'],
-    pretre2: ['ここの 神さまは 海の 三姉妹の 女神さま。', '船乗りや あなたのような 旅人を まもって くださるのです。'],
+    pretre2: ['ここの 神さまは 海の 三姉妹の 女神さま。', '船乗りや あなたのような 旅人を まもって くださるのです。', '神さまを この島へ みちびいたのは 二羽の カラスだと いわれています。「神鴉（ごがらす）」です。', 'むかしは 五重塔の うしろの 平たい 石に おそなえを したそうですが……いまでは その 場所を しる人は いません。'],
     offrande: ['5円玉を さいせん箱に 入れた。', '「ご縁が ありますように」。', '二礼……二拍手……一礼。'],
     offrande2: ['もう一度 手を あわせた。こころが おだやかに なった。'],
     miko: ['こんにちは！ おみくじを ひいて いきますか？', 'あなたの 運勢が わかりますよ！'],
@@ -1346,8 +1703,10 @@ const TEXTES = {
     marchandeOui: ['ぱくっ。中は あんこ。おいしい！'],
     marchandeNon: ['ざんねん！ やきたてが いちばん なのに。'],
     marchande2: ['また きてね。カスタードも あるよ！'],
+    marchandeEncore: ['もう ひとつ、おみやげに どう？ 紙に つつんで あげる！'],
+    marchandeEmporte: ['もみじまんじゅうを 紙に つつんで くれた。あとで 食べよう。', '（カバンに しまった。）'],
     touriste: ['しおが みちると 鳥居の 足は 海の 中。', 'でも 今日は しおが ひいているから、さわりに 行けるよ！'],
-    grandpere: ['わしは 70年 ここに かよっておる。', 'むかしは 島 ぜんたいが 神さま そのもので、人は 足を ふみいれなかった。', 'だから 舟で 大鳥居を くぐって おまいりに きたんじゃよ。'],
+    grandpere: ['わしは 70年 ここに かよっておる。', 'むかしは 島 ぜんたいが 神さま そのもので、人は 足を ふみいれなかった。', 'だから 舟で 大鳥居を くぐって おまいりに きたんじゃよ。', 'それに カラスは おいはらっては いかんぞ。ここでは 神さまの おつかいじゃ。あまい ものが 大すきでな。'],
     toriiPilier: ['クスノキの 柱に 手を ふれた。', 'とても 太い。まわりは 10メートル 近くも ある！'],
     torii2: ['柱は お日さまで あたたかい。'],
     standTampon: ['きねんスタンプと 朱肉が おいてある。', 'スタンプ帳に ぎゅっと おした……'],
@@ -1374,5 +1733,38 @@ const TEXTES = {
     daimNuit: ['シカが 砂の 上で うとうと している。', 'そっと なでると……手に 頭を あずけてきた。', '宮島の シカと なかよしに なった！'],
     daim2Nuit: ['しーっ……シカは ねむっている。'],
     torii2Nuit: ['柱には まだ 少し お日さまの ぬくもりが のこっている。'],
+    pierre: ['五重塔の うしろに かくれた、つるつるの 平たい 石。', 'おかしの くずが のっている……だれかが おそなえを しているみたい。'],
+    pierreCompagnon: {
+      kon: ['「おそなえの 石……神さまの おつかいは わすれられたくないんだ。あまい ものかな？」'],
+      pon: ['「おかしの くず！ ポン……もみじまんじゅうを おいて みようよ。（おいらのは ダメだよ。）」'],
+      chapu: ['「おかしの においが する！ ここで だれかが 食べてる……でも だれ？」'],
+      gao: ['「ガオ！ ぼくの 島の 守り神の 石みたいな おそなえの 石だ。おいしい ものを おこう！」'],
+      fuwa: ['「フワ……ここ、まほうの においが する。空の 守り神が おやつを とりに くるのかな？」'],
+      saya: ['「ここの 木は おぼえてる……この 石に、黒い 鳥の ために おかしを おいてたって。」'],
+    },
+    pierrePose: ['もみじまんじゅうを 平たい 石の 上に おいた……'],
+    corbeauxArrivent: ['カァー！ カァー！', '大きな カラスが 二羽、空から おりてきて 石の 上に とまった！'],
+    corbeauxCompagnon: {
+      kon: ['「神鴉だ！ おそなえを はこんで いく……ついて いこう！」'],
+      pon: ['「あっ！ お、おいらの……じゃなくて、きみの まんじゅうが！ はやく おいかけよう！」'],
+      chapu: ['「とんで いった！ ぴょん ぴょん、ついて いこう！」'],
+      gao: ['「ガオ！ なにかを 見せたいんだ。ついて いこう！」'],
+      fuwa: ['「ぼくと おなじくらい じょうずに とぶね！ おいかける？」'],
+      saya: ['「よんでる……枝から 枝へ、ついて いこう。」'],
+    },
+    pierreVide: ['石の 上は からっぽ。カラスが おかしを もって いった。', 'どこへ いったんだろう？'],
+    pierreApres: ['神鴉の おそなえの 石。', 'カラスが 見せて くれた 道を おぼえている。'],
+    bosquet: ['竹が ぎっしり はえていて、とおれない。', 'むこうがわに……竹の あいだから 光が さしこんで いるみたい。'],
+    bambousOuverts: ['竹が 戸のように、そっと ひらいて いく……', 'その おくに 広場が！ こけむした 小さな ほこらが ある！'],
+    bambousCompagnon: {
+      kon: ['「かくれた ほこら……カラスが ぼくたちに おしえて くれたんだ。しずかに はいろう。」'],
+      pon: ['「ポン！ ぜったい おたからだよ！」'],
+      chapu: ['「すごーい！ ひみつの 通り道！ チャプ チャプ！」'],
+      gao: ['「ガオ……守られた 場所だ。ぼくが きみを 守るよ。」'],
+      fuwa: ['「フワァ……ゆめみたい！」'],
+      saya: ['「竹が とおして くれる……きみを しんじて いるんだ。」'],
+    },
+    sanctuaireCache: ['おそなえの 台の 上で、なにかが 光っている……', 'だ円形の 古い 金貨……小判だ！', 'カラスたちが 小さな 鳥居に とまって こっちを 見ている。くれる って いってる みたい。'],
+    hokora: ['二羽の 石の カラスが 守る、わすれられた 小さな ほこら。', '手を あわせた。鳥居の 上の カラスたちが 頭を さげた。'],
   },
 };

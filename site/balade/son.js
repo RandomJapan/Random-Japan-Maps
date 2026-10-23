@@ -81,4 +81,17 @@ export const son = {
   pression() { note(120, 0, 0.12, 'triangle', 0.12); note(80, 0.02, 0.14, 'sine', 0.12); },
   /** Les hautes herbes qui bruissent, puis la petite alerte « un daim sauvage ». */
   sauvage() { [[880, 0], [698, 0.08], [880, 0.16], [698, 0.24], [1046, 0.34]].forEach(([f, d]) => note(f, d, 0.07, 'square', 0.035)); },
+  /** Un secret trouvé, un koban : un scintillement qui monte, puis la pièce qui tinte (« tiin ! »). */
+  koban() {
+    [1568, 1760, 2093, 2349, 2637, 3136].forEach((f, k) => note(f, k * 0.05, 0.08, 'triangle', 0.05));
+    note(2093, 0.36, 0.9, 'sine', 0.09);
+    note(4186, 0.36, 0.5, 'sine', 0.04);
+    note(5274, 0.38, 0.35, 'sine', 0.025);
+  },
+  /** Des koban qu'on donne au marchand : deux pièces qui tintent l'une contre l'autre. */
+  achat() { note(2637, 0, 0.18, 'sine', 0.07); note(3520, 0.09, 0.22, 'sine', 0.06); note(2093, 0.22, 0.35, 'triangle', 0.05); },
+  /** L'appareil photo : le déclic de l'obturateur. */
+  declic() { note(2400, 0, 0.012, 'square', 0.06); note(900, 0.012, 0.03, 'square', 0.05); note(1800, 0.07, 0.015, 'square', 0.04); },
+  /** Un peu de magie (le calendrier qui tourne ses pages, les bambous qui s'écartent) : une cascade de clochettes. */
+  magie() { [1047, 1319, 1568, 2093, 1568, 2093, 2637, 3136].forEach((f, k) => note(f, k * 0.06, 0.22, 'sine', 0.05)); },
 };

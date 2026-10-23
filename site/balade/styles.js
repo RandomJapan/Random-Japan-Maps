@@ -45,6 +45,10 @@ const PALETTE = {
   renard: '#ffffff', renardRouge: '#e8452e', renardOmbre: '#ecdcc8', grelot: '#e8b941', oeilBete: '#221a20',
   tanuki: '#8f6f50', tanukiClair: '#a8886a', tanukiFonce: '#4a3a30', tanukiCreme: '#efe3cc', tanukiVentre: '#e6d2ae', feuilleTanuki: '#5aa64a',
   loutre: '#7a5236', loutreFonce: '#553722', loutreCreme: '#ead9bb', foulard: '#2f6fb0', foulardPois: '#f4f0e6', moustache: '#f4efe6',
+  // les compagnons secrets (2026-10-23) : Gao le shisa, Fuwa le bébé dragon, Saya l'esprit d'un arbre
+  shisa: '#d9853a', shisaFonce: '#a8502a', shisaCreme: '#f2dcae',
+  dragon: '#f2f5fb', dragonCreme: '#f3e6c0', dragonCrin: '#5ec4cf', dragonCorne: '#f0d38a',
+  kodamaBois: '#d8b07a', kodamaFonce: '#a87a4a', kodamaMousse: '#5f9e48', kodamaFeuille: '#7ac25a', kodamaOeil: '#f2ffb0',
 };
 const PARCHEMIN = { cielHaut: '#ead9b4', horizon: '#f0ead2', nuage: '#fbf4e2' };
 
@@ -189,6 +193,35 @@ export function eclairerParLampes(s, lampes, force = 1) {
     .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>\ntotalEmissiveRadiance += diffuseColor.rgb * lumiereLampes(vLampeP, normalize(vLampeN)) * ${force.toFixed(2)};`);
 }
 
+/**
+ * Les saisons du calendrier magique (2026-10-23, acheté au marchand) : saisons = (printemps, automne, hiver), chacune
+ * de 0 à 1 (rien : l'été de tous les jours). feuillageSaison repeint les feuillages des modèles (l'attribut `saison` :
+ * 1 feuillu, 2 érable, 3 cerisier, 5 herbe) avant la peinture : au printemps, un feuillu sur deux en fleurs de
+ * cerisier (les buissons aussi : les azalées), les autres d'un vert tendre ; à l'automne, chaque arbre jaune, orangé ou
+ * rouge, les érables rouge vif, l'herbe dorée ; l'hiver, presque nus. neigeSaison couvre de neige, l'hiver, tout ce qui
+ * regarde le ciel (après la peinture : les toits blanchissent).
+ */
+export const SAISONS_GLSL = `
+  uniform vec3 saisons;
+  float hasardSaison(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+  vec3 feuillageSaison(vec3 c, float sorte, float tirage, vec3 p) {
+    if (saisons.x + saisons.y + saisons.z < 0.001) return c;
+    float s = floor(sorte + 0.5);
+    if (s < 0.5 || s > 5.5 || abs(s - 4.0) < 0.5) return c;
+    float l = dot(c, vec3(0.299, 0.587, 0.114)), arbre = hasardSaison(floor(p.xz / 3.2) + 0.37);
+    vec3 rose = mix(vec3(1.0, 0.72, 0.8), vec3(1.0, 0.93, 0.95), tirage * 0.7) * (0.72 + 0.55 * l);
+    vec3 tendre = c * vec3(1.0, 1.12, 0.82) + vec3(0.04, 0.06, 0.0);
+    vec3 pr = s == 1.0 ? (arbre < 0.5 ? rose : tendre) : s == 3.0 ? rose : tendre;
+    vec3 teinteA = arbre < 0.33 ? vec3(0.95, 0.7, 0.22) : arbre < 0.66 ? vec3(0.92, 0.45, 0.16) : vec3(0.8, 0.24, 0.14);
+    vec3 au = s == 1.0 ? teinteA * (0.62 + 0.75 * l) : s == 2.0 ? vec3(0.84, 0.17, 0.12) * (0.65 + 0.7 * l) : s == 3.0 ? vec3(0.9, 0.5, 0.25) * (0.65 + 0.7 * l) : c * vec3(1.18, 0.98, 0.55);
+    vec3 hi = s == 5.0 ? c * vec3(1.05, 0.95, 0.7) : mix(c, vec3(0.55, 0.48, 0.42) * (0.6 + 0.6 * l), 0.7);
+    return c + (pr - c) * saisons.x + (au - c) * saisons.y + (hi - c) * saisons.z;
+  }
+  vec3 neigeSaison(vec3 c, vec3 n) {
+    if (saisons.z < 0.001) return c;
+    return mix(c, vec3(0.93, 0.95, 1.0), smoothstep(0.35, 0.8, n.y) * saisons.z * 0.92);
+  }`;
+
 /** Un bruit lisse (GLSL) : 0 à 1, une bosse par unité. */
 const BRUIT_GLSL = `
   float hasard2(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
@@ -284,6 +317,25 @@ const CARTE_SOL_GLSL = `
     return true;
   }`;
 
+/**
+ * Le sol selon la saison (après la peinture ; couche : la matière, textures.js) : au printemps, l'herbe plus tendre et
+ * des pétales tombés çà et là ; à l'automne, l'herbe dorée et les feuilles mortes sous les arbres ; l'hiver, la neige
+ * partout où c'est assez plat, sauf le sable mouillé, moins épaisse sur les dalles et la route (on y marche).
+ */
+const SOL_SAISON_GLSL = `
+  uniform vec3 saisons;
+  vec3 solSaison(vec3 c, float couche, vec3 p, vec3 n) {
+    if (saisons.x + saisons.y + saisons.z < 0.001) return c;
+    vec3 pr = c, au = c;
+    if (couche == ${MATIERES.herbe}.0) {
+      pr = mix(c * vec3(0.98, 1.1, 0.85) + vec3(0.02, 0.04, 0.0), vec3(1.0, 0.8, 0.86), smoothstep(0.8, 0.88, bruitLisse(p.xz * 1.7)) * 0.75);
+      au = c * vec3(1.2, 1.0, 0.58);
+    } else if (couche == ${MATIERES.sousBois}.0) au = mix(c, vec3(0.74, 0.43, 0.2), 0.65);
+    float couvre = couche == ${MATIERES.estran}.0 ? 0.0 : (couche == ${MATIERES.dalles}.0 || couche == ${MATIERES.route}.0) ? 0.5 + 0.4 * bruitLisse(p.xz * 0.9) : 1.0;
+    vec3 hi = mix(c, vec3(0.92, 0.94, 0.99) * (0.94 + 0.06 * bruitLisse(p.xz * 3.0)), smoothstep(0.55, 0.85, n.y) * couvre * 0.95);
+    return c + (pr - c) * saisons.x + (au - c) * saisons.y + (hi - c) * saisons.z;
+  }`;
+
 /** Une rampe d'éclairage (gradientMap de MeshToonMaterial) : de l'ombre (bas) à la lumière (haut). */
 function rampe(THREE, bas, haut, debut, fin) {
   const n = 32, d = new Uint8Array(n);
@@ -317,6 +369,8 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
   // lueur : la nuit (balade.js)
   const lueur = { value: 0 };
   // les lampes allumées (LAMPES_GLSL : lueurs.js les remplit à chaque image)
+  // les saisons (balade.js : le calendrier magique)
+  const saisons = { value: new THREE.Vector3() };
   const lampes = {
     lampesPos: { value: Array.from({ length: NB_LAMPES }, () => new THREE.Vector4()) },
     lampesCouleur: { value: Array.from({ length: NB_LAMPES }, () => new THREE.Vector3()) },
@@ -326,21 +380,25 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
   // le décor : la position et la normale dans le monde (la coupe, les matières), et la matière de chaque sommet
   const corps = new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: douce });
   corps.onBeforeCompile = (s) => {
-    Object.assign(s.uniforms, uniformesCoupe(0.6, 0), communs, vent, { lueur });
+    Object.assign(s.uniforms, uniformesCoupe(0.6, 0), communs, vent, { lueur, saisons });
     s.vertexShader = s.vertexShader
-      .replace('#include <common>', `#include <common>\nattribute float matiere;\nattribute vec3 saison;\nvarying float vMatiere;\nvarying float vLueur;\nvarying vec3 vCoupe;\nvarying vec3 vCoupeN;${VENT_GLSL}`)
+      .replace('#include <common>', `#include <common>\nattribute float matiere;\nattribute vec3 saison;\nvarying float vMatiere;\nvarying float vLueur;\nvarying vec3 vCoupe;\nvarying vec3 vCoupeN;\nvarying vec2 vSaison;${VENT_GLSL}`)
       .replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed += souffleObjet(transformed, saison);')
-      .replace('#include <project_vertex>', '#include <project_vertex>\nvMatiere = matiere;\nvLueur = abs(saison.x - 8.0) < 0.5 ? 1.0 : abs(saison.x - 9.0) < 0.5 ? 2.0 : abs(saison.x - 10.0) < 0.5 ? 3.0 : 0.0;\nvCoupe = (modelMatrix * vec4(transformed, 1.0)).xyz;\nvCoupeN = normalize(mat3(modelMatrix) * objectNormal);');
+      .replace('#include <project_vertex>', '#include <project_vertex>\nvSaison = saison.xz;\nvMatiere = matiere;\nvLueur = abs(saison.x - 8.0) < 0.5 ? 1.0 : abs(saison.x - 9.0) < 0.5 ? 2.0 : abs(saison.x - 10.0) < 0.5 ? 3.0 : 0.0;\nvCoupe = (modelMatrix * vec4(transformed, 1.0)).xyz;\nvCoupeN = normalize(mat3(modelMatrix) * objectNormal);');
     eclairerParLampes(s, lampes);
     s.fragmentShader = s.fragmentShader
-      .replace('#include <common>', `#include <common>\nvarying float vMatiere;\nvarying float vLueur;\nuniform float lueur;${COUPE_GLSL}${PEINDRE_GLSL}`)
+      .replace('#include <common>', `#include <common>\nvarying float vMatiere;\nvarying float vLueur;\nvarying vec2 vSaison;\nuniform float lueur;${COUPE_GLSL}${PEINDRE_GLSL}${SAISONS_GLSL}`)
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
         if (vLueur > 2.5) totalEmissiveRadiance += diffuseColor.rgb * vec3(1.0, 0.86, 0.68) * 0.55 * lueur;
         else if (vLueur > 1.5) totalEmissiveRadiance += diffuseColor.rgb * (0.75 + 0.5 * lueur);
         else if (vLueur > 0.5) totalEmissiveRadiance += mix(diffuseColor.rgb, vec3(1.0, 0.78, 0.45), 0.55 * (1.0 - clamp(diffuseColor.r - diffuseColor.b, 0.0, 1.0))) * 1.1 * lueur;`)
       .replace('#include <clipping_planes_fragment>', '#include <clipping_planes_fragment>\ncoupe();')
       .replace('#include <color_fragment>', `#include <color_fragment>
-        diffuseColor.rgb = peindre(diffuseColor.rgb, floor(vMatiere + 0.5), vCoupe, normalize(cross(dFdx(vCoupe), dFdy(vCoupe))));`);
+        {
+          vec3 nf = normalize(cross(dFdx(vCoupe), dFdy(vCoupe)));
+          diffuseColor.rgb = feuillageSaison(diffuseColor.rgb, vSaison.x, vSaison.y, vCoupe);
+          diffuseColor.rgb = neigeSaison(peindre(diffuseColor.rgb, floor(vMatiere + 0.5), vCoupe, nf), nf);
+        }`);
   };
   corps.customProgramCacheKey = () => 'corps-decor';
   // l'ombre du décor bouge avec lui (les feuillages)
@@ -355,7 +413,7 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
   // les personnages : deux tons nets (la rampe par défaut de three.js, adoucie sur un pixel), jamais effacés ;
   // les lampes les éclairent aussi
   const corpsPerso = new THREE.MeshToonMaterial({ vertexColors: true });
-  corpsPerso.onBeforeCompile = (s) => eclairerParLampes(s, lampes, 0.5);
+  corpsPerso.onBeforeCompile = (s) => { eclairerParLampes(s, lampes, 0.5); lumierePerso(s); };
   corpsPerso.customProgramCacheKey = () => 'perso-lampes';
 
   // le sol : la carte du sol autour du jeu, ailleurs la couleur de ses sommets et la matière d'un sommet par
@@ -363,13 +421,13 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
   const carte = { carteSol: { value: null }, zoneSol: { value: new THREE.Vector4(0, 0, 1, 0) }, tailleSol: { value: new THREE.Vector2(1, 1) } };
   const sol = new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: douce });
   sol.onBeforeCompile = (s) => {
-    Object.assign(s.uniforms, communs, carte);
+    Object.assign(s.uniforms, communs, carte, { saisons });
     eclairerParLampes(s, lampes);
     s.vertexShader = s.vertexShader
       .replace('#include <common>', '#include <common>\nattribute float motif;\nvarying float vMotif;\nvarying vec3 vMonde;')
       .replace('#include <project_vertex>', '#include <project_vertex>\nvMotif = motif;\nvMonde = (modelMatrix * vec4(transformed, 1.0)).xyz;');
     s.fragmentShader = s.fragmentShader
-      .replace('#include <common>', `#include <common>\nvarying float vMotif;\nvarying vec3 vMonde;${BRUIT_GLSL}${PEINDRE_GLSL}${CARTE_SOL_GLSL}`)
+      .replace('#include <common>', `#include <common>\nvarying float vMotif;\nvarying vec3 vMonde;${BRUIT_GLSL}${PEINDRE_GLSL}${CARTE_SOL_GLSL}${SOL_SAISON_GLSL}`)
       .replace('#include <color_fragment>', `#include <color_fragment>
         {
           float couche = floor(vMotif + 0.5);
@@ -377,7 +435,8 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
           if (lireCarteSol(vMonde.xz, couleur, couche)) diffuseColor.rgb = couleur;
           // de grandes taches plus ou moins claires : la texture ne se voit pas se répéter
           diffuseColor.rgb *= 0.94 + 0.12 * bruitLisse(vMonde.xz * 0.13);
-          diffuseColor.rgb = peindre(diffuseColor.rgb, couche, vMonde, normalize(cross(dFdx(vMonde), dFdy(vMonde))));
+          vec3 nf = normalize(cross(dFdx(vMonde), dFdy(vMonde)));
+          diffuseColor.rgb = solSaison(peindre(diffuseColor.rgb, couche, vMonde, nf), couche, vMonde, nf);
         }`);
   };
   sol.customProgramCacheKey = () => 'sol-carte';
@@ -393,11 +452,11 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
     uniforms: {
       epaisseur, ecran, teinte: { value: style.trait.teinte },
       brumeCouleur: brume.couleur, brumeDebut: brume.debut, brumeFin: brume.fin,
-      ...(avecCoupe ? { ...uniformesCoupe(1.2, 0.2), ...vent } : {}),
+      ...(avecCoupe ? { ...uniformesCoupe(1.2, 0.2), ...vent, saisons } : {}),
     },
     vertexShader: `
       attribute vec3 contour;
-      ${avecCoupe ? `attribute vec3 saison;${VENT_GLSL}` : ''}
+      ${avecCoupe ? `attribute vec3 saison;${VENT_GLSL}${SAISONS_GLSL}` : ''}
       uniform float epaisseur;
       uniform vec2 ecran;
       varying vec3 vCouleur;
@@ -419,7 +478,7 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
           mv.xyz += n * (px * 2.0 / (ecran.y * projectionMatrix[1][1])) * max(-mv.z, 0.0);
         }
         gl_Position = projectionMatrix * mv;
-        vCouleur = color;
+        vCouleur = ${avecCoupe ? 'feuillageSaison(color, saison.x, saison.z, (modelMatrix * vec4(pos, 1.0)).xyz)' : 'color'};
         vDistance = -mv.z;
         ${avecCoupe ? 'vCoupe = (modelMatrix * vec4(pos, 1.0)).xyz;\nvCoupeN = dot(contour, contour) > 0.01 ? normalize(mat3(modelMatrix) * contour) : vec3(0.0);' : ''}
       }`,
@@ -440,6 +499,19 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
       }`,
   });
   /**
+   * Ce qui brille sur un personnage (l'attribut saison des modèles : 8, « lumiere » : les yeux de Saya, la perle de
+   * Fuwa, comme des lucioles) : un peu de jour, bien plus la nuit.
+   */
+  function lumierePerso(s) {
+    s.uniforms.lueur = lueur;
+    s.vertexShader = s.vertexShader
+      .replace('#include <common>', '#include <common>\nattribute vec3 saison;\nvarying float vLumP;')
+      .replace('#include <project_vertex>', '#include <project_vertex>\nvLumP = abs(saison.x - 8.0) < 0.5 ? 1.0 : 0.0;');
+    s.fragmentShader = s.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying float vLumP;\nuniform float lueur;')
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += diffuseColor.rgb * vLumP * (0.35 + 0.9 * lueur);');
+  }
+  /**
    * Un personnage qui se mouille (le joueur, Kon) : sous la ligne d'eau (ligne : en mètres au-dessus des pieds,
    * à la hauteur pied), ses couleurs foncent (mouille : 0 à 1), la peau un peu seulement (peau : sa couleur,
    * ou null).
@@ -450,6 +522,7 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
     m.onBeforeCompile = (s) => {
       Object.assign(s.uniforms, u);
       eclairerParLampes(s, lampes, 0.5);
+      lumierePerso(s);
       s.vertexShader = s.vertexShader
         .replace('#include <common>', '#include <common>\nvarying float vHauteur;')
         .replace('#include <project_vertex>', '#include <project_vertex>\nvHauteur = (modelMatrix * vec4(transformed, 1.0)).y;');
@@ -467,7 +540,7 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
   };
   return {
     corps, corpsPerso, sol, trait: creerTrait(true, epaisseurs.decor), traitPerso: creerTrait(false, epaisseurs.perso),
-    brume, coupe, ecran, epaisseurs, carte, details, vent, profondeur, persoMouille, lueur, lampes,
+    brume, coupe, ecran, epaisseurs, carte, details, vent, profondeur, persoMouille, lueur, lampes, saisons,
   };
 }
 

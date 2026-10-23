@@ -454,7 +454,8 @@ export function ateliers(THREE, repeindre = null, matieres = null, sortes = null
         a.tube(points, r, C.paille, { cotes: 7, pas: 30, teinte: (x, y, z) => (Math.floor(x * 70 + y * 40 + z * 70 + 100) % 2 ? C.paille : C.pailleFonce) });
         const s = r / 0.018;
         for (const [x, y, z] of shide) {
-          for (const [dx, dy] of [[0, 0], [0.012, -0.03], [0, -0.06], [0.012, -0.09]]) a.boite(0.026 * s, 0.032 * s, 0.006, C.papier, { x: x + dx * s, y: y + dy * s, z, nuance: 0.02 });
+          // (les plis se chevauchent un peu : un sur deux un rien en avant, sinon leurs faces scintillent)
+          for (const [dx, dy, dz] of [[0, 0, 0], [0.012, -0.03, 0.002], [0, -0.06, 0], [0.012, -0.09, 0.002]]) a.boite(0.026 * s, 0.032 * s, 0.006, C.papier, { x: x + dx * s, y: y + dy * s, z: z + dz, nuance: 0.02 });
         }
         return a;
       },

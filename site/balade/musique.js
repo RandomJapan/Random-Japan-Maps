@@ -5,6 +5,8 @@
 //  - Itsukushima : un air calme du Japon ancien, koto, flûte de bambou et taiko ;
 //  - Aogashima : un air d'île et d'aventure, plus vif, marimba, flûte, petite batterie.
 //  La nuit, le même air plus lent, en boîte à musique. Une introduction, puis la boucle (A, A', B).
+//  Pour danser (la danse achetée au marchand, 2026-10-23), un troisième air, celui d'une fête d'été (bon-odori) : la
+//  flûte de fête (shinobue), le shamisen, le grand tambour et la clochette de cuivre (atarigane) ; fete(oui).
 //  Elle passe par la même sortie que les autres sons (son.js : couper le son la coupe aussi) ; le menu la
 //  coupe seule (localStorage.baladeMusique = 'non') ; elle se tait pendant la vidéo TikTok.
 // ================================================================
@@ -90,6 +92,40 @@ const AIRS = {
     jour: { tempo: 126, lead: 'flute', arpege: 'marimba', basse: 'rebond', nappe: true, batterie: 'legere' },
     nuit: { tempo: 84, lead: 'boite', arpege: 'marimbaDoux', basse: 'pizzDoux', nappe: true, batterie: null },
   },
+  // Ré majeur, la gamme yo (ré mi sol la si) : l'air de la danse des fêtes d'été, sautillant (112 battements : la
+  // danse du voyageur est réglée dessus, personnages.js)
+  odori: {
+    gamme: [2, 4, 7, 9, 11, 0, 6],
+    intro: ['D', 'D'],
+    A: {
+      accords: ['D', 'G', 'D', 'G A', 'D', 'Bm', 'G A', 'A'],
+      melodie: [
+        [69, 2], [71, 2], [69, 2], [67, 2], [64, 4], [62, 4],
+        [64, 2], [67, 2], [69, 4], [71, 4], [69, 4],
+        [74, 4], [71, 2], [69, 2], [67, 4], [69, 4],
+        [71, 6], [69, 2], [67, 8],
+        [69, 2], [71, 2], [69, 2], [67, 2], [64, 4], [67, 4],
+        [69, 4], [74, 4], [71, 4], [69, 4],
+        [67, 4], [64, 2], [67, 2], [69, 4], [71, 4],
+        [69, 12], [null, 4],
+      ],
+      fin2: [[62, 6], [64, 2], [67, 4], [69, 4]],
+    },
+    B: {
+      accords: ['G', 'D', 'Em', 'D', 'G', 'Em', 'A', 'D'],
+      melodie: [
+        [74, 2], [74, 2], [76, 4], [74, 4], [71, 4],
+        [69, 4], [71, 2], [74, 2], [71, 8],
+        [67, 2], [69, 2], [71, 4], [74, 4], [76, 4],
+        [74, 12], [null, 4],
+        [71, 2], [74, 2], [71, 2], [69, 2], [67, 4], [64, 4],
+        [67, 4], [69, 4], [71, 8],
+        [69, 4], [67, 2], [64, 2], [62, 4], [64, 4],
+        [62, 12], [null, 4],
+      ],
+    },
+    jour: { tempo: 112, lead: 'fue', arpege: 'shamisen', basse: 'pizz', nappe: false, batterie: 'bon' },
+  },
 };
 
 /**
@@ -140,6 +176,12 @@ export function partition(lieu, moment) {
           for (let o = 0, j = 0; o < long; o += pas, j++) e.push({ b: tp + o, d: pas, i: 'koto', m: haut - 12 + degres[(j * (pas === 1 ? 2 : 1)) % 8], v: arr.arpege === 'koto' ? (j % 2 ? 0.7 : 1) : 0.75 });
         } else if (arr.arpege === 'marimba') {
           for (let o = 0.5; o < long; o += 1) for (const n of a.notes) e.push({ b: tp + o, d: 0.4, i: 'marimba', m: haut + n - (n > 4 ? 12 : 0), v: 0.8 });
+        } else if (arr.arpege === 'shamisen') {
+          // le shamisen : des accords pincés à contretemps (« chan, chan »), et la fondamentale sur le temps
+          for (let o = 0; o < long; o += 1) {
+            e.push({ b: tp + o, d: 0.3, i: 'shamisen', m: haut - 12, v: 0.8 });
+            for (const n of [a.notes[1], 7]) e.push({ b: tp + o + 0.5, d: 0.25, i: 'shamisen', m: haut + n - 12, v: 0.6 });
+          }
         } else if (arr.arpege === 'marimbaDoux') {
           const degres = [0, 7, 12, a.notes[1] + 12];
           for (let o = 0, j = 0; o < long; o += 1, j++) e.push({ b: tp + o, d: 1, i: 'marimba', m: haut + degres[j % 4] - 12, v: 0.55 });
@@ -149,6 +191,10 @@ export function partition(lieu, moment) {
       if (arr.batterie === 'taiko') {
         e.push({ b: t0, i: 'taiko', v: 1 }, { b: t0 + 2, i: 'taiko', v: 0.55 }, { b: t0 + 3.5, i: 'bois', v: 0.6 });
         for (let o = 0; o < 4; o += 0.5) e.push({ b: t0 + o, i: 'shaker', v: o % 1 ? 1 : 0.6 });
+      } else if (arr.batterie === 'bon') {
+        // le grand tambour des fêtes : « don, don-don, ka » ; la clochette de cuivre (« chan-chiki ») sur chaque temps
+        e.push({ b: t0, i: 'taiko', v: 1 }, { b: t0 + 1.5, i: 'taiko', v: 0.6 }, { b: t0 + 2, i: 'taiko', v: 0.85 }, { b: t0 + 3, i: 'bois', v: 0.9 });
+        for (let o = 0; o < 4; o += 1) e.push({ b: t0 + o, i: 'kane', v: 0.9 }, { b: t0 + o + 0.5, i: 'kane', v: 0.45 });
       } else if (arr.batterie === 'legere') {
         e.push({ b: t0, i: 'grosse', v: 1 }, { b: t0 + 1.5, i: 'grosse', v: 0.5 }, { b: t0 + 2, i: 'grosse', v: 0.9 });
         e.push({ b: t0 + 1, i: 'caisse', v: 1 }, { b: t0 + 3, i: 'caisse', v: 1 });
@@ -165,7 +211,7 @@ export function partition(lieu, moment) {
   A2.push(...air.A.fin2);
   const intro = evts(air.intro, null, 0, false);
   // un petit appel de percussion à la fin de l'introduction
-  if (arr.batterie) intro.push({ b: air.intro.length * 4 - 1, i: arr.batterie === 'taiko' ? 'taiko' : 'grosse', v: 0.7 }, { b: air.intro.length * 4 - 0.5, i: arr.batterie === 'taiko' ? 'taiko' : 'grosse', v: 0.8 });
+  if (arr.batterie) intro.push({ b: air.intro.length * 4 - 1, i: arr.batterie === 'legere' ? 'grosse' : 'taiko', v: 0.7 }, { b: air.intro.length * 4 - 0.5, i: arr.batterie === 'legere' ? 'grosse' : 'taiko', v: 0.8 });
   const boucle = [...evts(air.A.accords, air.A.melodie, 0, false), ...evts(air.A.accords, A2, nA, true), ...evts(air.B.accords, air.B.melodie, 2 * nA, false)];
   const tri = (l) => l.sort((p, q) => p.b - q.b);
   return { tempo: arr.tempo, intro: tri(intro), boucle: tri(boucle), tempsIntro: air.intro.length * 4, tempsBoucle: 2 * nA + nB };
@@ -174,16 +220,16 @@ export function partition(lieu, moment) {
 // ---------------------------------------------------------------- Les instruments
 // la musique un peu sous le bruitage (mesuré : environ −29 LUFS le jour, −31 la nuit, quand on marche le bruitage
 // est vers −26) ; l'air de nuit, plus dépouillé, est plus fort d'autant
-const VOLUME = { jour: 0.125, nuit: 0.26 };
+const VOLUME = { jour: 0.125, nuit: 0.26, fete: 0.13 };
 const NIVEAU = {
   shakuhachi: 0.16, flute: 0.15, boite: 0.11, koto: 0.085, marimba: 0.075, pizz: 0.2, basse: 0.13, cordes: 0.018,
-  taiko: 0.42, grosse: 0.3, caisse: 0.05, shaker: 0.018, bois: 0.05,
+  taiko: 0.42, grosse: 0.3, caisse: 0.05, shaker: 0.018, bois: 0.05, fue: 0.11, shamisen: 0.09, kane: 0.035,
 };
-const PLACE = { koto: -0.3, marimba: 0.3, shaker: 0.35, bois: -0.25, cordes: 0, pizz: -0.1, basse: 0 };
+const PLACE = { koto: -0.3, marimba: 0.3, shaker: 0.35, bois: -0.25, cordes: 0, pizz: -0.1, basse: 0, shamisen: -0.3, kane: 0.35 };
 
 export function creerMusique(lieu) {
   let ctx = null, sortie = null, reverbe = null, bruit = null, ondes = {};
-  let actif = true, coupe = false, moment = null, p = null, lecture = null, minuterie = null, attenue = 1;
+  let actif = true, coupe = false, moment = null, p = null, lecture = null, minuterie = null, attenue = 1, fete = false;
   try { actif = localStorage.getItem('baladeMusique') !== 'non'; } catch { /* navigation privée */ }
 
   /** Au premier moment où le son joue : la sortie, une réverbération (une salle douce), un peu de bruit blanc. */
@@ -249,6 +295,50 @@ export function creerMusique(lieu) {
     const fin = (o, f) => { o.connect(env); o.start(t); o.stop(t + f); };
     const f = m ? hz(m) : 0;
     switch (i) {
+      case 'fue': {
+        // la flûte de fête (shinobue), une octave plus haut : claire, un vibrato rapide, beaucoup de souffle
+        const o1 = osc('sine', f * 2, t), o2 = osc('triangle', f * 2, t), g2 = ctx.createGain();
+        g2.gain.value = 0.18;
+        o1.frequency.setValueAtTime(f * 2 * 0.985, t); o1.frequency.linearRampToValueAtTime(f * 2, t + 0.04);
+        const lfo = osc('sine', 6.4, t), prof = ctx.createGain();
+        prof.gain.setValueAtTime(0, t);
+        prof.gain.linearRampToValueAtTime(f * 2 * 0.008, t + Math.min(0.25, d * 0.6));
+        lfo.connect(prof); prof.connect(o1.frequency); prof.connect(o2.frequency);
+        env.gain.setValueAtTime(0, t);
+        env.gain.linearRampToValueAtTime(niveau, t + 0.03);
+        env.gain.setValueAtTime(niveau * 0.9, t + Math.max(0.04, d - 0.06));
+        env.gain.linearRampToValueAtTime(0, t + d + 0.08);
+        o2.connect(g2).connect(env);
+        o2.start(t); o2.stop(t + d + 0.12);
+        lfo.start(t); lfo.stop(t + d + 0.12);
+        fin(o1, d + 0.12);
+        souffle(t, 0.09, f * 4, 2.5, niveau * 0.4, vers);
+        break;
+      }
+      case 'shamisen': {
+        // le shamisen : une corde pincée sèche, brillante, avec son bourdonnement (le « sawari »), vite éteinte
+        const o = osc('sawtooth', f, t), filtre = ctx.createBiquadFilter();
+        filtre.type = 'bandpass'; filtre.Q.value = 1.4;
+        filtre.frequency.setValueAtTime(Math.min(8000, f * 6), t);
+        filtre.frequency.exponentialRampToValueAtTime(f * 2, t + 0.18);
+        o.connect(filtre).connect(env);
+        env.gain.setValueAtTime(niveau, t);
+        env.gain.exponentialRampToValueAtTime(0.0001, t + 0.45);
+        o.start(t); o.stop(t + 0.5);
+        souffle(t, 0.02, 3000, 1, niveau * 0.6, vers);
+        break;
+      }
+      case 'kane': {
+        // la clochette de cuivre qu'on frappe (atarigane) : des harmoniques qui ne tombent pas juste, très brèves
+        for (const [k, g] of [[1, 1], [2.76, 0.6], [5.4, 0.35]]) {
+          const o = osc('sine', 2200 * k, t), gk = ctx.createGain();
+          gk.gain.setValueAtTime(niveau * g, t);
+          gk.gain.exponentialRampToValueAtTime(0.0001, t + 0.12 / k ** 0.3);
+          o.connect(gk).connect(vers);
+          o.start(t); o.stop(t + 0.15);
+        }
+        break;
+      }
       case 'shakuhachi': case 'flute': {
         // une flûte : une sinusoïde et un peu de triangle, un vibrato qui vient après l'attaque, un souffle ;
         // la flûte de bambou glisse vers sa note
@@ -369,7 +459,7 @@ export function creerMusique(lieu) {
   /** Commence l'air de ce moment (jour ou nuit) : l'introduction (sauf avec intro: false), puis la boucle. */
   function commencer(m, { intro = true } = {}) {
     moment = m;
-    p = partition(lieu, m);
+    p = m === 'fete' ? partition('odori', 'jour') : partition(lieu, m);
     lecture = { phase: intro ? 'intro' : 'boucle', i: 0, t0: ctx.currentTime + 0.15 };
     sortie.gain.cancelScheduledValues(ctx.currentTime);
     sortie.gain.setTargetAtTime(VOLUME[m] * attenue, ctx.currentTime, 0.4);
@@ -420,7 +510,7 @@ export function creerMusique(lieu) {
      */
     maj(nuit, baisse = 1) {
       const pret = son.pret();
-      if (!pret || !actif || coupe) return;
+      if (!pret || !actif || coupe || fete) return;
       if (!ctx) preparer(pret);
       if (lecture && Math.abs(baisse - attenue) > 0.02) {
         attenue = baisse;
@@ -432,6 +522,28 @@ export function creerMusique(lieu) {
         moment = voulu;
         arreter(() => { if (!coupe && actif) commencer(voulu, { intro: false }); });
       }
+    },
+    /**
+     * L'air de la fête (oui : on danse), ou le retour à l'air du lieu. Renvoie l'instant (secondes du contexte audio)
+     * où commence le premier temps de la danse, pour danser en mesure (ou null : sans musique).
+     */
+    fete(oui) {
+      fete = oui;
+      const pret = son.pret();
+      if (!pret || !actif || coupe) return null;
+      if (!ctx) preparer(pret);
+      if (oui) {
+        clearInterval(minuterie);
+        sortie.gain.cancelScheduledValues(ctx.currentTime);
+        sortie.gain.setTargetAtTime(0, ctx.currentTime, 0.08);
+        attenue = 1;
+        // (l'introduction : deux mesures ; la danse commence avec la boucle)
+        setTimeout(() => { if (fete) commencer('fete'); }, 300);
+        return 0.3 + 0.15 + (2 * 4 * 60) / 112;
+      }
+      arreter(() => { if (!fete && !coupe && actif) commencer(moment === 'fete' || !moment ? 'jour' : moment, { intro: false }); });
+      moment = 'jour';
+      return null;
     },
     /** Le silence pendant la vidéo (oui), puis la reprise au début de la boucle. */
     couper(oui) {

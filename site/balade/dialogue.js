@@ -44,6 +44,8 @@ export function creerDialogue(el, son = null) {
 
   function montrerChoix() {
     el.choix.innerHTML = options.map((o, i) => `<button type="button" data-i="${i}">${o}</button>`).join('');
+    // (de courtes options, plus de trois : sur un écran en hauteur, en grille sur toute la largeur, au-dessus de la boîte)
+    el.choix.classList.toggle('nombreux', !!reglages.grille && options.length > 3);
     el.choix.hidden = false;
     choixCourant = reglages.depart || 0;
     marquer();
@@ -134,10 +136,10 @@ export function creerDialogue(el, son = null) {
     /**
      * Dit des pages et finit par un choix ; la promesse donne l'indice de l'option choisie. depart : l'option marquée
      * d'abord ; survol(i) : appelé quand l'option i se marque (s'il renvoie un texte, la boîte le montre) ;
-     * obligatoire : Échap ne choisit rien.
+     * obligatoire : Échap ne choisit rien ; grille : de courtes options, en grille sur un écran en hauteur.
      */
-    choisir(p, opts, { qui, depart = 0, survol = null, obligatoire = false } = {}) {
-      return new Promise((r) => { options = opts; finChoix = r; reglages = { depart, survol, obligatoire }; ouvrir(p, qui); });
+    choisir(p, opts, { qui, depart = 0, survol = null, obligatoire = false, grille = false } = {}) {
+      return new Promise((r) => { options = opts; finChoix = r; reglages = { depart, survol, obligatoire, grille }; ouvrir(p, qui); });
     },
   };
 }

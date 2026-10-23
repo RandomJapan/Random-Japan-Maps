@@ -12,6 +12,10 @@
 //  des grives, des lézards, des chats, des papillons et des milans (betes.js). Des bancs où s'asseoir ; un passant
 //  fait tomber la nuit et revenir le jour (les étoiles, les lanternes allumées, l'air de nuit : lueurs.js).
 //  Tous les tampons d'un lieu font gagner une pièce de tenue (tenues.js) : on l'essaie dans la garde-robe, vu de face.
+//  Chaque lieu cache un secret (2026-10-23 : les corbeaux sacrés d'Itsukushima, la boîte au trésor d'Aogashima) : il
+//  donne un koban, la monnaie de Bunbuku, le marchand ambulant (tresors.js), qui vend des objets précieux : la danse des
+//  fêtes, la traînée sous les pas, les accessoires du compagnon, les feux d'artifice (feux.js), des tenues entières,
+//  l'appareil photo (photo.js), trois compagnons secrets et le calendrier magique (calendrier.js : les saisons).
 //  ?lieu=itsukushima|aogashima ; ?perso=garcon|fille ; ?compagnon=kon|pon|chapu ; ?langue=en|fr|ja ;
 //  ?photo=heros|perso : une image fixe (captures) ; ?demo : une partie jouée image par image (vidéos) ;
 //  ?ciel=parchemin : un essai du style (styles.js) ; ?flou=0 : sans le flou du lointain ; ?aa=0 : sans anticrénelage.
@@ -20,7 +24,7 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.m
 import { ateliers } from '../modeles3d.js';
 import { MATIERES } from './textures.js';
 import { creerStyle, matieresStyle, eclairerParLampes, LAMPES_GLSL, passeFinale, rafale, VENT_GLSL, VITESSE_RAFALE } from './styles.js';
-import { creerHeros, creerPersonnage, creerCompagnon, COMPAGNONS, creerDaim } from './personnages.js';
+import { creerHeros, creerPersonnage, creerCompagnon, COMPAGNONS, COMPAGNONS_SECRETS, creerDaim, creerMarchand } from './personnages.js';
 import { creerPassant, avancerPassant, tourner, lisse, pointDuBanc, ASSIS } from './monde.js';
 import { creerEtiquettes } from './etiquettes.js';
 import { TEXTES, LANGUES, choisirLangue } from './textes.js';
@@ -34,6 +38,10 @@ import { creerMusique } from './musique.js';
 import { creerEffets } from './effets.js';
 import { creerLueurs } from './lueurs.js';
 import { PIECES, PLACES, piece, recompense as recompenseDu, gagnee, lireTenue, ecrireTenue, nouvelles, marquerVue, icone } from './tenues.js';
+import { SECRETS, ARTICLES, article, secretTrouve, trouverSecret, indiceVu, voirIndice, aAchete, acheter, koban, kobanTrouves, modeDev, kobanDev, remettreDev, dessinKoban, iconeArticle } from './tresors.js';
+import { creerFeux } from './feux.js';
+import { creerChutes, SAISONS } from './calendrier.js';
+import { creerPhoto } from './photo.js';
 import * as itsukushima from './itsukushima.js';
 import * as aogashima from './aogashima.js';
 
@@ -56,9 +64,12 @@ let sorte = ['garcon', 'fille'].includes(params.get('perso')) ? params.get('pers
 if (!['garcon', 'fille'].includes(sorte)) sorte = null;
 // le compagnon : on le choisit au départ de chaque visite (le dernier choisi est proposé d'abord) ; ?compagnon= l'impose
 // (sans le choix : pour les essais)
-const COMPAGNON_IMPOSE = COMPAGNONS.includes(params.get('compagnon'));
+const TOUS_COMPAGNONS = [...COMPAGNONS, ...COMPAGNONS_SECRETS];
+/** Les compagnons qu'on peut choisir : les trois de départ, et les secrets qu'on a achetés au marchand. */
+const compagnonsDispo = () => TOUS_COMPAGNONS.filter((e) => COMPAGNONS.includes(e) || aAchete(e));
+const COMPAGNON_IMPOSE = TOUS_COMPAGNONS.includes(params.get('compagnon'));
 let espece = COMPAGNON_IMPOSE ? params.get('compagnon') : memoire.lire('baladeCompagnon');
-if (!COMPAGNONS.includes(espece)) espece = null;
+if (!COMPAGNON_IMPOSE && !compagnonsDispo().includes(espece)) espece = null;
 
 const toile = $('#jeu');
 // l'anticrénelage se fait dans l'image de la scène (styles.js, passeFinale) ; sur un écran tactile, au plus
@@ -77,7 +88,7 @@ const etat = { x: 0, z: 0, y: 0, cap: 0, vitesse: 0, vx: 0, vz: 0, mode: 'depart
 const renard = { x: 0, z: 0, y: 0, cap: 0, vitesse: 0, nage: false, banc: null };
 // la caméra voulue (le joueur la tourne) ; vue : celle qu'on a, rapprochée sous un toit ou devant un bâtiment
 const cam = { lacet: 0, tangage: 0.24, distance: 6.4 };
-const vue = { tangage: 0.24, distance: 6.4 };
+const vue = { tangage: 0.24, distance: 6.4, leve: 0 };
 
 function construire() {
   const style = creerStyle({ ciel: params.get('ciel') });
@@ -103,7 +114,8 @@ function construire() {
   const mouilleJoueur = mats.persoMouille(P.peau), mouilleKon = mats.persoMouille();
   const ctxJoueur = { ...ctx, maillage: maillageDe(mouilleJoueur.materiel, mats.traitPerso) };
   const ctxKon = { ...ctx, maillage: maillageDe(mouilleKon.materiel, mats.traitPerso) };
-  const lieu = LIEUX[LIEU].construire(ctx);
+  // (perso : pour ce que le lieu anime à la manière des personnages : les corbeaux)
+  const lieu = LIEUX[LIEU].construire({ ...ctx, perso: ctxPerso });
   // le vent du lieu : d'où il pousse, sa force
   mats.vent.ventDir.value.set(...(lieu.vent?.dir || [0.6, 0.8])).normalize();
   mats.vent.ventForce.value = lieu.vent?.force ?? 1;
@@ -157,7 +169,7 @@ function construire() {
   const voyageurs = { garcon: creerHeros(ctxJoueur, 'garcon'), fille: creerHeros(ctxJoueur, 'fille') };
   // les trois compagnons (un seul se montre, sauf au moment de choisir) ; Pon se tambourine le ventre : on l'entend
   const tambour = () => M.bruitage.tambour({ pan: panDe(renard.x, renard.z), force: 1 / (1 + Math.max(0, Math.hypot(renard.x - camera.position.x, renard.z - camera.position.z) - 4) * 0.25) });
-  const compagnons = Object.fromEntries(COMPAGNONS.map((e) => [e, creerCompagnon(ctxKon, e, { tambour })]));
+  const compagnons = Object.fromEntries(TOUS_COMPAGNONS.map((e) => [e, creerCompagnon(ctxKon, e, { tambour })]));
   for (const v of [voyageurs.garcon, voyageurs.fille, ...Object.values(compagnons)]) { groupe.add(v.objet); sansOmbreRecue(v.objet); }
   const passants = lieu.passants.map((p) => {
     const perso = creerPersonnage(ctxPerso, p.tenue);
@@ -188,13 +200,37 @@ function construire() {
   // les halos et les flaques de lumière des lanternes, la nuit
   const lueurs = creerLueurs(THREE, lieu.lumieres || [], mats.lampes);
   groupe.add(lueurs.groupe);
+  // ce que le lieu anime (son secret : les corbeaux, la porte de bambous, la boîte enterrée)
+  for (const a of lieu.animes || []) groupe.add(a.objet);
+  // Bunbuku, le marchand ambulant, s'il passe par ce lieu ; on lui parle (la boutique)
+  let marchand = null;
+  if (lieu.marchand) {
+    const q = lieu.marchand;
+    marchand = { ...q, y: lieu.monde.hauteur(q.x, q.z), perso: creerMarchand(ctxPerso), capVoulu: q.cap };
+    marchand.perso.objet.position.set(q.x, marchand.y, q.z);
+    marchand.perso.objet.rotation.y = q.cap;
+    groupe.add(marchand.perso.objet);
+    sansOmbreRecue(marchand.perso.objet);
+    lieu.monde.cercle(q.x, q.z, 0.62);
+    lieu.interactions.push({ id: 'marchand', x: q.x, z: q.z, y: marchand.y, rayon: 2.2, haut: 1.75, verbe: 'parler', action: () => parlerMarchand() });
+  }
+  // les feux d'artifice ; ce qui tombe du ciel selon la saison (le calendrier magique)
+  const feux = creerFeux(THREE);
+  groupe.add(feux.groupe);
+  const chutes = creerChutes(THREE);
+  groupe.add(chutes.groupe);
   scene.add(groupe);
   M = {
-    carte, effets, lueurs, betes, mouilleJoueur, mouilleKon, feuillage: densiteFeuillage(lieu), bruitage: creerBruitage({ oiseaux: lieu.oiseaux || [], ambiances: lieu.ambiances || [], betes: lieu.betes?.chats?.length ? ['miaou', 'ronron'] : [] }), musique: creerMusique(lieu.id), focale: 800,
+    carte, effets, lueurs, betes, mouilleJoueur, mouilleKon, feuillage: densiteFeuillage(lieu), bruitage: creerBruitage({ oiseaux: lieu.oiseaux || [], ambiances: lieu.ambiances || [], betes: lieu.betes?.chats?.length ? ['miaou', 'ronron'] : [], extras: lieu.sons || [] }), musique: creerMusique(lieu.id), focale: 800,
+    marchand, feux, chutes, sac: new Set(), trace: null, saison: 'ete', flash: { v: 0, c: new THREE.Color() }, hemiBase: { intensite: 0, couleur: new THREE.Color() },
     style, ctx, mats, lieu, groupe, decor, voyageurs, compagnons, kon: null, cadre: null, passants, daims, mouettes, eau, ciel, soleil, hemi, etoiles, vapeurs, touffes, finale: passeFinale(THREE, style, { echantillons: params.get('aa') === '0' ? 0 : 4, flou: params.get('flou') !== '0' }), cible: null, sauvage: null, nuit: { v: 0, cible: 0, fin: null } };
   choisirVoyageur(sorte || 'garcon');
   choisirCompagnon(espece || 'kon');
   for (const s of ['garcon', 'fille']) habiller(s);
+  // la saison du calendrier magique (s'il est à nous), gardée d'une visite à l'autre
+  if (aAchete('calendrier')) changerSaison(memoire.lire('baladeSaison') || 'ete', { tout: true });
+  M.hemiBase.intensite = hemi.intensity;
+  M.hemiBase.couleur.copy(hemi.color);
   dimensionner();
 }
 
@@ -399,12 +435,19 @@ function choisirVoyageur(s) {
 }
 /** Le nombre de tampons d'un lieu (pour savoir si sa récompense est gagnée). */
 const totalTampons = (id) => LIEUX[id]?.infos.tampons.length || 0;
-/** Le voyageur s porte sa tenue (tenues.js : celle qu'on lui a choisie, parmi les pièces gagnées). */
+/**
+ * Le voyageur s porte sa tenue (tenues.js : celle qu'on lui a choisie, parmi les pièces gagnées) ; pour celui qu'on
+ * joue, ce qu'il laisse sous ses pas et ce que porte son compagnon.
+ */
 function habiller(s) {
   const tenue = lireTenue(s, totalTampons);
   for (const place of PLACES) M.voyageurs[s].porter(place, tenue[place]);
+  if (s === (sorte || 'garcon')) {
+    M.trace = tenue.pas !== 'trace-aucune' ? tenue.pas.slice(6) : null;
+    for (const c of Object.values(M.compagnons)) c.porter(tenue.compagnon);
+  }
 }
-/** Le compagnon qui suit le joueur (les deux autres cachés). */
+/** Le compagnon qui suit le joueur (les autres cachés). */
 function choisirCompagnon(e) {
   espece = e;
   for (const [nom, c] of Object.entries(M.compagnons)) c.objet.visible = nom === e;
@@ -720,6 +763,8 @@ function appliquerNuit(v) {
   const melange = (cible, jour, nuit) => cible.copy(a.set(jour)).lerp(b.set(nuit), v);
   M.hemi.intensity = L.ambiance + (NUIT.ambiance - L.ambiance) * v;
   melange(M.hemi.color, L.ciel, NUIT.ciel);
+  M.hemiBase.intensite = M.hemi.intensity;
+  M.hemiBase.couleur.copy(M.hemi.color);
   melange(M.hemi.groundColor, L.sol, NUIT.sol);
   M.soleil.intensity = L.force + (NUIT.force - L.force) * v;
   melange(M.soleil.color, L.soleil, NUIT.lune);
@@ -760,9 +805,20 @@ const carnet = creerCarnet({ fond: $('.fond-carnet'), page: $('.carnet') }, {
     const T = t('tenue');
     return `<p class="carnet-recompense${complet ? ' gagnee' : ''}">${icone(p.id, sorte, 44)}<span>${(complet ? T.recompenseGagnee : T.recompense)(nomPiece(p.id))}</span></p>`;
   },
+  // son secret : trouvé (un koban doré), ou, une fois tous les tampons trouvés, qu'il en reste un ; et les koban qu'on a
+  secret: (L, complet) => {
+    const id = SECRETS[L.id], T = t('tresors');
+    let h = '';
+    if (id && secretTrouve(id)) h = `<p class="carnet-secret trouve">${dessinKoban(30, `c-${id}`)}<span>${T.carnetSecretTrouve(T.secrets[id])}</span></p>`;
+    else if (id && complet) h = `<p class="carnet-secret"><span class="point">？</span><span>${T.carnetSecret}</span></p>`;
+    if (kobanTrouves() > 0) h += `<p class="carnet-koban">${dessinKoban(22, 'c-total')}<span>${T.carnetKoban(koban())}</span></p>`;
+    return h;
+  },
 });
 /** Le nom (dans la langue du moment) et la description d'une pièce de tenue, pour le voyageur s. */
-const clePiece = (id, s = sorte) => (id === 'defaut' ? (s === 'fille' ? 'defautFille' : 'defautGarcon') : id);
+// (la casquette ou le chapeau de paille, la veste rouge ou le chemisier rose : selon le voyageur)
+const clePiece = (id, s = sorte) => (id === 'defaut' ? (s === 'fille' ? 'defautFille' : 'defautGarcon')
+  : id === 'habit-defaut' ? (s === 'fille' ? 'habitFille' : 'habitGarcon') : id);
 const nomPiece = (id, s) => t('tenue').noms[clePiece(id, s)];
 const descriptionPiece = (id, s) => t('tenue').descriptions[clePiece(id, s)];
 
@@ -804,6 +860,7 @@ addEventListener('keydown', (e) => {
     e.preventDefault();
     return;
   }
+  if (etat.mode === 'danse') { e.preventDefault(); arreterDanse(); return; }
   if (e.code === 'Escape') { fermerTout(); return; }
   if (etat.mode !== 'jeu') return;
   if (ACTION.includes(e.code)) { e.preventDefault(); if (!e.repeat) agir(); return; }
@@ -825,6 +882,7 @@ let glisse = null;
 toile.addEventListener('pointerdown', (e) => {
   son.reveiller();
   if (dialogue.ouvert()) { dialogue.appuyer(); return; }
+  if (etat.mode === 'danse') { arreterDanse(); return; }
   if (glisse) return;
   glisse = { id: e.pointerId, x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY };
   try { toile.setPointerCapture(e.pointerId); } catch { /* un pointeur déjà levé */ }
@@ -844,13 +902,15 @@ toile.addEventListener('pointermove', (e) => {
 const lacher = (e) => { if (glisse && e.pointerId === glisse.id) glisse = null; };
 toile.addEventListener('pointerup', lacher);
 toile.addEventListener('pointercancel', lacher);
-toile.addEventListener('wheel', (e) => { cam.distance = Math.min(14, Math.max(3.2, cam.distance * (1 + Math.sign(e.deltaY) * 0.1))); e.preventDefault(); }, { passive: false });
+// (avec l'appareil photo, on peut s'approcher plus près)
+toile.addEventListener('wheel', (e) => { cam.distance = Math.min(14, Math.max(etat.mode === 'photo' ? 1.6 : 3.2, cam.distance * (1 + Math.sign(e.deltaY) * 0.1))); e.preventDefault(); }, { passive: false });
 
 // le joystick et le bouton A (écrans tactiles)
 const manette = $('.joystick');
 const bouton = manette.querySelector('span');
 manette.addEventListener('pointerdown', (e) => {
   son.reveiller();
+  if (etat.mode === 'danse') arreterDanse();
   joy.id = e.pointerId;
   try { manette.setPointerCapture(e.pointerId); } catch { /* un pointeur déjà levé */ }
   bougerJoy(e);
@@ -871,6 +931,7 @@ $('.bouton-a').addEventListener('pointerdown', (e) => {
   e.preventDefault();
   son.reveiller();
   if (dialogue.ouvert()) dialogue.appuyer();
+  else if (etat.mode === 'danse') arreterDanse();
   else if (etat.mode === 'jeu') agir();
 });
 $('.bulle-action').addEventListener('pointerdown', (e) => { e.preventDefault(); if (etat.mode === 'jeu') agir(); });
@@ -890,6 +951,9 @@ function fermerTout() {
   if (carnet.ouvert()) carnet.fermer();
   $('.fond-menu').hidden = true;
   if (etat.mode === 'tenue') fermerGarderobe();
+  if (etat.mode === 'boutique') fermerBoutique();
+  if (etat.mode === 'photo') { if (photo.resultat()) photo.fermerResultat(); else fermerPhoto(); }
+  if (etat.mode === 'danse') arreterDanse();
   if (etat.mode === 'carnet' || etat.mode === 'menu') etat.mode = 'jeu';
 }
 
@@ -928,12 +992,12 @@ function cadrerDeFace(panneau = true) {
  * butte) et les passants.
  */
 const rayon = new THREE.Raycaster();
-function gene(de) {
-  const L = M.lieu, ex = de.x - etat.x, ez = de.z - etat.z, le = Math.hypot(ex, ez) || 1;
+function gene(de, cible = etat) {
+  const L = M.lieu, ex = de.x - cible.x, ez = de.z - cible.z, le = Math.hypot(ex, ez) || 1;
   let n = 0;
   for (const [h, c] of [[0.2, 0], [0.75, 0], [1.3, 0], [0.3, -0.28], [0.3, 0.28], [0.85, -0.3], [0.85, 0.3], [1.35, -0.32], [1.35, 0.32]]) {
     // (c : de côté, vu de la caméra)
-    const vers = new THREE.Vector3(etat.x - (ez / le) * c, etat.y + h, etat.z + (ex / le) * c), d = vers.clone().sub(de), l = d.length();
+    const vers = new THREE.Vector3(cible.x - (ez / le) * c, cible.y + h, cible.z + (ex / le) * c), d = vers.clone().sub(de), l = d.length();
     d.divideScalar(l);
     rayon.set(de, d);
     rayon.far = Math.max(0.1, l - 0.3);
@@ -950,7 +1014,7 @@ function gene(de) {
     }
   }
   // (la caméra dans un bâtiment)
-  const o = new THREE.Vector3(etat.x, etat.y + 1, etat.z), d = de.clone().sub(o), l = d.length();
+  const o = new THREE.Vector3(cible.x, cible.y + 1, cible.z), d = de.clone().sub(o), l = d.length();
   if (L.monde.visee(o, d.divideScalar(l), l) < l) n += 3;
   return n;
 }
@@ -988,7 +1052,7 @@ function majGarderobe(info = null) {
     return `<section><h3>${T[place]}</h3><div class="pieces">${boutons}</div></section>`;
   }).join('');
   const p = piece(info) || piece(tenue.yeux !== 'aucune' && !info ? tenue.yeux : tenue.tete);
-  const texte = gagnee(p, totalTampons) ? descriptionPiece(p.id) : T.verrou(nomDe(LIEUX[p.lieu].infos), (lireTampons()[p.lieu] || []).length, totalTampons(p.lieu));
+  const texte = gagnee(p, totalTampons) ? descriptionPiece(p.id) : p.achat ? T.verrouAchat(article(p.achat).prix) : T.verrou(nomDe(LIEUX[p.lieu].infos), (lireTampons()[p.lieu] || []).length, totalTampons(p.lieu));
   $('.garde-robe').innerHTML = `<button class="fermer" type="button" aria-label="${t('fermer')}">×</button>`
     + `<h2>${T.titre}${T.titreJa ? ` <span>${T.titreJa}</span>` : ''}</h2>${sections}`
     + `<p class="piece-info"><b>${nomPiece(p.id)}</b> ${texte}</p><p class="tenue-aide">${T.aide}<br><small>${T.tourner}</small></p>`;
@@ -1004,14 +1068,25 @@ $('.garde-robe').addEventListener('click', (e) => {
   son.choix();
   majGarderobe(p.id);
 });
-/** Le voyageur met la pièce p (et la garde : chaque voyageur a sa tenue). */
+/**
+ * Le voyageur met la pièce p (et la garde : chaque voyageur a sa tenue) ; ce qu'on laisse sous ses pas : un aperçu
+ * à ses pieds ; ce que porte le compagnon : il saute de joie.
+ */
 function porterPiece(p) {
   const tenue = lireTenue(sorte, totalTampons);
   if (tenue[p.place] === p.id) return;
   tenue[p.place] = p.id;
   ecrireTenue(sorte, tenue);
-  M.joueur.porter(p.place, p.id);
-  M.joueur.saluer();
+  if (p.place === 'pas') {
+    M.trace = p.id !== 'trace-aucune' ? p.id.slice(6) : null;
+    if (M.trace) for (let k = 0; k < 3; k++) M.effets.trace(M.trace, etat.x + (k - 1) * 0.2, etat.y, etat.z, true);
+  } else if (p.place === 'compagnon') {
+    for (const c of Object.values(M.compagnons)) c.porter(p.id);
+    M.kon.sauter();
+  } else {
+    M.joueur.porter(p.place, p.id);
+    M.joueur.saluer();
+  }
 }
 
 /**
@@ -1030,28 +1105,36 @@ async function offrirRecompenses() {
     await attendre(900);
     await dialogue.dire(T.gain(nomDe(LIEUX[p.lieu].infos), nom));
     el.hidden = true;
-    if ((await dialogue.choisir([T.porter], [T.porterOui, T.porterNon])) !== 0) { await dialogue.dire(T.plusTard); continue; }
-    // (assis, ou la caméra déjà ailleurs : on ne la bouge pas)
-    const deFace = !siege && !M.cadre, cap = etat.cap;
-    if (deFace) { cadrerDeFace(false); await attendre(450); }
-    M.effets.nuage(etat.x, etat.y + 1.05, etat.z, 1.3);
-    M.bruitage.pouf();
-    await attendre(120);
-    porterPiece(p);
-    await attendre(700);
-    await dialogue.dire(T.porte);
-    if (deFace) { M.cadre = null; etat.cap = cap; camera.userData.place = false; }
+    if ((await dialogue.choisir([T.porter], [T.porterOui, T.porterNon])) !== 0) await dialogue.dire(T.plusTard);
+    else {
+      // (assis, ou la caméra déjà ailleurs : on ne la bouge pas)
+      const deFace = !siege && !M.cadre, cap = etat.cap;
+      if (deFace) { cadrerDeFace(false); await attendre(450); }
+      M.effets.nuage(etat.x, etat.y + 1.05, etat.z, 1.3);
+      M.bruitage.pouf();
+      await attendre(120);
+      porterPiece(p);
+      await attendre(700);
+      await dialogue.dire(T.porte);
+      if (deFace) { M.cadre = null; etat.cap = cap; camera.userData.place = false; }
+    }
+    // (le lieu cache encore un secret : le carnet le dit)
+    if (SECRETS[p.lieu] && !secretTrouve(SECRETS[p.lieu])) await dialogue.dire(t('tresors').secretReste);
   }
 }
 
 function ouvrirMenu() {
   if (etat.mode !== 'jeu' && etat.mode !== 'menu') return;
+  const T = t('tresors');
   const choix = (cle, valeurs, actuel) => `<div class="menu-ligne"><span>${t(cle)}</span><div>${valeurs.map(([v, nom]) => `<button type="button" data-${cle.toLowerCase()}="${v}" class="${v === actuel ? 'actif' : ''}">${nom}</button>`).join('')}</div></div>`;
   $('.menu').innerHTML = `
     <button type="button" class="menu-carnet">${t('carnet')} <small>${$('.carnet-n').textContent}</small></button>
     <button type="button" class="menu-tenue">${t('tenue').titre} <small>${PIECES.filter((p) => p.lieu && gagnee(p, totalTampons)).length}/${PIECES.filter((p) => p.lieu).length}</small></button>
+    ${kobanTrouves() > 0 ? `<p class="menu-koban">${dessinKoban(22, 'menu')}<span>${T.menuKoban}</span><b>${koban()}</b></p>` : ''}
+    ${['danse', 'feux', 'photo'].filter(aAchete).map((id) => `<button type="button" class="menu-action" data-action="${id}">${iconeArticle(id, 28)}<span>${T[{ danse: 'menuDanser', feux: 'menuFeux', photo: 'menuPhoto' }[id]]}</span></button>`).join('')}
+    ${aAchete('calendrier') ? `<div class="menu-ligne"><span>${T.menuSaison}</span><div>${SAISONS.map((k) => `<button type="button" data-menusaison="${k}" class="${k === M.saison ? 'actif' : ''}">${T.saisons[k]}</button>`).join('')}</div></div>` : ''}
     ${choix('menuVoyageur', [['garcon', t('garcon')], ['fille', t('fille')]], sorte)}
-    ${choix('menuCompagnon', COMPAGNONS.map((e) => [e, tcDe(e, 'nom')]), espece)}
+    ${choix('menuCompagnon', compagnonsDispo().map((e) => [e, tcDe(e, 'nom')]), espece)}
     ${choix('menuLieu', Object.entries(LIEUX).map(([id, { infos }]) => [id, nomDe(infos)]), M.lieu.id)}
     ${choix('menuSon', [['oui', t('sonOui')], ['non', t('sonNon')]], son.actif() ? 'oui' : 'non')}
     ${choix('menuMusique', [['oui', t('sonOui')], ['non', t('sonNon')]], M.musique.actif() ? 'oui' : 'non')}
@@ -1066,10 +1149,27 @@ $('.menu').addEventListener('click', (e) => {
   if (b.classList.contains('menu-carnet')) { fermerTout(); ouvrirCarnet(); return; }
   if (b.classList.contains('menu-tenue')) { fermerTout(); ouvrirGarderobe(); return; }
   const d = b.dataset;
+  if (d.action) {
+    fermerTout();
+    if (d.action === 'danse') commencerDanse();
+    else if (d.action === 'feux') lancerFeux();
+    else if (d.action === 'photo') ouvrirPhoto();
+    return;
+  }
+  if (d.menusaison) {
+    fermerTout();
+    if (d.menusaison !== M.saison) {
+      changerSaison(d.menusaison);
+      son.magie();
+      jouerScene((jeu) => jeu.dire(t('tresors').saisonChange(t('tresors').saisons[d.menusaison])));
+    }
+    return;
+  }
   if (d.menuvoyageur) {
     sorte = d.menuvoyageur;
     memoire.ecrire('baladePerso', sorte);
     choisirVoyageur(sorte);
+    habiller(sorte);
   } else if (d.menucompagnon) {
     if (d.menucompagnon !== espece) {
       M.effets.nuage(renard.x, renard.y, renard.z);
@@ -1161,9 +1261,11 @@ function cibleProche() {
       const p = M.passants.find((q) => q.id === i.passant);
       cands.push({ ...i, x: p.etat.x, z: p.etat.z, y: p.etat.y, rayon: 1.8, haut: 1.95 * (p.tenue.taille || 1), p });
     } else {
-      // pres(x, z) : un endroit qui suit le joueur (le long d'une corde…), sinon le point fixe de l'interaction
+      // pres(x, z) : un endroit qui suit le joueur (le long d'une corde…), sinon le point fixe de l'interaction ;
+      // si(jeu) : seulement à certains moments (la carte au trésor vue…) ; verbe(jeu) : un verbe qui change
+      if (i.si && !i.si(jeu)) continue;
       const q = i.pres ? { ...i, ...i.pres(etat.x, etat.z) } : i;
-      cands.push({ ...q, y: q.y ?? L.monde.hauteur(q.x, q.z), haut: q.haut || 2.1 });
+      cands.push({ ...q, verbe: typeof q.verbe === 'function' ? q.verbe(jeu) : q.verbe, y: q.y ?? L.monde.hauteur(q.x, q.z), haut: q.haut || 2.1 });
     }
   }
   for (const d of M.daims) cands.push({ x: d.x, z: d.z, y: L.monde.hauteur(d.x, d.z), rayon: 1.9, verbe: 'caresser', haut: 1.55 - 0.5 * lisse(0, 1, d.couche), action: L.actionDaim });
@@ -1202,7 +1304,8 @@ async function agir() {
     await c.action(jeu);
   } finally {
     if (c.p) { c.p.etat.parle = false; c.p.perso.saluer(); }
-    etat.mode = 'jeu';
+    // (sauf si l'action a ouvert autre chose : la boutique du marchand)
+    if (etat.mode === 'dialogue') etat.mode = 'jeu';
   }
 }
 
@@ -1267,6 +1370,26 @@ const jeu = {
     M.cadre = c && { de: new THREE.Vector3(...c.de), vers: new THREE.Vector3(...c.vers), champ };
     camera.userData.place = false;
   },
+  /**
+   * La caméra de côté, sur le voyageur et ce qu'il regarde en (x, y, z) (le sol, pour une fouille, une pierre…) :
+   * d'un côté ou de l'autre, un peu tournée au besoin, là où rien ne les cache ; haut : sa hauteur au-dessus d'eux.
+   */
+  cadrerDeCote(x, y, z, { distance = 4.2, haut = 1.5, champ = 55 } = {}) {
+    const L = M.lieu, cx = (x + etat.x) / 2, cz = (z + etat.z) / 2, dx = x - etat.x, dz = z - etat.z, l = Math.hypot(dx, dz) || 1;
+    const bas = Math.min(y, etat.y), vers = new THREE.Vector3((x * 2 + etat.x) / 3, bas + 0.7, (z * 2 + etat.z) / 3);
+    let de = null, mieux = Infinity;
+    for (const a of [0, 0.35, -0.35, 0.7, -0.7]) {
+      for (const sg of [1, -1]) {
+        const ux = -(dz / l) * sg, uz = (dx / l) * sg, ca = Math.cos(a), sa = Math.sin(a);
+        const px = cx + (ux * ca - uz * sa) * distance, pz = cz + (ux * sa + uz * ca) * distance;
+        const c = new THREE.Vector3(px, Math.max(L.terrain(px, pz) + 1.2, bas + haut), pz);
+        const g = gene(c) + gene(c, { x, y: y - 0.4, z }) + Math.abs(a) * 0.5 + (c.y - bas - haut) * 0.8;
+        if (g < mieux) { mieux = g; de = c; }
+      }
+      if (mieux < 0.6) break;
+    }
+    jeu.cadrer({ de: de.toArray(), vers: vers.toArray(), champ });
+  },
   /** Les deux ronds des jumelles sur l'écran (oui), ou plus. */
   jumelles(oui) {
     const el = $('.jumelles-ecran'), l = innerWidth, h = innerHeight, rr = Math.min(l * 0.27, h * 0.42);
@@ -1325,6 +1448,20 @@ const jeu = {
   get estNuit() { return M.nuit.cible === 1; },
   /** Le texte cle du lieu, ou, la nuit, sa variante « cleNuit » s'il y en a une. */
   txn: (cle) => (M.nuit.cible === 1 && tx(`${cle}Nuit`)) || tx(cle),
+  // les trésors (tresors.js) : le secret du lieu, les indices vus, ce qu'on porte dans son sac (une momiji manjū…)
+  secretTrouve, indiceVu, voirIndice,
+  trouverSecret: (id) => decouvrirSecret(id),
+  aDansSac: (o) => M.sac.has(o),
+  donner: (o) => { M.sac.add(o); },
+  prendre: (o) => { M.sac.delete(o); },
+  /** Un geste du voyageur ('creuser', 'offrir'… : personnages.js), ou null. */
+  geste: (g) => M.joueur.geste(g),
+  /** Un son : 'magie' (son.js), ou un son du bruitage ('pelle', 'boite'). */
+  son: (nom) => { if (nom === 'magie') son.magie(); else M.bruitage.jouerSon(nom); },
+  /** Des mottes de terre jetées en (x, y, z), qui retombent à la hauteur sol. */
+  terre: (x, y, z, sol, n) => M.effets.terre(x, y, z, sol, n),
+  /** Une feuille de papier sur l'écran (une carte, une photo : du SVG), ou null : on la range. */
+  image: (html, classe) => montrerFeuille(html, classe),
   /** La caméra descend et lève les yeux vers le ciel (oui : les étoiles), ou reprend sa place. */
   leverLesYeux(oui) {
     if (oui && !M.nuit.camera) {
@@ -1336,6 +1473,316 @@ const jeu = {
     }
   },
 };
+
+
+// ---------------------------------------------------------------- Les trésors (2026-10-23) : les secrets, le marchand
+/** Les scènes que le lieu demande (la porte de bambous qui s'ouvre…) : jouées dès qu'on est libre. */
+const scenes = [];
+/** Ce que reçoit, à chaque image, ce que le lieu anime : le joueur, la nuit, une scène à jouer. */
+const contexteAnime = { joueur: etat, get nuit() { return M.nuit.v; }, scene: (fn) => scenes.push(fn) };
+/** Une scène : le joueur s'arrête le temps d'un dialogue (fn(jeu)), puis repart. */
+async function jouerScene(fn) {
+  etat.mode = 'dialogue';
+  touches.clear();
+  etat.vx = etat.vz = 0;
+  try { await fn(jeu); } finally { if (etat.mode === 'dialogue') etat.mode = 'jeu'; }
+}
+
+/** Une feuille de papier sur l'écran (la carte au trésor, la photo de classe, la lettre), ou null : on la range. */
+function montrerFeuille(html, classe = '') {
+  const el = $('.feuille');
+  if (!html) { el.hidden = true; el.innerHTML = ''; return; }
+  el.innerHTML = `<div class="feuille-papier ${classe}">${html}</div>`;
+  el.hidden = false;
+}
+
+/**
+ * Un secret trouvé (tresors.js) : le koban tourne sur ses rayons dorés, sa petite musique ; on dit lequel ; le
+ * compagnon s'en réjouit ; et l'on apprend où trouver le marchand qui les accepte.
+ */
+async function decouvrirSecret(id) {
+  if (!trouverSecret(id)) return;
+  const T = t('tresors'), el = $('.tampon-obtenu');
+  el.innerHTML = `<div class="tampon-papier piece-gagnee koban-gagne"><span class="ruban">${T.secrets[id]}</span><div class="tampon-presse koban-tourne">${dessinKoban(120, 'obtenu')}</div></div>`;
+  el.hidden = false;
+  son.koban();
+  await attendre(1100);
+  await dialogue.dire(T.trouve(nomDe(M.lieu)));
+  el.hidden = true;
+  M.kon.sauter();
+  M.bruitage.cri(espece, { pan: panDe(renard.x, renard.z) });
+  await dialogue.dire(tc('koban'), { qui: tc('nom') });
+  if (memoire.lire('baladeMarchandVu') !== 'oui' && T.marchandOu[M.lieu.id]) await dialogue.dire([T.marchandOu[M.lieu.id]]);
+}
+
+/**
+ * On parle à Bunbuku. La première fois, il se présente (le compagnon réagit ; Pon reconnaît son oncle). Sans koban ni
+ * achat, il dit que chaque lieu cache un secret ; sinon, sa boutique s'ouvre.
+ */
+async function parlerMarchand() {
+  const T = t('tresors').marchand, mq = M.marchand, qui = { qui: T.nom };
+  mq.capVoulu = Math.atan2(etat.x - mq.x, etat.z - mq.z);
+  mq.perso.saluer();
+  const vu = memoire.lire('baladeMarchandVu') === 'oui';
+  if (!vu) {
+    await dialogue.dire(T.intro, qui);
+    M.kon.sauter();
+    M.bruitage.cri(espece, { pan: panDe(renard.x, renard.z) });
+    await dialogue.dire(tc('marchand'), { qui: tc('nom') });
+    if (espece === 'pon') await dialogue.dire(T.introPon, qui);
+    memoire.ecrire('baladeMarchandVu', 'oui');
+  }
+  if (koban() <= 0 && !ARTICLES.some((a) => aAchete(a.id)) && !modeDev()) { await dialogue.dire(T.pasDeKoban, qui); return; }
+  if (vu) await dialogue.dire(T.revoir, qui);
+  ouvrirBoutique();
+}
+
+let choixArticle = null, messageBoutique = '';
+function ouvrirBoutique() {
+  touches.clear();
+  etat.vx = etat.vz = 0;
+  etat.mode = 'boutique';
+  document.body.classList.add('en-boutique');
+  cadrerMarchand();
+  choixArticle = null;
+  messageBoutique = '';
+  majBoutique();
+  $('.boutique').hidden = false;
+}
+function fermerBoutique() {
+  $('.boutique').hidden = true;
+  document.body.classList.remove('en-boutique');
+  M.cadre = null;
+  camera.userData.place = false;
+  if (M.marchand) M.marchand.capVoulu = M.marchand.cap;
+  etat.mode = 'jeu';
+}
+/**
+ * La caméra de côté, entre le voyageur et le marchand (du côté où rien ne la gêne) ; sur un écran large, les deux un peu à
+ * gauche (le panneau est à droite) ; en hauteur, en haut (le panneau est en bas). Le voyageur se tourne vers le marchand.
+ */
+function cadrerMarchand() {
+  const mq = M.marchand, L = M.lieu, portrait = innerWidth < innerHeight;
+  const cx = (mq.x + etat.x) / 2, cz = (mq.z + etat.z) / 2, dx = etat.x - mq.x, dz = etat.z - mq.z, l = Math.hypot(dx, dz) || 1;
+  const D = portrait ? 5.4 : 4.4, y0 = mq.y, vers = new THREE.Vector3(cx, y0 + 0.85, cz);
+  // de côté (d'un côté ou de l'autre, un peu tournée au besoin), là où rien ne cache ni le voyageur ni le marchand
+  let de = null, mieux = Infinity;
+  for (const a of [0, 0.35, -0.35, 0.7, -0.7]) {
+    for (const sg of [1, -1]) {
+      const ux = -(dz / l) * sg, uz = (dx / l) * sg, ca = Math.cos(a), sa = Math.sin(a);
+      const c = new THREE.Vector3(cx + (ux * ca - uz * sa) * D, y0 + 1.5, cz + (ux * sa + uz * ca) * D);
+      const dir = c.clone().sub(vers), ld = dir.length();
+      let g = gene(c) + gene(c, mq) + Math.abs(a) * 0.5;
+      if (L.terrain(c.x, c.z) > c.y - 0.4 || L.monde.visee(vers, dir.divideScalar(ld), ld) < ld - 0.05) g += 10;
+      if (g < mieux) { mieux = g; de = c; }
+    }
+    if (mieux < 0.6) break;
+  }
+  const avant = vers.clone().sub(de).normalize(), droite = new THREE.Vector3().crossVectors(avant, new THREE.Vector3(0, 1, 0)).normalize();
+  if (portrait) vers.y -= 1.1; else vers.addScaledVector(droite, 1.0);
+  M.cadre = { de, vers, champ: portrait ? 60 : 42 };
+  camera.userData.place = false;
+  etat.cap = Math.atan2(mq.x - etat.x, mq.z - etat.z);
+  mq.capVoulu = Math.atan2(etat.x - mq.x, etat.z - mq.z);
+}
+/** L'icône d'un article : la sienne, celle de sa première pièce de tenue, ou celle d'un compagnon. */
+function iconeDe(a, taille) {
+  if (a.sorte === 'tenue') return icone(a.pieces[0], sorte, taille);
+  return iconeArticle(a.id, taille);
+}
+/**
+ * Le panneau de la boutique : les articles par prix ; celui qu'on regarde, ce qu'il fait, et le bouton pour l'acheter.
+ * montrer : un sélecteur (ce qu'il fait, ce que dit le marchand) que le panneau fait défiler à la vue, s'il dépasse.
+ */
+function majBoutique(montrer = null) {
+  const T = t('tresors'), TM = T.marchand, n = koban();
+  const piecette = (k) => `<span class="piecettes">${Array.from({ length: k }, (_, i) => dessinKoban(13, `p${i}`)).join('')}</span>`;
+  const groupes = [...new Set(ARTICLES.map((a) => a.prix))].map((prix) => `<div class="articles">${ARTICLES.filter((a) => a.prix === prix).map((a) => {
+    const fait = aAchete(a.id);
+    return `<button type="button" class="article${fait ? ' achete' : ''}${choixArticle === a.id ? ' actif' : ''}${!fait && n < a.prix ? ' cher' : ''}" data-article="${a.id}">`
+      + `${iconeDe(a, 44)}<small>${T.articles[a.id][0]}</small>${fait ? `<em>${TM.aToi}</em>` : piecette(a.prix)}</button>`;
+  }).join('')}</div>`).join('');
+  const a = article(choixArticle);
+  let info = `<p class="article-info">${TM.aide}</p>`;
+  if (a) {
+    const fait = aAchete(a.id), manque = a.prix - n;
+    info = `<div class="article-info"><b>${T.articles[a.id][0]}</b><span>${T.articles[a.id][1]}</span>`
+      + (fait ? `<em>${TM.aToi}</em>` : `<button type="button" class="acheter"${manque > 0 ? ' disabled' : ''}>${manque > 0 ? TM.manque(manque) : TM.acheter(a.prix)}</button>`) + '</div>';
+  }
+  $('.boutique').innerHTML = `<button class="fermer" type="button" aria-label="${t('fermer')}">×</button>`
+    + `<h2>${TM.titre} <span>${TM.titreJa}</span></h2><p class="bourse">${dessinKoban(26, 'bourse')}<b>${n}</b></p>${groupes}${info}`
+    + (messageBoutique ? `<p class="boutique-message"><b>${TM.nom}</b> « ${messageBoutique} »</p>` : '')
+    + (modeDev() ? `<p class="boutique-dev"><button type="button" data-dev="plus">${TM.dev}</button><button type="button" data-dev="zero">${TM.devZero}</button></p>` : '');
+  if (montrer) $(`.boutique ${montrer}`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+$('.boutique').addEventListener('click', (e) => {
+  if (e.target.closest('.fermer')) { fermerBoutique(); return; }
+  const dev = e.target.closest('[data-dev]');
+  if (dev) {
+    if (dev.dataset.dev === 'plus') kobanDev(1);
+    else {
+      // (tout recommencer : on recharge la balade, pour rejouer les secrets depuis le début ; ce qu'on portait
+      // d'acheté revient à ce qu'on avait, les compagnons achetés partent, la saison redevient l'été)
+      remettreDev();
+      location.reload();
+      return;
+    }
+    son.choix();
+    majBoutique();
+    return;
+  }
+  if (e.target.closest('.acheter')) { acheterArticle(choixArticle); return; }
+  const b = e.target.closest('[data-article]');
+  if (!b) return;
+  choixArticle = b.dataset.article;
+  messageBoutique = '';
+  son.choix();
+  majBoutique('.article-info');
+});
+function acheterArticle(id) {
+  const a = article(id), TM = t('tresors').marchand;
+  if (!a) return;
+  if (aAchete(id)) { messageBoutique = TM.deja; son.bip(); majBoutique('.boutique-message'); return; }
+  if (!acheter(id)) { messageBoutique = TM.manque(a.prix - koban()); son.bip(); majBoutique('.boutique-message'); return; }
+  son.achat();
+  M.marchand.perso.saluer();
+  M.kon.sauter();
+  messageBoutique = `${TM.merci} ${a.sorte === 'compagnon' ? TM.apres.compagnon(tcDe(id, 'nom')) : TM.apres[a.sorte]}`;
+  majBoutique('.boutique-message');
+}
+
+// ---- la danse des fêtes (bon-odori) : la caméra de face, l'air de la fête ; une touche, un appui, et l'on s'arrête
+function commencerDanse() {
+  if (etat.mode !== 'jeu') return;
+  if (siege) seLever();
+  touches.clear();
+  etat.vx = etat.vz = 0;
+  etat.mode = 'danse';
+  cadrerDeFace(false);
+  // (le premier temps de la danse tombe avec celui de la musique, après son introduction)
+  const avance = M.musique.fete(true), b0 = avance ? -avance * (112 / 60) : 0;
+  M.joueur.danser(true, b0);
+  M.kon.danser(true, b0);
+  const aide = $('.aide');
+  aide.textContent = t('tresors').danseAide;
+  aide.classList.remove('vue');
+  document.body.classList.add('en-danse');
+}
+function arreterDanse() {
+  if (etat.mode !== 'danse') return;
+  M.joueur.danser(false);
+  M.kon.danser(false);
+  M.musique.fete(false);
+  M.cadre = null;
+  camera.userData.place = false;
+  const aide = $('.aide');
+  aide.classList.add('vue');
+  aide.textContent = tactile ? t('aideTel') : t('aideOrdi');
+  document.body.classList.remove('en-danse');
+  etat.mode = 'jeu';
+}
+
+// ---- les feux d'artifice : la nuit (on peut l'attendre), sur la mer derrière le torii ou dans le cratère du petit volcan
+async function lancerFeux() {
+  const L = M.lieu, T = t('tresors');
+  if (!L.feux || etat.mode !== 'jeu') return;
+  await jouerScene(async () => {
+    if (M.feux.actif()) { await dialogue.dire([T.feuxDeja]); return; }
+    if (!jeu.estNuit) {
+      if ((await dialogue.choisir(T.feuxNuit, [t('oui'), t('non')])) !== 0) return;
+      await jeu.nuit(true);
+    }
+    M.bruitage.sons(['feu/depart', 'feu/boum', 'feu/crepite']);
+    await dialogue.dire(T.feuxDebut);
+    // le spectacle, assez loin pour le voir en entier (trop près, on l'éloigne dans la même direction : les bombes
+    // éclatent haut, il faudrait se tordre le cou)
+    const S0 = L.feux, hm = (S0.haut[0] + S0.haut[1]) / 2;
+    const dx = S0.x - etat.x, dz = S0.z - etat.z;
+    const d = Math.hypot(dx, dz) || 1, k = Math.max(d, hm * 1.6) / d;
+    const S = { ...S0, x: etat.x + dx * k, z: etat.z + dz * k };
+    S.y = Math.max(S0.y, L.terrain(S.x, S.z) + 0.5);
+    // la caméra derrière le voyageur, tournée vers le spectacle, un peu plus bas ; elle lève les yeux vers les bombes
+    Object.assign(cam, { lacet: Math.atan2(etat.x - S.x, etat.z - S.z), tangage: -0.05, distance: 5 });
+    M.regardHaut = M.dernierRegard = { x: S.x, y: S.y + hm * 0.85, z: S.z };
+    etat.cap = Math.atan2(S.x - etat.x, S.z - etat.z);
+    camera.userData.place = false;
+    M.feux.spectacle(S, {
+      depart(x, y, z) {
+        const d = Math.hypot(x - camera.position.x, y - camera.position.y, z - camera.position.z);
+        M.bruitage.feu('depart', { force: Math.min(1, 40 / (d + 10)), pan: panDe(x, z), delai: d / 343 });
+      },
+      eclat(x, y, z, c, force, crepite) {
+        const d = Math.hypot(x - camera.position.x, y - camera.position.y, z - camera.position.z), pan = panDe(x, z);
+        M.flash.c.setRGB(c[0], c[1], c[2]);
+        M.flash.v = Math.min(1.1, M.flash.v + 0.5 * force * Math.min(1, 110 / d));
+        M.bruitage.feu('boum', { force: Math.min(1.2, 100 / (d + 20)) * force, pan, delai: d / 343 });
+        if (crepite) M.bruitage.feu('crepite', { force: Math.min(1, 80 / (d + 20)), pan, delai: d / 343 + 1.1 });
+      },
+    }).then(() => {
+      M.regardHaut = null;
+      scenes.push(async () => {
+        M.kon.sauter();
+        await dialogue.dire(tc('feux'), { qui: tc('nom') });
+      });
+    });
+  });
+}
+
+// ---- l'appareil photo : la caméra de face, plus près ; on tourne autour du voyageur, qui prend la pose
+let avantPhoto = null;
+const photo = creerPhoto($('.photo'), {
+  t: () => t('tresors').photo, son,
+  // l'image du jeu, à l'instant (dessinée maintenant : on la copie avant que le navigateur ne l'efface)
+  capturer() {
+    dessiner(0, temps);
+    const c = document.createElement('canvas');
+    c.width = toile.width;
+    c.height = toile.height;
+    c.getContext('2d').drawImage(toile, 0, 0);
+    return c;
+  },
+  infos() {
+    const L = M.lieu, pris = lireTampons()[L.id] || [];
+    return {
+      id: L.id, lieu: nomDe(L), lieuJa: L.nomJa, salut: t('tresors').photo.salut(nomDe(L)), compagnon: tc('nom'),
+      date: new Date().toLocaleDateString(langue === 'en' ? 'en-GB' : langue, { year: 'numeric', month: 'long', day: 'numeric' }),
+      tampons: L.tampons.filter((tp) => pris.includes(tp.id)).map((tp) => dessinTampon(tp, L.nomJa, 200)),
+    };
+  },
+  pose(g) { M.joueur.geste(g); if (g) { M.kon.sauter(); M.bruitage.cri(espece, { force: 0.6 }); } },
+  fermer: () => fermerPhoto(),
+});
+function ouvrirPhoto() {
+  if (etat.mode !== 'jeu') return;
+  if (siege) seLever();
+  touches.clear();
+  etat.vx = etat.vz = 0;
+  etat.mode = 'photo';
+  avantPhoto = { lacet: cam.lacet, tangage: cam.tangage, distance: cam.distance };
+  Object.assign(cam, { lacet: etat.cap, tangage: 0.12, distance: 3.6 });
+  camera.userData.place = false;
+  document.body.classList.add('en-photo');
+  photo.ouvrir();
+}
+function fermerPhoto() {
+  photo.fermer();
+  M.joueur.geste(null);
+  if (avantPhoto) Object.assign(cam, avantPhoto);
+  camera.userData.place = false;
+  document.body.classList.remove('en-photo');
+  etat.mode = 'jeu';
+}
+
+// ---- le calendrier magique : la saison de la balade (les couleurs, ce qui tombe du ciel, la neige sous les pas)
+const POIDS_SAISON = { ete: [0, 0, 0], printemps: [1, 0, 0], automne: [0, 1, 0], hiver: [0, 0, 1] };
+function changerSaison(s, { tout = false } = {}) {
+  if (!SAISONS.includes(s)) s = 'ete';
+  M.saison = s;
+  memoire.ecrire('baladeSaison', s);
+  M.saisonCible = POIDS_SAISON[s];
+  if (tout) M.mats.saisons.value.set(...M.saisonCible);
+  M.chutes.regler(s);
+}
 
 // ---------------------------------------------------------------- Le jeu
 /** Le joueur au départ du lieu (ou dans la pose d'une capture), son compagnon à côté. */
@@ -1378,26 +1825,35 @@ function cadrerLesDeux() {
  * Le choix du compagnon, au départ de chaque visite : les trois assis en rang devant le voyageur, face à une
  * caméra basse (M.cadre), comme les trois créatures qu'on présente au début des jeux.
  */
-const trio = { actif: false, places: [] };
+const trio = { actif: false, places: [], liste: COMPAGNONS };
 function cadrerTrio() {
   const L = M.lieu, p = L.photos.perso;
   Object.assign(etat, { x: p.x, z: p.z, cap: p.cap, vitesse: 0, vx: 0, vz: 0 });
   etat.y = L.monde.hauteur(etat.x, etat.z);
   M.autre.objet.visible = false;
   const fx = Math.sin(etat.cap), fz = Math.cos(etat.cap), dx = Math.cos(etat.cap), dz = -Math.sin(etat.cap);
-  trio.places = COMPAGNONS.map((e, i) => {
-    const k = i - 1, x = etat.x + fx * 1.15 + dx * k * 0.8, z = etat.z + fz * 1.15 + dz * k * 0.8;
-    return { x, z, y: L.monde.hauteur(x, z, etat.y), cap: etat.cap - k * 0.25 };
+  // (les trois de départ, et les compagnons secrets qu'on a achetés au marchand : jusqu'à six en rang)
+  trio.liste = compagnonsDispo();
+  // (en rang ; plus de trois — les compagnons secrets achetés au marchand — : sur deux rangs, comme pour une photo de
+  // classe, les trois de départ devant, les autres derrière, entre eux, la caméra un peu plus haut)
+  const n = trio.liste.length, deux = n > 3, m = n - 3, ecart = deux ? 0.62 : 0.8, s = deux && m % 2 ? 0.155 : 0;
+  trio.places = trio.liste.map((e, i) => {
+    const derriere = deux && i >= 3, j = derriere ? i - 3 : i;
+    const k = derriere ? j - (m - 1) / 2 + s / ecart : j - (deux ? 1 : (n - 1) / 2) - s / ecart;
+    const avant = derriere ? 0.85 : deux ? 1.55 : 1.15;
+    const x = etat.x + fx * avant + dx * k * ecart, z = etat.z + fz * avant + dz * k * ecart;
+    return { x, z, y: L.monde.hauteur(x, z, etat.y), cap: etat.cap - k * 0.2 };
   });
-  for (const c of Object.values(M.compagnons)) c.objet.visible = true;
+  for (const [e, c] of Object.entries(M.compagnons)) c.objet.visible = trio.liste.includes(e);
   trio.actif = true;
-  // (plus loin sur un écran en hauteur : les trois doivent tenir dans sa largeur ; sur un écran large, un peu à
-  // gauche : le menu du choix est à droite)
-  const portrait = innerWidth < innerHeight, loin = portrait ? 4.3 : 2.9, cx = etat.x + fx * 1.15, cz = etat.z + fz * 1.15, y0 = trio.places[1].y;
-  const decale = portrait ? 0 : 0.42;
+  // (plus loin sur un écran en hauteur : ils doivent tenir dans sa largeur ; sur un écran large, un peu à gauche : le
+  // menu du choix est à droite)
+  const portrait = innerWidth < innerHeight, loin = portrait ? (deux ? 4.6 : 4.3) : deux ? 3.3 : 2.9;
+  const cx = etat.x + fx * 1.15, cz = etat.z + fz * 1.15, y0 = trio.places[deux ? 1 : Math.floor((n - 1) / 2)].y;
+  const decale = portrait ? 0 : deux ? 0.55 : 0.42, haut = deux ? 1.85 : 1.25 + loin * 0.04;
   M.cadre = {
-    de: new THREE.Vector3(cx + fx * loin + dx * decale, y0 + 1.25 + loin * 0.04, cz + fz * loin + dz * decale),
-    vers: new THREE.Vector3(cx - fx * 0.35 + dx * decale, y0 + (portrait ? 0.35 : 0.2), cz - fz * 0.35 + dz * decale),
+    de: new THREE.Vector3(cx + fx * loin + dx * decale, y0 + haut, cz + fz * loin + dz * decale),
+    vers: new THREE.Vector3(cx - fx * 0.35 + dx * decale, y0 + (portrait ? (deux ? -0.1 : 0.35) : 0.2), cz - fz * 0.35 + dz * decale),
   };
   camera.userData.place = false;
 }
@@ -1462,7 +1918,7 @@ function avancer(dt) {
   } else if (etat.mode !== 'depart') {
     // (le joueur assis : le compagnon vient devant lui, un peu de côté ; derrière, c'est le banc ; ou vers sa place sur le banc)
     // (pendant l'essayage, à côté du voyageur, un peu devant, à droite sur l'écran : il ne le cache pas)
-    const essai = etat.mode === 'tenue', recul = siege ? -0.9 : essai ? -0.3 : 1.3, cote = essai ? 0.8 : 0.75;
+    const essai = etat.mode === 'tenue' || etat.mode === 'danse' || etat.mode === 'photo', recul = siege ? -0.9 : essai ? -0.3 : 1.3, cote = essai ? 0.8 : 0.75;
     const cx = banc ? banc.x : etat.x - Math.sin(etat.cap) * recul + Math.cos(etat.cap) * cote, cz = banc ? banc.z : etat.z - Math.cos(etat.cap) * recul - Math.sin(etat.cap) * cote;
     const ex = cx - renard.x, ez = cz - renard.z, d = Math.hypot(ex, ez);
     const vr = d > 0.35 ? Math.min(COURSE * 1.15, d * 2.8) : 0;
@@ -1480,6 +1936,8 @@ function avancer(dt) {
       const niveau = L.eau.niveau || 0, fond = L.terrain(renard.x, renard.z);
       if (niveau - fond > 0.2 && renard.y < niveau) { renard.nage = true; renard.y = niveau - 0.13; }
     }
+    // (Fuwa vole : au-dessus de l'eau, il reste au-dessus de la surface)
+    if (espece === 'fuwa' && L.eau) renard.y = Math.max(renard.y, (L.eau.niveau || 0) - 0.1);
   }
 
   // les passants font leur ronde
@@ -1545,8 +2003,11 @@ function sousLesPieds(x, z, y) {
   const L = M.lieu, h = L.terrain(x, z);
   if (y > h + 0.12) return { sol: L.monde.solSous(x, z, y), eau: 0, h };
   const e = L.eau, eau = e && x > e.x0 && x < e.x1 && z > e.z0 && z < e.z1 ? Math.max(0, (e.niveau || 0) - h) : 0;
-  return { sol: eau > 0.03 ? 'eau' : SON_DU_SOL[matiereDuSol(x, z, h)] || 'terre', eau, h };
+  const sol = eau > 0.03 ? 'eau' : SON_DU_SOL[matiereDuSol(x, z, h)] || 'terre';
+  // (l'hiver du calendrier magique : la neige crisse sous les pas)
+  return { sol: M.mats.saisons.value.z > 0.5 && NEIGEUX.has(sol) ? 'neige' : sol, eau, h };
 }
+const NEIGEUX = new Set(['herbe', 'terre', 'sousBois', 'sable', 'roche']);
 /** De quel côté de l'écran est x, z (−1 à gauche, 1 à droite), pour le son. */
 function panDe(x, z) {
   const dx = x - camera.position.x, dz = z - camera.position.z;
@@ -1577,6 +2038,8 @@ function unPas(qui, cote) {
     });
   }
   const sorte = kon ? 2 : cote > 0 ? 0 : 1;
+  // la traînée achetée au marchand : des pétales, des étoiles ou des feuilles à chaque pas
+  if (!kon && M.trace) E.trace(M.trace, x, p.y, z, course);
   if (sol === 'eau') {
     // des gouttes jetées autour du pied, et un rond
     const niveau = M.lieu.eau.niveau || 0, k = Math.min(1, eau / 0.3);
@@ -1706,7 +2169,7 @@ function dessiner(dt, temps) {
   let pasKon = 0;
   if (trio.actif) {
     // le choix du compagnon : les trois en rang (ceux qui sont partis dans leur nuage, cachés)
-    COMPAGNONS.forEach((e, i) => {
+    trio.liste.forEach((e, i) => {
       const c = M.compagnons[e], q = trio.places[i];
       if (!c.objet.visible) return;
       c.objet.position.set(q.x, q.y, q.z);
@@ -1757,6 +2220,34 @@ function dessiner(dt, temps) {
       s.d.objet.position.set(s.x, lieu.monde.hauteur(s.x, s.z) + Math.abs(Math.sin(s.t * 12)) * 0.35, s.z);
     }
   }
+  // ce que le lieu anime (son secret) : les cris qui vont avec ; une scène à jouer quand on est libre
+  for (const a of lieu.animes || []) {
+    for (const c of a.maj(dt, temps, contexteAnime) || []) {
+      const d = Math.hypot(c.x - camera.position.x, c.y - camera.position.y, c.z - camera.position.z), force = (c.fort ?? 1) / (1 + Math.max(0, d - 8) * 0.1);
+      if (!PHOTO && etat.mode !== 'depart' && force > 0.08 && c.nom) M.bruitage.oiseau(c.nom, { force, pan: panDe(c.x, c.z) });
+    }
+  }
+  if (scenes.length && etat.mode === 'jeu' && !dialogue.ouvert()) jouerScene(scenes.shift());
+  // le marchand : il se tourne vers le voyageur qui lui parle, le regarde quand il approche
+  if (M.marchand) {
+    const mq = M.marchand, o = mq.perso.objet;
+    o.rotation.y = tourner(o.rotation.y, mq.capVoulu, dt * 3);
+    const d = Math.hypot(etat.x - mq.x, etat.z - mq.z), a = Math.atan2(etat.x - mq.x, etat.z - mq.z) - o.rotation.y;
+    mq.perso.animer(dt, temps, d < 7 ? Math.atan2(Math.sin(a), Math.cos(a)) : null);
+    if (d > 4 && etat.mode === 'jeu') mq.capVoulu = mq.cap;
+  }
+  M.feux.maj(dt, M.focale);
+  M.chutes.maj(dt, temps, camera.position, M.focale, M.nuit.v);
+  // la saison du calendrier : les couleurs changent en fondu
+  const sv = M.mats.saisons.value, sc = M.saisonCible || [0, 0, 0], ks = Math.min(1, dt * 1.1);
+  sv.set(sv.x + (sc[0] - sv.x) * ks, sv.y + (sc[1] - sv.y) * ks, sv.z + (sc[2] - sv.z) * ks);
+  M.touffes.groupe.visible = sv.z < 0.5;
+  // l'éclat d'un feu d'artifice : la lumière du ciel prend sa couleur un instant
+  if (M.flash.v > 0) {
+    M.flash.v = Math.max(0, M.flash.v - dt * 3.2);
+    M.hemi.intensity = M.hemiBase.intensite + 1.4 * M.flash.v;
+    M.hemi.color.copy(M.hemiBase.couleur).lerp(M.flash.c, Math.min(0.7, M.flash.v));
+  }
   if (M.eau) M.eau.material.uniforms.temps.value = temps;
   if (M.vapeurs) M.vapeurs.material.uniforms.temps.value = temps;
   M.etoiles.material.uniforms.temps.value = temps;
@@ -1804,6 +2295,17 @@ function dessiner(dt, temps) {
   voulu.y = Math.max(voulu.y, plancher + 0.45);
   if (saut) { camera.position.copy(voulu); camera.userData.place = true; } else camera.position.lerp(voulu, 1 - Math.exp(-dt * 12));
   camera.lookAt(vise);
+  // (les feux d'artifice : elle lève les yeux vers le spectacle, le voyageur en bas de l'image ; s'il est devant)
+  vue.leve += ((M.regardHaut ? 1 : 0) - vue.leve) * (1 - Math.exp(-dt * 2.2));
+  if (vue.leve > 0.002 && M.dernierRegard) {
+    const R = M.dernierRegard, q = camera.position, hv = Math.hypot(vise.x - q.x, vise.z - q.z) || 1, h = Math.hypot(R.x - q.x, R.z - q.z) || 1;
+    const fx = (vise.x - q.x) / hv, fz = (vise.z - q.z) / hv;
+    if (((R.x - q.x) * fx + (R.z - q.z) * fz) / h > 0.4) {
+      const aTete = Math.atan2(vise.y - q.y, hv), aVers = Math.min(Math.atan2(R.y - q.y, h), aTete + THREE.MathUtils.degToRad(camera.fov / 2) * 0.72);
+      const phi = aTete + Math.max(0, aVers - aTete) * vue.leve;
+      camera.lookAt(q.x + fx * Math.cos(phi), q.y + Math.sin(phi), q.z + fz * Math.cos(phi));
+    }
+  }
   }
   M.ciel.position.copy(camera.position);
   // ce qui cache le joueur s'efface en pointillés (styles.js) ; un passant collé à la caméra s'efface tout entier
@@ -1885,15 +2387,15 @@ async function depart() {
   // puis, à chaque visite, le compagnon : les trois en rang ; celui qu'on marque bondit, crie, et se présente
   cadrerTrio();
   M.bruitage.preparer();
-  const crier = (i) => { const q = trio.places[i]; M.compagnons[COMPAGNONS[i]].sauter(); M.bruitage.cri(COMPAGNONS[i], { force: 0.8, pan: (i - 1) * 0.5 }); return q; };
-  const r = await dialogue.choisir(t('compagnonQuestion'), COMPAGNONS.map((e) => tcDe(e, 'nom')), {
-    depart: Math.max(0, COMPAGNONS.indexOf(espece)), obligatoire: true,
-    survol: (i) => { crier(i); return tcDe(COMPAGNONS[i], 'choix'); },
+  const L3 = trio.liste, crier = (i) => { const q = trio.places[i]; M.compagnons[L3[i]].sauter(); M.bruitage.cri(L3[i], { force: 0.8, pan: (i - (L3.length - 1) / 2) * 0.35 }); return q; };
+  const r = await dialogue.choisir(t('compagnonQuestion'), L3.map((e) => tcDe(e, 'nom')), {
+    depart: Math.max(0, L3.indexOf(espece)), obligatoire: true, grille: true,
+    survol: (i) => { crier(i); return tcDe(L3[i], 'choix'); },
   });
-  const choisi = COMPAGNONS[r], q = trio.places[r];
+  const choisi = L3[r], q = trio.places[r];
   memoire.ecrire('baladeCompagnon', choisi);
-  // les deux autres s'en vont dans un petit nuage (comme les renards et les tanuki des contes)
-  trio.places.forEach((p, i) => { if (i !== r) { M.effets.nuage(p.x, p.y, p.z); M.compagnons[COMPAGNONS[i]].objet.visible = false; } });
+  // les autres s'en vont dans un petit nuage (comme les renards et les tanuki des contes)
+  trio.places.forEach((p, i) => { if (i !== r) { M.effets.nuage(p.x, p.y, p.z); M.compagnons[L3[i]].objet.visible = false; } });
   M.bruitage.pouf();
   trio.actif = false;
   choisirCompagnon(choisi);
@@ -1921,7 +2423,7 @@ construire();
 majInterface();
 if (PHOTO === 'perso' || (!sorte && !PHOTO && !DEMO)) cadrerLesDeux(); else placer();
 $('.chargement').hidden = true;
-window.balade = { scene, rendu, camera, monde: () => M, etat, cam, renard }; // (pour les essais)
+window.balade = { scene, rendu, camera, monde: () => M, etat, cam, renard, jeu, ouvrirBoutique, commencerDanse, lancerFeux, ouvrirPhoto, changerSaison, photo }; // (pour les essais)
 
 /**
  * La qualité qui s'adapte : si l'image peine (la moitié des images de 2 s en plus de 22 ms, moins de 45 par

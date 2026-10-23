@@ -1,26 +1,47 @@
 // ================================================================
 //  Les tenues : ce que le voyageur porte (un couvre-chef, des lunettes…). On gagne une pièce en trouvant tous les
 //  tampons d'un lieu : une récompense, pour donner envie de les chercher (demandé par le propriétaire le
-//  2026-10-23). La garde-robe (balade.js) les essaie sur le voyageur, vu de face. Ce module dit les pièces, celles
-//  qui sont gagnées (d'après le carnet : rien d'autre à garder), ce que chaque voyageur porte
+//  2026-10-23). Le 2026-10-23, d'autres s'achètent au marchand avec les koban des secrets (tresors.js) : des tenues
+//  entières, ce qu'on laisse sous ses pas, ce que porte le compagnon. La garde-robe (balade.js) les essaie sur le
+//  voyageur, vu de face. Ce module dit les pièces, celles qui sont gagnées (d'après le carnet et les achats : rien
+//  d'autre à garder), ce que chaque voyageur porte
 //  (localStorage.baladeTenue) et les récompenses déjà annoncées (localStorage.baladeTenuesVues), et dessine leurs
 //  icônes. Leurs formes en 3D : personnages.js (creerHeros, porter).
 // ================================================================
 import { lireTampons } from './carnet.js';
+import { aAchete } from './tresors.js';
 
-export const PLACES = ['tete', 'yeux'];
+// (le 2026-10-23, des pièces qu'on achète au marchand avec les koban des secrets, tresors.js : achat ; et trois places
+// de plus : la tenue entière, ce qu'on laisse sous ses pas, ce que porte le compagnon)
+export const PLACES = ['tete', 'yeux', 'habit', 'pas', 'compagnon'];
 /**
- * Les pièces, par place (une seule pièce par place à la fois) ; lieu : le lieu dont il faut tous les tampons (sans
- * lieu : dès le départ). 'defaut' : la casquette du garçon, le chapeau de paille de la fille.
+ * Les pièces, par place (une seule pièce par place à la fois) ; lieu : le lieu dont il faut tous les tampons ; achat :
+ * l'article du marchand qui la débloque (tresors.js) ; sans l'un ni l'autre : dès le départ. 'defaut' : la casquette du
+ * garçon, le chapeau de paille de la fille.
  */
 export const PIECES = [
   { id: 'defaut', place: 'tete' },
   { id: 'nue', place: 'tete' },
   { id: 'bois', place: 'tete', lieu: 'itsukushima' },
+  { id: 'kabuto', place: 'tete', achat: 'armure' },
   { id: 'aucune', place: 'yeux' },
   { id: 'etoiles', place: 'yeux', lieu: 'aogashima' },
+  { id: 'masque', place: 'yeux', achat: 'masque' },
+  { id: 'habit-defaut', place: 'habit' },
+  { id: 'happi', place: 'habit', achat: 'happi' },
+  { id: 'yukata', place: 'habit', achat: 'yukata' },
+  { id: 'kimonoOr', place: 'habit', achat: 'kimonoOr' },
+  { id: 'armure', place: 'habit', achat: 'armure' },
+  { id: 'trace-aucune', place: 'pas' },
+  { id: 'trace-petales', place: 'pas', achat: 'traces' },
+  { id: 'trace-etoiles', place: 'pas', achat: 'traces' },
+  { id: 'trace-feuilles', place: 'pas', achat: 'traces' },
+  { id: 'cp-defaut', place: 'compagnon' },
+  { id: 'cp-bandana', place: 'compagnon', achat: 'accessoires' },
+  { id: 'cp-chapeau', place: 'compagnon', achat: 'accessoires' },
+  { id: 'cp-grelot', place: 'compagnon', achat: 'accessoires' },
 ];
-const PAR_DEFAUT = { tete: 'defaut', yeux: 'aucune' };
+const PAR_DEFAUT = { tete: 'defaut', yeux: 'aucune', habit: 'habit-defaut', pas: 'trace-aucune', compagnon: 'cp-defaut' };
 const CLE = 'baladeTenue', CLE_VUES = 'baladeTenuesVues';
 
 const lire = (cle, defaut) => { try { return JSON.parse(localStorage.getItem(cle)) ?? defaut; } catch { return defaut; } };
@@ -31,6 +52,7 @@ export const piece = (id) => PIECES.find((p) => p.id === id);
 export const recompense = (lieu) => PIECES.find((p) => p.lieu === lieu) || null;
 /** total(lieu) : le nombre de tampons du lieu. Une pièce est gagnée quand tous les tampons de son lieu sont dans le carnet. */
 export function gagnee(p, total) {
+  if (p.achat) return aAchete(p.achat);
   if (!p.lieu) return true;
   const n = (lireTampons()[p.lieu] || []).length, t = total(p.lieu);
   return t > 0 && n >= t;
@@ -99,9 +121,73 @@ const DESSINS = {
     <path d="${etoile(35.5, 25, 10.5, 5.2)}" fill="#f4c12e" stroke="${ENCRE}" stroke-width="2.2" stroke-linejoin="round"/>
     <path d="${etoile(12.5, 25.6, 6.4, 3.2)}" fill="#4b3f8f"/><path d="${etoile(35.5, 25.6, 6.4, 3.2)}" fill="#4b3f8f"/>
     <path d="M9.5 23.5 L12 21" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/><path d="M32.5 23.5 L35 21" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/>`,
+  // le casque de samouraï : le bol à côtes, les ailerons, le couvre-nuque, les cornes dorées
+  kabuto: `<path d="M8 34 Q8 15 24 14 Q40 15 40 34 Z" fill="#3f3d4a" stroke="${ENCRE}" stroke-width="2.2" stroke-linejoin="round"/>
+    <path d="M16 15.5 Q14 25 15 33 M24 14 V33 M32 15.5 Q34 25 33 33" stroke="#6a6878" stroke-width="1.4" fill="none"/>
+    <path d="M5 33 L43 33 L46 40 Q24 44 2 40 Z" fill="#b8322a" stroke="${ENCRE}" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M5 37 H43" stroke="#e8b941" stroke-width="1.3"/>
+    <path d="M24 18 Q15 13 10 3 Q16 8 22 11 Z M24 18 Q33 13 38 3 Q32 8 26 11 Z" fill="#f4c12e" stroke="${ENCRE}" stroke-width="1.6" stroke-linejoin="round"/>
+    <circle cx="24" cy="18" r="3.2" fill="#f4c12e" stroke="${ENCRE}" stroke-width="1.5"/>`,
+  // le masque de renard des fêtes : blanc, les oreilles et les marques rouges
+  masque: `<path d="M24 8 L30 14 L38 6 L37 20 Q42 30 24 43 Q6 30 11 20 L10 6 L18 14 Z" fill="#fbf8f2" stroke="${ENCRE}" stroke-width="2.2" stroke-linejoin="round"/>
+    <path d="M12 9 L15 15 M36 9 L33 15" stroke="#d8302c" stroke-width="2.2" stroke-linecap="round"/>
+    <path d="M14 24 Q18 21 21 25 M34 24 Q30 21 27 25" fill="none" stroke="${ENCRE}" stroke-width="2" stroke-linecap="round"/>
+    <path d="M13 21 Q17 17 20 21 M35 21 Q31 17 28 21" fill="none" stroke="#d8302c" stroke-width="1.6" stroke-linecap="round"/>
+    <path d="M21 33 Q24 36 27 33" fill="none" stroke="${ENCRE}" stroke-width="1.8" stroke-linecap="round"/><circle cx="24" cy="31" r="1.8" fill="${ENCRE}"/>
+    <path d="M24 9 V15" stroke="#d8302c" stroke-width="2" stroke-linecap="round"/>`,
+  // les habits de chaque jour : la veste rouge ouverte du garçon ; le chemisier au col marin de la fille
+  habitGarcon: `<path d="M10 14 L18 9 Q24 13 30 9 L38 14 L44 26 L37 29 L35 24 V42 H13 V24 L11 29 L4 26 Z" fill="#e8583e" stroke="${ENCRE}" stroke-width="2.2" stroke-linejoin="round"/>
+    <path d="M19 11 L24 22 L29 11 V42 H19 Z" fill="#fbf6ea" stroke="${ENCRE}" stroke-width="1.8" stroke-linejoin="round"/>`,
+  habitFille: `<path d="M10 14 L18 9 Q24 13 30 9 L38 14 L44 26 L37 29 L35 24 V42 H13 V24 L11 29 L4 26 Z" fill="#f59aa6" stroke="${ENCRE}" stroke-width="2.2" stroke-linejoin="round"/>
+    <path d="M17 10 L24 22 L31 10" fill="none" stroke="#ffffff" stroke-width="3.4"/><path d="M17 10 L24 22 L31 10" fill="none" stroke="#2f4a7a" stroke-width="1.2"/>
+    <path d="M20 24 L24 22 L28 24 L24 27 Z" fill="#e0453a" stroke="${ENCRE}" stroke-width="1.4"/>`,
+  // la veste de fête (happi) : indigo, le col blanc, le cercle « 祭 » dans le dos
+  happi: `<path d="M9 13 L18 8 L24 12 L30 8 L39 13 L46 24 L38 28 L36 23 V43 H12 V23 L10 28 L2 24 Z" fill="#2f4a8a" stroke="${ENCRE}" stroke-width="2.2" stroke-linejoin="round"/>
+    <path d="M18 8 L22 43 M30 8 L26 43" stroke="#fbf6ea" stroke-width="3.6"/>
+    <path d="M12 38 H36" stroke="#fbf6ea" stroke-width="2.4"/><path d="M14 33 H34" stroke="#d8302c" stroke-width="2.2"/>`,
+  // le yukata : bleu nuit aux fleurs, la ceinture et son nœud
+  yukata: `<path d="M8 12 L18 7 L24 12 L30 7 L40 12 L46 30 L38 32 L34 22 L35 45 H13 L14 22 L10 32 L2 30 Z" fill="#2f3f75" stroke="${ENCRE}" stroke-width="2.2" stroke-linejoin="round"/>
+    <path d="M18 7 L28 30 M30 7 L22 22" stroke="#fbf6ea" stroke-width="1.6"/>
+    <rect x="13" y="24" width="22" height="6" fill="#f2c443" stroke="${ENCRE}" stroke-width="1.6"/>
+    <circle cx="17" cy="37" r="2.6" fill="#f7b4c6"/><circle cx="30" cy="40" r="2.2" fill="#ffffff"/><circle cx="27" cy="16" r="1.8" fill="#f7b4c6"/>`,
+  // le kimono d'or : or, une grue blanche, la ceinture rouge
+  kimonoOr: `<path d="M8 12 L18 7 L24 12 L30 7 L40 12 L46 30 L38 32 L34 22 L35 45 H13 L14 22 L10 32 L2 30 Z" fill="#f0c447" stroke="${ENCRE}" stroke-width="2.2" stroke-linejoin="round"/>
+    <path d="M18 7 L28 30 M30 7 L22 22" stroke="#fbf6ea" stroke-width="2"/>
+    <rect x="13" y="24" width="22" height="6" fill="#c8302c" stroke="${ENCRE}" stroke-width="1.6"/><path d="M13 27 H35" stroke="#f4c12e" stroke-width="1"/>
+    <path d="M18 38 Q22 33 27 36 Q30 32 33 34 L28 38 Q24 41 18 38 Z" fill="#ffffff" stroke="${ENCRE}" stroke-width="1.2"/><circle cx="31" cy="34" r="1" fill="#d8302c"/>`,
+  // l'armure de samouraï : la cuirasse rouge laquée, ses lacets, les grandes épaulières
+  armure: `<path d="M13 12 Q24 8 35 12 L37 33 H11 Z" fill="#b8322a" stroke="${ENCRE}" stroke-width="2.2" stroke-linejoin="round"/>
+    <path d="M12 18 H36 M12 23 H36 M11.5 28 H36.5" stroke="#e8b941" stroke-width="1.2" stroke-dasharray="2 2"/>
+    <path d="M3 13 L13 11 L14 27 L4 28 Z M45 13 L35 11 L34 27 L44 28 Z" fill="#3f3d4a" stroke="${ENCRE}" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M4 18 L13.5 17 M4 23 L14 22 M44 18 L34.5 17 M44 23 L34 22" stroke="#5a7ac0" stroke-width="1.3"/>
+    <path d="M11 33 L9 44 H19 L20 33 M28 33 L29 44 H39 L37 33" fill="#b8322a" stroke="${ENCRE}" stroke-width="1.8" stroke-linejoin="round"/>`,
+  // sous tes pas : rien ; des pétales ; des étoiles ; des feuilles d'érable
+  'trace-aucune': `<path d="M8 32 Q10 24 18 24 L28 26 Q36 27 36 32 Q36 37 28 37 H12 Q8 37 8 32 Z" fill="#ffffff" stroke="${ENCRE}" stroke-width="2"/>
+    <path d="M8 34.5 H36" stroke="#d8452e" stroke-width="2.4"/>`,
+  'trace-petales': `${[[14, 30, -30], [24, 18, 20], [34, 30, 60], [22, 36, -70], [33, 14, -10]].map(([x, y, r]) => `<ellipse cx="${x}" cy="${y}" rx="3.6" ry="6" transform="rotate(${r} ${x} ${y})" fill="#f7b4c6" stroke="${ENCRE}" stroke-width="1.5"/><path d="M${x} ${y - 6} l-1 2.2 l2 0 z" fill="${ENCRE}" transform="rotate(${r} ${x} ${y})"/>`).join('')}`,
+  'trace-etoiles': `<path d="${etoile(24, 22, 13, 5.5)}" fill="#f4c12e" stroke="${ENCRE}" stroke-width="2" stroke-linejoin="round"/>
+    <path d="${etoile(9, 37, 5.5, 2.4)}" fill="#fff3a8" stroke="${ENCRE}" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="${etoile(39, 38, 4.5, 2)}" fill="#fff3a8" stroke="${ENCRE}" stroke-width="1.4" stroke-linejoin="round"/>`,
+  'trace-feuilles': `<path d="M24 6 L27 15 L34 10 L32 19 L41 19 L33 25 L38 32 L29 30 L28 37 L25 32 L24 44 L23 32 L20 37 L19 30 L10 32 L15 25 L7 19 L16 19 L14 10 L21 15 Z" fill="#e0602a" stroke="${ENCRE}" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M24 13 V40 M24 26 L32 20 M24 26 L16 20" stroke="#a83a1c" stroke-width="1.3" fill="none"/>`,
+  // ce que porte le compagnon : rien de plus ; un foulard à pois ; un petit chapeau de paille ; un grelot
+  'cp-defaut': `<circle cx="24" cy="26" r="14" fill="#ffffff" stroke="${ENCRE}" stroke-width="2.2"/>
+    <path d="M12 18 L9 4 L20 13 Z M36 18 L39 4 L28 13 Z" fill="#ffffff" stroke="${ENCRE}" stroke-width="2.2" stroke-linejoin="round"/>
+    <circle cx="19" cy="25" r="2" fill="${ENCRE}"/><circle cx="29" cy="25" r="2" fill="${ENCRE}"/><ellipse cx="24" cy="31" rx="2.6" ry="1.8" fill="${ENCRE}"/>`,
+  'cp-bandana': `<path d="M5 18 Q24 26 43 18 L41 25 Q24 33 7 25 Z" fill="#2f6fb0" stroke="${ENCRE}" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M18 27 L24 44 L30 27" fill="#2f6fb0" stroke="${ENCRE}" stroke-width="2" stroke-linejoin="round"/>
+    ${[[11, 22], [18, 25], [30, 25], [37, 22], [24, 33], [22, 29], [26, 38]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1.4" fill="#fff"/>`).join('')}`,
+  'cp-chapeau': `<path d="M4 32 L24 10 L44 32 Q24 38 4 32 Z" fill="#e6c87a" stroke="${ENCRE}" stroke-width="2.2" stroke-linejoin="round"/>
+    <path d="M12 27 Q24 31 36 27 M17 21 Q24 24 31 21" fill="none" stroke="#c9a65a" stroke-width="1.6"/>
+    <circle cx="24" cy="10" r="2.4" fill="#c9a65a" stroke="${ENCRE}" stroke-width="1.4"/>`,
+  'cp-grelot': `<path d="M8 14 Q24 24 40 14" fill="none" stroke="${ENCRE}" stroke-width="5.4" stroke-linecap="round"/><path d="M8 14 Q24 24 40 14" fill="none" stroke="#e0453a" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="24" cy="31" r="11" fill="#e8b941" stroke="${ENCRE}" stroke-width="2.2"/>
+    <path d="M14 31 H34 M24 31 V41" stroke="${ENCRE}" stroke-width="2"/><circle cx="24" cy="36" r="2" fill="${ENCRE}"/>
+    <path d="M18 25 Q20 22 24 21" fill="none" stroke="#fff6c8" stroke-width="2" stroke-linecap="round"/>`,
 };
-/** L'icône d'une pièce (pour le voyageur sorte : son couvre-chef de départ). */
+/** L'icône d'une pièce (pour le voyageur sorte : son couvre-chef de départ, ses habits de chaque jour). */
 export function icone(id, sorte, taille = 48) {
-  const d = DESSINS[id === 'defaut' ? (sorte === 'fille' ? 'defautFille' : 'defautGarcon') : id] || '';
+  const cle = id === 'defaut' ? (sorte === 'fille' ? 'defautFille' : 'defautGarcon') : id === 'habit-defaut' ? (sorte === 'fille' ? 'habitFille' : 'habitGarcon') : id;
+  const d = DESSINS[cle] || '';
   return `<svg class="piece-svg" viewBox="0 0 48 48" width="${taille}" height="${taille}" aria-hidden="true">${d}</svg>`;
 }
