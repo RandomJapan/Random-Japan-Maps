@@ -256,6 +256,81 @@ export function creerHeros(ctx, sorte = 'garcon') {
   coiffe.rotation.x = fille ? -0.14 : -0.16;
   tete.add(coiffe);
 
+  // Les pièces de tenue (tenues.js), faites la première fois qu'on les porte, dans le repère de la tête.
+  // vers(dx, dy, dz) : la rotation qui couche l'axe d'un cône (y) dans cette direction
+  const vers = (dx, dy, dz) => { const l = Math.hypot(dx, dy, dz); return { rx: Math.atan2(dz / l, dy / l), rz: -Math.asin(dx / l) }; };
+  // tête nue : le garçon a des épis sur le dessus (la casquette les cachait)
+  let dessus = null;
+  if (!fille) {
+    const a = atelier();
+    for (const [x, y, z, d, l] of [[0, 0.3, 0.07, [0, 0.8, -0.6], 0.15], [0.12, 0.27, 0.05, [0.5, 0.75, -0.45], 0.13], [-0.12, 0.27, 0.05, [-0.5, 0.75, -0.45], 0.13],
+      [0, 0.25, -0.13, [0, 0.55, -0.85], 0.14], [0.13, 0.2, -0.16, [0.45, 0.35, -0.85], 0.12], [-0.13, 0.2, -0.16, [-0.45, 0.35, -0.85], 0.12]]) {
+      const n = Math.hypot(...d);
+      a.cone(0.06, l, 4, H, { x: x + (d[0] / n) * l * 0.4, y: CY + y + (d[1] / n) * l * 0.4, z: z + (d[2] / n) * l * 0.4, ...vers(...d), sz: 0.55 });
+    }
+    dessus = maillage(a.fin(0, false));
+    dessus.visible = false;
+    tete.add(dessus);
+  }
+  const FORMES = {
+    // les bois de daim : un serre-tête brun, deux oreilles de daim, deux bois à trois andouillers (comme les daims de Miyajima)
+    bois() {
+      const a = atelier(), r = 0.335, inc = -0.3, o = [0, CY - 0.02, -0.03];
+      // un point du serre-tête (angle th depuis le côté droit, dans son plan incliné vers l'arrière), un peu au-dessus (ecart)
+      const sur = (th, ecart = 0) => {
+        const x = Math.cos(th) * (r + ecart), y = Math.sin(th) * (r + ecart);
+        return [o[0] + x, o[1] + y * Math.cos(inc), o[2] + y * Math.sin(inc)];
+      };
+      a.piece(new THREE.TorusGeometry(r, 0.018, 6, 26, PI), '#8a5a3a', { x: o[0], y: o[1], z: o[2], rx: inc });
+      for (const s of [-1, 1]) {
+        // l'oreille : une feuille couchée vers le dehors, rose dedans
+        const [ox, oy, oz] = sur(s > 0 ? 0.62 : PI - 0.62, 0.03);
+        a.ovale(0.065, '#b98250', { x: ox, y: oy, z: oz, sx: 0.5, sy: 1.25, sz: 0.28, ...vers(s * 0.85, 0.5, 0.05) }, 10)
+          .ovale(0.045, '#f2b3a3', { x: ox + s * 0.004, y: oy + 0.004, z: oz + 0.016, sx: 0.4, sy: 1.15, sz: 0.2, ...vers(s * 0.85, 0.5, 0.05), trait: false }, 8);
+        // le bois : la perche qui monte en s'écartant, un andouiller vers l'avant, une fourche au bout
+        const [bx, by, bz] = sur(s > 0 ? 1.18 : PI - 1.18, 0.005);
+        const B = [bx, by, bz], M1 = [bx + s * 0.06, by + 0.13, bz - 0.03], T = [bx + s * 0.125, by + 0.26, bz - 0.06];
+        const BOIS = '#e2c596';
+        a.boule(0.03, '#c7a06a', { x: bx, y: by, z: bz }, 1)
+          .baton(B, M1, 0.024, BOIS, 6).baton(M1, T, 0.02, BOIS, 6)
+          .baton(M1, [M1[0] + s * 0.005, M1[1] + 0.09, M1[2] + 0.075], 0.016, BOIS, 6)
+          .baton(T, [T[0] + s * 0.06, T[1] + 0.075, T[2] + 0.025], 0.015, BOIS, 6)
+          .baton(T, [T[0] - s * 0.025, T[1] + 0.085, T[2] - 0.045], 0.015, BOIS, 6);
+        for (const p of [M1, T]) a.boule(0.022, BOIS, { x: p[0], y: p[1], z: p[2] }, 1);
+        for (const p of [[M1[0] + s * 0.005, M1[1] + 0.09, M1[2] + 0.075], [T[0] + s * 0.06, T[1] + 0.075, T[2] + 0.025], [T[0] - s * 0.025, T[1] + 0.085, T[2] - 0.045]]) {
+          a.boule(0.016, BOIS, { x: p[0], y: p[1], z: p[2] }, 1);
+        }
+      }
+      return a;
+    },
+    // les lunettes étoiles : deux étoiles dorées, des verres violets avec un reflet, le pont, les branches jusqu'aux oreilles
+    etoiles() {
+      const a = atelier();
+      const forme = (R, r) => {
+        const f = new THREE.Shape();
+        for (let k = 0; k < 10; k++) {
+          const t = (k * PI) / 5, l = k % 2 ? r : R;
+          f[k ? 'lineTo' : 'moveTo'](Math.sin(t) * l, Math.cos(t) * l);
+        }
+        return f;
+      };
+      for (const s of [-1, 1]) {
+        const q = surVisage(s * 0.106, -0.018, 0.02), place = { x: q.x, y: q.y, z: q.z, rx: q.rx, ry: q.ry };
+        const cadre = forme(0.074, 0.038);
+        cadre.holes.push(forme(0.052, 0.026));
+        a.piece(new THREE.ExtrudeGeometry(cadre, { depth: 0.014, bevelEnabled: false }), '#f4c12e', place)
+          .piece(new THREE.ShapeGeometry(forme(0.054, 0.027)), '#4b3f8f', { ...place, z: q.z + 0.006, trait: false })
+          .boite(0.008, 0.032, 0.002, '#ffffff', { ...place, x: q.x - s * 0.004 - 0.016, y: q.y + 0.012, z: q.z + 0.0075, rz: -0.6, trait: false })
+          // la branche : du bord de l'étoile à l'oreille, en contournant la tête
+          .baton([s * 0.168, CY - 0.008, q.z - 0.045], [s * 0.292, CY + 0.004, 0.17], 0.009, '#f4c12e', 5)
+          .baton([s * 0.292, CY + 0.004, 0.17], [s * 0.322, CY + 0.012, 0.02], 0.009, '#f4c12e', 5);
+      }
+      const g = surVisage(0, -0.005, 0.02);
+      return a.baton([-0.045, g.y, g.z - 0.004], [0.045, g.y, g.z - 0.004], 0.009, '#f4c12e', 5);
+    },
+  };
+  const pieces = {}, portees = {};
+
   let phase = 0, salut = 0, foulee = 0, assis = false;
   return {
     objet: racine,
@@ -263,6 +338,22 @@ export function creerHeros(ctx, sorte = 'garcon') {
     saluer() { salut = 1; },
     /** Assis sur un banc (oui) ou debout : les jambes tendues devant (la racine posée à la hauteur du siège moins ASSIS). */
     asseoir(oui) { assis = oui; },
+    /**
+     * Porter la pièce id (tenues.js) à sa place ('tete', 'yeux') : sur la tête, elle remplace la casquette ou le
+     * chapeau ('defaut' : les remettre ; 'nue' : rien) ; 'aucune' : rien sur les yeux.
+     */
+    porter(place, id) {
+      if (place === 'tete') {
+        coiffe.visible = id === 'defaut';
+        if (dessus) dessus.visible = id !== 'defaut';
+      }
+      if (portees[place]) portees[place].visible = false;
+      portees[place] = null;
+      if (!FORMES[id]) return;
+      if (!pieces[id]) { pieces[id] = maillage(FORMES[id]().fin(0, false)); tete.add(pieces[id]); }
+      pieces[id].visible = true;
+      portees[place] = pieces[id];
+    },
     animer(dt, vitesse, temps) {
       cligner(dt);
       const marche = Math.min(1, vitesse / 3.2);

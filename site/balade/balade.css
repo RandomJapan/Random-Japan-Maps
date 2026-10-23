@@ -32,7 +32,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .boutons-haut { position: fixed; top: max(10px, env(safe-area-inset-top)); right: max(10px, env(safe-area-inset-right)); display: flex; gap: 8px; }
 .boutons-haut button { display: flex; align-items: center; gap: 6px; height: 48px; padding: 0 14px; font-size: 16px; }
 .boutons-haut svg { width: 22px; height: 22px; color: var(--rouge); }
-.btn-menu { width: 48px; justify-content: center; padding: 0 !important; }
+.btn-menu, .btn-tenue { width: 48px; justify-content: center; padding: 0 !important; }
 .btn-menu svg { color: var(--encre) !important; }
 
 /* ---- la bulle « A · Parler » au-dessus de ce qu'on peut faire */
@@ -119,6 +119,26 @@ body.tactile .dialogue-choix { bottom: calc(var(--bas) + 248px); }
   100% { transform: scale(1) rotate(-5deg); }
 }
 .tampon-svg .vide { fill: var(--papier-2); stroke: var(--papier-2); }
+/* une pièce de tenue gagnée : elle tourne en arrivant, sur des rayons dorés, sous un ruban */
+.piece-gagnee { position: relative; background: #fff7e6; }
+.piece-gagnee::before {
+  content: ''; position: absolute; inset: 22px; border-radius: 50%; animation: rayons 7s linear infinite;
+  background: repeating-conic-gradient(rgba(232, 185, 65, 0.4) 0deg 10deg, transparent 10deg 20deg);
+  -webkit-mask: radial-gradient(closest-side, #000 55%, transparent); mask: radial-gradient(closest-side, #000 55%, transparent);
+}
+.piece-gagnee .tampon-presse { position: relative; animation-name: cadeau; }
+.piece-gagnee .ruban {
+  position: absolute; top: -16px; left: 50%; transform: translateX(-50%) rotate(-2deg); z-index: 1; white-space: nowrap;
+  background: var(--rouge); color: #fff; padding: 3px 16px; border: 3px solid var(--encre); border-radius: 6px; font-size: 16px; font-weight: 800;
+}
+@keyframes cadeau {
+  0% { transform: scale(0.3) rotate(-30deg); opacity: 0; }
+  55% { transform: scale(1.12) rotate(5deg); opacity: 1; }
+  75% { transform: scale(0.96) rotate(-2deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+@keyframes rayons { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .piece-gagnee::before { animation: none; } }
 .tampon-svg text { font-family: 'M PLUS Rounded 1c', 'Noto Sans JP', sans-serif; }
 
 /* ---- les voiles : le carnet, le menu, la vidéo */
@@ -164,6 +184,51 @@ body.tactile .dialogue-choix { bottom: calc(var(--bas) + 248px); }
   border-radius: 8px; padding: 8px 12px; font-size: 17px; text-decoration: none; color: inherit;
 }
 .menu > button small { color: var(--encre-2); }
+.carnet-recompense {
+  display: flex; align-items: center; gap: 10px; margin: 14px 0 0; padding: 8px 12px; background: var(--papier);
+  border: 2px dashed rgba(58, 50, 54, 0.35); border-radius: 8px; font-size: 15.5px;
+}
+.carnet-recompense .piece-svg { flex: none; filter: grayscale(1); opacity: 0.5; }
+.carnet-recompense.gagnee { border: 2px solid var(--rouge); color: var(--rouge-fonce); }
+.carnet-recompense.gagnee .piece-svg { filter: none; opacity: 1; }
+
+/* ---- la garde-robe : un panneau à droite (en bas sur un écran en hauteur) ; le voyageur, vu de face, reste à côté */
+.garde-robe {
+  position: fixed; right: max(12px, env(safe-area-inset-right)); top: max(12px, env(safe-area-inset-top)); box-sizing: border-box;
+  width: min(360px, calc(100vw - 24px)); max-height: calc(100dvh - 24px); overflow: auto; padding: 14px 18px 16px; background: var(--papier-2);
+}
+.garde-robe .fermer {
+  position: sticky; float: right; top: 0; width: 38px; height: 38px; border-radius: 50%; background: var(--rouge); color: #fff;
+  border: 3px solid var(--encre); font-size: 20px; line-height: 1; z-index: 1;
+}
+.garde-robe h2 { margin: 2px 0 6px; font-size: 22px; font-weight: 800; }
+.garde-robe h2 span { font-size: 16px; color: var(--encre-2); margin-left: 6px; }
+.garde-robe h3 { margin: 10px 0 6px; font-size: 14px; font-weight: 700; color: var(--encre-2); }
+.pieces { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.piece {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px 7px;
+  background: var(--papier); border: 2px solid var(--encre); border-radius: 9px;
+}
+.piece small { font-size: 13px; line-height: 1.2; text-align: center; }
+.piece.actif { background: #ffe9dc; box-shadow: inset 0 0 0 3px var(--rouge); }
+.piece.verrou .piece-svg { filter: grayscale(1) brightness(1.1); opacity: 0.4; }
+.piece.verrou small { color: var(--encre-2); }
+.piece .cadenas { position: absolute; top: 5px; right: 5px; width: 19px; height: 19px; }
+.piece-info { margin: 12px 0 0; padding: 8px 10px; background: var(--papier); border-radius: 8px; font-size: 15px; line-height: 1.4; min-height: 2.8em; }
+.piece-info b { display: block; }
+.tenue-aide { margin: 10px 0 0; font-size: 13.5px; line-height: 1.4; color: var(--encre-2); }
+.tenue-aide small { font-size: 12.5px; opacity: 0.85; }
+body.en-tenue .joystick, body.en-tenue .bouton-a, body.en-tenue .aide, body.en-tenue .bulle-action, body.en-tenue .boutons-haut { display: none !important; }
+@media (orientation: portrait) {
+  .garde-robe {
+    top: auto; bottom: var(--bas); left: max(10px, env(safe-area-inset-left)); right: max(10px, env(safe-area-inset-right));
+    width: auto; max-height: 50dvh; padding: 10px 14px 12px;
+  }
+  .garde-robe h2 { font-size: 19px; }
+  .piece-info { margin-top: 8px; font-size: 14px; }
+  .tenue-aide { font-size: 12.5px; margin-top: 6px; }
+}
+@media (max-width: 360px) { .btn-tenue { display: none !important; } }
 .menu-carte { background: var(--rouge); color: #fff; justify-content: center; }
 .menu-ligne { display: flex; flex-direction: column; gap: 5px; }
 .menu-ligne > span { font-size: 14px; color: var(--encre-2); }

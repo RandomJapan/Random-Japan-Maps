@@ -11,6 +11,7 @@
 //  à Itsukushima, des goélands tournent sur la baie et s'envolent quand on approche (mouettes.js) ; à Aogashima,
 //  des grives, des lézards, des chats, des papillons et des milans (betes.js). Des bancs où s'asseoir ; un passant
 //  fait tomber la nuit et revenir le jour (les étoiles, les lanternes allumées, l'air de nuit : lueurs.js).
+//  Tous les tampons d'un lieu font gagner une pièce de tenue (tenues.js) : on l'essaie dans la garde-robe, vu de face.
 //  ?lieu=itsukushima|aogashima ; ?perso=garcon|fille ; ?compagnon=kon|pon|chapu ; ?langue=en|fr|ja ;
 //  ?photo=heros|perso : une image fixe (captures) ; ?demo : une partie jouée image par image (vidéos) ;
 //  ?ciel=parchemin : un essai du style (styles.js) ; ?flou=0 : sans le flou du lointain ; ?aa=0 : sans anticrénelage.
@@ -18,7 +19,7 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.min.js';
 import { ateliers } from '../modeles3d.js';
 import { MATIERES } from './textures.js';
-import { creerStyle, matieresStyle, passeFinale, rafale, VENT_GLSL, VITESSE_RAFALE } from './styles.js';
+import { creerStyle, matieresStyle, eclairerParLampes, LAMPES_GLSL, passeFinale, rafale, VENT_GLSL, VITESSE_RAFALE } from './styles.js';
 import { creerHeros, creerPersonnage, creerCompagnon, COMPAGNONS, creerDaim } from './personnages.js';
 import { creerPassant, avancerPassant, tourner, lisse, pointDuBanc, ASSIS } from './monde.js';
 import { creerEtiquettes } from './etiquettes.js';
@@ -32,6 +33,7 @@ import { creerBetes } from './betes.js';
 import { creerMusique } from './musique.js';
 import { creerEffets } from './effets.js';
 import { creerLueurs } from './lueurs.js';
+import { PIECES, PLACES, piece, recompense as recompenseDu, gagnee, lireTenue, ecrireTenue, nouvelles, marquerVue, icone } from './tenues.js';
 import * as itsukushima from './itsukushima.js';
 import * as aogashima from './aogashima.js';
 
@@ -105,11 +107,14 @@ function construire() {
   // le vent du lieu : d'où il pousse, sa force
   mats.vent.ventDir.value.set(...(lieu.vent?.dir || [0.6, 0.8])).normalize();
   mats.vent.ventForce.value = lieu.vent?.force ?? 1;
+  // (decor : leurs corps, pour savoir ce qui cacherait le voyageur à une caméra posée devant lui : cadrerDeFace)
+  const decor = [];
   for (const o of lieu.objets) {
     const m = maillage(o.fin, o.ombre);
     m.position.set(o.x, o.y, o.z);
     m.rotation.y = o.ry;
     groupe.add(m);
+    decor.push(m.children[0]);
   }
   // les textes des plaques et des enseignes (le nom du tunnel…)
   if (lieu.etiquettes?.length && params.get('etiquettes') !== '0') groupe.add(creerEtiquettes(THREE, lieu.etiquettes, { anisotropie: Math.min(8, rendu.capabilities.getMaxAnisotropy()) }));
@@ -120,7 +125,7 @@ function construire() {
   groupe.add(terrain(lieu, mats, lieu.etendue, 0, lieu.etendue.fin), terrain(lieu, mats, lieu.etendue.fin, 0.03, null, carte));
   const touffes = creerTouffes(lieu, carte, mats);
   groupe.add(touffes.groupe);
-  const eau = lieu.eau ? creerEau(lieu, P) : null;
+  const eau = lieu.eau ? creerEau(lieu, P, mats.lampes) : null;
   const ciel = creerCiel(P, lieu.soleil);
   const etoiles = creerEtoiles();
   ciel.add(etoiles);
@@ -181,14 +186,15 @@ function construire() {
   const effets = creerEffets(THREE);
   groupe.add(effets.groupe);
   // les halos et les flaques de lumière des lanternes, la nuit
-  const lueurs = creerLueurs(THREE, lieu.lumieres || []);
+  const lueurs = creerLueurs(THREE, lieu.lumieres || [], mats.lampes);
   groupe.add(lueurs.groupe);
   scene.add(groupe);
   M = {
     carte, effets, lueurs, betes, mouilleJoueur, mouilleKon, feuillage: densiteFeuillage(lieu), bruitage: creerBruitage({ oiseaux: lieu.oiseaux || [], ambiances: lieu.ambiances || [], betes: lieu.betes?.chats?.length ? ['miaou', 'ronron'] : [] }), musique: creerMusique(lieu.id), focale: 800,
-    style, ctx, mats, lieu, groupe, voyageurs, compagnons, kon: null, cadre: null, passants, daims, mouettes, eau, ciel, soleil, hemi, etoiles, vapeurs, touffes, finale: passeFinale(THREE, style, { echantillons: params.get('aa') === '0' ? 0 : 4, flou: params.get('flou') !== '0' }), cible: null, sauvage: null, nuit: { v: 0, cible: 0, fin: null } };
+    style, ctx, mats, lieu, groupe, decor, voyageurs, compagnons, kon: null, cadre: null, passants, daims, mouettes, eau, ciel, soleil, hemi, etoiles, vapeurs, touffes, finale: passeFinale(THREE, style, { echantillons: params.get('aa') === '0' ? 0 : 4, flou: params.get('flou') !== '0' }), cible: null, sauvage: null, nuit: { v: 0, cible: 0, fin: null } };
   choisirVoyageur(sorte || 'garcon');
   choisirCompagnon(espece || 'kon');
+  for (const s of ['garcon', 'fille']) habiller(s);
   dimensionner();
 }
 
@@ -272,6 +278,7 @@ function creerTouffes(lieu, carte, mats) {
   const mat = new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: mats.sol.gradientMap, side: THREE.DoubleSide });
   mat.onBeforeCompile = (sh) => {
     Object.assign(sh.uniforms, { temps, oeil }, mats.vent);
+    eclairerParLampes(sh, mats.lampes);
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', `#include <common>\nuniform float temps;\nuniform vec3 oeil;${VENT_GLSL}`)
       .replace('#include <begin_vertex>', `#include <begin_vertex>
@@ -390,6 +397,13 @@ function choisirVoyageur(s) {
   M.joueur.objet.visible = true;
   M.autre.objet.visible = false;
 }
+/** Le nombre de tampons d'un lieu (pour savoir si sa récompense est gagnée). */
+const totalTampons = (id) => LIEUX[id]?.infos.tampons.length || 0;
+/** Le voyageur s porte sa tenue (tenues.js : celle qu'on lui a choisie, parmi les pièces gagnées). */
+function habiller(s) {
+  const tenue = lireTenue(s, totalTampons);
+  for (const place of PLACES) M.voyageurs[s].porter(place, tenue[place]);
+}
 /** Le compagnon qui suit le joueur (les deux autres cachés). */
 function choisirCompagnon(e) {
   espece = e;
@@ -447,7 +461,7 @@ function terrain(lieu, mats, e, leve = 0, trou = null, carte = null) {
  * parallèles à la rive (comme la houle de la carte) et des éclats de soleil, en gros pixels.
  * lieu.eau : { x0, x1, z0, z1, niveau }.
  */
-function creerEau(lieu, P) {
+function creerEau(lieu, P, lampes) {
   const e = lieu.eau, pas = 3, niveau = e.niveau || 0;
   const nx = Math.round((e.x1 - e.x0) / pas), nz = Math.round((e.z1 - e.z0) / pas);
   const g = new THREE.PlaneGeometry(e.x1 - e.x0, e.z1 - e.z0, Math.min(nx, 220), Math.min(nz, 260));
@@ -486,10 +500,12 @@ function creerEau(lieu, P) {
       varying vec3 vMonde;
       varying float vLoin;
       #include <fog_pars_fragment>
+      ${LAMPES_GLSL}
       float hasard2(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
       void main() {
         float t = smoothstep(0.05, 1.6, vProf);
         vec3 c = mix(clair, profond, t);
+        vec3 lampe = c * lumiereLampes(vMonde, vec3(0.0, 1.0, 0.0));
         float a = mix(0.45, 0.9, smoothstep(0.0, 0.45, vProf));
         // des lignes d'eau parallèles à la rive (ou en anneaux autour d'une île), qui avancent doucement
         float d = centre.z > 0.5
@@ -505,11 +521,15 @@ function creerEau(lieu, P) {
         c = mix(c, ecume, bord * 0.85);
         a = max(a, bord * 0.9);
         c *= mix(vec3(1.0), vec3(0.22, 0.27, 0.45), nuit);
+        // (les lampes de la rive, la lanterne de la barque : leur lumière sur l'eau)
+        c += lampe * 0.8;
         gl_FragColor = vec4(c, a);
         #include <colorspace_fragment>
         #include <fog_fragment>
       }`,
   });
+  // (les mêmes uniformes que le décor : UniformsUtils.merge les aurait copiés)
+  Object.assign(mat.uniforms, lampes);
   const m = new THREE.Mesh(g, mat);
   m.renderOrder = 1;
   return m;
@@ -733,7 +753,18 @@ const dialogue = creerDialogue({ boite: $('.dialogue'), nom: $('.dialogue-nom'),
 const carnet = creerCarnet({ fond: $('.fond-carnet'), page: $('.carnet') }, {
   lieux: () => Object.values(LIEUX).map(({ infos: L }) => ({ id: L.id, nom: nomDe(L), nomJa: L.nomJa, tampons: L.tampons, textes: L.textes })),
   t, texteLieu: texteTampon,
+  // la récompense de tous les tampons du lieu (tenues.js), gagnée ou à gagner
+  recompense: (L, complet) => {
+    const p = recompenseDu(L.id);
+    if (!p) return '';
+    const T = t('tenue');
+    return `<p class="carnet-recompense${complet ? ' gagnee' : ''}">${icone(p.id, sorte, 44)}<span>${(complet ? T.recompenseGagnee : T.recompense)(nomPiece(p.id))}</span></p>`;
+  },
 });
+/** Le nom (dans la langue du moment) et la description d'une pièce de tenue, pour le voyageur s. */
+const clePiece = (id, s = sorte) => (id === 'defaut' ? (s === 'fille' ? 'defautFille' : 'defautGarcon') : id);
+const nomPiece = (id, s) => t('tenue').noms[clePiece(id, s)];
+const descriptionPiece = (id, s) => t('tenue').descriptions[clePiece(id, s)];
 
 function majInterface() {
   const L = M.lieu;
@@ -745,6 +776,9 @@ function majInterface() {
     $(s).title = t(cle);
     $(s).setAttribute('aria-label', t(cle));
   }
+  $('.btn-tenue').title = t('tenue').titre;
+  $('.btn-tenue').setAttribute('aria-label', t('tenue').titre);
+  if (etat.mode === 'tenue') majGarderobe();
   $('.retour').href = `../#${L.carte}`;
   $('.aide').textContent = tactile ? t('aideTel') : t('aideOrdi');
   majCompteur();
@@ -797,6 +831,11 @@ toile.addEventListener('pointerdown', (e) => {
 });
 toile.addEventListener('pointermove', (e) => {
   if (!glisse || e.pointerId !== glisse.id) return;
+  if (etat.mode === 'tenue') {
+    etat.cap += (e.clientX - glisse.x) * 0.012;
+    glisse.x = e.clientX;
+    return;
+  }
   cam.lacet -= (e.clientX - glisse.x) * 0.0062;
   cam.tangage = Math.min(1.25, Math.max(-0.05, cam.tangage + (e.clientY - glisse.y) * 0.0045));
   glisse.x = e.clientX;
@@ -839,6 +878,7 @@ $('.bulle-action').addEventListener('pointerdown', (e) => { e.preventDefault(); 
 // le carnet, le menu
 $('.btn-carnet').addEventListener('click', () => ouvrirCarnet());
 $('.btn-menu').addEventListener('click', () => ouvrirMenu());
+$('.btn-tenue').addEventListener('click', () => ouvrirGarderobe());
 $('.fond-carnet').addEventListener('click', (e) => { if (e.target === e.currentTarget || e.target.closest('.fermer')) fermerTout(); });
 $('.fond-menu').addEventListener('click', (e) => { if (e.target === e.currentTarget) fermerTout(); });
 function ouvrirCarnet() {
@@ -849,7 +889,159 @@ function ouvrirCarnet() {
 function fermerTout() {
   if (carnet.ouvert()) carnet.fermer();
   $('.fond-menu').hidden = true;
+  if (etat.mode === 'tenue') fermerGarderobe();
   if (etat.mode === 'carnet' || etat.mode === 'menu') etat.mode = 'jeu';
+}
+
+// ---------------------------------------------------------------- La garde-robe
+/**
+ * La caméra face au voyageur (la garde-robe, une récompense qu'on essaie), plus près ; le voyageur se tourne vers
+ * elle. Elle vient du côté où elle est déjà, ou du côté le plus proche d'où rien ne cache le voyageur (un poteau,
+ * un mur, une lanterne, une butte, un passant : gene). panneau : la garde-robe est ouverte ; sur un écran large,
+ * le voyageur se tient alors à gauche (le panneau est à droite) ; en hauteur, en haut (le panneau est en bas). Sans
+ * panneau, il est au milieu, un peu haut (la boîte de dialogue est en bas).
+ */
+function cadrerDeFace(panneau = true) {
+  const portrait = innerWidth < innerHeight;
+  // (en hauteur, le panneau prend la moitié du bas : la caméra recule, que les bois de daim tiennent dans le haut)
+  const champ = portrait ? 54 : 36, D = portrait ? (panneau ? 4.3 : 3.5) : 2.9;
+  const demiH = D * Math.tan(THREE.MathUtils.degToRad(champ / 2)), demiL = demiH * (innerWidth / innerHeight);
+  const decale = panneau && !portrait ? 0.36 * demiL : 0, baisse = (portrait ? (panneau ? 0.43 : 0.25) : panneau ? 0 : 0.12) * demiH;
+  // la caméra et le point visé pour la direction a (la droite de la caméra, qui regarde le voyageur : cos a, −sin a)
+  const place = (a) => {
+    const sx = Math.sin(a), cz = Math.cos(a), vx = etat.x + cz * decale, vz = etat.z - sx * decale;
+    return { de: new THREE.Vector3(vx + sx * D, etat.y + 1.05, vz + cz * D), vers: new THREE.Vector3(vx, etat.y + 0.82 - baisse, vz) };
+  };
+  let meilleur = null;
+  for (const k of [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6, 7, -7, 8]) {
+    const a = cam.lacet + k * 0.4, p = place(a), g = gene(p.de);
+    if (!meilleur || g < meilleur.g) meilleur = { a, p, g };
+    if (g === 0) break;
+  }
+  etat.cap = meilleur.a;
+  M.cadre = { ...meilleur.p, champ };
+  camera.userData.place = false;
+}
+/**
+ * Ce qui cache le voyageur à une caméra posée en de (0 : rien) : des rayons vers ses pieds, sa taille et sa tête,
+ * au milieu et de chaque côté, contre le décor (ses formes vraies : un muret, une lanterne, un poteau), le sol (une
+ * butte) et les passants.
+ */
+const rayon = new THREE.Raycaster();
+function gene(de) {
+  const L = M.lieu, ex = de.x - etat.x, ez = de.z - etat.z, le = Math.hypot(ex, ez) || 1;
+  let n = 0;
+  for (const [h, c] of [[0.2, 0], [0.75, 0], [1.3, 0], [0.3, -0.28], [0.3, 0.28], [0.85, -0.3], [0.85, 0.3], [1.35, -0.32], [1.35, 0.32]]) {
+    // (c : de côté, vu de la caméra)
+    const vers = new THREE.Vector3(etat.x - (ez / le) * c, etat.y + h, etat.z + (ex / le) * c), d = vers.clone().sub(de), l = d.length();
+    d.divideScalar(l);
+    rayon.set(de, d);
+    rayon.far = Math.max(0.1, l - 0.3);
+    if (rayon.intersectObjects(M.decor, false).length) { n++; continue; }
+    // (et à l'envers : une caméra dans un objet, le socle d'une pagode, n'en voit pas les faces, tournées vers dehors)
+    if (c === 0) {
+      rayon.set(vers, d.clone().negate());
+      rayon.far = l;
+      if (rayon.intersectObjects(M.decor, false).length) { n += 2; continue; }
+    }
+    for (let t = 0.1; t < 0.92; t += 0.08) {
+      const x = de.x + d.x * l * t, y = de.y + d.y * l * t, z = de.z + d.z * l * t;
+      if (L.terrain(x, z) > y || M.passants.some((p) => (x - p.etat.x) ** 2 + (z - p.etat.z) ** 2 < 0.2 && y < p.etat.y + 1.5)) { n++; break; }
+    }
+  }
+  // (la caméra dans un bâtiment)
+  const o = new THREE.Vector3(etat.x, etat.y + 1, etat.z), d = de.clone().sub(o), l = d.length();
+  if (L.monde.visee(o, d.divideScalar(l), l) < l) n += 3;
+  return n;
+}
+let avantTenue = null;
+function ouvrirGarderobe() {
+  if (etat.mode !== 'jeu' && etat.mode !== 'menu') return;
+  fermerTout();
+  if (siege) seLever();
+  touches.clear();
+  etat.vx = etat.vz = 0;
+  avantTenue = { cap: etat.cap };
+  cadrerDeFace();
+  etat.mode = 'tenue';
+  document.body.classList.add('en-tenue');
+  majGarderobe();
+  $('.garde-robe').hidden = false;
+}
+function fermerGarderobe() {
+  $('.garde-robe').hidden = true;
+  document.body.classList.remove('en-tenue');
+  M.cadre = null;
+  if (avantTenue) etat.cap = avantTenue.cap;
+  camera.userData.place = false;
+  etat.mode = 'jeu';
+}
+/** Le panneau : pour chaque place, ses pièces (celles qu'on n'a pas encore : grisées, avec ce qu'il faut faire). */
+function majGarderobe(info = null) {
+  const T = t('tenue'), tenue = lireTenue(sorte, totalTampons);
+  const sections = PLACES.map((place) => {
+    const boutons = PIECES.filter((p) => p.place === place).map((p) => {
+      const ok = gagnee(p, totalTampons), porte = tenue[place] === p.id;
+      return `<button type="button" class="piece${porte ? ' actif' : ''}${ok ? '' : ' verrou'}" data-piece="${p.id}" aria-pressed="${porte}">`
+        + `${icone(p.id, sorte, 46)}<small>${nomPiece(p.id)}</small>${ok ? '' : CADENAS}</button>`;
+    }).join('');
+    return `<section><h3>${T[place]}</h3><div class="pieces">${boutons}</div></section>`;
+  }).join('');
+  const p = piece(info) || piece(tenue.yeux !== 'aucune' && !info ? tenue.yeux : tenue.tete);
+  const texte = gagnee(p, totalTampons) ? descriptionPiece(p.id) : T.verrou(nomDe(LIEUX[p.lieu].infos), (lireTampons()[p.lieu] || []).length, totalTampons(p.lieu));
+  $('.garde-robe').innerHTML = `<button class="fermer" type="button" aria-label="${t('fermer')}">×</button>`
+    + `<h2>${T.titre}${T.titreJa ? ` <span>${T.titreJa}</span>` : ''}</h2>${sections}`
+    + `<p class="piece-info"><b>${nomPiece(p.id)}</b> ${texte}</p><p class="tenue-aide">${T.aide}<br><small>${T.tourner}</small></p>`;
+}
+const CADENAS = '<svg class="cadenas" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 11V8a5 5 0 0 1 10 0v3" fill="none" stroke="#3a3236" stroke-width="2.6"/><rect x="4.5" y="10.5" width="15" height="11" rx="2.5" fill="#e8b941" stroke="#3a3236" stroke-width="2.2"/><circle cx="12" cy="15.5" r="1.8" fill="#3a3236"/></svg>';
+$('.garde-robe').addEventListener('click', (e) => {
+  if (e.target.closest('.fermer')) { fermerGarderobe(); return; }
+  const b = e.target.closest('[data-piece]');
+  if (!b) return;
+  const p = piece(b.dataset.piece);
+  if (!gagnee(p, totalTampons)) { son.bip(); majGarderobe(p.id); return; }
+  porterPiece(p);
+  son.choix();
+  majGarderobe(p.id);
+});
+/** Le voyageur met la pièce p (et la garde : chaque voyageur a sa tenue). */
+function porterPiece(p) {
+  const tenue = lireTenue(sorte, totalTampons);
+  if (tenue[p.place] === p.id) return;
+  tenue[p.place] = p.id;
+  ecrireTenue(sorte, tenue);
+  M.joueur.porter(p.place, p.id);
+  M.joueur.saluer();
+}
+
+/**
+ * Les récompenses gagnées et pas encore annoncées (au dernier tampon d'un lieu, ou à l'arrivée pour celles gagnées
+ * avant cette version) : la pièce sur une fiche, sa petite musique, puis on peut l'essayer tout de suite : la caméra
+ * face au voyageur, un petit nuage, et la voilà sur lui.
+ */
+async function offrirRecompenses() {
+  for (const p of nouvelles(totalTampons)) {
+    marquerVue(p.id);
+    const T = t('tenue'), nom = nomPiece(p.id);
+    const el = $('.tampon-obtenu');
+    el.innerHTML = `<div class="tampon-papier piece-gagnee"><span class="ruban">${T.titre}</span><div class="tampon-presse">${icone(p.id, sorte, 150)}</div></div>`;
+    el.hidden = false;
+    son.cadeau();
+    await attendre(900);
+    await dialogue.dire(T.gain(nomDe(LIEUX[p.lieu].infos), nom));
+    el.hidden = true;
+    if ((await dialogue.choisir([T.porter], [T.porterOui, T.porterNon])) !== 0) { await dialogue.dire(T.plusTard); continue; }
+    // (assis, ou la caméra déjà ailleurs : on ne la bouge pas)
+    const deFace = !siege && !M.cadre, cap = etat.cap;
+    if (deFace) { cadrerDeFace(false); await attendre(450); }
+    M.effets.nuage(etat.x, etat.y + 1.05, etat.z, 1.3);
+    M.bruitage.pouf();
+    await attendre(120);
+    porterPiece(p);
+    await attendre(700);
+    await dialogue.dire(T.porte);
+    if (deFace) { M.cadre = null; etat.cap = cap; camera.userData.place = false; }
+  }
 }
 
 function ouvrirMenu() {
@@ -857,6 +1049,7 @@ function ouvrirMenu() {
   const choix = (cle, valeurs, actuel) => `<div class="menu-ligne"><span>${t(cle)}</span><div>${valeurs.map(([v, nom]) => `<button type="button" data-${cle.toLowerCase()}="${v}" class="${v === actuel ? 'actif' : ''}">${nom}</button>`).join('')}</div></div>`;
   $('.menu').innerHTML = `
     <button type="button" class="menu-carnet">${t('carnet')} <small>${$('.carnet-n').textContent}</small></button>
+    <button type="button" class="menu-tenue">${t('tenue').titre} <small>${PIECES.filter((p) => p.lieu && gagnee(p, totalTampons)).length}/${PIECES.filter((p) => p.lieu).length}</small></button>
     ${choix('menuVoyageur', [['garcon', t('garcon')], ['fille', t('fille')]], sorte)}
     ${choix('menuCompagnon', COMPAGNONS.map((e) => [e, tcDe(e, 'nom')]), espece)}
     ${choix('menuLieu', Object.entries(LIEUX).map(([id, { infos }]) => [id, nomDe(infos)]), M.lieu.id)}
@@ -871,6 +1064,7 @@ $('.menu').addEventListener('click', (e) => {
   const b = e.target.closest('button');
   if (!b) return;
   if (b.classList.contains('menu-carnet')) { fermerTout(); ouvrirCarnet(); return; }
+  if (b.classList.contains('menu-tenue')) { fermerTout(); ouvrirGarderobe(); return; }
   const d = b.dataset;
   if (d.menuvoyageur) {
     sorte = d.menuvoyageur;
@@ -1036,7 +1230,10 @@ async function tampon(id) {
   majCompteur();
   await dialogue.dire([t('tamponObtenu')(texteTampon(L, tp).nom)]);
   el.hidden = true;
-  if ((lireTampons()[L.id] || []).length === L.tampons.length) await dialogue.dire(tc('tout'), { qui: tc('nom') });
+  if ((lireTampons()[L.id] || []).length === L.tampons.length) {
+    await dialogue.dire(tc('tout'), { qui: tc('nom') });
+    await offrirRecompenses();
+  }
 }
 const attendre = (ms) => new Promise((r) => setTimeout(r, ms));
 // assis : le siège { x, z, y (le dessus), cap, libre, cote } ; le joueur n'en bouge plus (sa racine, ASSIS plus bas que
@@ -1264,8 +1461,9 @@ function avancer(dt) {
     renard.cap = tourner(renard.cap, banc.cap, dt * 6);
   } else if (etat.mode !== 'depart') {
     // (le joueur assis : le compagnon vient devant lui, un peu de côté ; derrière, c'est le banc ; ou vers sa place sur le banc)
-    const recul = siege ? -0.9 : 1.3;
-    const cx = banc ? banc.x : etat.x - Math.sin(etat.cap) * recul + Math.cos(etat.cap) * 0.75, cz = banc ? banc.z : etat.z - Math.cos(etat.cap) * recul - Math.sin(etat.cap) * 0.75;
+    // (pendant l'essayage, à côté du voyageur, un peu devant, à droite sur l'écran : il ne le cache pas)
+    const essai = etat.mode === 'tenue', recul = siege ? -0.9 : essai ? -0.3 : 1.3, cote = essai ? 0.8 : 0.75;
+    const cx = banc ? banc.x : etat.x - Math.sin(etat.cap) * recul + Math.cos(etat.cap) * cote, cz = banc ? banc.z : etat.z - Math.cos(etat.cap) * recul - Math.sin(etat.cap) * cote;
     const ex = cx - renard.x, ez = cz - renard.z, d = Math.hypot(ex, ez);
     const vr = d > 0.35 ? Math.min(COURSE * 1.15, d * 2.8) : 0;
     renard.vitesse += (vr - renard.vitesse) * Math.min(1, dt * 6);
@@ -1571,7 +1769,7 @@ function dessiner(dt, temps) {
     N.v += Math.sign(N.cible - N.v) * Math.min(Math.abs(N.cible - N.v), dt * 0.75);
     appliquerNuit(N.v);
   }
-  M.lueurs.maj(N.v, toile.height / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2)));
+  M.lueurs.maj(N.v, toile.height / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2)), camera);
   if (N.fin && N.v === N.cible) { const fin = N.fin; N.fin = null; fin(); }
 
   // la caméra derrière le joueur. Sous un toit (une galerie), elle se rapproche et passe sous le plafond ;
@@ -1661,7 +1859,10 @@ function dimensionner() {
   M.focale = th / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2));
   if (M.vapeurs) M.vapeurs.material.uniforms.hauteurEcran.value = th;
 }
-addEventListener('resize', dimensionner);
+addEventListener('resize', () => {
+  dimensionner();
+  if (etat.mode === 'tenue') { const cap = etat.cap; cadrerDeFace(); etat.cap = cap; }
+});
 
 // ---------------------------------------------------------------- C'est parti
 async function depart() {
@@ -1677,6 +1878,7 @@ async function depart() {
   } else await dialogue.dire(t('revoila')(lieu));
   if (COMPAGNON_IMPOSE) {
     await dialogue.dire(tc('salut')(M.lieu.tampons.length), { qui: tc('nom') });
+    await offrirRecompenses();
     etat.mode = 'jeu';
     return;
   }
@@ -1705,6 +1907,7 @@ async function depart() {
   etat.cap = M.lieu.depart.cap;
   Object.assign(cam, { lacet: etat.cap + Math.PI, tangage: 0.24, distance: 6.4 });
   camera.userData.place = false;
+  await offrirRecompenses();
   etat.mode = 'jeu';
   setTimeout(() => $('.aide').classList.add('vue'), 9000);
 }

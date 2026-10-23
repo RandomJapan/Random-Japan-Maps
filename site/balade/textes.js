@@ -2,7 +2,8 @@
 //  Les textes de l'interface de la balade, en anglais, français et japonais. La langue est celle de la
 //  carte (localStorage.langue, sinon celle du navigateur). Les textes des lieux (panneaux, passants,
 //  tampons) sont dans le module de chaque lieu. compagnons : ce que dit chacun des trois compagnons (son nom, sa
-//  description au moment de le choisir, son salut, ses indices) : chacun sa façon de parler.
+//  description au moment de le choisir, son salut, ses indices) : chacun sa façon de parler. tenue : la garde-robe
+//  et ses pièces (tenues.js), la récompense des tampons.
 // ================================================================
 
 export const LANGUES = ['en', 'fr', 'ja'];
@@ -59,6 +60,22 @@ export const TEXTES = {
       },
     },
     herbes: 'A wild deer appeared!', herbesFuit: 'The deer ran away…',
+    tenue: {
+      titre: 'Wardrobe', titreJa: 'きせかえ', tete: 'On your head', yeux: 'On your eyes',
+      noms: { defautGarcon: 'Cap', defautFille: 'Straw hat', nue: 'No hat', bois: 'Deer antlers', aucune: 'Nothing', etoiles: 'Star glasses' },
+      descriptions: {
+        defautGarcon: 'Your cap, with Mount Fuji on the front.', defautFille: 'Your straw hat, with its red ribbon and its flower.',
+        nue: 'Feel the wind in your hair!', bois: 'A headband with deer ears and antlers, like the deer of Miyajima.', aucune: 'Nothing on your eyes.',
+        etoiles: 'Star-shaped sunglasses, for the starry sky of Aogashima.',
+      },
+      verrou: (lieu, n, total) => `Find the ${total} stamps of ${lieu} to win it (${n}/${total}).`,
+      aide: 'Find every stamp of a place to win a new piece!', tourner: 'Drag to turn around',
+      recompense: (nom) => `Reward for every stamp: ${nom}`, recompenseGagnee: (nom) => `Reward won: ${nom}`,
+      gain: (lieu, nom) => [`Every stamp of ${lieu}! Here is your reward…`, `You get: ${nom}!`],
+      porter: 'Put it on now?', porterOui: 'Yes!', porterNon: 'Later',
+      porte: ['It suits you so well!', 'You can change your outfit anytime: Menu → Wardrobe.'],
+      plusTard: ['You can put it on anytime: Menu → Wardrobe.'],
+    },
   },
   fr: {
     titrePage: 'Balade en 3D', retour: 'Retour à la carte', carnet: 'Carnet de tampons', menu: 'Menu', fermer: 'Fermer',
@@ -98,6 +115,22 @@ export const TEXTES = {
       },
     },
     herbes: 'Un daim sauvage apparaît !', herbesFuit: 'Le daim s’est enfui…',
+    tenue: {
+      titre: 'Garde-robe', titreJa: 'きせかえ', tete: 'Sur la tête', yeux: 'Sur les yeux',
+      noms: { defautGarcon: 'Casquette', defautFille: 'Chapeau de paille', nue: 'Tête nue', bois: 'Bois de daim', aucune: 'Rien', etoiles: 'Lunettes étoiles' },
+      descriptions: {
+        defautGarcon: 'Ta casquette, avec le mont Fuji devant.', defautFille: 'Ton chapeau de paille, avec son ruban rouge et sa fleur.',
+        nue: 'Le vent dans les cheveux !', bois: 'Un serre-tête avec des oreilles et des bois de daim, comme les daims de Miyajima.', aucune: 'Rien sur les yeux.',
+        etoiles: 'Des lunettes de soleil en étoiles, pour le ciel étoilé d’Aogashima.',
+      },
+      verrou: (lieu, n, total) => `Trouve les ${total} tampons ${/^[aeiouyhâéèêîôû]/i.test(lieu) ? 'd’' : 'de '}${lieu} pour la gagner (${n}/${total}).`,
+      aide: 'Trouve tous les tampons d’un lieu pour gagner une nouvelle pièce !', tourner: 'Glisse pour le faire tourner',
+      recompense: (nom) => `Récompense de tous les tampons : ${nom}`, recompenseGagnee: (nom) => `Récompense gagnée : ${nom}`,
+      gain: (lieu, nom) => [`Tous les tampons ${/^[aeiouyhâéèêîôû]/i.test(lieu) ? 'd’' : 'de '}${lieu} ! Voici ta récompense…`, `Tu gagnes : ${nom} !`],
+      porter: 'Tu veux l’essayer tout de suite ?', porterOui: 'Oui !', porterNon: 'Plus tard',
+      porte: ['Ça te va très bien !', 'Tu peux changer de tenue quand tu veux : Menu → Garde-robe.'],
+      plusTard: ['Tu pourras l’essayer quand tu veux : Menu → Garde-robe.'],
+    },
   },
   ja: {
     titrePage: '3Dおさんぽ', retour: '地図にもどる', carnet: 'スタンプ帳', menu: 'メニュー', fermer: 'とじる',
@@ -137,5 +170,21 @@ export const TEXTES = {
       },
     },
     herbes: 'あっ！　やせいの　シカが　とびだしてきた！', herbesFuit: 'シカは　にげていった……',
+    tenue: {
+      titre: 'きせかえ', titreJa: '', tete: 'あたま', yeux: 'め',
+      noms: { defautGarcon: 'ぼうし', defautFille: 'むぎわらぼうし', nue: 'なし', bois: 'シカのツノ', aucune: 'なし', etoiles: 'ほしのメガネ' },
+      descriptions: {
+        defautGarcon: 'いつもの　ぼうし。まえに　ふじさんの　マーク。', defautFille: 'いつもの　むぎわらぼうし。あかい　リボンと　はなつき。',
+        nue: 'かぜが　きもちいい！', bois: 'シカの　みみと　ツノの　カチューシャ。宮島の　シカみたい！', aucune: 'めには　なにも　つけない。',
+        etoiles: 'ほしの　かたちの　サングラス。青ヶ島の　ほしぞらに　ぴったり！',
+      },
+      verrou: (lieu, n, total) => `${lieu}の　スタンプを　${total}こ　あつめると　もらえる（${n}/${total}）`,
+      aide: 'ひとつの　ばしょの　スタンプを　ぜんぶ　あつめると、あたらしい　アイテムが　もらえるよ！', tourner: 'スライドで　くるっと　まわせるよ',
+      recompense: (nom) => `ぜんぶ　あつめると：${nom}`, recompenseGagnee: (nom) => `ごほうび　ゲット：${nom}`,
+      gain: (lieu, nom) => [`${lieu}の　スタンプ　ぜんぶ！　ごほうびだよ……`, `「${nom}」を　てにいれた！`],
+      porter: 'さっそく　つけてみる？', porterOui: 'つける！', porterNon: 'あとで',
+      porte: ['とっても　にあってる！', 'メニューの　「きせかえ」で　いつでも　かえられるよ。'],
+      plusTard: ['メニューの　「きせかえ」で　いつでも　つけられるよ。'],
+    },
   },
 };

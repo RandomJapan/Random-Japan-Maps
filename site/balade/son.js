@@ -68,6 +68,15 @@ export const son = {
     note(do5 * 1.26, 0.4, 0.42, 'triangle', 0.06);
     note(do5 * 0.5, 0.4, 0.42, 'triangle', 0.07);
   },
+  /** La petite musique d'une récompense : un arpège joyeux qui monte deux fois, puis l'accord tenu. */
+  cadeau() {
+    const do5 = 523.25;
+    [[1, 0], [1.26, 0.08], [1.5, 0.16], [2, 0.24], [1.5, 0.34], [2, 0.42], [2.52, 0.5]].forEach(([k, d]) => note(do5 * k, d, 0.09, 'square', 0.04));
+    note(do5 * 3, 0.62, 0.65, 'square', 0.035);
+    note(do5 * 2.52, 0.62, 0.65, 'triangle', 0.05);
+    note(do5 * 1.5, 0.62, 0.65, 'triangle', 0.06);
+    note(do5 * 0.5, 0.62, 0.65, 'triangle', 0.07);
+  },
   /** Le « boum » sourd du tampon pressé sur le papier. */
   pression() { note(120, 0, 0.12, 'triangle', 0.12); note(80, 0.02, 0.14, 'sine', 0.12); },
   /** Les hautes herbes qui bruissent, puis la petite alerte « un daim sauvage ». */

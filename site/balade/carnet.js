@@ -100,9 +100,10 @@ function biais(id) {
 
 /**
  * Le carnet. el : { fond (le voile), page (son contenu) } ; lieux() → [{ id, nom, nomJa, tampons, textes }]
- * (dans la langue du moment) ; t(cle) : les textes de l'interface ; texteLieu(lieu, tampon) → { nom, indice }.
+ * (dans la langue du moment) ; t(cle) : les textes de l'interface ; texteLieu(lieu, tampon) → { nom, indice } ;
+ * recompense(lieu, complet) : le HTML de ce que rapportent tous ses tampons (tenues.js).
  */
-export function creerCarnet(el, { lieux, t, texteLieu }) {
+export function creerCarnet(el, { lieux, t, texteLieu, recompense = () => '' }) {
   let ouvert = false, onglet = null;
 
   function contenu() {
@@ -122,7 +123,8 @@ export function creerCarnet(el, { lieux, t, texteLieu }) {
       <h2>${L.nom} <span>${L.nomJa}</span></h2>
       <p class="carnet-compte">${t('carnetCompte')(pris.length, L.tampons.length)}</p>
       <ol class="carnet-cases">${cases}</ol>
-      ${complet ? `<p class="carnet-complet"><span class="sceau">完</span>${t('carnetComplet')}</p>` : ''}`;
+      ${complet ? `<p class="carnet-complet"><span class="sceau">完</span>${t('carnetComplet')}</p>` : ''}
+      ${recompense(L, complet)}`;
   }
 
   el.page.addEventListener('click', (e) => {

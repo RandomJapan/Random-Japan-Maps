@@ -1,14 +1,22 @@
 // ================================================================
-//  Les lumières de la nuit : autour de chaque lanterne allumée, un halo (un disque doux face à l'écran) et, au
-//  sol, une flaque de lumière chaude. Rien le jour : elles s'allument avec la nuit (balade.js : M.nuit), comme les
-//  lanternes elles-mêmes (styles.js : « lumiere »). Deux formes en tout (les halos, les flaques), quel que soit leur nombre.
-//  lumieres : [{ x, y, z (la flamme), halo (son rayon, en m), sol (la hauteur du sol dessous ; null : pas de
-//  flaque), r (le rayon de la flaque), c (la couleur, « #rrggbb » ; une lumière chaude par défaut) }]
+//  Les lumières de la nuit : autour de chaque lanterne allumée, un halo (un disque doux face à l'écran), et sa
+//  lumière qui tombe sur ce qui l'entoure (le sol, les marches, les murs, les personnages : styles.js,
+//  LAMPES_GLSL ; d'abord, une flaque à plat à la hauteur du sol, qui flottait en arcs de cercle sur les pentes
+//  et les escaliers). Rien le jour : elles s'allument avec la nuit (balade.js : M.nuit), comme les lanternes
+//  elles-mêmes (styles.js : « lumiere »). Les halos : une seule forme, quel que soit leur nombre ; la lumière :
+//  les NB_LAMPES lampes les plus proches de ce que regarde la caméra, choisies à chaque image.
+//  lumieres : [{ x, y, z (la flamme), halo (son rayon, en m), sol (la hauteur du sol dessous ; null : une lampe
+//  sans sol proche), r (jusqu'où elle éclaire le sol, depuis son pied), c (la couleur, « #rrggbb » ; une lumière
+//  chaude par défaut) }]
 // ================================================================
+import { NB_LAMPES } from './styles.js';
 
 const CHAUD = '#ffc879';
+// la force des lampes sur ce qu'elles éclairent (la couleur de la surface × la leur × FORCE, tout près)
+const FORCE = 1.5;
 
-export function creerLueurs(THREE, lumieres) {
+/** lampes : les uniformes des lampes (styles.js, matieresStyle : lampesPos, lampesCouleur). */
+export function creerLueurs(THREE, lumieres, lampes) {
   const groupe = new THREE.Group();
   const nuit = { value: 0 }, focale = { value: 800 };
   const couleur = new THREE.Color();
@@ -57,64 +65,49 @@ export function creerLueurs(THREE, lumieres) {
     groupe.add(halos);
   }
 
-  // les flaques : un disque à plat juste au-dessus du sol, plus clair au milieu
-  const auSol = lumieres.filter((l) => l.sol != null);
-  if (auSol.length) {
-    const S = 20, pos = [], col = [], u = [];
-    for (const l of auSol) {
-      couleur.set(l.c || CHAUD);
-      const r = l.r ?? 2, y = l.sol + 0.04;
-      for (let k = 0; k < S; k++) {
-        const a0 = (k / S) * 2 * Math.PI, a1 = ((k + 1) / S) * 2 * Math.PI;
-        // (vu d'en haut, dans le sens qui regarde le ciel)
-        pos.push(l.x, y, l.z, l.x + Math.sin(a0) * r, y, l.z + Math.cos(a0) * r, l.x + Math.sin(a1) * r, y, l.z + Math.cos(a1) * r);
-        u.push(0, 1, 1);
-        for (let j = 0; j < 3; j++) col.push(couleur.r, couleur.g, couleur.b);
-      }
+  // la lumière des lampes : sa portée, depuis la flamme, va jusqu'au bord de ce qu'elle éclaire au sol (r)
+  const liste = lumieres.map((l) => {
+    const h = l.sol != null ? Math.max(0.3, l.y - l.sol) : 0.8, r = l.sol != null ? l.r ?? 2 : (l.halo ?? 0.6) * 3;
+    return { x: l.x, y: l.y, z: l.z, portee: Math.hypot(r, h) * 1.05, c: new THREE.Color(l.c || CHAUD), d: 0 };
+  });
+  const tri = liste.slice(), dir = new THREE.Vector3(), vise = new THREE.Vector3();
+  const lisse = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
+
+  /**
+   * Les lampes qui comptent le plus pour l'image : les plus proches d'un point 8 m devant la caméra. Celles qui
+   * entrent dans la liste ou en sortent (la caméra bouge) s'allument et s'éteignent doucement : leur force baisse
+   * jusqu'à 0 à la distance de la première lampe laissée de côté.
+   */
+  function choisir(n, camera) {
+    const P = lampes.lampesPos.value, Cl = lampes.lampesCouleur.value, Z = lampes.lampesZone.value;
+    if (n <= 0.01 || !liste.length) { P[0].w = 0; Z.w = 0; return; }
+    camera.getWorldDirection(dir);
+    vise.copy(camera.position).addScaledVector(dir, 8);
+    for (const l of liste) l.d = Math.hypot(l.x - vise.x, l.y - vise.y, l.z - vise.z);
+    tri.sort((a, b) => a.d - b.d);
+    const k = Math.min(NB_LAMPES, tri.length), coupe = tri.length > NB_LAMPES ? tri[NB_LAMPES].d : Infinity;
+    const cp = camera.position;
+    for (let i = 0; i < k; i++) {
+      const l = tri[i];
+      const f = (coupe < Infinity ? 1 - lisse(coupe * 0.75, coupe, l.d) : 1) * (1 - lisse(70, 160, Math.hypot(l.x - cp.x, l.y - cp.y, l.z - cp.z)));
+      P[i].set(l.x, l.y, l.z, l.portee);
+      Cl[i].set(l.c.r, l.c.g, l.c.b).multiplyScalar(FORCE * n * f);
     }
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-    g.setAttribute('teinte', new THREE.Float32BufferAttribute(col, 3));
-    g.setAttribute('u', new THREE.Float32BufferAttribute(u, 1));
-    const flaques = new THREE.Mesh(g, new THREE.ShaderMaterial({
-      uniforms: { nuit },
-      vertexShader: `
-        attribute vec3 teinte;
-        attribute float u;
-        varying vec3 vTeinte;
-        varying float vU;
-        varying float vLoin;
-        void main() {
-          vec4 vue = modelViewMatrix * vec4(position, 1.0);
-          gl_Position = projectionMatrix * vue;
-          vTeinte = teinte;
-          vU = u;
-          vLoin = 1.0 - smoothstep(60.0, 150.0, -vue.z);
-        }`,
-      fragmentShader: `
-        uniform float nuit;
-        varying vec3 vTeinte;
-        varying float vU;
-        varying float vLoin;
-        void main() {
-          float a = (1.0 - vU) * (1.0 - vU);
-          gl_FragColor = vec4(vTeinte * a * 0.42 * nuit * vLoin, 1.0);
-        }`,
-      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
-      polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
-    }));
-    flaques.frustumCulled = false;
-    flaques.renderOrder = 2;
-    groupe.add(flaques);
+    if (k < NB_LAMPES) P[k].w = 0;
+    // la boule qui les contient (son centre : la moyenne des lampes)
+    Z.set(0, 0, 0, 0);
+    for (let i = 0; i < k; i++) Z.x += tri[i].x / k, Z.y += tri[i].y / k, Z.z += tri[i].z / k;
+    for (let i = 0; i < k; i++) Z.w = Math.max(Z.w, Math.hypot(tri[i].x - Z.x, tri[i].y - Z.y, tri[i].z - Z.z) + tri[i].portee);
   }
 
   return {
     groupe,
-    /** nuit : 0 à 1 ; f : la focale de la caméra en pixels de l'image (la taille des halos). */
-    maj(n, f) {
+    /** nuit : 0 à 1 ; f : la focale de la caméra en pixels de l'image (la taille des halos) ; camera : pour choisir les lampes. */
+    maj(n, f, camera) {
       nuit.value = n;
       focale.value = f;
       groupe.visible = n > 0.01;
+      choisir(n, camera);
     },
   };
 }

@@ -132,6 +132,63 @@ export const VENT_GLSL = `
     return souffle(p, sorte > 3.5 ? 0.55 : 1.0) * mat3(modelMatrix);
   }`;
 
+/**
+ * Les lampes allumées la nuit (lueurs.js choisit, à chaque image, les NB_LAMPES qui comptent le plus pour
+ * l'image : les plus proches de ce que regarde la caméra). Leur lumière tombe sur ce qui les entoure, quelle que
+ * soit sa forme : le sol en pente, les marches, les murs, les personnages (d'abord, le 2026-10-23, une flaque de
+ * lumière : un disque à plat, à la hauteur du sol sous la lanterne ; sur une pente ou près des murs d'un
+ * escalier, il flottait au-dessus du sol en arcs de cercle). lampesPos : la flamme (xyz) et la portée (w ; 0 :
+ * plus aucune lampe après celle-ci) ; lampesCouleur : sa couleur × sa force (0 le jour) ; lampesZone : une boule qui
+ * les contient toutes, portées comprises (le reste de l'image, loin d'elles, ne fait pas le tour des lampes). La
+ * lumière d'une lampe baisse avec la distance jusqu'à sa portée ; les faces tournées vers elle en reçoivent plus.
+ */
+export const NB_LAMPES = 12;
+export const LAMPES_GLSL = `
+  uniform vec4 lampesPos[${NB_LAMPES}];
+  uniform vec3 lampesCouleur[${NB_LAMPES}];
+  uniform vec4 lampesZone;
+  vec3 lumiereLampes(vec3 p, vec3 n) {
+    vec3 s = vec3(0.0);
+    vec3 z = p - lampesZone.xyz;
+    if (dot(z, z) >= lampesZone.w * lampesZone.w) return s;
+    for (int i = 0; i < ${NB_LAMPES}; i++) {
+      vec4 l = lampesPos[i];
+      if (l.w <= 0.0) break;
+      vec3 d = l.xyz - p;
+      float q = dot(d, d) / (l.w * l.w);
+      if (q >= 1.0) continue;
+      float f = 1.0 - q;
+      float face = clamp(dot(n, d) * inversesqrt(max(dot(d, d), 1e-4)) * 0.7 + 0.3, 0.0, 1.0);
+      s += lampesCouleur[i] * (f * f * face);
+    }
+    return s;
+  }`;
+
+/**
+ * Une matière (MeshToonMaterial) éclairée par les lampes : sa couleur, éclairée par elles, s'ajoute à ce qu'elle
+ * émet. s : le shader (onBeforeCompile) ; lampes : les uniformes communs (matieresStyle) ; force : moins pour les
+ * personnages (un chapeau clair sous une lanterne devenait blanc).
+ */
+export function eclairerParLampes(s, lampes, force = 1) {
+  Object.assign(s.uniforms, lampes);
+  s.vertexShader = s.vertexShader
+    .replace('#include <common>', '#include <common>\nvarying vec3 vLampeP;\nvarying vec3 vLampeN;')
+    .replace('#include <project_vertex>', `#include <project_vertex>
+      {
+        vec4 lp = vec4(transformed, 1.0);
+        vec3 ln = objectNormal;
+        #ifdef USE_INSTANCING
+          lp = instanceMatrix * lp;
+          ln = mat3(instanceMatrix) * ln;
+        #endif
+        vLampeP = (modelMatrix * lp).xyz;
+        vLampeN = mat3(modelMatrix) * ln;
+      }`);
+  s.fragmentShader = s.fragmentShader
+    .replace('#include <common>', `#include <common>\nvarying vec3 vLampeP;\nvarying vec3 vLampeN;${LAMPES_GLSL}`)
+    .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>\ntotalEmissiveRadiance += diffuseColor.rgb * lumiereLampes(vLampeP, normalize(vLampeN)) * ${force.toFixed(2)};`);
+}
+
 /** Un bruit lisse (GLSL) : 0 à 1, une bosse par unité. */
 const BRUIT_GLSL = `
   float hasard2(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
@@ -259,6 +316,12 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
   // illumine la nuit (« illumine » : le grand torii et le sanctuaire d'Itsukushima) s'éclaire d'orangé.
   // lueur : la nuit (balade.js)
   const lueur = { value: 0 };
+  // les lampes allumées (LAMPES_GLSL : lueurs.js les remplit à chaque image)
+  const lampes = {
+    lampesPos: { value: Array.from({ length: NB_LAMPES }, () => new THREE.Vector4()) },
+    lampesCouleur: { value: Array.from({ length: NB_LAMPES }, () => new THREE.Vector3()) },
+    lampesZone: { value: new THREE.Vector4() },
+  };
 
   // le décor : la position et la normale dans le monde (la coupe, les matières), et la matière de chaque sommet
   const corps = new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: douce });
@@ -268,6 +331,7 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
       .replace('#include <common>', `#include <common>\nattribute float matiere;\nattribute vec3 saison;\nvarying float vMatiere;\nvarying float vLueur;\nvarying vec3 vCoupe;\nvarying vec3 vCoupeN;${VENT_GLSL}`)
       .replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed += souffleObjet(transformed, saison);')
       .replace('#include <project_vertex>', '#include <project_vertex>\nvMatiere = matiere;\nvLueur = abs(saison.x - 8.0) < 0.5 ? 1.0 : abs(saison.x - 9.0) < 0.5 ? 2.0 : abs(saison.x - 10.0) < 0.5 ? 3.0 : 0.0;\nvCoupe = (modelMatrix * vec4(transformed, 1.0)).xyz;\nvCoupeN = normalize(mat3(modelMatrix) * objectNormal);');
+    eclairerParLampes(s, lampes);
     s.fragmentShader = s.fragmentShader
       .replace('#include <common>', `#include <common>\nvarying float vMatiere;\nvarying float vLueur;\nuniform float lueur;${COUPE_GLSL}${PEINDRE_GLSL}`)
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
@@ -288,8 +352,11 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
       .replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed += souffleObjet(transformed, saison);');
   };
   profondeur.customProgramCacheKey = () => 'profondeur-vent';
-  // les personnages : deux tons nets (la rampe par défaut de three.js, adoucie sur un pixel), jamais effacés
+  // les personnages : deux tons nets (la rampe par défaut de three.js, adoucie sur un pixel), jamais effacés ;
+  // les lampes les éclairent aussi
   const corpsPerso = new THREE.MeshToonMaterial({ vertexColors: true });
+  corpsPerso.onBeforeCompile = (s) => eclairerParLampes(s, lampes, 0.5);
+  corpsPerso.customProgramCacheKey = () => 'perso-lampes';
 
   // le sol : la carte du sol autour du jeu, ailleurs la couleur de ses sommets et la matière d'un sommet par
   // triangle (« flat » : entre l'herbe, 2, et le sous-bois, 8, pas de bandes des matières 3 à 7)
@@ -297,6 +364,7 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
   const sol = new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: douce });
   sol.onBeforeCompile = (s) => {
     Object.assign(s.uniforms, communs, carte);
+    eclairerParLampes(s, lampes);
     s.vertexShader = s.vertexShader
       .replace('#include <common>', '#include <common>\nattribute float motif;\nvarying float vMotif;\nvarying vec3 vMonde;')
       .replace('#include <project_vertex>', '#include <project_vertex>\nvMotif = motif;\nvMonde = (modelMatrix * vec4(transformed, 1.0)).xyz;');
@@ -381,6 +449,7 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
     const m = new THREE.MeshToonMaterial({ vertexColors: true });
     m.onBeforeCompile = (s) => {
       Object.assign(s.uniforms, u);
+      eclairerParLampes(s, lampes, 0.5);
       s.vertexShader = s.vertexShader
         .replace('#include <common>', '#include <common>\nvarying float vHauteur;')
         .replace('#include <project_vertex>', '#include <project_vertex>\nvHauteur = (modelMatrix * vec4(transformed, 1.0)).y;');
@@ -398,7 +467,7 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
   };
   return {
     corps, corpsPerso, sol, trait: creerTrait(true, epaisseurs.decor), traitPerso: creerTrait(false, epaisseurs.perso),
-    brume, coupe, ecran, epaisseurs, carte, details, vent, profondeur, persoMouille, lueur,
+    brume, coupe, ecran, epaisseurs, carte, details, vent, profondeur, persoMouille, lueur, lampes,
   };
 }
 
