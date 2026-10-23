@@ -8,7 +8,9 @@
 //  C : le carnet ; Échap : fermer. Sur téléphone, un joystick en bas à gauche et un bouton A en bas à droite.
 //  On entend ses pas (selon le sol), le vent dans les arbres, la mer, les fumerolles (bruitage.js), et l'air du
 //  lieu, composé pour la balade (musique.js) ; dans l'eau, on éclabousse et l'on ressort mouillé (effets.js) ;
-//  à Itsukushima, des goélands tournent sur la baie et s'envolent quand on approche (mouettes.js).
+//  à Itsukushima, des goélands tournent sur la baie et s'envolent quand on approche (mouettes.js) ; à Aogashima,
+//  des grives, des lézards, des chats, des papillons et des milans (betes.js). Des bancs où s'asseoir ; un passant
+//  fait tomber la nuit et revenir le jour (les étoiles, les lanternes allumées, l'air de nuit : lueurs.js).
 //  ?lieu=itsukushima|aogashima ; ?perso=garcon|fille ; ?compagnon=kon|pon|chapu ; ?langue=en|fr|ja ;
 //  ?photo=heros|perso : une image fixe (captures) ; ?demo : une partie jouée image par image (vidéos) ;
 //  ?ciel=parchemin : un essai du style (styles.js) ; ?flou=0 : sans le flou du lointain ; ?aa=0 : sans anticrénelage.
@@ -18,7 +20,7 @@ import { ateliers } from '../modeles3d.js';
 import { MATIERES } from './textures.js';
 import { creerStyle, matieresStyle, passeFinale, rafale, VENT_GLSL, VITESSE_RAFALE } from './styles.js';
 import { creerHeros, creerPersonnage, creerCompagnon, COMPAGNONS, creerDaim } from './personnages.js';
-import { creerPassant, avancerPassant, tourner, lisse } from './monde.js';
+import { creerPassant, avancerPassant, tourner, lisse, pointDuBanc, ASSIS } from './monde.js';
 import { creerEtiquettes } from './etiquettes.js';
 import { TEXTES, LANGUES, choisirLangue } from './textes.js';
 import { creerDialogue } from './dialogue.js';
@@ -26,8 +28,10 @@ import { creerCarnet, dessinTampon, aLeTampon, ajouterTampon, lireTampons } from
 import { son } from './son.js';
 import { creerBruitage } from './bruitage.js';
 import { creerMouettes } from './mouettes.js';
+import { creerBetes } from './betes.js';
 import { creerMusique } from './musique.js';
 import { creerEffets } from './effets.js';
+import { creerLueurs } from './lueurs.js';
 import * as itsukushima from './itsukushima.js';
 import * as aogashima from './aogashima.js';
 
@@ -67,7 +71,8 @@ const camera = new THREE.PerspectiveCamera(48, 1, 0.1, 8000);
 // ---------------------------------------------------------------- Le monde
 let M = null; // { style, ctx, mats, lieu, groupe, voyageurs, joueur, autre, compagnons, kon (le compagnon choisi), passants, daims, eau, ciel, soleil, finale, sauvage, cadre }
 const etat = { x: 0, z: 0, y: 0, cap: 0, vitesse: 0, vx: 0, vz: 0, mode: 'depart' };
-const renard = { x: 0, z: 0, y: 0, cap: 0, vitesse: 0, nage: false }; // le compagnon (nage : la loutre dans l'eau)
+// le compagnon (nage : la loutre dans l'eau ; banc : sa place sur le banc où le voyageur est assis, à côté de lui)
+const renard = { x: 0, z: 0, y: 0, cap: 0, vitesse: 0, nage: false, banc: null };
 // la caméra voulue (le joueur la tourne) ; vue : celle qu'on a, rapprochée sous un toit ou devant un bâtiment
 const cam = { lacet: 0, tangage: 0.24, distance: 6.4 };
 const vue = { tangage: 0.24, distance: 6.4 };
@@ -89,7 +94,8 @@ function construire() {
     return g;
   };
   const maillage = maillageDe(mats.corps, mats.trait, mats.profondeur);
-  const ctx = { THREE, atelier: ateliers(THREE, style.repeindre, style.matieres), P, peinture: style.peinture, maillage };
+  // (sortesNuit : les couleurs du lieu qui s'allument ou s'illuminent la nuit, styles.js)
+  const ctx = { THREE, atelier: ateliers(THREE, style.repeindre, style.matieres, LIEUX[LIEU].sortesNuit?.(P)), P, peinture: style.peinture, maillage };
   const ctxPerso = { ...ctx, maillage: maillageDe(mats.corpsPerso, mats.traitPerso) };
   // le joueur et son compagnon se mouillent dans l'eau : chacun sa matière (les passants restent secs)
   const mouilleJoueur = mats.persoMouille(P.peau), mouilleKon = mats.persoMouille();
@@ -153,7 +159,8 @@ function construire() {
     groupe.add(perso.objet);
     sansOmbreRecue(perso.objet);
     const etatP = creerPassant(p);
-    etatP.y = lieu.monde.hauteur(p.x, p.z);
+    etatP.y = p.assis != null ? p.assis - ASSIS : lieu.monde.hauteur(p.x, p.z);
+    if (p.assis != null) perso.asseoir(true);
     return { ...p, perso, etat: etatP };
   });
   const daims = lieu.daims.map((d, i) => {
@@ -162,16 +169,23 @@ function construire() {
     b.objet.rotation.y = d.cap;
     groupe.add(b.objet);
     lieu.monde.cercle(d.x, d.z, 0.7);
-    return { ...d, b };
+    // couche : 0 debout, 1 couché (la nuit) ; chacun se couche à sa vitesse
+    return { ...d, b, couche: 0, vitesseCouche: 0.3 + 0.35 * ((i * 0.618) % 1) };
   });
   // les mouettes (Itsukushima) : des personnages aussi (pas d'ombre reçue)
   const mouettes = lieu.mouettes ? creerMouettes(ctxPerso, { ...lieu.mouettes, terrain: lieu.terrain, niveau: lieu.eau?.niveau || 0 }) : null;
   if (mouettes) { groupe.add(mouettes.groupe); sansOmbreRecue(mouettes.groupe); }
+  // les bêtes (Aogashima)
+  const betes = lieu.betes ? creerBetes(ctx, { monde: lieu.monde, ...lieu.betes }) : null;
+  if (betes) groupe.add(betes.groupe);
   const effets = creerEffets(THREE);
   groupe.add(effets.groupe);
+  // les halos et les flaques de lumière des lanternes, la nuit
+  const lueurs = creerLueurs(THREE, lieu.lumieres || []);
+  groupe.add(lueurs.groupe);
   scene.add(groupe);
   M = {
-    carte, effets, mouilleJoueur, mouilleKon, feuillage: densiteFeuillage(lieu), bruitage: creerBruitage({ oiseaux: lieu.oiseaux || [], ambiances: lieu.ambiances || [] }), musique: creerMusique(lieu.id), focale: 800,
+    carte, effets, lueurs, betes, mouilleJoueur, mouilleKon, feuillage: densiteFeuillage(lieu), bruitage: creerBruitage({ oiseaux: lieu.oiseaux || [], ambiances: lieu.ambiances || [], betes: lieu.betes?.chats?.length ? ['miaou', 'ronron'] : [] }), musique: creerMusique(lieu.id), focale: 800,
     style, ctx, mats, lieu, groupe, voyageurs, compagnons, kon: null, cadre: null, passants, daims, mouettes, eau, ciel, soleil, hemi, etoiles, vapeurs, touffes, finale: passeFinale(THREE, style, { echantillons: params.get('aa') === '0' ? 0 : 4, flou: params.get('flou') !== '0' }), cible: null, sauvage: null, nuit: { v: 0, cible: 0, fin: null } };
   choisirVoyageur(sorte || 'garcon');
   choisirCompagnon(espece || 'kon');
@@ -946,6 +960,7 @@ function video() {
 /** Ce qui est à portée et devant le joueur (gens, panneaux, objets, daims, le compagnon), le mieux placé d'abord. */
 function cibleProche() {
   const L = M.lieu;
+  if (siege?.libre) return { x: etat.x, z: etat.z, y: etat.y, haut: 1.55, verbe: 'lever', lever: true };
   const cands = [];
   for (const i of L.interactions) {
     if (i.passant) {
@@ -957,7 +972,14 @@ function cibleProche() {
       cands.push({ ...q, y: q.y ?? L.monde.hauteur(q.x, q.z), haut: q.haut || 2.1 });
     }
   }
-  for (const d of M.daims) cands.push({ x: d.x, z: d.z, y: L.monde.hauteur(d.x, d.z), rayon: 1.9, verbe: 'caresser', haut: 1.55, action: L.actionDaim });
+  for (const d of M.daims) cands.push({ x: d.x, z: d.z, y: L.monde.hauteur(d.x, d.z), rayon: 1.9, verbe: 'caresser', haut: 1.55 - 0.5 * lisse(0, 1, d.couche), action: L.actionDaim });
+  // les bêtes : les regarder, caresser un chat (il ronronne)
+  for (const b of M.betes?.cibles() || []) {
+    cands.push({ ...b, action: async (jeu) => {
+      if (b.bete) { b.bete.caresser(); M.bruitage.bete('ronron', { pan: panDe(b.x, b.z) }); }
+      await L.actionBete(jeu, b);
+    } });
+  }
   if (!renard.nage) cands.push({ x: renard.x, z: renard.z, y: renard.y, rayon: 1.4, verbe: 'parler', haut: 0.95, action: parlerCompagnon, kon: true });
   let meilleur = null, score = Infinity;
   const fx = Math.sin(etat.cap), fz = Math.cos(etat.cap);
@@ -976,6 +998,7 @@ let cible = null;
 async function agir() {
   const c = cible;
   if (!c || etat.mode !== 'jeu') return;
+  if (c.lever) { seLever(); return; }
   etat.mode = 'dialogue';
   touches.clear();
   etat.vx = etat.vz = 0;
@@ -1016,10 +1039,15 @@ async function tampon(id) {
   if ((lireTampons()[L.id] || []).length === L.tampons.length) await dialogue.dire(tc('tout'), { qui: tc('nom') });
 }
 const attendre = (ms) => new Promise((r) => setTimeout(r, ms));
-// assis : le siège { x, z, y (le dessus), cap } ; le joueur n'en bouge plus (sa racine, ASSIS plus bas que le dessus) ;
-// il se relève là où il était debout (le siège, lui, est dans ce qui arrête : on y restait coincé)
+// assis : le siège { x, z, y (le dessus), cap, libre, cote } ; le joueur n'en bouge plus (sa racine, ASSIS plus bas que
+// le dessus) ; il se relève là où il était debout (le siège, lui, est dans ce qui arrête : on y restait coincé).
+// libre : il y reste jusqu'à ce qu'il veuille marcher (ou A : se lever) ; cote : la place du compagnon sur le banc
 let siege = null, vueAvantSiege = null, debout = null;
-const ASSIS = 0.38;
+/** Se lever d'un banc où l'on restait assis : la caméra reste où elle est (on repart de là). */
+function seLever() {
+  vueAvantSiege = null;
+  jeu.asseoir(null);
+}
 
 /** Ce que les lieux peuvent faire (leurs actions reçoivent cet objet). */
 const jeu = {
@@ -1058,7 +1086,7 @@ const jeu = {
    * lever (null) : la caméra reprend sa place.
    */
   asseoir(s, vue = null) {
-    if (s && !siege) debout = { x: etat.x, z: etat.z, y: etat.y };
+    if (s && !siege) debout = { x: etat.x, z: etat.z, y: etat.y, t: 0 };
     else if (!s && siege && debout) Object.assign(etat, debout);
     siege = s;
     M.joueur.asseoir(!!s);
@@ -1070,6 +1098,16 @@ const jeu = {
       vueAvantSiege = null;
     }
   },
+  /**
+   * S'asseoir sur le banc b (monde.js : pointDuBanc) là où l'on est, et y rester (jusqu'à ce qu'on marche) ; le
+   * compagnon saute à côté, du côté où il reste le plus de banc, s'il y a la place. La caméra passe derrière, de trois quarts.
+   */
+  asseoirSurBanc(b) {
+    const p = pointDuBanc(b, etat.x, etat.z), l = Math.hypot(b.a[0] - b.de[0], b.a[1] - b.de[1]);
+    const fc = l > 0.01 ? p.f + (p.f > 0.5 ? -0.62 : 0.62) / l : -1, marge = l > 0.01 ? 0.15 / l : 0;
+    const cote = fc >= -marge && fc <= 1 + marge ? { x: b.de[0] + fc * (b.a[0] - b.de[0]), z: b.de[1] + fc * (b.a[1] - b.de[1]), y: b.y, cap: b.cap } : null;
+    this.asseoir({ x: p.x, z: p.z, y: b.y, cap: b.cap, libre: true, cote }, { lacet: b.cap + Math.PI + (b.vue ?? 0.35), tangage: 0.2, distance: 4.6 });
+  },
   /** La vapeur (d'un sauna) qui envahit l'écran (oui), ou se dissipe. */
   vapeur: (oui) => $('.vapeur-ecran').classList.toggle('visible', oui),
   /** On ressort en sueur : les habits trempés sèchent dans une dizaine de secondes ; le compagnon s'ébrouera. */
@@ -1078,10 +1116,20 @@ const jeu = {
     Object.assign(mouille.kon, { v: 0.9, ligne: 0.5, hors: -8, ebroue: false });
   },
   /**
-   * La nuit tombe (oui) ou le jour revient, en un peu plus d'une seconde ; se résout une fois fait. La nuit, la
-   * caméra descend et lève les yeux vers le ciel (les étoiles), puis reprend sa place au jour.
+   * La nuit tombe (oui) ou le jour revient, en un peu plus d'une seconde ; se résout une fois fait. Elle reste
+   * jusqu'à ce qu'on rappelle le jour (le campeur d'Aogashima, le batelier d'Itsukushima) : les étoiles, les
+   * lanternes allumées, l'air de nuit ; et des gens disent autre chose (txn).
    */
   nuit: (oui) => new Promise((fin) => {
+    M.nuit.cible = oui ? 1 : 0;
+    M.nuit.fin = fin;
+  }),
+  /** Fait-il nuit (ou la nuit tombe-t-elle) ? */
+  get estNuit() { return M.nuit.cible === 1; },
+  /** Le texte cle du lieu, ou, la nuit, sa variante « cleNuit » s'il y en a une. */
+  txn: (cle) => (M.nuit.cible === 1 && tx(`${cle}Nuit`)) || tx(cle),
+  /** La caméra descend et lève les yeux vers le ciel (oui : les étoiles), ou reprend sa place. */
+  leverLesYeux(oui) {
     if (oui && !M.nuit.camera) {
       M.nuit.camera = { lacet: cam.lacet, tangage: cam.tangage, distance: cam.distance };
       Object.assign(cam, { lacet: 0, tangage: -0.3, distance: 3.6 });
@@ -1089,9 +1137,7 @@ const jeu = {
       Object.assign(cam, M.nuit.camera);
       M.nuit.camera = null;
     }
-    M.nuit.cible = oui ? 1 : 0;
-    M.nuit.fin = fin;
-  }),
+  },
 };
 
 // ---------------------------------------------------------------- Le jeu
@@ -1170,6 +1216,7 @@ function avancer(dt) {
   const fx = -Math.sin(cam.lacet), fz = -Math.cos(cam.lacet), rx = Math.cos(cam.lacet), rz = -Math.sin(cam.lacet);
   let dx = fx * avant + rx * cote, dz = fz * avant + rz * cote;
   if (m > 1) { dx /= m; dz /= m; m = 1; }
+  if (siege?.libre && m > 0.3) seLever(); // assis sur un banc : on se lève dès qu'on veut marcher
   const dansLEau = L.eau && L.terrain(etat.x, etat.z) < (L.eau.niveau || 0) - 0.05 && etat.y < (L.eau.niveau || 0) + 0.5;
   const course = appuye('ShiftLeft', 'ShiftRight') || Math.hypot(joy.x, joy.y) > 0.92;
   const vmax = (course ? COURSE : MARCHE) * (dansLEau ? 0.62 : 1);
@@ -1194,13 +1241,31 @@ function avancer(dt) {
   etat.y += (monde.hauteur(etat.x, etat.z, etat.y) - etat.y) * Math.min(1, dt * 18);
   if (m > 0.05) etat.cap = tourner(etat.cap, Math.atan2(dx, dz), dt * 10);
   if (siege) Object.assign(etat, { x: siege.x, z: siege.z, y: siege.y - ASSIS, cap: siege.cap, vx: 0, vz: 0, vitesse: 0 });
+  if (debout && siege) debout.t += dt;
   if (m > 0.05 && libre) $('.aide').classList.add('vue');
 
   // le compagnon suit, un peu en arrière et sur le côté ; il s'assoit quand il est arrivé
-  if (etat.mode !== 'depart') {
-    // (le joueur assis : le compagnon vient devant lui, un peu de côté ; derrière, c'est le banc)
+  const banc = siege?.cote;
+  if (renard.banc && renard.banc !== banc) {
+    // le voyageur s'est levé : le compagnon saute du banc, devant lui
+    const b = renard.banc;
+    Object.assign(renard, { x: b.x + Math.sin(b.cap) * 0.75, z: b.z + Math.cos(b.cap) * 0.75, banc: null, vitesse: 0 });
+    renard.y = monde.hauteur(renard.x, renard.z, b.y);
+    M.kon.sauter();
+  }
+  // s'il y a la place, il saute sur le banc à côté du voyageur assis : arrivé tout près, ou au bout de 2,5 s
+  if (banc && !renard.banc && !renard.nage && etat.mode !== 'depart' && (Math.hypot(banc.x - renard.x, banc.z - renard.z) < 1.1 || debout?.t > 2.5)) {
+    renard.banc = banc;
+    M.kon.sauter();
+  }
+  if (renard.banc) {
+    // assis sur le banc à côté du voyageur
+    Object.assign(renard, { x: banc.x, z: banc.z, y: banc.y, vitesse: 0 });
+    renard.cap = tourner(renard.cap, banc.cap, dt * 6);
+  } else if (etat.mode !== 'depart') {
+    // (le joueur assis : le compagnon vient devant lui, un peu de côté ; derrière, c'est le banc ; ou vers sa place sur le banc)
     const recul = siege ? -0.9 : 1.3;
-    const cx = etat.x - Math.sin(etat.cap) * recul + Math.cos(etat.cap) * 0.75, cz = etat.z - Math.cos(etat.cap) * recul - Math.sin(etat.cap) * 0.75;
+    const cx = banc ? banc.x : etat.x - Math.sin(etat.cap) * recul + Math.cos(etat.cap) * 0.75, cz = banc ? banc.z : etat.z - Math.cos(etat.cap) * recul - Math.sin(etat.cap) * 0.75;
     const ex = cx - renard.x, ez = cz - renard.z, d = Math.hypot(ex, ez);
     const vr = d > 0.35 ? Math.min(COURSE * 1.15, d * 2.8) : 0;
     renard.vitesse += (vr - renard.vitesse) * Math.min(1, dt * 6);
@@ -1460,12 +1525,26 @@ function dessiner(dt, temps) {
     p.perso.objet.rotation.y = p.etat.cap;
     p.perso.animer(dt, p.etat.v, temps + p.x);
   }
-  for (const d of M.daims) d.b.animer(dt, temps);
+  // la nuit, les daims se couchent (chacun à son tour)
+  for (const d of M.daims) {
+    const voulu = M.nuit.v > 0.5 ? 1 : 0;
+    d.couche += Math.sign(voulu - d.couche) * Math.min(Math.abs(voulu - d.couche), dt * d.vitesseCouche);
+    d.b.animer(dt, temps, lisse(0, 1, d.couche));
+  }
   // les mouettes : leurs cris, plus doux de loin (ni pendant le départ, ni sur une image fixe)
   if (M.mouettes) {
     for (const c of M.mouettes.animer(dt, temps, etat, renard, M.nuit.v)) {
       const d = Math.hypot(c.x - camera.position.x, c.y - camera.position.y, c.z - camera.position.z), force = c.fort / (1 + Math.max(0, d - 10) * 0.07);
       if (!PHOTO && etat.mode !== 'depart' && force > 0.1) M.bruitage.oiseau('mouette', { force, pan: panDe(c.x, c.z) });
+    }
+  }
+  // les bêtes : leurs cris, plus doux de loin
+  if (M.betes) {
+    for (const c of M.betes.animer(dt, temps, etat, renard, M.nuit.v, etat.mode !== 'jeu')) {
+      const d = Math.hypot(c.x - camera.position.x, c.y - camera.position.y, c.z - camera.position.z), force = c.fort / (1 + Math.max(0, d - 6) * 0.12);
+      if (PHOTO || etat.mode === 'depart' || force < 0.08) continue;
+      if (c.nom === 'miaou') M.bruitage.bete('miaou', { force, pan: panDe(c.x, c.z) });
+      else M.bruitage.oiseau(c.nom, { force, pan: panDe(c.x, c.z) });
     }
   }
   if (M.sauvage) {
@@ -1492,6 +1571,7 @@ function dessiner(dt, temps) {
     N.v += Math.sign(N.cible - N.v) * Math.min(Math.abs(N.cible - N.v), dt * 0.75);
     appliquerNuit(N.v);
   }
+  M.lueurs.maj(N.v, toile.height / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2)));
   if (N.fin && N.v === N.cible) { const fin = N.fin; N.fin = null; fin(); }
 
   // la caméra derrière le joueur. Sous un toit (une galerie), elle se rapproche et passe sous le plafond ;

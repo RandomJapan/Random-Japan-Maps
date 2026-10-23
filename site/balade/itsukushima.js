@@ -7,7 +7,7 @@
 //  Repère : x vers l'est, z vers le sud, y vers le haut, en mètres ; la mer est au nord, à y = 0 ; l'estran
 //  est à −0,27 (sous 27 cm d'eau). ctx : { THREE, atelier, P (palette), peinture }.
 // ================================================================
-import { creerMonde, lisse, hasard, bruitDoux } from './monde.js';
+import { creerMonde, interactionsBancs, lisse, hasard, bruitDoux } from './monde.js';
 import { panneau, trepied, PAPIER_PANNEAU } from './decor.js';
 import { MATIERES as M } from './textures.js';
 
@@ -71,7 +71,16 @@ const HIRABUTAI = [-9, 9, -26, -12]; // la grande plate-forme sur la mer
 const TAKABUTAI = [-2.5, 2.5, -21, -16]; // la scène de danse, sur la plate-forme
 const HITAKISAKI = [-2.5, 2.5, -31, -26]; // la pointe, face au torii
 const NO = { x: -16, z: -23 }; // la scène de nō (tournée vers l'est, vers la plate-forme)
+// les bancs de la plage face au torii : le long de chacun, libre : là où l'on peut s'asseoir (le grand-père, sur le second, en
+// occupe un bout, à s = −0,45)
+const BANCS_PLAGE = [{ x: 21, z: 1.6, libre: [-0.6, 0.6] }, { x: 37, z: 1.9, libre: [0.05, 0.6] }].map((b) => ({ ...b, cap: Math.atan2(TORII.x - b.x, TORII.z - b.z) }));
+// la barque du batelier, dans l'eau de l'estran, la proue vers le torii ; pieu : son pieu d'amarrage, sur le sable
+const BARQUE = { x: 23.9, z: -13, cap: Math.atan2(TORII.x - 23.9, TORII.z + 13), pieu: [25.7, -8.4] };
+const GRAND_PERE = ((b) => ({ x: b.x - Math.cos(b.cap) * 0.45, z: b.z + Math.sin(b.cap) * 0.45, cap: b.cap, assis: terrain(b.x, b.z) + 0.44 }))(BANCS_PLAGE[1]);
 const HN = PLANCHER + 0.2; // son plancher
+
+/** Les couleurs qui s'allument la nuit (styles.js) : les lanternes de bronze, les fenêtres ; le vermillon du torii et du sanctuaire, illuminés. */
+export const sortesNuit = (P) => ({ [P.fenetre]: 'lumiere', [P.vermillon]: 'illumine', [P.vermillonFonce]: 'illumine' });
 
 /** Ce que le carnet et le menu savent du lieu, sans le construire. */
 export const infos = {
@@ -91,6 +100,8 @@ export function construire(ctx) {
   const { THREE, atelier, P, peinture } = ctx;
   const PI = Math.PI;
   const objets = []; // { fin, x, y, z, ry, ombre }
+  const bancs = []; // où l'on s'assoit (monde.js : pointDuBanc)
+  const lumieres = []; // les lanternes allumées la nuit : leur halo, leur lumière au sol (lueurs.js)
   const monde = creerMonde({ terrain, cadre: [-56, 64, -80, 46] });
   const poser = (fin, x, z, o = {}) => objets.push({ fin, x, z, y: o.y ?? monde.hauteur(x, z), ry: o.ry || 0, ombre: o.ombre !== false });
   // les textes peints (etiquettes.js) : ecrire(pose de l'objet { x, y, z, ry }, étiquette dans son repère)
@@ -205,10 +216,12 @@ export function construire(ctx) {
     for (let i = 1; i < n; i += 2) {
       const u = -L / 2 + ((i + 0.5) * L) / n;
       const x = selonX ? cx + u : cx, z = selonX ? cz : cz + u;
+      // (le bronze, et au milieu la bande des fenêtres de papier : elle s'allume la nuit, sortesNuit)
+      const yl = PLANCHER + h - 0.8;
       a.cylindre(0.02, 0.02, 0.5, 4, P.noir, { x, y: PLANCHER + h - 0.35, z, trait: false })
-        .cylindre(0.2, 0.26, 0.42, 6, P.bronze, { x, y: PLANCHER + h - 0.8, z })
-        .boite(0.22, 0.22, 0.3, P.fenetre, { x, y: PLANCHER + h - 0.8, z, trait: false })
+        .piece(new THREE.CylinderGeometry(0.2, 0.26, 0.42, 6, 3), P.bronze, { x, y: yl, z, teinte: (x2, y2) => (Math.abs(y2 - yl) < 0.07 ? P.fenetre : P.bronze) })
         .cone(0.36, 0.22, 6, P.bronze, { x, y: PLANCHER + h - 0.48, z });
+      lumieres.push({ x, y: PLANCHER + h - 0.85, z, halo: 0.45, sol: PLANCHER, r: 1.6 });
     }
     poser(a.fin(0, peinture), 0, 0, { y: 0 });
     // pour la caméra : le toit, des poutres du plafond au faîte, débords compris
@@ -311,6 +324,7 @@ export function construire(ctx) {
     }
     poser(a.fin(0, peinture), 0, 0, { y: 0 });
     poser(lanterneBronze(atelier()).fin(0, peinture), 0, -30, { y: PLANCHER });
+    lumieres.push({ x: 0, y: PLANCHER + 1.73, z: -30, halo: 0.65, sol: PLANCHER, r: 2.6 });
     // ce qui arrête sur la plate-forme : la scène, ses marches, les pavillons des musiciens, la lanterne
     for (const [x0, z0, x1, z1] of [[sx0, sz0, sx1, sz0], [sx0, sz0, sx0, sz1], [sx1, sz0, sx1, sz1], [sx0, sz1 + 1, sx1, sz1 + 1]]) monde.mur(x0, z0, x1, z1, 0.4, PLANCHER - 0.3, PLANCHER + 3);
     monde.mur(sx0, sz0, sx0, sz1 + 1, 0.4, PLANCHER - 0.3, PLANCHER + 3);
@@ -575,6 +589,7 @@ export function construire(ctx) {
   for (const [x, z] of [[17, 2.6], [25, 3], [33, 3.2], [41, 3], [49, 2.8], [-34, 19], [-20, 19], [-6, 19], [8, 19.5], [22, 16]]) {
     poser(atelier().lanterne(0, 0, 8.2).fin(0, peinture), x, z);
     monde.cercle(x, z, 0.55);
+    lumieres.push({ x, y: terrain(x, z) + 1.64, z, halo: 0.55, sol: terrain(x, z), r: 2.5 });
   }
   for (const [x, z, s, sens] of [[16, 3, 17, -1], [30, 5, 18, 1], [44, 4.5, 17, -1], [61, 2, 19, 1], [-40, 20, 19, 1], [-28, 24, 17, -1], [-14, 23, 18, 1], [4, 24, 16, -1], [24, 22, 19, 1], [-48, 14, 18, -1]]) {
     poser(atelier().pinJapon(0, 0, s, sens).fin(0, peinture), x, z);
@@ -711,6 +726,26 @@ export function construire(ctx) {
     poser(a.fin(0, peinture), BANC.x, BANC.z, { y: terrain(BANC.x, BANC.z) });
     monde.mur(BANC.x - 0.9, BANC.z, BANC.x + 0.9, BANC.z, 0.36);
     monde.cercle(BANC.x + px, BANC.z + pz, 0.2);
+    // (on s'assoit à côté du plateau, face à la mer)
+    // (la caméra de côté : derrière, la hampe du parasol cachait tout)
+    bancs.push({ de: [BANC.x - 0.7, BANC.z], a: [BANC.x + 0.1, BANC.z], y: terrain(BANC.x, BANC.z) + 0.495, cap: PI, vue: -0.95 });
+  }
+
+  // deux bancs de bois sur la plage, tournés vers le grand torii (le grand-père est assis sur le second) : deux pieds
+  // de pierre, l'assise de trois lattes, le dossier de deux lattes sur ses montants. Construits face à +z, tournés.
+  for (const b of BANCS_PLAGE) {
+    const a = atelier(), y = terrain(b.x, b.z), ax = Math.cos(b.cap), az = -Math.sin(b.cap);
+    // (les lattes du dossier un peu enfoncées dans le devant des montants : à quelques millimètres de leur face, elles scintillaient)
+    for (const s of [-0.7, 0.7]) {
+      a.boite(0.12, 0.45, 0.52, P.pierre, { x: s, y: 0.185, z: -0.02 })
+        .boite(0.08, 0.56, 0.05, P.boisFonce, { x: s, y: 0.64, z: -0.255, rx: -0.12 });
+    }
+    for (const z of [-0.14, 0, 0.14]) a.boite(1.8, 0.04, 0.12, P.bois, { y: 0.42, z });
+    for (const yb of [0.63, 0.8]) a.boite(1.8, 0.1, 0.03, P.bois2, { y: yb, z: -0.22, rx: -0.12 });
+    poser(a.fin(0, peinture), b.x, b.z, { y, ry: b.cap });
+    monde.mur(b.x - ax * 0.9, b.z - az * 0.9, b.x + ax * 0.9, b.z + az * 0.9, 0.3);
+    const [s0, s1] = b.libre;
+    bancs.push({ de: [b.x + ax * s0, b.z + az * s0], a: [b.x + ax * s1, b.z + az * s1], y: y + 0.44, cap: b.cap });
   }
 
   // la colline de la pagode : l'escalier de pierre depuis la rue (des marches pleines entre deux murets, un
@@ -777,6 +812,7 @@ export function construire(ctx) {
   for (const [x, z] of [[43.6, 19.3], [48.4, 19.3], [43.3, 28.9], [48.7, 28.9], [38.5, 33], [40, 39]]) {
     poser(atelier().lanterne(0, 0, 6.5).fin(0, peinture), x, z);
     monde.cercle(x, z, 0.45);
+    lumieres.push({ x, y: terrain(x, z) + 1.3, z, halo: 0.45, sol: terrain(x, z), r: 2.1 });
   }
 
   // ---- Les panneaux de bois (à lire)
@@ -804,6 +840,48 @@ export function construire(ctx) {
     const tx = VIDEASTE.x + Math.sin(VIDEASTE.cap) * 0.8 + Math.cos(VIDEASTE.cap) * 0.5, tz = VIDEASTE.z + Math.cos(VIDEASTE.cap) * 0.8 - Math.sin(VIDEASTE.cap) * 0.5;
     poser(a.fin(0, peinture), tx, tz, { y: terrain(tx, tz) + 1.3, ry: VIDEASTE.cap });
     monde.cercle(tx, tz, 0.45);
+  }
+
+  // ---- La barque du batelier : le soir, il promène les visiteurs sous le grand torii illuminé (à lui de faire tomber
+  // la nuit, et revenir le jour). Une barque de bois à godille (ro), amarrée dans l'eau peu profonde de l'estran, la
+  // proue vers le torii ; ses deux bancs, la rame posée sur son tolet à la poupe, la lanterne de papier au bout d'une
+  // perche de bambou (allumée la nuit) ; un pieu sur le sable et la corde. Construite la proue vers +z, puis tournée.
+  {
+    const a = atelier(), L = 5.2, { x: bx, z: bz, cap } = BARQUE;
+    // la coque : un U épais (les deux bords et le fond) tiré sur la longueur, effilé vers la proue, qui se relève
+    // (sa quille aussi), un peu moins large à la poupe ; posée sur l'eau, son fond à fleur (l'eau ne passe pas dedans)
+    const largeur = (t) => (t < 0.55 ? 0.86 + 0.14 * (t / 0.55) : 1 - ((t - 0.55) / 0.45) ** 1.6 * 0.93);
+    const tonture = (t, y) => 0.36 * Math.max(0, (t - 0.6) / 0.4) ** 2 + 0.05 * (1 - t) ** 2 + (y < 0 ? 0.24 * Math.max(0, (t - 0.72) / 0.28) ** 2 : 0);
+    const u = new THREE.Shape([[-0.62, 0.32], [-0.48, -0.16], [0.48, -0.16], [0.62, 0.32], [0.56, 0.32], [0.43, -0.1], [-0.43, -0.1], [-0.56, 0.32]].map(([x, y]) => new THREE.Vector2(x, y)));
+    a.piece(new THREE.ExtrudeGeometry(u, { depth: L, steps: 14, bevelEnabled: false }), P.bois2, {
+      y: 0.16, z: -L / 2,
+      deformer: (x, y, z) => { const t = z / L; return [x * largeur(t), y + tonture(t, y), z]; },
+      teinte: (x, y, z) => (y > 0.42 + tonture((z + L / 2) / L, 1) ? P.boisFonce : P.bois2), // (le plat-bord, plus sombre)
+    });
+    // la planche de poupe (le tableau arrière), les deux bancs en travers, le tolet et la godille qui plonge derrière
+    a.boite(0.98, 0.42, 0.06, P.boisFonce, { y: 0.31, z: -L / 2 + 0.05 });
+    for (const t of [0.3, 0.6]) a.boite(1.04 * largeur(t), 0.05, 0.26, P.bois3, { y: 0.4 + tonture(t, 1), z: -L / 2 + t * L });
+    a.boite(0.1, 0.1, 0.1, P.boisFonce, { x: 0.28, y: 0.56, z: -L / 2 + 0.12 })
+      .baton([0.28, 0.62, -L / 2 + 0.15], [0.62, -0.1, -L / 2 - 2.3], 0.035, P.bois3, 6)
+      .boite(0.04, 0.5, 0.2, P.bois3, { x: 0.66, y: -0.18, z: -L / 2 - 2.45, rx: -0.3 });
+    // la perche de bambou à la proue, et sa lanterne rouge
+    const zp = L / 2 - 0.75, yp = 0.3 + tonture(1 - 0.75 / L, 1);
+    a.baton([0, yp, zp], [0, yp + 1.75, zp + 0.25], 0.025, '#b9a35a', 6)
+      .baton([0, yp + 1.7, zp + 0.24], [0, yp + 1.72, zp + 0.62], 0.018, '#b9a35a', 5)
+      .baton([0, yp + 1.71, zp + 0.6], [0, yp + 1.65, zp + 0.6], 0.006, P.noir, 4, { trait: false })
+      .chochin(0, yp + 1.42, zp + 0.6, 8);
+    poser(a.fin(0, peinture), bx, bz, { y: 0, ry: cap });
+    // (sa lumière tombe sur l'eau)
+    lumieres.push({ x: bx + Math.sin(cap) * (zp + 0.6), y: yp + 1.42, z: bz + Math.cos(cap) * (zp + 0.6), halo: 0.5, sol: 0, r: 1.9, c: '#ffa565' });
+    // le pieu sur le sable, la corde tendue jusqu'à la poupe
+    const sx = bx - Math.sin(cap) * (L / 2 + 0.15), sz = bz - Math.cos(cap) * (L / 2 + 0.15), [px, pz] = BARQUE.pieu;
+    const yp0 = terrain(px, pz);
+    const c = atelier()
+      .cylindre(0.07, 0.06, 0.95, 7, P.boisFonce, { x: px, y: yp0 + 0.3, z: pz })
+      .baton([px, yp0 + 0.62, pz], [sx, 0.5, sz], 0.015, '#e8d9b5', 5);
+    poser(c.fin(0, peinture), 0, 0, { y: 0 });
+    monde.mur(bx - Math.sin(cap) * L / 2, bz - Math.cos(cap) * L / 2, bx + Math.sin(cap) * L / 2, bz + Math.cos(cap) * L / 2, 0.7);
+    monde.cercle(px, pz, 0.25);
   }
 
   // ---------------------------------------------------------------- Le décor lointain
@@ -849,7 +927,9 @@ export function construire(ctx) {
     { id: 'enfant', x: 34, z: -1, cap: 0, ronde: [[31, -1.5], [37, 0.5], [34, 3.2], [30, 1.5]], vitesse: 1.6, attente: [0.5, 2], tenue: { taille: 0.82, peau: PEAU, cheveux: NOIR, coiffure: 'court', chapeau: { sorte: 'ecolier', c: '#f6d13a' }, haut: P.blanc, manches: 'courtes', bas: { sorte: 'jupe', c: '#3d4a6a' }, chaussures: P.blanc, semelle: '#3a3236', sac: { sorte: 'randoseru', c: '#c8372d' } } },
     { id: 'marchande', x: 56.78, z: 4.3, cap: -PI / 2, tenue: { taille: 1.06, peau: PEAU, cheveux: NOIR, coiffure: 'chignon', chapeau: { sorte: 'foulard', c: '#f3ead8' }, haut: '#d8452e', manches: 'longues', tablier: '#f6efe0', bas: { sorte: 'pantalon', c: '#3d4a6a' }, chaussures: '#3a3236', semelle: '#3a3236', yeux: 'plisses' } },
     { id: 'touriste', x: 44, z: -1, cap: PI / 2, ronde: [[44, -1], [51, 6], [36, 0.5], [20, -0.5]], vitesse: 1.0, attente: [3, 7], tenue: { taille: 1.1, peau: PEAU, cheveux: '#c98a4a', coiffure: 'chignon', chapeau: { sorte: 'soleil', c: '#fff0cf', c2: '#4fa3c7' }, haut: '#4fa3c7', manches: 'courtes', bas: { sorte: 'short', c: '#f3ead8' }, chaussures: P.blanc, semelle: '#4fa3c7', appareil: true } },
-    { id: 'grandpere', x: 38.5, z: 0.6, cap: Math.atan2(TORII.x - 38.5, TORII.z - 0.6), tenue: { taille: 1.04, peau: '#f5d2b0', cheveux: '#e8e4dc', coiffure: 'chauve', haut: '#7a6652', manches: 'longues', bas: { sorte: 'pantalon', c: '#5a5650' }, chaussures: '#3a3236', semelle: '#3a3236', lunettes: true, canne: true, yeux: 'plisses' } },
+    // le batelier, sur le sable près de sa barque : happi bleu, bandeau blanc, tabi noirs
+    { id: 'batelier', x: 26.9, z: -7.8, cap: Math.atan2(28 - 26.9, -2.5 + 7.8), tenue: { taille: 1.08, peau: '#e9b893', cheveux: NOIR, coiffure: 'court', chapeau: { sorte: 'bandeau', c: '#f3ead8' }, haut: '#2f4a7a', col: '#f3ead8', manches: 'kimono', bas: { sorte: 'pantalon', c: '#2a2a34' }, chaussures: '#2a2a30', semelle: '#2a2a30' } },
+    { id: 'grandpere', ...GRAND_PERE, tenue: { taille: 1.04, peau: '#f5d2b0', cheveux: '#e8e4dc', coiffure: 'chauve', haut: '#7a6652', manches: 'longues', bas: { sorte: 'pantalon', c: '#5a5650' }, chaussures: '#3a3236', semelle: '#3a3236', lunettes: true, canne: true, yeux: 'plisses' } },
     // sur la scène de nō : l'ange de « Hagoromo » (masque blanc, perruque, couronne d'or, éventail) qui danse en
     // glissant ; au fond, les quatre musiciens (flûte, petit et grand tambours d'épaule et de hanche, tambour plat) ;
     // sur le côté, le chœur ; en kimono noir et hakama gris, assis sur les talons
@@ -867,10 +947,11 @@ export function construire(ctx) {
 
   // ---------------------------------------------------------------- Ce qu'on peut faire (tout passe par `jeu`)
   const interactions = [
-    { id: 'pretre', passant: 'pretre', verbe: 'parler', action: (jeu) => jeu.dire(jeu.tx(jeu.aTampon('sanctuaire') ? 'pretre2' : 'pretre'), 'pretre') },
+    { id: 'pretre', passant: 'pretre', verbe: 'parler', action: (jeu) => jeu.dire(jeu.tx(jeu.estNuit ? 'pretreNuit' : jeu.aTampon('sanctuaire') ? 'pretre2' : 'pretre'), 'pretre') },
     {
       id: 'miko', passant: 'miko', verbe: 'parler',
       async action(jeu) {
+        if (jeu.estNuit) { await jeu.dire(jeu.tx('mikoNuit'), 'miko'); return; } // (le comptoir des omikuji ferme la nuit)
         const r = await jeu.choisir(jeu.tx('miko'), [jeu.t('oui'), jeu.t('non')], 'miko');
         if (r !== 0) { await jeu.dire(jeu.tx('mikoNon'), 'miko'); return; }
         const sorts = jeu.tx('omikuji'), k = Math.floor(Math.random() * sorts.length);
@@ -888,10 +969,11 @@ export function construire(ctx) {
         await jeu.dire(jeu.tx('videasteApres'), 'videaste');
       },
     },
-    { id: 'enfant', passant: 'enfant', verbe: 'parler', action: (jeu) => jeu.dire(jeu.tx('enfant'), 'enfant') },
+    { id: 'enfant', passant: 'enfant', verbe: 'parler', action: (jeu) => jeu.dire(jeu.txn('enfant'), 'enfant') },
     {
       id: 'marchande', passant: 'marchande', verbe: 'parler',
       async action(jeu) {
+        if (jeu.estNuit) { await jeu.dire(jeu.tx('marchandeNuit'), 'marchande'); return; } // (la boutique ferme : elle ne vend pas la nuit)
         if (jeu.aTampon('momiji')) { await jeu.dire(jeu.tx('marchande2'), 'marchande'); return; }
         const r = await jeu.choisir(jeu.tx('marchande'), [jeu.t('oui'), jeu.t('non')], 'marchande');
         if (r !== 0) { await jeu.dire(jeu.tx('marchandeNon'), 'marchande'); return; }
@@ -899,8 +981,31 @@ export function construire(ctx) {
         await jeu.tampon('momiji');
       },
     },
-    { id: 'touriste', passant: 'touriste', verbe: 'parler', action: (jeu) => jeu.dire(jeu.tx('touriste'), 'touriste') },
-    { id: 'grandpere', passant: 'grandpere', verbe: 'parler', action: (jeu) => jeu.dire(jeu.tx('grandpere'), 'grandpere') },
+    { id: 'touriste', passant: 'touriste', verbe: 'parler', action: (jeu) => jeu.dire(jeu.txn('touriste'), 'touriste') },
+    { id: 'grandpere', passant: 'grandpere', verbe: 'parler', action: (jeu) => jeu.dire(jeu.txn('grandpere'), 'grandpere') },
+    {
+      // le batelier fait tomber la nuit (le grand torii et le sanctuaire s'illuminent ; elle reste), et, la nuit,
+      // revenir le jour
+      id: 'batelier', passant: 'batelier', verbe: 'parler',
+      async action(jeu) {
+        if (jeu.estNuit) {
+          const r = await jeu.choisir(jeu.tx('batelierMatin'), [jeu.t('oui'), jeu.t('non')], 'batelier');
+          if (r !== 0) { await jeu.dire(jeu.tx('batelierReste'), 'batelier'); return; }
+          await jeu.nuit(false);
+          await jeu.dire(jeu.tx('batelierJour'), 'batelier');
+          return;
+        }
+        const r = await jeu.choisir(jeu.tx('batelier'), [jeu.t('oui'), jeu.t('non')], 'batelier');
+        if (r !== 0) { await jeu.dire(jeu.tx('batelierNon'), 'batelier'); return; }
+        // (la caméra regarde le torii depuis la plage pendant que la nuit tombe)
+        jeu.cadrer({ de: [28.4, 2.6, -4.6], vers: [TORII.x, 7.5, TORII.z], champ: 30 });
+        await jeu.nuit(true);
+        await jeu.attendre(600);
+        await jeu.dire(jeu.tx('batelierNuit'), 'batelier');
+        jeu.cadrer(null);
+        await jeu.dire(jeu.tx('batelierApres'), 'batelier');
+      },
+    },
     {
       id: 'offrande', x: 0, z: -5.6, y: PLANCHER, rayon: 1.6, verbe: 'prier',
       async action(jeu) {
@@ -913,7 +1018,7 @@ export function construire(ctx) {
     ...[-1, 1].map((s) => ({
       id: `torii${s}`, x: TORII.x + s * TORII.ecart, z: TORII.z, rayon: 2.2, verbe: 'toucher',
       async action(jeu) {
-        if (jeu.aTampon('torii')) { await jeu.dire(jeu.tx('torii2')); return; }
+        if (jeu.aTampon('torii')) { await jeu.dire(jeu.txn('torii2')); return; }
         await jeu.dire(jeu.tx('toriiPilier'));
         await jeu.tampon('torii');
       },
@@ -932,17 +1037,18 @@ export function construire(ctx) {
     { id: 'ema', x: 7.7, z: -20.4, y: PLANCHER, rayon: 1.6, verbe: 'regarder', action: (jeu) => jeu.dire(jeu.tx('ema')) },
     { id: 'musubi', x: 7.7, z: -23.2, y: PLANCHER, rayon: 1.6, verbe: 'regarder', action: (jeu) => jeu.dire(jeu.tx('musubi')) },
     { id: 'tonneaux', x: 15.25, z: 8.6, y: PLANCHER, rayon: 1.7, verbe: 'regarder', action: (jeu) => jeu.dire(jeu.tx('tonneaux')) },
+    ...interactionsBancs(bancs),
   ];
   // les daims : on peut les caresser (le premier donne le tampon)
   const actionDaim = async (jeu) => {
-    if (jeu.aTampon('daim')) { await jeu.dire(jeu.tx('daim2')); return; }
-    await jeu.dire(jeu.tx('daim'));
+    if (jeu.aTampon('daim')) { await jeu.dire(jeu.txn('daim2')); return; }
+    await jeu.dire(jeu.txn('daim'));
     await jeu.tampon('daim');
   };
 
   return {
     ...infos, textes: TEXTES,
-    objets, monde, terrain, etiquettes, passants, daims, interactions, actionDaim,
+    objets, monde, terrain, etiquettes, passants, daims, interactions, actionDaim, bancs, lumieres,
     herbes: HERBES,
     aspectSol: (x, z, h) => aspectSol(P, x, z, h),
     rive: -9, // les lignes d'eau suivent la rive de la plage (z)
@@ -950,7 +1056,7 @@ export function construire(ctx) {
     eau: { x0: -600, x1: 600, z0: -1400, z1: 30 },
     // la brise de mer, qui pousse vers la terre (le sud) ; le milan noir tourne au-dessus de la baie, la
     // bouscarle chante dans les arbres de la colline
-    vent: { dir: [0.3, 0.95], force: 0.85 }, oiseaux: ['milan', 'uguisu', 'mouette'], ambiances: ['vagues', 'no'],
+    vent: { dir: [0.3, 0.95], force: 0.85 }, oiseaux: ['milan', 'uguisu', 'mouette'], ambiances: ['vagues', 'no', 'insectes'],
     // les musiciens de la scène de nō : on les entend de la plate-forme (pleinement à moins de 9 m, plus du tout à 32 m)
     musiciens: { x: NO.x, z: NO.z, pres: 9, loin: 32 },
     // les goélands (mouettes.js) : trois qui tournent au-dessus de la baie ; d'autres posés sur l'estran près de
@@ -1071,7 +1177,7 @@ function aspectSol(P, x, z, h) {
 // ---------------------------------------------------------------- Les textes du lieu
 const TEXTES = {
   fr: {
-    noms: { pretre: 'Le prêtre', miko: 'La miko', videaste: '@random_japan_place', enfant: 'L’écolière', marchande: 'La marchande', touriste: 'La touriste', grandpere: 'Le grand-père' },
+    noms: { pretre: 'Le prêtre', miko: 'La miko', videaste: '@random_japan_place', enfant: 'L’écolière', marchande: 'La marchande', touriste: 'La touriste', grandpere: 'Le grand-père', batelier: 'Le batelier' },
     tampons: {
       torii: ['Le grand torii', 'Au bout de l’estran, dans la mer'],
       sanctuaire: ['Le sanctuaire', 'Prie devant le pavillon'],
@@ -1119,9 +1225,26 @@ const TEXTES = {
     musubi: ['Des centaines de papiers blancs noués sur des fils.', 'Quand l’omikuji annonce une malchance, on le noue ici : elle reste au sanctuaire.'],
     tonneaux: ['Des tonneaux de saké, offerts aux dieux par les brasseries de la région.', 'Ils sont vides : ce sont des décorations, les « kazaridaru ».'],
     omikujiNoue: ['Tu plies le papier et tu vas le nouer au fil, au bord de la plate-forme.', 'Voilà : ta malchance restera au sanctuaire !'],
+    batelier: ['Bonjour ! Je suis batelier : je promène les visiteurs en barque, comme les pèlerins d’autrefois.', 'Le soir, le grand torii et le sanctuaire s’illuminent. On attend la nuit ?'],
+    batelierNon: ['D’accord ! Je serai là ce soir, avec ma lanterne.'],
+    batelierNuit: ['Regarde : le grand torii s’illumine, et le sanctuaire aussi…', 'Les lanternes de la plage et des galeries s’allument une à une.'],
+    batelierApres: ['Profite de la balade de nuit !', 'Quand tu voudras revoir le jour, reviens me voir.'],
+    batelierMatin: ['Belle nuit, hein ? Les daims dorment déjà.', 'On attend le lever du soleil ?'],
+    batelierJour: ['Et voilà le soleil sur la baie ! Bonne balade !'],
+    batelierReste: ['D’accord ! Les lumières du torii restent allumées jusqu’à tard.'],
+    // la nuit (le batelier l'a fait tomber) : ce qui change
+    pretreNuit: ['Le soir, les portes du sanctuaire se ferment.', 'Mais regarde le grand torii illuminé : c’est le plus beau moment de la journée.'],
+    mikoNuit: ['Le comptoir des omikuji est fermé la nuit.', 'Reviens demain : je te tirerai ta chance !'],
+    enfantNuit: ['Il fait nuit ! Maman m’attend pour le dîner.', 'Tu as vu ? Les daims dorment déjà sur la plage.'],
+    marchandeNuit: ['Désolée, la boutique est fermée pour aujourd’hui !', 'Reviens demain matin : les momiji manjū seront toutes chaudes.'],
+    touristeNuit: ['Le torii illuminé… C’est magique !', 'J’ai déjà pris cent photos, et je n’arrive pas à m’arrêter.'],
+    grandpereNuit: ['Le soir, je viens toujours m’asseoir ici, face au torii illuminé.', 'Soixante-dix ans… et je ne m’en lasse pas.'],
+    daimNuit: ['Le daim somnole, couché sur le sable.', 'Tu le caresses tout doucement… Il pose sa tête contre ta main.', 'Tu t’es fait un ami : un daim de Miyajima !'],
+    daim2Nuit: ['Chut… Le daim dort.'],
+    torii2Nuit: ['Le bois a gardé un peu de la chaleur du soleil.'],
   },
   en: {
-    noms: { pretre: 'Priest', miko: 'Shrine maiden', videaste: '@random_japan_place', enfant: 'Schoolgirl', marchande: 'Shopkeeper', touriste: 'Tourist', grandpere: 'Old man' },
+    noms: { pretre: 'Priest', miko: 'Shrine maiden', videaste: '@random_japan_place', enfant: 'Schoolgirl', marchande: 'Shopkeeper', touriste: 'Tourist', grandpere: 'Old man', batelier: 'Boatman' },
     tampons: {
       torii: ['The Great Torii', 'Out on the tidal flat, in the sea'],
       sanctuaire: ['The shrine', 'Pray in front of the hall'],
@@ -1169,9 +1292,25 @@ const TEXTES = {
     musubi: ['Hundreds of white papers tied to strings.', 'When an omikuji brings bad luck, you tie it here: the bad luck stays at the shrine.'],
     tonneaux: ['Barrels of sake, offered to the gods by the local breweries.', 'They are empty: they are decorations, called “kazaridaru”.'],
     omikujiNoue: ['You fold the paper and tie it to the string at the edge of the platform.', 'There: your bad luck will stay at the shrine!'],
+    batelier: ['Hello! I’m a boatman: I take visitors out by boat, like the pilgrims of old.', 'In the evening, the great torii and the shrine light up. Shall we wait for nightfall?'],
+    batelierNon: ['All right! I’ll be here tonight, with my lantern.'],
+    batelierNuit: ['Look: the great torii lights up, and the shrine too…', 'The lanterns on the beach and in the corridors come on one by one.'],
+    batelierApres: ['Enjoy your night walk!', 'When you want to see the day again, come back and see me.'],
+    batelierMatin: ['Lovely night, isn’t it? The deer are already asleep.', 'Shall we wait for sunrise?'],
+    batelierJour: ['And here’s the sun over the bay! Enjoy your walk!'],
+    batelierReste: ['All right! The torii stays lit until late.'],
+    pretreNuit: ['In the evening, the shrine’s gates are closed.', 'But look at the great torii all lit up: it’s the most beautiful moment of the day.'],
+    mikoNuit: ['The omikuji counter is closed at night.', 'Come back tomorrow: I’ll draw your fortune!'],
+    enfantNuit: ['It’s dark! Mum is waiting for me for dinner.', 'Did you see? The deer are already asleep on the beach.'],
+    marchandeNuit: ['Sorry, the shop is closed for today!', 'Come back tomorrow morning: the momiji manjū will be piping hot.'],
+    touristeNuit: ['The torii all lit up… It’s magical!', 'I’ve already taken a hundred photos, and I can’t stop.'],
+    grandpereNuit: ['In the evening, I always come and sit here, facing the lit-up torii.', 'Seventy years… and I never get tired of it.'],
+    daimNuit: ['The deer is dozing, lying on the sand.', 'You stroke it very gently… It rests its head against your hand.', 'You made a friend: a Miyajima deer!'],
+    daim2Nuit: ['Shh… The deer is asleep.'],
+    torii2Nuit: ['The wood still holds a little of the sun’s warmth.'],
   },
   ja: {
-    noms: { pretre: '神主さん', miko: '巫女さん', videaste: '@random_japan_place', enfant: '小学生', marchande: 'お店の人', touriste: '観光客', grandpere: 'おじいさん' },
+    noms: { pretre: '神主さん', miko: '巫女さん', videaste: '@random_japan_place', enfant: '小学生', marchande: 'お店の人', touriste: '観光客', grandpere: 'おじいさん', batelier: '船頭さん' },
     tampons: {
       torii: ['大鳥居', '海の中に 立っている'],
       sanctuaire: ['御本社', '社殿の 前で おまいり'],
@@ -1219,5 +1358,21 @@ const TEXTES = {
     musubi: ['白い 紙が たくさん むすばれている。', '凶の おみくじは ここに むすぶと、わるい 運は 神社に おいていける。'],
     tonneaux: ['地元の 酒蔵が 神さまに ほうのうした 酒だる。', '中は からっぽ。かざりの「かざりだる」だよ。'],
     omikujiNoue: ['おみくじを おって、平舞台の はしの ひもに むすびに いった。', 'これで わるい 運は 神社に おいていける！'],
+    batelier: ['こんにちは！ 船頭です。むかしの 参拝客の ように、舟で 案内して いるよ。', '夕方に なると、大鳥居と 社殿が ライトアップ されるんだ。夜まで まってみる？'],
+    batelierNon: ['わかった！ 今夜も ちょうちんを ともして まっているよ。'],
+    batelierNuit: ['ほら、大鳥居が ライトアップ された。社殿も……', '浜と 回廊の 灯籠も、ひとつ ひとつ ともっていく。'],
+    batelierApres: ['夜の さんぽを たのしんでね！', '朝に もどりたく なったら、また はなしかけて。'],
+    batelierMatin: ['いい 夜だね。シカたちは もう ねているよ。', '日の出まで まとうか？'],
+    batelierJour: ['ほら、湾に お日さまが のぼった！ いい さんぽを！'],
+    batelierReste: ['わかった！ 大鳥居の あかりは おそくまで ついているよ。'],
+    pretreNuit: ['夜は 社殿の 門を しめています。', 'でも ライトアップ された 大鳥居を ごらんなさい。一日で いちばん うつくしい ときです。'],
+    mikoNuit: ['夜は おみくじの うけつけは おしまいです。', 'また あした きてくださいね！'],
+    enfantNuit: ['もう 夜だ！ お母さんが ばんごはんで まってる。', '見た？ シカたちは もう 浜で ねてるよ。'],
+    marchandeNuit: ['ごめんね、今日は もう 店じまい！', 'あしたの 朝 きて。やきたての もみじまんじゅうが あるよ。'],
+    touristeNuit: ['ライトアップの 大鳥居……すてき！', 'もう 百まいも 写真を とったのに、とまらない！'],
+    grandpereNuit: ['夜は いつも ここに すわって、ライトアップの 大鳥居を ながめるんじゃ。', '70年……それでも あきることは ない。'],
+    daimNuit: ['シカが 砂の 上で うとうと している。', 'そっと なでると……手に 頭を あずけてきた。', '宮島の シカと なかよしに なった！'],
+    daim2Nuit: ['しーっ……シカは ねむっている。'],
+    torii2Nuit: ['柱には まだ 少し お日さまの ぬくもりが のこっている。'],
   },
 };

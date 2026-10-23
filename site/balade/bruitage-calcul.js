@@ -8,8 +8,10 @@
 //  - « ebrouer » : Kon qui s'ébroue en sortant de l'eau ;
 //  - « boucle/<nom> » : une ambiance qui tourne en boucle sans couture (ventDoux, ventFort, feuilles, vagues,
 //    vapeur, insectes ; no : la musique de la scène de nō d'Itsukushima, flûte et tambours) ;
-//  - « oiseau/milan » (le milan noir, « pîhyororo »), « oiseau/uguisu » (la bouscarle, « hôhokekyo ») ou
-//    « oiseau/mouette » (le goéland à queue noire, qui miaule) ;
+//  - « oiseau/milan » (le milan noir, « pîhyororo »), « oiseau/uguisu » (la bouscarle, « hôhokekyo »),
+//    « oiseau/mouette » (le goéland à queue noire, qui miaule) ou « oiseau/akakokko » (la grive des îles d'Izu,
+//    « kyoron kyoron tsîî ») ;
+//  - « bete/miaou », « bete/ronron » : les chats d'Aogashima ;
 //  - « cri/kon » (le renard : deux jappements, « kon kon »), « cri/pon » (le tanuki se tambourine le ventre :
 //    « pon, poko, pon »), « cri/chapu » (la loutre : trois petits cris aigus, et un plouf) ; « tambour » (un seul
 //    coup sur le ventre du tanuki, quand il s'ennuie) ; « pouf » (un compagnon qui s'en va dans un nuage).
@@ -522,6 +524,16 @@ const OISEAUX = {
     miaou(1.16, 0.26, 760, 1150, 700);
     return cadrer([echo(c.b, sr)], sr, 0.25);
   },
+  // la grive des îles d'Izu (akakokko) : deux phrases flûtées qui roulent, « kyoron, kyoron », puis un « tsîî » fin et aigu
+  akakokko(sr, r) {
+    const c = composer(sr, r, 2.1);
+    for (const [t0, h] of [[0.05, 1], [0.5, 1.05]]) {
+      c.ton(t0, 0.13, (t) => h * (1900 + 2600 * t), ad(0.01, 0.04, 0.13))
+        .ton(t0 + 0.15, 0.2, (t) => h * (2400 - 900 * t + 120 * Math.sin(TAU * 38 * t)), ad(0.015, 0.08, 0.2));
+    }
+    c.ton(1.05, 0.45, (t) => 6400 - 500 * t, (t) => ad(0.05, 0.25, 0.45)(t) * 0.45, 0.04);
+    return cadrer([echo(c.b, sr)], sr, 0.25);
+  },
   // la bouscarle du Japon (uguisu), l'oiseau du printemps : « hôôô… ho-ke-kyo ! »
   uguisu(sr, r) {
     const c = composer(sr, r, 2.4);
@@ -560,6 +572,24 @@ const CRIS = {
     return cadrer([echo(c.b, sr)], sr, 0.25);
   },
 };
+// ---------------------------------------------------------------- Les chats
+const BETES = {
+  // « miaou » : une note qui monte puis retombe, par un formant (la bouche qui s'ouvre et se referme)
+  miaou(sr, r) {
+    const c = composer(sr, r, 0.8);
+    c.cri(0.02, 0.62, (t) => { const u = t / 0.62; return u < 0.4 ? 560 + 300 * (u / 0.4) : 860 - 360 * ((u - 0.4) / 0.6); }, ad(0.04, 0.2, 0.62), { fc: 1500, bw: 900, rauque: 0.12 });
+    return cadrer([echo(c.b, sr)], sr, 0.25);
+  },
+  // le ronron : un grondement grave qui bat environ 26 fois par seconde, en inspirant puis (plus fort) en expirant
+  ronron(sr, r) {
+    const c = composer(sr, r, 2.4);
+    for (const [t0, d, g] of [[0, 1.0, 0.7], [1.15, 1.15, 1]]) {
+      c.bruit(t0, { type: 'bas', f: 260, grave: true, duree: d, gain: g, forme: (t) => ad(0.12, 0.25, d)(t) * (0.55 + 0.45 * Math.sin(TAU * 26 * t)) ** 2 });
+    }
+    return cadrer([c.b], sr, 0.25);
+  },
+};
+
 /** Un compagnon s'en va dans un petit nuage (« pouf ») : un souffle étouffé, une petite note qui tombe. */
 function pouf(sr) {
   const r = alea(graine('pouf')), c = composer(sr, r, 0.5);
@@ -577,6 +607,7 @@ export function fabriquer(quoi, sr) {
   if (sorte === 'boucle') return BOUCLES[nom](sr, alea(graine(quoi)));
   if (sorte === 'oiseau') return OISEAUX[nom](sr, alea(graine(quoi)));
   if (sorte === 'cri') return CRIS[nom](sr, alea(graine(quoi)));
+  if (sorte === 'bete') return BETES[nom](sr, alea(graine(quoi)));
   if (sorte === 'tambour') { const c = composer(sr, alea(graine(quoi)), 0.5); ventre(c, 0.005, 1); return cadrer([c.b], sr, 0.25); }
   if (sorte === 'pouf') return pouf(sr);
   throw new Error(`son inconnu : ${quoi}`);

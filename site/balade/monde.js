@@ -49,7 +49,8 @@ const TETE = 2.6;
  * raide (les parois d'un cratère ; null : pas de limite ; on peut toujours descendre). On y ajoute :
  * - des surfaces [x0, x1, z0, z1] à la hauteur h (planchers, ponts…), ou en pente (escaliers : rampe
  *   { axe: 'x' | 'z', h0, h1 }, de h0 au bord x0 / z0 à h1 au bord x1 / z1 ; ou chemin : le long d'une ligne
- *   brisée [[x, z, h], …], un escalier en biais) ; plein : un bloc du sol à h (un pavillon fermé : ni dessus,
+ *   brisée [[x, z, h], …], un escalier en biais ; ou anneau : entre les rayons r0 et r1 d'un centre, un gradin
+ *   rond) ; plein : un bloc du sol à h (un pavillon fermé : ni dessus,
  *   ni dessous) ; passage : un pont assez haut pour passer dessous ; sol : ce qu'on entend en y marchant
  *   (bruitage-calcul.js : 'pierre'… ; par défaut, du bois) ;
  * - des cercles [x, z, rayon] et des murs (segments) [x0, z0, x1, z1, demi-épaisseur], qui arrêtent entre
@@ -60,7 +61,9 @@ const TETE = 2.6;
  */
 export function creerMonde({ terrain, cadre, profond = -0.6, pente = null }) {
   const surfaces = [], cercles = [], murs = [], blocs = [], toits = [];
-  const dedans = (s, x, z) => x >= s.x0 && x <= s.x1 && z >= s.z0 && z <= s.z1 && (!s.ligne || surLaLigne(s.ligne, x, z).d <= s.demi);
+  const dansAnneau = ([cx, cz, r0, r1], x, z) => { const d = Math.hypot(x - cx, z - cz); return d >= r0 && d <= r1; };
+  const dedans = (s, x, z) => x >= s.x0 && x <= s.x1 && z >= s.z0 && z <= s.z1 && (!s.ligne || surLaLigne(s.ligne, x, z).d <= s.demi)
+    && (!s.anneau || dansAnneau(s.anneau, x, z));
   const hauteurDe = (s, x, z) => {
     if (s.ligne) return surLaLigne(s.ligne, x, z).h;
     if (!s.rampe) return s.h;
@@ -184,6 +187,8 @@ export function creerMonde({ terrain, cadre, profond = -0.6, pente = null }) {
       const xs = points.map((p) => p[0]), zs = points.map((p) => p[1]);
       surfaces.push({ x0: Math.min(...xs) - demi, x1: Math.max(...xs) + demi, z0: Math.min(...zs) - demi, z1: Math.max(...zs) + demi, h: Math.max(...points.map((p) => p[2])), ligne: points, demi, ...o });
     },
+    /** Un gradin rond : à la hauteur h, entre les rayons r0 et r1 autour de cx, cz. */
+    anneau(cx, cz, r0, r1, h, o = {}) { surfaces.push({ x0: cx - r1, x1: cx + r1, z0: cz - r1, z1: cz + r1, h, anneau: [cx, cz, r0, r1], ...o }); },
     cercle(x, z, r, bas, haut) { cercles.push([x, z, r, bas, haut]); },
     mur(x0, z0, x1, z1, r = 0.15, bas, haut) { murs.push([x0, z0, x1, z1, r, bas, haut]); },
     bloc(x0, x1, z0, z1, bas, haut) { blocs.push([x0, x1, z0, z1, bas, haut]); },
@@ -208,15 +213,39 @@ export function creerMonde({ terrain, cadre, profond = -0.6, pente = null }) {
 }
 
 /**
- * Un passant qui va d'un point à l'autre de sa ronde (et s'y arrête un moment), ou reste sur place ; il
- * s'arrête et se tourne vers le joueur quand on lui parle. Renvoie l'état à faire avancer chaque image.
+ * Un banc : { de: [x, z], a: [x, z] (la ligne où l'on peut s'asseoir, d'un bout à l'autre), y (le dessus de l'assise),
+ * cap (vers où l'on regarde, assis), vue (la caméra, assis : de combien elle tourne autour, en radians ; 0,35 par
+ * défaut) }. Le point de cette ligne le plus proche de x, z, et f, où il est (0 : de, 1 : a).
  */
-export function creerPassant({ x, z, cap = 0, ronde = null, vitesse = 1.1, attente = [2, 6] }) {
-  return { x, z, y: 0, cap, ronde, vitesse, attente, etape: 0, pause: 1 + Math.random() * 2, v: 0, parle: false };
+export function pointDuBanc(b, x, z) {
+  const [x0, z0] = b.de, dx = b.a[0] - x0, dz = b.a[1] - z0, l2 = dx * dx + dz * dz;
+  const f = l2 > 1e-4 ? Math.min(1, Math.max(0, ((x - x0) * dx + (z - z0) * dz) / l2)) : 0;
+  return { x: x0 + f * dx, z: z0 + f * dz, f };
 }
+
+/** Les bancs d'un lieu → leurs interactions : on s'y assoit où l'on est, sur toute leur longueur (jeu.asseoirSurBanc). */
+export function interactionsBancs(bancs) {
+  return bancs.map((b, i) => ({
+    id: `banc-${i}`, verbe: 'asseoir', rayon: 1.5, haut: 1.2,
+    pres: (x, z) => pointDuBanc(b, x, z),
+    action: (jeu) => jeu.asseoirSurBanc(b),
+  }));
+}
+
+/**
+ * Un passant qui va d'un point à l'autre de sa ronde (et s'y arrête un moment), ou reste sur place ; il
+ * s'arrête et se tourne vers le joueur quand on lui parle. assis : le dessus du banc où il est assis (il n'en
+ * bouge pas, sa racine ASSIS plus bas). Renvoie l'état à faire avancer chaque image.
+ */
+export function creerPassant({ x, z, cap = 0, ronde = null, vitesse = 1.1, attente = [2, 6], assis = null }) {
+  return { x, z, y: assis ?? 0, cap, ronde, vitesse, attente, etape: 0, pause: 1 + Math.random() * 2, v: 0, parle: false, assis };
+}
+/** Assis, la racine d'un personnage est à cette hauteur sous le dessus du siège (personnages.js : asseoir). */
+export const ASSIS = 0.38;
 
 /** Fait avancer un passant de dt secondes dans le monde ; joueur : { x, z } (pour lui faire face). */
 export function avancerPassant(p, dt, monde, joueur, autres) {
+  if (p.assis != null) { p.y = p.assis - ASSIS; return; }
   let voulu = 0;
   if (p.parle) {
     p.cap = tourner(p.cap, Math.atan2(joueur.x - p.x, joueur.z - p.z), dt * 6);

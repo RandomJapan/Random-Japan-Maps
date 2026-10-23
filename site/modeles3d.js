@@ -59,7 +59,7 @@ export function matiereContour(THREE, couleur = C.encre) {
  * les conifères, l'herbe et la mousse du sol, le tapis de pétales, l'eau (gelée l'hiver dans le nord), et les
  * lumières (lanternes, fenêtres, phare) qui s'allument la nuit. La neige, elle, tombe sur tout ce qui regarde le ciel.
  */
-const SORTES = { feuillu: 1, erable: 2, cerisier: 3, conifere: 4, herbe: 5, tapis: 6, eau: 7, lumiere: 8, lampe: 9 };
+const SORTES = { feuillu: 1, erable: 2, cerisier: 3, conifere: 4, herbe: 5, tapis: 6, eau: 7, lumiere: 8, lampe: 9, illumine: 10 };
 // La sorte d'une pièce d'après sa couleur, quand l'atelier ne l'a pas dite
 const SORTE_COULEUR = {
   [C.herbe]: 'herbe', [C.mousse]: 'herbe', [C.mousseFonce]: 'herbe', [C.feuillage]: 'feuillu',
@@ -196,9 +196,10 @@ const bosses = (r, ecart = 0.12, graine = 1) => (ang) => r * (1 + ecart * (Math.
 /**
  * Renvoie la fabrique d'« ateliers » : un atelier assemble des formes colorées en un seul objet (une seule forme à
  * dessiner par modèle). repeindre : { couleur de C → autre couleur } (la balade 3D peint ses lieux dans plusieurs styles) ;
- * matieres : { couleur (repeinte) → numéro de matière } (la balade 3D : l'attribut `matiere`, le bois, les tuiles…).
+ * matieres : { couleur (repeinte) → numéro de matière } (la balade 3D : l'attribut `matiere`, le bois, les tuiles…) ;
+ * sortes : { couleur → sorte (SORTES) } en plus de SORTE_COULEUR (la balade 3D : ce qui s'allume la nuit dans un lieu).
  */
-export function ateliers(THREE, repeindre = null, matieres = null) {
+export function ateliers(THREE, repeindre = null, matieres = null, sortes = null) {
   const couleur = new THREE.Color();
   const PI = Math.PI;
   const teintes = new Map(); // « #rrggbb » → [r, g, b], lu une seule fois
@@ -534,7 +535,7 @@ export function ateliers(THREE, repeindre = null, matieres = null) {
             const teinte = m.couleurs ? m.couleurs[t] : m.teinte ? m.teinte(cx, cy, cz) : m.c;
             const [r, g, b] = rvb(teinte);
             const lavis = peinture ? 1 + m.nuance * (2 * hasard(cx, cy, cz) - 1) : 1;
-            const sorte = SORTES[m.sorte ?? SORTE_COULEUR[teinte]] || 0;
+            const sorte = SORTES[m.sorte ?? sortes?.[teinte] ?? SORTE_COULEUR[teinte]] || 0;
             const tirage = hasard(cx * 3.1 + 7, cy * 5.7, cz * 2.3);
             if (matiere) matiere.fill(matieres[repeindre?.[teinte] ?? teinte] || 0, (i + k) / 3, (i + k) / 3 + 3);
             for (let s = 0; s < 9; s += 3) {

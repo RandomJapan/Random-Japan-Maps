@@ -255,7 +255,9 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
   // le vent (balade.js règle le temps, la direction et la force du lieu), commun au décor, à son trait, à ses ombres et à l'herbe
   const vent = { ventTemps: { value: 0 }, ventDir: { value: new THREE.Vector2(0, 1) }, ventForce: { value: 1 } };
   // les lumières du décor (attribut saison des modèles) : les lanternes et les fenêtres (« lumiere ») s'allument
-  // la nuit ; les lampes (« lampe » : un tunnel, un sauna) brillent toujours. lueur : la nuit (balade.js)
+  // la nuit, d'une lumière chaude (une couleur vive, une lanterne rouge, garde sa couleur) ; les lampes (« lampe » : un tunnel, un sauna) brillent toujours ; ce qu'on
+  // illumine la nuit (« illumine » : le grand torii et le sanctuaire d'Itsukushima) s'éclaire d'orangé.
+  // lueur : la nuit (balade.js)
   const lueur = { value: 0 };
 
   // le décor : la position et la normale dans le monde (la coupe, les matières), et la matière de chaque sommet
@@ -265,10 +267,13 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
     s.vertexShader = s.vertexShader
       .replace('#include <common>', `#include <common>\nattribute float matiere;\nattribute vec3 saison;\nvarying float vMatiere;\nvarying float vLueur;\nvarying vec3 vCoupe;\nvarying vec3 vCoupeN;${VENT_GLSL}`)
       .replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed += souffleObjet(transformed, saison);')
-      .replace('#include <project_vertex>', '#include <project_vertex>\nvMatiere = matiere;\nvLueur = abs(saison.x - 8.0) < 0.5 ? 1.0 : abs(saison.x - 9.0) < 0.5 ? 2.0 : 0.0;\nvCoupe = (modelMatrix * vec4(transformed, 1.0)).xyz;\nvCoupeN = normalize(mat3(modelMatrix) * objectNormal);');
+      .replace('#include <project_vertex>', '#include <project_vertex>\nvMatiere = matiere;\nvLueur = abs(saison.x - 8.0) < 0.5 ? 1.0 : abs(saison.x - 9.0) < 0.5 ? 2.0 : abs(saison.x - 10.0) < 0.5 ? 3.0 : 0.0;\nvCoupe = (modelMatrix * vec4(transformed, 1.0)).xyz;\nvCoupeN = normalize(mat3(modelMatrix) * objectNormal);');
     s.fragmentShader = s.fragmentShader
       .replace('#include <common>', `#include <common>\nvarying float vMatiere;\nvarying float vLueur;\nuniform float lueur;${COUPE_GLSL}${PEINDRE_GLSL}`)
-      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\nif (vLueur > 0.5) totalEmissiveRadiance += diffuseColor.rgb * (vLueur > 1.5 ? 0.75 + 0.5 * lueur : 1.1 * lueur);')
+      .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+        if (vLueur > 2.5) totalEmissiveRadiance += diffuseColor.rgb * vec3(1.0, 0.86, 0.68) * 0.55 * lueur;
+        else if (vLueur > 1.5) totalEmissiveRadiance += diffuseColor.rgb * (0.75 + 0.5 * lueur);
+        else if (vLueur > 0.5) totalEmissiveRadiance += mix(diffuseColor.rgb, vec3(1.0, 0.78, 0.45), 0.55 * (1.0 - clamp(diffuseColor.r - diffuseColor.b, 0.0, 1.0))) * 1.1 * lueur;`)
       .replace('#include <clipping_planes_fragment>', '#include <clipping_planes_fragment>\ncoupe();')
       .replace('#include <color_fragment>', `#include <color_fragment>
         diffuseColor.rgb = peindre(diffuseColor.rgb, floor(vMatiere + 0.5), vCoupe, normalize(cross(dFdx(vCoupe), dFdy(vCoupe))));`);

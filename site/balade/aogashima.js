@@ -9,7 +9,7 @@
 //  à y = −40. Les distances sont resserrées (le vrai cratère fait plus d'un kilomètre).
 //  ctx : { THREE, atelier, P (palette), peinture }.
 // ================================================================
-import { creerMonde, lisse, hasard, bruitDoux, surLaLigne } from './monde.js';
+import { creerMonde, interactionsBancs, lisse, hasard, bruitDoux, surLaLigne } from './monde.js';
 import { panneau, trepied, PAPIER_PANNEAU } from './decor.js';
 import { MATIERES as M } from './textures.js';
 
@@ -263,6 +263,8 @@ export function construire(ctx) {
   /** L'angle qui tourne vers (vx, vz) le devant (+z) d'un objet posé en (x, z). */
   const vers = (x, z, vx, vz) => Math.atan2(vx - x, vz - z);
   const vapeurs = [];
+  const bancs = []; // où l'on s'assoit (monde.js : pointDuBanc)
+  const lumieres = []; // ce qui éclaire la nuit : un halo, une lumière au sol (lueurs.js)
   // les textes peints (etiquettes.js) : ecrire(pose de l'objet { x, y, z, ry }, étiquette dans son repère)
   const etiquettes = [];
   const ecrire = (o, e) => {
@@ -444,6 +446,7 @@ export function construire(ctx) {
     a.boite(0.42, 1.2, 2.0, P.bois, { x: -4.09, y: y0 + 0.6, z: -1.9 });
     for (let rg = 0; rg < 4; rg++) for (let cl = 0; cl < 5; cl++) a.boite(0.012, 0.2, 0.32, '#5a3e28', { x: -3.873, y: y0 + 0.18 + rg * 0.28, z: -2.7 + cl * 0.4, trait: false });
     a.boite(2.4, 0.06, 0.42, P.bois, { x: -2.4, y: y0 + 0.44, z: -3.05 });
+    bancs.push({ de: versSauna(-3.25, -3.0), a: versSauna(-1.55, -3.0), y: solS + 0.47, cap: PI / 2 });
     for (const x of [-3.4, -1.4]) a.boite(0.06, 0.42, 0.36, P.boisFonce, { x, y: y0 + 0.21, z: -3.05 });
     a.boite(0.3, 0.04, 0.5, P.bois, { x: X - 0.22, y: y0 + 1.0, z: -1.2 })
       .boite(0.22, 0.2, 0.3, '#7a5232', { x: X - 0.22, y: y0 + 1.12, z: -1.2 })
@@ -487,6 +490,15 @@ export function construire(ctx) {
       .boite(0.38, 0.72, 0.38, '#e8e4dc', { x: -4.3, y: 0.36, z: 3.75 })
       .cylindre(0.09, 0.09, 0.02, 12, '#2a2a2e', { x: -4.3, y: 0.725, z: 3.75, trait: false });
     ecrire(poseS, { fond: '#ffffff', dessin: canettes, lumineux: true, x: -3.6, y: 1.3, z: 4.245, l: 0.84, h: 0.8 });
+    // la lampe de la porte (allumée la nuit) ; la nuit, le distributeur éclaire devant lui, d'une lumière blanche
+    // (à droite de la porte, sous l'enseigne)
+    a.boite(0.16, 0.22, 0.12, '#fff1c8', { x: p1 + 1.0, y: y0 + 2.2, z: 3.56, sorte: 'lumiere' })
+      .boite(0.22, 0.04, 0.17, '#3a3a3a', { x: p1 + 1.0, y: y0 + 2.33, z: 3.575 });
+    {
+      const [lx, lz] = versSauna(p1 + 1.0, 3.8), [dx, dz] = versSauna(-3.6, 4.55);
+      lumieres.push({ x: lx, y: yS + y0 + 2.18, z: lz, halo: 0.4, sol: terrain(lx, lz), r: 2.3 },
+        { x: dx, y: yS + 1.25, z: dz, halo: 0.5, sol: terrain(dx, dz), r: 1.8, c: '#dcefff' });
+    }
     ecrire(poseS, { texte: 'あきかん', fond: '#e8e4dc', encre: '#3a6a3a', x: -4.3, y: 0.52, z: 3.945, l: 0.32, h: 0.13 });
     poser(a.fin(0, peinture), SAUNA.x, SAUNA.z, { ry: PI / 2, y: yS });
     vapeurs.push({ x: versSauna(2.6, -1.2)[0], z: versSauna(2.6, -1.2)[1], y: solS + H + 2.3, n: 10, haut: 4, large: 0.6, taille: 1.1 });
@@ -674,6 +686,7 @@ export function construire(ctx) {
       .boite(1.3, 0.48, 0.05, P.bois, { x: xs, y: ys + 1.98, z: zs - 1.3 });
     for (const dx of [-0.5, 0.5]) a.baton([xs + dx, ys + 2.3, zs - 1.3], [xs + dx, ys + 2.2, zs - 1.3], 0.01, '#2a2420', 4);
     etiquettes.push({ texte: '炊事場', fond: '#f6efe0', encre: '#2a2420', x: xs, y: ys + 1.98, z: zs - 1.3 - 0.031, ry: PI, l: 1.2, h: 0.4 });
+    lumieres.push({ x: xs - 0.5, y: ys + 2.0, z: zs, halo: 0.45, sol: ys, r: 2.8 });
     // le bois coupé
     for (let rg = 0; rg < 3; rg++) for (let i = 0; i < 4 - rg; i++) a.cylindre(0.08, 0.08, 0.7, 8, i % 2 ? '#a87a4a' : '#9a6d40', { x: xs + 3.0 - 0.24 + i * 0.16 + rg * 0.08, y: ys + 0.08 + rg * 0.15, z: zs + 0.1, rx: PI / 2 });
     // les poubelles du tri
@@ -692,8 +705,14 @@ export function construire(ctx) {
     for (const s of [-1, 1]) {
       a.boite(1.8, 0.06, 0.3, P.bois, { x: xt, y: yt + 0.44, z: zt + s * 0.62 })
         .boite(0.08, 0.74, 0.08, P.boisFonce, { x: xt + s * 0.75, y: yt + 0.37, z: zt });
+      bancs.push({ de: [xt - 0.6, zt + s * 0.62], a: [xt + 0.6, zt + s * 0.62], y: yt + 0.47, cap: s > 0 ? PI : 0 });
     }
     monde.cercle(xt, zt, 1.0);
+    // la lanterne du campeur, sur la table (allumée la nuit)
+    a.cylindre(0.075, 0.075, 0.05, 8, '#3a3a44', { x: xt + 0.45, y: yt + 0.805, z: zt - 0.12 })
+      .cylindre(0.055, 0.055, 0.15, 12, '#fff1c8', { x: xt + 0.45, y: yt + 0.905, z: zt - 0.12, trait: false, sorte: 'lumiere' })
+      .cylindre(0.025, 0.07, 0.05, 8, '#3a3a44', { x: xt + 0.45, y: yt + 1.005, z: zt - 0.12, ry: PI / 8 });
+    lumieres.push({ x: xt + 0.45, y: yt + 0.92, z: zt - 0.12, halo: 0.5, sol: yt, r: 3.2 });
     // la lunette du campeur, tournée vers le ciel
     const xl = 7.1, zl = 42.4, yl = terrain(xl, zl);
     for (const r of [0, 2.1, 4.2]) a.baton([xl, yl + 1.05, zl], [xl + Math.sin(r) * 0.4, yl, zl + Math.cos(r) * 0.4], 0.02, '#3a3a44', 5);
@@ -807,11 +826,17 @@ export function construire(ctx) {
     const V = THREE.Vector2;
     // (son mur extérieur descend à 5 m : côté cratère, l'entaille de l'escalier passe dessous ; il flottait au-dessus,
     // 2026-10-23 ; ailleurs, le sol le cache) : la pierre sombre ; les gradins comme avant
-    const profil = [[0.01, -1.02], [1.6, -1.02], [1.6, -0.65], [3.0, -0.65], [3.0, -0.28], [4.4, -0.28], [4.4, 0.1], [6.4, 0.1], [6.4, -0.5], [6.4, -1.4], [6.4, -2.3], [6.4, -3.2], [6.4, -4.1], [6.4, -5]].map(([r, y]) => new V(r, y));
-    a.piece(new THREE.LatheGeometry(profil.reverse(), 36), P.pierre, {
+    const GRADINS = [[1.6, -1.02], [3.0, -0.65], [4.4, -0.28], [6.4, 0.1]]; // [rayon du bord, hauteur] de chacun
+    const profil = [[0.01, GRADINS[0][1]]];
+    GRADINS.forEach(([r, y], i) => { if (i) profil.push([GRADINS[i - 1][0], y]); profil.push([r, y]); });
+    for (const y of [-0.5, -1.4, -2.3, -3.2, -4.1, -5]) profil.push([6.4, y]);
+    a.piece(new THREE.LatheGeometry(profil.map(([r, y]) => new V(r, y)).reverse(), 36), P.pierre, {
       x: BELVEDERE.x, y: Y_BELVEDERE, z: BELVEDERE.z,
       teinte: (x, y, z) => (Math.hypot(x - BELVEDERE.x, z - BELVEDERE.z) > 6.3 && y < Y_BELVEDERE - 0.2 ? P.pierreFonce : y > Y_BELVEDERE - 0.15 ? P.pierre : y > Y_BELVEDERE - 0.5 ? P.pierreFonce : y > Y_BELVEDERE - 0.9 ? P.pierre : P.cheminFonce),
     });
+    // on marche sur les gradins (le sol naturel, une cuvette lisse, passe dessous : on s'y enfonçait jusqu'aux genoux,
+    // 2026-10-23)
+    GRADINS.forEach(([r, y], i) => monde.anneau(BELVEDERE.x, BELVEDERE.z, i ? GRADINS[i - 1][0] : 0, r, Y_BELVEDERE + y, { sol: 'pierre' }));
     // deux bancs, tournés vers le cratère
     for (const s of [-1, 1]) {
       const x = BELVEDERE.x + s * 9, z = BELVEDERE.z + 2.5, y = terrain(x, z);
@@ -819,6 +844,7 @@ export function construire(ctx) {
         .boite(0.1, 0.45, 0.4, P.boisFonce, { x: x - 0.75, y: y + 0.22, z })
         .boite(0.1, 0.45, 0.4, P.boisFonce, { x: x + 0.75, y: y + 0.22, z });
       monde.cercle(x, z, 0.8);
+      bancs.push({ de: [x - 0.6, z], a: [x + 0.6, z], y: y + 0.49, cap: 0 });
     }
     poser(a.fin(0, peinture), 0, 0, { y: 0 });
   }
@@ -933,6 +959,7 @@ export function construire(ctx) {
     for (const sg of [-1, 1]) {
       a.boite(0.36, 0.06, 2.1, P.bois3, { x: sg * (c - 0.3), y: B + 0.405, z: 0.25 });
       for (const z of [-0.6, 1.1]) a.boite(0.3, 0.38, 0.06, P.boisFonce, { x: sg * (c - 0.3), y: B + 0.19, z });
+      bancs.push({ de: versAbri(sg * (c - 0.3), -0.5), a: versAbri(sg * (c - 0.3), 1.0), y: SOL_ABRI + 0.435, cap: CAP_ABRI - sg * PI / 2 });
     }
     // la table, le cahier des voyageurs ouvert et un crayon
     a.boite(1.2, 0.06, 0.7, P.bois3, { y: B + 0.7, z: -0.1 });
@@ -1270,11 +1297,13 @@ export function construire(ctx) {
   }
 
   // ---------------------------------------------------------------- Ce qu'on peut faire (tout passe par `jeu`)
-  const parler = (id) => ({ id, passant: id, verbe: 'parler', action: (jeu) => jeu.dire(jeu.tx(id), id) });
+  // (la nuit, ce qu'ils disent change : jeu.txn)
+  const parler = (id) => ({ id, passant: id, verbe: 'parler', action: (jeu) => jeu.dire(jeu.txn(id), id) });
   const interactions = [
     {
       id: 'gardienne', passant: 'gardienne', verbe: 'parler',
       async action(jeu) {
+        if (jeu.estNuit) { await jeu.dire(jeu.tx('gardienneNuit'), 'gardienne'); return; } // (fermé la nuit : pas d'œufs)
         if (jeu.aTampon('oeufs')) { await jeu.dire(jeu.tx('gardienne2'), 'gardienne'); return; }
         const r = await jeu.choisir(jeu.tx('gardienne'), [jeu.t('oui'), jeu.t('non')], 'gardienne');
         if (r !== 0) { await jeu.dire(jeu.tx('gardienneNon'), 'gardienne'); return; }
@@ -1285,15 +1314,22 @@ export function construire(ctx) {
     parler('garde'),
     {
       id: 'campeur', passant: 'campeur', verbe: 'parler',
+      // le campeur fait tomber la nuit sur le cratère (la Voie lactée ; elle reste), et, la nuit, revenir le jour
       async action(jeu) {
-        if (jeu.aTampon('etoiles')) { await jeu.dire(jeu.tx('campeur2'), 'campeur'); return; }
-        const r = await jeu.choisir(jeu.tx('campeur'), [jeu.t('oui'), jeu.t('non')], 'campeur');
+        if (jeu.estNuit) {
+          const r = await jeu.choisir(jeu.tx('campeurMatin'), [jeu.t('oui'), jeu.t('non')], 'campeur');
+          if (r !== 0) { await jeu.dire(jeu.tx('campeurReste'), 'campeur'); return; }
+          await jeu.nuit(false);
+          await jeu.dire(jeu.tx('campeurJour'), 'campeur');
+          return;
+        }
+        const r = await jeu.choisir(jeu.tx(jeu.aTampon('etoiles') ? 'campeurEncore' : 'campeur'), [jeu.t('oui'), jeu.t('non')], 'campeur');
         if (r !== 0) { await jeu.dire(jeu.tx('campeurNon'), 'campeur'); return; }
-        // la nuit tombe sur le cratère : la Voie lactée
+        jeu.leverLesYeux(true);
         await jeu.nuit(true);
         await jeu.dire(jeu.tx('campeurNuit'), 'campeur');
-        await jeu.tampon('etoiles');
-        await jeu.nuit(false);
+        if (!jeu.aTampon('etoiles')) await jeu.tampon('etoiles');
+        jeu.leverLesYeux(false);
         await jeu.dire(jeu.tx('campeurApres'), 'campeur');
       },
     },
@@ -1339,6 +1375,7 @@ export function construire(ctx) {
       // le sauna : on s'assoit sur le gradin du bas, la vapeur envahit tout, on ressort en sueur (le compagnon aussi)
       id: 'sauna', x: versSauna(2.15, -1.55)[0], z: versSauna(2.15, -1.55)[1], y: solS + 0.05, rayon: 1.9, verbe: 'asseoir',
       async action(jeu) {
+        if (jeu.estNuit) { await jeu.dire(jeu.tx('saunaNuit')); return; } // (fermé la nuit)
         const r = await jeu.choisir(jeu.tx('saunaQuestion'), [jeu.t('oui'), jeu.t('non')]);
         if (r !== 0) return;
         jeu.asseoir(SIEGE, { lacet: SIEGE.cap - 0.45, tangage: 0.16, distance: 2.6 });
@@ -1353,20 +1390,20 @@ export function construire(ctx) {
         await jeu.dire(jeu.tx('saunaFin'));
       },
     },
-    { id: 'distributeur', x: versSauna(-3.6, 4.75)[0], z: versSauna(-3.6, 4.75)[1], rayon: 1.5, verbe: 'acheter', action: (jeu) => jeu.dire(jeu.tx('distributeur')) },
+    { id: 'distributeur', x: versSauna(-3.6, 4.75)[0], z: versSauna(-3.6, 4.75)[1], rayon: 1.5, verbe: 'acheter', action: (jeu) => jeu.dire(jeu.txn('distributeur')) },
     {
       // l'abri de la crête : on s'assoit sur le banc du fond, face à la caldeira, et l'on regarde (le compagnon aussi)
       id: 'abri', x: versAbri(0, -0.75)[0], z: versAbri(0, -0.75)[1], y: SOL_ABRI, rayon: 1.5, verbe: 'asseoir',
       async action(jeu) {
-        // (la caméra par-dessus l'épaule, sous le toit : la vue sur la caldeira, le voyageur assis en bas à gauche)
-        jeu.asseoir(SIEGE_ABRI);
+        // (la caméra par-dessus l'épaule, sous le toit : la vue sur la caldeira, le voyageur assis en bas à gauche ;
+        // ensuite, il y reste assis jusqu'à ce qu'il marche)
+        jeu.asseoir({ ...SIEGE_ABRI, libre: true });
         const [cx, cz] = versAbri(1.15, -2.4), [vx, vz] = versAbri(-2.2, 16);
         jeu.cadrer({ de: [cx, SOL_ABRI + 2.15, cz], vers: [vx, SOL_ABRI - 6.5, vz] });
         await jeu.attendre(800);
-        await jeu.dire(jeu.tx('abri'));
-        await jeu.dire(jeu.tx('abriCompagnon')[jeu.compagnon], 'compagnon');
+        await jeu.dire(jeu.txn('abri'));
+        await jeu.dire(jeu.txn('abriCompagnon')[jeu.compagnon], 'compagnon');
         jeu.cadrer(null);
-        jeu.asseoir(null);
       },
     },
     { id: 'cahier', x: versAbri(0.22, -0.08)[0], z: versAbri(0.22, -0.08)[1], y: SOL_ABRI, rayon: 1.25, haut: 1.3, verbe: 'lire', action: (jeu) => jeu.dire(jeu.tx('cahier')) },
@@ -1374,6 +1411,7 @@ export function construire(ctx) {
       // les jumelles : une pièce, et l'on voit Hachijō-jima sur l'horizon, dans les deux ronds des jumelles
       id: 'jumelles', ...((q) => ({ x: q[0], z: q[2] }))(versJumelles(0, 0, -0.55)), rayon: 1.4, haut: 1.75, verbe: 'regarder',
       async action(jeu) {
+        if (jeu.estNuit) { await jeu.dire(jeu.tx('jumellesNuit')); return; } // (trop noir pour voir Hachijō)
         await jeu.dire(jeu.tx('jumelles'));
         jeu.jumelles(true);
         jeu.cadrer({ de: versJumelles(0, 1.36, 0.4), vers: [HACHIJO.x, HACHIJO.y + 12, HACHIJO.z], champ: 13 });
@@ -1385,7 +1423,15 @@ export function construire(ctx) {
     },
     { id: 'stele', x: STELE.x, z: STELE.z, rayon: 1.8, verbe: 'lire', action: (jeu) => jeu.dire(jeu.tx('stele')) },
     { id: 'lis', x: STELE.x - 1.5, z: STELE.z - 0.9, rayon: 1.3, haut: 1.4, verbe: 'regarder', action: (jeu) => jeu.dire(jeu.tx('lis')) },
+    ...interactionsBancs(bancs),
   ];
+
+  // les bêtes (betes.js) : les regarder, caresser un chat (la nuit, ce qu'on en dit change)
+  const actionBete = async (jeu, b) => {
+    if (b.sorte !== 'chat') { await jeu.dire(jeu.tx(b.sorte)); return; }
+    await jeu.dire(jeu.txn(b.id));
+    await jeu.dire(jeu.tx('chatCompagnon')[jeu.compagnon], 'compagnon');
+  };
 
   // ---------------------------------------------------------------- Pour la caméra et les captures
   const dM = [MARUYAMA.x, MARUYAMA.z];
@@ -1394,14 +1440,25 @@ export function construire(ctx) {
   const capHeros = vers(heros.x, heros.z, ...dM);
   return {
     ...infos, textes: TEXTES,
-    objets, monde, terrain, trouSol, etiquettes, passants, daims: [], interactions, actionDaim: null, vapeurs,
+    objets, monde, terrain, trouSol, etiquettes, passants, daims: [], interactions, actionDaim: null, vapeurs, bancs, lumieres, actionBete,
+    // les bêtes (betes.js) : trois grives des îles d'Izu (chacune entre ses coins : le bois près du sauna, l'herbe
+    // du sentier, le camping), quatre lézards au chaud (autour des fumerolles, au pied du sauna), un chat roux qui
+    // dort près de la marmite et un chat noir et blanc près du distributeur, des papillons (la crête, le camping,
+    // le fond du cratère), deux milans qui tournent au-dessus
+    betes: {
+      grives: [[[-27, 12], [-25.5, 9.5], [-23.5, 13]], [[-12, 2.5], [-14.5, -2.5], [-16, 4.5]], [[1, 30.5], [-3, 33], [4, 34]]],
+      lezards: [[-8.5, 21], [-10, 28.5], [-20.5, 30.5], [-33, 6.5]],
+      chats: [{ id: 'chatRoux', x: -31, z: 19.6, cap: 2.6, robe: 'roux', dort: true }, { id: 'chatPie', ...((q) => ({ x: q[0], z: q[1] }))(versSauna(-4.95, 4.35)), cap: PI / 2, robe: 'pie' }],
+      papillons: [[-12.6, -79.2], [6, 35], [-24, 5], [-14, -76]],
+      milans: [{ x: 0, z: 5, r: 38, h: 36, sens: 1 }, { x: -14, z: 16, r: 24, h: 28, sens: -1 }],
+    },
     aspectSol: (x, z, h) => aspectSol(P, x, z, h),
     centreRive: [0, 0], // les lignes d'eau font le tour de l'île
     etendue: { x0: -420, x1: 420, z0: -420, z1: 420, pas: 4, fin: { x0: -100, x1: 100, z0: -104, z1: 100, pas: 1 } },
     eau: { x0: -2000, x1: 2000, z0: -2000, z1: 2000, niveau: MER },
     // l'île en plein océan est ventée ; la bouscarle dans la jungle du cratère, un milan de temps en temps ;
     // le souffle des fumerolles, les insectes de la nuit au camping (la mer est loin en bas des falaises)
-    vent: { dir: [0.85, 0.35], force: 1.15 }, oiseaux: ['uguisu', 'milan'], ambiances: ['vapeur', 'insectes'],
+    vent: { dir: [0.85, 0.35], force: 1.15 }, oiseaux: ['uguisu', 'milan', 'akakokko'], ambiances: ['vapeur', 'insectes'],
     brume: [100, 1900],
     soleil: [-0.42, 0.72, 0.55],
     depart,
@@ -1549,9 +1606,12 @@ const TEXTES = {
     hingya2: ['La terre fume toujours, tranquillement.'],
     campeur: ['Salut ! Je campe ici pour les étoiles.', 'La nuit, au fond du cratère, il fait tout noir. Tu veux voir ?'],
     campeurNuit: ['Regarde… La Voie lactée traverse tout le ciel !', 'Ici, il n’y a presque aucune lumière : on voit des milliers d’étoiles.'],
-    campeurApres: ['Magnifique, hein ? Reviens quand tu veux.'],
+    campeurApres: ['Profite de la nuit ! Pas un lampadaire : juste les étoiles.', 'Quand tu voudras revoir le jour, reviens me parler.'],
     campeurNon: ['D’accord ! Le ciel sera encore là ce soir.'],
-    campeur2: ['Ce soir, j’essaie de voir une étoile filante !'],
+    campeurEncore: ['Re-salut ! Tu veux revoir la nuit tomber sur le cratère ?'],
+    campeurMatin: ['Ce soir, j’essaie de voir une étoile filante !', 'Tu veux qu’on attende le lever du soleil ?'],
+    campeurJour: ['Et voilà le soleil qui se lève sur la crête ! Bonne balade !'],
+    campeurReste: ['D’accord ! Regarde bien : une étoile filante, ça passe vite.'],
     randonneuse: ['Je fais le tour du petit volcan.', 'Tout en haut, on est dans un volcan… lui-même dans un volcan !'],
     enfant: ['Tu es venu en bateau ? Il est souvent annulé à cause des vagues !', 'Sinon, il y a l’hélicoptère, mais il n’a que quelques places.', 'Ici, tout le monde se connaît !'],
     grandpere: ['En 1785, le volcan a explosé. Tout le monde a fui vers Hachijō.', 'Il a fallu près de cinquante ans pour que les habitants reviennent.', 'On appelle ça le « kanjū » : le retour au pays.'],
@@ -1583,6 +1643,33 @@ const TEXTES = {
     lis: ['Des sakuyuri, les grands lis blancs des îles d’Izu : ils ne poussent nulle part ailleurs.', 'Leur parfum est si fort qu’on le sent de loin, porté par le vent.'],
     saunaFin: ['Tu ressors tout léger, la peau toute douce.', 'Ici, ni bois ni gaz : c’est le volcan qui chauffe le sauna.'],
     distributeur: ['Un distributeur de boissons, même au fond d’un cratère !', 'Tu choisis un thé vert bien frais… Clonk ! La bouteille tombe.', 'Au Japon, il y en a presque partout : plus de quatre millions !'],
+    // la nuit (le campeur l'a fait tomber) : ce qui change
+    gardienneNuit: ['Il est tard ! Le sauna est fermé, il rouvre demain.', 'Les œufs de la marmite, ce sera demain matin. Dors bien !'],
+    saunaNuit: ['La salle de vapeur est fermée pour la nuit.', 'Mais la vapeur du volcan, elle, monte toujours des grilles…'],
+    gardeNuit: ['La nuit, les fumerolles brillent sous la lune.', 'Reste bien derrière la corde : dans le noir, on voit mal où est la vapeur !'],
+    randonneuseNuit: ['Je rentre au camping avec ma lampe frontale.', 'Au-dessus du petit volcan, le ciel est plein d’étoiles !'],
+    enfantNuit: ['Il fait nuit ! Je dois rentrer au village.', 'Tu entends les insectes ? Ils chantent partout dans la jungle.'],
+    grandpereNuit: ['La nuit, sur Aogashima, il n’y a que les étoiles et le vent.', 'Pas de lampadaire, pas de bruit… Je ne changerais pour rien au monde.'],
+    distributeurNuit: ['Même la nuit, le distributeur est allumé : au Japon, ils marchent jour et nuit !', 'Tu choisis un thé chaud, cette fois… Clonk !'],
+    jumellesNuit: ['Tu glisses une pièce… Il fait trop noir : on ne voit plus Hachijō-jima.', 'Reviens de jour pour la voir !'],
+    abriNuit: ['La nuit est tombée sur la crête…', 'Au-dessus de la caldeira, des milliers d’étoiles. Dans le noir, les fumerolles soufflent doucement.'],
+    abriCompagnonNuit: {
+      kon: ['« Les étoiles… On dirait les lanternes des dieux. »'],
+      pon: ['« Une pause sous les étoiles ! Tu as un onigiri dans ton sac ? Non ? Tant pis… »'],
+      chapu: ['« Tant d’étoiles ! On dirait des bulles qui brillent dans une rivière toute noire ! »'],
+    },
+    // les bêtes
+    grive: ['Une grive des îles d’Izu : l’akakokko ! Tête noire, ventre roux, bec jaune.', 'Elle ne vit que dans les îles d’Izu et quelques îles du sud du Japon. C’est un « monument naturel » protégé.'],
+    lezard: ['Un lézard d’Okada (okada-tokage) se chauffe sur le sol tiède du volcan.', 'Les jeunes ont la queue d’un bleu vif. On ne le trouve presque que dans les îles d’Izu.', 'Doucement… Si tu cours, il file !'],
+    chatRoux: ['Un chat roux dort en boule sur le sol tiède, près de la marmite du volcan.', 'Tu le caresses… Rrrrrr… Il ronronne sans même ouvrir les yeux.'],
+    chatRouxNuit: ['La nuit, le chat roux est réveillé : c’est l’heure de la chasse !', 'Ses yeux brillent dans le noir. Il se laisse caresser… Rrrrrr…'],
+    chatPie: ['Un chat noir et blanc, assis près du distributeur : il y fait toujours un peu chaud.', 'Tu le caresses… Rrrrrr… Il ferme les yeux de plaisir.'],
+    chatPieNuit: ['Le chat noir et blanc veille près de la lumière du distributeur.', 'Ses yeux brillent dans le noir… Rrrrrr…'],
+    chatCompagnon: {
+      kon: ['« Un chat ! Aux sanctuaires d’Inari, il y en a souvent qui dorment au soleil. »'],
+      pon: ['« Pon ! Tu crois qu’il voudra bien partager ses croquettes ? »'],
+      chapu: ['« Un chat ! Il paraît qu’ils n’aiment pas l’eau… Bizarre ! »'],
+    },
   },
   en: {
     noms: { gardienne: 'Sauna keeper', garde: 'Ranger', campeur: 'Camper', randonneuse: 'Hiker', enfant: 'Island boy', grandpere: 'Old man', videaste: '@random_japan_place' },
@@ -1609,9 +1696,12 @@ const TEXTES = {
     hingya2: ['The ground keeps on steaming, quietly.'],
     campeur: ['Hi! I’m camping here for the stars.', 'At night, the bottom of the crater is pitch dark. Want to see?'],
     campeurNuit: ['Look… The Milky Way stretches across the whole sky!', 'There’s almost no light here: you can see thousands of stars.'],
-    campeurApres: ['Amazing, right? Come back anytime.'],
+    campeurApres: ['Enjoy the night! Not a single street lamp: just the stars.', 'When you want to see the day again, come and talk to me.'],
     campeurNon: ['Okay! The sky will still be here tonight.'],
-    campeur2: ['Tonight I’m hoping to catch a shooting star!'],
+    campeurEncore: ['Hi again! Want to watch night fall over the crater again?'],
+    campeurMatin: ['Tonight I’m hoping to catch a shooting star!', 'Shall we wait for sunrise?'],
+    campeurJour: ['And here comes the sun over the rim! Enjoy your walk!'],
+    campeurReste: ['Okay! Keep your eyes open: shooting stars are quick.'],
     randonneuse: ['I’m walking around the little volcano.', 'At the top, you’re in a volcano… inside a volcano!'],
     enfant: ['Did you come by boat? It’s often cancelled because of the waves!', 'Otherwise there’s the helicopter, but it only has a few seats.', 'Here, everybody knows everybody!'],
     grandpere: ['In 1785, the volcano exploded. Everyone fled to Hachijō.', 'It took almost fifty years for the islanders to come back.', 'We call it “kanjū”: the return home.'],
@@ -1643,6 +1733,31 @@ const TEXTES = {
     lis: ['Sakuyuri: the big white lilies of the Izu islands. They grow nowhere else.', 'Their scent is so strong you can smell it from afar, carried by the wind.'],
     saunaFin: ['You come out feeling light, your skin all soft.', 'No wood, no gas here: the volcano heats the sauna.'],
     distributeur: ['A vending machine, even at the bottom of a crater!', 'You pick an ice-cold green tea… Clunk! The bottle drops.', 'In Japan they are almost everywhere: more than four million of them!'],
+    gardienneNuit: ['It’s late! The sauna is closed, it opens again tomorrow.', 'Eggs from the pot will have to wait until tomorrow morning. Sleep well!'],
+    saunaNuit: ['The steam room is closed for the night.', 'But the volcano’s steam keeps rising through the grates…'],
+    gardeNuit: ['At night, the steam vents glow under the moon.', 'Stay well behind the rope: in the dark, it’s hard to see where the steam is!'],
+    randonneuseNuit: ['I’m heading back to the campsite with my headlamp.', 'Above the little volcano, the sky is full of stars!'],
+    enfantNuit: ['It’s dark! I have to go back to the village.', 'Can you hear the insects? They’re singing all over the jungle.'],
+    grandpereNuit: ['At night on Aogashima, there are only the stars and the wind.', 'No street lamps, no noise… I wouldn’t trade it for anything.'],
+    distributeurNuit: ['Even at night, the vending machine is lit: in Japan they work day and night!', 'This time you pick a hot tea… Clunk!'],
+    jumellesNuit: ['You slip in a coin… It’s too dark: you can’t see Hachijō-jima any more.', 'Come back by day to see it!'],
+    abriNuit: ['Night has fallen on the crater rim…', 'Above the caldera, thousands of stars. In the dark, the steam vents breathe softly.'],
+    abriCompagnonNuit: {
+      kon: ['“The stars… They look like the gods’ lanterns.”'],
+      pon: ['“A break under the stars! Got an onigiri in your bag? No? Oh well…”'],
+      chapu: ['“So many stars! Like shiny bubbles in a pitch-black river!”'],
+    },
+    grive: ['An Izu thrush: the akakokko! Black head, rusty belly, yellow bill.', 'It only lives on the Izu Islands and a few islands in southern Japan. It is a protected “natural monument”.'],
+    lezard: ['An Okada’s skink (okada-tokage) is warming itself on the volcano’s warm ground.', 'The young ones have bright blue tails. It lives almost only on the Izu Islands.', 'Gently… If you run, it dashes off!'],
+    chatRoux: ['A ginger cat is curled up asleep on the warm ground, next to the volcano’s pot.', 'You stroke it… Purrrr… It purrs without even opening its eyes.'],
+    chatRouxNuit: ['At night, the ginger cat is wide awake: it’s hunting time!', 'Its eyes shine in the dark. It lets you stroke it… Purrrr…'],
+    chatPie: ['A black-and-white cat sits by the vending machine: it’s always a little warm there.', 'You stroke it… Purrrr… It closes its eyes with delight.'],
+    chatPieNuit: ['The black-and-white cat keeps watch by the vending machine’s light.', 'Its eyes shine in the dark… Purrrr…'],
+    chatCompagnon: {
+      kon: ['“A cat! At Inari shrines, there are often some napping in the sun.”'],
+      pon: ['“Pon! Do you think it would share its cat food?”'],
+      chapu: ['“A cat! They say cats don’t like water… Weird!”'],
+    },
   },
   ja: {
     noms: { gardienne: 'サウナの おばあさん', garde: 'レンジャーさん', campeur: 'キャンパーさん', randonneuse: 'ハイカーさん', enfant: '島の 子ども', grandpere: 'おじいさん', videaste: '@random_japan_place' },
@@ -1669,9 +1784,12 @@ const TEXTES = {
     hingya2: ['大地は 今日も しずかに 湯気を あげている。'],
     campeur: ['やあ！ 星を 見に キャンプ しているんだ。', '夜の カルデラの 底は まっくら。見てみる？'],
     campeurNuit: ['見て……天の川が 空を よこぎっている！', 'ここは 明かりが ほとんど ないから、何千もの 星が 見えるんだ。'],
-    campeurApres: ['すごかった でしょ？ また おいで。'],
+    campeurApres: ['夜を たのしんで！ 街灯 ひとつ ない。星だけ だよ。', '朝に もどりたく なったら、また はなしかけてね。'],
     campeurNon: ['オッケー！ 星空は 今夜も ここに あるよ。'],
-    campeur2: ['今夜は 流れ星を 見つけたいな！'],
+    campeurEncore: ['また きたね！ カルデラに 夜が おりるのを もう一度 見る？'],
+    campeurMatin: ['今夜は 流れ星を 見つけたいな！', '日の出まで まとうか？'],
+    campeurJour: ['ほら、外輪山から お日さまが のぼってきた！ いい さんぽを！'],
+    campeurReste: ['オッケー！ よく 見ててね。流れ星は 一瞬だよ。'],
     randonneuse: ['丸山の まわりを 歩いているの。', 'てっぺんに 立つと、火山の 中の 火山に いるって わかるよ！'],
     enfant: ['船で 来たの？ 波が 高いと すぐ 欠航するんだよ！', 'ヘリコプターも あるけど、席が すこししか ないんだ。', 'この 島では みんな 知り合いだよ！'],
     grandpere: ['1785年、火山が 大噴火して、島の 人は 八丈島へ にげたんじゃ。', 'みんなが もどって こられたのは、50年 ちかく あとの こと。', 'それを 「還住」と いうんじゃよ。'],
@@ -1703,5 +1821,30 @@ const TEXTES = {
     lis: ['サクユリ。伊豆諸島に しか さかない 大きな 白い ユリ。', 'かおりが つよくて、風に のって 遠くまで とどくんだ。'],
     saunaFin: ['外に でると、からだが かるい。はだも すべすべ。', 'ここでは 木も ガスも つかわない。火山が サウナを あたためて いるんだ。'],
     distributeur: ['カルデラの 底にも 自動販売機！', 'つめたい 緑茶を えらぶ……ガコン！ ボトルが おちてきた。', '日本には 400万台 いじょうも あるんだって！'],
+    gardienneNuit: ['もう おそいよ！ サウナは しまっているから、また あしたね。', '地熱釜の たまごも あしたの 朝。おやすみ！'],
+    saunaNuit: ['夜は スチームルームは おしまい。', 'でも 火山の 湯気は いまも 床から のぼっている……'],
+    gardeNuit: ['夜の ひんぎゃは 月の 光で ひかって 見える。', 'ロープの うしろに いてね。くらいと 湯気が 見えにくいから！'],
+    randonneuseNuit: ['ヘッドライトを つけて キャンプ場に もどるところ。', '丸山の 上は 星で いっぱい！'],
+    enfantNuit: ['もう 夜だ！ 村に かえらなきゃ。', '虫の こえ きこえる？ ジャングルじゅうで ないてるよ。'],
+    grandpereNuit: ['青ヶ島の 夜は、星と 風だけじゃ。', '街灯も 音も ない……これが いちばんじゃよ。'],
+    distributeurNuit: ['夜でも 自動販売機は ついている。日本の 自販機は 一日じゅう うごいているんだ！', '今度は あたたかい お茶に した……ガコン！'],
+    jumellesNuit: ['コインを 入れた……くらくて 八丈島は もう 見えない。', '昼に また 見に きてね！'],
+    abriNuit: ['外輪山に 夜が おりてきた……', 'カルデラの 上には 何千もの 星。くらやみの 中で、ひんぎゃが しずかに 息を している。'],
+    abriCompagnonNuit: {
+      kon: ['「星が……神さまの ちょうちんみたいだね。」'],
+      pon: ['「星空の 下で ひとやすみ！ おにぎり もってない？ ない？ ざんねん……」'],
+      chapu: ['「星が いっぱい！ まっくらな 川で ひかる あわ みたい！」'],
+    },
+    grive: ['アカコッコだ！ 頭は 黒、おなかは 赤茶色、くちばしは 黄色。', '伊豆諸島と 南の 島に しか いない 鳥。国の 天然記念物 なんだ。'],
+    lezard: ['オカダトカゲが 火山の あたたかい 地面で ひなたぼっこ。', '子どもの しっぽは あざやかな 青。ほとんど 伊豆諸島 だけに すんでいる。', 'そーっと……走ったら にげちゃうよ！'],
+    chatRoux: ['茶トラの ねこが 地熱釜の そばの あたたかい 地面で まるくなって ねている。', 'なでると……ゴロゴロ……目も あけずに のどを ならした。'],
+    chatRouxNuit: ['夜の 茶トラは ぱっちり おきている。かりの 時間だ！', '目が くらやみで ひかっている。なでると……ゴロゴロ……'],
+    chatPie: ['白黒の ねこが 自動販売機の そばに すわっている。そこは いつも ちょっと あたたかいんだ。', 'なでると……ゴロゴロ……気持ちよさそうに 目を とじた。'],
+    chatPieNuit: ['白黒の ねこは 自販機の あかりの そばで 見はりを している。', '目が くらやみで ひかっている……ゴロゴロ……'],
+    chatCompagnon: {
+      kon: ['「ねこだ！ お稲荷さんでも よく 日なたで ねているよ。」'],
+      pon: ['「ポン！ ねこの ごはん、わけて くれるかな？」'],
+      chapu: ['「ねこだ！ ねこは 水が きらいなんだって……ふしぎ！」'],
+    },
   },
 };

@@ -866,6 +866,9 @@ export function creerCompagnon(ctx, espece, o = {}) {
 export function creerDaim(ctx, male = false, decalage = 0) {
   const { THREE, atelier, P, maillage } = ctx;
   const racine = new THREE.Group();
+  // (couché, la nuit : tout le corps descend, les pattes repliées dessous, dans le sol)
+  const corps = new THREE.Group();
+  racine.add(corps);
   const c = atelier()
     .ovale(0.3, P.daim, { y: 0.78, sx: 0.72, sy: 0.7, sz: 1.35 }, 14)
     .ovale(0.12, P.daimClair, { y: 0.82, z: -0.37, sx: 1.1, sz: 0.5 }, 10);
@@ -875,7 +878,7 @@ export function creerDaim(ctx, male = false, decalage = 0) {
   for (const [x, z] of [[-0.12, 0.25], [0.12, 0.25], [-0.12, -0.26], [0.12, -0.26]]) {
     c.cylindre(0.036, 0.028, 0.62, 6, P.daim, { x, y: 0.32, z }).ovale(0.035, P.noir, { x, y: 0.02, z: z + 0.01, sy: 0.6 }, 6);
   }
-  racine.add(maillage(c.fin(0, false)));
+  corps.add(maillage(c.fin(0, false)));
   // le cou part de l'épaule, vers l'avant et le haut ; pour brouter, il pivote jusqu'au sol
   const t = atelier()
     .baton([0, -0.04, -0.04], [0, 0.3, 0.3], 0.095, P.daim, 8)
@@ -889,15 +892,17 @@ export function creerDaim(ctx, male = false, decalage = 0) {
     if (male) t.baton([s * 0.05, 0.47, 0.37], [s * 0.12, 0.74, 0.32], 0.016, P.daimClair, 5).baton([s * 0.09, 0.62, 0.34], [s * 0.17, 0.68, 0.45], 0.012, P.daimClair, 5);
   }
   const cou = pivot(ctx, 0, 0.86, 0.3, maillage(t.fin(0, false)));
-  racine.add(cou);
+  corps.add(cou);
   return {
     objet: racine,
-    animer(dt, temps) {
+    /** couche : 0 debout, 1 couché (la nuit ; il somnole, la tête tournée sur le côté). */
+    animer(dt, temps, couche = 0) {
       // il broute : le cou descend, reste, remonte ; une oreille qui bouge
       const cycle = (temps * 0.25 + decalage) % 1;
       const bas = cycle < 0.45 ? Math.min(1, cycle / 0.08) : Math.max(0, 1 - (cycle - 0.45) / 0.1);
-      cou.rotation.x = 1.85 * bas + Math.sin(temps * 3 + decalage * 7) * 0.03 * bas;
-      cou.rotation.y = 0.25 * Math.sin(temps * 0.4 + decalage * 5) * (1 - bas);
+      corps.position.y = -0.57 * couche;
+      cou.rotation.x = (1.85 * bas + Math.sin(temps * 3 + decalage * 7) * 0.03 * bas) * (1 - couche) + (0.75 + Math.sin(temps * 0.6 + decalage * 4) * 0.04) * couche;
+      cou.rotation.y = 0.25 * Math.sin(temps * 0.4 + decalage * 5) * (1 - bas) * (1 - couche) + (decalage > 0.45 ? 0.6 : -0.6) * couche;
     },
   };
 }

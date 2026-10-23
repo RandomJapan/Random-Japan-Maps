@@ -9,7 +9,7 @@
 //    qui fait bouger les arbres et l'herbe, styles.js), les feuilles s'il y a des arbres autour, la mer près
 //    du rivage, les fumerolles, les insectes la nuit, la musique de la scène de nō ; et de temps en temps un
 //    oiseau ; oiseau(nom, o) : le cri
-//    d'un oiseau qu'on voit (les mouettes) ;
+//    d'un oiseau qu'on voit (les mouettes, les grives d'Aogashima) ; bete(nom, o) : un chat qui miaule, qui ronronne ;
 //  - couper(oui) : le silence (pendant la vidéo TikTok).
 //  Rien ne sonne avant le premier geste, ni le son coupé (son.js).
 // ================================================================
@@ -23,19 +23,20 @@ const VARIANTES = 5;
 // −6 dB, les autres boucles −3 dB, les pas −2 dB. Mesuré : l'ambiance seule 3,5 dB (Itsukushima) à 7 dB
 // (Aogashima) sous la musique, à −29 LUFS ; en marchant, à peu près au niveau de la musique
 const V = {
-  pas: 0.14, course: 0.2, kon: 0.045, ebrouer: 0.1, oiseau: 0.045, mouette: 0.05, cri: 0.07, tambour: 0.03, pouf: 0.08,
+  pas: 0.14, course: 0.2, kon: 0.045, ebrouer: 0.1, oiseau: 0.045, mouette: 0.05, akakokko: 0.04, cri: 0.07, tambour: 0.03, pouf: 0.08,
+  miaou: 0.05, ronron: 0.07,
   ventDoux: [0.0035, 0.006], ventFort: 0.015, feuilles: [0.003, 0.017], vagues: 0.0085, vapeur: 0.02, insectes: 0.0056,
   no: 0.0085,
 };
 const lisse = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
 
 /**
- * oiseaux : ceux qu'on peut entendre dans ce lieu ('milan', 'uguisu' ; 'mouette' : seulement quand on les voit
- * crier, oiseau()) ; ambiances : ses boucles en plus du
+ * oiseaux : ceux qu'on peut entendre dans ce lieu ('milan', 'uguisu' ; 'mouette', 'akakokko' : seulement quand on
+ * les voit crier, oiseau()) ; ambiances : ses boucles en plus du
  * vent et des feuilles ('vagues', 'vapeur', 'insectes') : seulement celles du lieu (elles pèsent quelques
- * mégaoctets en mémoire).
+ * mégaoctets en mémoire) ; betes : les cris de ses bêtes ('miaou', 'ronron').
  */
-export function creerBruitage({ oiseaux = [], ambiances = [] } = {}) {
+export function creerBruitage({ oiseaux = [], ambiances = [], betes = [] } = {}) {
   let ctx = null, sortie = null, commence = false, coupe = false;
   const tampons = new Map(); // « pas/herbe/2 » → AudioBuffer
   const boucles = {}; // nom → { g (volume), p (gauche-droite) }
@@ -52,7 +53,7 @@ export function creerBruitage({ oiseaux = [], ambiances = [] } = {}) {
     // (les cris d'abord : le choix du compagnon les fait entendre dès le départ)
     const sr = ctx.sampleRate, liste = ['cri/kon', 'cri/pon', 'cri/chapu', 'pouf', 'tambour'];
     for (const sol of Object.keys(SOLS)) for (let v = 0; v < VARIANTES; v++) liste.push(`pas/${sol}/${v}`);
-    liste.push('boucle/ventDoux', 'boucle/ventFort', 'boucle/feuilles', 'ebrouer', ...ambiances.map((a) => `boucle/${a}`), ...oiseaux.map((o) => `oiseau/${o}`));
+    liste.push('boucle/ventDoux', 'boucle/ventFort', 'boucle/feuilles', 'ebrouer', ...ambiances.map((a) => `boucle/${a}`), ...oiseaux.map((o) => `oiseau/${o}`), ...betes.map((b) => `bete/${b}`));
     const recevoir = ({ quoi, canaux }) => {
       if (!canaux) return;
       const b = ctx.createBuffer(canaux.length, canaux[0].length, sr);
@@ -154,6 +155,10 @@ export function creerBruitage({ oiseaux = [], ambiances = [] } = {}) {
     /** Le cri d'un oiseau qu'on voit (nom : 'mouette'…), plus ou moins fort (force : sa distance), de quel côté (pan). */
     oiseau(nom, { force = 1, pan = 0 } = {}) {
       if (commence && son.pret()) jouer(`oiseau/${nom}`, { gain: (V[nom] ?? V.oiseau) * force, pan, vitesse: 0.92 + Math.random() * 0.18 });
+    },
+    /** Un chat qui miaule ou qui ronronne (nom : 'miaou', 'ronron'), plus ou moins fort (force), de quel côté (pan). */
+    bete(nom, { force = 1, pan = 0 } = {}) {
+      if (commence && son.pret()) jouer(`bete/${nom}`, { gain: V[nom] * force, pan, vitesse: 0.95 + Math.random() * 0.1 });
     },
     /** Le compagnon s'ébroue. */
     ebrouer({ pan = 0, force = 1 } = {}) {
