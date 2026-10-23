@@ -2,7 +2,9 @@
 //  Le bruitage de la balade : ce qu'on entend en marchant. Les sons sont fabriqués une fois par
 //  bruitage-calcul.js (dans un worker, après le premier geste : un tiers de seconde de calcul, à côté du
 //  jeu) ; ici, on les joue.
-//  - pas(sol, o) : un pas, selon le sol (le joueur ; ou Kon, plus léger et plus vif) ; ebrouer(o) : Kon s'ébroue ;
+//  - pas(sol, o) : un pas, selon le sol (le joueur ; ou le compagnon, plus léger et plus vif) ; ebrouer(o) : le
+//    compagnon s'ébroue ; cri(espece, o) : son cri (quand on le choisit) ; tambour(o) : le tanuki se tape le
+//    ventre ; pouf(o) : un compagnon s'en va dans un nuage ;
 //  - ambiance(a, dt), plusieurs fois par seconde : le vent (sa force là où l'on est : la même rafale que celle
 //    qui fait bouger les arbres et l'herbe, styles.js), les feuilles s'il y a des arbres autour, la mer près
 //    du rivage, les fumerolles, les insectes la nuit, la musique de la scène de nō ; et de temps en temps un
@@ -21,7 +23,7 @@ const VARIANTES = 5;
 // −6 dB, les autres boucles −3 dB, les pas −2 dB. Mesuré : l'ambiance seule 3,5 dB (Itsukushima) à 7 dB
 // (Aogashima) sous la musique, à −29 LUFS ; en marchant, à peu près au niveau de la musique
 const V = {
-  pas: 0.14, course: 0.2, kon: 0.045, ebrouer: 0.1, oiseau: 0.045, mouette: 0.05,
+  pas: 0.14, course: 0.2, kon: 0.045, ebrouer: 0.1, oiseau: 0.045, mouette: 0.05, cri: 0.07, tambour: 0.03, pouf: 0.08,
   ventDoux: [0.0035, 0.006], ventFort: 0.015, feuilles: [0.003, 0.017], vagues: 0.0085, vapeur: 0.02, insectes: 0.0056,
   no: 0.0085,
 };
@@ -47,7 +49,8 @@ export function creerBruitage({ oiseaux = [], ambiances = [] } = {}) {
     ctx = a;
     sortie = ctx.createGain();
     sortie.connect(son.sortie());
-    const sr = ctx.sampleRate, liste = [];
+    // (les cris d'abord : le choix du compagnon les fait entendre dès le départ)
+    const sr = ctx.sampleRate, liste = ['cri/kon', 'cri/pon', 'cri/chapu', 'pouf', 'tambour'];
     for (const sol of Object.keys(SOLS)) for (let v = 0; v < VARIANTES; v++) liste.push(`pas/${sol}/${v}`);
     liste.push('boucle/ventDoux', 'boucle/ventFort', 'boucle/feuilles', 'ebrouer', ...ambiances.map((a) => `boucle/${a}`), ...oiseaux.map((o) => `oiseau/${o}`));
     const recevoir = ({ quoi, canaux }) => {
@@ -107,6 +110,14 @@ export function creerBruitage({ oiseaux = [], ambiances = [] } = {}) {
     viser('no', a.no * V.no, a.panNo);
   }
 
+  /** Joue un son, en lançant la fabrication s'il le faut (au départ, avant le premier pas) : s'il n'est pas prêt, rien. */
+  function jouerTot(quoi, o) {
+    const pret = son.pret();
+    if (!pret) return;
+    if (!commence) commencer(pret);
+    jouer(quoi, o);
+  }
+
   /** Joue un son fabriqué (s'il est prêt) : gain, pan (−1 à gauche, 1 à droite), vitesse (et hauteur). */
   function jouer(quoi, { gain = 1, pan = 0, vitesse = 1 } = {}) {
     const b = tampons.get(quoi);
@@ -144,10 +155,14 @@ export function creerBruitage({ oiseaux = [], ambiances = [] } = {}) {
     oiseau(nom, { force = 1, pan = 0 } = {}) {
       if (commence && son.pret()) jouer(`oiseau/${nom}`, { gain: (V[nom] ?? V.oiseau) * force, pan, vitesse: 0.92 + Math.random() * 0.18 });
     },
-    /** Kon s'ébroue. */
+    /** Le compagnon s'ébroue. */
     ebrouer({ pan = 0, force = 1 } = {}) {
       if (commence && son.pret()) jouer('ebrouer', { gain: V.ebrouer * force, pan, vitesse: 0.97 + Math.random() * 0.06 });
     },
+    /** Le cri d'un compagnon ('kon', 'pon', 'chapu'), d'un nuage (pouf) ou un coup sur le ventre du tanuki (tambour). */
+    cri(espece, { pan = 0, force = 1 } = {}) { jouerTot(`cri/${espece}`, { gain: V.cri * force, pan, vitesse: 0.97 + Math.random() * 0.06 }); },
+    pouf({ pan = 0 } = {}) { jouerTot('pouf', { gain: V.pouf, pan, vitesse: 0.9 + Math.random() * 0.2 }); },
+    tambour({ pan = 0, force = 1 } = {}) { jouerTot('tambour', { gain: V.tambour * force, pan, vitesse: 0.92 + Math.random() * 0.16 }); },
     /**
      * Ce qu'on entend ici, maintenant : vent (la force de la rafale, 0,25 à environ 1,2), feuilles (0 à 1 : les
      * arbres autour), vagues et panVagues (la mer : proche de 0 à 1, et de quel côté), vapeur et panVapeur (les
@@ -166,6 +181,8 @@ export function creerBruitage({ oiseaux = [], ambiances = [] } = {}) {
         if (actuel.oiseau && actuel.nuit < 0.3) jouer(`oiseau/${actuel.oiseau}`, { gain: V.oiseau * (0.6 + 0.4 * Math.random()), pan: (Math.random() - 0.5) * 1.4, vitesse: 0.97 + Math.random() * 0.06 });
       }
     },
+    /** Fabrique les sons dès maintenant, si le son joue déjà (les cris du départ seront prêts à temps). */
+    preparer() { const pret = son.pret(); if (pret && !commence) commencer(pret); },
     /** Le silence (oui), ou le retour du bruitage. */
     couper(oui) {
       coupe = oui;

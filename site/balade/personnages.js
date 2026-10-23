@@ -1,9 +1,10 @@
 // ================================================================
-//  Les personnages de la balade 3D : le voyageur (garçon ou fille), son compagnon le renard d'Inari (un
-//  kitsune blanc au bavoir rouge, comme les statues des sanctuaires d'Inari : une créature à nous), et les
-//  daims d'Itsukushima. Chacun est fait de formes simples (l'atelier des modèles 3D), en morceaux articulés
-//  pour marcher : jambes, bras, tête, queue.
-//  Et les passants, habillés chacun de sa tenue (creerPersonnage).
+//  Les personnages de la balade 3D : le voyageur (garçon ou fille), son compagnon (choisi au début de chaque
+//  visite : Kon le renard d'Inari, Pon le tanuki ou Chapu la loutre, des créatures à nous), les daims
+//  d'Itsukushima et les passants (habillés chacun de sa tenue : creerPersonnage). Chacun est fait de formes
+//  simples (l'atelier des modèles 3D), en morceaux articulés pour marcher : jambes, bras, tête, queue.
+//  Le 2026-10-23, le propriétaire a demandé de refaire le renard et les deux voyageurs « mieux faits » : ils ont
+//  maintenant de vrais visages (des yeux qui clignent), des cheveux en mèches, des habits en plusieurs pièces.
 //  ctx : { THREE, atelier (un atelier vide à chaque appel), P (la palette du style), maillage(fin) → Object3D }.
 // ================================================================
 
@@ -16,7 +17,286 @@ function pivot(ctx, x, y, z, ...morceaux) {
 }
 
 /**
- * La tenue d'un des deux voyageurs (palette P). Une tenue dit : taille (1 : 1,35 m), peau, cheveux, coiffure
+ * Une forme allongée et courbe (une queue touffue…) pour l'atelier : un cylindre plié le long de la courbe de
+ * Bézier p0 → p1 → p2 (dans le plan y-z), de rayon R × profil(t) (t : 0 à la base, 1 au bout).
+ */
+function fuseau(THREE, [p0, p1, p2], R, profil, cotes = 12, anneaux = 14) {
+  const g = new THREE.CylinderGeometry(1, 1, 1, cotes, anneaux).toNonIndexed();
+  const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) {
+    const t = p.getY(i) + 0.5, u = 1 - t, x = p.getX(i), z = p.getZ(i);
+    const c = [0, 1, 2].map((k) => u * u * p0[k] + 2 * u * t * p1[k] + t * t * p2[k]);
+    const dy = 2 * u * (p1[1] - p0[1]) + 2 * t * (p2[1] - p1[1]), dz = 2 * u * (p1[2] - p0[2]) + 2 * t * (p2[2] - p1[2]);
+    const l = Math.hypot(dy, dz) || 1, r = R * profil(t);
+    // (le repère qui suit la courbe : x, la tangente, et x × tangente : il reste direct, les faces vers l'extérieur)
+    p.setXYZ(i, c[0] + x * r, c[1] - z * r * (dz / l), c[2] + z * r * (dy / l));
+  }
+  return g;
+}
+
+/** Les yeux qui clignent : toutes les 2,5 à 5,5 s, fermés 0,13 s (yeux : des groupes, écrasés en hauteur). */
+function cligneur(yeux) {
+  let prochain = 1 + Math.random() * 3, ferme = 0;
+  return (dt) => {
+    prochain -= dt;
+    if (prochain <= 0) { ferme = 0.13; prochain = 2.5 + Math.random() * 3; }
+    ferme = Math.max(0, ferme - dt);
+    for (const o of yeux) o.scale.y = ferme > 0 ? 0.12 : 1;
+  };
+}
+
+/**
+ * Le voyageur (garçon ou fille), plus fin que les passants. Un visage : de grands yeux (l'iris, son reflet clair en
+ * bas, la pupille, deux reflets, le trait des cils) qui clignent, des sourcils, un petit nez, un sourire, les joues
+ * roses ; des cheveux en mèches. Le garçon : casquette bicolore, cheveux en pointes, veste ouverte sur un tee-shirt,
+ * ceinture, short à revers, baskets ; sur son sac, un tapis de sol roulé. La fille : chapeau de paille au ruban et à
+ * la fleur, frange et couettes nouées de rubans, chemisier au col marin et son nœud, jupe plissée, chaussettes
+ * hautes et babies ; un porte-bonheur pend à son sac. Le même squelette que les passants (hanches à 0,42 m, épaules
+ * à 0,75, cou à 0,82). Renvoie { objet, animer(dt, vitesse, temps), saluer(), asseoir(oui) } ; animer renvoie le
+ * pied qui vient de se poser (1, −1) ou 0.
+ */
+export function creerHeros(ctx, sorte = 'garcon') {
+  const { THREE, atelier, P, maillage } = ctx;
+  const PI = Math.PI, fille = sorte === 'fille', PEAU = P.peau, H = fille ? P.cheveuxFille : P.cheveux;
+  const racine = new THREE.Group(), corps = new THREE.Group();
+  racine.add(corps);
+
+  // les jambes (pivot à la hanche)
+  const jambes = [-1, 1].map((s) => {
+    const a = atelier();
+    if (fille) {
+      a.cylindre(0.05, 0.045, 0.22, 10, PEAU, { y: -0.13 })
+        .cylindre(0.049, 0.046, 0.15, 10, P.chaussette, { y: -0.295 })
+        .cylindre(0.051, 0.051, 0.022, 10, P.chaussetteBord, { y: -0.225 })
+        .ovale(0.068, P.chaussuresFille, { y: -0.368, z: 0.03, sx: 0.92, sy: 0.56, sz: 1.42 }, 12)
+        .boite(0.104, 0.016, 0.026, P.chaussuresFille, { y: -0.338, z: 0.0 })
+        .ovale(0.072, P.semelleFille, { y: -0.396, z: 0.03, sx: 0.95, sy: 0.2, sz: 1.45 }, 12);
+    } else {
+      a.cylindre(0.08, 0.074, 0.15, 12, P.short, { y: -0.06 })
+        .cylindre(0.083, 0.083, 0.03, 12, P.shortFonce, { y: -0.13 })
+        .cylindre(0.05, 0.044, 0.19, 10, PEAU, { y: -0.22 })
+        .cylindre(0.047, 0.047, 0.06, 10, P.chaussette, { y: -0.32 })
+        .ovale(0.072, P.chaussures, { y: -0.364, z: 0.035, sx: 0.95, sy: 0.6, sz: 1.45 }, 12)
+        .ovale(0.06, P.basket, { y: -0.372, z: 0.09, sx: 0.98, sy: 0.52, sz: 0.85 }, 10)
+        .ovale(0.077, P.semelle, { y: -0.397, z: 0.035, sx: 0.98, sy: 0.22, sz: 1.45 }, 12);
+    }
+    const j = pivot(ctx, s * 0.085, 0.42, 0, maillage(a.fin(0, false)));
+    racine.add(j);
+    return j;
+  });
+
+  // le buste
+  const b = atelier();
+  if (fille) {
+    // la jupe plissée (des plis qui s'ouvrent vers le bas, d'un bleu et d'un bleu plus sombre), sa ceinture
+    const plis = (x, y, z) => { const t = Math.atan2(x, z), f = (0.11 - y) / 0.22, k = 1 + 0.06 * f * (0.5 + 0.5 * Math.cos(12 * t)); return [x * k, y, z * k]; };
+    b.piece(new THREE.CylinderGeometry(0.168, 0.285, 0.22, 48, 2), P.jupe, { y: 0.445, deformer: plis, teinte: (x, y, z) => (Math.floor(((Math.atan2(x, z) + PI) * 24) / (2 * PI)) % 2 ? P.jupe : P.jupeFonce) })
+      .cylindre(0.171, 0.171, 0.032, 18, P.jupeFonce, { y: 0.556 })
+      .cylindre(0.145, 0.166, 0.25, 16, P.chemisier, { y: 0.68, sz: 0.9 })
+      .ovale(0.155, P.chemisier, { y: 0.795, sy: 0.42, sz: 0.9 }, 16)
+      .cylindre(0.05, 0.056, 0.08, 10, PEAU, { y: 0.815 })
+      // le col marin : le rabat carré dans le dos, sa rayure ; devant, en V
+      .boite(0.27, 0.16, 0.018, P.col, { y: 0.755, z: -0.142, rx: 0.18 })
+      .boite(0.25, 0.02, 0.022, P.colRayure, { y: 0.692, z: -0.131, rx: 0.18 });
+    for (const s of [-1, 1]) {
+      b.boite(0.046, 0.17, 0.016, P.col, { x: s * 0.058, y: 0.748, z: 0.137 + s * 0.002, rz: s * 0.5, rx: -0.22 })
+        // le nœud rouge : ses deux boucles, ses deux pans
+        .ovale(0.034, P.noeud, { x: s * 0.036, y: 0.688, z: 0.158, sx: 1.3, sy: 0.78, sz: 0.45, rz: -s * 0.25 }, 10)
+        .boite(0.026, 0.07, 0.01, P.noeud, { x: s * 0.018, y: 0.645, z: 0.156 + s * 0.0015, rz: s * 0.25, rx: -0.15 });
+    }
+    b.ovale(0.017, P.noeud, { y: 0.688, z: 0.168, sz: 0.6 }, 8);
+  } else {
+    // le short et sa ceinture, le tee-shirt ; la veste ouverte devant (un cylindre ouvert : le tee-shirt se voit
+    // entre ses revers), ses épaules, son col relevé derrière la nuque
+    b.cylindre(0.178, 0.19, 0.13, 16, P.short, { y: 0.475 })
+      .cylindre(0.181, 0.181, 0.035, 16, P.ceinture, { y: 0.54 })
+      .boite(0.05, 0.034, 0.012, P.boucle, { y: 0.54, z: 0.183, trait: false })
+      .cylindre(0.15, 0.172, 0.25, 16, P.tshirt, { y: 0.675, sz: 0.9 })
+      .piece(new THREE.CylinderGeometry(0.163, 0.185, 0.27, 20, 1, true, 0.6, 2 * PI - 1.2), P.veste, { y: 0.66, sz: 0.9 })
+      .ovale(0.162, P.veste, { y: 0.795, sy: 0.42, sz: 0.9 }, 16)
+      .piece(new THREE.TorusGeometry(0.06, 0.013, 4, 12, PI), P.tshirt, { y: 0.83, z: 0.03, rx: -1.25, rz: PI })
+      .boite(0.22, 0.07, 0.035, P.vesteFonce, { y: 0.845, z: -0.072, rx: -0.35 })
+      .cylindre(0.052, 0.058, 0.08, 10, PEAU, { y: 0.815 });
+    for (const s of [-1, 1]) b.boite(0.044, 0.23, 0.016, P.vesteFonce, { x: s * 0.088, y: 0.672, z: 0.13, ry: s * 0.62, rz: -s * 0.06 });
+  }
+  // le sac à dos : le corps arrondi en haut, le rabat, la poche de devant et ses boucles, les bretelles
+  const SAC = fille ? P.sacFille : P.sac, SACF = fille ? P.sacFilleFonce : P.sacFonce;
+  b.boite(0.27, 0.27, 0.12, SAC, { y: 0.655, z: -0.225 })
+    .ovale(0.135, SAC, { y: 0.79, z: -0.225, sy: 0.42, sz: 0.46 }, 12)
+    .boite(0.278, 0.14, 0.128, SACF, { y: 0.755, z: -0.226 })
+    .boite(0.2, 0.12, 0.05, SAC, { y: 0.6, z: -0.305 })
+    .boite(0.206, 0.04, 0.056, SACF, { y: 0.655, z: -0.305 });
+  for (const s of [-1, 1]) {
+    b.boite(0.032, 0.05, 0.012, P.boucle, { x: s * 0.07, y: 0.716, z: -0.292, trait: false })
+      .baton([s * 0.1, 0.8, -0.17], [s * 0.105, 0.868, 0.0], 0.022, P.sangle, 5)
+      .baton([s * 0.105, 0.866, -0.005], [s * 0.098, 0.62, 0.155], 0.022, P.sangle, 5);
+  }
+  if (fille) {
+    // un porte-bonheur (omamori) rouge qui pend sur le côté du sac
+    b.baton([0.13, 0.72, -0.2], [0.15, 0.62, -0.21], 0.004, P.boucle, 3, { trait: false })
+      .boite(0.035, 0.05, 0.012, P.noeud, { x: 0.152, y: 0.6, z: -0.21 });
+  } else {
+    // le tapis de sol roulé, sanglé sur le sac
+    b.cylindre(0.05, 0.05, 0.33, 12, P.tapis, { y: 0.865, z: -0.235, rz: PI / 2 });
+    for (const s of [-1, 1]) b.cylindre(0.053, 0.053, 0.02, 12, P.sangle, { x: s * 0.09, y: 0.865, z: -0.235, rz: PI / 2 });
+  }
+  corps.add(maillage(b.fin(0, false)));
+
+  // les bras (pivot à l'épaule) : la manche, l'avant-bras, la main et son pouce
+  const bras = [-1, 1].map((s) => {
+    const a = atelier();
+    if (fille) {
+      a.ovale(0.072, P.chemisier, { y: -0.045, sy: 0.95 }, 12)
+        .cylindre(0.06, 0.06, 0.025, 12, P.col, { y: -0.1 })
+        .cylindre(0.043, 0.039, 0.17, 8, PEAU, { y: -0.19 });
+      if (s === 1) a.piece(new THREE.TorusGeometry(0.041, 0.009, 4, 12), P.noeud, { y: -0.255, rx: PI / 2, trait: false });
+    } else {
+      a.cylindre(0.065, 0.061, 0.15, 12, P.veste, { y: -0.06 })
+        .cylindre(0.068, 0.068, 0.032, 12, P.vesteFonce, { y: -0.13 })
+        .cylindre(0.043, 0.039, 0.15, 8, PEAU, { y: -0.215 });
+    }
+    a.ovale(0.048, PEAU, { y: -0.31, sx: 0.78, sy: 1.08 }, 10)
+      .ovale(0.02, PEAU, { x: -s * 0.022, y: -0.288, z: 0.03, sy: 1.4, rx: 0.3 }, 6);
+    const br = pivot(ctx, s * 0.205, 0.75, 0, maillage(a.fin(0, false)));
+    br.rotation.z = s * 0.12;
+    corps.add(br);
+    return br;
+  });
+
+  // la tête (pivot au cou) : le visage est une boule de rayon R, centrée CY au-dessus du cou ; ce qu'on y pose
+  // (yeux, sourcils, bouche…) est tourné vers le dehors de la boule (surVisage)
+  const R = 0.3, CY = 0.25;
+  const surVisage = (lx, ly, ecart = 0) => {
+    const ry = Math.asin(lx / R), rx = -Math.asin(ly / (R * Math.cos(ry))), z = Math.sqrt(R * R - lx * lx - ly * ly) + ecart;
+    return { x: lx, y: CY + ly, z, rx, ry };
+  };
+  const t = atelier()
+    .ovale(R, PEAU, { y: CY, sx: 1.04, deformer: (x, y, z) => (y < 0 ? [x * (1 + 0.16 * (y / R)), y * 1.04, z * (1 + 0.05 * (y / R))] : [x, y, z]) }, 22);
+  for (const s of [-1, 1]) {
+    t.ovale(0.052, PEAU, { x: s * 0.302, y: CY - 0.03, sx: 0.5, sz: 0.8 }, 8)
+      // les sourcils, les joues
+      .piece(new THREE.TorusGeometry(0.043, fille ? 0.0058 : 0.0072, 3, 9, PI * 0.62), P.sourcils, { ...surVisage(s * 0.108, 0.072, 0.002), rz: PI * 0.19 - s * 0.08, trait: false })
+      .ovale(0.036, P.joue, { ...surVisage(s * 0.168, -0.088, -0.004), sx: 1.3, sy: 0.62, sz: 0.25, trait: false }, 8);
+  }
+  t.ovale(0.012, P.nez, { ...surVisage(0, -0.07, -0.002), sz: 0.6, trait: false }, 6)
+    .piece(new THREE.TorusGeometry(0.022, 0.0055, 4, 9, PI * 0.72), P.bouche, { ...surVisage(0, -0.112, 0.001), rz: PI * 1.14, trait: false });
+  if (fille) {
+    // la calotte de cheveux, ceux qui tombent dans le dos ; la frange en mèches ; deux longues mèches devant les
+    // oreilles ; les couettes nouées de rubans rouges, qui frisent au bout
+    t.piece(new THREE.SphereGeometry(0.318, 22, 12, 0, 2 * PI, 0, PI * 0.62), H, { y: CY, rx: -0.4 })
+      .ovale(0.27, H, { y: CY - 0.11, z: -0.1, sx: 1.08, sy: 1.12, sz: 0.62 }, 16);
+    for (const [x, rz, l] of [[-0.2, 0.55, 0.15], [-0.132, 0.32, 0.18], [-0.066, 0.12, 0.19], [0.0, -0.03, 0.17], [0.066, -0.14, 0.19], [0.132, -0.32, 0.18], [0.2, -0.55, 0.15]]) {
+      t.cone(0.056, l, 4, H, { x, y: CY + 0.16, z: 0.262 - Math.abs(x) * 0.4, rx: PI - 0.34, rz, sz: 0.42 });
+    }
+    for (const s of [-1, 1]) {
+      t.cone(0.05, 0.27, 5, H, { x: s * 0.258, y: CY - 0.03, z: 0.1, rx: PI - 0.06, rz: s * 0.07, sz: 0.55 })
+        .ovale(0.064, H, { x: s * 0.31, y: CY - 0.25, z: -0.1, sx: 0.85, sy: 2.0, rz: s * 0.18 }, 10)
+        .ovale(0.046, H, { x: s * 0.355, y: CY - 0.39, z: -0.09, sy: 1.35, rz: s * 0.55 }, 8)
+        .ovale(0.042, P.ruban, { x: s * 0.305, y: CY - 0.06, z: -0.14, sx: 0.45, sy: 0.75, sz: 1.2, rx: -0.6 }, 8)
+        .ovale(0.042, P.ruban, { x: s * 0.305, y: CY - 0.13, z: -0.05, sx: 0.45, sy: 0.75, sz: 1.2, rx: 0.6 }, 8)
+        .boule(0.024, P.ruban, { x: s * 0.31, y: CY - 0.1, z: -0.09 }, 1);
+    }
+  } else {
+    // la calotte, des pointes sous la casquette sur le front, devant les oreilles et sur la nuque
+    t.piece(new THREE.SphereGeometry(0.318, 22, 12, 0, 2 * PI, 0, PI * 0.6), H, { y: CY, rx: -0.48 });
+    for (const [x, rz, l] of [[-0.18, 0.55, 0.13], [-0.09, 0.24, 0.16], [0.0, -0.04, 0.15], [0.09, -0.3, 0.16], [0.18, -0.6, 0.12]]) {
+      t.cone(0.062, l, 4, H, { x, y: CY + 0.15, z: 0.262 - Math.abs(x) * 0.35, rx: PI - 0.6, rz, sz: 0.5 });
+    }
+    for (const s of [-1, 1]) t.cone(0.05, 0.13, 4, H, { x: s * 0.27, y: CY + 0.04, z: 0.07, rx: PI - 0.15, rz: s * 0.22, sz: 0.5 });
+    for (const x of [-0.11, 0, 0.11]) t.cone(0.06, 0.13, 4, H, { x, y: CY - 0.09, z: -0.255, rx: PI + 0.55, sz: 0.6 });
+  }
+  const tete = pivot(ctx, 0, 0.82, 0, maillage(t.fin(0, false)));
+  corps.add(tete);
+
+  // les yeux (à part : ils clignent) : des disques plats posés sur le visage
+  const yeux = [-1, 1].map((s) => {
+    const a = atelier(), q = surVisage(s * 0.104, -0.022, 0.001), cercle = (r, c, o) => a.piece(new THREE.CircleGeometry(r, 18), c, { trait: false, ...o });
+    cercle(0.05, fille ? P.irisFille : P.iris, { sx: 0.84, sy: 1.22 });
+    cercle(0.034, fille ? P.irisFilleClair : P.irisClair, { y: -0.03, z: 0.001, sx: 0.95, sy: 0.5 });
+    cercle(0.027, P.pupille, { y: 0.006, z: 0.002, sx: 0.8, sy: 1.12 });
+    cercle(0.015, P.reflet, { x: s * 0.014, y: 0.026, z: 0.003 });
+    cercle(0.0075, P.reflet, { x: -s * 0.012, y: -0.024, z: 0.003 });
+    a.piece(new THREE.TorusGeometry(0.047, fille ? 0.0095 : 0.0078, 4, 14, PI), P.cils, { y: 0.004, z: 0.003, sx: 0.9, sy: 1.24, sz: 0.5, trait: false });
+    if (fille) a.cone(0.011, 0.036, 4, P.cils, { x: s * 0.046, y: 0.05, z: 0.003, rz: -s * 0.95, sz: 0.5, trait: false });
+    const g = pivot(ctx, q.x, q.y, q.z, maillage(a.fin(0, false), false));
+    g.rotation.set(q.rx, q.ry, 0);
+    tete.add(g);
+    return g;
+  });
+  const cligner = cligneur(yeux);
+
+  // le couvre-chef, à part (incliné d'un bloc, en arrière) : la casquette (son devant blanc, le Fuji rouge, la
+  // visière qui s'arrondit, le bouton) ; le chapeau de paille (bord et calotte tournés, en rangs de paille ; le
+  // ruban, son nœud et ses pans, une fleur)
+  const c = atelier();
+  if (fille) {
+    const profil = [[0.001, 0.182], [0.15, 0.178], [0.205, 0.162], [0.232, 0.125], [0.243, 0.07], [0.25, 0.015], [0.3, 0.008], [0.35, -0.004], [0.4, -0.02], [0.44, -0.038], [0.468, -0.052], [0.47, -0.064], [0.44, -0.052], [0.4, -0.034], [0.35, -0.018], [0.3, -0.006], [0.25, 0.0], [0.24, -0.02]].map(([r, y]) => new THREE.Vector2(r, y)).reverse(); // (de bas en haut : les faces vers le dehors)
+    c.piece(new THREE.LatheGeometry(profil, 36), P.chapeau, { teinte: (x, y, z) => (Math.floor(Math.hypot(x, z) / 0.05 + (y > 0.02 ? y / 0.04 : 0)) % 2 ? P.chapeau : P.chapeauFonce) })
+      .cylindre(0.253, 0.257, 0.05, 28, P.ruban, { y: 0.04 });
+    // le nœud derrière, ses pans ; la fleur sur le côté
+    c.ovale(0.05, P.ruban, { x: -0.06, y: 0.045, z: -0.25, sx: 1.2, sy: 0.6, sz: 0.4 }, 8)
+      .ovale(0.05, P.ruban, { x: 0.06, y: 0.045, z: -0.25, sx: 1.2, sy: 0.6, sz: 0.4 }, 8)
+      .boite(0.03, 0.12, 0.01, P.ruban, { x: -0.03, y: -0.02, z: -0.262, rz: 0.2 })
+      .boite(0.03, 0.12, 0.01, P.ruban, { x: 0.03, y: -0.02, z: -0.262, rz: -0.2 });
+    const fa = 0.75, fx = Math.sin(fa) * 0.262, fz = Math.cos(fa) * 0.262;
+    for (let k = 0; k < 5; k++) {
+      const ak = (k / 5) * 2 * PI;
+      c.ovale(0.026, P.fleur, { x: fx + Math.sin(fa) * 0.004 + Math.cos(fa) * Math.cos(ak) * 0.028, y: 0.045 + Math.sin(ak) * 0.028, z: fz + Math.cos(fa) * 0.004 - Math.sin(fa) * Math.cos(ak) * 0.028, sz: 0.35, ry: fa, trait: false }, 8);
+    }
+    c.ovale(0.016, P.fleurCoeur, { x: fx + Math.sin(fa) * 0.012, y: 0.045, z: fz + Math.cos(fa) * 0.012, sz: 0.6, ry: fa, trait: false }, 6);
+  } else {
+    c.piece(new THREE.SphereGeometry(0.333, 24, 9, 0, 2 * PI, 0, PI / 2), P.casquette, { sy: 0.86 })
+      .piece(new THREE.CylinderGeometry(0.235, 0.235, 0.024, 22, 1, false, -PI / 2, PI), P.visiere, { y: 0.018, z: 0.2, rx: 0.06, deformer: (x, y, z) => [x, y - 0.045 * (x / 0.235) ** 2, z] })
+      .boule(0.03, P.casquette, { y: 0.288 }, 1)
+      .piece(new THREE.CircleGeometry(0.056, 20), P.casquetteFace, { y: 0.166, z: 0.276, rx: -0.68, trait: false })
+      .piece(new THREE.CircleGeometry(0.034, 3), P.basket, { y: 0.1642, z: 0.2801, rz: PI / 2, rx: -0.68, sy: 0.8, trait: false })
+      .boite(0.09, 0.03, 0.02, P.visiere, { y: 0.06, z: -0.33, rx: 0.15 });
+  }
+  const coiffe = pivot(ctx, 0, fille ? CY + 0.215 : CY + 0.075, fille ? -0.01 : -0.004, maillage(c.fin(0, false)));
+  coiffe.rotation.x = fille ? -0.14 : -0.16;
+  tete.add(coiffe);
+
+  let phase = 0, salut = 0, foulee = 0, assis = false;
+  return {
+    objet: racine,
+    /** Une petite courbette (on lui parle, il remercie…). */
+    saluer() { salut = 1; },
+    /** Assis sur un banc (oui) ou debout : les jambes tendues devant (la racine posée à la hauteur du siège moins ASSIS). */
+    asseoir(oui) { assis = oui; },
+    animer(dt, vitesse, temps) {
+      cligner(dt);
+      const marche = Math.min(1, vitesse / 3.2);
+      phase += dt * (5 + vitesse * 1.9);
+      const f = Math.floor((phase - PI / 2) / PI);
+      let pose = 0;
+      if (f !== foulee) { foulee = f; if (marche > 0.3) pose = f & 1 ? -1 : 1; }
+      const sw = Math.sin(phase) * 0.62 * marche;
+      jambes[0].rotation.x = sw;
+      jambes[1].rotation.x = -sw;
+      bras[0].rotation.x = -sw * 0.85;
+      bras[1].rotation.x = sw * 0.85;
+      const respire = Math.sin(temps * 2.2) * 0.008 * (1 - marche);
+      salut = Math.max(0, salut - dt * 0.9);
+      const courbe = Math.sin(Math.min(1, salut) * PI) * 0.5;
+      corps.position.y = Math.abs(Math.cos(phase)) * 0.045 * marche + respire;
+      corps.rotation.x = 0.08 * marche + courbe;
+      tete.rotation.x = -0.05 * marche + Math.sin(temps * 1.1) * 0.02 * (1 - marche) + courbe * 0.3;
+      tete.rotation.z = Math.sin(phase) * 0.04 * marche;
+      // (les couettes et le chapeau suivent la tête ; au repos, elle regarde un peu autour d'elle)
+      tete.rotation.y = Math.sin(temps * 0.37) * 0.12 * (1 - marche);
+      if (assis) {
+        jambes[0].rotation.x = jambes[1].rotation.x = -1.3;
+        bras[0].rotation.x = bras[1].rotation.x = -0.55;
+        corps.rotation.x = -0.05 + courbe;
+      }
+      return assis ? 0 : pose;
+    },
+  };
+}
+
+/**
+ * Un passant, environ 1,35 m × taille (une grosse tête : 2,5 têtes de haut, comme les héros des jeux japonais),
+ * habillé selon sa tenue. Une tenue dit : taille (1 : 1,35 m), peau, cheveux, coiffure
  * ('court', 'nattes', 'queue', 'chignon', 'chauve'), chapeau { sorte : 'casquette', 'soleil', 'paille',
  * 'eboshi', 'ecolier', 'foulard', 'bob', 'bandeau' ; c, c2 }, haut, manches ('courtes', 'longues', 'kimono'),
  * col (le col croisé d'un kimono), bas { sorte : 'short', 'jupe', 'hakama', 'pantalon' ; c, c2 }, chaussures,
@@ -27,25 +307,7 @@ function pivot(ctx, x, y, z, ...morceaux) {
  * talons ; 'danse' : l'acteur, son éventail ; 'jouer' : un musicien, assis aussi) et instrument ('fue', la flûte ;
  * 'kotsuzumi', le tambour d'épaule ; 'otsuzumi', celui de la hanche ; 'taiko', sur son support ; 'eventail', fermé
  * devant soi).
- */
-export function tenueVoyageur(P, sorte) {
-  const commun = { peau: P.peau, chaussures: P.chaussures, semelle: P.semelle, sac: { sorte: 'dos', c: P.sac, c2: P.sangle }, manches: 'courtes' };
-  return sorte === 'fille'
-    ? { ...commun, cheveux: P.cheveuxFille, coiffure: 'nattes', chapeau: { sorte: 'soleil', c: P.chapeau, c2: P.ruban }, haut: P.hautFille, bas: { sorte: 'jupe', c: P.short } }
-    : { ...commun, cheveux: P.cheveux, coiffure: 'court', chapeau: { sorte: 'casquette', c: P.casquette, c2: P.visiere }, haut: P.haut, bas: { sorte: 'short', c: P.short } };
-}
-
-/**
- * Le voyageur (garçon ou fille) et son sac à dos. Renvoie { objet, animer(dt, vitesse, temps), saluer() } ;
- * animer renvoie le pied qui vient de toucher le sol (1 : celui de gauche, −1 : celui de droite) ou 0.
- */
-export function creerVoyageur(ctx, sorte = 'garcon') {
-  return creerPersonnage(ctx, tenueVoyageur(ctx.P, sorte));
-}
-
-/**
- * Un personnage, environ 1,35 m × taille (une grosse tête : 2,5 têtes de haut, comme les héros des jeux
- * japonais), habillé selon sa tenue (tenueVoyageur). Renvoie { objet, animer(dt, vitesse, temps), saluer() }.
+ * Renvoie { objet, animer(dt, vitesse, temps), saluer(), asseoir(oui) }.
  */
 export function creerPersonnage(ctx, T) {
   const { THREE, atelier, P, maillage } = ctx;
@@ -324,81 +586,268 @@ export function creerPersonnage(ctx, T) {
   };
 }
 
+// ---------------------------------------------------------------- Les compagnons
+/** Les compagnons qu'on choisit au début de chaque visite (2026-10-23), comme les trois créatures du début des jeux. */
+export const COMPAGNONS = ['kon', 'pon', 'chapu'];
+
 /**
- * Le renard d'Inari, environ 0,5 m. Renvoie { objet, animer(dt, vitesse, temps), secouer() } (assis à l'arrêt) ;
- * animer renvoie 1 ou −1 quand une paire de pattes se pose, sinon 0 ; secouer : il s'ébroue (en sortant de l'eau).
+ * La forme de chaque compagnon : le corps, la tête, les yeux (à part : ils clignent), les quatre pattes (avant
+ * gauche, avant droite, arrière gauche, arrière droite), la queue ; chaque pièce avec son pivot [x, y, z]. bascule :
+ * le point [y, z] autour duquel le corps se dresse (assis, debout).
  */
-export function creerRenard(ctx) {
-  const { THREE, atelier, P, maillage } = ctx;
-  const PI = Math.PI;
-  const racine = new THREE.Group();
-  const corps = new THREE.Group();
-  racine.add(corps);
-  const c = atelier()
-    .ovale(0.155, P.renard, { y: 0.28, sx: 0.76, sy: 0.76, sz: 1.45 }, 14)
-    .ovale(0.11, P.renard, { y: 0.31, z: 0.16, sy: 1.1 }, 10)
-    // le bavoir rouge des renards d'Inari, et son grelot doré
-    .piece(new THREE.ConeGeometry(0.1, 0.13, 3), P.renardRouge, { y: 0.33, z: 0.215, rx: PI - 0.25, ry: PI / 6, sz: 0.25 })
-    .boule(0.026, P.grelot, { y: 0.275, z: 0.25 }, 1);
-  corps.add(maillage(c.fin(0, false)));
+const FORMES = {
+  // Kon, le renard messager d'Inari : blanc, le poitrail en jabot, le bavoir rouge et son grelot, les grandes oreilles
+  // au dedans rouge, les marques rouges des statues des sanctuaires, la queue en panache au bout rouge
+  kon({ THREE, atelier, P }) {
+    const PI = Math.PI, W = P.renard, CR = P.renardOmbre, R = P.renardRouge;
+    const corps = atelier()
+      .ovale(0.15, W, { y: 0.3, z: -0.03, sx: 0.74, sy: 0.78, sz: 1.5 }, 16)
+      .ovale(0.12, CR, { y: 0.252, z: -0.02, sx: 0.6, sy: 0.48, sz: 1.3 }, 12)
+      .ovale(0.105, W, { y: 0.34, z: 0.15, sx: 0.95, sy: 1.15, sz: 0.85 }, 12)
+      .ovale(0.075, W, { y: 0.42, z: 0.18, sy: 1.35, rx: -0.5 }, 10);
+    for (const [x, dz] of [[-0.045, 0], [0, 0.012], [0.045, 0.004]]) corps.cone(0.032, 0.1, 5, W, { x, y: 0.25 + dz, z: 0.2 + dz, rx: PI - 0.45 });
+    corps.ovale(0.1, R, { y: 0.36, z: 0.24, sx: 1.05, sy: 0.85, sz: 0.3, rx: 0.35 }, 12)
+      .boule(0.024, P.grelot, { y: 0.305, z: 0.278 }, 1)
+      .boite(0.026, 0.004, 0.006, '#7a5a20', { y: 0.298, z: 0.3, trait: false })
+      .piece(new THREE.TorusGeometry(0.08, 0.01, 4, 16), R, { y: 0.42, z: 0.19, rx: PI / 2 - 0.5 });
+    const tete = atelier()
+      .ovale(0.118, W, { y: 0.05, sx: 1.06, sy: 0.92 }, 16)
+      .ovale(0.062, W, { y: -0.015, z: 0.12, sx: 0.82, sy: 0.66, sz: 1.55, rx: -0.12 }, 12)
+      .ovale(0.042, CR, { y: -0.045, z: 0.1, sx: 0.85, sy: 0.5, sz: 1.3 }, 10)
+      .ovale(0.021, P.noir, { y: 0.0, z: 0.215, sx: 1.25, sy: 0.85 }, 8)
+      .ovale(0.012, R, { y: 0.118, z: 0.1, sx: 0.8, sy: 1.4, sz: 0.4, trait: false }, 6);
+    for (const s of [-1, 1]) {
+      tete.cone(0.04, 0.11, 5, W, { x: s * 0.1, y: -0.01, z: 0.0, rz: -s * (PI / 2 + 0.45) })
+        .cone(0.03, 0.08, 5, W, { x: s * 0.093, y: -0.05, z: 0.03, rz: -s * (PI / 2 + 0.85) })
+        .cone(0.058, 0.2, 8, W, { x: s * 0.07, y: 0.2, z: -0.02, sz: 0.5, rz: -s * 0.24, ry: s * 0.3 })
+        .cone(0.038, 0.14, 8, R, { x: s * 0.074, y: 0.19, z: -0.003, sz: 0.3, rz: -s * 0.24, ry: s * 0.3, trait: false })
+        .boite(0.05, 0.011, 0.01, R, { x: s * 0.093, y: 0.07, z: 0.08, rz: s * 0.6, ry: s * 0.62, trait: false });
+    }
+    const yeux = [-1, 1].map((s) => ({
+      p: [s * 0.052, 0.052, 0.107], r: [0, s * 0.43, s * 0.32],
+      a: atelier().piece(new THREE.CircleGeometry(0.024, 14), P.oeilBete, { sx: 1.5, sy: 0.85, trait: false })
+        .piece(new THREE.CircleGeometry(0.008, 8), P.reflet, { x: s * 0.008, y: 0.006, z: 0.002, trait: false }),
+    }));
+    const patte = (avant) => {
+      const a = atelier();
+      if (avant) a.ovale(0.045, W, { y: -0.025, sy: 1.3, sz: 1.05 }, 10).cylindre(0.032, 0.027, 0.19, 8, W, { y: -0.11 }).ovale(0.037, CR, { y: -0.212, z: 0.014, sy: 0.6, sz: 1.3 }, 8);
+      else a.ovale(0.062, W, { y: -0.03, sy: 1.3, sz: 1.1 }, 10).cylindre(0.027, 0.024, 0.2, 8, W, { y: -0.14, z: -0.02 }).ovale(0.033, CR, { y: -0.245, sy: 0.6, sz: 1.25 }, 8);
+      return a;
+    };
+    // la queue en panache : grosse au milieu, pointue au bout (rouge), relevée derrière
+    const queue = atelier().piece(fuseau(THREE, [[0, 0, 0], [0, 0.02, -0.27], [0, 0.37, -0.3]], 0.11, (t) => (t < 0.58 ? 0.35 + 0.65 * Math.sin((t / 0.58) * (PI / 2)) : Math.max(0, Math.cos(((Math.min(1, t) - 0.58) / 0.42) * (PI / 2))) ** 0.7)), W, { teinte: (x, y) => (y > 0.27 ? R : W) });
+    return {
+      corps, tete: { p: [0, 0.48, 0.22], a: tete }, yeux, queue: { p: [0, 0.33, -0.22], a: queue },
+      pattes: [[-1, 1], [1, 1], [-1, -1], [1, -1]].map(([sx, sz]) => ({ p: sz > 0 ? [sx * 0.065, 0.24, 0.15] : [sx * 0.075, 0.27, -0.14], a: patte(sz > 0) })),
+      bascule: [0, 0],
+    };
+  },
+  // Pon, le tanuki : rond, brun gris, la bande sombre des épaules, le masque noir autour des yeux et le museau
+  // clair, le gros ventre (qu'il tambourine, comme dans les contes), la feuille sur la tête (celle qui lui sert à
+  // se transformer), les pattes noires, la queue touffue au bout sombre
+  pon({ THREE, atelier, P }) {
+    const PI = Math.PI, B = P.tanuki, BC = P.tanukiClair, D = P.tanukiFonce, CR = P.tanukiCreme;
+    const corps = atelier()
+      .ovale(0.19, B, { y: 0.28, z: -0.02, sx: 0.95, sy: 0.9, sz: 1.1 }, 16)
+      .ovale(0.15, P.tanukiVentre, { y: 0.255, z: 0.085, sx: 0.85, sy: 0.92, sz: 0.62 }, 14)
+      .ovale(0.12, D, { y: 0.405, z: 0.04, sx: 1.25, sy: 0.38, sz: 0.75 }, 12)
+      .ovale(0.085, B, { y: 0.41, z: 0.12, sy: 1.1 }, 10);
+    const tete = atelier()
+      .ovale(0.13, B, { y: 0.03, sx: 1.12, sy: 0.95 }, 16)
+      .ovale(0.066, CR, { y: -0.02, z: 0.1, sx: 1.15, sy: 0.78, sz: 0.95 }, 12)
+      .ovale(0.022, P.noir, { y: 0.005, z: 0.162, sx: 1.3, sy: 0.85 }, 8)
+      .piece(new THREE.TorusGeometry(0.016, 0.0035, 3, 8, PI * 0.8), '#5a3a30', { y: -0.04, z: 0.158, rz: PI * 1.1, trait: false });
+    for (const s of [-1, 1]) {
+      tete.ovale(0.046, D, { x: s * 0.058, y: 0.022, z: 0.1, sx: 1.35, sz: 0.45, rz: -s * 0.45, ry: s * 0.45 }, 10)
+        .ovale(0.022, CR, { x: s * 0.05, y: 0.08, z: 0.106, sy: 0.6, sz: 0.4 }, 8)
+        .cone(0.04, 0.1, 5, BC, { x: s * 0.125, y: -0.03, z: 0.02, rz: -s * (PI / 2 + 0.5) })
+        .ovale(0.045, D, { x: s * 0.088, y: 0.125, z: -0.02, sz: 0.45, rz: -s * 0.35 }, 10)
+        .ovale(0.026, CR, { x: s * 0.088, y: 0.12, z: -0.004, sz: 0.3, rz: -s * 0.35, trait: false }, 8);
+    }
+    // la feuille, posée de travers sur la tête : sa nervure, sa queue
+    tete.ovale(0.075, P.feuilleTanuki, { x: 0.02, y: 0.17, z: 0.01, sx: 0.6, sy: 0.12, sz: 1.4, rx: -0.3, ry: 0.45, rz: 0.2 }, 10)
+      .boite(0.007, 0.008, 0.19, '#3f7a35', { x: 0.02, y: 0.181, z: 0.01, rx: -0.3, ry: 0.45, rz: 0.2, trait: false })
+      .baton([0.067, 0.205, -0.08], [0.08, 0.235, -0.115], 0.006, '#3f7a35', 4, { trait: false });
+    const yeux = [-1, 1].map((s) => ({
+      p: [s * 0.058, 0.025, 0.122], r: [0, s * 0.42, 0],
+      a: atelier().piece(new THREE.CircleGeometry(0.017, 12), P.oeilBete, { trait: false })
+        .piece(new THREE.CircleGeometry(0.007, 8), P.reflet, { x: s * 0.006, y: 0.006, z: 0.002, trait: false }),
+    }));
+    const patte = (avant) => {
+      const a = atelier();
+      if (avant) a.cylindre(0.042, 0.038, 0.12, 8, D, { y: -0.06 }).ovale(0.042, D, { y: -0.14, z: 0.012, sy: 0.6, sz: 1.2 }, 8);
+      else a.ovale(0.075, B, { y: -0.03, sy: 1.1 }, 10).cylindre(0.04, 0.036, 0.1, 8, D, { y: -0.12 }).ovale(0.044, D, { y: -0.17, z: 0.015, sy: 0.6, sz: 1.25 }, 8);
+      return a;
+    };
+    const queue = atelier().piece(fuseau(THREE, [[0, 0, 0], [0, -0.07, -0.17], [0, -0.01, -0.3]], 0.078, (t) => (t < 0.7 ? 0.6 + 0.4 * Math.sin((t / 0.7) * (PI / 2)) : Math.max(0, Math.cos(((Math.min(1, t) - 0.7) / 0.3) * (PI / 2))) ** 0.6)), B, { teinte: (x, y, z) => (z < -0.24 ? D : B) });
+    return {
+      corps, tete: { p: [0, 0.47, 0.14], a: tete }, yeux, queue: { p: [0, 0.27, -0.2], a: queue },
+      pattes: [[-1, 1], [1, 1], [-1, -1], [1, -1]].map(([sx, sz]) => ({ p: sz > 0 ? [sx * 0.09, 0.17, 0.12] : [sx * 0.1, 0.2, -0.11], a: patte(sz > 0) })),
+      bascule: [0.11, -0.12],
+    };
+  },
+  // Chapu, la loutre de rivière (kawauso, qui se change elle aussi en humain dans les contes) : un long corps
+  // souple brun, la gorge claire, la tête ronde et ses moustaches, de petites oreilles, des pattes palmées, la
+  // grosse queue qui s'effile ; un foulard bleu à pois blancs noué au cou
+  chapu({ THREE, atelier, P }) {
+    const PI = Math.PI, B = P.loutre, D = P.loutreFonce, CR = P.loutreCreme, BL = P.foulard;
+    const pois = (x, y, z) => (Math.floor(x * 70 + 50) % 3 === 0 && Math.floor(y * 70 + 50) % 2 === 0 ? P.foulardPois : BL);
+    const corps = atelier()
+      .ovale(0.11, B, { y: 0.16, z: -0.04, sx: 0.9, sy: 0.84, sz: 2.5 }, 16)
+      .ovale(0.085, CR, { y: 0.15, z: 0.14, sx: 0.85, sy: 0.85, sz: 1.2 }, 12)
+      .ovale(0.075, B, { y: 0.205, z: 0.245, sz: 1.15, rx: -0.45 }, 12)
+      .piece(new THREE.TorusGeometry(0.072, 0.02, 6, 16), BL, { y: 0.215, z: 0.25, rx: PI / 2 - 0.45 })
+      .piece(new THREE.ConeGeometry(0.07, 0.11, 3), BL, { y: 0.15, z: 0.31, rx: PI + 0.35, sz: 0.3, teinte: pois })
+      .ovale(0.024, BL, { y: 0.255, z: 0.18, sx: 1.4 }, 8);
+    const tete = atelier()
+      .ovale(0.088, B, { y: 0.0, sx: 1.12, sy: 0.88, sz: 1.05 }, 14)
+      .ovale(0.058, CR, { y: -0.028, z: 0.07, sx: 1.35, sy: 0.7, sz: 0.9 }, 12)
+      .ovale(0.02, P.noir, { y: -0.004, z: 0.12, sx: 1.4, sy: 0.85, sz: 0.7 }, 8)
+      .piece(new THREE.TorusGeometry(0.014, 0.003, 3, 8, PI * 0.8), '#5a3a30', { y: -0.042, z: 0.118, rz: PI * 1.1, trait: false });
+    for (const s of [-1, 1]) {
+      tete.ovale(0.022, D, { x: s * 0.08, y: 0.045, z: -0.025, sz: 0.55 }, 8);
+      // les moustaches, de chaque côté du museau
+      for (const k of [-1, 0, 1]) tete.baton([s * 0.045, -0.02 + k * 0.008, 0.1], [s * 0.14, -0.012 + k * 0.022, 0.085], 0.0022, P.moustache, 3, { trait: false });
+    }
+    const yeux = [-1, 1].map((s) => ({
+      p: [s * 0.044, 0.028, 0.077], r: [-0.3, s * 0.48, 0],
+      a: atelier().piece(new THREE.CircleGeometry(0.016, 12), P.oeilBete, { trait: false })
+        .piece(new THREE.CircleGeometry(0.006, 8), P.reflet, { x: s * 0.005, y: 0.005, z: 0.002, trait: false }),
+    }));
+    const patte = (avant) => {
+      const a = atelier();
+      if (avant) a.ovale(0.031, B, { y: -0.03, sy: 1.5 }, 8).ovale(0.033, D, { y: -0.088, z: 0.012, sx: 1.1, sy: 0.6, sz: 1.25 }, 8);
+      else a.ovale(0.055, B, { y: -0.01 }, 10).ovale(0.04, D, { y: -0.1, z: 0.03, sx: 1.2, sy: 0.45, sz: 1.55 }, 8);
+      return a;
+    };
+    const queue = atelier().piece(fuseau(THREE, [[0, 0, 0], [0, -0.05, -0.2], [0, -0.09, -0.4]], 0.075, (t) => 1 - 0.85 * t), B, { teinte: (x, y, z) => (z < -0.3 ? D : B) });
+    return {
+      corps, tete: { p: [0, 0.25, 0.32], a: tete }, yeux, queue: { p: [0, 0.15, -0.3], a: queue },
+      pattes: [[-1, 1], [1, 1], [-1, -1], [1, -1]].map(([sx, sz]) => ({ p: sz > 0 ? [sx * 0.07, 0.11, 0.16] : [sx * 0.08, 0.12, -0.2], a: patte(sz > 0) })),
+      bascule: [0.06, -0.2],
+    };
+  },
+};
 
-  // la tête : un crâne rond, des joues en touffes, un long museau pointu, de grandes oreilles
-  const h = atelier()
-    .ovale(0.125, P.renard, { y: 0.06, z: 0.0, sx: 1.08, sy: 0.92 }, 14)
-    .ovale(0.07, P.renard, { x: -0.085, y: 0.0, z: 0.02, sx: 1.1, sz: 0.9 }, 10)
-    .ovale(0.07, P.renard, { x: 0.085, y: 0.0, z: 0.02, sx: 1.1, sz: 0.9 }, 10)
-    .cone(0.062, 0.21, 10, P.renard, { y: 0.0, z: 0.17, rx: PI / 2 + 0.18 })
-    .boule(0.026, P.noir, { y: -0.02, z: 0.275 }, 1);
-  for (const s of [-1, 1]) {
-    h.cone(0.062, 0.21, 4, P.renard, { x: s * 0.075, y: 0.23, z: -0.015, rz: -s * 0.24, ry: PI / 4 })
-      .cone(0.038, 0.15, 4, P.renardRouge, { x: s * 0.075, y: 0.215, z: 0.005, rz: -s * 0.24, ry: PI / 4, trait: false })
-      // des yeux en arc (un renard qui sourit) et les traits rouges au-dessus, comme sur les statues
-      .piece(new THREE.TorusGeometry(0.021, 0.007, 4, 10, PI), P.noir, { x: s * 0.052, y: 0.075, z: 0.112, trait: false })
-      .boite(0.034, 0.009, 0.01, P.renardRouge, { x: s * 0.058, y: 0.118, z: 0.1, rz: s * 0.45, trait: false });
-  }
-  const tete = pivot(ctx, 0, 0.42, 0.21, maillage(h.fin(0, false)));
+/**
+ * Un compagnon ('kon', 'pon' ou 'chapu' : FORMES), environ 0,5 m. Il trotte (la loutre bondit, le dos qui ondule),
+ * s'assoit quand il attend (le tanuki sur son derrière, et de temps en temps il se tambourine le ventre ; la loutre
+ * se dresse sur ses pattes arrière et regarde autour d'elle), cligne des yeux, s'ébroue en sortant de l'eau ; la
+ * loutre nage. Renvoie { objet, espece, animer(dt, vitesse, temps, nage), secouer(), sauter() } ; animer renvoie 1
+ * ou −1 quand une paire de pattes se pose, sinon 0 (et toujours 0 en nageant). o.tambour() : Pon se tape sur le
+ * ventre (pour le son).
+ */
+export function creerCompagnon(ctx, espece, o = {}) {
+  const { THREE, maillage } = ctx;
+  const PI = Math.PI, F = FORMES[espece](ctx);
+  const racine = new THREE.Group(), bascule = new THREE.Group(), corps = new THREE.Group();
+  const [by, bz] = F.bascule;
+  bascule.position.set(0, by, bz);
+  corps.position.set(0, -by, -bz);
+  racine.add(bascule);
+  bascule.add(corps);
+  corps.add(maillage(F.corps.fin(0, false)));
+  const tete = pivot(ctx, ...F.tete.p, maillage(F.tete.a.fin(0, false)));
   corps.add(tete);
-
-  const pattes = [[-1, 1], [1, 1], [-1, -1], [1, -1]].map(([sx, sz]) => {
-    const a = atelier()
-      .cylindre(0.03, 0.026, 0.2, 7, P.renard, { y: -0.1 })
-      .ovale(0.034, P.renardOmbre, { y: -0.2, z: 0.012, sy: 0.6 }, 8);
-    const p = pivot(ctx, sx * 0.075, 0.21, sz * 0.13, maillage(a.fin(0, false)));
-    corps.add(p);
-    return p;
+  const yeux = F.yeux.map((y) => {
+    const g = pivot(ctx, ...y.p, maillage(y.a.fin(0, false), false));
+    g.rotation.set(...y.r);
+    tete.add(g);
+    return g;
   });
-
-  // la grande queue en panache, relevée derrière, au bout rouge
-  const q = atelier()
-    .ovale(0.12, P.renard, { y: 0.1, z: -0.1, sx: 0.8, sy: 0.8, sz: 1.7, rx: -0.85 }, 12)
-    .ovale(0.11, P.renard, { y: 0.27, z: -0.2, sx: 0.85, sy: 0.85, sz: 1.3, rx: -1.25 }, 12)
-    .ovale(0.075, P.renardRouge, { y: 0.39, z: -0.22, sx: 0.9, sz: 1.1, rx: -1.4 }, 10);
-  const queue = pivot(ctx, 0, 0.3, -0.2, maillage(q.fin(0, false)));
+  const pattes = F.pattes.map((q) => { const g = pivot(ctx, ...q.p, maillage(q.a.fin(0, false))); corps.add(g); return g; });
+  const queue = pivot(ctx, ...F.queue.p, maillage(F.queue.a.fin(0, false)));
   corps.add(queue);
+  const cligner = cligneur(yeux);
 
-  let phase = 0, assis = 1, foulee = 0, secousse = 0;
+  let phase = 0, assis = 1, foulee = 0, secousse = 0, saut = 0, tambour = 0, prochainTambour = 6 + Math.random() * 6;
+  const loutre = espece === 'chapu', tanuki = espece === 'pon';
   return {
     objet: racine,
+    espece,
+    /** Il s'ébroue (en sortant de l'eau). */
     secouer() { secousse = 1; },
-    animer(dt, vitesse, temps) {
-      const trot = Math.min(1, vitesse / 3);
-      phase += dt * (6 + vitesse * 3);
+    /** Un petit bond de joie (on vient de le choisir). */
+    sauter() { saut = 1; },
+    animer(dt, vitesse, temps, nage = false) {
+      cligner(dt);
+      const allure = nage ? 0 : Math.min(1, vitesse / 3);
+      phase += dt * (nage ? 7 + vitesse * 1.5 : loutre ? 6 + vitesse * 2.6 : 6 + vitesse * 3);
       const f = Math.floor((phase - PI / 2) / PI);
       let pose = 0;
-      if (f !== foulee) { foulee = f; if (trot > 0.3) pose = f & 1 ? -1 : 1; }
-      // assis quand il attend : l'arrière-train descend, les pattes avant tendues
-      assis += ((trot < 0.05 ? 1 : 0) - assis) * Math.min(1, dt * 4);
-      const sw = Math.sin(phase) * 0.7 * trot;
-      pattes[0].rotation.x = sw; pattes[3].rotation.x = sw;
-      pattes[1].rotation.x = -sw; pattes[2].rotation.x = -sw;
-      corps.rotation.x = -0.32 * assis;
-      corps.position.y = -0.04 * assis + Math.abs(Math.cos(phase)) * 0.03 * trot;
-      pattes[2].rotation.x += 1.1 * assis; pattes[3].rotation.x += 1.1 * assis;
-      pattes[0].rotation.x += 0.3 * assis; pattes[1].rotation.x += 0.3 * assis;
-      tete.rotation.x = 0.3 * assis + Math.sin(temps * 1.3) * 0.04;
-      tete.rotation.z = Math.sin(temps * 0.7) * 0.12 * assis;
-      queue.rotation.y = Math.sin(temps * (2 + 4 * trot)) * (0.35 + 0.25 * trot);
-      queue.rotation.x = 0.2 * assis;
+      if (f !== foulee) { foulee = f; if (allure > 0.3) pose = f & 1 ? -1 : 1; }
+      // assis quand il attend (pas dans l'eau)
+      assis += ((allure < 0.05 && !nage ? 1 : 0) - assis) * Math.min(1, dt * 4);
+      const sw = Math.sin(phase) * (loutre ? 0.55 : tanuki ? 0.6 : 0.7) * allure;
+      const [ag, ad, rg, rd] = pattes;
+      if (loutre) { ag.rotation.x = ad.rotation.x = sw; rg.rotation.x = rd.rotation.x = -sw; } // elle bondit : les pattes par paires
+      else { ag.rotation.x = rd.rotation.x = sw; ad.rotation.x = rg.rotation.x = -sw; } // ils trottent : en diagonale
+      for (const p of pattes) p.rotation.z = 0;
+      bascule.position.y = by;
+      bascule.rotation.z = 0;
+      tete.rotation.set(0, 0, 0);
+      queue.rotation.set(0, 0, 0);
+      if (nage) {
+        // la loutre nage : le corps à plat, la tête levée, les pattes qui pagaient, la queue qui ondule
+        const p = Math.sin(phase * 1.4) * 0.6;
+        bascule.rotation.x = -0.1;
+        ag.rotation.x = rd.rotation.x = 0.6 + p;
+        ad.rotation.x = rg.rotation.x = 0.6 - p;
+        tete.rotation.x = -0.25;
+        queue.rotation.y = Math.sin(temps * 5) * 0.35;
+        corps.position.y = -by + Math.sin(temps * 3) * 0.01;
+      } else if (loutre) {
+        // debout sur ses pattes arrière quand elle attend, les pattes avant devant la poitrine ; en courant, le dos ondule
+        bascule.rotation.x = -1.15 * assis + Math.sin(phase) * 0.14 * allure;
+        rg.rotation.x += 1.15 * assis; rd.rotation.x += 1.15 * assis;
+        ag.rotation.x += 0.75 * assis; ad.rotation.x += 0.75 * assis;
+        tete.rotation.x = 1.0 * assis + Math.sin(temps * 1.3) * 0.05;
+        tete.rotation.y = Math.sin(temps * 0.8) * 0.55 * assis;
+        queue.rotation.x = 1.1 * assis;
+        queue.rotation.y = Math.sin(temps * (2 + 5 * allure)) * (0.15 + 0.2 * allure);
+        corps.position.y = -by + Math.abs(Math.cos(phase)) * 0.04 * allure;
+      } else if (tanuki) {
+        // le tanuki assis sur son derrière, droit comme les statues, les pattes arrière devant lui, celles de devant
+        // sur le ventre ; il se dandine en marchant
+        bascule.rotation.x = -0.62 * assis;
+        bascule.rotation.z = Math.sin(phase) * 0.09 * allure;
+        bascule.position.y = by - 0.1 * assis;
+        corps.position.y = -by + Math.abs(Math.cos(phase)) * 0.03 * allure;
+        rg.rotation.x -= 0.95 * assis; rd.rotation.x -= 0.95 * assis;
+        rg.rotation.z = -0.45 * assis; rd.rotation.z = 0.45 * assis;
+        ag.rotation.x -= 0.15 * assis; ad.rotation.x -= 0.15 * assis;
+        ag.rotation.z = 0.2 * assis; ad.rotation.z = -0.2 * assis;
+        tete.rotation.x = 0.5 * assis + Math.sin(temps * 1.3) * 0.04;
+        tete.rotation.z = Math.sin(temps * 0.7) * 0.1 * assis;
+        queue.rotation.y = Math.sin(temps * (2 + 4 * allure)) * (0.3 + 0.25 * allure);
+        queue.rotation.x = 0.55 * assis;
+        // Pon se tambourine le ventre de temps en temps (pon, poko, pon)
+        if (assis > 0.9) prochainTambour -= dt; else prochainTambour = Math.max(prochainTambour, 3);
+        if (prochainTambour <= 0) { tambour = 1.2; prochainTambour = 9 + Math.random() * 8; }
+        if (tambour > 0) {
+          const avant = tambour;
+          tambour = Math.max(0, tambour - dt);
+          const coup = (u) => Math.max(0, Math.sin(u * PI * 2 * 2.5));
+          ag.rotation.x = -0.75 - 0.4 * coup(tambour); ad.rotation.x = -0.75 - 0.4 * coup(tambour + 0.2);
+          ag.rotation.z = 0.45; ad.rotation.z = -0.45;
+          for (const t of [1.0, 0.8, 0.6, 0.4, 0.2]) if (avant > t && tambour <= t) o.tambour?.();
+        }
+      } else {
+        // assis : l'arrière-train descend, les pattes avant tendues
+        bascule.rotation.x = -0.32 * assis;
+        corps.position.y = -by - 0.04 * assis + Math.abs(Math.cos(phase)) * 0.03 * allure;
+        rg.rotation.x += 1.1 * assis; rd.rotation.x += 1.1 * assis;
+        ag.rotation.x += 0.3 * assis; ad.rotation.x += 0.3 * assis;
+        tete.rotation.x = 0.3 * assis + Math.sin(temps * 1.3) * 0.04;
+        tete.rotation.z = Math.sin(temps * 0.7) * 0.12 * assis;
+        queue.rotation.y = Math.sin(temps * (2 + 4 * allure)) * (0.35 + 0.25 * allure);
+        queue.rotation.x = 0.2 * assis;
+      }
+      // un bond de joie
+      if (saut > 0) {
+        saut = Math.max(0, saut - dt / 0.5);
+        bascule.position.y = by + Math.sin((1 - saut) * PI) * 0.22;
+      }
       // il s'ébroue : le corps tourne vite autour de son échine, d'un côté puis de l'autre, la tête plus fort
       corps.rotation.z = 0;
       if (secousse > 0) {
@@ -408,7 +857,7 @@ export function creerRenard(ctx) {
         tete.rotation.z += s * 0.8;
         queue.rotation.y += s * 1.5;
       }
-      return pose;
+      return nage ? 0 : pose;
     },
   };
 }

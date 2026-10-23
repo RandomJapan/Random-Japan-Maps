@@ -9,7 +9,10 @@
 //  - « boucle/<nom> » : une ambiance qui tourne en boucle sans couture (ventDoux, ventFort, feuilles, vagues,
 //    vapeur, insectes ; no : la musique de la scène de nō d'Itsukushima, flûte et tambours) ;
 //  - « oiseau/milan » (le milan noir, « pîhyororo »), « oiseau/uguisu » (la bouscarle, « hôhokekyo ») ou
-//    « oiseau/mouette » (le goéland à queue noire, qui miaule).
+//    « oiseau/mouette » (le goéland à queue noire, qui miaule) ;
+//  - « cri/kon » (le renard : deux jappements, « kon kon »), « cri/pon » (le tanuki se tambourine le ventre :
+//    « pon, poko, pon »), « cri/chapu » (la loutre : trois petits cris aigus, et un plouf) ; « tambour » (un seul
+//    coup sur le ventre du tanuki, quand il s'ennuie) ; « pouf » (un compagnon qui s'en va dans un nuage).
 //  Les pas et les oiseaux sortent à une force fixe (la plus forte valeur efficace sur 10 ms : 0,25 × la force
 //  du sol) ; les boucles, à une valeur efficace de 1 : bruitage.js règle les volumes.
 // ================================================================
@@ -530,6 +533,42 @@ const OISEAUX = {
   },
 };
 
+// ---------------------------------------------------------------- Les compagnons
+/** Le ventre du tanuki : une peau tendue, grave et ronde (frappée à t0, de force g). */
+function ventre(c, t0, g = 1) {
+  return c.modes(t0, [[96, 1 * g, 0.13], [158, 0.45 * g, 0.08], [236, 0.2 * g, 0.05]])
+    .bruit(t0, { type: 'bas', f: 420, tau: 0.02, gain: 0.35 * g });
+}
+const CRIS = {
+  kon(sr, r) {
+    const c = composer(sr, r, 0.6);
+    const jappe = (t0, d, h) => c.cri(t0, d, (t) => { const u = t / d; return h * (u < 0.3 ? 880 + 1300 * u : 1270 - 650 * (u - 0.3)); }, ad(0.01, 0.06, d), { fc: 1700, bw: 1100, rauque: 0.15 });
+    jappe(0.02, 0.13, 1);
+    jappe(0.24, 0.15, 1.05);
+    return cadrer([echo(c.b, sr)], sr, 0.25);
+  },
+  pon(sr, r) {
+    const c = composer(sr, r, 1.1);
+    ventre(c, 0.01, 1); ventre(c, 0.24, 0.55); ventre(c, 0.34, 0.6); ventre(c, 0.58, 1);
+    return cadrer([c.b], sr, 0.25);
+  },
+  chapu(sr, r) {
+    const c = composer(sr, r, 0.75);
+    for (const [t0, h] of [[0.01, 1], [0.11, 1.08], [0.21, 1.16]]) c.cri(t0, 0.075, (t) => h * (2100 + 11000 * t), ad(0.006, 0.03, 0.075), { fc: 3200, bw: 1500, rauque: 0.1 });
+    c.bulles(7, { de: 0.33, a: 0.55, f: [450, 1300], g: [0.12, 0.3] })
+      .bruit(0.32, { f: 1800, q: 0.8, tau: 0.05, gain: 0.25 });
+    return cadrer([echo(c.b, sr)], sr, 0.25);
+  },
+};
+/** Un compagnon s'en va dans un petit nuage (« pouf ») : un souffle étouffé, une petite note qui tombe. */
+function pouf(sr) {
+  const r = alea(graine('pouf')), c = composer(sr, r, 0.5);
+  c.bruit(0, { type: 'bas', f: (t) => 1600 - 2600 * t, tau: 0.07, gain: 1 })
+    .bruit(0, { f: 3200, q: 0.9, tau: 0.025, gain: 0.3 })
+    .ton(0.0, 0.12, (t) => 620 - 2400 * t, ad(0.005, 0.06, 0.12), 0.3);
+  return cadrer([c.b], sr, 0.22);
+}
+
 /** Le son demandé (voir l'en-tête), en canaux de Float32Array. */
 export function fabriquer(quoi, sr) {
   const [sorte, nom, n] = quoi.split('/');
@@ -537,6 +576,9 @@ export function fabriquer(quoi, sr) {
   if (sorte === 'ebrouer') return ebrouer(sr);
   if (sorte === 'boucle') return BOUCLES[nom](sr, alea(graine(quoi)));
   if (sorte === 'oiseau') return OISEAUX[nom](sr, alea(graine(quoi)));
+  if (sorte === 'cri') return CRIS[nom](sr, alea(graine(quoi)));
+  if (sorte === 'tambour') { const c = composer(sr, alea(graine(quoi)), 0.5); ventre(c, 0.005, 1); return cadrer([c.b], sr, 0.25); }
+  if (sorte === 'pouf') return pouf(sr);
   throw new Error(`son inconnu : ${quoi}`);
 }
 

@@ -1,7 +1,8 @@
 // ================================================================
 //  La boîte de dialogue de la balade, comme dans les jeux Pokémon : le texte s'écrit lettre par lettre en bas
 //  de l'écran, A (ou E, Espace, Entrée, un appui sur la boîte) le termine puis passe à la page suivante ;
-//  un petit menu Oui / Non quand il faut choisir. Une seule conversation à la fois.
+//  un petit menu Oui / Non quand il faut choisir (ou plus d'options : le compagnon du départ, dont chaque option
+//  survolée montre sa description dans la boîte). Une seule conversation à la fois.
 // ================================================================
 
 const VITESSE = 48; // lettres par seconde
@@ -14,7 +15,7 @@ export function creerDialogue(el, son = null) {
   let ouvert = false;
   let pages = [], page = 0, lettres = 0, total = 0, minuterie = null;
   let fin = null; // résout la conversation
-  let options = null, choixCourant = 0, finChoix = null;
+  let options = null, choixCourant = 0, finChoix = null, reglages = {};
 
   function ecrire() {
     clearInterval(minuterie);
@@ -44,11 +45,14 @@ export function creerDialogue(el, son = null) {
   function montrerChoix() {
     el.choix.innerHTML = options.map((o, i) => `<button type="button" data-i="${i}">${o}</button>`).join('');
     el.choix.hidden = false;
-    choixCourant = 0;
+    choixCourant = reglages.depart || 0;
     marquer();
   }
   function marquer() {
     [...el.choix.children].forEach((b, i) => b.classList.toggle('actif', i === choixCourant));
+    // (survol : ce que dit l'option marquée, à la place du texte)
+    const texte = reglages.survol?.(choixCourant);
+    if (typeof texte === 'string') el.texte.textContent = texte;
   }
 
   function fermer() {
@@ -70,6 +74,13 @@ export function creerDialogue(el, son = null) {
   }
 
   el.boite.addEventListener('pointerdown', (e) => { e.preventDefault(); appuyer(); });
+  // (à la souris, l'option survolée se marque)
+  el.choix.addEventListener('pointerover', (e) => {
+    const b = e.target.closest('[data-i]');
+    if (!b || e.pointerType !== 'mouse' || +b.dataset.i === choixCourant) return;
+    choixCourant = +b.dataset.i;
+    marquer();
+  });
   el.choix.addEventListener('pointerdown', (e) => {
     const b = e.target.closest('[data-i]');
     if (!b) return;
@@ -110,19 +121,23 @@ export function creerDialogue(el, son = null) {
       choixCourant = (choixCourant + sens + options.length) % options.length;
       marquer();
     },
-    /** Échap dans un choix : la dernière option (« Non »). */
+    /** Échap dans un choix : la dernière option (« Non »), sauf dans un choix qu'on ne peut pas refuser. */
     annuler() {
-      if (!ouvert || !options || el.choix.hidden) return;
+      if (!ouvert || !options || el.choix.hidden || reglages.obligatoire) return;
       choixCourant = options.length - 1;
       valider();
     },
     /** Dit des pages ; la promesse se résout quand on a tout lu. qui : le nom affiché (ou rien). */
     dire(p, { qui } = {}) {
-      return new Promise((r) => { options = null; fin = r; ouvrir(p, qui); });
+      return new Promise((r) => { options = null; fin = r; reglages = {}; ouvrir(p, qui); });
     },
-    /** Dit des pages et finit par un choix ; la promesse donne l'indice de l'option choisie. */
-    choisir(p, opts, { qui } = {}) {
-      return new Promise((r) => { options = opts; finChoix = r; ouvrir(p, qui); });
+    /**
+     * Dit des pages et finit par un choix ; la promesse donne l'indice de l'option choisie. depart : l'option marquée
+     * d'abord ; survol(i) : appelé quand l'option i se marque (s'il renvoie un texte, la boîte le montre) ;
+     * obligatoire : Échap ne choisit rien.
+     */
+    choisir(p, opts, { qui, depart = 0, survol = null, obligatoire = false } = {}) {
+      return new Promise((r) => { options = opts; finChoix = r; reglages = { depart, survol, obligatoire }; ouvrir(p, qui); });
     },
   };
 }

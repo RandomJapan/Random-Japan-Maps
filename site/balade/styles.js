@@ -30,10 +30,21 @@ const PALETTE = {
   // Aogashima : la jungle du cratère, la roche volcanique, la terre des fumerolles, le béton de l'île
   jungle: '#5a9d4c', jungleFonce: '#43823f', fougere: '#7dbb5a', paroi: '#8a7d70', rocheSombre: '#5f5651',
   terreRouge: '#b8775a', terreClaire: '#ddd5c6', route: '#c2bcb0', beton: '#dcd7cb', tole: '#5d8a86',
-  peau: '#ffdcbc', joue: '#ff9e98', cheveux: '#553a2a', cheveuxFille: '#74452c', casquette: '#2f9aa0', visiere: '#ffffff',
-  haut: '#e8583e', hautFille: '#f59aa6', short: '#3d5a8f', chaussures: '#ffffff', semelle: '#d8452e', sac: '#f2bd45', sangle: '#99673f',
+  peau: '#ffdcbc', joue: '#ff9e98', cheveux: '#553a2a', cheveuxFille: '#74452c', casquette: '#2f9aa0', visiere: '#24797e',
+  haut: '#e8583e', hautFille: '#f59aa6', short: '#3d5a8f', chaussures: '#ffffff', semelle: '#5a4c56', sac: '#f2bd45', sangle: '#99673f',
   ruban: '#e0453a', chapeau: '#fff0cf', oeil: '#2a2230', reflet: '#ffffff',
-  renard: '#ffffff', renardRouge: '#e8452e', renardOmbre: '#ecdcc8', grelot: '#e8b941',
+  // les deux voyageurs, refaits le 2026-10-23 : le visage, les habits du garçon et de la fille
+  iris: '#5a3a2a', irisClair: '#a8703e', irisFille: '#6b3a26', irisFilleClair: '#c08040', pupille: '#1e1418', cils: '#2a2230',
+  sourcils: '#4a3020', bouche: '#a8443c', nez: '#f4c3a2',
+  tshirt: '#fbf6ea', veste: '#e8583e', vesteFonce: '#c2432d', shortFonce: '#2f4a7a', ceinture: '#6a4a32', boucle: '#e8b941',
+  chaussette: '#ffffff', chaussetteBord: '#e9e2d4', basket: '#d8452e', casquetteFace: '#ffffff', tapis: '#3f8a7a', sacFonce: '#d99a2a',
+  chemisier: '#f59aa6', col: '#ffffff', colRayure: '#2f4a7a', noeud: '#e0453a', jupe: '#3d5a8f', jupeFonce: '#33507f',
+  chaussuresFille: '#b8433a', semelleFille: '#5a3a30', sacFille: '#f6a5a0', sacFilleFonce: '#e07f7c',
+  chapeauFonce: '#ead8a8', fleur: '#ffffff', fleurCoeur: '#f2c443',
+  // les compagnons : Kon le renard, Pon le tanuki, Chapu la loutre
+  renard: '#ffffff', renardRouge: '#e8452e', renardOmbre: '#ecdcc8', grelot: '#e8b941', oeilBete: '#221a20',
+  tanuki: '#8f6f50', tanukiClair: '#a8886a', tanukiFonce: '#4a3a30', tanukiCreme: '#efe3cc', tanukiVentre: '#e6d2ae', feuilleTanuki: '#5aa64a',
+  loutre: '#7a5236', loutreFonce: '#553722', loutreCreme: '#ead9bb', foulard: '#2f6fb0', foulardPois: '#f4f0e6', moustache: '#f4efe6',
 };
 const PARCHEMIN = { cielHaut: '#ead9b4', horizon: '#f0ead2', nuage: '#fbf4e2' };
 

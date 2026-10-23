@@ -1,14 +1,15 @@
 // ================================================================
 //  La balade 3D : visiter un lieu du Japon avec un personnage vu de dos, comme dans un jeu vidéo, dans le
 //  style des Pokémon (le rendu lisse de X et Y, boîte de dialogue, des gens à qui parler, des tampons à
-//  collectionner dans un carnet). Kon, le renard d'Inari, suit le joueur et lui souffle des indices.
+//  collectionner dans un carnet). Un compagnon, choisi au début de chaque visite (Kon le renard d'Inari, Pon le
+//  tanuki ou Chapu la loutre), suit le joueur et lui souffle des indices.
 //  ZQSD ou WASD (les touches de la même place sur tous les claviers) ou les flèches : marcher ; Maj : courir ;
 //  E, Espace ou Entrée : parler, lire (le bouton A) ; glisser : tourner la caméra ; molette : l'approcher ;
 //  C : le carnet ; Échap : fermer. Sur téléphone, un joystick en bas à gauche et un bouton A en bas à droite.
 //  On entend ses pas (selon le sol), le vent dans les arbres, la mer, les fumerolles (bruitage.js), et l'air du
 //  lieu, composé pour la balade (musique.js) ; dans l'eau, on éclabousse et l'on ressort mouillé (effets.js) ;
 //  à Itsukushima, des goélands tournent sur la baie et s'envolent quand on approche (mouettes.js).
-//  ?lieu=itsukushima|aogashima ; ?perso=garcon|fille ; ?langue=en|fr|ja ;
+//  ?lieu=itsukushima|aogashima ; ?perso=garcon|fille ; ?compagnon=kon|pon|chapu ; ?langue=en|fr|ja ;
 //  ?photo=heros|perso : une image fixe (captures) ; ?demo : une partie jouée image par image (vidéos) ;
 //  ?ciel=parchemin : un essai du style (styles.js) ; ?flou=0 : sans le flou du lointain ; ?aa=0 : sans anticrénelage.
 // ================================================================
@@ -16,7 +17,7 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.m
 import { ateliers } from '../modeles3d.js';
 import { MATIERES } from './textures.js';
 import { creerStyle, matieresStyle, passeFinale, rafale, VENT_GLSL, VITESSE_RAFALE } from './styles.js';
-import { creerVoyageur, creerPersonnage, creerRenard, creerDaim } from './personnages.js';
+import { creerHeros, creerPersonnage, creerCompagnon, COMPAGNONS, creerDaim } from './personnages.js';
 import { creerPassant, avancerPassant, tourner, lisse } from './monde.js';
 import { creerEtiquettes } from './etiquettes.js';
 import { TEXTES, LANGUES, choisirLangue } from './textes.js';
@@ -47,6 +48,11 @@ const memoire = {
 };
 let sorte = ['garcon', 'fille'].includes(params.get('perso')) ? params.get('perso') : memoire.lire('baladePerso');
 if (!['garcon', 'fille'].includes(sorte)) sorte = null;
+// le compagnon : on le choisit au départ de chaque visite (le dernier choisi est proposé d'abord) ; ?compagnon= l'impose
+// (sans le choix : pour les essais)
+const COMPAGNON_IMPOSE = COMPAGNONS.includes(params.get('compagnon'));
+let espece = COMPAGNON_IMPOSE ? params.get('compagnon') : memoire.lire('baladeCompagnon');
+if (!COMPAGNONS.includes(espece)) espece = null;
 
 const toile = $('#jeu');
 // l'anticrénelage se fait dans l'image de la scène (styles.js, passeFinale) ; sur un écran tactile, au plus
@@ -59,9 +65,9 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(48, 1, 0.1, 8000);
 
 // ---------------------------------------------------------------- Le monde
-let M = null; // { style, ctx, mats, lieu, groupe, voyageurs, joueur, autre, kon, passants, daims, eau, ciel, soleil, finale, sauvage }
+let M = null; // { style, ctx, mats, lieu, groupe, voyageurs, joueur, autre, compagnons, kon (le compagnon choisi), passants, daims, eau, ciel, soleil, finale, sauvage, cadre }
 const etat = { x: 0, z: 0, y: 0, cap: 0, vitesse: 0, vx: 0, vz: 0, mode: 'depart' };
-const renard = { x: 0, z: 0, y: 0, cap: 0, vitesse: 0 };
+const renard = { x: 0, z: 0, y: 0, cap: 0, vitesse: 0, nage: false }; // le compagnon (nage : la loutre dans l'eau)
 // la caméra voulue (le joueur la tourne) ; vue : celle qu'on a, rapprochée sous un toit ou devant un bâtiment
 const cam = { lacet: 0, tangage: 0.24, distance: 6.4 };
 const vue = { tangage: 0.24, distance: 6.4 };
@@ -85,7 +91,7 @@ function construire() {
   const maillage = maillageDe(mats.corps, mats.trait, mats.profondeur);
   const ctx = { THREE, atelier: ateliers(THREE, style.repeindre, style.matieres), P, peinture: style.peinture, maillage };
   const ctxPerso = { ...ctx, maillage: maillageDe(mats.corpsPerso, mats.traitPerso) };
-  // le joueur et Kon se mouillent dans l'eau : chacun sa matière (les passants restent secs)
+  // le joueur et son compagnon se mouillent dans l'eau : chacun sa matière (les passants restent secs)
   const mouilleJoueur = mats.persoMouille(P.peau), mouilleKon = mats.persoMouille();
   const ctxJoueur = { ...ctx, maillage: maillageDe(mouilleJoueur.materiel, mats.traitPerso) };
   const ctxKon = { ...ctx, maillage: maillageDe(mouilleKon.materiel, mats.traitPerso) };
@@ -137,9 +143,11 @@ function construire() {
 
   // les personnages portent leur ombre mais n'en reçoivent pas : pas de taches sur les visages
   const sansOmbreRecue = (o) => o.traverse((m) => { m.receiveShadow = false; });
-  const voyageurs = { garcon: creerVoyageur(ctxJoueur, 'garcon'), fille: creerVoyageur(ctxJoueur, 'fille') };
-  const kon = creerRenard(ctxKon);
-  for (const v of [voyageurs.garcon, voyageurs.fille, kon]) { groupe.add(v.objet); sansOmbreRecue(v.objet); }
+  const voyageurs = { garcon: creerHeros(ctxJoueur, 'garcon'), fille: creerHeros(ctxJoueur, 'fille') };
+  // les trois compagnons (un seul se montre, sauf au moment de choisir) ; Pon se tambourine le ventre : on l'entend
+  const tambour = () => M.bruitage.tambour({ pan: panDe(renard.x, renard.z), force: 1 / (1 + Math.max(0, Math.hypot(renard.x - camera.position.x, renard.z - camera.position.z) - 4) * 0.25) });
+  const compagnons = Object.fromEntries(COMPAGNONS.map((e) => [e, creerCompagnon(ctxKon, e, { tambour })]));
+  for (const v of [voyageurs.garcon, voyageurs.fille, ...Object.values(compagnons)]) { groupe.add(v.objet); sansOmbreRecue(v.objet); }
   const passants = lieu.passants.map((p) => {
     const perso = creerPersonnage(ctxPerso, p.tenue);
     groupe.add(perso.objet);
@@ -164,8 +172,9 @@ function construire() {
   scene.add(groupe);
   M = {
     carte, effets, mouilleJoueur, mouilleKon, feuillage: densiteFeuillage(lieu), bruitage: creerBruitage({ oiseaux: lieu.oiseaux || [], ambiances: lieu.ambiances || [] }), musique: creerMusique(lieu.id), focale: 800,
-    style, ctx, mats, lieu, groupe, voyageurs, kon, passants, daims, mouettes, eau, ciel, soleil, hemi, etoiles, vapeurs, touffes, finale: passeFinale(THREE, style, { echantillons: params.get('aa') === '0' ? 0 : 4, flou: params.get('flou') !== '0' }), cible: null, sauvage: null, nuit: { v: 0, cible: 0, fin: null } };
+    style, ctx, mats, lieu, groupe, voyageurs, compagnons, kon: null, cadre: null, passants, daims, mouettes, eau, ciel, soleil, hemi, etoiles, vapeurs, touffes, finale: passeFinale(THREE, style, { echantillons: params.get('aa') === '0' ? 0 : 4, flou: params.get('flou') !== '0' }), cible: null, sauvage: null, nuit: { v: 0, cible: 0, fin: null } };
   choisirVoyageur(sorte || 'garcon');
+  choisirCompagnon(espece || 'kon');
   dimensionner();
 }
 
@@ -366,6 +375,12 @@ function choisirVoyageur(s) {
   M.autre = M.voyageurs[s === 'garcon' ? 'fille' : 'garcon'];
   M.joueur.objet.visible = true;
   M.autre.objet.visible = false;
+}
+/** Le compagnon qui suit le joueur (les deux autres cachés). */
+function choisirCompagnon(e) {
+  espece = e;
+  for (const [nom, c] of Object.entries(M.compagnons)) c.objet.visible = nom === e;
+  M.kon = M.compagnons[e];
 }
 
 /**
@@ -690,7 +705,10 @@ function appliquerNuit(v) {
 const textesDe = (L, cle) => L.textes[langue]?.[cle] ?? L.textes.en[cle];
 const tx = (cle) => textesDe(M.lieu, cle);
 const nomDe = (L) => L.nom[langue] || L.nom.en;
-const nomQui = (qui) => (qui === 'kon' ? t('kon') : tx('noms')?.[qui] || '');
+/** Un texte du compagnon e (textes.js : compagnons) ; tc : celui du compagnon choisi. */
+const tcDe = (e, cle) => (TEXTES[langue].compagnons?.[e] ?? TEXTES.en.compagnons[e])[cle];
+const tc = (cle) => tcDe(espece || 'kon', cle);
+const nomQui = (qui) => (qui === 'kon' || qui === 'compagnon' ? tc('nom') : tx('noms')?.[qui] || '');
 const texteTampon = (L, tp) => {
   const [nom, indice] = textesDe(L, 'tampons')[tp.id];
   return { nom, indice };
@@ -826,6 +844,7 @@ function ouvrirMenu() {
   $('.menu').innerHTML = `
     <button type="button" class="menu-carnet">${t('carnet')} <small>${$('.carnet-n').textContent}</small></button>
     ${choix('menuVoyageur', [['garcon', t('garcon')], ['fille', t('fille')]], sorte)}
+    ${choix('menuCompagnon', COMPAGNONS.map((e) => [e, tcDe(e, 'nom')]), espece)}
     ${choix('menuLieu', Object.entries(LIEUX).map(([id, { infos }]) => [id, nomDe(infos)]), M.lieu.id)}
     ${choix('menuSon', [['oui', t('sonOui')], ['non', t('sonNon')]], son.actif() ? 'oui' : 'non')}
     ${choix('menuMusique', [['oui', t('sonOui')], ['non', t('sonNon')]], M.musique.actif() ? 'oui' : 'non')}
@@ -843,6 +862,15 @@ $('.menu').addEventListener('click', (e) => {
     sorte = d.menuvoyageur;
     memoire.ecrire('baladePerso', sorte);
     choisirVoyageur(sorte);
+  } else if (d.menucompagnon) {
+    if (d.menucompagnon !== espece) {
+      M.effets.nuage(renard.x, renard.y, renard.z);
+      M.bruitage.pouf({ pan: panDe(renard.x, renard.z) });
+      choisirCompagnon(d.menucompagnon);
+      memoire.ecrire('baladeCompagnon', espece);
+      M.kon.sauter();
+      setTimeout(() => M.bruitage.cri(espece, { pan: panDe(renard.x, renard.z) }), 250);
+    }
   } else if (d.menulieu) {
     if (d.menulieu !== M.lieu.id) { location.search = `?lieu=${d.menulieu}`; return; }
   } else if (d.menuson) son.regler(d.menuson === 'oui');
@@ -915,7 +943,7 @@ function video() {
 }
 
 // ---------------------------------------------------------------- Parler, lire, tamponner
-/** Ce qui est à portée et devant le joueur (gens, panneaux, objets, daims, Kon), le mieux placé d'abord. */
+/** Ce qui est à portée et devant le joueur (gens, panneaux, objets, daims, le compagnon), le mieux placé d'abord. */
 function cibleProche() {
   const L = M.lieu;
   const cands = [];
@@ -930,7 +958,7 @@ function cibleProche() {
     }
   }
   for (const d of M.daims) cands.push({ x: d.x, z: d.z, y: L.monde.hauteur(d.x, d.z), rayon: 1.9, verbe: 'caresser', haut: 1.55, action: L.actionDaim });
-  cands.push({ x: renard.x, z: renard.z, y: renard.y, rayon: 1.4, verbe: 'parler', haut: 0.95, action: parlerKon, kon: true });
+  if (!renard.nage) cands.push({ x: renard.x, z: renard.z, y: renard.y, rayon: 1.4, verbe: 'parler', haut: 0.95, action: parlerCompagnon, kon: true });
   let meilleur = null, score = Infinity;
   const fx = Math.sin(etat.cap), fz = Math.cos(etat.cap);
   for (const c of cands) {
@@ -938,7 +966,7 @@ function cibleProche() {
     if (d > (c.rayon || 1.6) || Math.abs(c.y - etat.y) > 1.3) continue;
     const devant = d > 0.01 ? (dx * fx + dz * fz) / d : 1;
     if (d > 0.9 && devant < 0.2) continue;
-    const s = d * (1.6 - devant) + (c.kon ? 1.2 : 0); // Kon passe après le reste
+    const s = d * (1.6 - devant) + (c.kon ? 1.2 : 0); // le compagnon passe après le reste
     if (s < score) { score = s; meilleur = c; }
   }
   return meilleur;
@@ -961,12 +989,14 @@ async function agir() {
   }
 }
 
-/** Kon souffle où est le prochain tampon. */
-async function parlerKon() {
+/** Le compagnon souffle où est le prochain tampon (chacun à sa façon), après un petit bond et son cri. */
+async function parlerCompagnon() {
   const L = M.lieu;
+  M.kon.sauter();
+  M.bruitage.cri(espece, { pan: panDe(renard.x, renard.z) });
   const manque = L.tampons.find((tp) => !aLeTampon(L.id, tp.id));
-  if (!manque) { await dialogue.dire(t('konTout'), { qui: t('kon') }); return; }
-  await dialogue.dire([t('konIndice'), t('konOu')(texteTampon(L, manque).indice)], { qui: t('kon') });
+  if (!manque) { await dialogue.dire(tc('tout'), { qui: tc('nom') }); return; }
+  await dialogue.dire([tc('indice'), t('ouTampon')(texteTampon(L, manque).indice)], { qui: tc('nom') });
 }
 
 /** Le tampon pressé dans le carnet : le dessin qui s'imprime, la fanfare, puis la phrase. */
@@ -983,7 +1013,7 @@ async function tampon(id) {
   majCompteur();
   await dialogue.dire([t('tamponObtenu')(texteTampon(L, tp).nom)]);
   el.hidden = true;
-  if ((lireTampons()[L.id] || []).length === L.tampons.length) await dialogue.dire(t('konTout'), { qui: t('kon') });
+  if ((lireTampons()[L.id] || []).length === L.tampons.length) await dialogue.dire(tc('tout'), { qui: tc('nom') });
 }
 const attendre = (ms) => new Promise((r) => setTimeout(r, ms));
 // assis : le siège { x, z, y (le dessus), cap } ; le joueur n'en bouge plus (sa racine, ASSIS plus bas que le dessus) ;
@@ -999,6 +1029,30 @@ const jeu = {
   aTampon: (id) => aLeTampon(M.lieu.id, id),
   tampon, video, attendre,
   saluer: () => M.joueur.saluer(),
+  /** Le compagnon choisi : 'kon', 'pon' ou 'chapu' (ce qu'il dit dans les lieux en dépend ; dire(…, 'compagnon')). */
+  get compagnon() { return espece || 'kon'; },
+  /**
+   * La caméra posée ailleurs, le temps d'un regard : { de: [x, y, z], vers: [x, y, z], champ (en degrés) }, ou null :
+   * elle revient derrière le joueur.
+   */
+  cadrer(c) {
+    // (champ : pour un écran large ; plus étroit, le champ s'ouvre en hauteur pour voir autant de large)
+    const k = Math.max(1, 1.68 / (innerWidth / innerHeight));
+    const champ = c?.champ && THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(c.champ) / 2) * k));
+    M.cadre = c && { de: new THREE.Vector3(...c.de), vers: new THREE.Vector3(...c.vers), champ };
+    camera.userData.place = false;
+  },
+  /** Les deux ronds des jumelles sur l'écran (oui), ou plus. */
+  jumelles(oui) {
+    const el = $('.jumelles-ecran'), l = innerWidth, h = innerHeight, rr = Math.min(l * 0.27, h * 0.42);
+    for (const [c, sg] of [['.j1', -1], ['.j2', 1]]) {
+      const o = el.querySelector(c);
+      o.setAttribute('cx', l / 2 + sg * rr * 0.72);
+      o.setAttribute('cy', h / 2);
+      o.setAttribute('r', rr);
+    }
+    el.classList.toggle('visible', oui);
+  },
   /**
    * S'asseoir sur un siège { x, z, y (son dessus), cap } (la caméra : vue { lacet, tangage, distance }), ou se
    * lever (null) : la caméra reprend sa place.
@@ -1018,7 +1072,7 @@ const jeu = {
   },
   /** La vapeur (d'un sauna) qui envahit l'écran (oui), ou se dissipe. */
   vapeur: (oui) => $('.vapeur-ecran').classList.toggle('visible', oui),
-  /** On ressort en sueur : les habits trempés sèchent dans une dizaine de secondes ; Kon s'ébrouera. */
+  /** On ressort en sueur : les habits trempés sèchent dans une dizaine de secondes ; le compagnon s'ébrouera. */
   transpirer() {
     Object.assign(mouille.joueur, { v: 1, ligne: 1.45, hors: -8 });
     Object.assign(mouille.kon, { v: 0.9, ligne: 0.5, hors: -8, ebroue: false });
@@ -1041,7 +1095,7 @@ const jeu = {
 };
 
 // ---------------------------------------------------------------- Le jeu
-/** Le joueur au départ du lieu (ou dans la pose d'une capture), Kon à côté. */
+/** Le joueur au départ du lieu (ou dans la pose d'une capture), son compagnon à côté. */
 function placer() {
   const L = M.lieu;
   Object.assign(etat, { x: L.depart.x, z: L.depart.z, cap: L.depart.cap, vitesse: 0, vx: 0, vz: 0 });
@@ -1052,13 +1106,16 @@ function placer() {
     Object.assign(cam, { lacet: photo.lacet, tangage: photo.tangage, distance: photo.distance });
   }
   etat.y = L.monde.hauteur(etat.x, etat.z);
-  // Kon : à droite et un peu en arrière
+  // le compagnon : à droite et un peu en arrière
   const dx = Math.cos(etat.cap), dz = -Math.sin(etat.cap), fx = Math.sin(etat.cap), fz = Math.cos(etat.cap);
   Object.assign(renard, { x: etat.x - dx * 1.3 - fx * 0.5, z: etat.z - dz * 1.3 - fz * 0.5, cap: etat.cap + 0.6 });
   renard.y = L.monde.hauteur(renard.x, renard.z);
 }
 
-/** Les deux voyageurs côte à côte, face à l'objectif, Kon devant eux (le choix du départ, la capture « perso »). */
+/**
+ * Les deux voyageurs côte à côte, face à l'objectif (le choix du départ, la première fois ; pour la capture « perso »,
+ * le compagnon devant eux).
+ */
 function cadrerLesDeux() {
   const L = M.lieu, p = L.photos.perso;
   Object.assign(etat, { x: p.x, z: p.z, cap: p.cap });
@@ -1070,6 +1127,35 @@ function cadrerLesDeux() {
   const dx = Math.cos(etat.cap), dz = -Math.sin(etat.cap), fx = Math.sin(etat.cap), fz = Math.cos(etat.cap);
   Object.assign(renard, { x: etat.x + dx * 0.55 + fx * 0.85, z: etat.z + dz * 0.55 + fz * 0.85, cap: etat.cap - 0.3 });
   renard.y = L.monde.hauteur(renard.x, renard.z);
+  if (!PHOTO) for (const c of Object.values(M.compagnons)) c.objet.visible = false;
+  camera.userData.place = false;
+}
+
+/**
+ * Le choix du compagnon, au départ de chaque visite : les trois assis en rang devant le voyageur, face à une
+ * caméra basse (M.cadre), comme les trois créatures qu'on présente au début des jeux.
+ */
+const trio = { actif: false, places: [] };
+function cadrerTrio() {
+  const L = M.lieu, p = L.photos.perso;
+  Object.assign(etat, { x: p.x, z: p.z, cap: p.cap, vitesse: 0, vx: 0, vz: 0 });
+  etat.y = L.monde.hauteur(etat.x, etat.z);
+  M.autre.objet.visible = false;
+  const fx = Math.sin(etat.cap), fz = Math.cos(etat.cap), dx = Math.cos(etat.cap), dz = -Math.sin(etat.cap);
+  trio.places = COMPAGNONS.map((e, i) => {
+    const k = i - 1, x = etat.x + fx * 1.15 + dx * k * 0.8, z = etat.z + fz * 1.15 + dz * k * 0.8;
+    return { x, z, y: L.monde.hauteur(x, z, etat.y), cap: etat.cap - k * 0.25 };
+  });
+  for (const c of Object.values(M.compagnons)) c.objet.visible = true;
+  trio.actif = true;
+  // (plus loin sur un écran en hauteur : les trois doivent tenir dans sa largeur ; sur un écran large, un peu à
+  // gauche : le menu du choix est à droite)
+  const portrait = innerWidth < innerHeight, loin = portrait ? 4.3 : 2.9, cx = etat.x + fx * 1.15, cz = etat.z + fz * 1.15, y0 = trio.places[1].y;
+  const decale = portrait ? 0 : 0.42;
+  M.cadre = {
+    de: new THREE.Vector3(cx + fx * loin + dx * decale, y0 + 1.25 + loin * 0.04, cz + fz * loin + dz * decale),
+    vers: new THREE.Vector3(cx - fx * 0.35 + dx * decale, y0 + (portrait ? 0.35 : 0.2), cz - fz * 0.35 + dz * decale),
+  };
   camera.userData.place = false;
 }
 
@@ -1110,9 +1196,9 @@ function avancer(dt) {
   if (siege) Object.assign(etat, { x: siege.x, z: siege.z, y: siege.y - ASSIS, cap: siege.cap, vx: 0, vz: 0, vitesse: 0 });
   if (m > 0.05 && libre) $('.aide').classList.add('vue');
 
-  // Kon suit, un peu en arrière et sur le côté ; il s'assoit quand il est arrivé
+  // le compagnon suit, un peu en arrière et sur le côté ; il s'assoit quand il est arrivé
   if (etat.mode !== 'depart') {
-    // (le joueur assis : Kon vient devant lui, un peu de côté ; derrière, c'est le banc)
+    // (le joueur assis : le compagnon vient devant lui, un peu de côté ; derrière, c'est le banc)
     const recul = siege ? -0.9 : 1.3;
     const cx = etat.x - Math.sin(etat.cap) * recul + Math.cos(etat.cap) * 0.75, cz = etat.z - Math.cos(etat.cap) * recul - Math.sin(etat.cap) * 0.75;
     const ex = cx - renard.x, ez = cz - renard.z, d = Math.hypot(ex, ez);
@@ -1125,6 +1211,12 @@ function avancer(dt) {
     } else renard.cap = tourner(renard.cap, Math.atan2(etat.x - renard.x, etat.z - renard.z), dt * 3);
     if (d > 8) { renard.x = cx; renard.z = cz; renard.y = etat.y; } // resté coincé (un escalier, un coin) : il rejoint
     renard.y += (monde.hauteur(renard.x, renard.z, renard.y) - renard.y) * Math.min(1, dt * 14);
+    // la loutre nage là où l'eau lui monte au-dessus des pattes : elle flotte, la tête hors de l'eau
+    renard.nage = false;
+    if (espece === 'chapu' && L.eau) {
+      const niveau = L.eau.niveau || 0, fond = L.terrain(renard.x, renard.z);
+      if (niveau - fond > 0.2 && renard.y < niveau) { renard.nage = true; renard.y = niveau - 0.13; }
+    }
   }
 
   // les passants font leur ronde
@@ -1205,7 +1297,7 @@ function normaleDuSol(x, z) {
 }
 const dansLaCarte = (x, z) => { const f = M.lieu.etendue.fin; return x > f.x0 + 1 && x < f.x1 - 1 && z > f.z0 + 1 && z < f.z1 - 1; };
 
-/** Un pied (ou une paire de pattes de Kon) qui se pose : son bruit, ses éclaboussures ou son empreinte. */
+/** Un pied (ou une paire de pattes du compagnon) qui se pose : son bruit, ses éclaboussures ou son empreinte. */
 function unPas(qui, cote) {
   const kon = qui === 'kon', p = kon ? renard : etat, o = mouille[qui], E = M.effets;
   const { sol, eau, h } = sousLesPieds(p.x, p.z, p.y);
@@ -1214,7 +1306,7 @@ function unPas(qui, cote) {
   const lx = Math.cos(p.cap), lz = -Math.sin(p.cap), fx = Math.sin(p.cap), fz = Math.cos(p.cap);
   const ecart = kon ? 0.06 : 0.085, x = p.x + (lx * cote * ecart) + fx * 0.12, z = p.z + (lz * cote * ecart) + fz * 0.12;
   const loin = kon ? Math.hypot(renard.x - camera.position.x, renard.z - camera.position.z) : 0;
-  // (Kon trotte vite : on n'entend qu'une paire de pattes sur deux, sinon il couvrirait nos pas)
+  // (le compagnon trotte vite : on n'entend qu'une paire de pattes sur deux, sinon il couvrirait nos pas)
   if (!kon || cote > 0) {
     M.bruitage.pas(sol, {
       kon, course, pan: kon ? panDe(p.x, p.z) : -0.12 * cote,
@@ -1254,14 +1346,15 @@ function mouiller(o, eau, dt, haut, course) {
   }
 }
 
-/** Chaque image, en jeu : les pas, l'eau (mouillé, gouttes, ronds), Kon qui s'ébroue, et ce qu'on entend. */
+/** Chaque image, en jeu : les pas, l'eau (mouillé, gouttes, ronds), le compagnon qui s'ébroue, et ce qu'on entend. */
 function vivre(dt, temps, pasJoueur, pasKon) {
   if (dt <= 0) return;
   const L = M.lieu, E = M.effets, niveau = L.eau?.niveau || 0;
   if (pasJoueur) unPas('joueur', pasJoueur);
   if (pasKon) unPas('kon', pasKon);
   for (const [qui, p, haut, rayon] of [['joueur', etat, 1.45, 0.17], ['kon', renard, 0.55, 0.1]]) {
-    const o = mouille[qui], s = sousLesPieds(p.x, p.z, p.y);
+    // (la loutre qui nage flotte : sous elle, l'eau, jusqu'au fond)
+    const o = mouille[qui], s = sousLesPieds(p.x, p.z, qui === 'kon' && renard.nage ? L.terrain(p.x, p.z) : p.y);
     mouiller(o, s.eau, dt, haut, qui === 'joueur' && etat.vitesse > MARCHE * 1.2);
     if (s.eau > 0.03) {
       // dans l'eau : des ronds autour des jambes (souvent en marchant, de temps en temps à l'arrêt)
@@ -1280,7 +1373,7 @@ function vivre(dt, temps, pasJoueur, pasKon) {
         E.tomber(p.x + Math.cos(a) * rayon, p.y + 0.08 + Math.random() * (o.ligne - 0.08), p.z + Math.sin(a) * rayon, s.h + 0.03);
       }
     }
-    // Kon sorti de l'eau s'ébroue (une fois), et le voilà presque sec
+    // le compagnon sorti de l'eau s'ébroue (une fois), et le voilà presque sec
     if (qui === 'kon') {
       if (s.eau > 0.03) o.ebroue = false;
       else if (!o.ebroue && o.v > 0.6 && o.hors > 0.45 && (renard.vitesse < 1.5 || o.hors > 3)) {
@@ -1347,9 +1440,21 @@ function dessiner(dt, temps) {
     autre.objet.rotation.y = etat.cap - 0.15;
     autre.animer(dt, 0, temps + 0.7);
   }
-  kon.objet.position.set(renard.x, renard.y, renard.z);
-  kon.objet.rotation.y = renard.cap;
-  const pasKon = kon.animer(dt, renard.vitesse, temps);
+  let pasKon = 0;
+  if (trio.actif) {
+    // le choix du compagnon : les trois en rang (ceux qui sont partis dans leur nuage, cachés)
+    COMPAGNONS.forEach((e, i) => {
+      const c = M.compagnons[e], q = trio.places[i];
+      if (!c.objet.visible) return;
+      c.objet.position.set(q.x, q.y, q.z);
+      c.objet.rotation.y = q.cap;
+      c.animer(dt, 0, temps + i * 0.9);
+    });
+  } else {
+    kon.objet.position.set(renard.x, renard.y, renard.z);
+    kon.objet.rotation.y = renard.cap;
+    pasKon = kon.animer(dt, renard.vitesse, temps, renard.nage);
+  }
   for (const p of M.passants) {
     p.perso.objet.position.set(p.etat.x, p.etat.y, p.etat.z);
     p.perso.objet.rotation.y = p.etat.cap;
@@ -1393,6 +1498,14 @@ function dessiner(dt, temps) {
   // elle s'arrête devant un bâtiment ou un toit (monde.visee) ; jamais sous le sol ni sous l'eau
   // (les deux voyageurs du choix du départ : entre eux, et de plus loin sur un écran en hauteur)
   const monde = lieu.monde;
+  const champ = M.cadre?.champ ?? champBase;
+  if (camera.fov !== champ) { camera.fov = champ; camera.updateProjectionMatrix(); }
+  if (M.cadre) {
+    // la caméra posée ailleurs (les jumelles, le choix du compagnon)
+    camera.position.copy(M.cadre.de);
+    camera.lookAt(M.cadre.vers);
+    camera.userData.place = false;
+  } else {
   const deux = autre.objet.visible, ap = autre.objet.position;
   const vise = deux ? new THREE.Vector3((etat.x + ap.x) / 2, etat.y + 1.05, (etat.z + ap.z) / 2) : new THREE.Vector3(etat.x, etat.y + 1.15, etat.z);
   const abri = monde.abri(etat.x, etat.z, vise.y);
@@ -1413,6 +1526,7 @@ function dessiner(dt, temps) {
   voulu.y = Math.max(voulu.y, plancher + 0.45);
   if (saut) { camera.position.copy(voulu); camera.userData.place = true; } else camera.position.lerp(voulu, 1 - Math.exp(-dt * 12));
   camera.lookAt(vise);
+  }
   M.ciel.position.copy(camera.position);
   // ce qui cache le joueur s'efface en pointillés (styles.js) ; un passant collé à la caméra s'efface tout entier
   M.mats.coupe.oeil.value.copy(camera.position);
@@ -1446,11 +1560,13 @@ function dessiner(dt, temps) {
   M.finale.rendre(rendu, scene, camera);
 }
 
+let champBase = 48;
 function dimensionner() {
   const l = innerWidth, h = innerHeight;
   rendu.setSize(l, h, false);
   // en portrait, un champ plus large : on voit à peu près autant de décor qu'en paysage
-  camera.fov = l < h ? 62 : 48;
+  champBase = l < h ? 62 : 48;
+  camera.fov = M?.cadre?.champ ?? champBase;
   camera.aspect = l / h;
   camera.updateProjectionMatrix();
   if (!M) return;
@@ -1469,23 +1585,46 @@ addEventListener('resize', dimensionner);
 
 // ---------------------------------------------------------------- C'est parti
 async function depart() {
-  if (sorte) {
-    await dialogue.dire(t('konRetour')(nomDe(M.lieu)), { qui: t('kon') });
-  } else {
-    // la première fois : Kon demande, comme dans les jeux, si l'on est un garçon ou une fille
-    const r = await dialogue.choisir(t('konBonjour')(nomDe(M.lieu)), [t('garcon'), t('fille')], { qui: t('kon') });
+  const lieu = nomDe(M.lieu);
+  if (!sorte) {
+    // la première fois, comme dans les jeux : es-tu un garçon ou une fille ? (les deux voyageurs face à l'objectif)
+    const r = await dialogue.choisir(t('bienvenue')(lieu), [t('garcon'), t('fille')], { obligatoire: true });
     sorte = r === 1 ? 'fille' : 'garcon';
     memoire.ecrire('baladePerso', sorte);
-    // le voyageur choisi reste à sa place (l'autre s'efface), puis la caméra passe derrière lui
-    const choisi = M.voyageurs[sorte];
-    const { x, z } = choisi.objet.position;
     choisirVoyageur(sorte);
-    Object.assign(etat, { x, z, y: M.lieu.monde.hauteur(x, z) });
-    choisi.saluer();
-    await dialogue.dire(t('konParti')(M.lieu.tampons.length), { qui: t('kon') });
-    etat.cap = M.lieu.depart.cap;
-    Object.assign(cam, { lacet: etat.cap + Math.PI, tangage: 0.24, distance: 6.4 });
+    M.joueur.saluer();
+    await attendre(600);
+  } else await dialogue.dire(t('revoila')(lieu));
+  if (COMPAGNON_IMPOSE) {
+    await dialogue.dire(tc('salut')(M.lieu.tampons.length), { qui: tc('nom') });
+    etat.mode = 'jeu';
+    return;
   }
+  // puis, à chaque visite, le compagnon : les trois en rang ; celui qu'on marque bondit, crie, et se présente
+  cadrerTrio();
+  M.bruitage.preparer();
+  const crier = (i) => { const q = trio.places[i]; M.compagnons[COMPAGNONS[i]].sauter(); M.bruitage.cri(COMPAGNONS[i], { force: 0.8, pan: (i - 1) * 0.5 }); return q; };
+  const r = await dialogue.choisir(t('compagnonQuestion'), COMPAGNONS.map((e) => tcDe(e, 'nom')), {
+    depart: Math.max(0, COMPAGNONS.indexOf(espece)), obligatoire: true,
+    survol: (i) => { crier(i); return tcDe(COMPAGNONS[i], 'choix'); },
+  });
+  const choisi = COMPAGNONS[r], q = trio.places[r];
+  memoire.ecrire('baladeCompagnon', choisi);
+  // les deux autres s'en vont dans un petit nuage (comme les renards et les tanuki des contes)
+  trio.places.forEach((p, i) => { if (i !== r) { M.effets.nuage(p.x, p.y, p.z); M.compagnons[COMPAGNONS[i]].objet.visible = false; } });
+  M.bruitage.pouf();
+  trio.actif = false;
+  choisirCompagnon(choisi);
+  Object.assign(renard, { x: q.x, z: q.z, y: q.y, cap: q.cap, vitesse: 0, nage: false });
+  await attendre(500);
+  crier(r);
+  await attendre(300);
+  await dialogue.dire(tc('salut')(M.lieu.tampons.length), { qui: tc('nom') });
+  // la caméra passe derrière le voyageur, tourné vers le lieu
+  M.cadre = null;
+  etat.cap = M.lieu.depart.cap;
+  Object.assign(cam, { lacet: etat.cap + Math.PI, tangage: 0.24, distance: 6.4 });
+  camera.userData.place = false;
   etat.mode = 'jeu';
   setTimeout(() => $('.aide').classList.add('vue'), 9000);
 }

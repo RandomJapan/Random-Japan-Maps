@@ -1,10 +1,11 @@
 // ================================================================
 //  Les petits effets de la balade, autour des pieds :
-//  - les gouttes : les éclaboussures quand on patauge, l'eau qui dégoutte des habits mouillés, Kon qui
+//  - les gouttes : les éclaboussures quand on patauge, l'eau qui dégoutte des habits mouillés, le compagnon qui
 //    s'ébroue (des points ronds, calculés à chaque image : quelques centaines au plus) ;
 //  - les ronds dans l'eau, à chaque pas et autour des jambes ;
-//  - les empreintes : des semelles dans le sable (et le sable mouillé), les pattes de Kon, et les traces
-//    mouillées qu'on laisse en sortant de l'eau, même sur le bois.
+//  - les empreintes : des semelles dans le sable (et le sable mouillé), les pattes du compagnon, et les traces
+//    mouillées qu'on laisse en sortant de l'eau, même sur le bois ;
+//  - les petits nuages (« pouf ») d'un compagnon qui s'en va, comme les renards et les tanuki des contes.
 //  Les ronds et les empreintes vivent dans leur shader (leur heure de naissance et leur durée) : les poser ne
 //  coûte que quelques nombres, et rien n'est recalculé ensuite. Les empreintes assombrissent le sol (elles le
 //  multiplient), à 1,5 cm au-dessus, avec un décalage de profondeur : jamais dans le même plan que lui.
@@ -56,6 +57,51 @@ export function creerEffets(THREE) {
   gouttes.frustumCulled = false;
   gouttes.renderOrder = 3;
   groupe.add(gouttes);
+
+  // ---------------------------------------------------------------- Les petits nuages
+  // des boules de fumée blanche, bordées d'un peu de gris (dessinées comme les nuages du ciel), qui gonflent,
+  // montent et s'effacent ; quelques dizaines au plus, recalculées seulement tant qu'il en reste
+  const NN = 64;
+  const nPos = new Float32Array(NN * 3), nVie = new Float32Array(NN), nTaille = new Float32Array(NN), nVit = new Float32Array(NN * 3), nAge = new Float32Array(NN), nDuree = new Float32Array(NN), nT0 = new Float32Array(NN);
+  let nSuivant = 0, nVivants = 0;
+  const geoN = new THREE.BufferGeometry();
+  const aPosN = new THREE.BufferAttribute(nPos, 3).setUsage(THREE.DynamicDrawUsage);
+  const aVieN = new THREE.BufferAttribute(nVie, 1).setUsage(THREE.DynamicDrawUsage);
+  const aTailleN = new THREE.BufferAttribute(nTaille, 1).setUsage(THREE.DynamicDrawUsage);
+  geoN.setAttribute('position', aPosN);
+  geoN.setAttribute('vie', aVieN);
+  geoN.setAttribute('taille', aTailleN);
+  const nuages = new THREE.Points(geoN, new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false,
+    uniforms: { focale, nuit },
+    vertexShader: `
+      attribute float vie, taille;
+      uniform float focale;
+      varying float vVie;
+      void main() {
+        vVie = vie;
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        gl_Position = projectionMatrix * mv;
+        gl_PointSize = vie > 0.0 ? clamp(taille * focale / max(-mv.z, 0.3), 2.0, 260.0) : 0.0;
+      }`,
+    fragmentShader: `
+      uniform float nuit;
+      varying float vVie;
+      void main() {
+        vec2 p = gl_PointCoord * 2.0 - 1.0;
+        float d = length(p);
+        if (d > 1.0) discard;
+        // blanc au milieu, un liseré gris-bleu au bord, éclairé d'en haut
+        vec3 c = mix(vec3(1.0), vec3(0.72, 0.76, 0.84), smoothstep(0.62, 0.95, d) * 0.85);
+        c *= 0.93 + 0.07 * (-p.y);
+        c *= mix(1.0, 0.45, nuit);
+        gl_FragColor = vec4(c, min(1.0, vVie * 2.5) * (1.0 - smoothstep(0.93, 1.0, d)));
+        #include <colorspace_fragment>
+      }`,
+  }));
+  nuages.frustumCulled = false;
+  nuages.renderOrder = 4;
+  groupe.add(nuages);
 
   /** Une goutte en (x, y, z), lancée à (vx, vy, vz) m/s ; elle disparaît sous la hauteur sol. */
   function goutte(x, y, z, vx, vy, vz, sol, taille = 0.022, duree = 1.6) {
@@ -203,12 +249,28 @@ export function creerEffets(THREE) {
     },
     /** Une goutte qui tombe (l'eau qui dégoutte) ; elle disparaît en touchant le sol. */
     tomber(x, y, z, sol) { goutte(x, y, z, (Math.random() - 0.5) * 0.15, -0.2, (Math.random() - 0.5) * 0.15, sol, 0.02 + Math.random() * 0.008); },
-    /** Kon s'ébroue : des gouttes jetées tout autour, à hauteur du dos. */
+    /** Le compagnon s’ébroue : des gouttes jetées tout autour, à hauteur du dos. */
     ebrouer(x, y, z, sol) {
       for (let k = 0; k < 46; k++) {
         const a = Math.random() * Math.PI * 2, v = 1.4 + Math.random() * 1.8;
         goutte(x + Math.cos(a) * 0.15, y + 0.2 + Math.random() * 0.25, z + Math.sin(a) * 0.15, Math.cos(a) * v, 0.4 + Math.random() * 1.6, Math.sin(a) * v, sol, 0.022 + Math.random() * 0.016, 1.2);
       }
+    },
+    /** Un petit nuage autour de (x, y, z) : une dizaine de boules qui gonflent, s'écartent, montent et s'effacent. */
+    nuage(x, y, z, taille = 1) {
+      for (let k = 0; k < 11; k++) {
+        const i = nSuivant;
+        nSuivant = (nSuivant + 1) % NN;
+        const a = (k / 11) * Math.PI * 2 + Math.random() * 0.5, h = k < 3 ? 0.3 : 0.05 + Math.random() * 0.25;
+        nPos.set([x + Math.cos(a) * 0.08, y + h, z + Math.sin(a) * 0.08], i * 3);
+        nVit.set([Math.cos(a) * (0.45 + Math.random() * 0.35) * taille, 0.3 + Math.random() * 0.4, Math.sin(a) * (0.45 + Math.random() * 0.35) * taille], i * 3);
+        nAge[i] = 0;
+        nDuree[i] = 0.6 + Math.random() * 0.3;
+        nT0[i] = (0.1 + Math.random() * 0.06) * taille;
+        nVie[i] = 1;
+        nTaille[i] = nT0[i];
+      }
+      nVivants = NN;
     },
     /** Un rond dans l'eau en (x, niveau, z) : il s'élargit jusqu'à `rayon` m en `duree` s. */
     rond(x, y, z, rayon = 0.8, duree = 1.5) {
@@ -236,6 +298,22 @@ export function creerEffets(THREE) {
       temps.value = t;
       focale.value = f;
       nuit.value = n;
+      if (nVivants) {
+        let vivants = 0;
+        for (let i = 0; i < NN; i++) {
+          if (nVie[i] <= 0) continue;
+          nAge[i] += dt;
+          const k = i * 3, ralenti = Math.exp(-dt * 3.2);
+          nVit[k] *= ralenti; nVit[k + 2] *= ralenti; nVit[k + 1] *= Math.exp(-dt * 1.5);
+          nPos[k] += nVit[k] * dt; nPos[k + 1] += nVit[k + 1] * dt; nPos[k + 2] += nVit[k + 2] * dt;
+          const u = nAge[i] / nDuree[i];
+          nVie[i] = u >= 1 ? 0 : 1 - u;
+          nTaille[i] = nT0[i] * (1 + 1.3 * Math.sqrt(Math.min(1, u)));
+          if (nVie[i] > 0) vivants++;
+        }
+        nVivants = vivants;
+        aPosN.needsUpdate = aVieN.needsUpdate = aTailleN.needsUpdate = true;
+      }
       if (!gVivantes) return;
       let vivantes = 0;
       for (let i = 0; i < NG; i++) {

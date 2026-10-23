@@ -16,6 +16,7 @@ import { MATIERES as M } from './textures.js';
 const MER = -40;
 const MARUYAMA = { x: 5, z: 7, r: 26, h: 16, cratere: 4.6 };
 const BELVEDERE = { x: 1, z: -82.1, r: 6.3, creux: 1.12 }; // le belvédère rond, en gradins, sur la crête
+const ANNEAU = 6.15; // la barrière sur le bord de son anneau de pierre, côté cratère (au-dessus de l'entaille de l'escalier)
 const OTONBU = { x: 20, z: -81.6, haut: 3.4, r: 11.5 }; // le point le plus haut de l'île
 const HINGYA = { x: -16, z: 23, r: 6.8 }; // les fumerolles, derrière leur corde
 const EVENTS = [[-17, 21], [-14.5, 24.5], [-18.5, 25.2], [-13.4, 21.4], [-16, 26.6]];
@@ -26,6 +27,18 @@ const TUNNEL = { a: -0.92 };
 const PALMERAIE = { x0: -46, x1: -38.5, z0: -22, z1: -11 }; // le champ de palmiers (les « roebelenii » de l'île)
 const CAMION = { x: -38.5, z: 16.6 }; // le petit camion (kei) garé à côté du sauna
 const MIROIR = { x: -28.4, z: -12.6 }; // le miroir de virage, au carrefour du chemin de l'escalier
+// sur la crête, à l'ouest du haut de l'escalier (un coin d'herbe vide, 2026-10-23) : un abri de bois (azumaya) face à
+// la caldeira, un pin couché par le vent, les jumelles tournées vers Hachijō, la pierre du « 外輪山 »
+const AZUMAYA = { x: -21.1, z: -73.4, cote: 3.2 };
+const PIN_VENT = { x: -25.6, z: -77.6 };
+const JUMELLES = { x: -15.1, z: -83.1 };
+const STELE = { x: -10.9, z: -78.6 };
+const HACHIJO = { x: -220, y: MER + 30, z: -1240 }; // l'île de Hachijō, sur l'horizon (le décor lointain)
+const CAP_ABRI = Math.atan2(-AZUMAYA.x, -AZUMAYA.z); // l'abri ouvre son devant sur la caldeira (vers le centre)
+/** Du repère de l'abri (x à sa droite, z vers la caldeira) au lieu : [x, z]. */
+const versAbri = (lx, lz) => [AZUMAYA.x + lx * Math.cos(CAP_ABRI) + lz * Math.sin(CAP_ABRI), AZUMAYA.z - lx * Math.sin(CAP_ABRI) + lz * Math.cos(CAP_ABRI)];
+/** Du lieu au repère de l'abri : [lx, lz]. */
+const dansAbri = (x, z) => { const dx = x - AZUMAYA.x, dz = z - AZUMAYA.z, c = Math.cos(CAP_ABRI), sn = Math.sin(CAP_ABRI); return [dx * c - dz * sn, dx * sn + dz * c]; };
 
 // ---------------------------------------------------------------- Le relief
 const angle = (x, z) => Math.atan2(x, -z); // 0 au nord, positif vers l'est
@@ -45,8 +58,8 @@ const hauteurCrete = (a) => 22 + 5 * Math.cos(a) + 1.2 * Math.sin(3 * a + 1.2) +
 const largeurCrete = (a) => 4 + 13 * Math.exp(-((a / 0.42) ** 2));
 const PLATEAU = [-0.6, 0.7]; // les angles du plateau (seule partie de la crête où l'on va)
 const BARRIERE = 0.9; // la barrière de la crête, à 0,9 m du bord, sur le plateau
-/** Le pied de la barrière de la crête à l'angle t. */
-const surLaBarriere = (t) => { const r = rayonPied(t) + PAROI + BARRIERE; return [r * Math.sin(t), -r * Math.cos(t)]; };
+/** Le pied de la barrière de la crête à l'angle t (rayonBarriere). */
+const surLaBarriere = (t) => { const r = rayonBarriere(t); return [r * Math.sin(t), -r * Math.cos(t)]; };
 const Y_BELVEDERE = hauteurCrete(angle(BELVEDERE.x, BELVEDERE.z));
 
 /**
@@ -81,6 +94,9 @@ const CHEMINS = [
   [[-30.6, 2], [-21, 4]],
   [[HAUT[0], HAUT[1]], [-4, -79.5], [BELVEDERE.x - BELVEDERE.r, BELVEDERE.z]],
   [[HAUT[0], HAUT[1]], [6, -80.6], [13, -82.2], [OTONBU.x, OTONBU.z]],
+  // vers l'abri (il s'arrête à son dallage, du côté de la crête) et, de là, vers les jumelles
+  [[HAUT[0], HAUT[1]], [-12.6, -76.4], [-17.2, -74.9], [AZUMAYA.x + 2.2, AZUMAYA.z + 1.0]],
+  [[-12.6, -76.4], [-14.2, -80.2], [JUMELLES.x + 0.4, JUMELLES.z + 1.1]],
 ];
 
 // ---------------------------------------------------------------- Le tunnel (青宝トンネル)
@@ -184,6 +200,35 @@ function relief(x, z) {
 }
 
 /**
+ * Le rayon de la barrière de la crête à l'angle t : à BARRIERE du bord. Mais au-dessus de la volée du haut de
+ * l'escalier, qui longe le bord, l'entaille des marches creuse le sol : la barrière y plongeait, puis remontait
+ * tout droit vers la crête (2026-10-23). Elle passe là sur le plateau, au bord de l'entaille (le premier point, en
+ * s'éloignant du vide, où le sol n'est plus creusé), lissée d'un poteau à l'autre ; et sur le belvédère, que
+ * l'entaille longe aussi, le bord de son anneau de pierre (ANNEAU). Calculé une fois, tous les 0,005 rad.
+ */
+let ecartsBarriere = null;
+const PAS_BARRIERE = 0.005;
+function rayonBarriere(t) {
+  if (!ecartsBarriere) {
+    const n = Math.round((PLATEAU[1] - PLATEAU[0]) / PAS_BARRIERE), brut = [];
+    for (let i = 0; i <= n; i++) {
+      const a = PLATEAU[0] + i * PAS_BARRIERE, r0 = rayonPied(a) + PAROI + BARRIERE, h0 = hauteurCrete(a);
+      let r = r0;
+      while (r < r0 + 8 && relief(r * Math.sin(a), -r * Math.cos(a)) < h0 - 0.45) r += 0.2;
+      brut.push(r - r0);
+    }
+    // le plus grand écart à 1,5 m autour (elle passe au large de l'entaille), puis une moyenne glissante
+    const large = brut.map((_, i) => Math.max(...brut.slice(Math.max(0, i - 4), i + 5)));
+    ecartsBarriere = large.map((_, i) => { const v = large.slice(Math.max(0, i - 6), i + 7); return v.reduce((s, x) => s + x, 0) / v.length; });
+  }
+  const e = ecartsBarriere, u = Math.min(Math.max((t - PLATEAU[0]) / PAS_BARRIERE, 0), e.length - 1), i = Math.floor(u);
+  const r = rayonPied(t) + PAROI + BARRIERE + e[i] + ((e[Math.min(i + 1, e.length - 1)]) - e[i]) * (u - i);
+  // (dans le belvédère : là où le rayon de l'angle t entre dans l'anneau)
+  const b = BELVEDERE.x * Math.sin(t) - BELVEDERE.z * Math.cos(t), q = b * b - BELVEDERE.x ** 2 - BELVEDERE.z ** 2 + ANNEAU ** 2;
+  return q > 0 && r > b - Math.sqrt(q) ? b - Math.sqrt(q) : r;
+}
+
+/**
  * Où l'on peut aller : le fond du cratère (la paroi arrête d'elle-même, trop raide), et le plateau de la crête,
  * derrière sa barrière. Le bord de la crête, entre la barrière et le vide, seulement au haut de l'escalier : de
  * là, on glisserait sur la paroi jusqu'en bas.
@@ -192,7 +237,7 @@ function dansLeCadre(x, z) {
   const r = Math.hypot(x, z), a = angle(x, z), r2 = rayonPied(a) + PAROI;
   if (r < r2 - 1) return true;
   if (a <= PLATEAU[0] || a >= PLATEAU[1] || r >= r2 + largeurCrete(a) - 0.6) return false;
-  return r > r2 + BARRIERE || surLaLigne(MARCHES, x, z).d < 1.5;
+  return r > rayonBarriere(a) || surLaLigne(MARCHES, x, z).d < 1.5;
 }
 
 /** Ce que le carnet et le menu savent du lieu, sans le construire. */
@@ -380,10 +425,12 @@ export function construire(ctx) {
       .boite(9.6, 0.16, 7.6, P.tole, { y: yh + 0.08 })
       .pignon(9.9, 0.85, 7.9, P.tole, { y: yh + 0.16 })
       .cylindre(0.2, 0.2, 1.6, 10, '#8f8c88', { x: 2.6, y: yh + 1.4, z: -1.2 });
-    // la porte : son cadre de bois, la marche devant, le rideau (noren) bleu, l'enseigne
-    for (const x of [p0 - 0.05, p1 + 0.05]) a.boite(0.1, 2.2, 0.26, P.bois, { x, y: y0 + 1.1, z: 3.4 });
-    a.boite(p1 - p0 + 0.2, 0.1, 0.26, P.bois, { x: (p0 + p1) / 2, y: y0 + 2.2, z: 3.4 })
-      .boite(1.8, 0.55, 0.7, P.beton, { x: (p0 + p1) / 2, y: -0.425, z: 3.85 })
+    // la porte : son cadre de bois, la marche devant, le rideau (noren) bleu, l'enseigne. (Les montants avancent de
+    // 2 cm dans l'ouverture et le linteau les déborde : leurs faces étaient dans le plan du bout des murs et des
+    // montants, elles scintillaient ; et la marche était enterrée sous le sol, 2026-10-23.)
+    for (const x of [p0 - 0.04, p1 + 0.04]) a.boite(0.12, 2.2, 0.28, P.bois, { x, y: y0 + 1.1, z: 3.4 });
+    a.boite(p1 - p0 + 0.28, 0.12, 0.3, P.bois, { x: (p0 + p1) / 2, y: y0 + 2.24, z: 3.4 })
+      .boite(1.8, 0.42, 0.7, P.beton, { x: (p0 + p1) / 2, y: -0.06, z: 3.85 })
       .cylindre(0.02, 0.02, 1.5, 6, P.boisFonce, { x: (p0 + p1) / 2, y: y0 + 2.12, z: 3.6, rz: PI / 2 });
     for (const x of [p0 + 0.35, p1 - 0.35]) a.boite(0.66, 0.68, 0.02, '#2f5f8a', { x, y: y0 + 1.76, z: 3.6, trait: false });
     ecrire(poseS, { texte: 'ゆ', fond: '#2f5f8a', encre: '#ffffff', x: p0 + 0.35, y: y0 + 1.78, z: 3.615, l: 0.42, h: 0.42 });
@@ -409,8 +456,8 @@ export function construire(ctx) {
     a.boite(4.6, 0.43, 0.04, P.bois, { x: 2.0, y: y0 + 0.235, z: -2.12 })
       .boite(4.6, 0.88, 0.04, P.bois, { x: 2.0, y: y0 + 0.46, z: -2.72 });
     for (let i = 0; i < 4; i++) {
-      a.boite(4.6, 0.035, 0.13, CLAIR, { x: 2.0, y: y0 + 0.437, z: -2.2 - i * 0.15 })
-        .boite(4.6, 0.035, 0.13, CLAIR, { x: 2.0, y: y0 + 0.887, z: -2.8 - i * 0.15 });
+      a.boite(4.56, 0.035, 0.13, CLAIR, { x: 2.02, y: y0 + 0.437, z: -2.2 - i * 0.15 })
+        .boite(4.56, 0.035, 0.13, CLAIR, { x: 2.02, y: y0 + 0.887, z: -2.8 - i * 0.15 });
     }
     for (const z of [0.4, 2.0]) {
       a.boite(0.7, 0.03, 0.7, '#3a3a3a', { x: 3.8, y: y0 + 0.035, z });
@@ -758,8 +805,13 @@ export function construire(ctx) {
   {
     const a = atelier();
     const V = THREE.Vector2;
-    const profil = [[0.01, -1.02], [1.6, -1.02], [1.6, -0.65], [3.0, -0.65], [3.0, -0.28], [4.4, -0.28], [4.4, 0.1], [6.4, 0.1], [6.4, -0.5]].map(([r, y]) => new V(r, y));
-    a.piece(new THREE.LatheGeometry(profil.reverse(), 36), P.pierre, { x: BELVEDERE.x, y: Y_BELVEDERE, z: BELVEDERE.z, teinte: (x, y) => (y > -0.15 ? P.pierre : y > -0.5 ? P.pierreFonce : y > -0.9 ? P.pierre : P.cheminFonce) });
+    // (son mur extérieur descend à 5 m : côté cratère, l'entaille de l'escalier passe dessous ; il flottait au-dessus,
+    // 2026-10-23 ; ailleurs, le sol le cache) : la pierre sombre ; les gradins comme avant
+    const profil = [[0.01, -1.02], [1.6, -1.02], [1.6, -0.65], [3.0, -0.65], [3.0, -0.28], [4.4, -0.28], [4.4, 0.1], [6.4, 0.1], [6.4, -0.5], [6.4, -1.4], [6.4, -2.3], [6.4, -3.2], [6.4, -4.1], [6.4, -5]].map(([r, y]) => new V(r, y));
+    a.piece(new THREE.LatheGeometry(profil.reverse(), 36), P.pierre, {
+      x: BELVEDERE.x, y: Y_BELVEDERE, z: BELVEDERE.z,
+      teinte: (x, y, z) => (Math.hypot(x - BELVEDERE.x, z - BELVEDERE.z) > 6.3 && y < Y_BELVEDERE - 0.2 ? P.pierreFonce : y > Y_BELVEDERE - 0.15 ? P.pierre : y > Y_BELVEDERE - 0.5 ? P.pierreFonce : y > Y_BELVEDERE - 0.9 ? P.pierre : P.cheminFonce),
+    });
     // deux bancs, tournés vers le cratère
     for (const s of [-1, 1]) {
       const x = BELVEDERE.x + s * 9, z = BELVEDERE.z + 2.5, y = terrain(x, z);
@@ -800,7 +852,8 @@ export function construire(ctx) {
     angles.sort((p, q) => p - q);
     let prec = null;
     for (const t of angles) {
-      const [x, z] = surLaBarriere(t), y = terrain(x, z);
+      // (sur l'anneau du belvédère : posée sur la pierre)
+      const [x, z] = surLaBarriere(t), y = Math.hypot(x - BELVEDERE.x, z - BELVEDERE.z) < ANNEAU + 0.1 ? Y_BELVEDERE + 0.1 : terrain(x, z);
       a.boite(0.12, 1.0, 0.12, P.boisFonce, { x, y: y + 0.42, z });
       if (prec && t !== o1) {
         a.baton([prec[0], prec[1] + 0.85, prec[2]], [x, y + 0.85, z], 0.04, P.bois, 5);
@@ -819,7 +872,7 @@ export function construire(ctx) {
     maruyama: { x: -21.2, z: 1.6, vx: -26, vz: 1 },
     otonbu: { x: BAS[0] - 4.2, z: BAS[1] + 2.2, vx: BAS[0] - 6, vz: BAS[1] + 6 },
     camping: { x: -6.5, z: 36.2, vx: -10, vz: 33 },
-    belvedere: { x: -3.2, z: -76.2, vx: -6, vz: -74 },
+    belvedere: { x: -11.6, z: -80.6, vx: HAUT[0], vz: HAUT[1] },
   };
   // leur titre en japonais, sur le papier (et des lignes d'écriture dessous)
   const TITRES = { bienvenue: '青ヶ島へようこそ', sauna: 'ふれあいサウナ', hingya: 'ひんぎゃ', maruyama: '丸山', otonbu: '大凸部へ', camping: 'キャンプ場', belvedere: '展望台' };
@@ -837,6 +890,219 @@ export function construire(ctx) {
     const tx = VIDEASTE.x + Math.sin(VIDEASTE.cap) * 0.8 + Math.cos(VIDEASTE.cap) * 0.5, tz = VIDEASTE.z + Math.cos(VIDEASTE.cap) * 0.8 - Math.sin(VIDEASTE.cap) * 0.5;
     poser(trepied(atelier()).fin(0, peinture), tx, tz, { y: terrain(tx, tz) + 1.3, ry: VIDEASTE.cap });
     monde.cercle(tx, tz, 0.45);
+  }
+
+  // ---------------------------------------------------------------- Le coin de la crête, à l'ouest de l'escalier
+  // (« l'endroit fait un peu vide », 2026-10-23) : un abri de bois (azumaya) ouvert sur la caldeira, ses bancs, sa table
+  // et le cahier des voyageurs (思い出ノート) ; un pin couché par le vent ; les jumelles à pièces tournées vers Hachijō ;
+  // la pierre gravée « 外輪山 » (la crête du grand cratère) ; des lis sauvages (les sakuyuri des îles d'Izu), des
+  // touffes d'ashitaba et de susuki (l'herbe de la pampa du Japon)
+  let yA = -Infinity; // le dessous du dallage de l'abri : le plus haut point du sol sous lui
+  for (const [lx, lz] of [[-2, -2], [2, -2], [-2, 2], [2, 2], [0, 0], [0, 2], [0, -2], [2, 0], [-2, 0]]) yA = Math.max(yA, terrain(...versAbri(lx, lz)));
+  const SOL_ABRI = yA + 0.1;
+  const SIEGE_ABRI = { x: versAbri(0, -1.3)[0], z: versAbri(0, -1.3)[1], y: SOL_ABRI + 0.44, cap: CAP_ABRI };
+  {
+    const a = atelier(), c = AZUMAYA.cote / 2, H = 2.3, B = SOL_ABRI - yA, HP = B + 0.12 + H;
+    // le dallage, les pierres des poteaux, les poteaux, les poutres (celles d'un sens 2,5 cm plus bas : leurs faces
+    // ne se superposent pas aux croisements)
+    a.boite(4.0, 0.5, 4.0, P.pierre, { y: B - 0.25 });
+    for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+      a.cylindre(0.13, 0.15, 0.12, 8, P.pierreFonce, { x: sx * c, y: B + 0.06, z: sz * c })
+        .boite(0.15, H, 0.15, P.boisFonce, { x: sx * c, y: B + 0.12 + H / 2, z: sz * c });
+    }
+    for (const sg of [-1, 1]) {
+      a.boite(AZUMAYA.cote + 0.36, 0.16, 0.13, P.bois, { y: HP - 0.04, z: sg * c })
+        .boite(0.13, 0.16, AZUMAYA.cote + 0.36, P.bois, { x: sg * c, y: HP - 0.065 });
+    }
+    // le toit à quatre pans, son faîte et son joyau (hōju)
+    a.toitJapon(4.6, 4.6, 1.25, 0.12, { y: HP + 0.06, creux: 1.4, releve: 0.08, rangs: 16 })
+      .boite(0.62, 0.1, 0.62, P.toitBord, { y: HP + 0.06 + 1.25 + 0.03 })
+      .cylindre(0.07, 0.09, 0.16, 8, P.bronze, { y: HP + 0.06 + 1.25 + 0.16 })
+      .boule(0.09, P.bronze, { y: HP + 0.06 + 1.25 + 0.3, sy: 1.15 }, 1);
+    // la plaque « 休憩所 » (le coin repos) sous la poutre de devant
+    a.boite(0.86, 0.3, 0.05, P.bois, { y: HP - 0.3, z: c + 0.03 });
+    ecrire({ x: AZUMAYA.x, z: AZUMAYA.z, y: yA, ry: CAP_ABRI }, { texte: '休憩所', fond: P.papier, encre: '#3a2420', x: 0, y: HP - 0.3, z: c + 0.058, l: 0.76, h: 0.24 });
+    // les garde-corps du fond et des côtés (le devant reste ouvert sur la caldeira)
+    for (const h of [B + 0.48, B + 0.92]) {
+      a.boite(AZUMAYA.cote - 0.1, 0.07, 0.06, P.bois, { y: h, z: -c })
+        .boite(0.06, 0.07, AZUMAYA.cote - 0.1, P.bois, { x: -c, y: h - 0.01 }).boite(0.06, 0.07, AZUMAYA.cote - 0.1, P.bois, { x: c, y: h - 0.01 });
+    }
+    // les bancs : au fond (face à la caldeira) et sur les côtés
+    a.boite(2.7, 0.06, 0.36, P.bois3, { y: B + 0.41, z: -c + 0.3 });
+    for (const x of [-1.1, 0, 1.1]) a.boite(0.06, 0.38, 0.3, P.boisFonce, { x, y: B + 0.19, z: -c + 0.3 });
+    for (const sg of [-1, 1]) {
+      a.boite(0.36, 0.06, 2.1, P.bois3, { x: sg * (c - 0.3), y: B + 0.405, z: 0.25 });
+      for (const z of [-0.6, 1.1]) a.boite(0.3, 0.38, 0.06, P.boisFonce, { x: sg * (c - 0.3), y: B + 0.19, z });
+    }
+    // la table, le cahier des voyageurs ouvert et un crayon
+    a.boite(1.2, 0.06, 0.7, P.bois3, { y: B + 0.7, z: -0.1 });
+    for (const x of [-0.48, 0.48]) a.boite(0.06, 0.67, 0.56, P.boisFonce, { x, y: B + 0.335, z: -0.1 });
+    a.boite(0.42, 0.02, 0.3, '#3f6aa0', { x: 0.22, y: B + 0.74, z: -0.08, ry: 0.25 })
+      .boite(0.39, 0.016, 0.27, '#fbf6ea', { x: 0.22, y: B + 0.756, z: -0.08, ry: 0.25, trait: false })
+      .boite(0.005, 0.004, 0.25, '#cfc8b8', { x: 0.22, y: B + 0.765, z: -0.08, ry: 0.25, trait: false })
+      .baton([0.0, B + 0.738, 0.12], [0.14, B + 0.738, 0.2], 0.007, '#e8b941', 5, { trait: false });
+    poser(a.fin(0, peinture), AZUMAYA.x, AZUMAYA.z, { y: yA, ry: CAP_ABRI });
+    // ce qui arrête : les poteaux, les garde-corps (le devant ouvert), les bancs, la table ; le plancher ; le toit
+    const m = (lx0, lz0, lx1, lz1, rr) => monde.mur(...versAbri(lx0, lz0), ...versAbri(lx1, lz1), rr);
+    for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) monde.cercle(...versAbri(sx * c, sz * c), 0.16);
+    m(-c, -c, c, -c, 0.12); m(-c, -c, -c, c, 0.12); m(c, -c, c, c, 0.12);
+    m(-1.3, -c + 0.3, 1.3, -c + 0.3, 0.26);
+    m(-(c - 0.3), -0.75, -(c - 0.3), 1.25, 0.25); m(c - 0.3, -0.75, c - 0.3, 1.25, 0.25);
+    m(-0.55, -0.1, 0.55, -0.1, 0.42);
+    // (le plancher : deux bandes croisées qui couvrent le dallage, tourné, à part ses coins sous les poteaux)
+    monde.chemin([[...versAbri(0, -0.7), SOL_ABRI], [...versAbri(0, 0.7), SOL_ABRI]], 1.98, { sol: 'pierre' });
+    monde.chemin([[...versAbri(-0.7, 0), SOL_ABRI], [...versAbri(0.7, 0), SOL_ABRI]], 1.98, { sol: 'pierre' });
+    const coins = [[-2.4, -2.4], [2.4, -2.4], [-2.4, 2.4], [2.4, 2.4]].map(([lx, lz]) => versAbri(lx, lz));
+    const xs = coins.map((q) => q[0]), zs = coins.map((q) => q[1]);
+    monde.toit(Math.min(...xs), Math.max(...xs), Math.min(...zs), Math.max(...zs), yA + HP, yA + HP + 1.4);
+  }
+  /** Un pétale (ou une feuille) : un ovale aplati, de longueur l et de largeur w, de la base b [x, y, z] vers d. */
+  let petales = 0;
+  const petale = (a, b, d, l, w, c, o = {}) => {
+    const g = new THREE.SphereGeometry(1, 6, 4).toNonIndexed();
+    g.scale(w, w * 0.2, l / 2).translate(0, 0, l / 2);
+    const n = Math.hypot(...d), u = [d[0] / n, d[1] / n, d[2] / n];
+    g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), new THREE.Vector3(...u)));
+    // (chacun commence un peu plus loin sur sa direction : les feuilles d'une même tige, à plat dans presque le même
+    // plan, se superposaient à leur base et scintillaient)
+    petales++;
+    g.translate(b[0] + u[0] * 0.012, b[1] + u[1] * 0.012 + (petales % 5) * 0.0015, b[2] + u[2] * 0.012);
+    return a.piece(g, c, { trait: false, ...o });
+  };
+  // le pin couché par le vent (il penche du côté où le vent pousse), ses plateaux d'aiguilles, des pierres à son pied
+  {
+    const a = atelier(), { x, z } = PIN_VENT, y = terrain(x, z), [vx, vz] = [0.92, 0.38];
+    const pt = (h, d, e = 0) => [x + vx * d - vz * e, y + h, z + vz * d + vx * e];
+    a.baton(pt(-0.3, -0.05), pt(1.0, 0.25), 0.17, P.tronc, 7)
+      .baton(pt(0.95, 0.22), pt(1.9, 0.95, 0.1), 0.13, P.tronc, 7)
+      .baton(pt(1.85, 0.9, 0.1), pt(2.6, 2.0, 0.05), 0.095, P.tronc, 6)
+      .baton(pt(1.5, 0.6, 0.05), pt(2.15, 0.2, -0.9), 0.06, P.tronc, 5)
+      .baton(pt(2.3, 1.5, 0.08), pt(2.75, 1.3, 0.85), 0.055, P.tronc, 5);
+    for (const [h, d, e, rr] of [[2.75, 2.25, 0.05, 0.95], [2.45, 1.55, 0.25, 0.7], [2.3, 2.85, -0.2, 0.7], [2.3, 0.15, -0.95, 0.62], [2.8, 1.25, 0.9, 0.6], [3.05, 1.85, -0.1, 0.55]]) {
+      a.ovale(rr, P.pin, { x: pt(h, d, e)[0], y: pt(h, d, e)[1], z: pt(h, d, e)[2], sy: 0.3, sorte: 'conifere' }, 12);
+    }
+    a.rocher(x - 0.4, y + 0.05, z + 0.35, 0.3, P.rocheSombre).rocher(x + 0.3, y + 0.02, z - 0.4, 0.22, P.roche);
+    poser(a.fin(0, peinture), 0, 0, { y: 0 });
+    monde.cercle(x, z, 0.32);
+  }
+  // les jumelles à pièces (100 円), tournées vers Hachijō-jima
+  const CAP_JUMELLES = vers(JUMELLES.x, JUMELLES.z, HACHIJO.x, HACHIJO.z);
+  const yJ = terrain(JUMELLES.x, JUMELLES.z);
+  /** Un point du repère des jumelles (z vers Hachijō) dans le lieu : [x, y, z]. */
+  const versJumelles = (lx, ly, lz) => [JUMELLES.x + lx * Math.cos(CAP_JUMELLES) + lz * Math.sin(CAP_JUMELLES), yJ + ly, JUMELLES.z - lx * Math.sin(CAP_JUMELLES) + lz * Math.cos(CAP_JUMELLES)];
+  {
+    const a = atelier(), V = '#3f8a7a', VF = '#2f6a5e';
+    a.cylindre(0.2, 0.25, 0.12, 10, P.beton, { y: 0.03 })
+      .cylindre(0.055, 0.065, 1.05, 10, V, { y: 0.6 })
+      .boite(0.16, 0.2, 0.12, '#f2c443', { y: 0.95, z: -0.075 })
+      .boite(0.03, 0.06, 0.004, '#2a2420', { x: 0.035, y: 1.0, z: 0.1, trait: false })
+      .boite(0.14, 0.07, 0.1, V, { y: 1.16 })
+      .boite(0.36, 0.2, 0.3, V, { y: 1.3 })
+      .boite(0.42, 0.035, 0.36, VF, { y: 1.418 });
+    for (const sg of [-1, 1]) {
+      a.cylindre(0.066, 0.066, 0.08, 12, VF, { x: sg * 0.09, y: 1.3, z: 0.18, rx: PI / 2 })
+        .cylindre(0.052, 0.052, 0.012, 12, '#8fc4d4', { x: sg * 0.09, y: 1.3, z: 0.222, rx: PI / 2, trait: false })
+        .cylindre(0.034, 0.03, 0.08, 10, '#2a2a2e', { x: sg * 0.062, y: 1.33, z: -0.19, rx: PI / 2 })
+        .baton([sg * 0.18, 1.26, 0.0], [sg * 0.29, 1.2, -0.08], 0.016, VF, 5);
+    }
+    poser(a.fin(0, peinture), JUMELLES.x, JUMELLES.z, { y: yJ, ry: CAP_JUMELLES });
+    ecrire({ x: JUMELLES.x, z: JUMELLES.z, y: yJ, ry: CAP_JUMELLES }, { texte: '100円', fond: '#f2c443', encre: '#2a2420', x: 0, y: 0.93, z: -0.1405, ry: PI, l: 0.13, h: 0.08 });
+    monde.cercle(JUMELLES.x, JUMELLES.z, 0.28);
+  }
+  // la pierre « 外輪山 » : une dalle brute dressée sur des cailloux, tournée vers le haut de l'escalier
+  {
+    const a = atelier(), { x, z } = STELE, y = terrain(x, z), cap = vers(x, z, HAUT[0], HAUT[1]);
+    a.piece(new THREE.BoxGeometry(0.72, 1.4, 0.26, 4, 6, 1), P.pierreFonce, {
+      y: 0.68, nuance: 0.07,
+      // (le dos et les côtés bosselés, le haut arrondi ; la face gravée reste plane)
+      deformer: (px, py, pz) => {
+        const k = 1 - 0.42 * Math.max(0, (py - 0.15) / 0.55) ** 2, b = 1 + 0.08 * Math.sin(py * 7 + px * 5);
+        return [px * k * b, py + 0.05 * Math.sin(px * 6), pz > 0 ? pz : pz * (1.2 + 0.25 * Math.sin(py * 5 + px * 9))];
+      },
+    })
+      .rocher(-0.35, 0.05, -0.1, 0.24, P.rocheSombre).rocher(0.38, 0.03, 0.05, 0.2, P.roche).rocher(0.05, 0.02, -0.3, 0.22, P.rocheSombre);
+    poser(a.fin(0, peinture), x, z, { y, ry: cap });
+    ecrire({ x, z, y, ry: cap }, { texte: '外輪山', vertical: true, fond: null, encre: '#2f2a2c', x: -0.02, y: 0.78, z: 0.137, l: 0.26, h: 0.86 });
+    monde.cercle(x, z, 0.48);
+  }
+  // les fleurs de la crête : lis, ashitaba, susuki (sans trait : des plantes fines), loin des chemins et des objets
+  {
+    const a = atelier(), tirer = ((g) => () => { g = (g * 16807) % 2147483647; return (g - 1) / 2147483646; })(1785);
+    const unitaire = (v) => { const n = Math.hypot(...v); return v.map((q) => q / n); };
+    const TIGE = '#5f8f3a';
+    /** Un lis sakuyuri : sa tige, ses feuilles étroites, n grandes fleurs blanches en trompette, penchées. */
+    const lis = (x, z, h, n) => {
+      const y = terrain(x, z), haut = [x + (tirer() - 0.5) * 0.3, y + h, z + (tirer() - 0.5) * 0.3];
+      a.baton([x, y - 0.05, z], haut, 0.012, TIGE, 5, { trait: false });
+      for (let k = 0; k < 6; k++) {
+        const f = 0.18 + k * 0.12, b = tirer() * 2 * PI;
+        petale(a, [x + (haut[0] - x) * f, y + h * f, z + (haut[2] - z) * f], [Math.sin(b), 0.55, Math.cos(b)], 0.17, 0.028, TIGE);
+      }
+      for (let i = 0; i < n; i++) {
+        const b = tirer() * 2 * PI, axe = unitaire([Math.sin(b), -0.15 + tirer() * 0.35, Math.cos(b)]);
+        const c0 = [haut[0] + axe[0] * 0.05, haut[1] - i * 0.07 + axe[1] * 0.05, haut[2] + axe[2] * 0.05];
+        a.baton(haut, c0, 0.008, TIGE, 4, { trait: false });
+        const u = unitaire([axe[2], 0, -axe[0]]), v = [axe[1] * u[2] - axe[2] * u[1], axe[2] * u[0] - axe[0] * u[2], axe[0] * u[1] - axe[1] * u[0]];
+        for (let k = 0; k < 6; k++) {
+          const ca = Math.cos((k * PI) / 3), sa = Math.sin((k * PI) / 3);
+          const d = [0, 1, 2].map((j) => axe[j] * 0.62 + (u[j] * ca + v[j] * sa) * 0.78);
+          petale(a, c0, d, 0.14, 0.036, k % 2 ? '#fbf8ef' : '#fffdf6');
+        }
+        a.ovale(0.022, '#e9d870', { x: c0[0], y: c0[1], z: c0[2], trait: false }, 6);
+        for (let k = 0; k < 3; k++) {
+          const e = [0, 1, 2].map((j) => c0[j] + axe[j] * 0.08 + (k - 1) * 0.012 * u[j]);
+          a.baton(c0, e, 0.003, '#d8cf7a', 3, { trait: false }).ovale(0.008, '#b8562a', { x: e[0], y: e[1], z: e[2], trait: false }, 4);
+        }
+      }
+    };
+    /** Une touffe d'ashitaba : de grandes feuilles vernies sur leurs tiges, parfois une ombelle jaune pâle. */
+    const ashitaba = (x, z) => {
+      const y = terrain(x, z);
+      for (let k = 0; k < 5; k++) {
+        const b = (k / 5) * 2 * PI + tirer(), l = 0.3 + tirer() * 0.18, t = [x + Math.sin(b) * l * 0.6, y + 0.22 + tirer() * 0.12, z + Math.cos(b) * l * 0.6];
+        a.baton([x, y, z], t, 0.01, '#6f9a45', 4, { trait: false });
+        for (const e of [-0.55, 0, 0.55]) petale(a, t, [Math.sin(b + e), 0.12, Math.cos(b + e)], 0.17, 0.065, k % 2 ? '#3f8a34' : '#4a9a3c');
+      }
+      if (tirer() < 0.6) {
+        const t = [x + (tirer() - 0.5) * 0.2, y + 0.55 + tirer() * 0.15, z + (tirer() - 0.5) * 0.2];
+        a.baton([x, y, z], t, 0.009, '#6f9a45', 4, { trait: false }).ovale(0.075, '#e2dc84', { x: t[0], y: t[1] + 0.01, z: t[2], sy: 0.35, trait: false }, 7);
+      }
+    };
+    /** Une touffe de susuki : de longues feuilles qui s'arquent, et des épis argentés plus hauts. */
+    const susuki = (x, z) => {
+      const y = terrain(x, z);
+      // (chaque brin part d'un point un peu différent : partis du même, leurs faces se superposaient à la base)
+      for (let k = 0; k < 11; k++) {
+        const b = tirer() * 2 * PI, l = 0.6 + tirer() * 0.5, ex = (tirer() - 0.5) * 0.12, ez = (tirer() - 0.5) * 0.12;
+        a.cone(0.022, l, 3, k % 2 ? '#86a24e' : '#7a9a46', { x: x + ex + Math.sin(b) * l * 0.25, y: y + l * 0.45, z: z + ez + Math.cos(b) * l * 0.25, rx: Math.cos(b) * 0.5, rz: -Math.sin(b) * 0.5, trait: false });
+      }
+      for (let k = 0; k < 4; k++) {
+        const b = tirer() * 2 * PI, t = [x + Math.sin(b) * 0.3, y + 1.1 + tirer() * 0.35, z + Math.cos(b) * 0.3];
+        a.baton([x + Math.sin(b) * 0.05, y, z + Math.cos(b) * 0.05], t, 0.008, '#9a9a5a', 4, { trait: false });
+        petale(a, t, [Math.sin(b) * 0.7, 0.25, Math.cos(b) * 0.7], 0.3, 0.05, '#efe3c6');
+      }
+    };
+    const loinDe = (x, z, marge) => {
+      if (CHEMINS.slice(2).some((c) => surLaLigne(c, x, z).d < 1.5 + marge) || surLaLigne(MARCHES, x, z).d < 4) return false;
+      const [lx, lz] = dansAbri(x, z);
+      if (Math.abs(lx) < 2.7 + marge && Math.abs(lz) < 2.7 + marge) return false;
+      return [[PIN_VENT, 1.4], [JUMELLES, 1.4], [STELE, 1.3], [VIDEASTE, 2], [OTONBU, OTONBU.r]].every(([o, d]) => Math.hypot(x - o.x, z - o.z) > d + marge);
+    };
+    let nl = 0, na = 0, ns = 0;
+    for (let i = 0; i < 400 && (nl < 22 || na < 14 || ns < 11); i++) {
+      // une touffe de chaque sorte, en petits groupes sur le plateau, à l'ouest de l'escalier (les susuki au bord, côté mer)
+      const t = -0.46 + tirer() * 0.36, r2 = rayonPied(t) + PAROI, r3 = r2 + largeurCrete(t), sorte = i % 3;
+      const rr = sorte === 2 ? r3 - 2.5 + tirer() * 1.8 : r2 + 2.6 + tirer() * (r3 - r2 - 4.2);
+      const x = rr * Math.sin(t), z = -rr * Math.cos(t);
+      if (!loinDe(x, z, sorte === 2 ? 0.5 : 0)) continue;
+      if (sorte === 0 && nl < 22) {
+        const k = 1 + Math.floor(tirer() * 3);
+        for (let j = 0; j < k && nl < 22; j++, nl++) lis(x + (tirer() - 0.5) * 0.9, z + (tirer() - 0.5) * 0.9, 0.7 + tirer() * 0.35, 1 + Math.floor(tirer() * 2.6));
+      } else if (sorte === 1 && na < 14) { ashitaba(x, z); na++; } else if (sorte === 2 && ns < 11) { susuki(x, z); ns++; }
+    }
+    // et un groupe de lis tout près de la pierre, qu'on regarde
+    for (const [dx, dz, h, n] of [[0.9, 0.5, 0.85, 2], [1.25, 0.05, 0.75, 1], [0.7, 0.95, 0.95, 3]]) lis(STELE.x - dx, STELE.z - dz, h, n);
+    poser(a.fin(0, peinture), 0, 0, { y: 0 });
   }
 
   // ---------------------------------------------------------------- La végétation
@@ -938,6 +1204,7 @@ export function construire(ctx) {
         const rr = r2 + 2 + tire() * (largeurCrete(t) - 3);
         x = rr * Math.sin(t); z = -rr * Math.cos(t);
         if (Math.hypot(x - BELVEDERE.x, z - BELVEDERE.z) < BELVEDERE.r + 2 || Math.hypot(x - OTONBU.x, z - OTONBU.z) < 5 || CHEMINS.slice(2).some((c) => surLaLigne(c, x, z).d < 2.5) || Math.abs(x - VIDEASTE.x) + Math.abs(z - VIDEASTE.z) < 4) continue;
+        if (Math.hypot(x - AZUMAYA.x, z - AZUMAYA.z) < 4.6 || [PIN_VENT, JUMELLES, STELE].some((o) => Math.hypot(x - o.x, z - o.z) < 2.6)) continue;
       } else {
         const t = tire() * 2 * PI, dm = 10 + tire() * 14;
         x = MARUYAMA.x + Math.sin(t) * dm; z = MARUYAMA.z + Math.cos(t) * dm;
@@ -1069,7 +1336,7 @@ export function construire(ctx) {
     ...Object.entries(PANNEAUX).map(([id, p]) => ({ id: `panneau-${id}`, x: p.x, z: p.z, rayon: 1.8, verbe: 'lire', action: (jeu) => jeu.dire(jeu.tx(`panneau-${id}`)) })),
     { id: 'tunnel', x: duTunnel(0, -2.4)[0], z: duTunnel(0, -2.4)[1], rayon: 2.6, verbe: 'regarder', action: (jeu) => jeu.dire(jeu.tx('tunnel')) },
     {
-      // le sauna : on s'assoit sur le gradin du bas, la vapeur envahit tout, on ressort en sueur (Kon aussi)
+      // le sauna : on s'assoit sur le gradin du bas, la vapeur envahit tout, on ressort en sueur (le compagnon aussi)
       id: 'sauna', x: versSauna(2.15, -1.55)[0], z: versSauna(2.15, -1.55)[1], y: solS + 0.05, rayon: 1.9, verbe: 'asseoir',
       async action(jeu) {
         const r = await jeu.choisir(jeu.tx('saunaQuestion'), [jeu.t('oui'), jeu.t('non')]);
@@ -1079,7 +1346,7 @@ export function construire(ctx) {
         await jeu.attendre(1400);
         await jeu.dire(jeu.tx('saunaDedans'));
         jeu.transpirer();
-        await jeu.dire(jeu.tx('saunaKon'), 'kon');
+        await jeu.dire(jeu.tx('saunaCompagnon')[jeu.compagnon], 'compagnon');
         jeu.vapeur(false);
         await jeu.attendre(900);
         jeu.asseoir(null);
@@ -1087,6 +1354,37 @@ export function construire(ctx) {
       },
     },
     { id: 'distributeur', x: versSauna(-3.6, 4.75)[0], z: versSauna(-3.6, 4.75)[1], rayon: 1.5, verbe: 'acheter', action: (jeu) => jeu.dire(jeu.tx('distributeur')) },
+    {
+      // l'abri de la crête : on s'assoit sur le banc du fond, face à la caldeira, et l'on regarde (le compagnon aussi)
+      id: 'abri', x: versAbri(0, -0.75)[0], z: versAbri(0, -0.75)[1], y: SOL_ABRI, rayon: 1.5, verbe: 'asseoir',
+      async action(jeu) {
+        // (la caméra par-dessus l'épaule, sous le toit : la vue sur la caldeira, le voyageur assis en bas à gauche)
+        jeu.asseoir(SIEGE_ABRI);
+        const [cx, cz] = versAbri(1.15, -2.4), [vx, vz] = versAbri(-2.2, 16);
+        jeu.cadrer({ de: [cx, SOL_ABRI + 2.15, cz], vers: [vx, SOL_ABRI - 6.5, vz] });
+        await jeu.attendre(800);
+        await jeu.dire(jeu.tx('abri'));
+        await jeu.dire(jeu.tx('abriCompagnon')[jeu.compagnon], 'compagnon');
+        jeu.cadrer(null);
+        jeu.asseoir(null);
+      },
+    },
+    { id: 'cahier', x: versAbri(0.22, -0.08)[0], z: versAbri(0.22, -0.08)[1], y: SOL_ABRI, rayon: 1.25, haut: 1.3, verbe: 'lire', action: (jeu) => jeu.dire(jeu.tx('cahier')) },
+    {
+      // les jumelles : une pièce, et l'on voit Hachijō-jima sur l'horizon, dans les deux ronds des jumelles
+      id: 'jumelles', ...((q) => ({ x: q[0], z: q[2] }))(versJumelles(0, 0, -0.55)), rayon: 1.4, haut: 1.75, verbe: 'regarder',
+      async action(jeu) {
+        await jeu.dire(jeu.tx('jumelles'));
+        jeu.jumelles(true);
+        jeu.cadrer({ de: versJumelles(0, 1.36, 0.4), vers: [HACHIJO.x, HACHIJO.y + 12, HACHIJO.z], champ: 13 });
+        await jeu.attendre(500);
+        await jeu.dire(jeu.tx('jumellesVue'));
+        jeu.cadrer(null);
+        jeu.jumelles(false);
+      },
+    },
+    { id: 'stele', x: STELE.x, z: STELE.z, rayon: 1.8, verbe: 'lire', action: (jeu) => jeu.dire(jeu.tx('stele')) },
+    { id: 'lis', x: STELE.x - 1.5, z: STELE.z - 0.9, rayon: 1.3, haut: 1.4, verbe: 'regarder', action: (jeu) => jeu.dire(jeu.tx('lis')) },
   ];
 
   // ---------------------------------------------------------------- Pour la caméra et les captures
@@ -1181,6 +1479,10 @@ function aspectSol(P, x, z, h) {
     const [lx, d] = versTunnel(x, z);
     if (d > 0.1 && d < 9 && Math.abs(lx) < 9.4) return [P.rocheSombre, M.roche];
   }
+  {
+    const [lx, lz] = dansAbri(x, z);
+    if (Math.abs(lx) < 2.1 && Math.abs(lz) < 2.1) return [P.pierre, M.dalles];
+  }
   const marches = surLaLigne(MARCHES, x, z).d;
   if (marches < 1.15) return [P.pierre, M.pierre];
   if (marches < 2.1 + 0.3 * bruit) return [P.chemin, M.terre]; // l'accotement, au bout des marches
@@ -1263,7 +1565,22 @@ const TEXTES = {
     tunnel: ['Le tunnel 青宝 (Seihō) : la seule route qui entre dans le cratère.', 'De l’autre côté, le port et le village. C’est par là que tu es arrivé !'],
     saunaQuestion: ['Les gradins de bois baignent dans la vapeur chaude du volcan.', 'Tu t’assois un moment ?'],
     saunaDedans: ['Ouf… il fait près de 60 °C !', 'La vapeur monte des grilles du sol : elle vient tout droit du volcan.', 'L’aiguille rouge du sablier de douze minutes tourne… Tu respires lentement.'],
-    saunaKon: ['Chaud… chaud… chaud ! Mon pelage est tout trempé !'],
+    saunaCompagnon: {
+      kon: ['Chaud… chaud… chaud ! Mon pelage est tout trempé !'],
+      pon: ['Pon… je fonds comme un mochi grillé… Après, on mange des œufs du volcan ?'],
+      chapu: ['Chapu ! C’est comme une rivière… mais dans l’air ! Encore, encore !'],
+    },
+    abri: ['Le vent souffle sur la crête…', 'D’ici, tout le cratère : la jungle du fond, les vapeurs des fumerolles, le petit volcan Maruyama… et l’océan, tout autour.'],
+    abriCompagnon: {
+      kon: ['« On se croirait au bord du bol d’un géant… Les dieux doivent aimer cet endroit. »'],
+      pon: ['« Une pause bien méritée ! Tu as un onigiri dans ton sac ? Non ? Tant pis… »'],
+      chapu: ['« Regarde la mer, toute bleue ! J’irais bien y plonger… mais c’est un peu loin, en bas. »'],
+    },
+    cahier: ['Un cahier sur la table : « 思い出ノート », le cahier des souvenirs. Les voyageurs y laissent un mot.', '« Le bateau n’a pas pu accoster trois jours de suite. Je suis venue en hélicoptère : neuf places, vingt minutes ! »', '« Vu la Voie lactée depuis le camping. Je reviendrai. »', '« Les œufs de la marmite du volcan sont les meilleurs du monde. — un garçon de Tokyo, 8 ans »'],
+    jumelles: ['Des jumelles à pièces : 100 yens. Tu glisses une pièce… clic !'],
+    jumellesVue: ['Au nord, sur l’horizon : Hachijō-jima et ses deux volcans, à près de 70 km de mer.', 'Le bateau qui relie les deux îles ne part que si la mer est calme : bien souvent, il reste au port.'],
+    stele: ['« 外輪山 » (gairinzan) : la crête du grand cratère.', 'En 1785, une éruption a chassé les habitants de l’île : ils se sont réfugiés à Hachijō.', 'Il leur a fallu cinquante ans pour revenir y vivre, en 1835 : on l’appelle le « kanjū », le retour.'],
+    lis: ['Des sakuyuri, les grands lis blancs des îles d’Izu : ils ne poussent nulle part ailleurs.', 'Leur parfum est si fort qu’on le sent de loin, porté par le vent.'],
     saunaFin: ['Tu ressors tout léger, la peau toute douce.', 'Ici, ni bois ni gaz : c’est le volcan qui chauffe le sauna.'],
     distributeur: ['Un distributeur de boissons, même au fond d’un cratère !', 'Tu choisis un thé vert bien frais… Clonk ! La bouteille tombe.', 'Au Japon, il y en a presque partout : plus de quatre millions !'],
   },
@@ -1308,7 +1625,22 @@ const TEXTES = {
     tunnel: ['The Seihō (青宝) tunnel: the only road into the crater.', 'On the other side: the port and the village. That’s how you came in!'],
     saunaQuestion: ['The wooden benches are bathed in the volcano’s hot steam.', 'Sit down for a while?'],
     saunaDedans: ['Phew… it’s almost 60 °C!', 'The steam rises from the grates in the floor: straight from the volcano.', 'The red hand of the twelve-minute timer goes round… You breathe slowly.'],
-    saunaKon: ['Hot… hot… hot! My fur is soaked!'],
+    saunaCompagnon: {
+      kon: ['Hot… hot… hot! My fur is soaked!'],
+      pon: ['Pon… I’m melting like a grilled mochi… Volcano eggs after this?'],
+      chapu: ['Chapu! It’s like a river… but in the air! Again, again!'],
+    },
+    abri: ['The wind blows over the rim…', 'From here, the whole crater: the jungle below, the steam of the vents, little Maruyama… and the ocean all around.'],
+    abriCompagnon: {
+      kon: ['“It feels like sitting on the rim of a giant’s bowl… The gods must love this place.”'],
+      pon: ['“A well-earned break! Got an onigiri in your bag? No? Oh well…”'],
+      chapu: ['“Look at the sea, so blue! I’d love a dive… but it’s a long way down.”'],
+    },
+    cahier: ['A notebook on the table: “思い出ノート”, the memory book. Travellers leave a few words in it.', '“The boat couldn’t dock three days in a row. I came by helicopter: nine seats, twenty minutes!”', '“Saw the Milky Way from the campsite. I’ll be back.”', '“The eggs from the volcano pot are the best in the world. — a boy from Tokyo, age 8”'],
+    jumelles: ['Coin-operated binoculars: 100 yen. You slip in a coin… click!'],
+    jumellesVue: ['To the north, on the horizon: Hachijō-jima and its two volcanoes, almost 70 km of sea away.', 'The boat between the two islands only sails when the sea is calm: it often stays in port.'],
+    stele: ['“外輪山” (gairinzan): the rim of the great crater.', 'In 1785 an eruption drove the islanders away: they took refuge on Hachijō.', 'It took them fifty years to come back and live here, in 1835: they call it the “kanjū”, the return home.'],
+    lis: ['Sakuyuri: the big white lilies of the Izu islands. They grow nowhere else.', 'Their scent is so strong you can smell it from afar, carried by the wind.'],
     saunaFin: ['You come out feeling light, your skin all soft.', 'No wood, no gas here: the volcano heats the sauna.'],
     distributeur: ['A vending machine, even at the bottom of a crater!', 'You pick an ice-cold green tea… Clunk! The bottle drops.', 'In Japan they are almost everywhere: more than four million of them!'],
   },
@@ -1353,7 +1685,22 @@ const TEXTES = {
     tunnel: ['青宝トンネル。カルデラの 中に 入る ただ 一本の 道。', 'むこうには 港と 村。きみも ここを 通って きたんだね！'],
     saunaQuestion: ['木の だんだんの いすが、火山の 熱い 湯気に つつまれている。', 'すこし すわって みる？'],
     saunaDedans: ['ふう……60度 ちかく ある！', '床の あみから 湯気が のぼる。火山から そのまま きているんだ。', '12分計の 赤い 針が まわる……ゆっくり いきを する。'],
-    saunaKon: ['あつい……あつい……あつーい！ 毛が びしょびしょ だよ！'],
+    saunaCompagnon: {
+      kon: ['あつい……あつい……あつーい！ 毛が びしょびしょ だよ！'],
+      pon: ['ポン……やいた おもちみたいに とけちゃう……あとで 地熱釜の たまご たべよ？'],
+      chapu: ['チャプ！ 空の 中の 川みたい！ もっと もっと！'],
+    },
+    abri: ['外輪山を 風が ふきぬける……', 'ここから カルデラが ぜんぶ 見える。底の ジャングル、ひんぎゃの 湯気、小さな 丸山……そして まわりは 一面の 海。'],
+    abriCompagnon: {
+      kon: ['「巨人の おわんの ふちに すわってる みたい……神さまも きっと この けしきが すきだね。」'],
+      pon: ['「ひとやすみ ひとやすみ！ リュックに おにぎり ない？ ない？ ざんねん……」'],
+      chapu: ['「海が まっさお！ とびこみたいな……でも 下まで ちょっと 遠すぎる かも。」'],
+    },
+    cahier: ['テーブルの 上に ノート。「思い出ノート」……旅人が ひとこと 書いていく。', '「船が 3日も つけなかった。ヘリで 来ました。9人のり、20分！」', '「キャンプ場から 天の川が 見えた。また 来ます。」', '「地熱釜の たまごは 世界一 おいしい。—— 東京の 8さいの 男の子」'],
+    jumelles: ['100円の 望遠鏡。コインを 入れて……カチッ！'],
+    jumellesVue: ['北の 水平線に 八丈島。ふたつの 火山が 見える。海を こえて 70キロ くらい。', 'ふたつの 島を むすぶ 船は、海が おだやかな 日しか 出ない。港に とまった ままの 日も 多いんだ。'],
+    stele: ['「外輪山」……大きな カルデラの ふち。', '1785年、噴火で 島の 人たちは 八丈島へ にげた。', 'みんなが 島に もどれたのは 50年後の 1835年。これを「還住（かんじゅう）」と いうんだ。'],
+    lis: ['サクユリ。伊豆諸島に しか さかない 大きな 白い ユリ。', 'かおりが つよくて、風に のって 遠くまで とどくんだ。'],
     saunaFin: ['外に でると、からだが かるい。はだも すべすべ。', 'ここでは 木も ガスも つかわない。火山が サウナを あたためて いるんだ。'],
     distributeur: ['カルデラの 底にも 自動販売機！', 'つめたい 緑茶を えらぶ……ガコン！ ボトルが おちてきた。', '日本には 400万台 いじょうも あるんだって！'],
   },

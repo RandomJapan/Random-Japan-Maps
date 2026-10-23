@@ -234,3 +234,8 @@ body.photo > *:not(#jeu) { display: none !important; }
 .vapeur-ecran::after { animation-name: vapeur-monte-b; }
 @keyframes vapeur-monte-b { from { transform: scaleX(-1) translateY(35%); opacity: 0; } 25% { opacity: 1; } 80% { opacity: 1; } to { transform: scaleX(-1) translateY(-45%); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .vapeur-ecran::before, .vapeur-ecran::after { animation: none; opacity: 0.8; } }
+
+/* Les jumelles de la crête d'Aogashima : deux ronds ouverts sur le paysage, le reste noir (le masque SVG ; les ronds
+   sont placés par balade.js, jeu.jumelles) */
+.jumelles-ecran { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0; transition: opacity 0.35s ease; }
+.jumelles-ecran.visible { opacity: 1; }
