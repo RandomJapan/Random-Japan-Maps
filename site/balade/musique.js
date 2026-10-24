@@ -5,7 +5,9 @@
 //  - Itsukushima : un air calme du Japon ancien, koto, flûte de bambou et taiko ;
 //  - Aogashima : un air d'île et d'aventure, plus vif, marimba, flûte, petite batterie ;
 //  - Gokayama (2026-10-23) : un air de montagne, mélancolique et chaleureux, sur la gamme des chants populaires (la
-//    mineur, la do ré mi sol), flûte de bambou, shamisen, et les claquements de la sasara et des baguettes de la kokiriko.
+//    mineur, la do ré mi sol), flûte de bambou, shamisen, et les claquements de la sasara et des baguettes de la kokiriko ;
+//  - Himeji (2026-10-25) : un air de château, noble et un peu mélancolique, sur la gamme in (mi fa la si do), la flûte
+//    traversière des fêtes (fue), le koto et le taiko.
 //  La nuit, le même air plus lent, en boîte à musique. Une introduction, puis la boucle (A, A', B).
 //  Pour danser (la danse achetée au marchand, 2026-10-23), un troisième air, celui d'une fête d'été (bon-odori) : la
 //  flûte de fête (shinobue), le shamisen, le grand tambour et la clochette de cuivre (atarigane) ; fete(oui).
@@ -128,6 +130,41 @@ const AIRS = {
     },
     jour: { tempo: 96, lead: 'shakuhachi', arpege: 'shamisen', basse: 'pizz', nappe: true, batterie: 'kokiriko' },
     nuit: { tempo: 72, lead: 'boite', arpege: 'kotoDoux', basse: 'pizzDoux', nappe: true, batterie: null },
+  },
+  // La mineur, une mélodie sur la gamme in (miyako-bushi : mi fa la si do, celle de « Sakura sakura ») : le château
+  // blanc sous les cerisiers, noble et un peu mélancolique ; la flûte de bambou traversière (fue), le koto, le taiko
+  himeji: {
+    gamme: [9, 11, 0, 2, 4, 5, 7], // la mineur (pour la seconde voix)
+    intro: ['Am', 'Am'],
+    A: {
+      accords: ['Am', 'F', 'Dm', 'E', 'Am', 'F', 'Dm E', 'Am'],
+      melodie: [
+        [76, 4], [77, 2], [76, 2], [72, 4], [71, 4],
+        [72, 6], [69, 2], [65, 8],
+        [69, 4], [72, 4], [74, 4], [77, 4],
+        [76, 6], [74, 2], [71, 8],
+        [76, 4], [77, 2], [76, 2], [81, 4], [83, 4],
+        [84, 6], [83, 2], [81, 4], [77, 4],
+        [77, 4], [74, 4], [76, 4], [71, 4],
+        [69, 12], [null, 4],
+      ],
+      fin2: [[69, 8], [72, 4], [76, 4]],
+    },
+    B: {
+      accords: ['F', 'G', 'Em', 'Am', 'Dm', 'E', 'F', 'E'],
+      melodie: [
+        [81, 4], [77, 4], [72, 8],
+        [74, 4], [76, 2], [74, 2], [71, 8],
+        [76, 4], [79, 4], [83, 8],
+        [81, 6], [79, 2], [76, 8],
+        [77, 4], [76, 2], [74, 2], [77, 4], [81, 4],
+        [83, 6], [81, 2], [76, 8],
+        [77, 4], [76, 2], [74, 2], [72, 4], [74, 4],
+        [71, 8], [74, 4], [76, 4],
+      ],
+    },
+    jour: { tempo: 88, lead: 'fue', arpege: 'koto', basse: 'pizz', nappe: true, batterie: 'taiko' },
+    nuit: { tempo: 66, lead: 'boite', arpege: 'kotoDoux', basse: 'pizzDoux', nappe: true, batterie: null },
   },
   // Ré majeur, la gamme yo (ré mi sol la si) : l'air de la danse des fêtes d'été, sautillant (112 battements : la
   // danse du voyageur est réglée dessus, personnages.js)

@@ -90,6 +90,36 @@ const MOTIFS = {
     <circle cx="66" cy="48" r="2.5"/><circle cx="54" cy="50" r="2.5"/><circle cx="60" cy="44" r="2"/>
     <path d="M32 100 L60 54 L88 100 Z"/><path d="M50 100 L60 80 L70 100 Z" class="vide"/>
     <rect x="13" y="84" width="8" height="16"/><rect x="99" y="84" width="8" height="16"/>`,
+  // Himeji (2026-10-25) : une fleur de cerisier ; la porte en losange (ses fenêtres en cloche, ses losanges) ; le puits
+  // d'Okiku et sa petite flamme ; le grand donjon et ses toits ; une carpe et ses ronds dans l'eau
+  sakura: `${Array.from({ length: 5 }, (_, k) => `<path transform="rotate(${k * 72} 60 60)" d="M60 58 C49 47 43 31 52 21 L60 28 L68 21 C77 31 71 47 60 58 Z"/>`).join('')}
+    <circle cx="60" cy="60" r="9" class="vide"/>
+    ${Array.from({ length: 5 }, (_, k) => { const a = (k * 72 + 36) * Math.PI / 180; return `<circle cx="${(60 + Math.sin(a) * 5).toFixed(1)}" cy="${(60 - Math.cos(a) * 5).toFixed(1)}" r="1.8"/>`; }).join('')}`,
+  hishi: `<path d="M8 40 Q60 26 112 40 L107 48 Q60 36 13 48 Z"/>
+    <rect x="22" y="49" width="76" height="17"/>
+    <path d="M38 64 L38 56 Q38 51 43 51 Q48 51 48 56 L48 64 Z" class="vide"/><path d="M72 64 L72 56 Q72 51 77 51 Q82 51 82 56 L82 64 Z" class="vide"/>
+    <rect x="16" y="68" width="88" height="11"/>
+    ${[28, 44, 60, 76, 92].map((x) => `<path d="M${x} 69.5 L${x + 4} 73.5 L${x} 77.5 L${x - 4} 73.5 Z" class="vide"/>`).join('')}
+    <rect x="24" y="80" width="10" height="20"/><rect x="86" y="80" width="10" height="20"/>
+    <rect x="12" y="80" width="10" height="20"/><rect x="98" y="80" width="10" height="20"/><rect x="8" y="100" width="104" height="4"/>`,
+  ido: `<path d="M60 22 Q51 13 58 3 Q59 10 64 12 Q69 16 65 21 Q63 24 60 22 Z"/>
+    <rect x="24" y="30" width="7" height="42"/><rect x="89" y="30" width="7" height="42"/><rect x="18" y="27" width="84" height="6"/>
+    <circle cx="60" cy="40" r="5"/><path d="M60 45 L60 56" fill="none" stroke-width="2"/><rect x="55" y="56" width="10" height="8"/>
+    <path d="M28 72 L92 72 L89 100 Q60 106 31 100 Z"/>
+    <ellipse cx="60" cy="72" rx="33" ry="7"/><ellipse cx="60" cy="72" rx="25" ry="4" class="vide"/>
+    <path d="M30 86 L90 86 M44 74 L42 86 M62 76 L62 86 M80 74 L82 86 M36 88 L34 99 M54 88 L54 102 M72 88 L72 102 M88 88 L86 99" class="vide" fill="none" stroke-width="2"/>`,
+  tenshu: `<path d="M52 18 L56 12 L58 18 Z M62 18 L64 12 L68 18 Z"/>
+    <path d="M40 30 Q60 18 80 30 L76 33 L44 33 Z"/><rect x="47" y="33" width="26" height="7" class="vide" stroke-width="2"/>
+    <path d="M34 46 Q60 36 86 46 L82 50 L38 50 Z"/><rect x="42" y="50" width="36" height="7" class="vide" stroke-width="2"/>
+    <path d="M28 62 Q60 52 92 62 L88 66 L32 66 Z"/><rect x="37" y="66" width="46" height="8" class="vide" stroke-width="2"/>
+    <path d="M22 78 Q60 68 98 78 L94 82 L26 82 Z"/>
+    <path d="M30 82 L90 82 L98 102 L22 102 Z"/>
+    <path d="M40 40 L40 38 M52 42 L52 40 M68 42 L68 40 M80 40 L80 38" fill="none"/>`,
+  koi: `<path d="M86 24 Q102 30 98 46 Q94 60 76 68 Q60 76 48 88 L40 102 L38 88 Q26 94 18 88 Q32 82 42 78 Q56 66 62 52 Q70 32 86 24 Z"/>
+    <circle cx="90" cy="34" r="3" class="vide"/><path d="M74 42 Q80 46 78 54 Q72 52 70 46 Z" class="vide"/><path d="M60 64 Q66 66 64 72 Q58 72 56 68 Z" class="vide"/>
+    <path d="M66 58 L80 70 L72 72 Z M58 44 L44 40 L52 52 Z"/>
+    <path d="M10 104 q8 -5 16 0 t16 0 t16 0 t16 0 t16 0 t16 0" fill="none" stroke-width="3"/>
+    <path d="M70 96 q6 -4 12 0 t12 0" fill="none" stroke-width="2.5"/>`,
 };
 
 /** Un tampon en SVG : t = { id, motif, ja (nom japonais), encre, forme ('rond' | 'carre') }, lieuJa (le lieu en japonais). */

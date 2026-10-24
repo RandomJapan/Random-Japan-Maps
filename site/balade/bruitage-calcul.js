@@ -26,7 +26,8 @@
 //    musique de la danse : la flûte, la sasara qui claque, les baguettes de bambou, le tambour) ; « oiseau/aosagi » (le
 //    héron cendré, un « gwaa » rauque), « bete/ouaf » (le shiba du minshuku, « wan ! ») ; « creux » (la planche qui sonne
 //    creux), « jets » (les canons à eau qui s'ouvrent, l'eau qui jaillit et retombe en pluie), « papier » (l'eau de la cuve
-//    du papier qu'on balance), « cloche » (la cloche du sanctuaire qu'on agite), « claque » (un battement de mains).
+//    du papier qu'on balance), « cloche » (la cloche du sanctuaire qu'on agite), « claque » (un battement de mains) ;
+//    Himeji : « assiette » (une assiette de porcelaine posée sur une autre), « plouf » (la nourriture jetée aux carpes).
 //  Les pas et les oiseaux sortent à une force fixe (la plus forte valeur efficace sur 10 ms : 0,25 × la force
 //  du sol) ; les boucles, à une valeur efficace de 1 : bruitage.js règle les volumes.
 // ================================================================
@@ -868,6 +869,29 @@ function claque(sr) {
   return cadrer([echo(c.b, sr)], sr, 0.25);
 }
 
+// ---------------------------------------------------------------- Himeji
+/**
+ * Une assiette de porcelaine qu'on pose sur une autre (les assiettes d'Okiku, qu'elle compte) : un « tinc » clair, la
+ * porcelaine qui sonne un peu, et un second contact plus doux, juste après (l'assiette qui se pose à plat).
+ */
+function assiette(sr) {
+  const r = alea(graine('assiette')), c = composer(sr, r, 1.1);
+  const sonne = [[2350, 0.7, 0.2], [3980, 0.45, 0.14], [6120, 0.28, 0.09], [8800, 0.14, 0.05]];
+  c.modes(0.01, sonne).bruit(0.01, { type: 'haut', f: 4000, attaque: 0.0004, tau: 0.004, gain: 0.35 })
+    .modes(0.052, sonne.map(([f, a, tau]) => [f * 1.006, a * 0.35, tau * 0.8]))
+    .bruit(0.052, { type: 'haut', f: 4500, attaque: 0.0004, tau: 0.003, gain: 0.12 });
+  return cadrer([echo(c.b, sr)], sr, 0.22);
+}
+/** Une poignée de nourriture jetée aux carpes : une pluie de petits « plic » sur l'eau, et la première bouche qui happe. */
+function plouf(sr) {
+  const r = alea(graine('plouf')), c = composer(sr, r, 1.2);
+  c.bruit(0.02, { type: 'bas', f: 1600, attaque: 0.003, tau: 0.05, gain: 0.35 })
+    .bulles(16, { de: 0.03, a: 0.42, f: [700, 1700], g: [0.06, 0.22] })
+    .bulles(3, { de: 0.6, a: 0.95, f: [380, 520], g: [0.25, 0.4] })
+    .bruit(0.62, { type: 'bas', f: 900, attaque: 0.004, tau: 0.06, gain: 0.3 });
+  return cadrer([c.b], sr, 0.22);
+}
+
 /** Les feux d'artifice : la fusée qui siffle en montant ; l'éclat grave et son écho sur les montagnes ; les mille éclats. */
 const FEUX = {
   depart(sr, r) {
@@ -915,6 +939,8 @@ export function fabriquer(quoi, sr) {
   if (sorte === 'papier') return papier(sr);
   if (sorte === 'cloche') return cloche(sr);
   if (sorte === 'claque') return claque(sr);
+  if (sorte === 'assiette') return assiette(sr);
+  if (sorte === 'plouf') return plouf(sr);
   if (sorte === 'feu') return FEUX[nom](sr, alea(graine(quoi)));
   throw new Error(`son inconnu : ${quoi}`);
 }

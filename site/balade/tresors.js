@@ -1,7 +1,8 @@
 // ================================================================
 //  Les trésors de la balade (demandés par le propriétaire le 2026-10-23) : chaque lieu cache un secret, difficile à
 //  trouver, pour les joueurs les plus attentifs (Itsukushima : les corbeaux sacrés ; Aogashima : la boîte enterrée ;
-//  Gokayama : depuis le 2026-10-24, la luciole dorée qui mène à la tombe d'un guerrier Heike).
+//  Gokayama : depuis le 2026-10-24, la luciole dorée qui mène à la tombe d'un guerrier Heike ; Himeji : la dixième
+//  assiette d'Okiku, à rapporter la nuit à son vieux puits).
 //  Un secret trouvé donne un koban, une vieille pièce d'or de l'époque d'Edo ; Bunbuku, le marchand ambulant (un
 //  vieux tanuki, l'oncle de Pon), n'accepte qu'eux, et vend des objets précieux (ARTICLES). Rien d'autre à garder que
 //  les secrets trouvés, les indices vus et les achats : le nombre de koban s'en déduit.
@@ -10,7 +11,7 @@
 // ================================================================
 
 /** Le secret de chaque lieu. */
-export const SECRETS = { itsukushima: 'corbeaux', aogashima: 'tresor', gokayama: 'heike' };
+export const SECRETS = { itsukushima: 'corbeaux', aogashima: 'tresor', gokayama: 'heike', himeji: 'okiku' };
 /**
  * Ce que vend Bunbuku, du moins cher au plus cher. sorte : 'objet' (on s'en sert depuis le menu), 'tenue' (dans la
  * garde-robe), 'compagnon' (un nouveau compagnon). pieces : les pièces de tenue qu'il débloque (tenues.js).

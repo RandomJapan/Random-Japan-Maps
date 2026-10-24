@@ -24,6 +24,7 @@ export const PIECES = [
   { id: 'defaut', place: 'tete' },
   { id: 'nue', place: 'tete' },
   { id: 'bois', place: 'tete', lieu: 'itsukushima' },
+  { id: 'heron', place: 'tete', lieu: 'himeji' },
   { id: 'kabuto', place: 'tete', achat: 'armure' },
   { id: 'aucune', place: 'yeux' },
   { id: 'etoiles', place: 'yeux', lieu: 'aogashima' },
@@ -115,6 +116,13 @@ const DESSINS = {
     <ellipse cx="10.5" cy="27" rx="6" ry="3" transform="rotate(-28 10.5 27)" fill="#b98250" stroke="${ENCRE}" stroke-width="1.8"/>
     <ellipse cx="37.5" cy="27" rx="6" ry="3" transform="rotate(28 37.5 27)" fill="#b98250" stroke="${ENCRE}" stroke-width="1.8"/>
     ${trait(BOIS_D, '#e2c596', 3)}<g transform="translate(48 0) scale(-1 1)">${trait(BOIS_D, '#e2c596', 3)}</g>`,
+  // la coiffe du héron blanc (Himeji) : un bandeau blanc, une tête de héron au bec jaune posée devant, et derrière, les
+  // longues plumes blanches de la parade (les aigrettes) qui retombent
+  heron: `<path d="M27 21 Q36 10 46 13 Q38 14 31 22 M25 20 Q30 6 41 4 Q33 8 28 20 M23 20 Q24 9 31 2 Q27 10 26 20" fill="#ffffff" stroke="${ENCRE}" stroke-width="1.8" stroke-linejoin="round"/>
+    <path d="M6 30 Q24 21 42 30 L41 35 Q24 27 7 35 Z" fill="#ffffff" stroke="${ENCRE}" stroke-width="2.2" stroke-linejoin="round"/>
+    <path d="M17 26 Q16 17 21 15 Q25 14 26 18 Q26 22 22 25 Z" fill="#ffffff" stroke="${ENCRE}" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M21 16.6 L7 14 L20.6 19.4 Z" fill="#f2c443" stroke="${ENCRE}" stroke-width="1.6" stroke-linejoin="round"/>
+    <circle cx="22.6" cy="17.6" r="1.4" fill="${ENCRE}"/><path d="M23.6 15.6 Q28 14.6 30 17" fill="none" stroke="${ENCRE}" stroke-width="1.4" stroke-linecap="round"/>`,
   aucune: `<circle cx="24" cy="24" r="16" fill="#ffdcbc" stroke="${ENCRE}" stroke-width="2.4"/>
     <ellipse cx="18" cy="23" rx="3" ry="4" fill="${ENCRE}"/><ellipse cx="30" cy="23" rx="3" ry="4" fill="${ENCRE}"/>
     <circle cx="19" cy="21.6" r="1.1" fill="#fff"/><circle cx="31" cy="21.6" r="1.1" fill="#fff"/>

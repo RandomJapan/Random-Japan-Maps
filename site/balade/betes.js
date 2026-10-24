@@ -11,12 +11,14 @@
 //  une autre quand on approche ; des rainettes sur les diguettes, qui sautent dans l'eau ; des libellules rouges
 //  (akatombo) qui filent, s'arrêtent en l'air et se posent ; le shiba du minshuku, assis devant la porte (couché la
 //  nuit), qui aboie quand on arrive et remue la queue quand on le caresse ; la nuit, des lucioles au bord du ruisseau.
+//  Les bêtes de Himeji (2026-10-25) : des aigrettes blanches (les « hérons blancs » du surnom du château) qui chassent
+//  sur les pelouses, comme les hérons ; des libellules rouges.
 //  creerBetes(ctx, o) → { groupe, animer(dt, temps, joueur, kon, nuit, paisible) → les sons de cette image
 //  [{ nom, x, y, z, fort }], cibles() → celles à qui l'on peut faire quelque chose [{ sorte, id, x, y, z, rayon,
 //  haut, verbe, bete }] }
 //  o : { monde, grives: [[[x, z], …], …] (les coins de chacune), lezards: [[x, z], …], chats: [{ id, x, z, cap,
 //  robe: 'roux' | 'pie', dort }], papillons: [[x, z], …], milans: [{ x, z, r, h, sens }], herons: [[[x, z], …], …] (les
-//  rizières de chacun), grenouilles: [{ x, z, eau: [x, z] }] (sur la diguette, et où elle saute), libellules: [[x, z], …],
+//  rizières de chacun), aigrettes (de même : leurs pelouses), grenouilles: [{ x, z, eau: [x, z] }] (sur la diguette, et où elle saute), libellules: [[x, z], …],
 //  chiens: [{ id, x, z, cap }], lucioles: [[x, z], …] (où elles volent) } ; joueur : { x, z,
 //  vitesse } ; kon : { x, z } ; paisible : pendant un dialogue (personne ne s'enfuit).
 //  Repère : x vers l'est, z vers le sud, y vers le haut ; une bête regarde vers +z.
@@ -26,7 +28,7 @@ const PI = Math.PI;
 const lisse = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
 const tourner = (a, b, f) => { const d = ((b - a + PI) % (2 * PI) + 2 * PI) % (2 * PI) - PI; return a + d * Math.min(1, f); };
 // plus grandes que nature, à l'échelle des voyageurs (grosses têtes, comme dans les jeux) : sinon, on ne les voyait pas
-const T = { grive: 2.2, lezard: 2.6, papillon: 2.4, milan: 1.3, chat: 1.35, heron: 1.4, grenouille: 3, libellule: 2.2, chien: 1.35 };
+const T = { grive: 2.2, lezard: 2.6, papillon: 2.4, milan: 1.3, chat: 1.35, heron: 1.4, aigrette: 1.25, grenouille: 3, libellule: 2.2, chien: 1.35 };
 const G = { dos: '#4b3f30', ventre: '#d4662c', tete: '#211d1f', bec: '#e8b62e', pattes: '#c9a46a' };
 const L = { dos: '#3b2f26', rayure: '#e5c46a', queue: '#3f86d8', ventre: '#d9c9a6' };
 const ROBES = {
@@ -149,26 +151,33 @@ function formesGokayama(ctx) {
   // noire, le long bec jaune, les longues pattes ; les ailes à part (repliées le long du corps, grandes ouvertes en vol)
   // (2026-10-24) le corps en goutte (plein devant, fin vers la queue), les longues plumes grises qui pendent de la
   // poitrine, les deux aigrettes noires de la nuque, l'œil jaune
+  // (2026-10-25) la même silhouette, toute blanche, pour l'aigrette de Himeji (le « héron blanc », shirasagi) : le bec
+  // jaune, les pattes noires, pas de raie noire au cou ni de bout d'aile noir (R : la robe)
   const goutte = (x, y, z) => { const t = Math.max(0, -z / 0.12); const k = 1 - 0.3 * t ** 1.4; return [x * k, y * k, z]; };
-  const heron = atelier()
-    .ovale(0.12, HE.gris, { y: 0.6, sx: 0.78, sy: 0.82, sz: 1.55, rx: -0.15, deformer: goutte }, 14)
-    .baton([0, 0.66, 0.15], [0, 0.8, 0.22], 0.04, HE.blanc, 7)
-    .baton([0, 0.8, 0.22], [0, 0.94, 0.16], 0.035, HE.blanc, 7)
-    .baton([0, 0.94, 0.16], [0, 1.0, 0.2], 0.032, HE.blanc, 7)
-    .boite(0.012, 0.16, 0.012, HE.noir, { y: 0.79, z: 0.255, rx: 0.4, trait: false })
-    .ovale(0.048, HE.blanc, { y: 1.02, z: 0.21, sz: 1.3 }, 10)
-    .cone(0.016, 0.16, 6, HE.bec, { y: 1.015, z: 0.33, rx: PI / 2 })
-    .baton([0, 1.045, 0.18], [0, 0.99, 0.05], 0.008, HE.noir, 4, { trait: false })
-    .boite(0.05, 0.03, 0.2, HE.fonce, { y: 0.55, z: -0.22, rx: 0.3 });
-  for (let k = 0; k < 5; k++) heron.cone(0.018, 0.17, 4, k % 2 ? HE.blanc : HE.gris, { x: (k - 2) * 0.016, y: 0.7, z: 0.2 + Math.abs(k - 2) * -0.008, rx: PI + 0.25, trait: false });
-  heron.baton([0, 1.05, 0.15], [0, 1.0, 0.0], 0.005, HE.noir, 3, { trait: false });
-  for (const s of [-1, 1]) {
-    heron.ovale(0.013, '#e8c84a', { x: s * 0.035, y: 1.03, z: 0.238, sx: 0.5, trait: false }, 6)
-      .ovale(0.01, HE.noir, { x: s * 0.038, y: 1.03, z: 0.24, trait: false }, 5)
-      .baton([s * 0.04, 0.56, 0.0], [s * 0.05, 0.02, 0.03], 0.011, HE.pattes, 5)
-      .boite(0.02, 0.01, 0.12, HE.pattes, { x: s * 0.05, y: 0.01, z: 0.07, trait: false });
-  }
-  const aileHeron = (s) => atelier().ovale(0.38, HE.gris, { x: s * 0.34, sy: 0.05, sz: 0.42, teinte: (x) => (Math.abs(x) > 0.55 ? HE.noir : HE.gris) }, 10).fin(0, false);
+  const echassier = (R) => {
+    const heron = atelier()
+      .ovale(0.12, R.gris, { y: 0.6, sx: 0.78, sy: 0.82, sz: 1.55, rx: -0.15, deformer: goutte }, 14)
+      .baton([0, 0.66, 0.15], [0, 0.8, 0.22], 0.04, R.blanc, 7)
+      .baton([0, 0.8, 0.22], [0, 0.94, 0.16], 0.035, R.blanc, 7)
+      .baton([0, 0.94, 0.16], [0, 1.0, 0.2], 0.032, R.blanc, 7)
+      .ovale(0.048, R.blanc, { y: 1.02, z: 0.21, sz: 1.3 }, 10)
+      .cone(0.016, 0.16, 6, R.bec, { y: 1.015, z: 0.33, rx: PI / 2 })
+      .baton([0, 1.045, 0.18], [0, 0.99, 0.05], 0.008, R.huppe, 4, { trait: false })
+      .boite(0.05, 0.03, 0.2, R.fonce, { y: 0.55, z: -0.22, rx: 0.3 });
+    if (R.raie) heron.boite(0.012, 0.16, 0.012, R.raie, { y: 0.79, z: 0.255, rx: 0.4, trait: false });
+    for (let k = 0; k < 5; k++) heron.cone(0.018, 0.17, 4, k % 2 ? R.blanc : R.gris, { x: (k - 2) * 0.016, y: 0.7, z: 0.2 + Math.abs(k - 2) * -0.008, rx: PI + 0.25, trait: false });
+    heron.baton([0, 1.05, 0.15], [0, 1.0, 0.0], 0.005, R.huppe, 3, { trait: false });
+    for (const s of [-1, 1]) {
+      heron.ovale(0.013, '#e8c84a', { x: s * 0.035, y: 1.03, z: 0.238, sx: 0.5, trait: false }, 6)
+        .ovale(0.01, HE.noir, { x: s * 0.038, y: 1.03, z: 0.24, trait: false }, 5)
+        .baton([s * 0.04, 0.56, 0.0], [s * 0.05, 0.02, 0.03], 0.011, R.pattes, 5)
+        .boite(0.02, 0.01, 0.12, R.pattes, { x: s * 0.05, y: 0.01, z: 0.07, trait: false });
+    }
+    const aile = (s) => atelier().ovale(0.38, R.gris, { x: s * 0.34, sy: 0.05, sz: 0.42, teinte: (x) => (Math.abs(x) > 0.55 ? R.bout : R.gris) }, 10).fin(0, false);
+    return { corps: heron.fin(0, false), ailes: [aile(1), aile(-1)] };
+  };
+  const cendre = echassier({ ...HE, huppe: HE.noir, raie: HE.noir, bout: HE.noir });
+  const blanche = echassier({ gris: '#f6f5ef', fonce: '#e4e2da', blanc: '#fbfaf6', bec: '#e8b83a', pattes: '#2e2a2c', huppe: '#f4f3ec', raie: null, bout: '#eeede6' });
   // la rainette : verte, le ventre clair, les gros yeux, les pattes de derrière repliées
   const rainette = atelier()
     .ovale(0.03, RAINETTE.vert, { y: 0.022, sy: 0.7, sz: 1.2, teinte: (x, y) => (y < 0.014 ? RAINETTE.clair : RAINETTE.vert) }, 8)
@@ -225,7 +234,7 @@ function formesGokayama(ctx) {
       .baton([s * 0.05, 0.03, 0.12], [s * 0.05, 0.02, 0.3], 0.024, SHIBA.creme, 6);
   }
   return {
-    heron: heron.fin(0, false), aileHeron: [aileHeron(1), aileHeron(-1)], rainette: rainette.fin(0, false),
+    heron: cendre.corps, aileHeron: cendre.ailes, aigrette: blanche.corps, aileAigrette: blanche.ailes, rainette: rainette.fin(0, false),
     libellule: libellule.fin(0, false), aileLibellule: [aileLibellule(1), aileLibellule(-1)],
     chien: chien.fin(0, false), teteChien: teteChien.fin(0, false), chienCouche: chienCouche.fin(0, false),
   };
@@ -247,10 +256,10 @@ function tacheRonde(THREE) {
   return t;
 }
 
-export function creerBetes(ctx, { monde, grives = [], lezards = [], chats = [], papillons = [], milans = [], herons = [], grenouilles = [], libellules = [], chiens = [], lucioles = [] }) {
+export function creerBetes(ctx, { monde, grives = [], lezards = [], chats = [], papillons = [], milans = [], herons = [], aigrettes = [], grenouilles = [], libellules = [], chiens = [], lucioles = [] }) {
   const { THREE, maillage } = ctx;
   const F = formes(ctx);
-  const FG = herons.length + grenouilles.length + libellules.length + chiens.length ? formesGokayama(ctx) : null;
+  const FG = herons.length + aigrettes.length + grenouilles.length + libellules.length + chiens.length ? formesGokayama(ctx) : null;
   const groupe = new THREE.Group();
   const hasard = Math.random;
   const sol = (x, z, y = Infinity) => monde.hauteur(x, z, y);
@@ -317,15 +326,16 @@ export function creerBetes(ctx, { monde, grives = [], lezards = [], chats = [], 
   });
 
   // ---- Gokayama : les hérons
-  const H_ = herons.map((maisons) => {
-    const racine = new THREE.Group(), corps = new THREE.Group();
-    corps.scale.setScalar(T.heron);
+  // (et Himeji : les aigrettes blanches, qui chassent les insectes sur les pelouses ; le même code les anime)
+  const H_ = [...herons.map((m) => ['heron', m]), ...aigrettes.map((m) => ['aigrette', m])].map(([sorte, maisons]) => {
+    const racine = new THREE.Group(), corps = new THREE.Group(), blanche = sorte === 'aigrette';
+    corps.scale.setScalar(T[sorte]);
     racine.add(corps);
-    corps.add(maillage(FG.heron, false));
-    const ailes = [1, -1].map((s, k) => { const p = pivot(THREE, s * 0.07, 0.66, 0.04, maillage(FG.aileHeron[k], false)); corps.add(p); return p; });
+    corps.add(maillage(blanche ? FG.aigrette : FG.heron, false));
+    const ailes = [1, -1].map((s, k) => { const p = pivot(THREE, s * 0.07, 0.66, 0.04, maillage((blanche ? FG.aileAigrette : FG.aileHeron)[k], false)); corps.add(p); return p; });
     groupe.add(racine);
     const [x, z] = maisons[0];
-    return { racine, corps, ailes, maisons, ici: 0, x, z, y: sol(x, z), cap: hasard() * 2 * PI, mode: 'sol', vol: null, peche: 0, pas: null, prochain: 2 + hasard() * 3 };
+    return { sorte, racine, corps, ailes, maisons, ici: 0, x, z, y: sol(x, z), cap: hasard() * 2 * PI, mode: 'sol', vol: null, peche: 0, pas: null, prochain: 2 + hasard() * 3 };
   });
   // ---- les rainettes
   const R_ = grenouilles.map((g) => {
@@ -551,7 +561,7 @@ export function creerBetes(ctx, { monde, grives = [], lezards = [], chats = [], 
         if (h.mode === 'sol') {
           if (!paisible && (loinDe(h) < 5 || Math.hypot(h.x - kon.x, h.z - kon.z) < 3.5)) {
             envolerHeron(h, joueur);
-            sons.push({ nom: 'aosagi', x: h.x, y: h.y + 1, z: h.z, fort: 1 });
+            if (h.sorte === 'heron') sons.push({ nom: 'aosagi', x: h.x, y: h.y + 1, z: h.z, fort: 1 });
           } else if (h.pas) {
             const p = h.pas;
             p.t = Math.min(1, p.t + dt / p.duree);
@@ -706,7 +716,7 @@ export function creerBetes(ctx, { monde, grives = [], lezards = [], chats = [], 
       const c = [];
       for (const g of G_) if (g.racine.visible && g.mode === 'sol') c.push({ sorte: 'grive', x: g.x, y: g.y, z: g.z, rayon: 3.2, haut: 0.75, verbe: 'regarder' });
       for (const l of L_) if (l.racine.visible && l.mode === 'repos') c.push({ sorte: 'lezard', x: l.x, y: l.y, z: l.z, rayon: 1.8, haut: 0.6, verbe: 'regarder' });
-      for (const h of H_) if (h.racine.visible && h.mode === 'sol') c.push({ sorte: 'heron', x: h.x, y: h.y, z: h.z, rayon: 4.8, haut: 1.5, verbe: 'regarder' });
+      for (const h of H_) if (h.racine.visible && h.mode === 'sol') c.push({ sorte: h.sorte, x: h.x, y: h.y, z: h.z, rayon: 4.8, haut: 1.5, verbe: 'regarder' });
       for (const g of R_) if (g.racine.visible && g.mode === 'pose') c.push({ sorte: 'grenouille', x: g.x, y: g.y, z: g.z, rayon: 2.3, haut: 0.4, verbe: 'regarder' });
       for (const l of L2_) if (l.racine.visible && l.pose > 0) c.push({ sorte: 'libellule', x: l.x, y: l.y - 0.4, z: l.z, rayon: 2.2, haut: 1.0, verbe: 'regarder' });
       for (const d of D_) c.push({ sorte: 'chien', id: d.id, x: d.x, y: d.y, z: d.z, rayon: 1.8, haut: 0.9, verbe: 'caresser', bete: { caresser() { d.joie = 6; } } });

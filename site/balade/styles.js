@@ -53,6 +53,10 @@ const PALETTE = {
   shisa: '#d9853a', shisaFonce: '#a8502a', shisaCreme: '#f2dcae',
   dragon: '#f2f5fb', dragonCreme: '#f3e6c0', dragonCrin: '#5ec4cf', dragonCorne: '#f0d38a',
   kodamaBois: '#d8b07a', kodamaFonce: '#a87a4a', kodamaMousse: '#5f9e48', kodamaFeuille: '#7ac25a', kodamaOeil: '#f2ffb0',
+  // Himeji (2026-10-25) : le plâtre blanc du « Héron blanc », ses tuiles gris-bleu et leurs joints blancs, le gravier
+  // clair des cours, les fenêtres de la ville
+  platre: '#f5f2ea', tuileShiro: '#7b8188', tuileShiroClaire: '#8b9097', mortier: '#ece8df', gravier: '#e2dccd', gravierFonce: '#cbc3b0',
+  vitreVille: '#b9c7cf',
 };
 const PARCHEMIN = { cielHaut: '#ead9b4', horizon: '#f0ead2', nuage: '#fbf4e2' };
 
@@ -80,6 +84,9 @@ function matieres(P) {
   mettre(M.chaume, 'chaume', 'chaumeFonce', 'chaumeClair');
   mettre(M.bois, 'boisNoir', 'boisGris', 'shojiCadre');
   mettre(M.feuillage, 'cedre', 'cedreFonce');
+  mettre(M.enduit, 'platre', 'mortier');
+  mettre(M.tuiles, 'tuileShiro', 'tuileShiroClaire');
+  mettre(M.pierre, '#b2ab9b', '#c5beae');
   return t;
 }
 

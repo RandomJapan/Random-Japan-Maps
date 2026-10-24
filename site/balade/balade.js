@@ -10,15 +10,16 @@
 //  lieu, composé pour la balade (musique.js) ; dans l'eau, on éclabousse et l'on ressort mouillé (effets.js) ;
 //  à Itsukushima, des goélands tournent sur la baie et s'envolent quand on approche (mouettes.js) ; à Aogashima,
 //  des grives, des lézards, des chats, des papillons et des milans (betes.js) ; à Gokayama (2026-10-23), des hérons dans
-//  les rizières, des grenouilles, des libellules rouges, un chien, des lucioles la nuit. Des bancs où s'asseoir ; un passant
+//  les rizières, des grenouilles, des libellules rouges, un chien, des lucioles la nuit ; à Himeji (2026-10-25), des
+//  aigrettes sur les pelouses, des libellules, les carpes des douves. Des bancs où s'asseoir ; un passant
 //  fait tomber la nuit et revenir le jour (les étoiles, les lanternes allumées, l'air de nuit : lueurs.js).
 //  Tous les tampons d'un lieu font gagner une pièce de tenue (tenues.js) : on l'essaie dans la garde-robe, vu de face.
-//  Chaque lieu cache un secret (2026-10-23 : les corbeaux sacrés d'Itsukushima, la boîte au trésor d'Aogashima, le
-//  plancher qui sonne creux de Gokayama) : il
+//  Chaque lieu cache un secret (2026-10-23 : les corbeaux sacrés d'Itsukushima, la boîte au trésor d'Aogashima ; les
+//  lucioles des Heike de Gokayama ; la dixième assiette d'Okiku à Himeji) : il
 //  donne un koban, la monnaie de Bunbuku, le marchand ambulant (tresors.js), qui vend des objets précieux : la danse des
 //  fêtes, la traînée sous les pas, les accessoires du compagnon, les feux d'artifice (feux.js), des tenues entières,
 //  l'appareil photo (photo.js), trois compagnons secrets et le calendrier magique (calendrier.js : les saisons).
-//  ?lieu=itsukushima|aogashima|gokayama ; ?perso=garcon|fille ; ?compagnon=kon|pon|chapu ; ?langue=en|fr|ja ;
+//  ?lieu=itsukushima|aogashima|gokayama|himeji ; ?perso=garcon|fille ; ?compagnon=kon|pon|chapu ; ?langue=en|fr|ja ;
 //  ?photo=heros|perso : une image fixe (captures) ; ?demo : une partie jouée image par image (vidéos) ;
 //  ?ciel=parchemin : un essai du style (styles.js) ; ?flou=0 : sans le flou du lointain ; ?aa=0 : sans anticrénelage.
 // ================================================================
@@ -47,9 +48,10 @@ import { creerPhoto } from './photo.js';
 import * as itsukushima from './itsukushima.js';
 import * as aogashima from './aogashima.js';
 import * as gokayama from './gokayama.js';
+import * as himeji from './himeji.js';
 
 // chaque lieu : { infos (noms, tampons, textes : sans rien construire), construire(ctx) }
-const LIEUX = { itsukushima, aogashima, gokayama };
+const LIEUX = { itsukushima, aogashima, gokayama, himeji };
 const params = new URLSearchParams(location.search);
 const PHOTO = params.get('photo');
 const DEMO = params.has('demo');
@@ -967,7 +969,9 @@ function creerEauCourante(geo, P, lampes, lieu, ciel) {
 /**
  * L'eau calme (les rizières de Gokayama, 2026-10-24) : une surface au ras de l'eau, d'un vert de boue, qui reflète le
  * ciel comme un miroir dès qu'on la regarde de biais ; à peine ridée par le vent ; la nuit, sombre, la lune et les
- * lanternes s'y reflètent. lieu.eauxCalmes : [[x0, x1, z0, z1, y], …].
+ * lanternes s'y reflètent. lieu.eauxCalmes : [[x0, x1, z0, z1, y], …] ; lieu.eauCalme (facultatif, 2026-10-25 : les
+ * douves de Himeji) : { boue (sa couleur), bord (le reflet de ses bords : des murs de pierre), clarte (sa transparence,
+ * vue d'en haut : 0,2 = à peine, 0,5 = on voit les carpes) }.
  */
 function creerEauxCalmes(lieu, lampes, ciel) {
   // bord : la position dans le bassin (m depuis un coin) et sa taille : le reflet sombre des talus le long des bords
@@ -985,7 +989,8 @@ function creerEauxCalmes(lieu, lampes, ciel) {
   const mat = new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, fog: true,
     uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
-      boue: { value: new THREE.Color('#5f6a45') }, temps: { value: 0 }, nuit: { value: 0 },
+      boue: { value: new THREE.Color(lieu.eauCalme?.boue || '#5f6a45') }, bordEau: { value: new THREE.Color(lieu.eauCalme?.bord || '#334d24') },
+      clarte: { value: lieu.eauCalme?.clarte ?? 0.2 }, temps: { value: 0 }, nuit: { value: 0 },
     }]),
     vertexShader: `
       attribute vec4 bord;
@@ -1001,8 +1006,8 @@ function creerEauxCalmes(lieu, lampes, ciel) {
         #include <fog_vertex>
       }`,
     fragmentShader: `
-      uniform vec3 boue;
-      uniform float temps, nuit;
+      uniform vec3 boue, bordEau;
+      uniform float temps, nuit, clarte;
       varying vec3 vMonde;
       varying vec4 vBord;
       #include <fog_pars_fragment>
@@ -1019,9 +1024,9 @@ function creerEauxCalmes(lieu, lampes, ciel) {
         // le long des bords, le talus d'herbe s'y reflète (une bande vert sombre, ondulée)
         float e = min(min(vBord.x, vBord.z - vBord.x), min(vBord.y, vBord.w - vBord.y));
         float talus = 1.0 - smoothstep(0.12, 0.42 + 0.12 * bruitE(vMonde.xz * 2.1).x, e);
-        c = mix(c, vec3(0.2, 0.3, 0.14) * mix(1.0, 0.3, nuit), talus * 0.7);
+        c = mix(c, bordEau * mix(1.0, 0.3, nuit), talus * 0.7);
         c += lampe * 1.2;
-        gl_FragColor = vec4(c, mix(0.8, 0.97, fres));
+        gl_FragColor = vec4(c, mix(1.0 - clarte, 0.97, fres));
         #include <colorspace_fragment>
         #include <fog_fragment>
       }`,

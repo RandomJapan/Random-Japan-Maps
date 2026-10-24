@@ -337,6 +337,26 @@ export function creerHeros(ctx, sorte = 'garcon') {
       }
       return a;
     },
+    // la coiffe du héron blanc (Himeji, le « Héron blanc ») : un héron perché sur la tête comme un chapeau, le corps blanc
+    // et ses ailes repliées, le cou en S qui se dresse devant, la tête au bec jaune, l'œil noir, la petite huppe ; derrière,
+    // les longues plumes de la parade (les aigrettes) qui retombent
+    heron() {
+      const a = atelier(), B = '#fbfaf6', AILE = '#ecebe4', J = '#f2c443', N = '#2a2420', y = CY + 0.31;
+      a.ovale(0.13, B, { y, z: -0.02, sx: 0.85, sy: 0.62, sz: 1.35 }, 14);
+      for (const s of [-1, 1]) a.ovale(0.12, AILE, { x: s * 0.1, y: y + 0.02, z: -0.05, sx: 0.36, sy: 0.55, sz: 1.3, ry: s * 0.12, rz: -s * 0.25 }, 12);
+      // le cou, la tête, le bec, les yeux, la huppe
+      a.tube([[0, y + 0.02, 0.12], [0, y + 0.1, 0.16], [0, y + 0.19, 0.12], [0, y + 0.27, 0.14], [0, y + 0.31, 0.19]], 0.028, B, { cotes: 8, pas: 18 });
+      const T = [0, y + 0.32, 0.22];
+      a.ovale(0.046, B, { x: T[0], y: T[1], z: T[2], sx: 0.82, sy: 0.8, sz: 1.25 }, 10)
+        .cone(0.015, 0.12, 6, J, { x: 0, y: T[1] - 0.006, z: T[2] + 0.1, rx: PI / 2 + 0.12 });
+      for (const s of [-1, 1]) a.ovale(0.009, N, { x: s * 0.034, y: T[1] + 0.01, z: T[2] + 0.022, trait: false }, 6);
+      for (const s of [-1, 1]) a.tube([[s * 0.01, T[1] + 0.02, T[2] - 0.03], [s * 0.02, T[1] + 0.05, T[2] - 0.11], [s * 0.03, T[1] + 0.01, T[2] - 0.19]], 0.006, B, { cotes: 4, pas: 8 });
+      // les aigrettes : trois longues plumes fines qui montent du dos, puis retombent en arrière
+      for (const [dx, k] of [[-0.05, 0.9], [0, 1.05], [0.05, 0.9]]) {
+        a.tube([[dx * 0.5, y + 0.03, -0.14], [dx, y + 0.13 * k, -0.27], [dx * 1.6, y + 0.12 * k, -0.4], [dx * 2.2, y + 0.01, -0.47]], 0.009, B, { cotes: 5, pas: 14 });
+      }
+      return a;
+    },
     // les lunettes étoiles : deux étoiles dorées, des verres violets avec un reflet, le pont, les branches jusqu'aux oreilles
     etoiles() {
       const a = atelier();
@@ -766,7 +786,7 @@ export function creerHeros(ctx, sorte = 'garcon') {
       if (place !== 'tete' && place !== 'yeux') return;
       if (place === 'tete') {
         coiffe.visible = id === 'defaut';
-        if (dessus) dessus.visible = id !== 'defaut' && id !== 'kabuto';
+        if (dessus) dessus.visible = id !== 'defaut' && id !== 'kabuto' && id !== 'heron';
       }
       if (portees[place]) portees[place].visible = false;
       portees[place] = null;
