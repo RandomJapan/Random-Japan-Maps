@@ -7,7 +7,8 @@
 //  les NB_LAMPES lampes les plus proches de ce que regarde la caméra, choisies à chaque image.
 //  lumieres : [{ x, y, z (la flamme), halo (son rayon, en m), sol (la hauteur du sol dessous ; null : une lampe
 //  sans sol proche), r (jusqu'où elle éclaire le sol, depuis son pied), c (la couleur, « #rrggbb » ; une lumière
-//  chaude par défaut) }]
+//  chaude par défaut), mobile (2026-10-24 : la lampe bouge, ses x, y, z sont relus à chaque image : la luciole dorée
+//  de Gokayama ; son halo est le sien, halo : 0) }]
 // ================================================================
 import { NB_LAMPES } from './styles.js';
 
@@ -68,7 +69,7 @@ export function creerLueurs(THREE, lumieres, lampes) {
   // la lumière des lampes : sa portée, depuis la flamme, va jusqu'au bord de ce qu'elle éclaire au sol (r)
   const liste = lumieres.map((l) => {
     const h = l.sol != null ? Math.max(0.3, l.y - l.sol) : 0.8, r = l.sol != null ? l.r ?? 2 : (l.halo ?? 0.6) * 3;
-    return { x: l.x, y: l.y, z: l.z, portee: Math.hypot(r, h) * 1.05, c: new THREE.Color(l.c || CHAUD), d: 0 };
+    return { x: l.x, y: l.y, z: l.z, portee: Math.hypot(r, h) * 1.05, c: new THREE.Color(l.c || CHAUD), d: 0, mobile: l.mobile ? l : null };
   });
   const tri = liste.slice(), dir = new THREE.Vector3(), vise = new THREE.Vector3();
   const lisse = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
@@ -83,7 +84,10 @@ export function creerLueurs(THREE, lumieres, lampes) {
     if (n <= 0.01 || !liste.length) { P[0].w = 0; Z.w = 0; return; }
     camera.getWorldDirection(dir);
     vise.copy(camera.position).addScaledVector(dir, 8);
-    for (const l of liste) l.d = Math.hypot(l.x - vise.x, l.y - vise.y, l.z - vise.z);
+    for (const l of liste) {
+      if (l.mobile) { l.x = l.mobile.x; l.y = l.mobile.y; l.z = l.mobile.z; }
+      l.d = Math.hypot(l.x - vise.x, l.y - vise.y, l.z - vise.z);
+    }
     tri.sort((a, b) => a.d - b.d);
     const k = Math.min(NB_LAMPES, tri.length), coupe = tri.length > NB_LAMPES ? tri[NB_LAMPES].d : Infinity;
     const cp = camera.position;

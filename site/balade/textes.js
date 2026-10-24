@@ -114,7 +114,7 @@ export const TEXTES = {
       plusTard: ['You can put it on anytime: Menu → Wardrobe.'],
     },
     tresors: {
-      secrets: { corbeaux: 'The sacred crows', tresor: 'The treasure box', heike: 'The Heike banner' },
+      secrets: { corbeaux: 'The sacred crows', tresor: 'The treasure box', heike: 'The Heike fireflies' },
       trouve: (lieu) => [`You found the secret of ${lieu}!`, 'You get a koban: an old gold coin from the Edo period.'],
       marchandOu: { itsukushima: 'They say a tanuki merchant has set up under the pines, between the shrine and the hill. He loves koban…', aogashima: 'They say a tanuki merchant has set up deep in the forest, on the east side of the crater. He loves koban…', gokayama: 'They say a tanuki merchant has set up under the great cedars, near the shrine. He loves koban…' },
       secretReste: ['Your stamp book trembles… There is still a secret here. The most attentive will find it!'],
@@ -250,7 +250,7 @@ export const TEXTES = {
       plusTard: ['Tu pourras l’essayer quand tu veux : Menu → Garde-robe.'],
     },
     tresors: {
-      secrets: { corbeaux: 'Les corbeaux sacrés', tresor: 'La boîte au trésor', heike: 'La bannière des Heike' },
+      secrets: { corbeaux: 'Les corbeaux sacrés', tresor: 'La boîte au trésor', heike: 'Les lucioles des Heike' },
       trouve: (lieu) => [`Tu as trouvé le secret ${/^[aeiouyhâéèêîôû]/i.test(lieu) ? 'd’' : 'de '}${lieu} !`, 'Tu gagnes un koban : une vieille pièce d’or de l’époque d’Edo.'],
       marchandOu: { itsukushima: 'Il paraît qu’un marchand tanuki s’est installé sous les pins, entre le sanctuaire et la colline. Il adore les koban…', aogashima: 'Il paraît qu’un marchand tanuki s’est installé au milieu de la forêt, à l’est du cratère. Il adore les koban…', gokayama: 'Il paraît qu’un marchand tanuki s’est installé sous les grands cèdres, près du sanctuaire. Il adore les koban…' },
       secretReste: ['Ton carnet frémit… Il reste un secret ici. Les plus attentifs le trouveront !'],
@@ -386,7 +386,7 @@ export const TEXTES = {
       plusTard: ['メニューの　「きせかえ」で　いつでも　つけられるよ。'],
     },
     tresors: {
-      secrets: { corbeaux: '神鴉', tresor: 'たからの　はこ', heike: '平家の　はた' },
+      secrets: { corbeaux: '神鴉', tresor: 'たからの　はこ', heike: '平家ボタル' },
       trouve: (lieu) => [`${lieu}の　ひみつを　見つけた！`, '小判を　てに　いれた！　江戸時代の　古い　金貨だ。'],
       marchandOu: { itsukushima: '神社と　丘の　あいだ、松の　木の　下に　タヌキの　商人が　いるらしい。小判が　大すきだって……', aogashima: 'クレーターの　東の　森の　おくに　タヌキの　商人が　いるらしい。小判が　大すきだって……', gokayama: '神社の　そばの　大きな　スギの　下に　タヌキの　商人が　いるらしい。小判が　大すきだって……' },
       secretReste: ['スタンプ帳が　ふるえた……ここには　まだ　ひみつが　ある。よく　見る　人だけが　見つけられる！'],

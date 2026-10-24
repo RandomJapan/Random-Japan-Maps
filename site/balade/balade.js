@@ -2023,7 +2023,7 @@ const jeu = {
 /** Les scènes que le lieu demande (la porte de bambous qui s'ouvre…) : jouées dès qu'on est libre. */
 const scenes = [];
 /** Ce que reçoit, à chaque image, ce que le lieu anime : le joueur, la nuit, une scène à jouer. */
-const contexteAnime = { joueur: etat, get nuit() { return M.nuit.v; }, scene: (fn) => scenes.push(fn) };
+const contexteAnime = { joueur: etat, get nuit() { return M.nuit.v; }, get champ() { return camera.fov; }, scene: (fn) => scenes.push(fn) };
 /** Une scène : le joueur s'arrête le temps d'un dialogue (fn(jeu)), puis repart. */
 async function jouerScene(fn) {
   etat.mode = 'dialogue';

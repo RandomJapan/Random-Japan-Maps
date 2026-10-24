@@ -63,6 +63,10 @@ const CHEMINS = [
 const SANCTUAIRE = { x0: -62, x1: -46, z0: -41, z1: -17, haut: 1.5, sanctuaire: [-55, -26.5], torii: [-36, -26.5], marches: [-46, -44, -26.5] };
 const MARCHAND = { x: -52, z: -37, cap: Math.atan2(-44 + 52, -30 + 37) };
 const WASHI = { x: -20, z: -7 }; // l'atelier de papier, au bord du ruisseau
+// le secret (2026-10-24) : la tombe du guerrier Heike, sous les cèdres derrière le sanctuaire ; le chemin de la luciole
+// dorée, du bord du ruisseau à la tombe (devant le torii, l'escalier, l'esplanade au nord du sanctuaire)
+const TOMBE = { x: -60.3, z: -21.8 };
+const LUCIOLE = [[-38.5, -16.3], [-37.8, -21.6], [-39.0, -26.5], [-45.0, -26.5], [-52.8, -21.3], [TOMBE.x, TOMBE.z]];
 const KOKIRIKO = { x: 14, z: 18, l: 4.4, p: 3.2, h: 0.5 }; // la petite scène de la danse
 const CASERNE = { x: 14, z: -20 }; // le local des pompiers (消防)
 // les canons à eau (放水銃), dans leurs petites cabanes au toit de chaume, entre les maisons
@@ -594,8 +598,8 @@ export function construire(ctx) {
 
   // ---------------------------------------------------------------- Les maisons
   const MAISON = {}; // id → { x, z, y, mesures }
-  // (la maison-musée : la planche du secret, sa fosse, la hauteur de son plancher ; construireMusee les dit)
-  let PLANCHE = null, FOSSE = null, SOL_MUSEE = 0;
+  // (la maison-musée : la hauteur de son plancher ; construireMusee la dit)
+  let SOL_MUSEE = 0;
   // (les maisons où l'on entre, et ce qu'il y a dedans : la maison-musée, le minshuku, la boutique de soba et de tofu)
   const DEDANS = { minshuku: construireMinshuku, g4: construireBoutique };
   for (const [id, x, z, W, L, porte] of MAISONS) {
@@ -1068,15 +1072,11 @@ export function construire(ctx) {
     const zT = 3.2; // la chambre de tatamis, au sud
     // le sol de terre battue (doma), le plancher (itanoma) et sa marche ; la chambre de tatamis
     a.boite(w2 - 0.16 - xA, 0.04, 2 * l2 - 0.32, '#8a7660', { x: (xA + w2 - 0.16) / 2, y: yD });
-    // (le plancher, en lames le long de x ; on y laisse la planche du secret, à part, et sa fosse dessous)
-    // la trappe qui sonne creux : trois planches du plancher, assemblées dessous (dans le repère de la maison) ; un
-    // centimètre de vide tout autour (les plus attentifs le verront)
-    const PL = { x: -2.95, z: -2.15, l: 1.05, p: 0.96 };
+    // (le plancher, en lames le long de x, percé autour du foyer)
     const lames = (x0, x1, z0, z1) => {
       if (x1 - x0 < 0.01 || z1 - z0 < 0.01) return;
       a.piece(new THREE.BoxGeometry(x1 - x0, 0.08, z1 - z0, 1, 1, Math.max(1, Math.round((z1 - z0) / 0.32))), P.bois, { x: (x0 + x1) / 2, y: yI - 0.04, z: (z0 + z1) / 2, teinte: (x, y, z) => (Math.floor((z + 20) / 0.32) % 2 ? P.bois : P.bois2) });
     };
-    const [px0, px1, pz0, pz1] = [PL.x - PL.l / 2, PL.x + PL.l / 2, PL.z - PL.p / 2, PL.z + PL.p / 2];
     const IR = { x: -1.0, z: -2.15 }; // le foyer
     /** Un plancher de lames de x0 à x1, z0 à z1, percé des trous [x0, x1, z0, z1]. */
     const plancherTroue = (x0, x1, z0, z1, trous) => {
@@ -1088,7 +1088,7 @@ export function construire(ctx) {
         lames(xa, x1, za, zb);
       }
     };
-    plancherTroue(-w2 + 0.16, xA - 0.07, -l2 + 0.16, zT, [[px0, px1, pz0, pz1], [IR.x - 0.675, IR.x + 0.675, IR.z - 0.675, IR.z + 0.675]]);
+    plancherTroue(-w2 + 0.16, xA - 0.07, -l2 + 0.16, zT, [[IR.x - 0.675, IR.x + 0.675, IR.z - 0.675, IR.z + 0.675]]);
     a.boite(0.14, 0.44, 2 * l2 - 0.32, '#3e2f25', { x: xA, y: socle + 0.22 + 0.02 });
     // la chambre de tatamis : les nattes bordées de noir, le cadre ; l'autel bouddhique (butsudan) au mur du sud
     for (let i = 0; i < 4; i++) {
@@ -1234,12 +1234,6 @@ export function construire(ctx) {
     for (const s of [-1, 1]) a.boite(0.06, 1.1, 0.06, '#5a4436', { x: -0.55 + s * 0.38, y: murH + 0.55, z: -l2 + 1.21 });
     a.boite(0.95, 0.66, 0.05, '#5a4436', { x: -0.55, y: murH + 1.05, z: -l2 + 1.25 });
     ecrire({ x: MUSEE[1], y: MAISON.musee.y, z: MUSEE[2], ry: 0 }, { texte: '養蚕', sous: 'かいこ · KAIKO', lignes: 0, fond: '#f3ead6', encre: '#2a2018', x: -0.55, y: murH + 1.05, z: -l2 + 1.28, l: 0.86, h: 0.56 });
-    // la planche du secret (à part : elle se soulève) et la fosse du salpêtre, dessous (une boîte retournée : on la voit
-    // de l'intérieur) ; dedans, la terre mêlée de paille et le coffre laqué
-    PLANCHE = { ...PL, y: yI, x0: px0, x1: px1, z0: pz0, z1: pz1 };
-    a.boite(PL.l - 0.04, 0.7, PL.p - 0.02, '#8a6e50', { x: PL.x, y: yI - 0.08 - 0.35, z: PL.z, sx: -1, trait: false });
-    a.boite(PL.l - 0.1, 0.04, PL.p - 0.08, '#c4a462', { x: PL.x, y: yI - 0.76, z: PL.z, trait: false });
-    FOSSE = { x: PL.x, z: PL.z, y: yI - 0.74 };
 
     // ce qui arrête : les murs (la porte), le foyer, le présentoir, l'autel, l'échelle ; les sols ; pour la caméra : les
     // murs, et le plafond (dessous, elle se rapproche)
@@ -2478,82 +2472,184 @@ export function construire(ctx) {
     poser(a.fin(0, false), 0, 0, { y: 0, ombre: false });
   }
 
-  // ---------------------------------------------------------------- Le secret : la planche, la fosse, le coffre
-  const secret = (() => {
-    const Mu = MAISON.musee, X = Mu.x, Z = Mu.z, Y = Mu.y, PL = PLANCHE;
-    const objet = new THREE.Group();
-    // la planche : à part, elle pivote sur son bord ouest ; dessous, le coffre laqué noir et sa corde rouge, et le koban
-    const planche = new THREE.Group();
-    planche.position.set(X + PL.x0, Y + PL.y - 0.04, Z + PL.z);
-    {
-      const t = atelier();
-      for (let k = 0; k < 3; k++) t.boite(PL.l - 0.02, 0.08, PL.p / 3 - 0.012, k % 2 ? P.bois : P.bois2, { x: PL.l / 2, z: -PL.p / 2 + (k + 0.5) * (PL.p / 3) });
-      for (const x of [0.2, PL.l - 0.2]) t.boite(0.08, 0.05, PL.p - 0.06, P.boisFonce, { x, y: -0.065 });
-      planche.add(ctx.maillage(t.fin(0, false)));
+  // ---------------------------------------------------------------- Le secret : les lucioles des Heike
+  // (2026-10-24, au choix du propriétaire : avant, une planche du musée qui sonnait creux, une fosse, une bannière) La
+  // nuit, parmi les lucioles du ruisseau, une luciole dorée attend ; quand on s'approche, elle s'éloigne de place en
+  // place (elle attend qu'on la rejoigne), par le torii et l'escalier du sanctuaire, jusqu'à la tombe d'un guerrier
+  // Heike cachée sous les cèdres, derrière le sanctuaire : les lucioles s'allument tout autour et montent, la luciole
+  // dorée se pose sur la tombe, une pièce d'or brille sur la pierre des offrandes. Le jour, elle n'est pas là ; le soir
+  // venu, elle attend de nouveau au bord du ruisseau. Le secret trouvé, elle veille sur la tombe, les nuits.
+  const yTombe = Y_ESPLANADE;
+  {
+    const a = atelier(), x = TOMBE.x, z = TOMBE.z, y = yTombe, G = '#8a857a', G2 = '#77726a', MOUSSE = '#5f7a46';
+    const vieux = (px, py, pz) => (hasard(px * 9.1, pz * 7.3 + py * 3.1) > 0.64 ? MOUSSE : hasard(px * 3.3 + pz, py * 5.1) > 0.5 ? G : G2);
+    // le socle en deux marches basses ; le gorintō, la tombe en cinq pierres : le cube (la terre), la boule (l'eau), le
+    // toit (le feu), la demi-lune (le vent), le joyau (le vide), usés et moussus
+    a.piece(new THREE.BoxGeometry(1.3, 0.14, 1.3, 3, 1, 3), G2, { x, y: y + 0.07, z, teinte: vieux })
+      .piece(new THREE.BoxGeometry(1.0, 0.12, 1.0, 3, 1, 3), G, { x, y: y + 0.2, z, teinte: vieux })
+      .piece(new THREE.BoxGeometry(0.5, 0.42, 0.5, 2, 2, 2), G, { x, y: y + 0.47, z, teinte: vieux })
+      .piece(new THREE.SphereGeometry(0.27, 12, 8), G2, { x, y: y + 0.89, z, sy: 0.92, teinte: vieux })
+      .piece(new THREE.CylinderGeometry(0.07, 0.4, 0.26, 4, 1), G, { x, y: y + 1.25, z, ry: PI / 4, teinte: vieux })
+      .piece(new THREE.SphereGeometry(0.15, 10, 5, 0, 2 * PI, 0, PI / 2), G2, { x, y: y + 1.37, z, sy: 0.8 })
+      .cone(0.1, 0.22, 10, G, { x, y: y + 1.6, z });
+    // le caractère 平 (Taira), gravé sur la face du cube tournée vers le sanctuaire (l'est)
+    ecrire({ x, y, z, ry: 0 }, { texte: '平', fond: G, encre: '#3a3630', x: 0.253, y: 0.47, z: 0, ry: PI / 2, l: 0.28, h: 0.28 });
+    // la pierre des offrandes, devant, et sa coupelle ; deux vases de bambou et leurs fleurs des champs ; des pierres
+    // moussues et des fougères tout autour (pas devant : le passage)
+    a.boite(0.36, 0.16, 0.56, G2, { x: x + 0.95, y: y + 0.08, z, teinte: vieux })
+      .cylindre(0.07, 0.05, 0.03, 10, '#c9b48a', { x: x + 0.95, y: y + 0.175, z: z - 0.15 });
+    for (const sg of [-1, 1]) {
+      a.cylindre(0.045, 0.045, 0.3, 8, '#8fa858', { x: x + 0.62, y: y + 0.41, z: z + sg * 0.45 })
+        .baton([x + 0.62, y + 0.5, z + sg * 0.45], [x + 0.6, y + 0.72, z + sg * 0.47], 0.008, '#4f7a3a', 3, { trait: false });
+      for (let k = 0; k < 3; k++) a.boule(0.03, k % 2 ? '#f2d24a' : '#f4f0e4', { x: x + 0.6 + (k - 1) * 0.03, y: y + 0.72 + k * 0.025, z: z + sg * 0.47 + (k - 1) * 0.02 }, 0);
     }
-    const coffre = new THREE.Group();
-    coffre.position.set(X + FOSSE.x, Y + FOSSE.y, Z + FOSSE.z);
-    const couvercle = new THREE.Group();
-    couvercle.position.set(0, 0.2, -0.15);
-    couvercle.add(ctx.maillage(atelier().boite(0.54, 0.06, 0.32, '#1e1a1a', { y: 0.03, z: 0.15 }).boite(0.56, 0.02, 0.04, '#c8302c', { y: 0.065, z: 0.15, trait: false }).fin(0, false)));
-    const koban = ctx.maillage(atelier().ovale(0.04, '#f2c84f', { sy: 0.15, sz: 1.4 }, 10).fin(0, false));
-    koban.position.set(0.14, 0.17, 0.02);
-    {
-      // (le coffre laqué noir, ses coins de laiton, la cordelette rouge nouée, l'étoffe rouge pliée dedans)
-      const t = atelier().boite(0.52, 0.2, 0.3, '#1e1a1a', { y: 0.1 }).boite(0.54, 0.02, 0.32, '#d8302c', { y: 0.12, trait: false })
-        .boite(0.42, 0.03, 0.22, '#c8302c', { x: -0.04, y: 0.19, trait: false }).boite(0.14, 0.02, 0.16, '#efe4c8', { x: 0.14, y: 0.205, trait: false });
-      for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) t.boite(0.05, 0.21, 0.05, '#c8a03a', { x: dx * 0.245, y: 0.1, z: dz * 0.135, trait: false });
-      coffre.add(ctx.maillage(t.fin(0, false)), couvercle, koban);
+    for (let k = 0; k < 9; k++) {
+      const t = (k / 9) * 2 * PI + 0.35, d = 1.05 + hasard(k, 3.7) * 0.45, rx = x + Math.cos(t) * d, rz = z + Math.sin(t) * d;
+      if (Math.cos(t) > 0.55) continue;
+      if (k % 3) a.rocher(rx, y + 0.04, rz, 0.15 + hasard(rz, k) * 0.12, hasard(rx, k) > 0.5 ? MOUSSE : G2);
+      else for (let f = 0; f < 4; f++) a.cone(0.05, 0.42, 4, f % 2 ? '#4f7a3a' : '#5f8a42', { x: rx, y: y + 0.17, z: rz, rx: 0.75, ry: f * 1.57 + k, sx: 2.6, trait: false });
     }
-    objet.add(planche, coffre);
-    let ouverture = 0, enMouvement = false, couv = 0;
-    if (secretTrouve('heike')) { ouverture = 1; couv = 1; koban.visible = false; }
-    const yCoffre = Y + FOSSE.y;
+    poser(a.fin(0, peinture), 0, 0, { y: 0 });
+    monde.cercle(x, z, 0.75);
+    monde.cercle(x + 0.95, z, 0.3);
+  }
+  const heike = (() => {
+    const objet = new THREE.Group(), deNuit = new THREE.Group(), feu = new THREE.Group();
+    objet.name = 'heike';
+    feu.name = 'luciole';
+    // (une tache de lumière ronde, dessinée une fois, comme les lucioles de betes.js ; rien dans Node, pour les tests)
+    const tache = typeof document === 'undefined' ? null : (() => {
+      const c = document.createElement('canvas');
+      c.width = c.height = 64;
+      const g = c.getContext('2d'), d = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+      d.addColorStop(0, 'rgba(255,255,255,1)');
+      d.addColorStop(0.22, 'rgba(255,255,255,0.85)');
+      d.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = d;
+      g.fillRect(0, 0, 64, 64);
+      const t = new THREE.CanvasTexture(c);
+      t.colorSpace = THREE.SRGBColorSpace;
+      return t;
+    })();
+    const points = (n, taille, couleur) => {
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3).setUsage(THREE.DynamicDrawUsage));
+      geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(n * 3).fill(1), 3).setUsage(THREE.DynamicDrawUsage));
+      const m = new THREE.Points(geo, new THREE.PointsMaterial({ size: taille, sizeAttenuation: true, vertexColors: true, color: couleur, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, map: tache, fog: false }));
+      m.frustumCulled = false;
+      return m;
+    };
+    // la luciole dorée : un halo et son cœur ; l'essaim des lucioles qui s'allument autour de la tombe
+    const halo = points(1, 1.3, '#ffb52e'), coeur = points(1, 0.26, '#fff3c4'), essaim = points(36, 0.2, '#ffffff');
+    feu.add(halo, coeur);
+    deNuit.add(feu, essaim);
+    // (le koban, sur la pierre des offrandes : de jour aussi, une fois là)
+    const koban = ctx.maillage(atelier().ovale(0.045, '#f2c84f', { sy: 0.15, sz: 1.4 }, 10).fin(0, false));
+    koban.position.set(TOMBE.x + 0.95, yTombe + 0.2, TOMBE.z + 0.08);
+    koban.visible = false;
+    objet.add(deNuit, koban);
+    // le chemin : au bord du ruisseau, devant le torii, sur l'escalier, sur l'esplanade, au-dessus de la tombe
+    const etapes = LUCIOLE.map(([x, z], k) => [x, k === LUCIOLE.length - 1 ? yTombe + 1.95 : monde.hauteur(x, z) + 1.25, z]);
+    const fin = etapes.length - 1, posee = [TOMBE.x, yTombe + 1.79, TOMBE.z];
+    // (sa lumière, une petite lampe qui la suit : lueurs.js, mobile)
+    const lampe = { x: etapes[0][0], y: etapes[0][1], z: etapes[0][2], halo: 0, sol: etapes[0][1] - 1.25, r: 1.5, c: '#b8923e', mobile: true };
+    lumieres.push(lampe);
+    const e = { k: 0, mode: 'attend', t: 0, duree: 1, de: null, vu: false, arrivee: false, pose: false, essaim: -1, trouve: secretTrouve('heike') };
+    const vol = Array.from({ length: 36 }, (_, i) => ({ a: (i / 36) * 2 * PI * 3.7, r: 0.45 + (i % 7) * 0.2, v: 0.2 + (i % 5) * 0.07, h: (i % 9) * 0.12, ph: i * 1.7, rythme: 0.6 + (i % 4) * 0.15 }));
+    const pos = essaim.geometry.attributes.position, col = essaim.geometry.attributes.color;
     return {
       objet,
-      soulever() { enMouvement = true; },
-      ouvrirCoffre() { enMouvement = true; couv = 0.001; },
-      prendreKoban() { koban.visible = false; },
-      maj(dt) {
-        if (enMouvement) {
-          ouverture = Math.min(1, ouverture + dt / 0.9);
-          if (couv > 0) couv = Math.min(1, couv + dt / 0.8);
-          if (ouverture >= 1 && (couv === 0 || couv >= 1)) enMouvement = false;
+      kobanVisible: () => koban.visible,
+      prendreKoban() { koban.visible = false; e.trouve = true; },
+      maj(dt, temps, c) {
+        const nuit = c.nuit, j = c.joueur;
+        deNuit.visible = nuit > 0.3;
+        let p;
+        if (e.trouve) {
+          // elle veille sur la tombe
+          p = [posee[0], posee[1] + 0.04 * Math.sin(temps * 1.3), posee[2]];
+        } else if (nuit < 0.45 && !koban.visible) {
+          // le jour, elle n'est pas là ; le soir venu, elle attend de nouveau au bord du ruisseau
+          Object.assign(e, { k: 0, mode: 'attend', arrivee: false, pose: false, essaim: -1 });
+          p = etapes[0];
+        } else if (e.mode === 'vole') {
+          e.t = Math.min(1, e.t + dt / e.duree);
+          const u = e.t * e.t * (3 - 2 * e.t), b = etapes[e.k];
+          p = [e.de[0] + (b[0] - e.de[0]) * u, e.de[1] + (b[1] - e.de[1]) * u + Math.sin(e.t * PI) * 0.6, e.de[2] + (b[2] - e.de[2]) * u];
+          if (e.t >= 1) e.mode = 'attend';
+        } else {
+          // elle attend : de petits cercles, elle monte et descend ; quand on arrive, elle repart vers la suite
+          const b = etapes[e.k], d = Math.hypot(j.x - b[0], j.z - b[2]);
+          p = e.pose ? posee : [b[0] + Math.cos(temps * 1.6) * 0.28, b[1] + Math.sin(temps * 2.3) * 0.15, b[2] + Math.sin(temps * 1.6) * 0.28];
+          if (nuit > 0.5 && e.k < fin && d < (e.k === 0 ? 3.6 : 3.9)) {
+            if (!e.vu) {
+              e.vu = true;
+              c.scene(async (jeu) => {
+                await jeu.dire(jeu.tx('lucioleDoree'));
+                await jeu.dire(jeu.tx('lucioleCompagnon')[jeu.compagnon], 'compagnon');
+              });
+            }
+            const b2 = etapes[e.k + 1];
+            Object.assign(e, { de: p, k: e.k + 1, t: 0, mode: 'vole', duree: Math.max(1.2, Math.hypot(b2[0] - p[0], b2[1] - p[1], b2[2] - p[2]) / 2.6) });
+          } else if (nuit > 0.5 && e.k === fin && !e.arrivee && d < 3.6) {
+            e.arrivee = true;
+            c.scene(async (jeu) => {
+              jeu.cadrerDeCote(TOMBE.x, yTombe + 0.9, TOMBE.z, { distance: 4.4, haut: 1.4, champ: 58 });
+              await jeu.dire(jeu.tx('tombe'));
+              e.pose = true;
+              e.essaim = -2;
+              jeu.son('magie');
+              await jeu.attendre(2400);
+              koban.visible = true;
+              await jeu.dire(jeu.tx('tombeLueur'));
+              jeu.cadrer(null);
+              await jeu.dire(jeu.tx('tombeCompagnon')[jeu.compagnon], 'compagnon');
+            });
+          }
         }
-        planche.rotation.z = (ouverture * ouverture * (3 - 2 * ouverture)) * 1.75;
-        // (le coffre remonte à moitié hors de la fosse, puis son couvercle s'ouvre)
-        const monte = Math.min(1, couv * 1.6), ouvre = Math.max(0, couv * 1.6 - 0.6);
-        coffre.position.y = yCoffre + 0.64 * monte * monte * (3 - 2 * monte);
-        couvercle.rotation.x = -1.8 * Math.min(1, ouvre) ** 2;
-        koban.rotation.y += dt * 1.2;
+        // la luciole : elle brille doucement, sans s'éteindre comme les autres ; sa lumière la suit. (La taille des points
+        // de three.js ne tient pas compte du champ de la caméra : on la corrige, sinon, sur un écran en hauteur au champ
+        // plus large, ils paraissent bien plus gros que le reste.)
+        const k = 1 / Math.tan(((c.champ ?? 50) * PI) / 360);
+        feu.position.set(p[0], p[1], p[2]);
+        halo.material.size = 0.5 * k * (0.82 + 0.18 * Math.sin(temps * 2.7));
+        coeur.material.size = 0.1 * k;
+        essaim.material.size = 0.08 * k;
+        Object.assign(lampe, { x: p[0], y: p[1], z: p[2] });
+        // l'essaim : au moment où elle se pose, les lucioles s'allument autour de la tombe et montent vers les cèdres ;
+        // ensuite (et une fois le secret trouvé), quelques-unes tournent autour d'elle
+        if (e.essaim === -2) e.essaim = temps;
+        const age = e.essaim >= 0 ? temps - e.essaim : Infinity, calme = e.trouve || (e.pose && age > 9);
+        essaim.visible = e.essaim >= 0 || e.trouve;
+        if (essaim.visible) {
+          vol.forEach((f, i) => {
+            let x, y, z, b;
+            if (!calme && age < 9) {
+              const u = age * f.v;
+              x = TOMBE.x + Math.cos(f.a + u * 1.4) * (f.r + u * 0.25);
+              z = TOMBE.z + Math.sin(f.a + u * 1.4) * (f.r + u * 0.25);
+              y = yTombe + 0.15 + f.h + age * (0.35 + f.v);
+              b = Math.min(1, age / (0.4 + (i % 6) * 0.25)) * (1 - Math.max(0, (age - 6) / 3));
+            } else {
+              const u = temps * f.v * 0.6 + f.ph;
+              x = TOMBE.x + Math.cos(u) * (0.9 + (i % 5) * 0.25);
+              z = TOMBE.z + Math.sin(u) * (0.9 + (i % 5) * 0.25);
+              y = yTombe + 0.4 + f.h * 1.4 + Math.sin(u * 1.7) * 0.15;
+              b = i < 12 ? 1 : 0;
+            }
+            b *= Math.max(0, Math.sin(temps * f.rythme * 2 + f.ph)) ** 2 * 0.6 + 0.4;
+            pos.setXYZ(i, x, y, z);
+            col.setXYZ(i, 0.75 * b, 1.0 * b, 0.35 * b);
+          });
+          pos.needsUpdate = true;
+          col.needsUpdate = true;
+        }
+        koban.rotation.y = temps * 1.4;
+        return [];
       },
     };
   })();
-  animes.push({ objet: secret.objet, maj: (dt) => { secret.maj(dt); return []; } });
-  // la planche qui sonne creux : quand on marche dessus, « toc… » ; la première fois, le compagnon le remarque
-  {
-    const Mu = MAISON.musee, PL = PLANCHE, dessus = { avant: false };
-    animes.push({
-      objet: new THREE.Group(),
-      maj(dt, temps, c) {
-        const j = c.joueur, lx = j.x - Mu.x, lz = j.z - Mu.z;
-        const ici = lx > PL.x0 - 0.08 && lx < PL.x1 + 0.08 && lz > PL.z0 - 0.1 && lz < PL.z1 + 0.1 && Math.abs(j.y - (Mu.y + PL.y)) < 0.3;
-        if (ici && !dessus.avant && !secretTrouve('heike')) {
-          c.scene(async (jeu) => {
-            jeu.son('creux');
-            if (jeu.indiceVu('plancher-creux')) return;
-            await jeu.attendre(500);
-            jeu.son('creux');
-            await jeu.dire(jeu.tx('creux'));
-            await jeu.dire(jeu.tx('creuxCompagnon')[jeu.compagnon], 'compagnon');
-            jeu.voirIndice('plancher-creux');
-          });
-        }
-        dessus.avant = ici;
-        return [];
-      },
-    });
-  }
+  animes.push({ objet: heike.objet, maj: (dt, temps, c) => heike.maj(dt, temps, c) });
 
   // ---------------------------------------------------------------- Les gens
   const PEAU = P.peau, NOIR = '#2a2420', Mi = MAISON.minshuku, Mu = MAISON.musee;
@@ -2910,38 +3006,21 @@ export function construire(ctx) {
     },
     { id: 'zaguri', x: Mu.x + GR.DEVIDOIR[0] - 0.2, z: Mu.z + GR.DEVIDOIR[1] - 0.9, y: Mu.y + Mu.murH, rayon: 1.3, haut: 1.2, verbe: 'regarder', action: (jeu) => jeu.dire(jeu.tx('zaguri')) },
     {
-      // soulever la planche qui sonne creux (seulement si on l'a entendue) : la fosse, le coffre, la bannière des Heike
-      id: 'plancher', x: Mu.x + PLANCHE.x, z: Mu.z + PLANCHE.z, y: Mu.y + SOL_MUSEE, rayon: 1.3, haut: 0.6, verbe: 'soulever',
-      si: (jeu) => jeu.indiceVu('plancher-creux') && !jeu.secretTrouve('heike'),
+      // le secret : la tombe du guerrier Heike, derrière le sanctuaire ; le koban quand la luciole dorée y a mené
+      id: 'tombe', x: TOMBE.x + 1.15, z: TOMBE.z, y: Y_ESPLANADE, rayon: 1.8, haut: 1.4,
+      verbe: (jeu) => (jeu.secretTrouve('heike') ? 'prier' : heike.kobanVisible() ? 'prendre' : 'regarder'),
       async action(jeu) {
-        // (le voyageur au nord de la planche, tourné vers elle ; la caméra au-dessus, côté sud : on voit la planche se
-        // lever, la fosse, le coffre au fond)
-        const px = Mu.x + PLANCHE.x, pz = Mu.z + PLANCHE.z, py = Mu.y + SOL_MUSEE;
-        jeu.placer(px - 0.1, pz - 0.95, 0);
-        jeu.cadrer({ de: [px + 0.25, py + 2.15, pz + 2.0], vers: [px, py - 0.45, pz - 0.15], champ: 55 });
-        await jeu.dire(jeu.tx('soulever'));
-        jeu.geste('creuser');
-        await jeu.attendre(500);
-        secret.soulever();
-        jeu.son('creux');
-        await jeu.attendre(900);
+        if (jeu.secretTrouve('heike')) { jeu.saluer(); await jeu.dire(jeu.tx('tombeApres')); return; }
+        if (!heike.kobanVisible()) { await jeu.dire(jeu.tx('tombeJour')); return; }
+        jeu.geste('offrir');
+        await jeu.attendre(700);
+        heike.prendreKoban();
+        await jeu.attendre(300);
         jeu.geste(null);
-        await jeu.dire(jeu.tx('fosse'));
-        secret.ouvrirCoffre();
-        jeu.son('boite');
-        await jeu.attendre(900);
-        await jeu.dire(jeu.tx('coffre'));
-        jeu.image(banniere(), 'banniere-heike');
-        await jeu.dire(jeu.tx('banniere'));
-        jeu.image(billet(), 'billet-heike');
-        await jeu.dire(jeu.tx('billet'));
-        jeu.image(null);
-        secret.prendreKoban();
+        await jeu.dire(jeu.tx('legende'));
         await jeu.trouverSecret('heike');
-        jeu.cadrer(null);
       },
     },
-    { id: 'fosse', x: Mu.x + PLANCHE.x, z: Mu.z + PLANCHE.z, y: Mu.y + SOL_MUSEE, rayon: 1.2, haut: 0.6, verbe: 'regarder', si: (jeu) => jeu.secretTrouve('heike'), action: (jeu) => jeu.dire(jeu.tx('fosseApres')) },
     ...interactionsBancs(bancs),
   ];
   // les bêtes : les regarder, caresser le chien
@@ -2960,7 +3039,7 @@ export function construire(ctx) {
     objets, monde, terrain, etiquettes, passants, daims: [], interactions, actionDaim: null, vapeurs, bancs, lumieres, actionBete, animes,
     // (le secret, tresors.js ; le marchand, sous les cèdres du sanctuaire ; les sons à fabriquer en plus ; les feux
     // d'artifice, tirés au-dessus de la gorge de la rivière, à l'est)
-    secret: 'heike', marchand: MARCHAND, sons: ['creux', 'jets', 'papier', 'cloche', 'claque', 'boite'],
+    secret: 'heike', marchand: MARCHAND, sons: ['jets', 'papier', 'cloche', 'claque'],
     feux: { x: 95, y: 6, z: 8, large: 44, haut: [42, 64] },
     // la danse de la kokiriko : on l'entend en s'approchant (et la musique de la balade baisse)
     musiciens: { x: K.x, z: K.z, pres: 7, loin: 28, son: 'kokiriko' },
@@ -3013,44 +3092,6 @@ export function construire(ctx) {
       perso: { x: depart.x, z: depart.z, cap: depart.cap + PI, lacet: depart.cap + PI + 0.05, tangage: 0.1, distance: 3.9 },
     },
   };
-}
-
-// ---------------------------------------------------------------- Le secret : la bannière, le billet (SVG)
-/**
- * La bannière des Heike : un long drapeau de soie rouge, passé, effiloché au bas, le papillon noir des Taira (l'ageha-
- * chō) au milieu, sa hampe de bambou ; l'inscription « 平家 » à l'encre.
- */
-function banniere() {
-  const aile = (s) => `<path d="M0 0 C${s * 40} -60 ${s * 95} -40 ${s * 80} 6 C${s * 70} 30 ${s * 30} 22 0 8 Z" fill="#1e1a1a"/>
-    <path d="M0 10 C${s * 32} 22 ${s * 60} 60 ${s * 36} 78 C${s * 18} 84 ${s * 6} 50 0 22 Z" fill="#1e1a1a"/>
-    <circle cx="${s * 52}" cy="-6" r="7" fill="#c8a24a"/><circle cx="${s * 30}" cy="44" r="5" fill="#c8a24a"/>`;
-  return `<svg viewBox="0 0 400 420" class="banniere" aria-hidden="true">
-    <rect width="400" height="420" fill="#f4ecd8"/>
-    <rect x="96" y="14" width="10" height="400" rx="4" fill="#b8a070"/>
-    <path d="M106 30 H316 V352 l-12 18 l-10 -14 l-14 22 l-12 -18 l-12 16 l-12 -20 l-14 20 l-12 -18 l-14 22 l-12 -20 l-14 18 l-12 -16 l-12 22 l-12 -18 l-10 14 L106 360 Z" fill="#b8322a"/>
-    <path d="M106 30 H316 V352" fill="none" stroke="#8a2220" stroke-width="3"/>
-    <rect x="106" y="30" width="210" height="8" fill="#8a2220"/>
-    <g transform="translate(211 150)">${aile(1)}${aile(-1)}<ellipse cx="0" cy="18" rx="7" ry="30" fill="#1e1a1a"/><circle cy="-14" r="8" fill="#1e1a1a"/>
-      <path d="M-3 -20 Q-14 -50 -24 -56 M3 -20 Q14 -50 24 -56" stroke="#1e1a1a" stroke-width="3" fill="none"/></g>
-    <text x="211" y="300" font-size="46" font-weight="800" fill="#1e1a1a" text-anchor="middle" font-family="'M PLUS Rounded 1c', serif">平家</text>
-    ${[[150, 90], [270, 250], [180, 330], [290, 60]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="16" fill="#c8504a" opacity="0.35"/>`).join('')}
-  </svg>`;
-}
-/** Le billet plié dans le coffre : un vieux papier de Gokayama, écrit au pinceau en colonnes, un sceau rouge. */
-function billet() {
-  let colonnes = '';
-  for (let c = 0; c < 8; c++) {
-    let y = 40;
-    const x = 330 - c * 38;
-    while (y < 300) { const h = 12 + ((c * 7 + y) % 19); colonnes += `<path d="M${x} ${y} q3 ${h / 2} 0 ${h}" stroke="#2a2018" stroke-width="${3 + (y % 3)}" stroke-linecap="round" fill="none"/>`; y += h + 8; }
-  }
-  return `<svg viewBox="0 0 400 360" class="billet" aria-hidden="true">
-    <rect width="400" height="360" fill="#efe4c8"/>
-    ${Array.from({ length: 30 }, (_, k) => `<path d="M${(k * 53) % 400} 0 v360" stroke="#e0d2b0" stroke-width="1" opacity="0.6"/>`).join('')}
-    ${colonnes}
-    <rect x="40" y="250" width="56" height="56" fill="none" stroke="#c8302c" stroke-width="5"/><text x="68" y="290" font-size="26" font-weight="800" fill="#c8302c" text-anchor="middle" font-family="'M PLUS Rounded 1c', serif">塩</text>
-    <text x="70" y="64" font-size="20" fill="#5a4a38" font-family="'M PLUS Rounded 1c', serif">文化三年</text>
-  </svg>`;
 }
 
 /** Le mélange de deux couleurs « #rrggbb » (t : 0 à 1). */
@@ -3152,6 +3193,8 @@ function aspectSol(P, x, z, h) {
   }
   // l'esplanade du sanctuaire : le gravier clair ; les dalles de l'allée
   const S = SANCTUAIRE;
+  // (la mousse autour de la tombe du guerrier Heike)
+  if (Math.hypot(x - TOMBE.x, z - TOMBE.z) < 1.8 + 0.4 * bruitDoux(x * 2, z * 2, 1)) return [bruit > 0.5 ? '#4f6a3c' : '#5a7444', M.herbe];
   if (x > S.x0 && x < S.x1 + 0.4 && z > S.z0 && z < S.z1) return [Math.abs(z - S.marches[2]) < 0.9 ? P.pierre : P.terreClaire, Math.abs(z - S.marches[2]) < 0.9 ? M.dalles : M.terre];
   if (x > S.torii[0] - 1 && x < S.x1 && Math.abs(z - S.marches[2]) < 1.0) return [P.pierre, M.dalles];
   // l'escalier et le belvédère
@@ -3296,11 +3339,11 @@ const TEXTES = {
     menu: ['Le menu, écrit à la main sur des planchettes :', '« Zaru soba » (soba froides) 800 yens, « kake soba » (soba chaudes) 700 yens, « tofu dengaku » (tofu grillé au miso) 500 yens, « iwana » grillé au sel 600 yens.'],
     manekineko: ['Un « maneki-neko », le chat qui salue de la patte : il attire les clients et la chance.', 'Tu lui caresses la tête… Il a l’air content !'],
     guideNuit: ['Le soir, toute la famille se réunissait autour du foyer pour se réchauffer et raconter des histoires.', 'On dit que certaines maisons cachent encore des secrets sous leur plancher…'],
-    enfant: ['Je chasse les libellules rouges ! Les « akatombo ».', 'Tu sais quoi ? Mon grand-père dit qu’une planche du vieux musée « chante » quand on marche dessus, près du foyer…', 'Mais personne n’ose la soulever !'],
-    enfantNuit: ['Il fait nuit, je dois rentrer… Oh, regarde, une luciole !'],
+    enfant: ['Je chasse les libellules rouges ! Les « akatombo ».', 'Tu sais quoi ? Mon grand-père dit que la nuit, au bord du ruisseau, il y a une luciole dorée, plus brillante que les autres…', 'Si on la suit, elle montre un secret ! Mais moi, je n’ai pas le droit de sortir la nuit…'],
+    enfantNuit: ['Il fait nuit, je dois rentrer… Oh, regarde, une luciole !', '… Non, elle est verte. Pas dorée.'],
     photographe: ['D’ici, on voit tout le village : les toits de chaume, les rizières, la rivière turquoise.', 'Au printemps avec les cerisiers, et l’hiver sous la neige, c’est encore plus beau !'],
     photographeNuit: ['La nuit, les fenêtres des maisons brillent comme des lanternes. Une photo magique !'],
-    gardien: ['Bonjour. Je balaie la cour du sanctuaire chaque matin.', 'On raconte qu’après leur défaite, en 1185, des guerriers Heike se sont enfuis jusqu’ici, au fond des montagnes.', 'Ils auraient caché leur bannière rouge quelque part dans le village… Mais où ?'],
+    gardien: ['Bonjour. Je balaie la cour du sanctuaire chaque matin.', 'On raconte qu’après leur défaite, en 1185, des guerriers Heike se sont enfuis jusqu’ici, au fond des montagnes, et y ont vécu cachés, déguisés en paysans.', 'Leurs âmes seraient devenues des lucioles… Les nuits d’été, l’une d’elles, toute dorée, chercherait encore quelqu’un à guider.'],
     gardienNuit: ['Il est tard. Que les dieux te protègent sur la route.'],
     videaste: ['Salut ! Je filme les plus beaux lieux du Japon pour TikTok.', 'Mon compte, c’est @random_japan_place.', 'J’ai fait une vidéo de Gokayama. Tu veux la voir ?'],
     videasteNon: ['D’accord ! Elle est aussi sur la carte, avec tous les autres lieux.'],
@@ -3333,21 +3376,28 @@ const TEXTES = {
     butsudan: ['L’autel de la famille, le « butsudan » : laqué noir dehors, tout doré dedans.', 'On y honore les ancêtres : une bougie, un bâton d’encens, un coup de clochette… « tiiin ».'],
     butsudanNuit: ['À la lueur des bougies, l’or de l’autel brille doucement dans la nuit.', 'On y honore les ancêtres : une bougie, un bâton d’encens, un coup de clochette… « tiiin ».'],
     vitrine: ['Des objets d’autrefois : un mino et un chapeau de paille, des bottes de paille pour la neige…', '…la sasara et les baguettes de la kokiriko, et quelques feuilles de papier de Gokayama.'],
-    creux: ['Toc… toc… Sous tes pieds, une planche sonne creux.', 'Comme s’il y avait un trou, là-dessous…'],
-    creuxCompagnon: {
-      kon: ['« Ce bruit… Il y a un creux sous cette planche. Mon flair ne me trompe jamais ! »'],
-      pon: ['« Pon ? Ce plancher sonne comme mon ventre ! Il y a quelque chose dessous ! »'],
-      chapu: ['« Ça sonne creux ! Comme sous les pierres de la rivière, là où se cachent les poissons ! »'],
-      gao: ['« Gao ! Un gardien sent ces choses-là : quelque chose est caché ici. »'],
-      fuwa: ['« Fuwa… Ma perle brille plus fort, juste au-dessus de cette planche ! »'],
-      saya: ['« Le bois me parle… Sous cette planche, la terre garde un secret. »'],
+    lucioleDoree: ['Parmi les lucioles du ruisseau, l’une brille plus fort que les autres…', 'Elle est dorée ! Elle tourne autour de toi… puis s’éloigne doucement, comme pour te montrer le chemin.'],
+    lucioleCompagnon: {
+      kon: ['« Une luciole d’or… Les anciens disaient qu’elles portent les âmes. Suivons-la, doucement ! »'],
+      pon: ['« Elle brille comme une pièce d’or ! On la suit ? Elle mène peut-être à un festin ! »'],
+      chapu: ['« Elle part vers le sanctuaire ! Vite, vite, avant qu’on la perde ! »'],
+      gao: ['« Gao… Une flamme dorée. Suis-la, je veille derrière toi. »'],
+      fuwa: ['« Fuwa ! Elle brille comme ma perle… Elle chante tout bas. Allons-y ! »'],
+      saya: ['« Elle porte une très vieille âme… Elle nous demande de la suivre. »'],
     },
-    soulever: ['Tu glisses tes doigts sous le bord de la planche… Elle bouge !'],
-    fosse: ['Dessous, une fosse sombre : de la terre mêlée de paille et d’herbes sèches.', 'C’est une fosse à salpêtre ! On y fabriquait en secret la poudre à canon du seigneur de Kaga.', 'Et tout au fond… un petit coffre laqué noir, noué d’une cordelette rouge.'],
-    coffre: ['Le couvercle se soulève…', 'Dedans, une étoffe rouge pliée, un vieux papier… et une pièce d’or !'],
-    banniere: ['Une bannière de soie rouge, passée par les siècles, avec un papillon noir au milieu.', 'Le papillon des Taira : c’est une bannière des Heike !', 'Vaincus à la bataille de Dan-no-ura, en 1185, les derniers guerriers Heike se seraient cachés au fond de ces montagnes…'],
-    billet: ['Un billet, écrit au pinceau, daté de « 文化三年 » : l’an 1806.', '« Cachée dans la fosse du salpêtre, là où personne ne regarde. Que la bannière de nos ancêtres reste à l’abri ; que le voyageur qui la trouve garde la pièce d’or, en souvenir. »'],
-    fosseApres: ['La planche soulevée, la fosse à salpêtre, le coffre laqué.', 'Tu y as laissé la bannière, à l’abri, comme les gens d’autrefois.'],
+    tombe: ['La luciole s’arrête au-dessus d’une très vieille tombe, cachée sous les cèdres, derrière le sanctuaire.', 'Une petite pagode de pierre, couverte de mousse. On devine encore un caractère gravé : 平, « Taira ».', 'La tombe d’un guerrier Heike…'],
+    tombeLueur: ['Tout autour, les lucioles s’allument une à une et montent vers les cèdres…', 'La luciole dorée se pose sur la tombe. Sur la pierre des offrandes, quelque chose brille.'],
+    tombeCompagnon: {
+      kon: ['« Il a attendu longtemps que quelqu’un vienne le saluer… »'],
+      pon: ['« Pon… Mon oncle Bunbuku dit qu’on doit toujours saluer les anciens. Saluons-le ! »'],
+      chapu: ['« Toutes ces lumières… On dirait qu’elles dansent pour lui ! »'],
+      gao: ['« Un guerrier repose ici. Je monte la garde, comme lui autrefois. »'],
+      fuwa: ['« Les lucioles chantent pour lui… Je chante avec elles. Fuwaaa… »'],
+      saya: ['« Les cèdres veillent sur lui depuis huit cents ans. Ils me l’ont dit. »'],
+    },
+    legende: ['Une pièce d’or, laissée là pour celui qui trouverait le chemin.', 'Après la bataille de Dan-no-ura, en 1185, les derniers guerriers Heike se sont cachés au fond de ces montagnes, déguisés en paysans.', 'On dit que leurs âmes sont devenues des lucioles : au Japon, les petites lucioles des rivières s’appellent encore les « Heike-botaru », les lucioles des Heike.'],
+    tombeJour: ['Une très vieille tombe couverte de mousse, cachée sous les cèdres.', 'On devine un caractère gravé : 平. Qui repose ici ?', 'Les lucioles semblent aimer cet endroit…'],
+    tombeApres: ['La tombe du guerrier Heike, sous les cèdres. Tu joins les mains un instant.', 'La nuit, la luciole dorée veille sur lui.'],
     heron: ['Un héron cendré, immobile dans la rizière… Il guette les grenouilles et les petits poissons.', 'Doucement… S’il te voit, il s’envole !'],
     grenouille: ['Une rainette toute verte, sur la diguette.', 'Au Japon, grenouille se dit « kaeru », comme « revenir » : un porte-bonheur pour les voyageurs !'],
     libellule: ['Une libellule rouge, une « akatombo ». Au Japon, elle annonce la fin de l’été.', 'Il y a même une chanson d’enfants très connue sur elle !'],
@@ -3461,11 +3511,11 @@ const TEXTES = {
     menu: ['The menu, handwritten on wooden boards:', '“Zaru soba” (cold soba) 800 yen, “kake soba” (hot soba) 700 yen, “tofu dengaku” (tofu grilled with miso) 500 yen, salt-grilled “iwana” 600 yen.'],
     manekineko: ['A “maneki-neko”, the beckoning cat: it waves its paw to bring in customers and good luck.', 'You pat its head… It looks happy!'],
     guideNuit: ['In the evening the whole family gathered around the hearth to keep warm and tell stories.', 'They say some houses still hide secrets under their floors…'],
-    enfant: ['I’m catching red dragonflies! “Akatombo”.', 'You know what? My grandpa says a board in the old museum “sings” when you walk on it, near the hearth…', 'But nobody dares to lift it!'],
-    enfantNuit: ['It’s dark, I have to go home… Oh, look, a firefly!'],
+    enfant: ['I’m catching red dragonflies! “Akatombo”.', 'You know what? My grandpa says that at night, by the stream, there’s a golden firefly, brighter than the others…', 'If you follow it, it shows you a secret! But I’m not allowed out at night…'],
+    enfantNuit: ['It’s dark, I have to go home… Oh, look, a firefly!', '… No, it’s green. Not golden.'],
     photographe: ['From here you can see the whole village: the thatched roofs, the rice fields, the turquoise river.', 'In spring with the cherry blossoms, and in winter under the snow, it’s even more beautiful!'],
     photographeNuit: ['At night the windows of the houses glow like lanterns. A magical photo!'],
-    gardien: ['Hello. I sweep the shrine courtyard every morning.', 'They say that after their defeat in 1185, Heike warriors fled all the way here, deep in the mountains.', 'They are said to have hidden their red banner somewhere in the village… But where?'],
+    gardien: ['Hello. I sweep the shrine courtyard every morning.', 'They say that after their defeat in 1185, Heike warriors fled all the way here, deep in the mountains, and lived in hiding, disguised as farmers.', 'Their souls are said to have become fireflies… On summer nights, one of them, all golden, is still looking for someone to guide.'],
     gardienNuit: ['It’s late. May the gods watch over you on your journey.'],
     videaste: ['Hi! I film the most beautiful places in Japan for TikTok.', 'My account is @random_japan_place.', 'I made a video of Gokayama. Want to watch it?'],
     videasteNon: ['Okay! It’s also on the map, with all the other places.'],
@@ -3498,21 +3548,28 @@ const TEXTES = {
     butsudan: ['The family altar, the “butsudan”: black lacquer outside, all gold inside.', 'Here the ancestors are honoured: a candle, a stick of incense, a tap of the little bell… “tiiing”.'],
     butsudanNuit: ['By candlelight, the gold of the altar glows softly in the night.', 'Here the ancestors are honoured: a candle, a stick of incense, a tap of the little bell… “tiiing”.'],
     vitrine: ['Objects of old: a mino and a straw hat, straw boots for the snow…', '…the sasara and the kokiriko sticks, and a few sheets of Gokayama paper.'],
-    creux: ['Knock… knock… Under your feet, a board sounds hollow.', 'As if there were a hole down there…'],
-    creuxCompagnon: {
-      kon: ['“That sound… There’s a hollow under this board. My nose is never wrong!”'],
-      pon: ['“Pon? This floor sounds like my belly! There’s something under it!”'],
-      chapu: ['“It sounds hollow! Like under the river stones, where the fish hide!”'],
-      gao: ['“Gao! A guardian can feel these things: something is hidden here.”'],
-      fuwa: ['“Fuwa… My pearl shines brighter, right above this board!”'],
-      saya: ['“The wood is talking to me… Under this board, the earth keeps a secret.”'],
+    lucioleDoree: ['Among the fireflies by the stream, one shines brighter than the others…', 'It’s golden! It circles around you… then drifts slowly away, as if to show you the way.'],
+    lucioleCompagnon: {
+      kon: ['“A golden firefly… The elders said they carry souls. Let’s follow it, gently!”'],
+      pon: ['“It shines like a gold coin! Shall we follow it? Maybe it leads to a feast!”'],
+      chapu: ['“It’s heading for the shrine! Quick, quick, before we lose it!”'],
+      gao: ['“Gao… A golden flame. Follow it, I’ll watch your back.”'],
+      fuwa: ['“Fuwa! It glows like my pearl… It’s singing softly. Let’s go!”'],
+      saya: ['“It carries a very old soul… It’s asking us to follow.”'],
     },
-    soulever: ['You slide your fingers under the edge of the board… It moves!'],
-    fosse: ['Underneath, a dark pit: earth mixed with straw and dry grass.', 'It’s a saltpetre pit! Gunpowder for the lord of Kaga was secretly made here.', 'And right at the bottom… a small black lacquered box, tied with a red cord.'],
-    coffre: ['The lid lifts…', 'Inside: a folded red cloth, an old paper… and a gold coin!'],
-    banniere: ['A red silk banner, faded by the centuries, with a black butterfly in the middle.', 'The butterfly of the Taira: it’s a Heike banner!', 'Defeated at the battle of Dan-no-ura in 1185, the last Heike warriors are said to have hidden deep in these mountains…'],
-    billet: ['A note, written with a brush, dated “文化三年”: the year 1806.', '“Hidden in the saltpetre pit, where nobody looks. May the banner of our ancestors stay safe; may the traveller who finds it keep the gold coin, as a keepsake.”'],
-    fosseApres: ['The lifted board, the saltpetre pit, the lacquered box.', 'You left the banner inside, safe, as the people of old did.'],
+    tombe: ['The firefly stops above a very old grave, hidden under the cedars behind the shrine.', 'A little stone pagoda covered in moss. You can still make out a carved character: 平, “Taira”.', 'The grave of a Heike warrior…'],
+    tombeLueur: ['All around, the fireflies light up one by one and rise toward the cedars…', 'The golden firefly settles on the grave. On the offering stone, something glitters.'],
+    tombeCompagnon: {
+      kon: ['“He waited a long time for someone to come and greet him…”'],
+      pon: ['“Pon… My uncle Bunbuku says we must always greet the elders. Let’s bow to him!”'],
+      chapu: ['“All these lights… It’s like they’re dancing for him!”'],
+      gao: ['“A warrior rests here. I’ll stand guard, as he once did.”'],
+      fuwa: ['“The fireflies are singing for him… I’ll sing with them. Fuwaaa…”'],
+      saya: ['“The cedars have watched over him for eight hundred years. They told me so.”'],
+    },
+    legende: ['A gold coin, left here for whoever found the way.', 'After the battle of Dan-no-ura in 1185, the last Heike warriors hid deep in these mountains, disguised as farmers.', 'They say their souls became fireflies: in Japan, the small river fireflies are still called “Heike-botaru”, the Heike fireflies.'],
+    tombeJour: ['A very old grave covered in moss, hidden under the cedars.', 'You can make out a carved character: 平. Who rests here?', 'The fireflies seem to like this place…'],
+    tombeApres: ['The Heike warrior’s grave, under the cedars. You put your hands together for a moment.', 'At night, the golden firefly watches over him.'],
     heron: ['A grey heron, standing still in the rice field… It is watching for frogs and little fish.', 'Gently… If it sees you, it flies away!'],
     grenouille: ['A little green tree frog, on the rice field edge.', 'In Japanese, frog is “kaeru”, like “to come back”: a lucky charm for travellers!'],
     libellule: ['A red dragonfly, an “akatombo”. In Japan it means summer is ending.', 'There’s even a very famous children’s song about it!'],
@@ -3626,11 +3683,11 @@ const TEXTES = {
     menu: ['手書きの　おしながき：', '「ざるそば」八百円、「かけそば」七百円、「とうふ田楽」五百円、「岩魚の塩焼き」六百円。'],
     manekineko: ['まねきねこ。手を　あげて、お客さんと　しあわせを　まねくんだ。', 'あたまを　なでると……うれしそう！'],
     guideNuit: ['夜は　家族みんなが　いろりを　かこんで、あたたまりながら　むかし話を　したんです。', 'いまでも　床下に　ひみつを　かくしている　家が　あるとか……'],
-    enfant: ['赤とんぼを　つかまえてるんだ！', 'しってる？ おじいちゃんが　いうには、民俗館の　いろりの　そばに、ふむと「うたう」板が　あるんだって……', 'でも、こわくて　だれも　もちあげないんだ！'],
-    enfantNuit: ['もう　夜だ、かえらなきゃ……あっ、見て、ホタル！'],
+    enfant: ['赤とんぼを　つかまえてるんだ！', 'しってる？ おじいちゃんが　いうには、夜の　小川に、ほかより　ずっと　ひかる　金色の　ホタルが　いるんだって……', 'ついていくと、ひみつを　おしえて　くれるって！ でも　ぼく、夜は　外に　出られないんだ……'],
+    enfantNuit: ['もう　夜だ、かえらなきゃ……あっ、見て、ホタル！', '……ちがう、みどりだ。金色じゃない。'],
     photographe: ['ここから　村ぜんぶが　見えるの。かやぶき屋根、田んぼ、エメラルド色の　川。', '春の　さくらや、冬の　雪景色は　もっと　すてきよ！'],
     photographeNuit: ['夜は　家の　まどが　ちょうちんみたいに　ひかるの。まほうの　ような　写真に　なるわ！'],
-    gardien: ['こんにちは。毎朝、神社の　庭を　はいておる。', '1185年に　いくさに　まけた　平家の　武士たちが、この　山おくまで　にげてきたと　いわれておる。', '赤い　はたを　村の　どこかに　かくしたそうじゃ……さて、どこかのう？'],
+    gardien: ['こんにちは。毎朝、神社の　庭を　はいておる。', '1185年に　いくさに　まけた　平家の　武士たちが、この　山おくまで　にげてきて、お百姓さんの　すがたで　かくれて　くらしたと　いわれておる。', 'その　たましいは　ホタルに　なったそうじゃ……夏の　夜、金色の　ホタルが　一ぴき、いまも　だれかを　案内しようと　さがして　おるとか。'],
     gardienNuit: ['もう　おそい。道中、神さまが　守って　くださるように。'],
     videaste: ['やあ！ 日本の　すてきな　場所を　TikTokで　しょうかい　しているんだ。', 'アカウントは　@random_japan_place。', '五箇山の　動画も　あるよ。見てみる？'],
     videasteNon: ['オッケー！ 地図にも　ほかの　場所と　いっしょに　のっているよ。'],
@@ -3663,21 +3720,28 @@ const TEXTES = {
     butsudan: ['家の　ぶつだん。そとは　くろい　うるし、なかは　ぜんぶ　金色。', 'ごせんぞさまを　たいせつに　します。ろうそく、おせんこう、りんを　ひとつ……「チーン」。'],
     butsudanNuit: ['ろうそくの　あかりで、ぶつだんの　金が　やさしく　ひかって　います。', 'ごせんぞさまを　たいせつに　します。ろうそく、おせんこう、りんを　ひとつ……「チーン」。'],
     vitrine: ['むかしの　道具。みのと　すげがさ、雪の　ための　わらぐつ……', '……ささらと　こきりこの　ぼう、それに　五箇山和紙。'],
-    creux: ['コン……コン……足の　下の　板が、からっぽの　音が　する。', 'まるで　下に　あなが　ある　みたい……'],
-    creuxCompagnon: {
-      kon: ['「この　音……板の　下に　すきまが　ある。ぼくの　はなは　ぜったい　まちがえない！」'],
-      pon: ['「ポン？ ぼくの　おなかみたいな　音！ 下に　なにか　あるよ！」'],
-      chapu: ['「からっぽの　音！ 魚が　かくれる　川の　石の　下みたい！」'],
-      gao: ['「ガオ！ 守り神には　わかる。ここに　なにか　かくれてる。」'],
-      fuwa: ['「フワ……この　板の　上で、しんじゅが　つよく　ひかるよ！」'],
-      saya: ['「木が　話しかけてくる……この　板の　下で、土が　ひみつを　守ってる。」'],
+    lucioleDoree: ['小川の　ホタルの　中に、ひとつだけ　つよく　ひかる　ホタルが　いる……', '金色だ！ きみの　まわりを　くるりと　とんで……道を　おしえるように、ゆっくり　はなれていく。'],
+    lucioleCompagnon: {
+      kon: ['「金色の　ホタル……むかしの　人は、たましいを　はこぶと　いったよ。そっと　ついていこう！」'],
+      pon: ['「小判みたいに　ひかってる！ ついていく？ ごちそうが　あるかも！」'],
+      chapu: ['「神社の　ほうへ　いくよ！ はやく　はやく、見うしなわないうちに！」'],
+      gao: ['「ガオ……金の　ほのお。ついていけ、うしろは　ぼくが　まもる。」'],
+      fuwa: ['「フワ！ ぼくの　しんじゅみたいに　ひかってる……小さな　声で　うたってるよ。いこう！」'],
+      saya: ['「とても　古い　たましいを　はこんでいる……ついてきてと　いっているよ。」'],
     },
-    soulever: ['板の　はしに　ゆびを　かけると……うごいた！'],
-    fosse: ['下には　くらい　あな。わらや　かれ草の　まざった　土。', '塩硝の　あなだ！ ここで　加賀の　お殿さまの　火薬を　ひみつで　つくっていたんだ。', 'そして　いちばん　そこに……赤い　ひもで　むすんだ、黒い　うるしの　小さな　はこ。'],
-    coffre: ['ふたが　あがる……', '中には　たたんだ　赤い　ぬの、古い　紙……そして　小判！'],
-    banniere: ['何百年も　たって　色あせた、赤い　きぬの　はた。まんなかに　黒い　チョウ。', '平氏の　チョウ……平家の　はただ！', '1185年、壇ノ浦の　いくさに　まけた　平家の　武士たちは、この　山おくに　かくれたと　いわれている……'],
-    billet: ['ふでで　書かれた　手紙。日付は「文化三年」、1806年。', '「だれも　見ない　塩硝の　あなに　かくす。ご先祖さまの　はたが　守られますように。見つけた　旅人は、記念に　小判を　もっていってください。」'],
-    fosseApres: ['あげた　板、塩硝の　あな、うるしの　はこ。', 'はたは　むかしの　人と　おなじように、そっと　しまっておいた。'],
+    tombe: ['ホタルは、神社の　うら、すぎの　木の　下に　かくれた、とても　古い　おはかの　上で　とまった。', 'こけむした　石の　小さな　塔。ほられた　字が　まだ　読める：「平」。', '平家の　武士の　おはかだ……'],
+    tombeLueur: ['まわりで、ホタルが　ひとつ　また　ひとつと　ひかり、すぎの　ほうへ　のぼっていく……', '金色の　ホタルが　おはかに　とまった。おそなえの　石の　上で、なにかが　きらりと　ひかる。'],
+    tombeCompagnon: {
+      kon: ['「だれかが　あいさつに　くるのを、ずっと　まっていたんだね……」'],
+      pon: ['「ポン……ぶんぶくおじさんが、おとしよりには　いつも　あいさつしなさいって。おじぎしよう！」'],
+      chapu: ['「この　ひかり　ぜんぶ……この　人の　ために　おどってるみたい！」'],
+      gao: ['「ここに　武士が　ねむっている。むかしの　かれのように、ぼくが　見はりを　する。」'],
+      fuwa: ['「ホタルが　この　人に　うたってる……ぼくも　いっしょに　うたうよ。フワ〜……」'],
+      saya: ['「すぎの　木たちが、八百年　ずっと　見まもってきたんだって。おしえて　もらったよ。」'],
+    },
+    legende: ['道を　見つけた　人の　ために、ここに　のこされた　小判。', '1185年、壇ノ浦の　いくさの　あと、さいごの　平家の　武士たちは、お百姓さんに　すがたを　かえて、この　山おくに　かくれた。', 'その　たましいは　ホタルに　なったと　いわれている。日本では　いまも、川の　小さな　ホタルを「平家ボタル」と　よぶんだ。'],
+    tombeJour: ['すぎの　木の　下に　かくれた、こけむした　とても　古い　おはか。', 'ほられた　字が　読める：「平」。だれが　ねむっているんだろう？', 'ホタルたちは、ここが　すきみたい……'],
+    tombeApres: ['すぎの　下の、平家の　武士の　おはか。そっと　手を　あわせる。', '夜には、金色の　ホタルが　見まもっている。'],
     heron: ['田んぼに　じっと　立つ　アオサギ……カエルや　小魚を　ねらっている。', 'そーっと……見つかったら　とんでいっちゃう！'],
     grenouille: ['あぜに　みどりの　アマガエル。', 'カエルは「かえる」：旅人が　ぶじに　かえれる　おまもりだよ！'],
     libellule: ['赤とんぼ。日本では　夏の　おわりを　しらせる　虫。', 'とても　有名な　どうようも　あるね！'],
