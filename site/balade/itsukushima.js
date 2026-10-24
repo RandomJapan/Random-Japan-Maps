@@ -1543,14 +1543,14 @@ function bambous(c, W, H) {
   }
 }
 
-/** La couleur et la matière (textures.js) du sol naturel : estran, sable, herbe, la rue pavée et le chemin de la colline. */
+/** La couleur et la matière (textures.js) du sol naturel : estran, sable, herbe, la rue pavée jusqu'au pied de l'escalier. */
 function aspectSol(P, x, z, h) {
-  if (x > 45.5 && x < 56.5 && z > -1 && z < 23) return [P.chemin, M.dalles];
+  // la rue s'arrête au pied de l'escalier (avec le pas devant la première marche) ; la colline est toute en herbe
+  // (2026-10-24 : la rue montait sur son flanc à côté de l'escalier, et un parvis dallé entourait la pagode)
+  if (z > -1 && z < ESCALIER.z0 + 0.2 && ((x > 45.5 && x < 56.5) || (Math.abs(x - ESCALIER.x) < 2.3 && z > ESCALIER.z0 - 1.3))) return [P.chemin, M.dalles];
   // (le bosquet de bambous : de la mousse, et le petit chemin de dalles jusqu'au sanctuaire caché)
   const db = Math.hypot(x - BOSQUET.x, z - BOSQUET.z);
   if (db < BOSQUET.r + 0.8) return Math.abs(z - BOSQUET.z) < 0.45 && x > HOKORA.x + 0.6 && x < BOSQUET.x + BOSQUET.r - 0.3 ? [P.pierre, M.dalles] : [bruitDoux(x, z, 1.5) > 0.5 ? P.herbeFonce : '#5f8f45', M.herbe];
-  // l'escalier de la colline et le parvis autour de la pagode
-  if ((Math.abs(x - ESCALIER.x) < 2.3 && z > ESCALIER.z0 - 1.3 && z < ESCALIER.z1 + 1) || Math.hypot(x - 46, z - 35.4) < 8.6) return [P.chemin, M.dalles];
   if (h < 0.22) return [P.sableMouille, M.estran];
   if (h < 1.05) return [P.sable, M.sable];
   const n = bruitDoux(x, z, 6) * 0.5 + 0.5 * Math.sin(x * 0.11) * Math.sin(z * 0.13);
