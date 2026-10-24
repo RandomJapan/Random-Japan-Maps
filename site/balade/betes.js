@@ -89,8 +89,13 @@ function formes(ctx) {
       a.cone(0.04, 0.07, 4, R.poil, { x: s * 0.055, y: 0.075, z: -0.005, rz: -s * 0.28, ry: PI / 4 })
         .cone(0.022, 0.04, 4, NEZ, { x: s * 0.054, y: 0.07, z: 0.012, rz: -s * 0.28, ry: PI / 4, trait: false })
         .ovale(0.017, OEIL_CHAT, { x: s * 0.038, y: 0.018, z: 0.074, sx: 1.1, sy: 1.2, sz: 0.5, trait: false, sorte: 'lumiere' }, 8)
-        .ovale(0.006, '#1a1618', { x: s * 0.038, y: 0.018, z: 0.082, sx: 0.5, sy: 1.6, sz: 0.4, trait: false }, 5);
+        .ovale(0.006, '#1a1618', { x: s * 0.038, y: 0.018, z: 0.082, sx: 0.5, sy: 1.6, sz: 0.4, trait: false }, 5)
+        .ovale(0.0035, '#ffffff', { x: s * 0.042, y: 0.026, z: 0.084, trait: false }, 4);
+      // (2026-10-24) trois moustaches de chaque côté, la bouche en Y
+      for (const k of [-1, 0, 1]) a.baton([s * 0.03, -0.022 + k * 0.007, 0.088], [s * 0.115, -0.018 + k * 0.022, 0.07], 0.0016, '#f4efe6', 3, { trait: false });
+      a.baton([0, -0.024, 0.093], [s * 0.012, -0.034, 0.09], 0.002, '#5a3a3a', 3, { trait: false });
     }
+    a.ovale(0.009, '#e89a9a', { y: -0.004, z: 0.094, sx: 1.4, sy: 0.75, sz: 0.6, trait: false }, 5);
     // (le chat roux est tigré : des bandes plus sombres sur le front)
     if (robe === 'roux') for (const x of [-0.02, 0, 0.02]) a.boite(0.008, 0.035, 0.01, R.fonce, { x, y: 0.05, z: 0.074, rx: -0.5, trait: false });
     return a.fin(0, false);
@@ -142,8 +147,11 @@ function formesGokayama(ctx) {
   const { atelier, THREE } = ctx;
   // le héron cendré : le corps gris un peu penché, le cou blanc en S rayé de noir devant, la tête blanche et sa huppe
   // noire, le long bec jaune, les longues pattes ; les ailes à part (repliées le long du corps, grandes ouvertes en vol)
+  // (2026-10-24) le corps en goutte (plein devant, fin vers la queue), les longues plumes grises qui pendent de la
+  // poitrine, les deux aigrettes noires de la nuque, l'œil jaune
+  const goutte = (x, y, z) => { const t = Math.max(0, -z / 0.12); const k = 1 - 0.3 * t ** 1.4; return [x * k, y * k, z]; };
   const heron = atelier()
-    .ovale(0.12, HE.gris, { y: 0.6, sx: 0.78, sy: 0.82, sz: 1.55, rx: -0.15 }, 12)
+    .ovale(0.12, HE.gris, { y: 0.6, sx: 0.78, sy: 0.82, sz: 1.55, rx: -0.15, deformer: goutte }, 14)
     .baton([0, 0.66, 0.15], [0, 0.8, 0.22], 0.04, HE.blanc, 7)
     .baton([0, 0.8, 0.22], [0, 0.94, 0.16], 0.035, HE.blanc, 7)
     .baton([0, 0.94, 0.16], [0, 1.0, 0.2], 0.032, HE.blanc, 7)
@@ -152,8 +160,11 @@ function formesGokayama(ctx) {
     .cone(0.016, 0.16, 6, HE.bec, { y: 1.015, z: 0.33, rx: PI / 2 })
     .baton([0, 1.045, 0.18], [0, 0.99, 0.05], 0.008, HE.noir, 4, { trait: false })
     .boite(0.05, 0.03, 0.2, HE.fonce, { y: 0.55, z: -0.22, rx: 0.3 });
+  for (let k = 0; k < 5; k++) heron.cone(0.018, 0.17, 4, k % 2 ? HE.blanc : HE.gris, { x: (k - 2) * 0.016, y: 0.7, z: 0.2 + Math.abs(k - 2) * -0.008, rx: PI + 0.25, trait: false });
+  heron.baton([0, 1.05, 0.15], [0, 1.0, 0.0], 0.005, HE.noir, 3, { trait: false });
   for (const s of [-1, 1]) {
-    heron.ovale(0.01, HE.noir, { x: s * 0.036, y: 1.03, z: 0.24, trait: false }, 5)
+    heron.ovale(0.013, '#e8c84a', { x: s * 0.035, y: 1.03, z: 0.238, sx: 0.5, trait: false }, 6)
+      .ovale(0.01, HE.noir, { x: s * 0.038, y: 1.03, z: 0.24, trait: false }, 5)
       .baton([s * 0.04, 0.56, 0.0], [s * 0.05, 0.02, 0.03], 0.011, HE.pattes, 5)
       .boite(0.02, 0.01, 0.12, HE.pattes, { x: s * 0.05, y: 0.01, z: 0.07, trait: false });
   }
@@ -196,7 +207,11 @@ function formesGokayama(ctx) {
     teteChien.cone(0.035, 0.08, 4, SHIBA.poil, { x: s * 0.055, y: 0.085, z: 0.0, rz: -s * 0.18, ry: PI / 4 })
       .cone(0.02, 0.05, 4, SHIBA.creme, { x: s * 0.053, y: 0.08, z: 0.012, rz: -s * 0.18, ry: PI / 4, trait: false })
       .ovale(0.012, SHIBA.nez, { x: s * 0.038, y: 0.02, z: 0.078, sy: 1.2, sz: 0.5, trait: false }, 6)
-      .ovale(0.018, SHIBA.creme, { x: s * 0.05, y: 0.0, z: 0.06, sz: 0.5, trait: false }, 6);
+      .ovale(0.004, '#ffffff', { x: s * 0.042, y: 0.026, z: 0.083, trait: false }, 4)
+      .ovale(0.018, SHIBA.creme, { x: s * 0.05, y: 0.0, z: 0.06, sz: 0.5, trait: false }, 6)
+      // (2026-10-24) les sourcils crème (maro) au-dessus des yeux, la bouche
+      .ovale(0.011, SHIBA.creme, { x: s * 0.036, y: 0.045, z: 0.072, sy: 0.6, sz: 0.4, trait: false }, 5)
+      .baton([0, -0.042, 0.112], [s * 0.022, -0.05, 0.1], 0.0025, SHIBA.nez, 3, { trait: false });
   }
   const chienCouche = atelier()
     .ovale(0.16, SHIBA.poil, { y: 0.09, sx: 0.85, sy: 0.55, sz: 1.35 }, 12)

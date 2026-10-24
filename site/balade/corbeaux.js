@@ -22,14 +22,16 @@ const VITESSE = 5.2;
 function formes(ctx) {
   const { atelier } = ctx;
   const corps = (pose) => {
+    // (2026-10-24) le corps en goutte : plein devant, fin vers la queue
+    const goutte = (x, y, z) => { const t = Math.max(0, -z / 0.12); const k = 1 - 0.3 * t ** 1.4; return [x * k, y * k, z]; };
     const a = atelier()
-      .ovale(0.12, NOIR, { sx: 0.82, sy: 0.8, sz: 1.8 }, 12)
-      .ovale(0.1, REFLET, { y: 0.045, z: -0.02, sx: 0.85, sy: 0.5, sz: 1.5 }, 10)
+      .ovale(0.12, NOIR, { sx: 0.82, sy: 0.8, sz: 1.8, deformer: goutte }, 14)
+      .ovale(0.1, REFLET, { y: 0.045, z: -0.02, sx: 0.85, sy: 0.5, sz: 1.5, deformer: goutte }, 12)
       .ovale(0.078, NOIR, { y: 0.08, z: 0.2 }, 10)
       .ovale(0.05, NOIR, { y: 0.115, z: 0.225, sx: 0.9 }, 8) // le front bombé des corbeaux à gros bec
       .cone(0.032, 0.12, 6, BEC, { y: 0.07, z: 0.315, rx: PI / 2 + 0.18 })
       .boite(0.12, 0.02, 0.17, NOIR, { y: 0.0, z: -0.27, rx: -0.12 });
-    for (const s of [-1, 1]) a.ovale(0.009, '#d8dce6', { x: s * 0.06, y: 0.11, z: 0.255, trait: false }, 5);
+    for (const s of [-1, 1]) a.ovale(0.012, '#1a1a20', { x: s * 0.058, y: 0.108, z: 0.25, trait: false }, 6).ovale(0.005, '#e8ecf4', { x: s * 0.063, y: 0.113, z: 0.258, trait: false }, 4);
     if (pose) {
       for (const s of [-1, 1]) {
         a.ovale(0.12, NOIR, { x: s * 0.08, y: 0.03, z: -0.07, sx: 0.4, sy: 0.6, sz: 2.0, ry: s * 0.08 }, 10)

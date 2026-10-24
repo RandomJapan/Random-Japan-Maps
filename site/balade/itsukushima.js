@@ -795,24 +795,109 @@ export function construire(ctx) {
     monde.rampe(E.x - 1.45, E.x + 1.45, E.z0, E.z1, 'z', E.h0 + 0.01, E.h1 + 0.01, { sol: 'pierre' });
     monde.surface(E.x - 1.5, E.x + 1.5, E.z1, E.z1 + 1, E.h1 + 0.01, { sol: 'pierre' });
   }
+  // (2026-10-24, la pagode refaite : avant, cinq boîtes vermillon, un panneau par face et les toits) chaque étage : les
+  // poteaux qui partagent chaque face en trois travées, la porte de planches au milieu, les murs blancs et leur fenêtre
+  // à barreaux (renji-mado) de chaque côté, les poutres ; sous le toit, les consoles en gradins (kumimono) qui montent
+  // du haut du mur jusqu'au toit, puis les chevrons, peints au bout en blanc, qui suivent le dessous du toit jusqu'au
+  // bord ; aux étages, le balcon et son garde-corps ; une clochette de bronze à chaque coin des toits. En haut, la
+  // flèche (sōrin) : le socle, la coupe renversée, le lotus, les neuf anneaux, les flammes et le joyau.
   {
     const a = atelier();
-    const k = 24;
+    const k = 24, CREUX = 1.7, RATIO = 0.55, BRONZE = '#5f7a66', VERM = P.vermillon, VERMF = P.vermillonFonce;
     a.ishigaki(0.48 * k, 0.48 * k, 0.12 * k, 0.01 * k, { y: -0.08 * k });
     let y = 0.04 * k;
+    // (un point du toit de toitJapon : le pan c, u le long de son bord, v du bord, 0, vers le haut, 1 ; dessous : le
+    // dessous du toit)
+    const pointToit = (lt, hT, releve, ep, yT, c, u, v, dessous) => {
+      const coins = [[-lt / 2, lt / 2], [lt / 2, lt / 2], [lt / 2, -lt / 2], [-lt / 2, -lt / 2]];
+      const [x0, z0] = coins[c], [x1, z1] = coins[(c + 1) % 4];
+      const ex = x0 + (x1 - x0) * u, ez = z0 + (z1 - z0) * u, e = Math.abs(2 * u - 1) ** 4;
+      const f = (1 - v + v * RATIO) * (1 + 0.06 * e * (1 - v));
+      return [ex * f, yT + hT * v ** CREUX + releve * e * (1 - v) ** 2 - (dessous ? ep : 0), ez * f];
+    };
     for (let i = 0; i < 5; i++) {
-      const l = (0.3 - i * 0.032) * k, h = (i === 0 ? 0.1 : 0.075) * k;
-      a.boite(l, h, l, P.vermillon, { y: y + h / 2 });
-      for (const [rx, rz, ry] of [[0, 1, 0], [0, -1, 0], [1, 0, PI / 2], [-1, 0, PI / 2]]) {
-        a.boite(l * 0.56, h * 0.62, 0.15, i ? P.blanc : P.boisFonce, { x: (rx * l) / 2, y: y + h / 2, z: (rz * l) / 2, ry, trait: false });
+      const l = (0.3 - i * 0.032) * k, h = (i === 0 ? 0.1 : 0.075) * k, l2 = l / 2;
+      a.boite(l, h, l, VERM, { y: y + h / 2 });
+      // chaque face (tournée de ry) : trois travées
+      for (let c = 0; c < 4; c++) {
+        const ry = (c * PI) / 2, cr = Math.cos(ry), sr = Math.sin(ry);
+        const pose = (lx, ly, lz) => ({ x: lx * cr + lz * sr, y: ly, z: -lx * sr + lz * cr, ry });
+        // (q : un décalage d'une face sur deux : aux coins, les pièces de deux faces voisines se croisent sans être dans le même plan)
+        const t = l / 3, q = c % 2 ? 0.012 : 0;
+        // les poteaux (aux coins et entre les travées), en avant du mur
+        for (const lx of [-l2, -t / 2, t / 2, l2]) a.boite(0.22, h - 0.012 - 2 * q, 0.2, VERM, pose(lx, y + h / 2, l2 + 0.06));
+        // les poutres : en bas, au milieu, en haut
+        for (const [yy, hh] of [[y + 0.12, 0.16], [y + h * 0.62, 0.14], [y + h - 0.1, 0.18]]) a.boite(l + 0.12, hh + q, 0.14, VERMF, pose(0, yy + q, l2 + 0.1));
+        // la porte de planches du milieu (sombre au rez-de-chaussée), ses traverses
+        const hp = h * 0.62 - 0.2;
+        a.boite(t - 0.24, hp, 0.06, i ? VERMF : '#4a3226', pose(0, y + 0.2 + hp / 2, l2 + 0.04));
+        for (const yy of [y + 0.2 + hp * 0.3, y + 0.2 + hp * 0.75]) a.boite(t - 0.26, 0.07, 0.04, i ? VERM : '#5a3e2e', pose(0, yy, l2 + 0.08));
+        // les murs blancs des côtés, et leur fenêtre à barreaux sous la poutre du milieu
+        for (const sx of [-1, 1]) {
+          a.boite(t - 0.24, hp, 0.04, P.blanc, pose(sx * t, y + 0.2 + hp / 2, l2 + 0.025));
+          const hf = h - h * 0.62 - 0.26;
+          if (hf > 0.25) {
+            a.boite(t - 0.3, hf, 0.03, '#3a2c26', pose(sx * t, y + h * 0.62 + 0.07 + hf / 2, l2 + 0.03));
+            for (let j = 0; j < 7; j++) a.boite(0.05, hf - 0.02, 0.05, VERM, { ...pose(sx * t - (t - 0.4) / 2 + j * ((t - 0.4) / 6), y + h * 0.62 + 0.07 + hf / 2, l2 + 0.06), trait: false });
+          }
+        }
       }
-      a.boite(l + 0.035 * k, 0.022 * k, l + 0.035 * k, P.boisFonce, { y: y + h + 0.011 * k });
-      const lt = l + 0.21 * k;
-      a.toitJapon(lt, lt, 0.055 * k, 0.55, { y: y + h + 0.02 * k, releve: 0.035 * k, rangs: 8, epaisseur: 0.018 * k });
+      // le toit, ses mesures
+      const lt = l + 0.21 * k, hT = 0.055 * k, releve = 0.035 * k, ep = 0.018 * k, yT = y + h + 0.02 * k;
+      a.toitJapon(lt, lt, hT, RATIO, { y: yT, releve, rangs: 8, epaisseur: ep });
+      // (la hauteur du dessous du toit à la verticale du mur : jusque-là montent les consoles)
+      const vMur = Math.min(1, (lt / 2 - l2) / (lt / 2 - (lt / 2) * RATIO));
+      const yDessous = pointToit(lt, hT, releve, ep, yT, 0, 0.5, vMur, true)[1];
+      // les consoles en gradins : trois rangs de blocs, chacun plus large et plus avancé
+      for (let c = 0; c < 4; c++) {
+        const ry = (c * PI) / 2, cr = Math.cos(ry), sr = Math.sin(ry);
+        const pose = (lx, ly, lz) => ({ x: lx * cr + lz * sr, y: ly, z: -lx * sr + lz * cr, ry });
+        const nb = 7, haut = Math.max(0.3, yDessous - (y + h)) / 3, q = c % 2 ? 0.012 : 0;
+        for (let r = 0; r < 3; r++) {
+          const yy = y + h + haut * (r + 0.5) + q, avance = 0.12 + r * 0.22;
+          a.boite(l + 0.3 + r * 0.45, 0.05, 0.12, VERMF, { ...pose(0, y + h + haut * r + 0.02 + q, l2 + avance - 0.05), trait: false });
+          for (let j = 0; j < nb + r; j++) {
+            const lx = -(l2 + r * 0.2) + (j * (l + r * 0.4)) / (nb + r - 1);
+            a.boite(0.2, haut * 0.8, 0.26 + r * 0.06, j % 2 ? VERM : '#e9e2cf', pose(lx, yy, l2 + avance));
+          }
+        }
+        // les chevrons : sous le toit, du haut des consoles jusqu'au bord, peints en blanc au bout
+        const n = 15;
+        for (let j = 1; j < n; j++) {
+          const u = j / n, A = pointToit(lt, hT, releve, ep, yT, c, u, vMur * 0.92, true), B = pointToit(lt, hT, releve, ep, yT, c, u, 0.015, true);
+          const d = 0.075;
+          a.baton([A[0], A[1] - d, A[2]], [B[0], B[1] - d, B[2]], 0.045, VERM, 4, { trait: false });
+          const T = pointToit(lt, hT, releve, ep, yT, c, u, 0.005, true);
+          a.boite(0.1, 0.09, 0.1, '#f1ebdc', { x: T[0], y: T[1] - d, z: T[2], ry: (c * PI) / 2, trait: false });
+        }
+        // la clochette du coin : sa chaîne, la cloche de bronze et son battant
+        const C0 = pointToit(lt, hT, releve, ep, yT, c, 0.005, 0.005, true);
+        a.baton([C0[0], C0[1] - 0.05, C0[2]], [C0[0], C0[1] - 0.45, C0[2]], 0.012, BRONZE, 4, { trait: false })
+          .cylindre(0.07, 0.11, 0.24, 8, BRONZE, { x: C0[0], y: C0[1] - 0.58, z: C0[2] })
+          .boite(0.02, 0.18, 0.08, BRONZE, { x: C0[0], y: C0[1] - 0.78, z: C0[2], trait: false });
+      }
+      // le balcon des étages (sur le toit du dessous) et son garde-corps
+      if (i > 0) {
+        const lb = l + 0.9, yb = y + 0.08;
+        a.boite(lb - 0.05, 0.1, lb - 0.05, VERMF, { y: yb });
+        for (let c = 0; c < 4; c++) {
+          const ry = (c * PI) / 2, cr = Math.cos(ry), sr = Math.sin(ry);
+          const pose = (lx, ly, lz) => ({ x: lx * cr + lz * sr, y: ly, z: -lx * sr + lz * cr, ry }), q = c % 2 ? 0.012 : 0;
+          a.boite(lb, 0.07, 0.07, VERM, pose(0, yb + 0.62 + q, lb / 2 - 0.03)).boite(lb, 0.05, 0.05, VERM, { ...pose(0, yb + 0.3 + q, lb / 2 - 0.03), trait: false });
+          for (let j = 0; j <= 6; j++) a.boite(0.08, 0.66 + q, 0.08, VERM, pose(-lb / 2 + 0.07 + (j * (lb - 0.14)) / 6, yb + 0.33 + q / 2, lb / 2 - 0.03 + (j % 2 ? 0.004 : 0)));
+        }
+      }
       y += h + 0.065 * k;
     }
+    // la flèche : le socle carré, la coupe renversée (fukubachi), le lotus (ukebana), le mât et ses neuf anneaux, les
+    // flammes (suien), le joyau (hōju)
+    a.boite(0.1 * k, 0.03 * k, 0.1 * k, BRONZE, { y: y + 0.015 * k })
+      .piece(new THREE.SphereGeometry(0.04 * k, 14, 6, 0, 2 * PI, 0, PI / 2), BRONZE, { y: y + 0.03 * k })
+      .cylindre(0.035 * k, 0.02 * k, 0.025 * k, 12, P.or, { y: y + 0.08 * k });
     a.cylindre(0.009 * k, 0.011 * k, 0.26 * k, 6, P.or, { y: y + 0.17 * k });
-    for (let i = 0; i < 9; i++) a.cylindre((0.026 - i * 0.0012) * k, (0.026 - i * 0.0012) * k, 0.007 * k, 10, P.or, { y: y + (0.07 + i * 0.019) * k });
+    for (let i = 0; i < 9; i++) a.cylindre((0.026 - i * 0.0012) * k, (0.026 - i * 0.0012) * k, 0.007 * k, 10, P.or, { y: y + (0.1 + i * 0.019) * k });
+    for (let j = 0; j < 4; j++) a.boite(0.045 * k, (0.05 - j * 0.002) * k, 0.003 * k, P.or, { y: y + 0.3 * k, ry: (j * PI) / 4, trait: false });
+    a.boule(0.014 * k, P.or, { y: y + 0.335 * k }, 1).cone(0.007 * k, 0.025 * k, 8, P.or, { y: y + 0.357 * k });
     const yP = terrain(COLLINE.x, COLLINE.z), px = COLLINE.x, pz = COLLINE.z + 2;
     poser(a.fin(0, peinture), px, pz, { y: yP });
     monde.cercle(px, pz, 6.6);

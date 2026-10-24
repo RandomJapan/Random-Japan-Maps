@@ -23,20 +23,26 @@ const VITESSE = 5.5;
 function formes(ctx) {
   const { atelier } = ctx;
   const corps = (pose) => {
+    // (2026-10-24) le corps en goutte : plein devant, fin vers la queue
+    const goutte = (x, y, z) => { const t = Math.max(0, -z / 0.13); const k = 1 - 0.32 * t ** 1.4; return [x * k, y * k, z]; };
     const a = atelier()
-      .ovale(0.13, BLANC, { sx: 0.85, sy: 0.78, sz: 1.9 }, 12)
-      .ovale(0.115, GRIS, { y: 0.05, z: -0.01, sx: 0.88, sy: 0.55, sz: 1.6 }, 10) // le dos gris ardoise
-      .ovale(0.08, BLANC, { y: 0.085, z: 0.23 }, 10)
+      .ovale(0.13, BLANC, { sx: 0.85, sy: 0.78, sz: 1.9, deformer: goutte }, 14)
+      .ovale(0.115, GRIS, { y: 0.05, z: -0.01, sx: 0.88, sy: 0.55, sz: 1.6, deformer: goutte }, 12) // le dos gris ardoise
+      .ovale(0.08, BLANC, { y: 0.085, z: 0.23, sy: 0.92 }, 12)
       .cone(0.02, 0.085, 6, JAUNE, { y: 0.07, z: 0.335, rx: PI / 2 })
       .ovale(0.012, ROUGE, { y: 0.062, z: 0.352, trait: false }, 6) // la tache rouge du bec
+      .ovale(0.008, NOIR, { y: 0.068, z: 0.36, sx: 1.6, sy: 0.6, trait: false }, 5) // et sa bande noire
       .ovale(0.014, NOIR, { x: 0.065, y: 0.1, z: 0.265, trait: false }, 6)
       .ovale(0.014, NOIR, { x: -0.065, y: 0.1, z: 0.265, trait: false }, 6)
+      .ovale(0.005, BLANC, { x: 0.071, y: 0.105, z: 0.272, trait: false }, 4)
+      .ovale(0.005, BLANC, { x: -0.071, y: 0.105, z: 0.272, trait: false }, 4)
       .boite(0.13, 0.025, 0.1, BLANC, { y: 0.015, z: -0.29 })
       .boite(0.13, 0.025, 0.04, NOIR, { y: 0.015, z: -0.36 }); // la bande noire de la queue
     if (pose) {
       for (const s of [-1, 1]) {
         a.ovale(0.12, GRIS, { x: s * 0.082, y: 0.04, z: -0.07, sx: 0.4, sy: 0.55, sz: 2.0, ry: s * 0.08 }, 10)
           .ovale(0.07, NOIR, { x: s * 0.045, y: 0.05, z: -0.33, sx: 0.45, sy: 0.4, sz: 1.6, ry: -s * 0.12 }, 8)
+          .ovale(0.012, BLANC, { x: s * 0.07, y: 0.065, z: -0.38, sx: 0.5, sy: 0.4, sz: 1.3, trait: false }, 5)
           .cylindre(0.012, 0.012, 0.14, 5, JAUNE, { x: s * 0.04, y: -0.14, z: 0.01 })
           .boite(0.05, 0.012, 0.065, JAUNE, { x: s * 0.04, y: -0.204, z: 0.03, trait: false });
       }

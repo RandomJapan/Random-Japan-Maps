@@ -646,14 +646,117 @@ export function construire(ctx) {
   // des tentes, l'abri de la cuisine, une table, et la lunette du campeur
   {
     const a = atelier();
+    // (2026-10-24, les tentes refaites : avant, une demi-boule et un prisme) le dôme : une tente igloo à deux arceaux
+    // croisés, la base en carré arrondi, le double toit tendu et les fourreaux des arceaux (plus sombres) qui se croisent
+    // en haut, la porte en D ouverte (la moustiquaire sombre, la toile roulée au-dessus), le tapis de sol qui remonte un
+    // peu ; la canadienne : le faîtage qui fléchit un peu, ses deux mâts, la porte ouverte, ses pans noués de chaque
+    // côté ; les haubans clairs et leurs sardines
+    const assombrir = (h, k) => '#' + [1, 3, 5].map((i) => Math.round(parseInt(h.slice(i, i + 2), 16) * k).toString(16).padStart(2, '0')).join('');
+    const MOUSTIQUAIRE = '#2c3438', SOL_TENTE = '#3a3a40', HAUBAN = '#ece6d6', SARDINE = '#9a9ea4';
     const tente = (x, z, c, sorte, ry) => {
-      const y = terrain(x, z);
+      const y = terrain(x, z), cr = Math.cos(ry), sr = Math.sin(ry), fonce = assombrir(c, 0.72);
+      // (le repère de la tente : u vers la porte, v sur le côté)
+      const pt = (u, v) => [x + sr * u + cr * v, z + cr * u - sr * v];
+      const local = (X, Z) => { const dx = X - x, dz = Z - z; return [dx * sr + dz * cr, dx * cr - dz * sr]; };
+      const hauban = (u0, v0, h0, u1, v1) => {
+        const [ax, az] = pt(u0, v0), [bx, bz] = pt(u1, v1), yb = terrain(bx, bz);
+        a.baton([ax, y + h0, az], [bx, yb + 0.02, bz], 0.007, HAUBAN, 3, { trait: false })
+          .cone(0.018, 0.12, 4, SARDINE, { x: bx, y: yb + 0.03, z: bz, rx: PI, trait: false });
+      };
       if (sorte === 'dome') {
-        a.piece(new THREE.SphereGeometry(1.35, 14, 6, 0, 2 * PI, 0, PI / 2), c, { x, y: y - 0.02, z, sy: 0.78 })
-          .piece(new THREE.CircleGeometry(0.45, 10, 0, PI), '#3a3236', { x: x + Math.sin(ry) * 1.3, y: y + 0.02, z: z + Math.cos(ry) * 1.3, ry, trait: false });
+        const X = 1.25, Z = 1.12, H = 1.15;
+        const dome = (px, py, pz) => {
+          const r = Math.hypot(px, pz), q = (px ** 4 + pz ** 4) ** 0.25;
+          const f = r > 1e-6 ? (r / q) ** 0.75 : 1;
+          return [px * f, py, pz * f];
+        };
+        const teinte = (cx, cy, cz) => {
+          const [u, v] = local(cx, cz), h = cy - y;
+          // (le dernier rang de triangles du dôme, entier : 15 cm ; coupé au milieu, il faisait des dents)
+          if (h < 0.12) return SOL_TENTE;
+          const pa = u / Z, pb = v / X;
+          if (h > 0.25 && (Math.abs(pa - pb) < 0.07 || Math.abs(pa + pb) < 0.07)) return fonce;
+          return c;
+        };
+        a.piece(new THREE.SphereGeometry(1, 36, 12, 0, 2 * PI, 0, PI / 2), c, { x, y: y - 0.02, z, ry, sx: X, sy: H, sz: Z, deformer: dome, teinte });
+        // la porte en D, posée sur la toile (peinte triangle par triangle, ses bords faisaient des dents) : la moustiquaire,
+        // et le bord de la fermeture éclair ; (v, h) → le point de la toile devant (u > 0), 1,5 cm en avant
+        const surDome = (v, h) => {
+          const yy = Math.min(0.999, Math.max(0, (h + 0.02) / H)), rho = Math.sqrt(1 - yy * yy);
+          let lo = -PI / 2, hi = PI / 2;
+          for (let it = 0; it < 30; it++) {
+            const m = (lo + hi) / 2, px = rho * Math.sin(m), pz = rho * Math.cos(m), [dx] = dome(px, yy, pz);
+            if (dx * X < v) lo = m; else hi = m;
+          }
+          const m = (lo + hi) / 2, [dx, , dz] = dome(rho * Math.sin(m), yy, rho * Math.cos(m));
+          const nx = dx / X, ny = yy / H, nz = dz / Z, l = Math.hypot(nx, ny, nz);
+          return [dx * X + (nx / l) * 0.015, yy * H + (ny / l) * 0.015, dz * Z + (nz / l) * 0.015];
+        };
+        const porte = (r0, r1, c2) => {
+          const pos = [], n = 18;
+          for (let k = 0; k < n; k++) {
+            const a0 = PI * (k / n), a1 = PI * ((k + 1) / n);
+            const P = (r, al) => surDome(-0.55 * r * Math.cos(al), 0.12 + 0.83 * r * Math.sin(al));
+            const A = P(r0, a0), B = P(r1, a0), C2 = P(r1, a1), D = P(r0, a1);
+            pos.push(...A, ...C2, ...B, ...A, ...D, ...C2);
+          }
+          const g = new THREE.BufferGeometry();
+          g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+          a.piece(g, c2, { x, y: y - 0.02, z, ry, trait: false });
+        };
+        // (en anneaux : de grands triangles en éventail passaient sous la toile bombée)
+        for (const [r0, r1] of [[0, 0.22], [0.22, 0.44], [0.44, 0.64], [0.64, 0.86]]) porte(r0, r1, MOUSTIQUAIRE);
+        porte(0.86, 1, fonce);
+        // la toile de la porte, roulée au-dessus d'elle ; ses deux attaches
+        const [rx, rz] = pt(0.64, 0);
+        a.cylindre(0.055, 0.055, 0.9, 10, fonce, { x: rx, y: y + 0.98, z: rz, rz: PI / 2, ry });
+        for (const v of [-0.3, 0.3]) { const [qx, qz] = pt(0.69, v); a.boite(0.03, 0.14, 0.012, c, { x: qx, y: y + 0.93, z: qz, ry, trait: false }); }
+        for (const [du, dv] of [[0.7, 0.75], [0.7, -0.75], [-0.7, 0.75], [-0.7, -0.75]]) hauban(du * 1.05, dv * 1.1, 0.72, du * 2.3, dv * 2.3);
       } else {
-        a.pignon(2.6, 1.4, 2.3, c, { x, y: y - 0.02, z, ry })
-          .piece(new THREE.CircleGeometry(0.5, 3), '#3a3236', { x: x + Math.cos(ry) * 1.31, y: y + 0.45, z: z - Math.sin(ry) * 1.31, ry: ry + PI / 2, rz: PI / 2, trait: false });
+        // le faîtage le long de v (du mât de derrière, v < 0, à celui de la porte, v > 0), à 1,4 m, qui fléchit de 7 cm
+        // au milieu ; les deux pans jusqu'au sol, à ±1,15 m (u) ; la porte : le pignon de devant, ouvert
+        const L = 1.3, W = 1.15, Hf = 1.4, n = 8, pos = [];
+        const faite = (v) => Hf - 0.07 * (1 - (v / L) ** 2);
+        // (dans le repère de la pièce, comme le dôme : x le long du faîtage, v ; z en travers, u ; chaque triangle tourné
+        // vers le dehors : dehors(…, sens) le retourne si sa normale ne va pas dans ce sens)
+        const dehors = (A, B, Cc, sens) => {
+          const ux = B[0] - A[0], uy = B[1] - A[1], uz = B[2] - A[2], vx = Cc[0] - A[0], vy = Cc[1] - A[1], vz = Cc[2] - A[2];
+          const nn = [uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx];
+          pos.push(...A, ...(nn[0] * sens[0] + nn[1] * sens[1] + nn[2] * sens[2] >= 0 ? [...B, ...Cc] : [...Cc, ...B]));
+        };
+        for (let i = 0; i < n; i++) {
+          const v0 = -L + (2 * L * i) / n, v1 = -L + (2 * L * (i + 1)) / n;
+          for (const su of [-1, 1]) {
+            const A = [v0, 0, su * W], B = [v1, 0, su * W], Cf = [v1, faite(v1), 0], D = [v0, faite(v0), 0];
+            dehors(A, D, Cf, [0, 1, su]);
+            dehors(A, Cf, B, [0, 1, su]);
+          }
+        }
+        // le pignon de derrière, fermé
+        dehors([-L, 0, -W], [-L, 0, W], [-L, faite(-L), 0], [-1, 0, 0]);
+        const g = new THREE.BufferGeometry();
+        g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+        const teinte = (cx, cy) => (cy - y < 0.06 ? SOL_TENTE : c);
+        a.piece(g, c, { x, y: y - 0.02, z, ry, teinte });
+        // devant (v = +L) : la moustiquaire sombre en retrait, les deux pans de la porte roulés et noués de chaque côté
+        pos.length = 0;
+        dehors([L - 0.12, 0, -W * 0.92], [L - 0.12, Hf - 0.12, 0], [L - 0.12, 0, W * 0.92], [1, 0, 0]);
+        const mq = new THREE.BufferGeometry();
+        mq.setAttribute('position', new THREE.Float32BufferAttribute(pos.slice(), 3));
+        a.piece(mq, MOUSTIQUAIRE, { x, y: y - 0.02, z, ry, trait: false });
+        for (const su of [-1, 1]) {
+          const [fx, fz] = pt(su * 0.62, L + 0.02), [gx, gz] = pt(su * 0.25, L + 0.02);
+          a.baton([gx, y + 1.05, gz], [fx, y + 0.12, fz], 0.06, fonce, 8);
+          const [nx, nz] = pt(su * 0.45, L + 0.05);
+          a.boite(0.05, 0.03, 0.05, HAUBAN, { x: nx, y: y + 0.6, z: nz, trait: false });
+        }
+        // les deux mâts (devant, derrière), les haubans du faîtage et des côtés
+        for (const sv of [-1, 1]) {
+          const [mx, mz] = pt(0, sv * (L + 0.05));
+          a.cylindre(0.014, 0.014, Hf + 0.15, 6, SARDINE, { x: mx, y: y + (Hf + 0.15) / 2 - 0.03, z: mz });
+          hauban(0, sv * (L + 0.05), Hf + 0.08, 0, sv * (L + 1.3));
+          for (const su of [-1, 1]) hauban(su * 0.6, sv * 0.75, 0.72, su * 2.0, sv * 1.0);
+        }
       }
       monde.cercle(x, z, 1.4);
     };

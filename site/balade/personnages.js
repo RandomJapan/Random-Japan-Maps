@@ -877,10 +877,19 @@ export function creerPersonnage(ctx, T) {
   });
 
   // le buste : le haut, le bas (short, jupe, hakama, pantalon), le col, le tablier, le sac, l'appareil photo
+  // (2026-10-24 : le buste plus plat devant-derrière, la taille un peu marquée, comme le voyageur)
+  const taille = (x, y, z) => { const k = 1 - 0.07 * Math.exp(-(((y + 0.06) / 0.1) ** 2)); return [x * k, y, z * k]; };
   const b = atelier()
-    .cylindre(0.155, 0.19, 0.34, 14, T.haut, { y: 0.6 })
-    .ovale(0.158, T.haut, { y: 0.77, sy: 0.45 }, 14)
-    .ovale(0.075, T.peau, { y: 0.83, sy: 0.6 }, 10);
+    .piece(new THREE.CylinderGeometry(0.155, 0.19, 0.34, 16, 4), T.haut, { y: 0.6, sz: 0.9, deformer: taille })
+    .ovale(0.158, T.haut, { y: 0.77, sy: 0.45, sz: 0.9 }, 14)
+    .cylindre(0.05, 0.056, 0.08, 10, T.peau, { y: 0.815 });
+  // l'obi, la large ceinture d'un kimono (sauf sous un hakama, qui la cache), et son nœud dans le dos
+  if (T.manches === 'kimono' && !long) {
+    const OB = T.obi || T.col || '#3a2c24';
+    b.cylindre(0.172, 0.178, 0.1, 16, OB, { y: 0.55, sz: 0.92 })
+      .boite(0.2, 0.09, 0.07, OB, { y: 0.56, z: -0.18 })
+      .cylindre(0.174, 0.174, 0.012, 16, T.haut, { y: 0.552, sz: 0.93, trait: false });
+  }
   if (bas.sorte === 'jupe') b.cylindre(0.17, 0.27, 0.2, 14, bas.c, { y: 0.44 });
   else if (long) {
     // le hakama : une large jupe-culotte plissée jusqu'aux chevilles
@@ -956,15 +965,19 @@ export function creerPersonnage(ctx, T) {
   // les bras (pivot à l'épaule) : manche, avant-bras, main ; les larges manches d'un kimono
   const bras = [-1, 1].map((s) => {
     const a = atelier();
+    // (2026-10-24 : la manche de kimono qui pend, arrondie ; la main a son pouce, comme celle du voyageur)
+    const main = (y) => a.ovale(0.05, T.peau, { y, z: 0.01, sx: 0.8, sy: 1.08 }, 10).ovale(0.021, T.peau, { x: -s * 0.024, y: y + 0.024, z: 0.035, sy: 1.4, rx: 0.3, trait: false }, 6);
     if (T.manches === 'kimono') {
       a.cylindre(0.07, 0.075, 0.22, 10, T.haut, { y: -0.1 })
-        .boite(0.15, 0.26, 0.2, T.haut, { x: s * 0.02, y: -0.17, z: -0.02 })
-        .ovale(0.05, T.peau, { y: -0.27, z: 0.04 }, 10);
+        .ovale(0.15, T.haut, { x: s * 0.015, y: -0.17, z: -0.03, sx: 0.5, sy: 0.95, sz: 0.78 }, 12)
+        .cylindre(0.05, 0.05, 0.06, 10, T.col || T.haut, { y: -0.245, trait: false });
+      main(-0.29);
     } else {
       const longues = T.manches === 'longues';
       a.cylindre(0.06, 0.065, longues ? 0.26 : 0.13, 10, T.haut, { y: longues ? -0.11 : -0.05 })
-        .cylindre(0.045, 0.05, 0.17, 8, longues ? T.haut : T.peau, { y: -0.18 })
-        .ovale(0.058, T.peau, { y: -0.29 }, 10);
+        .cylindre(0.045, 0.05, 0.17, 8, longues ? T.haut : T.peau, { y: -0.18 });
+      if (!longues) a.cylindre(0.066, 0.066, 0.025, 10, T.haut, { y: -0.115, trait: false });
+      main(-0.3);
     }
     if (T.canne && s === 1) a.baton([0, -0.3, 0.02], [0.02, -0.72, 0.12], 0.022, '#7a5232', 6);
     if (T.pose === 'danse' && s === -1) {
@@ -986,17 +999,47 @@ export function creerPersonnage(ctx, T) {
     return br;
   });
 
-  // la tête (pivot au cou) : visage, yeux brillants, joues, cheveux, chapeau, lunettes
+  // la tête (pivot au cou) : le visage (2026-10-24, comme celui du voyageur : la mâchoire qui s'affine, de grands yeux
+  // — l'iris, son reflet clair en bas, la pupille, deux reflets, le trait des cils —, ou plissés en arc pour les
+  // anciens ; des sourcils de la couleur des cheveux, un petit nez, un sourire, les joues roses), cheveux, chapeau,
+  // lunettes. Les yeux ne clignent pas (ils seraient des morceaux à part : plus d'appels de dessin par passant).
+  const R = 0.3, CY = 0.25;
+  const surVisage = (lx, ly, ecart = 0) => {
+    const ry = Math.asin(lx / R), rx = -Math.asin(ly / (R * Math.cos(ry))), z = Math.sqrt(R * R - lx * lx - ly * ly) + ecart;
+    return { x: lx, y: CY + ly, z, rx, ry };
+  };
   const t = atelier()
-    .ovale(0.3, T.peau, { y: 0.25, sx: 1.04 }, 18)
+    .ovale(R, T.peau, { y: CY, sx: 1.04, deformer: (x, y, z) => (y < 0 ? [x * (1 + 0.14 * (y / R)), y * 1.03, z * (1 + 0.05 * (y / R))] : [x, y, z]) }, 18)
     .ovale(0.05, T.peau, { x: -0.3, y: 0.22, sz: 0.6 }, 8)
     .ovale(0.05, T.peau, { x: 0.3, y: 0.22, sz: 0.6 }, 8);
+  const SOURCILS = T.coiffure === 'chauve' || /^#[cdef]/i.test(T.cheveux || '') ? '#8a7f74' : T.cheveux;
+  const cercle = (r, c, o, n = 14) => t.piece(new THREE.CircleGeometry(r, n), c, { trait: false, ...o });
   for (const s of [-1, 1]) {
-    t.ovale(0.046, P.oeil, { x: s * 0.105, y: 0.22, z: 0.272, sy: T.yeux === 'plisses' ? 0.45 : 1.55, sz: 0.55 }, 10)
-      .ovale(0.042, P.joue, { x: s * 0.175, y: 0.13, z: 0.214, sz: 0.3, trait: false }, 8);
-    if (T.yeux !== 'plisses') t.ovale(0.016, P.reflet, { x: s * 0.105 + 0.016, y: 0.255, z: 0.293, trait: false }, 6);
+    t.ovale(0.034, P.joue, { ...surVisage(s * 0.168, -0.088, -0.004), sx: 1.3, sy: 0.62, sz: 0.25, trait: false }, 8)
+      .piece(new THREE.TorusGeometry(0.042, 0.0068, 3, 8, PI * 0.6), SOURCILS, { ...surVisage(s * 0.108, 0.075, 0.002), rz: PI * 0.2 - s * 0.08, trait: false });
+    if (T.masque) continue;
+    const q = surVisage(s * 0.104, -0.022, 0.001), sur = (dx, dy, dz) => {
+      // (un point du plan de l'œil, tourné comme lui : la rotation y, puis x, comme les angles d'Euler « XYZ »)
+      const cy = Math.cos(q.ry), sy = Math.sin(q.ry), cx = Math.cos(q.rx), sx = Math.sin(q.rx);
+      const x1 = dx * cy + dz * sy, z1 = -dx * sy + dz * cy;
+      return { x: q.x + x1, y: q.y + dy * cx - z1 * sx, z: q.z + dy * sx + z1 * cx, rx: q.rx, ry: q.ry };
+    };
+    if (T.yeux === 'plisses') {
+      // les yeux plissés d'un sourire : un arc
+      t.piece(new THREE.TorusGeometry(0.034, 0.008, 3, 9, PI * 0.8), P.oeil, { ...sur(0, -0.01, 0.002), rz: PI * 0.1, trait: false });
+    } else {
+      cercle(0.042, P.oeil, { ...sur(0, 0, 0), sx: 0.84, sy: 1.2 });
+      cercle(0.028, T.iris || '#8a5a3a', { ...sur(0, -0.024, 0.001), sx: 0.95, sy: 0.5 });
+      cercle(0.022, '#1a1214', { ...sur(0, 0.005, 0.002), sx: 0.8, sy: 1.1 });
+      cercle(0.012, P.reflet, { ...sur(s * 0.012, 0.022, 0.003) }, 10);
+      cercle(0.006, P.reflet, { ...sur(-s * 0.01, -0.02, 0.003) }, 8);
+      t.piece(new THREE.TorusGeometry(0.04, 0.0068, 3, 12, PI), P.oeil, { ...sur(0, 0.003, 0.003), sx: 0.9, sy: 1.22, sz: 0.5, trait: false });
+    }
   }
-  t.boite(0.05, 0.014, 0.01, P.oeil, { y: 0.105, z: 0.264, trait: false });
+  if (!T.masque) {
+    t.ovale(0.011, '#f0b796', { ...surVisage(0, -0.07, -0.002), sz: 0.6, trait: false }, 6)
+      .piece(new THREE.TorusGeometry(0.021, 0.0055, 3, 8, PI * 0.72), '#a8443c', { ...surVisage(0, -0.112, 0.001), rz: PI * 1.14, trait: false });
+  }
   if (T.lunettes) {
     for (const s of [-1, 1]) t.piece(new THREE.TorusGeometry(0.06, 0.009, 4, 14), '#3a3236', { x: s * 0.105, y: 0.22, z: 0.29, trait: false });
     t.boite(0.07, 0.012, 0.01, '#3a3236', { y: 0.235, z: 0.3, trait: false });
@@ -1019,7 +1062,10 @@ export function creerPersonnage(ctx, T) {
   } else {
     // une calotte inclinée vers l'arrière (le front dégagé) et des mèches sur le front
     t.piece(new THREE.SphereGeometry(0.318, 18, 10, 0, 2 * PI, 0, PI * 0.56), C1, { y: 0.25, rx: -0.42 });
-    for (const [x, rz] of [[-0.12, 0.4], [0, 0], [0.12, -0.4]]) t.cone(0.07, 0.16, 5, C1, { x, y: 0.43, z: 0.21, rx: PI - 0.5, rz });
+    for (const [x, rz, l] of [[-0.17, 0.5, 0.13], [-0.085, 0.24, 0.16], [0, 0, 0.15], [0.085, -0.26, 0.16], [0.17, -0.52, 0.13]]) {
+      t.cone(0.06, l, 4, C1, { x, y: CY + 0.16, z: 0.258 - Math.abs(x) * 0.35, rx: PI - 0.55, rz, sz: 0.5 });
+    }
+    for (const s of [-1, 1]) t.cone(0.045, 0.12, 4, C1, { x: s * 0.27, y: CY + 0.03, z: 0.07, rx: PI - 0.15, rz: s * 0.2, sz: 0.5 });
   }
   if (T.coiffure === 'nattes') {
     t.ovale(0.27, C1, { y: 0.14, z: -0.1, sx: 1.05, sy: 1.0, sz: 0.85 }, 14);
@@ -1715,27 +1761,63 @@ export function creerDaim(ctx, male = false, decalage = 0) {
   // (couché, la nuit : tout le corps descend, les pattes repliées dessous, dans le sol)
   const corps = new THREE.Group();
   racine.add(corps);
+  // (2026-10-24, « améliore les animaux ») le corps : un ovoïde sculpté (le poitrail profond devant, le ventre rentré,
+  // la croupe ronde), la raie sombre du dos, les rangées de taches blanches du pelage d'été du cerf sika, le miroir
+  // blanc de la croupe cerclé de noir et la petite queue ; les pattes en deux morceaux (le haut charnu, le bas fin et
+  // plus sombre, le jarret des pattes de derrière qui part en arrière) et leurs sabots noirs
+  const PATTE = '#a06d42', DOS = '#9c6538';
+  const corpsDaim = (x, y, z) => {
+    const l = Math.hypot(x, y, z) || 1, fz = z / l, fy = y / l;
+    const k = 1 + 0.08 * Math.max(0, fz) * (1 - Math.abs(fy)) - (fy < 0 ? 0.17 * (1 - Math.abs(fz)) * -fy : 0);
+    return [x * k, y * (k + 0.05 * Math.max(0, fz)), z];
+  };
   const c = atelier()
-    .ovale(0.3, P.daim, { y: 0.78, sx: 0.72, sy: 0.7, sz: 1.35 }, 14)
-    .ovale(0.12, P.daimClair, { y: 0.82, z: -0.37, sx: 1.1, sz: 0.5 }, 10);
-  for (const [x, z] of [[0.1, 0.15], [-0.11, 0.05], [0.12, -0.08], [-0.08, -0.2], [0.02, 0.25], [-0.14, 0.22], [0.15, -0.22]]) {
-    c.ovale(0.028, P.daimClair, { x, y: 0.97, z, sy: 0.4, trait: false }, 6);
+    .ovale(0.3, P.daim, { y: 0.78, sx: 0.72, sy: 0.72, sz: 1.35, deformer: corpsDaim }, 16)
+    .ovale(0.05, DOS, { y: 0.985, z: 0.02, sx: 0.8, sy: 0.25, sz: 6.5, trait: false }, 8)
+    .ovale(0.13, P.noir, { y: 0.82, z: -0.385, sx: 1.12, sy: 1.02, sz: 0.4 }, 10)
+    .ovale(0.115, P.daimClair, { y: 0.82, z: -0.395, sx: 1.1, sz: 0.4, trait: false }, 10)
+    .ovale(0.05, P.daimClair, { y: 0.9, z: -0.42, sx: 0.7, sy: 1.3, sz: 0.45, rx: -0.4 }, 8)
+    .boite(0.015, 0.07, 0.012, P.noir, { y: 0.9, z: -0.445, rx: -0.4, trait: false });
+  for (const sx of [-1, 1]) {
+    for (let k = 0; k < 7; k++) {
+      const z = 0.28 - k * 0.09;
+      c.ovale(0.024, P.daimClair, { x: sx * (0.1 + 0.02 * Math.sin(k)), y: 0.965, z, sy: 0.35, trait: false }, 6)
+        .ovale(0.02, P.daimClair, { x: sx * 0.17, y: 0.9, z: z - 0.04, sy: 0.4, sx: 0.6, trait: false }, 6);
+    }
   }
-  for (const [x, z] of [[-0.12, 0.25], [0.12, 0.25], [-0.12, -0.26], [0.12, -0.26]]) {
-    c.cylindre(0.036, 0.028, 0.62, 6, P.daim, { x, y: 0.32, z }).ovale(0.035, P.noir, { x, y: 0.02, z: z + 0.01, sy: 0.6 }, 6);
+  for (const [x, z, arriere] of [[-0.12, 0.25, false], [0.12, 0.25, false], [-0.12, -0.26, true], [0.12, -0.26, true]]) {
+    const genou = [x, 0.38, z + (arriere ? -0.06 : 0.01)];
+    c.ovale(0.075, P.daim, { x, y: 0.62, z: z + (arriere ? -0.02 : 0.02), sx: 0.75, sy: 1.5, sz: 0.95 }, 8)
+      .fut([x, 0.66, z], genou, 0.042, 0.03, P.daim, 6)
+      .boule(0.03, PATTE, { x: genou[0], y: genou[1], z: genou[2] }, 1)
+      .fut(genou, [x, 0.04, z + 0.01], 0.026, 0.02, PATTE, 6)
+      .ovale(0.03, P.noir, { x, y: 0.025, z: z + 0.02, sy: 0.75, sz: 1.2 }, 6);
   }
   corps.add(maillage(c.fin(0, false)));
-  // le cou part de l'épaule, vers l'avant et le haut ; pour brouter, il pivote jusqu'au sol
+  // le cou part de l'épaule, vers l'avant et le haut ; pour brouter, il pivote jusqu'au sol. La tête : le crâne, le
+  // museau qui s'affine, la truffe noire et la bouche, la gorge claire ; les yeux sombres et leur reflet ; les grandes
+  // oreilles bordées de sombre, claires dedans ; le mâle a des bois à trois pointes (comme les cerfs sika)
   const t = atelier()
-    .baton([0, -0.04, -0.04], [0, 0.3, 0.3], 0.095, P.daim, 8)
-    .ovale(0.13, P.daim, { y: 0.36, z: 0.4, sx: 0.95, sz: 1.45 }, 12)
-    .ovale(0.045, P.noir, { y: 0.32, z: 0.58 }, 6)
-    .ovale(0.07, P.daimClair, { y: 0.24, z: 0.33, sx: 0.9, sz: 0.5 }, 8);
+    .fut([0, -0.06, -0.06], [0, 0.31, 0.3], 0.11, 0.075, P.daim, 9)
+    .ovale(0.12, P.daim, { y: 0.37, z: 0.37, sx: 0.95, sy: 0.95, sz: 1.1 }, 12)
+    .ovale(0.085, P.daim, { y: 0.33, z: 0.49, sx: 0.85, sy: 0.82, sz: 1.35 }, 10)
+    .ovale(0.042, P.noir, { y: 0.335, z: 0.6, sx: 1.05, sy: 0.85 }, 8)
+    .boite(0.07, 0.008, 0.06, '#5a3a28', { y: 0.27, z: 0.56, trait: false })
+    .ovale(0.075, P.daimClair, { y: 0.25, z: 0.36, sx: 0.85, sy: 0.6, sz: 0.85 }, 8)
+    .ovale(0.06, P.daimClair, { y: 0.18, z: 0.26, sx: 0.9, sy: 0.9, sz: 0.5 }, 8);
   for (const s of [-1, 1]) {
-    t.ovale(0.085, P.daim, { x: s * 0.12, y: 0.47, z: 0.33, sx: 0.55, sz: 0.28, rz: s * 0.75 }, 8)
-      .ovale(0.05, P.daimClair, { x: s * 0.125, y: 0.47, z: 0.345, sx: 0.4, sz: 0.15, rz: s * 0.75, trait: false }, 6)
-      .ovale(0.024, P.noir, { x: s * 0.085, y: 0.4, z: 0.49 }, 6);
-    if (male) t.baton([s * 0.05, 0.47, 0.37], [s * 0.12, 0.74, 0.32], 0.016, P.daimClair, 5).baton([s * 0.09, 0.62, 0.34], [s * 0.17, 0.68, 0.45], 0.012, P.daimClair, 5);
+    t.ovale(0.095, DOS, { x: s * 0.125, y: 0.47, z: 0.31, sx: 0.55, sz: 0.26, rz: s * 0.8 }, 8)
+      .ovale(0.072, '#f6e7cc', { x: s * 0.13, y: 0.47, z: 0.325, sx: 0.42, sz: 0.12, rz: s * 0.8, trait: false }, 8)
+      .ovale(0.026, '#1e1416', { x: s * 0.088, y: 0.405, z: 0.455, sx: 0.8, sy: 1.0, sz: 0.6 }, 8)
+      .ovale(0.008, P.reflet, { x: s * 0.098, y: 0.418, z: 0.47, trait: false }, 5)
+      .ovale(0.016, P.daimClair, { x: s * 0.085, y: 0.44, z: 0.43, sx: 1.6, sy: 0.6, sz: 0.5, trait: false }, 6);
+    if (male) {
+      const B = '#e8d9b8', b0 = [s * 0.05, 0.46, 0.36], b1 = [s * 0.11, 0.62, 0.32], b2 = [s * 0.15, 0.78, 0.25];
+      t.fut(b0, b1, 0.02, 0.016, B, 6).fut(b1, b2, 0.016, 0.009, B, 5)
+        .boule(0.016, B, { x: b1[0], y: b1[1], z: b1[2] }, 1)
+        .fut(b1, [s * 0.15, 0.68, 0.44], 0.012, 0.006, B, 5)
+        .fut([s * 0.07, 0.52, 0.35], [s * 0.1, 0.56, 0.45], 0.011, 0.005, B, 5);
+    }
   }
   const cou = pivot(ctx, 0, 0.86, 0.3, maillage(t.fin(0, false)));
   corps.add(cou);
