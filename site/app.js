@@ -579,7 +579,8 @@ window.carte = map; // pratique pour inspecter la carte depuis la console du nav
 map.getCanvasContainer().insertBefore($('papier'), map.getCanvas().nextSibling);
 
 // Les repères HTML ne restent sur la carte que près de l'écran (voir reperes.js : sinon le zoom saccade)
-const reperes = gererReperes(map);
+// ?points=non : tous les lieux en repères HTML, même de loin (les films de outils/video les animent un à un)
+const reperes = gererReperes(map, { points: new URLSearchParams(location.search).get('points') !== 'non' });
 
 // Noms des mers, écrits à l'ancienne et couchés sur l'eau. Ils s'effacent quand on zoome (voir .loin dans style.css).
 const MERS = [
@@ -907,6 +908,7 @@ function majSelonZoom() {
   if (loin !== vueLointaine) {
     vueLointaine = loin;
     map.getContainer().classList.toggle('loin', loin);
+    reperes.vueLointaine(loin);
   }
 }
 map.on('zoom', majSelonZoom);
@@ -961,6 +963,7 @@ function creerEpingle(lieu, rang) {
   // Un lieu qui revient sur la carte reprend sa place : ceux du sud devant ceux du nord (voir demarrer)
   reperes.suivre(lieu.epingle, {
     voulu: false,
+    point: true, // de loin, un point dessiné avec les autres (points.js)
     placer: (moi) => {
       for (let j = rang + 1; j < lieux.length; j++) {
         if (lieux[j].el.parentNode === moi.parentNode) return moi.parentNode.insertBefore(moi, lieux[j].el);

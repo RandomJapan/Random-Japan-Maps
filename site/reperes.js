@@ -6,21 +6,41 @@
 //  pour un repère hors de l'écran, il cherche l'altitude en recalculant les
 //  tuiles qui couvrent tout l'écran, une fois par repère : zoomé sur une
 //  région, c'était ~190 recherches par image, et les téléphones saccadaient.
+//  Dans la vue de loin, les lieux sans état particulier ne sont pas des
+//  repères HTML mais des points dessinés ensemble sur une toile (points.js).
 // ================================================================
 
+import { creerPoints } from './points.js';
+
 const MARGE = 0.1; // un repère reste sur la carte jusqu'à 10 % de la taille de la vue au-delà de ses bords (penchée, la vue en couvre déjà plus que l'écran)
+// un lieu ouvert (son nom), une étape d'itinéraire ou du carrousel d'une ville (son numéro), un nouveau lieu (son
+// pouls) : de loin, ils gardent leur repère HTML
+const PARTICULIERS = ['actif', 'etape', 'carrousel', 'nouveau'];
 
 /**
- * @returns suivre(repère, { voulu, placer }) pour confier un repère (pas encore ajouté à la carte) ;
+ * points : false pour garder tous les lieux en repères HTML (les films promo de outils/video, ?points=non).
+ * @returns suivre(repère, { voulu, placer, point }) pour confier un repère (pas encore ajouté à la carte ; point :
+ *   un lieu, qui peut se dessiner en point dans la vue de loin) ;
  *   montrer(repère, voulu, delai) pour le montrer ou le cacher (catégorie décochée, zoom hors de sa plage…),
  *   le retrait pouvant attendre `delai` ms (le temps d'un fondu) ;
  *   verifier(repère) après un setLngLat ; oublier(repère) pour le retirer pour de bon ;
- *   fluide(oui) pendant la rotation douce du départ.
+ *   fluide(oui) pendant la rotation douce du départ ; vueLointaine(oui) quand on passe sous ou au-dessus de
+ *   ZOOM_POINTS (app.js).
  */
-export function gererReperes(map) {
-  const suivis = new Map(); // repère → { voulu, placer, sur, minuterie }
+export function gererReperes(map, { points: avecPoints = true } = {}) {
+  const suivis = new Map(); // repère → { repere, el, voulu, placer, point, particulier, sur, dessine, minuterie }
+  const parElement = new Map(); // élément d'un lieu → son suivi
   let bornes = null; // [ouest, sud, est, nord], marge comprise
   let fluides = false; // les repères placés à la fraction de pixel près (fluide)
+  let loin = false; // la vue de loin (sous ZOOM_POINTS)
+  let clavier = false; // on navigue au clavier : tous les lieux en repères HTML, qu'on atteint avec Tab
+  let plongee = false; // un plongeon (filmé) : enregistrement.js compose l'image avec les repères HTML
+  // en essai (2026-10-24) : seulement en mode développeur, le temps que le propriétaire l'essaie sur son portable
+  let dev = false;
+  let survole = null; // le suivi du point sous la souris, redevenu repère HTML
+  let dessines = []; // les suivis dessinés en points, dans l'ordre des lieux (du nord au sud)
+  let listeChangee = false;
+  let observerClasses = null; // (el) => surveille les classes d'un lieu
 
   function majBornes() {
     const b = map.getBounds();
@@ -29,9 +49,17 @@ export function gererReperes(map) {
     bornes = [b.getWest() - dx, b.getSouth() - dy, b.getEast() + dx, b.getNorth() + dy];
   }
 
+  const enPoint = (s) => toile && dev && s.point && loin && !clavier && !plongee && !s.particulier && s !== survole;
+
   function appliquer(repere, s) {
     const { lng, lat } = repere.getLngLat();
-    const doit = s.voulu && lng >= bornes[0] && lng <= bornes[2] && lat >= bornes[1] && lat <= bornes[3];
+    const dedans = s.voulu && lng >= bornes[0] && lng <= bornes[2] && lat >= bornes[1] && lat <= bornes[3];
+    const point = dedans && enPoint(s);
+    if (point !== s.dessine) {
+      s.dessine = point;
+      listeChangee = true;
+    }
+    const doit = dedans && !point;
     if (doit === s.sur) return;
     s.sur = doit;
     if (doit) {
@@ -49,13 +77,86 @@ export function gererReperes(map) {
   map.on('move', tout);
   map.on('resize', tout);
 
+  /** Après un changement (sans mouvement de la carte) : les décisions, puis le dessin des points s'il les touche. */
+  function revoir(...lesquels) {
+    if (!bornes) majBornes();
+    const tous = !lesquels.length;
+    let points = tous;
+    for (const s of tous ? suivis.values() : lesquels) {
+      appliquer(s.repere, s);
+      points ||= s.point;
+    }
+    if (points) toile?.sale();
+  }
+
+  function liste() {
+    if (listeChangee) {
+      listeChangee = false;
+      dessines = [...suivis.values()].filter((s) => s.dessine);
+    }
+    return dessines;
+  }
+
+  const toile = avecPoints && typeof document.createElement('canvas').getContext === 'function'
+    ? creerPoints(map, {
+      liste,
+      survol(s) {
+        const avant = survole;
+        survole = s || null;
+        toile.survole(s?.el || null);
+        revoir(...[avant, survole].filter(Boolean));
+      },
+      ouvrir: (s) => s.el.click(), // le clic de son repère (ouvrirLieu)
+    })
+    : null;
+
+  if (toile) {
+    // une classe qui change sur un lieu (ouvert, favori, hors saison…) : repère HTML ou point, et son dessin
+    const classes = new MutationObserver((changes) => {
+      const vus = new Set();
+      for (const c of changes) {
+        const s = parElement.get(c.target);
+        if (!s || vus.has(s)) continue;
+        vus.add(s);
+        s.particulier = PARTICULIERS.some((k) => c.target.classList.contains(k));
+      }
+      revoir(...vus);
+    });
+    observerClasses = (el) => classes.observe(el, { attributes: true, attributeFilter: ['class'] });
+    // la nuit, un itinéraire, un plongeon : sur la page entière
+    const page = () => {
+      const corps = document.body.classList;
+      const p = corps.contains('plongeon'), d = corps.contains('mode-dev');
+      if (p === plongee && d === dev) return false;
+      plongee = p;
+      dev = d;
+      return true;
+    };
+    page();
+    new MutationObserver(() => { if (page()) revoir(); else toile.sale(); })
+      .observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    // au clavier, chaque lieu redevient un repère qu'on peut atteindre (une fois pour toute la visite)
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Tab' || clavier) return;
+      clavier = true;
+      revoir();
+    });
+  }
+
   return {
-    suivre(repere, { voulu = true, placer } = {}) {
+    suivre(repere, { voulu = true, placer, point = false } = {}) {
       if (!bornes) majBornes();
-      const s = { voulu, placer, sur: false, minuterie: null };
+      const el = repere.getElement();
+      const s = { repere, el, voulu, placer, point: point && !!toile, particulier: false, sur: false, dessine: false, minuterie: null };
+      if (s.point) {
+        s.particulier = PARTICULIERS.some((k) => el.classList.contains(k));
+        parElement.set(el, s);
+        observerClasses(el);
+      }
       suivis.set(repere, s);
       if (fluides) repere.setSubpixelPositioning(true);
       appliquer(repere, s);
+      if (s.dessine) toile.sale();
     },
     /**
      * La rotation douce du départ tourne la carte d'une fraction de degré à chaque image (setBearing, donc un
@@ -66,32 +167,43 @@ export function gererReperes(map) {
     fluide(oui) {
       if (oui === fluides) return;
       fluides = oui;
+      toile?.fluide(oui);
       for (const repere of suivis.keys()) {
         repere.setSubpixelPositioning(oui);
         if (!oui) repere.setLngLat(repere.getLngLat());
       }
+      toile?.sale();
+    },
+    vueLointaine(oui) {
+      if (oui === loin) return;
+      loin = oui;
+      revoir();
     },
     montrer(repere, voulu, delai = 0) {
       const s = suivis.get(repere);
       if (!s) return;
       clearTimeout(s.minuterie);
-      if (!voulu && delai && s.sur) {
-        s.minuterie = setTimeout(() => { s.voulu = false; appliquer(repere, s); }, delai);
+      if (!voulu && delai && (s.sur || s.dessine)) {
+        s.minuterie = setTimeout(() => { s.voulu = false; revoir(s); }, delai);
         return;
       }
       s.voulu = voulu;
-      appliquer(repere, s);
+      revoir(s);
     },
     verifier(repere) {
       const s = suivis.get(repere);
-      if (s) appliquer(repere, s);
+      if (s) revoir(s);
     },
     oublier(repere) {
       const s = suivis.get(repere);
       if (!s) return;
       clearTimeout(s.minuterie);
       if (s.sur) repere.remove();
+      if (s.dessine) listeChangee = true;
+      if (survole === s) { survole = null; toile.survole(null); }
+      parElement.delete(s.el);
       suivis.delete(repere);
+      if (s.dessine) toile.sale();
     },
   };
 }

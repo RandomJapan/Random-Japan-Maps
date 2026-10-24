@@ -91,7 +91,7 @@ def tourner(nav, nom, reglages, vertical=False, facteur=0.1, ips=30):
     erreurs = []
     p.on('pageerror', lambda e: erreurs.append(str(e)))
     date = f"&date={reglages['date']}" if 'date' in reglages else ''
-    p.goto(f"http://localhost:8123/?heure={reglages.get('heure', NUIT)}{date}")
+    p.goto(f"http://localhost:8123/?heure={reglages.get('heure', NUIT)}{date}&points=non")  # (lieux en repères HTML : site/points.js)
     p.wait_for_function(ATTENDRE, timeout=120000)
     if reglages.get('halloween', True):
         p.wait_for_function("document.body.classList.contains('halloween')", timeout=30000)

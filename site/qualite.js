@@ -133,7 +133,7 @@ export function brancherQualite(map, outils) {
   let descendu = false, monte = false, aiseDeSuite = 0, lentDeSuite = 0;
   const debut = performance.now();
   const fenetre = { ecarts: [], gpu: [] }; // la fenêtre en cours de jugement
-  const recents = { ecarts: [], gpu: [] }; // les dernières images en mouvement, pour le panneau
+  const recents = { ecarts: [], gpu: [], cpu: [], js: [] }; // les dernières images en mouvement, pour le panneau
   let dernier = 0; // le dernier « move » (ms)
 
   function retenir() {
@@ -444,6 +444,36 @@ export function brancherQualite(map, outils) {
     };
   }
 
+  // Le temps du processeur par image en mouvement, pour le panneau (ouvert) : du début du dessin de la carte
+  // (map._render) jusqu'à la fin du travail du navigateur pour cette image (styles, mise en page, peinture), qu'un
+  // message posté depuis l'image attend ; et, dedans, le JS de la carte. 2026-10-24 : sur l'Iris Xe du
+  // propriétaire, 5 à 11 ms de carte graphique pour 36 à 45 ms par image ; le reste était ailleurs.
+  let mesurerProcesseur = false;
+  if (typeof map._render === 'function' && typeof MessageChannel === 'function') {
+    const canal = new MessageChannel();
+    let debutImage = 0, js = 0;
+    canal.port1.onmessage = () => {
+      const t = performance.now();
+      if (debutImage && t - dernier < 100) {
+        garder(recents.cpu, t - debutImage);
+        garder(recents.js, js);
+      }
+      debutImage = 0;
+    };
+    const rendre = map._render;
+    map._render = function (...a) {
+      if (!mesurerProcesseur || debutImage) return rendre.apply(this, a);
+      const t0 = performance.now();
+      try {
+        return rendre.apply(this, a);
+      } finally {
+        debutImage = t0;
+        js = performance.now() - t0;
+        canal.port2.postMessage(0);
+      }
+    };
+  }
+
   // ---- Le bouton « Fluidité » (mode développeur) : les mesures, et imposer un niveau
   const bouton = document.createElement('button');
   bouton.type = 'button';
@@ -463,9 +493,13 @@ export function brancherQualite(map, outils) {
     if (panneau.hidden) return;
     const t = outils.t;
     const ecarts = recents.ecarts, gpus = recents.gpu;
+    const cpus = recents.cpu;
     const mesures = ecarts.length >= 20
-      ? `${t('qualiteImages', Math.round(1000 / mediane(ecarts)))}${gpus.length >= 10 ? ` · ${t('qualiteGpu', mediane(gpus).toFixed(1))}` : ''}`
+      ? `${t('qualiteImages', Math.round(1000 / mediane(ecarts)))}${gpus.length >= 10 ? ` · ${t('qualiteGpu', mediane(gpus).toFixed(1))}` : ''}${cpus.length >= 10 ? ` · ${t('qualiteCpu', mediane(cpus).toFixed(1), mediane(recents.js).toFixed(1))}` : ''}`
       : t('qualiteAttente');
+    // en économie d'énergie, le navigateur s'arrête à 30 images/s (des écarts réguliers de 33 ms)
+    const plafond = ecarts.length >= 20 && ecarts.filter((e) => e > 30 && e < 37).length / ecarts.length > 0.7
+      ? `<p class="qualite-note">${t('qualitePlafond')}</p>` : '';
     const choix = ['auto', ...NIVEAUX].map((n) => {
       const actif = n === 'auto' ? !impose : impose === n;
       return `<button type="button" data-niveau="${n}" aria-pressed="${actif}">${t(n === 'auto' ? 'qualiteAuto' : `qualite_${n}`)}</button>`;
@@ -476,6 +510,7 @@ export function brancherQualite(map, outils) {
     panneau.innerHTML = `${croixPanneau(t('fermer'))}<p class="reglage-titre">${t('qualiteTitre')}</p>
       <p class="qualite-puce">${puce.replace(/[<>&]/g, '') || '?'}</p>
       <p class="qualite-mesures">${mesures}</p>
+      ${plafond}
       <div class="qualite-choix">${choix}</div>
       <p class="qualite-etat">${t('qualiteEtat', t(`qualite_${niveau}`), !impose)}</p>
       ${repos}
@@ -484,6 +519,7 @@ export function brancherQualite(map, outils) {
 
   function ouvrir(oui) {
     panneau.hidden = !oui;
+    mesurerProcesseur = oui;
     bouton.setAttribute('aria-expanded', String(oui));
     clearInterval(minuterie);
     if (oui) minuterie = setInterval(majPanneau, 1000);
