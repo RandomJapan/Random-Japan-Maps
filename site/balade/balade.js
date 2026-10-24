@@ -102,14 +102,16 @@ function construire() {
   const mats = matieresStyle(THREE, style, { anisotropie: Math.min(8, rendu.capabilities.getMaxAnisotropy()) });
   const groupe = new THREE.Group();
   // le décor s'efface en pointillés quand il cache le joueur (styles.js) ; les personnages, jamais
-  const maillageDe = (corpsM, traitM, profondeur = null) => ({ geometrie }, ombre = true) => {
+  // (trait : false, pas de trait d'encre : la forêt lointaine de Gokayama, où il ne faisait plus qu'un pixel)
+  const maillageDe = (corpsM, traitM, profondeur = null) => ({ geometrie }, ombre = true, trait = true) => {
     lisser(geometrie);
     const g = new THREE.Group();
     const corps = new THREE.Mesh(geometrie, corpsM);
     corps.castShadow = ombre;
     corps.receiveShadow = true;
     if (profondeur) corps.customDepthMaterial = profondeur; // (l'ombre des feuillages bouge au vent avec eux)
-    g.add(corps, new THREE.Mesh(geometrie, traitM));
+    g.add(corps);
+    if (trait) g.add(new THREE.Mesh(geometrie, traitM));
     return g;
   };
   const maillage = maillageDe(mats.corps, mats.trait, mats.profondeur);
@@ -128,7 +130,7 @@ function construire() {
   // (decor : leurs corps, pour savoir ce qui cacherait le voyageur à une caméra posée devant lui : cadrerDeFace)
   const decor = [];
   for (const o of lieu.objets) {
-    const m = maillage(o.fin, o.ombre);
+    const m = maillage(o.fin, o.ombre, o.trait !== false);
     m.position.set(o.x, o.y, o.z);
     m.rotation.y = o.ry;
     groupe.add(m);

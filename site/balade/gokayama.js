@@ -401,7 +401,7 @@ export function construire(ctx) {
   const { THREE, atelier, P, peinture } = ctx;
   const objets = [];
   const monde = creerMonde({ terrain, cadre: dansLeCadre, profond: null, pente: 0.85 });
-  const poser = (fin, x, z, o = {}) => objets.push({ fin, x, z, y: o.y ?? terrain(x, z), ry: o.ry || 0, ombre: o.ombre !== false });
+  const poser = (fin, x, z, o = {}) => objets.push({ fin, x, z, y: o.y ?? terrain(x, z), ry: o.ry || 0, ombre: o.ombre !== false, trait: o.trait !== false });
   /** L'angle qui tourne vers (vx, vz) le devant (+z) d'un objet posé en (x, z). */
   const vers = (x, z, vx, vz) => Math.atan2(vx - x, vz - z);
   const vapeurs = [], bancs = [], lumieres = [], animes = [];
@@ -532,16 +532,30 @@ export function construire(ctx) {
     for (const s of [-1, 1]) {
       const n = [s * SIN60, 0.5], E = [s * (w2 + ed), yE], R2 = [-s * 0.25, yR + 0.433];
       const cx = (E[0] + R2[0]) / 2 - n[0] * ep / 2, cy = (E[1] + R2[1]) / 2 - n[1] * ep / 2;
+      // (les cases de la grille du pan : nS le long de la pente, nL en long ; les morceaux suivent leurs bords, sinon, en
+      // diagonale d'une case à l'autre, ils faisaient des escaliers)
+      const nS = petite ? 6 : 10, nL = Math.max(6, Math.round(Lr / 0.85));
       const teinte = (x, y, z) => {
         const k = n[0] * (x - E[0]) + n[1] * (y - E[1]);
         if (k > -0.03) {
-          // (le long de la pente, par bandes de 2,6 m ; en long, par morceaux de 2,2 m : une couleur par morceau)
-          const u = Math.floor((yR - y) / 2.6), v = Math.floor((z + 50) / 2.2), h = hasard(u * 3.1 + s * 7 + graine, v * 1.7 + graine * 3);
+          // (le long de la pente, par bandes de deux cases ; en long, par morceaux de trois cases : une couleur par morceau)
+          const lx = (x - cx) * 0.5 - (y - cy) * s * SIN60;
+          const u = Math.floor(Math.floor(((lx + S / 2) / S) * nS) / 2), v = Math.floor(Math.floor(((z + Lr / 2) / Lr) * nL) / 3);
+          const h = hasard(u * 3.1 + s * 7 + graine, v * 1.7 + graine * 3);
           return h < 0.18 ? P.chaumeClair : h > 0.85 ? P.chaumeFonce : P.chaume;
         }
         return P.chaumeFonce;
       };
-      a.piece(new THREE.BoxGeometry(S, ep, Lr, 4, 1, Math.max(4, Math.round(Lr / 1.4))), P.chaume, { x: cx, y: cy, rz: -s * PI / 3, teinte });
+      // (2026-10-24) le chaume n'est plus une plaque : de larges bosses douces et un léger bombé sur le dessus (les
+      // morceaux refaits n'y sont jamais tout à fait plats), et un avant-toit plus épais, coupé net, comme sur les photos
+      // (u : 1 au bord du toit, −1 au faîte)
+      const bosses = (x, y, z) => {
+        const u = (s * x) / (S / 2);
+        if (y > 0) y += 0.05 * Math.sin(z * 0.85 + graine * 3) * Math.cos(x * 0.6 + graine) + 0.035 * Math.sin(z * 2.1 + x * 1.3 + graine * 5) + 0.07 * (1 - u * u) + 0.22 * lisse(0.72, 1, u);
+        else y -= 0.1 * lisse(0.8, 1, u);
+        return [x, y, z];
+      };
+      a.piece(new THREE.BoxGeometry(S, ep, Lr, nS, 1, nL), P.chaume, { x: cx, y: cy, rz: -s * PI / 3, teinte, deformer: bosses });
     }
     // le faîtage : le chaume serré, deux perches de bois et, tous les 1,5 m, une paire de bâtons croisés qui les tient
     a.boite(1.5, 0.75, Lr + 0.1, P.chaumeFonce, { y: yR + 0.12 });
@@ -2149,23 +2163,22 @@ export function construire(ctx) {
   // chemins
   {
     const a = atelier();
-    /** Un feuillu : le tronc, deux branches, six touffes vertes de la sorte s (houppier, houppierErable, houppierCerisier). */
+    /**
+     * Un feuillu de la sorte s (houppier, houppierErable, houppierCerisier) : depuis le 2026-10-24, le feuillu touffu de
+     * l'atelier (un tronc qui s'affine et s'évase, trois maîtresses branches, huit touffes bosselées, ombrées dessous ;
+     * avant : un bâton, deux branches et six boules à facettes), ses branches et rameaux pour l'hiver.
+     */
     const feuillu = (x, z, h, s, verts) => {
-      const y = terrain(x, z), fourche = [x + 0.02 * h, y + h * 0.45, z], graine = hasard(x * 0.61 + 1.7, z * 0.47 - 3.3);
-      a.baton([x, y - 0.06, z], [x + 0.02 * h, y + h * 0.5, z], 0.035 * h, P.tronc, 6)
-        .baton(fourche, [x - 0.18 * h, y + h * 0.68, z + 0.05 * h], 0.022 * h, P.tronc, 5)
-        .baton(fourche, [x + 0.2 * h, y + h * 0.7, z - 0.04 * h], 0.022 * h, P.tronc, 5);
-      const touffes = [[0, 0.78, 0, 0.3], [-0.2, 0.68, 0.06, 0.22], [0.21, 0.7, -0.05, 0.22], [0.04, 0.66, 0.2, 0.2], [-0.03, 0.7, -0.2, 0.2], [0.08, 0.92, 0.04, 0.18]].map(([dx, dy, dz, rr]) => [x + dx * h, y + dy * h, z + dz * h, rr * h]);
-      touffes.forEach(([tx, ty, tz, rr], k) => a.boule(rr, verts[k % verts.length], { x: tx, y: ty, z: tz, sy: 0.8, sorte: s, graine }, 1));
-      a.ramure(fourche, touffes, h, P.tronc);
+      const y = terrain(x, z), graine = hasard(x * 0.61 + 1.7, z * 0.47 - 3.3);
+      a.arbreTouffu(x, z, h, verts, { y, bas: y - 0.12, sorte: s, graine, caduc: true, tronc: P.tronc });
       return y;
     };
     for (const [x, z, h, sorte] of [[-3, -42, 7, 'c'], [30, -40, 6.5, 'c'], [-36, -32, 7, 'c'], [16, -16, 6, 'e'], [-6, 26, 6.5, 'c'], [26, 62, 7, 'c'], [-20, 64, 6, 'e'], [42, 8, 6, 'k'], [-30, 30, 5.5, 'k'], [-48, 26, 6.5, 'c'], [38, -48, 5.5, 'e'], [52, 20, 6, 'c'], [-12, 6, 5, 'e']]) {
       const s = { c: 'houppierCerisier', e: 'houppierErable', k: 'houppier' }[sorte];
       const y = feuillu(x, z, h, s, sorte === 'e' ? ['#6fa84a', '#5f9a40'] : [P.feuillage, P.herbeFonce, '#6aa34a']);
       // (les kakis, déjà orange, au bout des branches du plaqueminier)
-      if (sorte === 'k') for (let k = 0; k < 9; k++) a.boule(0.09, '#e8822a', { x: x + Math.sin(k * 2.4) * h * 0.25, y: y + h * (0.6 + 0.12 * Math.sin(k * 1.7)), z: z + Math.cos(k * 2.4) * h * 0.25 }, 0);
-      monde.cercle(x, z, 0.35);
+      if (sorte === 'k') for (let k = 0; k < 9; k++) a.boule(0.09, '#e8822a', { x: x + Math.sin(k * 2.4) * h * 0.27, y: y + h * (0.58 + 0.1 * Math.sin(k * 1.7)), z: z + Math.cos(k * 2.4) * h * 0.27 }, 0);
+      monde.cercle(x, z, 0.42);
     }
     poser(a.fin(0, peinture), 0, 0, { y: 0 });
   }
@@ -2175,7 +2188,7 @@ export function construire(ctx) {
       const n = Math.round(Math.hypot(x1 - x0, z1 - z0) / 1.3);
       for (let k = 0; k <= n; k++) {
         const x = x0 + ((x1 - x0) * k) / n, z = z0 + ((z1 - z0) * k) / n, r = 0.5 + hasard(x, z) * 0.25;
-        a.buisson(x, terrain(x, z) + 0.3, z, r, P.herbeFonce);
+        a.buisson(x, terrain(x, z) + 0.3, z, r, P.herbeFonce, { touffu: true });
         buissons.push([x, z, r]);
       }
     }
@@ -2185,25 +2198,42 @@ export function construire(ctx) {
   // tombent), en dehors du village, plus serrés près de lui ; sur la berge, une forêt persistante ; la berge d'en
   // face, plus loin. Les troncs partent sous le sol le plus bas autour d'eux (sur la pente, ils flottaient côté
   // aval), les cèdres ont un pied évasé ; chaque arbre est noté pour assombrir le sol sous lui (ARBRES_SOL)
+  // (2026-10-24) la forêt et la lisière en morceaux : huit secteurs autour du village, et l'anneau lointain (au-delà de
+  // 130 m) en quatre autres (moins de morceaux : moins d'appels de dessin) ; la caméra ne dessine que les morceaux qu'elle voit (avant : trois grands blocs de 230 000,
+  // 100 000 et 26 000 triangles, dessinés en entier, même derrière elle), et l'anneau lointain n'a pas de trait d'encre
+  // (là-bas, il ne faisait plus qu'un pixel). C'est ce qui paie les arbres plus détaillés près du village.
+  const FORET = new Map();
+  const foret = (x, z) => {
+    const s8 = Math.floor(((Math.atan2(x, z) + PI) / (2 * PI)) * 8) % 8, k = Math.hypot(x, z) > 130 ? 8 + (s8 >> 1) : s8;
+    if (!FORET.has(k)) FORET.set(k, atelier());
+    return FORET.get(k);
+  };
   {
     ARBRES_SOL.clear();
-    const cedres = atelier(), feuillus = atelier(), berge = atelier();
     const tire = (() => { let s = 1185; return () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; }; })();
     /** Le sol le plus bas sous un tronc de rayon r (son centre, et quatre points autour). */
     const pied = (x, z, r) => Math.min(terrain(x, z), terrain(x + r, z), terrain(x - r, z), terrain(x, z + r), terrain(x, z - r));
-    const cedre = (x, z, h, loin, rot) => {
-      const y = terrain(x, z), rb = 0.22 + h * 0.016, bas = pied(x, z, rb + 0.15) - 0.25, haut = y + h * 0.27;
-      cedres.cylindre(0.15 + h * 0.012, rb, haut - bas, 5, '#5a4030', { x, y: (haut + bas) / 2, z });
-      if (!loin) cedres.cylindre(rb * 1.02, rb * 1.7, 0.55, 5, '#4e3828', { x, y: Math.max(bas + 0.27, y - 0.12), z, ry: 0.6 });
-      for (const [rr, hh, k] of [[0.24, 0.42, 0.42], [0.18, 0.36, 0.64], [0.11, 0.3, 0.86]]) cedres.cone(h * rr, h * hh, loin ? 6 : 8, k > 0.5 ? P.cedre : P.cedreFonce, { x, y: y + h * k - h * hh * 0.25, z, ry: rot + k, sorte: 'conifere' });
+    // pres : près du village (à moins de 40 m de là où l'on marche) : un sugi (haut, étroit, cinq étages dentelés) ou
+    // un feuillu touffu ; plus loin, les trois cônes et les trois boules d'avant
+    const cedre = (x, z, h, loin, rot, pres = false) => {
+      const a = foret(x, z), y = terrain(x, z), rb = 0.22 + h * 0.016, bas = pied(x, z, rb + 0.15) - 0.25, haut = y + h * 0.27;
+      if (pres) a.sugi(x, z, h, { y, bas, rot, rTronc: rb, vert: P.cedre, vertFonce: P.cedreFonce, tronc: '#5e4030' });
+      else {
+        a.cylindre(0.15 + h * 0.012, rb, haut - bas, 5, '#5a4030', { x, y: (haut + bas) / 2, z });
+        if (!loin) a.cylindre(rb * 1.02, rb * 1.7, 0.55, 5, '#4e3828', { x, y: Math.max(bas + 0.27, y - 0.12), z, ry: 0.6 });
+        for (const [rr, hh, k] of [[0.24, 0.42, 0.42], [0.18, 0.36, 0.64], [0.11, 0.3, 0.86]]) a.cone(h * rr, h * hh, loin ? 6 : 8, k > 0.5 ? P.cedre : P.cedreFonce, { x, y: y + h * k - h * hh * 0.25, z, ry: rot + k, sorte: 'conifere' });
+      }
       noterArbre(x, z, 1.4 + h * 0.09);
     };
-    const feuillu = (x, z, h, loin, couleurs, avecRamure) => {
-      const y = terrain(x, z), bas = pied(x, z, 0.035 * h + 0.1) - 0.25, g = hasard(x * 0.7, z * 0.9);
-      const touffes = [[0, 0.72, 0, 0.38], [-0.24, 0.6, 0.1, 0.28], [0.24, 0.62, -0.08, 0.28]].map(([dx, dy, dz, rr]) => [x + dx * h, y + dy * h, z + dz * h, rr * h]);
-      feuillus.baton([x, bas, z], [x + 0.1, y + h * 0.5, z], 0.035 * h, '#7a5a40', 5);
-      touffes.forEach(([tx, ty, tz, rr], k) => feuillus.boule(rr, couleurs[k % couleurs.length], { x: tx, y: ty, z: tz, sy: 0.85, sorte: 'houppier', graine: g }, loin ? 0 : 1));
-      if (avecRamure) feuillus.ramure([x + 0.1, y + h * 0.48, z], touffes, h * 0.75, '#7a5a40');
+    const feuillu = (x, z, h, loin, couleurs, avecRamure, pres = false) => {
+      const a = foret(x, z), y = terrain(x, z), bas = pied(x, z, 0.035 * h + 0.1) - 0.25, g = hasard(x * 0.7, z * 0.9);
+      if (pres) a.arbreTouffu(x, z, h, couleurs, { y, bas, sorte: 'houppier', graine: g, caduc: avecRamure, tronc: '#7a5a40', large: 1.1 });
+      else {
+        const touffes = [[0, 0.72, 0, 0.38], [-0.24, 0.6, 0.1, 0.28], [0.24, 0.62, -0.08, 0.28]].map(([dx, dy, dz, rr]) => [x + dx * h, y + dy * h, z + dz * h, rr * h]);
+        a.baton([x, bas, z], [x + 0.1, y + h * 0.5, z], 0.035 * h, '#7a5a40', 5);
+        touffes.forEach(([tx, ty, tz, rr], k) => a.houppe(rr, couleurs[k % couleurs.length], { x: tx, y: ty, z: tz, sy: 0.85, sorte: 'houppier', graine: g }, loin ? 0 : 1));
+        if (avecRamure) a.ramure([x + 0.1, y + h * 0.48, z], touffes, h * 0.75, '#7a5a40');
+      }
       noterArbre(x, z, 0.33 * h);
     };
     /** Pas d'arbre : là où l'on marche, l'escalier, le belvédère et sa vue, le sanctuaire, la route, le ruisseau. */
@@ -2226,14 +2256,15 @@ export function construire(ctx) {
         // la berge, du côté du village : une forêt persistante (les houppiers serrés des pentes), assez bas pour ne
         // flotter nulle part au-dessus de la pente
         const rr = 1.6 + tire() * 1.4, bas = pied(x, z, rr * 0.7);
-        berge.boule(rr, tire() < 0.5 ? P.jungleFonce : P.feuillage, { x, y: Math.min(y + rr * 0.3, bas + rr * 0.42), z, sy: 0.8, sorte: 'persistant' }, loin ? 0 : 1);
+        foret(x, z).houppe(rr, tire() < 0.5 ? P.jungleFonce : P.feuillage, { x, y: Math.min(y + rr * 0.3, bas + rr * 0.42), z, sy: 0.8, sorte: 'persistant' }, loin ? 0 : 1);
         noterArbre(x, z, rr * 1.1);
         continue;
       }
-      if (tire() < 0.62 - 0.2 * d) cedre(x, z, 9 + tire() * 9, loin, tire() * 3);
+      const pres = r < rT + 40;
+      if (tire() < 0.62 - 0.2 * d) cedre(x, z, 9 + tire() * 9, loin, tire() * 3, pres);
       else {
         const h = 6 + tire() * 5, c = [0, 1, 2].map(() => [P.feuillage, P.jungle, P.herbeFonce][Math.floor(tire() * 3)]);
-        feuillu(x, z, h, loin, c, !loin && r < 140);
+        feuillu(x, z, h, loin, c, !loin && r < 140, pres);
       }
     }
     // près du village, sur 30 m au-delà de la lisière, la forêt est serrée : des cèdres surtout (les plantations de
@@ -2245,8 +2276,8 @@ export function construire(ctx) {
         if (r < rT + 3.4 || r > rT + 30 || riv.d < 30 || sansArbre(x, z, y)) continue;
         const t = hasard(x * 1.7, z * 2.3);
         if (t < 0.12) continue;
-        if (t < 0.74) cedre(x, z, 8 + 9 * hasard(z, x), false, t * 20);
-        else feuillu(x, z, 5 + 5 * hasard(z * 0.3, x), false, [P.feuillage, P.jungle, P.herbeFonce], r < rT + 14);
+        if (t < 0.74) cedre(x, z, 8 + 9 * hasard(z, x), false, t * 20, true);
+        else feuillu(x, z, 5 + 5 * hasard(z * 0.3, x), false, [P.feuillage, P.jungle, P.herbeFonce], r < rT + 14, true);
       }
     }
     // la berge d'en face, que tout le village voit : une forêt serrée sur 40 m au-dessus de la rivière (des cèdres, de
@@ -2262,16 +2293,13 @@ export function construire(ctx) {
         else if (t < 0.86) {
           // (un chêne persistant : son tronc, un grand houppier rond et un plus petit à côté)
           const rr = 2.0 + 1.1 * hasard(z * 0.7, x), bas = pied(x, z, 0.4) - 0.25, hc = y + rr * 1.15, c = t < 0.7 ? P.jungleFonce : P.feuillage;
-          berge.baton([x, bas, z], [x, hc, z], 0.14 + rr * 0.03, '#6a4e36', 5)
-            .boule(rr, c, { x, y: hc, z, sy: 0.82, sorte: 'persistant', graine: t }, loin ? 0 : 1)
-            .boule(rr * 0.68, c, { x: x + rr * 0.55, y: hc - rr * 0.3, z: z + rr * 0.25, sy: 0.82, sorte: 'persistant', graine: t }, loin ? 0 : 1);
+          foret(x, z).baton([x, bas, z], [x, hc, z], 0.14 + rr * 0.03, '#6a4e36', 5)
+            .houppe(rr, c, { x, y: hc, z, sy: 0.82, sorte: 'persistant', graine: t }, loin ? 0 : 1)
+            .houppe(rr * 0.68, c, { x: x + rr * 0.55, y: hc - rr * 0.3, z: z + rr * 0.25, sy: 0.82, sorte: 'persistant', graine: t }, loin ? 0 : 1);
           noterArbre(x, z, rr * 1.1);
         } else feuillu(x, z, 6 + 4 * hasard(z, x), loin, [P.feuillage, P.jungle, P.herbeFonce], false);
       }
     }
-    poser(cedres.fin(0, peinture), 0, 0, { y: 0, ombre: false });
-    poser(feuillus.fin(0, peinture), 0, 0, { y: 0, ombre: false });
-    poser(berge.fin(0, peinture), 0, 0, { y: 0, ombre: false });
   }
 
   // ---------------------------------------------------------------- Le décor lointain : les Alpes du Nord enneigées
@@ -2416,7 +2444,6 @@ export function construire(ctx) {
   // (kumazasa) des montagnes du Japon, des arbustes, des fougères, de jeunes cèdres. Le bord se voit : ce n'est plus un
   // mur invisible au milieu de l'herbe
   {
-    const sous = atelier();
     const X0 = -110, Z0 = -110, NX = 221, NZ = 215, ok = new Uint8Array(NX * NZ);
     for (let j = 0; j < NZ; j++) for (let i = 0; i < NX; i++) ok[j * NX + i] = dansLeCadre(X0 + i, Z0 + j) ? 1 : 0;
     /** La distance (en mètres, jusqu'à 3) de la case i, j à la plus proche case où l'on peut aller. */
@@ -2431,19 +2458,22 @@ export function construire(ctx) {
       return d;
     };
     const proche = (x, z, marge) => monde.cercles.some(([cx, cz, cr]) => Math.hypot(cx - x, cz - z) < cr + marge);
-    // les feuilles (deux faces, sans trait), à part : une seule pièce à la fin
-    const feuilles = [], teintes = [];
+    // les feuilles (deux faces, sans trait), à part : une seule pièce par morceau de la forêt, à la fin
+    const lots = new Map();
     const VERTS = ['#5c9140', '#6aa14a', '#78ad54', '#55873a'];
     const feuille = (de, dir, L, W, leve, tombe, c) => {
       const [dx, dz] = dir, mid = [de[0] + dx * L * 0.45, de[1] + leve, de[2] + dz * L * 0.45], bout = [de[0] + dx * L, de[1] + tombe, de[2] + dz * L];
       const g = [mid[0] - (dz * W) / 2, mid[1], mid[2] + (dx * W) / 2], d = [mid[0] + (dz * W) / 2, mid[1], mid[2] - (dx * W) / 2];
-      feuilles.push(de, g, bout, de, bout, d, de, bout, g, de, d, bout);
-      teintes.push(c, c, c, c);
+      const a = foret(de[0], de[2]);
+      if (!lots.has(a)) lots.set(a, { feuilles: [], teintes: [] });
+      const l = lots.get(a);
+      l.feuilles.push(de, g, bout, de, bout, d, de, bout, g, de, d, bout);
+      l.teintes.push(c, c, c, c);
     };
     // une touffe de kumazasa : un dôme de feuillage sombre, et tout autour des tiges qui en sortent, chacune avec un
     // éventail de longues feuilles qui retombent
     const sasa = (x, z, R, H) => {
-      const y = terrain(x, z), graine = hasard(x * 0.3, z * 0.9);
+      const sous = foret(x, z), y = terrain(x, z), graine = hasard(x * 0.3, z * 0.9);
       sous.boule(R * 0.95, '#4f8238', { x, y: y + H * 0.22, z, sy: (H * 0.62) / R, sorte: 'conifere', graine }, 1);
       const n = 9 + Math.floor(hasard(x, z, 3) * 4);
       for (let k = 0; k < n; k++) {
@@ -2467,15 +2497,15 @@ export function construire(ctx) {
       }
     };
     const arbuste = (x, z, R) => {
-      const y = terrain(x, z), graine = hasard(x * 1.1, z * 0.4), c = hasard(z, x) < 0.5 ? '#4f8a40' : '#5e9646';
+      const sous = foret(x, z), y = terrain(x, z), graine = hasard(x * 1.1, z * 0.4), c = hasard(z, x) < 0.5 ? '#4f8a40' : '#5e9646';
       sous.baton([x, y - 0.2, z], [x, y + R * 0.6, z], 0.05, '#6a4e36', 4, { trait: false })
-        .boule(R, c, { x, y: y + R * 1.05, z, sy: 0.85, sorte: 'persistant', graine }, 1)
-        .boule(R * 0.7, c, { x: x + R * 0.55, y: y + R * 0.7, z: z - R * 0.3, sy: 0.85, sorte: 'persistant', graine }, 1);
+        .houppe(R, c, { x, y: y + R * 1.05, z, sy: 0.85, sorte: 'persistant', graine }, 1)
+        .houppe(R * 0.7, c, { x: x + R * 0.55, y: y + R * 0.7, z: z - R * 0.3, sy: 0.85, sorte: 'persistant', graine }, 1);
     };
+    // (un jeune sugi : les étages dentelés du grand, depuis le 2026-10-24)
     const jeuneCedre = (x, z, h) => {
       const y = terrain(x, z);
-      sous.cylindre(0.05, 0.07, h * 0.3 + 0.3, 5, '#5a4030', { x, y: y + h * 0.15 - 0.15, z, trait: false });
-      for (const [rr, hh, k] of [[0.3, 0.5, 0.42], [0.22, 0.42, 0.66], [0.13, 0.32, 0.88]]) sous.cone(h * rr, h * hh, 7, k > 0.5 ? P.cedre : P.cedreFonce, { x, y: y + h * k - h * hh * 0.25, z, ry: x + k, sorte: 'conifere' });
+      foret(x, z).sugi(x, z, h, { y, bas: y - 0.15, rTronc: 0.06, rot: x + z, vert: P.cedre, vertFonce: P.cedreFonce, tronc: '#5a4030' });
     };
     let n = 0;
     for (let j = 0; j < NZ; j++) {
@@ -2503,13 +2533,14 @@ export function construire(ctx) {
         n++;
       }
     }
-    if (feuilles.length) {
+    for (const [a, { feuilles, teintes }] of lots) {
       const g = new THREE.BufferGeometry();
       g.setAttribute('position', new THREE.Float32BufferAttribute(feuilles.flat(), 3));
-      sous.piece(g, '#6aa14a', { couleurs: teintes, trait: false, nuance: 0.06, sorte: 'conifere' });
+      a.piece(g, '#6aa14a', { couleurs: teintes, trait: false, nuance: 0.06, sorte: 'conifere' });
     }
-    poser(sous.fin(0, peinture), 0, 0, { y: 0, ombre: false });
   }
+  // les morceaux de la forêt et de la lisière ; l'anneau lointain (8 à 11) sans trait d'encre
+  for (const [k, a] of FORET) poser(a.fin(0, peinture), 0, 0, { y: 0, ombre: false, trait: k < 8 });
 
   // ---------------------------------------------------------------- Ce qu'on peut faire (tout passe par `jeu`)
   const parler = (id) => ({ id, passant: id, verbe: 'parler', action: (jeu) => jeu.dire(jeu.txn(id), id) });
@@ -2987,7 +3018,12 @@ function aspectSol(P, x, z, h) {
   }
   // les chemins de terre
   for (const c of CHEMINS) if (surLaLigne(c, x, z).d < 1.15 + 0.2 * bruitDoux(x, z, 1.5)) return [P.chemin, M.terre];
-  // autour des maisons : la terre battue, les galets
+  // sous le bord du toit, la rigole de galets gris où tombe l'eau du chaume (amadare : 2026-10-24) ; autour des maisons,
+  // la terre battue, les galets
+  for (const [id, mx, mz, W, L] of MAISONS) {
+    const k = id.startsWith('k'), d = Math.max(Math.abs(x - mx) - W / 2 - (k ? 0.6 : 1.0), Math.abs(z - mz) - L / 2 - (k ? 0.6 : 1.1));
+    if (d > -0.38 && d < 0.22 + 0.1 * bruitDoux(x * 3, z * 3, 1)) return [bruitDoux(x * 4, z * 4, 1) > 0.55 ? '#8f897e' : '#aaa497', M.terre];
+  }
   for (const [, mx, mz, W, L] of MAISONS) {
     const e = Math.max(Math.abs(x - mx) - W / 2, Math.abs(z - mz) - L / 2);
     if (e < 1.2 + 0.5 * bruit) return [e < 0.6 ? P.cheminFonce : P.chemin, M.terre];

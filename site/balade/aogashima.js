@@ -1178,12 +1178,12 @@ export function construire(ctx) {
       const t = tire() * 2 * PI, rr = 36 + tire() * 26, x = rr * Math.sin(t), z = -rr * Math.cos(t);
       if (Math.hypot(x, z) > rayonPied(angle(x, z)) - 1.5 || proche(x, z) || degage(x, z)) continue;
       const y = terrain(x, z), h = 4 + tire() * 3.5, a = quarts[(x > 0 ? 1 : 0) + (z > 0 ? 2 : 0)];
-      a.baton([x, y - 0.1, z], [x + 0.1, y + h * 0.5, z], 0.09 * h * 0.35, P.tronc, 5);
-      // (des arbres à feuilles caduques : l'hiver, leurs houppiers tombent, et l'on voit leurs branches)
-      const touffes = [[0, 0.72, 0, 0.36], [-0.22, 0.6, 0.1, 0.27], [0.22, 0.62, -0.08, 0.27]].map(([dx, dy, dz, r]) => [x + dx * h, y + dy * h, z + dz * h, r * h]);
+      // (des arbres à feuilles caduques : l'hiver, leurs houppiers tombent, et l'on voit leurs branches ; depuis le
+      // 2026-10-24, le feuillu touffu de l'atelier, avant un bâton à cinq côtés et trois boules à facettes)
       const graine = hasard(x * 0.71 + 3.1, z * 0.53 - 1.7); // (pas tire() : la suite des tirages, donc le reste du décor, ne bouge pas)
-      for (const [tx, ty, tz, r] of touffes) a.boule(r, VERTS[Math.floor(tire() * VERTS.length)], { x: tx, y: ty, z: tz, sy: 0.85, sorte: 'houppier', graine }, 1);
-      a.ramure([x + 0.1, y + h * 0.48, z], touffes, h * 0.75, P.tronc);
+      // (trois tirages de couleur, comme avant)
+      const verts = [0, 1, 2].map(() => VERTS[Math.floor(tire() * VERTS.length)]);
+      a.arbreTouffu(x, z, h, verts, { y, bas: y - 0.12, sorte: 'houppier', graine, caduc: true, tronc: P.tronc, rTronc: 0.0315 * h, large: 1.1 });
       monde.cercle(x, z, 0.45);
       n++;
     }
@@ -1205,11 +1205,8 @@ export function construire(ctx) {
         // (pas contre un arbre du cratère : leurs houppiers se mêleraient, face contre face)
         if (Math.hypot(x, z) > rayonPied(angle(x, z)) - 1.5 || monde.cercles.some(([cx, cz, r]) => Math.hypot(cx - x, cz - z) < r + 1.8)) continue;
         const y = terrain(x, z), h = h0 + hasard(k + c * 11, 2.2) * dh;
-        a.baton([x, y - 0.1, z], [x + 0.08, y + h * 0.5, z], 0.09 * h * 0.35, P.tronc, 5);
-        const touffes = [[0, 0.72, 0, 0.36], [-0.22, 0.6, 0.1, 0.27], [0.22, 0.62, -0.08, 0.27]].map(([dx, dy, dz, r]) => [x + dx * h, y + dy * h, z + dz * h, r * h]);
-        const graine = hasard(x * 0.71 + 3.1, z * 0.53 - 1.7);
-        touffes.forEach(([tx, ty, tz, r], i) => a.boule(r, VERTS[Math.floor(hasard(k + i * 3, c + 7.7) * VERTS.length)], { x: tx, y: ty, z: tz, sy: 0.85, sorte: 'houppier', graine }, 1));
-        a.ramure([x + 0.08, y + h * 0.48, z], touffes, h * 0.75, P.tronc);
+        const graine = hasard(x * 0.71 + 3.1, z * 0.53 - 1.7), verts = [0, 1, 2].map((i) => VERTS[Math.floor(hasard(k + i * 3, c + 7.7) * VERTS.length)]);
+        a.arbreTouffu(x, z, h, verts, { y, bas: y - 0.12, sorte: 'houppier', graine, caduc: true, tronc: P.tronc, rTronc: 0.0315 * h, large: 1.05 });
         monde.cercle(x, z, 0.45);
       }
     });
@@ -1259,7 +1256,7 @@ export function construire(ctx) {
         }
       } else {
         const r = 0.5 + tire() * 0.4;
-        a.buisson(x, y + 0.3, z, r, P.jungleFonce);
+        a.buisson(x, y + 0.3, z, r, P.jungleFonce, { touffu: true });
         buissons.push([x, z, r]);
       }
       n++;
@@ -1281,7 +1278,7 @@ export function construire(ctx) {
       // pas d'arbres sur le plateau du nord (de l'herbe, et la vue)
       if (!surLaParoi && ta > PLATEAU[0] - 0.1 && ta < PLATEAU[1] + 0.1 && rr < r1 + PAROI + largeurCrete(ta) + 6) continue;
       const r = 1.8 + tire() * 1.8;
-      (surLaParoi ? paroi : flancs).boule(r, VERTS[Math.floor(tire() * VERTS.length)], { x, y: y + r * 0.25, z, sy: 0.8, sorte: 'persistant' }, 1);
+      (surLaParoi ? paroi : flancs).houppe(r, VERTS[Math.floor(tire() * VERTS.length)], { x, y: y + r * 0.25, z, sy: 0.8, sorte: 'persistant' }, 1);
       // au pied de la paroi, on marche jusqu'à eux : ils arrêtent aussi (leur largeur au ras du sol)
       if (surLaParoi) buissons.push([x, z, r * 0.95]);
     }
@@ -1306,7 +1303,7 @@ export function construire(ctx) {
         if (Math.hypot(x - SOMMET.x, z - SOMMET.z) < 4 || Math.hypot(x - TRESOR.x, z - TRESOR.z) < 4) continue;
       }
       const r = 0.55 + tire() * 0.45;
-      a.buisson(x, terrain(x, z) + 0.25, z, r, tire() < 0.5 ? P.jungleFonce : P.jungle);
+      a.buisson(x, terrain(x, z) + 0.25, z, r, tire() < 0.5 ? P.jungleFonce : P.jungle, { touffu: true });
       buissons.push([x, z, r]);
     }
     poser(a.fin(0, peinture), 0, 0, { y: 0 });

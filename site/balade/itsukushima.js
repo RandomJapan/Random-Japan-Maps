@@ -481,7 +481,7 @@ export function construire(ctx) {
     poser(b.fin(0, peinture), A[0], A[1], { ry: ryb, y: hn });
     for (const lz of [1.9, 4.2, 6.5]) {
       const [px, pz] = duPont(2.1, lz), sol = terrain(px, pz), c = atelier();
-      c.rocher(0, 0.1, 0, 0.6, P.pierreFonce).rocher(0.35, 0.05, 0.25, 0.4, P.pierre).pinJapon(0, 0, 3.6, lz > 4 ? -1 : 1);
+      c.rocher(0, 0.1, 0, 0.6, P.pierreFonce).rocher(0.35, 0.05, 0.25, 0.4, P.pierre).pinNuages(0, 0, 3.6, lz > 4 ? -1 : 1);
       poser(c.fin(0, peinture), px, pz, { y: sol + 0.25 });
       monde.cercle(px, pz, 0.7);
     }
@@ -604,14 +604,16 @@ export function construire(ctx) {
     lumieres.push({ x, y: terrain(x, z) + 1.64, z, halo: 0.55, sol: terrain(x, z), r: 2.5 });
   }
   for (const [x, z, s, sens] of [[16, 3, 17, -1], [30, 5, 18, 1], [44, 4.5, 17, -1], [61, 2, 19, 1], [-40, 20, 19, 1], [-28, 24, 17, -1], [-14, 23, 18, 1], [4, 24, 16, -1], [24, 22, 19, 1], [-48, 14, 18, -1]]) {
-    poser(atelier().pinJapon(0, 0, s, sens).fin(0, peinture), x, z);
+    // (2026-10-24 : taillés en nuages, un tronc qui ondule, des plateaux d'aiguilles sombres dessous)
+    poser(atelier().pinNuages(0, 0, s, sens).fin(0, peinture), x, z);
     monde.cercle(x + 0.05 * s * sens, z, 0.5);
   }
   // des érables (momiji) au sud, encore verts, quelques-uns qui rougissent
   for (const [x, z, h, rouge] of [[-34, 33, 6, false], [-22, 34, 5.5, true], [-8, 33, 6.2, false], [10, 32, 5.8, true], [28, 31, 6, false], [-44, 30, 5.6, true]]) {
     const a = atelier();
-    // (à feuilles caduques : l'hiver, on voit leurs branches)
-    if (rouge) a.erable(0, 0, h, { caduc: true }); else a.arbre(0, 0, h, [P.feuillage, P.herbe, '#a8c45a'], { caduc: true });
+    // (à feuilles caduques : l'hiver, on voit leurs branches ; depuis le 2026-10-24, le feuillu touffu de l'atelier)
+    if (rouge) a.arbreTouffu(0, 0, h, ['#c0522f', '#d9873a', '#b8452a'], { sorte: 'houppierErable', caduc: true });
+    else a.arbreTouffu(0, 0, h, [P.feuillage, P.herbe, '#a8c45a'], { sorte: 'houppier', caduc: true });
     poser(a.fin(0, peinture), x, z);
     monde.cercle(x, z, 0.5);
   }
@@ -667,6 +669,15 @@ export function construire(ctx) {
       .pignon(6.6, 0.5, 1.6, P.toit, { y: 2.85, z: -2.6 });
     for (let i = 0; i < 4; i++) a.boite(1.05, 0.9, 0.04, noren, { x: -1.6 + i * 1.07, y: 2.2, z: -2.15 });
     a.boite(2.6, 0.75, 0.12, P.bois, { y: 3.6, z: -1.62 });
+    // (2026-10-24) les murs blancs des côtés tenus par des poteaux et une poutre de bois sombre (à 4 cm du mur : pas
+    // dans son plan) ; à l'étage, la fenêtre d'enduit blanc à barreaux (mushiko-mado) des maisons marchandes
+    for (const sx of [-1, 1]) {
+      for (const z of [-0.85, 0.65, 2.15]) a.boite(0.08, 2.97, 0.14, P.boisFonce, { x: sx * 3.045, y: 1.455, z });
+      a.boite(0.07, 0.12, 5.0, P.boisFonce, { x: sx * 3.045, y: 1.25, z: 0.6 });
+    }
+    a.boite(2.9, 0.78, 0.05, P.blanc, { y: 4.45, z: -1.43 });
+    for (let i = 0; i < 11; i++) a.boite(0.07, 0.7, 0.06, '#3a2c24', { x: -1.3 + i * 0.26, y: 4.45, z: -1.48, trait: i === 0 || i === 10 });
+    a.boite(3.0, 0.08, 0.1, P.boisFonce, { y: 4.86, z: -1.46 }).boite(3.0, 0.08, 0.1, P.boisFonce, { y: 4.04, z: -1.46 });
     if (!ecrit) for (let i = 0; i < 3; i++) a.boite(0.4, 0.42, 0.03, enseigne, { x: -0.8 + i * 0.8, y: 3.6, z: -1.7, trait: false });
     etalage?.(a);
     auvent?.(a);

@@ -239,7 +239,7 @@ export function ateliers(THREE, repeindre = null, matieres = null, sortes = null
           for (let i = 0; i < p.count; i++) p.setXYZ(i, ...o.deformer(p.getX(i), p.getY(i), p.getZ(i)));
         }
         g.applyMatrix4(m);
-        morceaux.push({ pos: g.attributes.position.array, c, teinte: o.teinte, couleurs: o.couleurs, trait: o.trait !== false, nuance: o.nuance ?? 0.05, sorte: o.sorte, graine: o.graine });
+        morceaux.push({ pos: g.attributes.position.array, c, teinte: o.teinte, couleurs: o.couleurs, trait: o.trait !== false, nuance: o.nuance ?? 0.05, sorte: o.sorte, graine: o.graine, volume: o.volume });
         return a;
       },
       boite: (l, h, p, c, o) => a.piece(new THREE.BoxGeometry(l, h, p), c, o),
@@ -462,12 +462,13 @@ export function ateliers(THREE, repeindre = null, matieres = null, sortes = null
       },
       /**
        * Un buisson (une azalée taillée, comme dans les jardins japonais) en x, y, z, de rayon r : une touffe ronde
-       * et quatre plus petites autour, tournées au hasard ; une seule graine (il fleurit ou rougit tout entier).
+       * et quatre plus petites autour, tournées au hasard ; une seule graine (il fleurit ou rougit tout entier). o.touffu (la
+       * balade) : des touffes bosselées et ombrées (houppe).
        */
       buisson(x, y, z, r, c, o = {}) {
         const graine = o.graine ?? hasard(x * 2.1, z * 1.7, r), t = hasard(z, x, r) * 6.28, ct = Math.cos(t), st = Math.sin(t);
         for (const [dx, dy, dz, k] of [[0, 0.08, 0, 0.88], [0.55, -0.12, 0.2, 0.62], [-0.5, -0.1, -0.15, 0.66], [0.1, -0.16, -0.55, 0.58], [-0.18, -0.12, 0.55, 0.56]]) {
-          a.boule(r * k, c, { x: x + (dx * ct - dz * st) * r, y: y + dy * r, z: z + (dx * st + dz * ct) * r, sy: 0.8, sorte: o.sorte ?? 'buisson', graine }, 1);
+          (o.touffu ? a.houppe : a.boule)(r * k, c, { x: x + (dx * ct - dz * st) * r, y: y + dy * r, z: z + (dx * st + dz * ct) * r, sy: 0.8, sorte: o.sorte ?? 'buisson', graine }, 1);
         }
         return a;
       },
@@ -535,6 +536,126 @@ export function ateliers(THREE, repeindre = null, matieres = null, sortes = null
         }
         return a;
       },
+      // ---- Les arbres de la balade 3D (2026-10-24, « améliore les modèles des arbres ») : la carte garde les siens
+      /**
+       * Un fût (tronc, branche) qui s'affine, de de [x, y, z] (rayon rBas) à vers (rayon rHaut). Sans fond ni couvercle :
+       * ses bouts sont dans le sol ou dans le feuillage (deux fois moins de triangles qu'un bâton).
+       */
+      fut(de, vers, rBas, rHaut, c, cotes = 7, o = {}) {
+        const A = new THREE.Vector3(...de), B = new THREE.Vector3(...vers);
+        const dir = B.clone().sub(A);
+        const g = new THREE.CylinderGeometry(rHaut, rBas, dir.length(), cotes, 1, true).toNonIndexed();
+        g.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.normalize()));
+        const milieu = A.add(B).multiplyScalar(0.5);
+        return a.piece(g, c, { ...o, x: milieu.x, y: milieu.y, z: milieu.z });
+      },
+      /**
+       * Une touffe de feuillage : une boule bosselée de lobes doux (toujours les mêmes au même endroit), aplatie, son
+       * dessous dans l'ombre et son dessus dans la lumière (fin() : volume). finesse 1 (80 triangles), 0 au loin (20).
+       */
+      houppe(r, c, o = {}, finesse = 1) {
+        const sy = o.sy ?? 0.82, h = hasard((o.x || 0) * 0.71, (o.y || 0) * 0.37, (o.z || 0) * 0.53) * 6.28, b = o.bosses ?? 0.17;
+        return a.piece(new THREE.IcosahedronGeometry(r, finesse), c, {
+          ...o, sy, volume: [o.x || 0, o.y || 0, o.z || 0, r * sy],
+          deformer: (x, y, z) => {
+            const l = Math.hypot(x, y, z) || 1, nx = x / l, ny = y / l, nz = z / l;
+            const k = 1 + b * (0.7 * Math.sin(nx * 4.3 + h) * Math.cos(ny * 3.9 - h * 0.8) + 0.5 * Math.sin(nz * 5.1 + nx * 2.3 + h * 2.1)) - 0.12 * Math.max(0, -ny - 0.25);
+            return [x * k, y * k, z * k];
+          },
+        });
+      },
+      /**
+       * Un feuillu touffu : un tronc qui s'affine et s'évase au pied, un peu penché, trois maîtresses branches, un
+       * houppier de huit touffes bosselées (une au sommet, une couronne de cinq, deux petites plus bas). couleurs : les
+       * verts des touffes (pris tour à tour) ; o : y (le sol), bas (le pied du tronc, sous le sol le plus bas), sorte
+       * (des touffes : feuillu, houppier…), graine (un tirage pour tout l'arbre), caduc (les branches et rameaux sous
+       * les touffes, vus l'hiver), loin (moins fin : quatre touffes, pas de pied évasé), tronc (sa couleur), rTronc,
+       * large (l'envergure, 1 par défaut).
+       */
+      arbreTouffu(x, z, h, couleurs, o = {}) {
+        const y0 = o.y ?? 0, bas = o.bas ?? y0 - 0.12, g = o.graine ?? hasard(x * 1.3, z * 0.7, h), ct = o.tronc ?? C.brun;
+        const rb = o.rTronc ?? 0.035 * h, L = o.large ?? 1, t0 = hasard(z * 0.9, x * 1.1, h) * 6.28;
+        const penche = [(hasard(x, z, 1) - 0.5) * 0.08 * h, (hasard(z, x, 2) - 0.5) * 0.08 * h];
+        const fourche = [x + penche[0] * 0.8, y0 + h * 0.47, z + penche[1] * 0.8];
+        a.fut([x, bas, z], [x + penche[0], y0 + h * 0.6, z + penche[1]], rb, rb * 0.5, ct, o.loin ? 5 : 7);
+        if (!o.loin) a.fut([x, Math.max(bas, y0 - 0.26), z], [x, y0 + 0.16, z], rb * 1.75, rb * 1.02, ct, 7);
+        const touffes = [[0, 0.8, 0, 0.27]];
+        for (let k = 0; k < 5; k++) {
+          const t = t0 + (k / 5) * 6.28 + (hasard(x + k, z, h) - 0.5) * 0.5, d = 0.22 + 0.06 * hasard(z, x + k, h);
+          touffes.push([Math.sin(t) * d * L, 0.64 + 0.08 * hasard(k, x, z), Math.cos(t) * d * L, 0.2 + 0.03 * hasard(x, k, z)]);
+        }
+        for (let k = 0; k < 2; k++) {
+          const t = t0 + 1.2 + k * 3.3;
+          touffes.push([Math.sin(t) * 0.3 * L, 0.52, Math.cos(t) * 0.3 * L, 0.13]);
+        }
+        const T = (o.loin ? [touffes[0], touffes[1], touffes[3], touffes[5]] : touffes).map(([dx, dy, dz, r]) => [x + penche[0] + dx * h, y0 + dy * h, z + penche[1] + dz * h, r * h]);
+        // les maîtresses branches : de la fourche vers trois des touffes de la couronne
+        for (const k of [1, 3, 4]) {
+          const [tx, ty, tz, r] = T[Math.min(k, T.length - 1)];
+          a.fut(fourche, [tx, ty - r * 0.2, tz], rb * 0.55, rb * 0.3, ct, 5);
+        }
+        // (les deux petites touffes du bas, moins fines)
+        T.forEach(([tx, ty, tz, r], k) => a.houppe(r, couleurs[k % couleurs.length], { x: tx, y: ty, z: tz, sorte: o.sorte, graine: g }, o.loin || k > 5 ? 0 : 1));
+        // l'hiver, sous les quatre grandes touffes : une branche, et trois rameaux qui s'écartent vers son bord
+        if (o.caduc) {
+          T.slice(0, 4).forEach(([tx, ty, tz, r], i) => {
+            const coeur = [tx, ty - r * 0.15, tz];
+            a.fut(fourche, coeur, rb * 0.34, rb * 0.22, ct, 5);
+            for (let k = 0; k < 3; k++) {
+              const t = (k / 3) * 6.2832 + hasard(tx, tz, k + i) * 1.4, leve = 0.3 + 0.55 * hasard(tz, tx, k);
+              a.fut(coeur, [tx + Math.cos(t) * Math.cos(leve) * r * 0.85, coeur[1] + Math.sin(leve) * r * 0.75, tz + Math.sin(t) * Math.cos(leve) * r * 0.85], rb * 0.16, rb * 0.06, ct, 4);
+            }
+          });
+        }
+        return a;
+      },
+      /**
+       * Un cèdre du Japon (sugi), haut et étroit : un tronc brun-rouge droit qui monte jusqu'en haut, un pied évasé, et
+       * des étages de branches (des cônes au bord dentelé, les pointes retombantes, le dessous creux), de plus en plus
+       * petits. o : y (le sol), bas (le pied du tronc), loin (trois étages, pas de pied), vert, vertFonce, rot (tour).
+       */
+      sugi(x, z, h, o = {}) {
+        const y0 = o.y ?? 0, bas = o.bas ?? y0 - 0.25, rb = o.rTronc ?? 0.15 + h * 0.014, rot = o.rot ?? hasard(x, z, h) * 6.28;
+        a.fut([x, bas, z], [x, y0 + h * 0.97, z], rb, rb * 0.25, o.tronc ?? '#6a4632', o.loin ? 5 : 6);
+        if (!o.loin) a.fut([x, Math.max(bas, y0 - 0.4), z], [x, y0 + 0.15, z], rb * 1.7, rb * 1.02, o.tronc ?? '#5a3a28', 6);
+        const n = o.loin ? 3 : 5, m = o.loin ? 6 : 7;
+        for (let i = 0; i < n; i++) {
+          const t = i / (n - 1), r = h * (0.21 - 0.15 * t), hh = h * (0.34 - 0.1 * t), yb = y0 + h * (0.3 + 0.6 * t);
+          const pos = [], ap = [0, hh, 0], fond = [0, 0.2 * hh, 0], bord = [];
+          for (let k = 0; k < 2 * m; k++) {
+            const ang = rot + i * 1.7 + (k / (2 * m)) * 6.2832, pointe = k % 2 === 0;
+            const rr = r * (pointe ? 1 : 0.7) * (0.92 + 0.16 * hasard(x + k, z + i, h));
+            bord.push([Math.sin(ang) * rr, pointe ? -0.06 * hh : 0.08 * hh, Math.cos(ang) * rr]);
+          }
+          for (let k = 0; k < 2 * m; k++) {
+            const A = bord[k], B = bord[(k + 1) % (2 * m)];
+            pos.push(...ap, ...A, ...B, ...fond, ...B, ...A);
+          }
+          const geo = new THREE.BufferGeometry();
+          geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+          a.piece(geo, i % 2 ? o.vert ?? C.pinVert : o.vertFonce ?? o.vert ?? C.pinVert, { x, y: yb, z, sorte: 'conifere', volume: [x, yb + hh * 0.3, z, hh * 0.6] });
+        }
+        return a;
+      },
+      /**
+       * Un pin japonais taillé en nuages (niwaki) : un tronc qui ondule et s'affine, des bras qui portent des plateaux
+       * d'aiguilles (des touffes aplaties, sombres dessous), un au sommet. s : la taille (la hauteur ≈ 0,42 × s), sens :
+       * de quel côté il penche.
+       */
+      pinNuages(x, z, s = 1, sens = 1, o = {}) {
+        const y0 = o.y ?? 0, c = o.vert ?? C.pinVert, ct = o.tronc ?? C.brun;
+        const P1 = [x, y0 - 0.05, z], P2 = [x + 0.05 * s * sens, y0 + 0.17 * s, z + 0.01 * s], P3 = [x + 0.01 * s * sens, y0 + 0.3 * s, z + 0.025 * s], P4 = [x - 0.03 * s * sens, y0 + 0.4 * s, z + 0.01 * s];
+        a.fut(P1, P2, 0.026 * s, 0.021 * s, ct, 7).fut(P2, P3, 0.021 * s, 0.016 * s, ct, 7).fut(P3, P4, 0.016 * s, 0.01 * s, ct, 6);
+        // (des boules aux coudes : le tronc ne se casse pas)
+        a.boule(0.021 * s, ct, { x: P2[0], y: P2[1], z: P2[2] }, 1).boule(0.016 * s, ct, { x: P3[0], y: P3[1], z: P3[2] }, 1);
+        const plateaux = [[0.12, 0.21, 0.02, 0.085, P2], [-0.09, 0.27, -0.03, 0.075, P2], [0.06, 0.32, -0.07, 0.07, P3], [-0.06, 0.36, 0.06, 0.065, P3], [0.02, 0.43, 0, 0.07, P4], [0.1, 0.16, -0.06, 0.06, P2], [-0.03, 0.15, 0.08, 0.055, P2]];
+        for (const [dx, dy, dz, r, de] of plateaux) {
+          const cx = x + dx * s * sens, cy = y0 + dy * s, cz = z + dz * s;
+          if (de !== P4) a.fut(de, [cx, cy - r * s * 0.15, cz], 0.009 * s, 0.005 * s, ct, 5);
+          a.houppe(r * s, c, { x: cx, y: cy, z: cz, sy: 0.42, bosses: 0.22, sorte: 'conifere' }, 1);
+        }
+        return a;
+      },
       /**
        * Termine le modèle. decalage : hauteur dont on le monte. peinture : chaque triangle un peu plus ou moins
        * chargé de couleur (comme un lavis) et le bas assombri (posé au sol). Ajoute l'attribut `contour` (les
@@ -579,11 +700,14 @@ export function ateliers(THREE, repeindre = null, matieres = null, sortes = null
           // (la balade : la graine de la pièce, un tirage pour tout l'arbre ou tout le buisson — un arbre en fleurs l'est
           // tout entier —, à la place de la force de la peinture, dont la balade ne se sert pas)
           const graine = m.graine ?? hasard(p[0] * 0.37 + 1.3, p[2] * 0.41 - 2.1, p[1] * 0.23 + 7.7);
+          const vol = m.volume;
           for (let k = 0, t = 0; k < p.length; k += 9, t++) {
             const cx = (p[k] + p[k + 3] + p[k + 6]) / 3, cy = (p[k + 1] + p[k + 4] + p[k + 7]) / 3, cz = (p[k + 2] + p[k + 5] + p[k + 8]) / 3;
             const teinte = m.couleurs ? m.couleurs[t] : m.teinte ? m.teinte(cx, cy, cz) : m.c;
             const [r, g, b] = rvb(teinte);
-            const lavis = peinture ? 1 + m.nuance * (2 * hasard(cx, cy, cz) - 1) : 1;
+            // (le volume d'une touffe de feuillage, houppe : son dessous dans l'ombre, son dessus dans la lumière)
+            const ombreTouffe = vol ? 0.72 + 0.36 * lisse(-1, 0.9, (cy - vol[1]) / vol[3]) : 1;
+            const lavis = (peinture ? 1 + m.nuance * (2 * hasard(cx, cy, cz) - 1) : 1) * ombreTouffe;
             const sorte = SORTES[m.sorte ?? sortes?.[teinte] ?? SORTE_COULEUR[teinte]] || 0;
             const tirage = hasard(cx * 3.1 + 7, cy * 5.7, cz * 2.3);
             if (matiere) matiere.fill(matieres[repeindre?.[teinte] ?? teinte] || 0, (i + k) / 3, (i + k) / 3 + 3);
