@@ -134,7 +134,10 @@ body.plongeon .defile-yokai, body.en-jeu .defile-yokai { display: none; }
 .membre:focus-visible { outline: 2px solid var(--sarcelle); outline-offset: 2px; border-radius: 4px; }
 .membre .sens { position: absolute; inset: 0; }
 .membre.gauche .sens { transform: scaleX(-1); }
-.membre svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; overflow: visible; filter: drop-shadow(0 1px 1.2px rgba(30, 20, 10, .45)); }
+/* Pas d'ombre portée (filter: drop-shadow) : chaque pas redessine le yōkai, et l'ombre doublait ce travail du
+   navigateur (2026-10-24 : 28 → 13 ms par image de son processus graphique ici) ; la nuit, seul moment où il
+   passe, elle ne se voyait pas. */
+.membre svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; overflow: visible; }
 /* son ombre et, la nuit, la lumière de sa lanterne sur le sol ; la brume qui traîne derrière le cortège */
 .membre::before {
   content: ""; position: absolute; left: 18%; right: 18%; bottom: 3%; height: 12%; border-radius: 50%;

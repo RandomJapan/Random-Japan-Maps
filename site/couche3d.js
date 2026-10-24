@@ -10,6 +10,7 @@
 // ================================================================
 import { TEINTES } from './teintes.js';
 import { etatNature } from './phenologie.js';
+import { tailleCarte } from './commun.js';
 
 export const URL_THREE = 'https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.min.js';
 
@@ -227,7 +228,8 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
       if (lueurs.halo.count) {
         lueurs.uniformes.force.value = lueur;
         lueurs.uniformes.rayon.value = echelleDessin * 1.15;
-        lueurs.uniformes.ecran.value.set(map.getCanvas().clientWidth, map.getCanvas().clientHeight);
+        const { l, h } = tailleCarte(map);
+        lueurs.uniformes.ecran.value.set(l, h);
         lueurs.halo.instanceMatrix.needsUpdate = lueurs.flaque.instanceMatrix.needsUpdate = true;
       }
       if (!nb) return;

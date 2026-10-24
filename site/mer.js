@@ -12,6 +12,7 @@
 import { URL_THREE } from './couche3d.js';
 import { coucheRessac } from './ressac.js';
 import { TEINTES } from './teintes.js';
+import { tailleCarte } from './commun.js';
 
 // Image des distances à la côte : mêmes bornes et même codage que outils/fabriquer_houle.py
 const IMAGE_DISTANCES = 'data/distance-cote.png';
@@ -453,7 +454,8 @@ function coucheBateaux(map, maplibregl, THREE, modele, flotte, outils) {
         // le halo d'une lanterne : un tiers de la hauteur du bateau à l'écran
         lueur.uniformes.force.value = nuit * 1.6;
         lueur.uniformes.rayon.value = TAILLE_BATEAU * 2 ** (CROISSANCE_BATEAU * (z - 5)) * 0.3;
-        lueur.uniformes.ecran.value.set(map.getCanvas().clientWidth, map.getCanvas().clientHeight);
+        const { l, h: hauteur } = tailleCarte(map);
+        lueur.uniformes.ecran.value.set(l, hauteur);
         flaques.instanceMatrix.needsUpdate = halos.instanceMatrix.needsUpdate = true;
       }
       camera.projectionMatrix.fromArray(args.defaultProjectionData.mainMatrix)

@@ -19,6 +19,10 @@ const VITESSE = 34; // pixels par seconde à l'écran au départ (un pas de prom
 const TAILLE = 64; // largeur d'un yōkai au zoom 10 ; ×1,41 par cran de zoom
 const TAILLE_LIMITES = [40, 112];
 const hasard = (a, b) => a + Math.random() * (b - a);
+// En qualité très légère, les gestes (jambes, bras, queue…) avancent par petits sauts, 15 fois par seconde, comme
+// un dessin animé : chaque geste fait redessiner tout le yōkai (SVG) au navigateur, et neuf yōkai redessinés à
+// chaque image lui coûtaient plus que la carte entière (2026-10-24). Le cortège, lui, glisse toujours à chaque image.
+const SAUT_GESTES = 1000 / 15;
 
 // Le cortège, de la tête à la queue : son dessin, sa taille relative, la durée d'un pas, sa lumière (la nuit,
 // autour d'une lanterne), sa brume, ses feux de renard [gauche, haut, retard, bleu]
@@ -118,7 +122,7 @@ export function brancherDefile(map, maplibregl, outils) {
     const t = taille();
     defile = { ...c, debut: performance.now(), vitesse: VITESSE / c.pixels, ecart: (t * 0.98) / c.pixels };
     dessin = {};
-    for (const m of membres) { m.dessin = {}; m.el.hidden = true; }
+    for (const m of membres) { m.dessin = {}; m.gestes = null; m.el.hidden = true; }
     calque.hidden = false;
     requestAnimationFrame(image);
     return true;
@@ -136,13 +140,15 @@ export function brancherDefile(map, maplibregl, outils) {
     const fin = 1 + (membres.length - 1) * defile.ecart;
     if (s0 > fin) return finir();
     requestAnimationFrame(image);
+    const maintenant = performance.now(), leger = document.body.classList.contains('qualite-tres-legere');
     const t = taille();
     if (t !== dessin.taille) { calque.style.setProperty('--taille', `${t}px`); dessin.taille = t; }
     membres.forEach((m, k) => {
       const s = s0 - k * defile.ecart;
       const visible = s > 0 && s < 1;
       if (visible === m.el.hidden) m.el.hidden = !visible;
-      if (!visible) return;
+      if (!visible) { m.gestes = null; return; } // caché, ses animations CSS s'arrêtent : elles repartiront
+      gestes(m, maintenant, leger);
       const merc = point(defile, s), ll = merc.toLngLat(), p = map.project(ll);
       const q = map.project(point(defile, Math.min(1, s + 0.01)).toLngLat());
       const gauche = q.x < p.x;
@@ -159,6 +165,24 @@ export function brancherDefile(map, maplibregl, outils) {
       m.el.dataset.lng = ll.lng;
       m.el.dataset.lat = ll.lat;
     });
+  }
+
+  /** Les gestes d'un yōkai en très légère : ses animations SVG arrêtées, avancées d'un saut tous les SAUT_GESTES. */
+  function gestes(m, maintenant, leger) {
+    if (!leger) {
+      if (m.gestes) { for (const a of m.gestes.anims) a.play(); m.gestes = null; }
+      return;
+    }
+    if (!m.gestes) {
+      const anims = m.el.getAnimations({ subtree: true }).filter((a) => a.effect?.target instanceof SVGElement);
+      for (const a of anims) a.pause();
+      m.gestes = { anims, depart: anims.map((a) => a.currentTime || 0), t0: maintenant, saut: 0 };
+      return;
+    }
+    const g = m.gestes, saut = Math.floor((maintenant - g.t0) / SAUT_GESTES);
+    if (saut === g.saut) return;
+    g.saut = saut;
+    g.anims.forEach((a, i) => { a.currentTime = g.depart[i] + saut * SAUT_GESTES; });
   }
 
   function bulle(lng, lat) {

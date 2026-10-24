@@ -40,6 +40,28 @@ export const debutDuJour = (debut, jour) => Date.parse(debut) + jour * JOUR - DE
 export const croixPanneau = (titre) => `<button type="button" class="panneau-fermer" data-fermer data-t-titre="fermer" data-t-aria="fermer" title="${echapper(titre)}" aria-label="${echapper(titre)}">`
   + '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M7 7l10 10M17 7 7 17"/></svg></button>';
 
+const taillesCartes = new WeakMap();
+/**
+ * La taille de la carte en pixels CSS { l, h }, lue une fois puis après chaque redimensionnement. Lue à chaque image
+ * (clientWidth, dans le dessin d'une couche), elle forçait le navigateur à recalculer les styles et la mise en page
+ * en plein dessin (2026-10-24 : le tiers du temps des modèles 3D de près, la nuit).
+ */
+export function tailleCarte(map) {
+  let t = taillesCartes.get(map);
+  if (!t) {
+    t = { l: 0, h: 0, lue: false };
+    taillesCartes.set(map, t);
+    map.on('resize', () => { t.lue = false; });
+  }
+  if (!t.lue) {
+    const c = map.getCanvas();
+    t.l = c.clientWidth;
+    t.h = c.clientHeight;
+    t.lue = true;
+  }
+  return t;
+}
+
 /** Un écran tactile (téléphone, tablette) : on y partage par le menu du système plutôt que de télécharger ou copier. */
 export const tactile = () => matchMedia('(pointer: coarse)').matches;
 
