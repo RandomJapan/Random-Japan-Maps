@@ -479,7 +479,7 @@ export function brancherVilles(map, maplibregl, o) {
     v.el.classList.add('actif');
     majPins();
     fiche.classList.add('ouverte', 'mode-ville');
-    fiche.setAttribute('aria-hidden', 'false');
+    fiche.inert = false;
     $('fiche-defil').scrollTop = 0;
     if (location.hash !== `#ville-${v.id}`) history.replaceState(null, '', `#ville-${v.id}`);
     $('fiche-media').innerHTML = '';

@@ -19,7 +19,7 @@ import { YOKAI, CHAT, CHAUVE_SOURIS, toileAraignee } from './halloween-dessins.j
 import { brancherDefile } from './hyakki.js';
 import { lieuxDesHitodama } from './hitodama.js';
 import { REGIONS } from './regions.js';
-import { echapper, partagerFichier, telecharger } from './commun.js';
+import { echapper, partagerFichier, telecharger, typoFr } from './commun.js';
 
 const ZOOM_CHASSE = 6.5; // comme les légendes cachées : il faut zoomer sur une région
 const MEMOIRE = 'yokaiTrouves'; // localStorage : les yōkai trouvés (ce navigateur seulement)
@@ -261,11 +261,12 @@ const creer = (balise, classe, texte) => {
  */
 export function brancherHalloween(map, maplibregl, outils) {
   const { langue, afficherMessage, fermerFiche, fermerPanneau, reperes, lieux, ambiance, choisirOiseaux, adresse, nomSite } = outils;
+  const typo = (s) => (langue() === 'fr' ? typoFr(s) : s);
   const tx = (cle, ...args) => {
     const v = TEXTES[langue()]?.[cle] ?? TEXTES.en[cle];
-    return typeof v === 'function' ? v(...args) : v;
+    return typo(typeof v === 'function' ? v(...args) : v);
   };
-  const enL = (o) => o?.[langue()] || o?.en || '';
+  const enL = (o) => typo(o?.[langue()] || o?.en || '');
   const bouton = document.getElementById('btn-halloween');
   const panneau = document.getElementById('panneau-halloween');
   const carte = map.getContainer();

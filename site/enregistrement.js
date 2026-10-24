@@ -17,7 +17,7 @@
 // ================================================================
 import { imageAffiche, MARGE_AFFICHE, ECHELLE_AFFICHE } from './affiche.js';
 import { chargerImage } from './bravo-image.js';
-import { echapper, partagerFichier, telecharger } from './commun.js';
+import { echapper, partagerFichier, telecharger, typoFr } from './commun.js';
 import { TEXTES } from './config.js';
 
 const URL_MUXER = 'https://cdn.jsdelivr.net/npm/mp4-muxer@5.2.2/+esm';
@@ -73,7 +73,8 @@ export function enregistrer(map, outils) {
   // les textes de l'écran d'enregistrement restent dans la langue du propriétaire (la carte, elle, passe en anglais)
   const t = (cle, ...args) => {
     const v = TEXTES[avant.langue]?.[cle] ?? TEXTES.en[cle];
-    return typeof v === 'function' ? v(...args) : v;
+    const texte = typeof v === 'function' ? v(...args) : v;
+    return avant.langue === 'fr' ? typoFr(texte) : texte;
   };
   let horloge = null; // le temps de la page, arrêté puis avancé image par image
   let encodeur = null, muxer = null, cible = null;

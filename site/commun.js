@@ -7,6 +7,12 @@
 /** Un texte qu'on peut glisser sans risque dans du HTML. */
 export const echapper = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
+/**
+ * Typographie française : l'espace avant ! ? : ; et à l'intérieur des « » devient insécable, pour qu'aucun signe ne
+ * parte seul au début de la ligne suivante. Les textes s'écrivent avec une espace normale ; seul le français passe ici.
+ */
+export const typoFr = (s) => (typeof s === 'string' ? s.replace(/ ([!?:;»])/g, '\u00a0$1').replace(/« /g, '«\u00a0') : s);
+
 /** Distance en km entre deux points { lng, lat } (à vol d'oiseau, sur le globe). */
 export function kmEntre(a, b) {
   const r = Math.PI / 180;

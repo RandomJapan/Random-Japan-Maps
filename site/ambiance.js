@@ -45,6 +45,7 @@ const COULEURS = {
   ciel: [CONFIG.couleurs.ciel, '#eeb08c', '#e7b7ad', '#121a2e'],
   horizon: [CONFIG.couleurs.horizon, '#f5d2a2', '#f1d5c4', '#2b3b58'],
   brume: [CONFIG.couleurs.brume, '#e7bea4', '#d9c3c2', '#1d2c40'],
+  barre: ['#efe4c8', '#efe4c8', '#efe4c8', '#121a2e'], // la barre du navigateur (theme-color) : le papier, le ciel la nuit
 };
 const OMBRAGE = { // ombres, lumières, accents du relief : [r, g, b, a]
   ombre: [[70, 45, 24, 0.82], [70, 30, 45, 0.86], [62, 36, 58, 0.84], [6, 10, 24, 0.88]],
@@ -308,6 +309,7 @@ export function preparerAmbiance() {
       // du moment, sinon ces carreaux sont clairs sur la mer de nuit
       document.body.style.backgroundColor = p.mer;
       document.body.classList.toggle('nuit', m.nuit >= 0.5);
+      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', p.barre);
       map.triggerRepaint();
     }
 

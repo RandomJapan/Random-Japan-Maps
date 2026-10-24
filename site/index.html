@@ -19,6 +19,11 @@
   <link rel="apple-touch-icon" href="img/icone-180.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Les serveurs appelés dès le démarrage (MapLibre, le tableau Google Sheets, les tuiles du relief) : la connexion
+       s'ouvre pendant que la page se charge. « crossorigin » : ces fichiers sont demandés sans cookies (modules, fetch). -->
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://docs.google.com" crossorigin>
+  <link rel="preconnect" href="https://tiles.mapterhorn.com" crossorigin>
   <!-- Les polices (119 Ko de description, surtout le japonais) se chargent sans retarder le démarrage de la carte :
        un style « print » ne bloque rien, puis il passe à « all » dès qu'il est arrivé. -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&family=Zen+Antique&family=IM+Fell+English:ital@0;1&display=swap" media="print" onload="this.media='all'">
@@ -34,10 +39,10 @@
   <header class="entete panneau">
     <a class="marque" id="lien-profil" target="_blank" rel="noopener" data-t-titre="suivre">
       <img class="logo" id="logo" alt="" width="44" height="44">
-      <span class="marque-textes">
-        <span class="titre" id="titre">Random Japan Place</span>
+      <div class="marque-textes">
+        <h1 class="titre" id="titre">Random Japan Place</h1>
         <span class="sous-titre" data-t="sousTitre"></span>
-      </span>
+      </div>
     </a>
     <!-- Compteur de visites (compteur.js), sur ordinateur seulement -->
     <div class="visites" id="visites" hidden>
@@ -265,7 +270,7 @@
     <div class="menu panneau" id="menu-categories" hidden>
       <label class="recherche">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="m20 20-4.5-4.5M17 10.5a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0Z"/></svg>
-        <input type="search" id="recherche" autocomplete="off" spellcheck="false">
+        <input type="search" id="recherche" autocomplete="off" spellcheck="false" data-t-aria="chercherCourt">
       </label>
       <ul class="resultats" id="resultats" hidden></ul>
       <div class="menu-actions" id="menu-actions">
@@ -315,10 +320,10 @@
     <button type="button" class="panneau" id="btn-recentrer" data-t-titre="recentrer" data-t-aria="recentrer">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/><circle cx="12" cy="12" r="2.5" fill="currentColor"/></svg>
     </button>
-    <button type="button" class="panneau" id="btn-plus" aria-label="Zoom in">
+    <button type="button" class="panneau" id="btn-plus" aria-label="Zoom in" data-t-titre="zoomPlus" data-t-aria="zoomPlus">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M12 5v14M5 12h14"/></svg>
     </button>
-    <button type="button" class="panneau" id="btn-moins" aria-label="Zoom out">
+    <button type="button" class="panneau" id="btn-moins" aria-label="Zoom out" data-t-titre="zoomMoins" data-t-aria="zoomMoins">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M5 12h14"/></svg>
     </button>
   </div>
@@ -439,7 +444,8 @@
     </div>
   </div>
 
-  <aside class="fiche" id="fiche" aria-hidden="true">
+  <!-- inert tant qu'elle est fermée (app.js) : hors de l'écran, ses boutons ne se prennent pas au clavier -->
+  <aside class="fiche" id="fiche" inert>
     <div class="fiche-poignee" id="fiche-poignee" aria-hidden="true"></div>
     <button type="button" class="fiche-autre" id="fiche-autre" hidden>
       <svg class="de" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.6" fill="currentColor"/></svg>

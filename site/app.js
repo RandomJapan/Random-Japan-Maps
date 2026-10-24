@@ -23,7 +23,7 @@ import { gererReperes } from './reperes.js';
 import { preparerAmbiance } from './ambiance.js';
 import { niveauDeDepart, brancherQualite } from './qualite.js';
 import { lireSaisons, blocFiche, contenuPanneau, lieuxDuMois, nomMois, iconeDuMois } from './saisons.js';
-import { echapper, envoyer, retirerParametres, tactile, jourDuDefi, croixPanneau } from './commun.js';
+import { echapper, envoyer, retirerParametres, tactile, jourDuDefi, croixPanneau, typoFr } from './commun.js';
 
 const $ = (id) => document.getElementById(id);
 // Pendant l'enregistrement du plongeon (enregistrement.js), c'est le format du film qui compte : vertical comme un
@@ -77,10 +77,16 @@ function choisirLangue() {
 }
 function t(cle, ...args) {
   const v = TEXTES[langue][cle] ?? TEXTES.en[cle];
-  return typeof v === 'function' ? v(...args) : v;
+  const texte = typeof v === 'function' ? v(...args) : v;
+  return langue === 'fr' ? typoFr(texte) : texte;
 }
 /** Choisit le texte dans la langue affichée ; sinon l'anglais. */
-const enLangue = (textes) => textes?.[langue] || textes?.en || '';
+const enLangue = (textes) => {
+  const texte = textes?.[langue] || textes?.en || '';
+  return langue === 'fr' ? typoFr(texte) : texte;
+};
+/** « Étiquette : valeur » selon la langue (pour les noms lus par les lecteurs d'écran). */
+const deuxPoints = (a, b) => (langue === 'fr' ? `${a}\u00a0: ${b}` : langue === 'ja' ? `${a}：${b}` : `${a}: ${b}`);
 
 // ---------------------------------------------------------------- Lecture du tableau (CSV)
 const normaliser = (s) => String(s ?? '').normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
@@ -1346,7 +1352,7 @@ function remplirFavoris() {
         <span class="pastille" style="--c:${l.cat.couleur}">${iconeHTML(l.cat.icone)}</span>
         <span class="favori-textes"><b>${echapper(enLangue(l.nom))}</b><small>${echapper(infosLieu(l))}</small></span>
       </button>
-      <button type="button" class="favori-retirer" data-retirer="${echapper(l.id)}" title="${echapper(t('retirer'))}" aria-label="${echapper(`${t('retirer')} : ${enLangue(l.nom)}`)}">${SVG.croix}</button>
+      <button type="button" class="favori-retirer" data-retirer="${echapper(l.id)}" title="${echapper(t('retirer'))}" aria-label="${echapper(deuxPoints(t('retirer'), enLangue(l.nom)))}">${SVG.croix}</button>
     </li>${it?.trajets[i]?.de === l && it.trajets[i].a === liste[i + 1] ? ligneTrajet(it.trajets[i], it.mode) : ''}`).join('');
   const liens = liensItineraire(liste, estTelephone() ? 5 : 10);
   const itineraires = liens.map((x) => `<a class="btn-secondaire btn-itineraire" href="${echapper(x.url)}" target="_blank" rel="noopener">${SVG.route}<span>${echapper(liens.length > 1 ? t('itinerairePartie', x.de, x.a) : t('itineraireFavoris'))}</span></a>`).join('');
@@ -1534,7 +1540,7 @@ function majResume() {
   $('resume-itineraire').hidden = !it || !!voyageRecu || !$('panneau-favoris').hidden;
   if (!it) return;
   $('resume-details').innerHTML = `${SVG[it.mode]}<b>≈ ${echapper(texteDuree(it.duree))}</b><span>· ${echapper(texteDistance(it.distance))}</span>`;
-  $('resume-details').setAttribute('aria-label', `${t('voirItineraire')} : ${texteDuree(it.duree)}, ${texteDistance(it.distance)}`);
+  $('resume-details').setAttribute('aria-label', deuxPoints(t('voirItineraire'), `${texteDuree(it.duree)}, ${texteDistance(it.distance)}`));
 }
 
 // ---------------------------------------------------------------- Quand partir ? (saisons.js)
@@ -2078,7 +2084,7 @@ function ouvrirLieu(lieu, { voler = true, hasard = false } = {}) {
   remplirFiche(lieu);
   const fiche = $('fiche');
   fiche.classList.add('ouverte');
-  fiche.setAttribute('aria-hidden', 'false');
+  fiche.inert = false;
   $('fiche-defil').scrollTop = 0;
   if (location.hash !== `#${lieu.id}`) history.replaceState(null, '', `#${lieu.id}`);
   if (voler) {
@@ -2098,7 +2104,7 @@ function fermerFiche() {
   const fiche = $('fiche');
   if (!fiche.classList.contains('ouverte')) return;
   fiche.classList.remove('ouverte', 'agrandie');
-  fiche.setAttribute('aria-hidden', 'true');
+  fiche.inert = true; // fermée, ses boutons hors de l'écran ne se prennent plus au clavier (Tab)
   villes?.quitter();
   $('fiche-media').innerHTML = '';
   lieuActif?.el.classList.remove('actif');
