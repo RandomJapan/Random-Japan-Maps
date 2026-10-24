@@ -903,6 +903,7 @@ function majSelonZoom() {
   if (taille !== tailleActuelle) {
     tailleActuelle = taille;
     regleTaille.style.setProperty('--t', String(taille));
+    reperes.taille(taille); // (les épingles dessinées sur la toile, points.js)
   }
   const loin = z < ZOOM_POINTS;
   if (loin !== vueLointaine) {

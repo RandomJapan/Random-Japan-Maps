@@ -6,26 +6,26 @@
 //  pour un repère hors de l'écran, il cherche l'altitude en recalculant les
 //  tuiles qui couvrent tout l'écran, une fois par repère : zoomé sur une
 //  région, c'était ~190 recherches par image, et les téléphones saccadaient.
-//  Dans la vue de loin, les lieux sans état particulier ne sont pas des
-//  repères HTML mais des points dessinés ensemble sur une toile (points.js).
+//  Les lieux sans état particulier ne sont pas des repères HTML mais des
+//  points (vue de loin) ou des épingles dessinés ensemble sur une toile (points.js).
 // ================================================================
 
 import { creerPoints } from './points.js';
 
 const MARGE = 0.1; // un repère reste sur la carte jusqu'à 10 % de la taille de la vue au-delà de ses bords (penchée, la vue en couvre déjà plus que l'écran)
 // un lieu ouvert (son nom), une étape d'itinéraire ou du carrousel d'une ville (son numéro), un nouveau lieu (son
-// pouls) : de loin, ils gardent leur repère HTML
+// pouls, son étiquette) : ils gardent leur repère HTML
 const PARTICULIERS = ['actif', 'etape', 'carrousel', 'nouveau'];
 
 /**
  * points : false pour garder tous les lieux en repères HTML (les films promo de outils/video, ?points=non).
  * @returns suivre(repère, { voulu, placer, point }) pour confier un repère (pas encore ajouté à la carte ; point :
- *   un lieu, qui peut se dessiner en point dans la vue de loin) ;
+ *   un lieu, qui peut se dessiner sur la toile de points.js) ;
  *   montrer(repère, voulu, delai) pour le montrer ou le cacher (catégorie décochée, zoom hors de sa plage…),
  *   le retrait pouvant attendre `delai` ms (le temps d'un fondu) ;
  *   verifier(repère) après un setLngLat ; oublier(repère) pour le retirer pour de bon ;
  *   fluide(oui) pendant la rotation douce du départ ; vueLointaine(oui) quand on passe sous ou au-dessus de
- *   ZOOM_POINTS (app.js).
+ *   ZOOM_POINTS (app.js) ; taille(t) quand la taille des épingles (--t) change.
  */
 export function gererReperes(map, { points: avecPoints = true } = {}) {
   const suivis = new Map(); // repère → { repere, el, voulu, placer, point, particulier, sur, dessine, minuterie }
@@ -38,7 +38,7 @@ export function gererReperes(map, { points: avecPoints = true } = {}) {
   // en essai (2026-10-24) : seulement en mode développeur, le temps que le propriétaire l'essaie sur son portable
   let dev = false;
   let survole = null; // le suivi du point sous la souris, redevenu repère HTML
-  let dessines = []; // les suivis dessinés en points, dans l'ordre des lieux (du nord au sud)
+  let dessines = []; // les suivis dessinés sur la toile, dans l'ordre des lieux (du nord au sud)
   let listeChangee = false;
   let observerClasses = null; // (el) => surveille les classes d'un lieu
 
@@ -49,7 +49,8 @@ export function gererReperes(map, { points: avecPoints = true } = {}) {
     bornes = [b.getWest() - dx, b.getSouth() - dy, b.getEast() + dx, b.getNorth() + dy];
   }
 
-  const enPoint = (s) => toile && dev && s.point && loin && !clavier && !plongee && !s.particulier && s !== survole;
+  // (plus près que la vue de loin : une fois les images de son épingle prêtes)
+  const enPoint = (s) => toile && dev && s.point && !clavier && !plongee && !s.particulier && s !== survole && (loin || toile.pret(s));
 
   function appliquer(repere, s) {
     const { lng, lat } = repere.getLngLat();
@@ -107,10 +108,12 @@ export function gererReperes(map, { points: avecPoints = true } = {}) {
         revoir(...[avant, survole].filter(Boolean));
       },
       ouvrir: (s) => s.el.click(), // le clic de son repère (ouvrirLieu)
+      charge: () => revoir(), // une icône est arrivée : son épingle peut être dessinée
     })
     : null;
 
   if (toile) {
+    toile.regler({ loin });
     // une classe qui change sur un lieu (ouvert, favori, hors saison…) : repère HTML ou point, et son dessin
     const classes = new MutationObserver((changes) => {
       const vus = new Set();
@@ -152,6 +155,7 @@ export function gererReperes(map, { points: avecPoints = true } = {}) {
         s.particulier = PARTICULIERS.some((k) => el.classList.contains(k));
         parElement.set(el, s);
         observerClasses(el);
+        if (dev) toile.preparer(s); // (ses images, d'avance : seulement là où la toile sert)
       }
       suivis.set(repere, s);
       if (fluides) repere.setSubpixelPositioning(true);
@@ -177,7 +181,12 @@ export function gererReperes(map, { points: avecPoints = true } = {}) {
     vueLointaine(oui) {
       if (oui === loin) return;
       loin = oui;
+      toile?.regler({ loin });
       revoir();
+    },
+    taille(t) {
+      toile?.regler({ taille: t });
+      toile?.sale();
     },
     montrer(repere, voulu, delai = 0) {
       const s = suivis.get(repere);

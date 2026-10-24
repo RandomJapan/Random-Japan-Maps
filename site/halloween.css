@@ -373,7 +373,9 @@ body.halloween #carte.loin .repere-tete::after { width: auto; height: auto; back
 @media (prefers-reduced-motion: reduce) {
   .chat-noir *, .toile-coin, .toile-coin *, .defile-yokai *, .yokai-cache::before { animation: none !important; }
 }
-body.qualite-tres-legere .chat-noir *, body.qualite-tres-legere .toile-coin, body.qualite-tres-legere .toile-coin * { animation-play-state: paused; }
+body.qualite-tres-legere .chat-noir *, body.qualite-tres-legere .toile-coin, body.qualite-tres-legere .toile-coin *,
+body.qualite-tres-legere .toile-coin .reflet { animation-play-state: paused; } /* (la rosée de nuit : sa règle est plus précise) */
+body.qualite-tres-legere .yokai-cache::before { animation: none; } /* comme les petites animations des légendes */
 @media (max-width: 720px) {
   /* plus petite (2026-10-21) : un décor derrière les raccourcis du haut, son moyeu et l'araignée juste en dessous */
   .toile-coin { width: 150px; height: 150px; top: 18px; }
