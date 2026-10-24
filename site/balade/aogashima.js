@@ -1643,6 +1643,8 @@ export function construire(ctx) {
     // le souffle des fumerolles, les insectes de la nuit au camping (la mer est loin en bas des falaises)
     vent: { dir: [0.85, 0.35], force: 1.15 }, oiseaux: ['uguisu', 'milan', 'akakokko'], ambiances: ['vapeur', 'insectes'],
     brume: [100, 1900],
+    // (2026-10-24) les rais de soleil dans la clairière du marchand, au milieu de la forêt (balade.js, creerRais)
+    rais: [[MARCHAND.x - 2, MARCHAND.z + 1], [MARCHAND.x + 2.2, MARCHAND.z - 1.5], [MARCHAND.x + 0.5, MARCHAND.z + 2.4]].map(([x, z], i) => ({ x, z, haut: 9, r0: 0.3, r1: 1.0 + 0.25 * i, force: 0.085 })),
     soleil: [-0.42, 0.72, 0.55],
     depart,
     photos: {
@@ -1832,7 +1834,12 @@ function aspectSol(P, x, z, h) {
       const u = ((am + PI_ - 0.6) / (2 * PI_) + k) / 1.6;
       if (u <= 1 && Math.abs(dm - (m.r - 2.5 - u * (m.r - m.cratere - 3.3))) < 0.9) return [P.chemin, M.terre];
     }
-    return Math.floor((am + PI_) / (2 * PI_) * 46) % 2 ? [P.herbe, M.herbe] : [P.jungle, M.sousBois];
+    // (2026-10-24) des ravines de largeurs inégales, qui serpentent un peu, entre des croupes d'herbe plus ou moins
+    // sombre (avant : des bandes toutes égales, comme un melon)
+    const u = ((am + PI_) / (2 * PI_)) * 40 + bruitDoux(x, z, 3) * 1.3 + bruitDoux(x + 50, z, 9) * 0.9;
+    const b = Math.floor(u), hb = (((Math.sin(b * 12.9898) * 43758.5453) % 1) + 1) % 1;
+    if (u - b < 0.22 + 0.36 * hb) return [P.jungle, M.sousBois];
+    return [hb > 0.62 ? P.herbeFonce : P.herbe, M.herbe];
   }
   // la paroi : la forêt en bandes verticales, et la roche nue là où c'est le plus raide
   if (r > r1 + 0.8 && r < r2 - 0.5) {

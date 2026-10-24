@@ -25,7 +25,7 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.min.js';
 import { ateliers } from '../modeles3d.js';
 import { MATIERES } from './textures.js';
-import { creerStyle, matieresStyle, eclairerParLampes, LAMPES_GLSL, passeFinale, rafale, VENT_GLSL, VITESSE_RAFALE } from './styles.js';
+import { creerStyle, matieresStyle, eclairerParLampes, LAMPES_GLSL, EAU_GLSL, passeFinale, rafale, VENT_GLSL, VITESSE_RAFALE } from './styles.js';
 import { creerHeros, creerPersonnage, creerCompagnon, COMPAGNONS, COMPAGNONS_SECRETS, creerDaim, creerMarchand } from './personnages.js';
 import { creerPassant, avancerPassant, tourner, lisse, pointDuBanc, ASSIS } from './monde.js';
 import { creerEtiquettes } from './etiquettes.js';
@@ -145,20 +145,30 @@ function construire() {
   mats.canopee.canopee.value = canopee.texture;
   mats.canopee.zoneCanopee.value.set(canopee.x0, canopee.z0, canopee.pas, 1);
   mats.canopee.tailleCanopee.value.set(canopee.nx, canopee.nz);
+  // l'ombre au pied des choses (styles.js, lireOmbreSol)
+  const ombreSol = carteOmbreSol(decor, lieu);
+  mats.ombreSol.ombreSol.value = ombreSol.texture;
+  mats.ombreSol.zoneOmbre.value.set(ombreSol.x0, ombreSol.z0, ombreSol.pas, 1);
+  mats.ombreSol.tailleOmbre.value.set(ombreSol.nx, ombreSol.nz);
+  // (les reflets du soleil au fond de l'eau : jusqu'au niveau de la mer ou de la rivière)
+  mats.eauSol.value.set(lieu.eau?.niveau || 0, lieu.eau ? 1 : 0, 0, 0);
   groupe.add(terrain(lieu, mats, lieu.etendue, 0, lieu.etendue.fin), terrain(lieu, mats, lieu.etendue.fin, 0.03, null, carte));
   const touffes = creerTouffes(lieu, carte, mats);
   groupe.add(touffes.groupe);
-  const eau = lieu.eau ? creerEau(lieu, P, mats.lampes) : null;
-  // l'eau qui coule (un ruisseau : lieu.courants, des rubans le long de son lit)
-  const courants = (lieu.courants || []).map((g) => creerEauCourante(g, P, mats.lampes));
-  for (const c of courants) groupe.add(c);
   const ciel = creerCiel(P, lieu.soleil);
+  const eau = lieu.eau ? creerEau(lieu, P, mats.lampes, ciel, carteContactEau(decor, lieu)) : null;
+  // l'eau qui coule (un ruisseau : lieu.courants, des rubans le long de son lit) ; l'eau calme (les rizières)
+  const courants = (lieu.courants || []).map((g) => creerEauCourante(g, P, mats.lampes, lieu, ciel));
+  if (lieu.eauxCalmes?.length) courants.push(creerEauxCalmes(lieu, mats.lampes, ciel));
+  for (const c of courants) groupe.add(c);
   const etoiles = creerEtoiles();
   ciel.add(etoiles);
   groupe.add(ciel);
   if (eau) groupe.add(eau);
   const vapeurs = creerVapeurs(lieu);
   if (vapeurs) groupe.add(vapeurs);
+  const rais = creerRais(lieu);
+  if (rais) groupe.add(rais);
   const brume = lieu.brume || [70, 1500];
   scene.fog = new THREE.Fog(P.horizon, ...brume);
   mats.brume.couleur.value.set(P.horizon);
@@ -239,7 +249,7 @@ function construire() {
   M = {
     carte, effets, lueurs, betes, mouilleJoueur, mouilleKon, feuillage: densiteFeuillage(lieu), bruitage: creerBruitage({ oiseaux: lieu.oiseaux || [], ambiances: lieu.ambiances || [], betes: [...(lieu.betes?.chats?.length ? ['miaou', 'ronron'] : []), ...(lieu.betes?.chiens?.length ? ['ouaf'] : [])], extras: lieu.sons || [] }), musique: creerMusique(lieu.id), focale: 800,
     marchand, feux, chutes, sac: new Set(), trace: null, saison: 'ete', flash: { v: 0, c: new THREE.Color() }, hemiBase: { intensite: 0, couleur: new THREE.Color() },
-    style, ctx, mats, lieu, groupe, decor, voyageurs, compagnons, kon: null, cadre: null, passants, daims, mouettes, eau, courants, ciel, soleil, hemi, etoiles, vapeurs, touffes, finale: passeFinale(THREE, style, { echantillons: params.get('aa') === '0' ? 0 : 4, flou: params.get('flou') !== '0' }), cible: null, sauvage: null, nuit: { v: 0, cible: 0, fin: null } };
+    style, ctx, mats, lieu, groupe, decor, voyageurs, compagnons, kon: null, cadre: null, passants, daims, mouettes, eau, courants, ciel, soleil, hemi, etoiles, vapeurs, rais, touffes, finale: passeFinale(THREE, style, { echantillons: params.get('aa') === '0' ? 0 : 4, flou: params.get('flou') !== '0' }), cible: null, sauvage: null, nuit: { v: 0, cible: 0, fin: null } };
   choisirVoyageur(sorte || 'garcon');
   choisirCompagnon(espece || 'kon');
   for (const s of ['garcon', 'fille']) habiller(s);
@@ -247,6 +257,8 @@ function construire() {
   if (aAchete('calendrier')) changerSaison(memoire.lire('baladeSaison') || 'ete', { tout: true });
   M.hemiBase.intensite = hemi.intensity;
   M.hemiBase.couleur.copy(hemi.color);
+  // la brume posée au fond de la vallée (Gokayama), de la couleur de la brume (elle suit la nuit)
+  if (lieu.brumeVallee) M.finale.vallee(lieu.brumeVallee, scene.fog.color);
   dimensionner();
 }
 
@@ -611,11 +623,25 @@ function terrain(lieu, mats, e, leve = 0, trou = null, carte = null) {
 }
 
 /**
- * L'eau : claire sur l'estran (on voit le fond), plus bleue au large ; écume au bord ; des lignes d'eau
- * parallèles à la rive (comme la houle de la carte) et des éclats de soleil, en gros pixels.
+ * Les uniformes de la lumière sur l'eau (styles.js, EAU_GLSL) : d'où vient le soleil, et les couleurs du ciel (les
+ * mêmes objets que le ciel : ils changent avec la nuit).
+ */
+function uniformesEau(lieu, ciel) {
+  return {
+    eauSoleil: { value: new THREE.Vector3(...lieu.soleil).normalize() },
+    eauCielHaut: ciel.material.uniforms.haut, eauCielHorizon: ciel.material.uniforms.horizon,
+  };
+}
+
+/**
+ * L'eau : claire sur l'estran (on voit le fond), plus bleue au large ; des lignes d'eau parallèles à la rive (comme la
+ * houle de la carte). Refaite le 2026-10-24 (« améliorer les graphismes ») : de petites rides qui bougent, le ciel qui
+ * s'y reflète d'autant plus qu'on la regarde de biais, des éclats de soleil nets (avant : des cases de 25 cm qui
+ * clignotaient), la vague qui monte sur la plage et se retire en laissant son écume, et des ronds d'écume autour de ce
+ * qui sort de l'eau (les pieds du torii, les poteaux des galeries, la barque : contact, carteContactEau).
  * lieu.eau : { x0, x1, z0, z1, niveau }.
  */
-function creerEau(lieu, P, lampes) {
+function creerEau(lieu, P, lampes, ciel, contact) {
   const e = lieu.eau, pas = 3, niveau = e.niveau || 0;
   const nx = Math.round((e.x1 - e.x0) / pas), nz = Math.round((e.z1 - e.z0) / pas);
   const g = new THREE.PlaneGeometry(e.x1 - e.x0, e.z1 - e.z0, Math.min(nx, 220), Math.min(nz, 260));
@@ -631,50 +657,72 @@ function creerEau(lieu, P, lampes) {
       clair: { value: new THREE.Color(P.eauClaire) }, profond: { value: new THREE.Color(P.eauProfonde) },
       ecume: { value: new THREE.Color(P.ecume) }, temps: { value: 0 }, rive: { value: lieu.rive ?? 0 },
       centre: { value: new THREE.Vector3(...(lieu.centreRive || [0, 0]), lieu.centreRive ? 1 : 0) }, nuit: { value: 0 },
+      zoneContact: { value: new THREE.Vector4(0, 0, 1, 0) }, tailleContact: { value: new THREE.Vector2(1, 1) },
     }]),
     vertexShader: `
       attribute float profondeur;
       varying float vProf;
       varying vec3 vMonde;
-      varying float vLoin;
       #include <fog_pars_vertex>
       void main() {
         vProf = profondeur;
         vec4 monde = modelMatrix * vec4(position, 1.0);
         vMonde = monde.xyz;
         vec4 mvPosition = viewMatrix * monde;
-        vLoin = -mvPosition.z;
         gl_Position = projectionMatrix * mvPosition;
         #include <fog_vertex>
       }`,
     fragmentShader: `
       uniform vec3 clair, profond, ecume, centre;
       uniform float temps, rive, nuit;
+      uniform sampler2D contact;
+      uniform vec4 zoneContact;
+      uniform vec2 tailleContact;
       varying float vProf;
       varying vec3 vMonde;
-      varying float vLoin;
       #include <fog_pars_fragment>
       ${LAMPES_GLSL}
-      float hasard2(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+      ${EAU_GLSL}
+      // la distance (m) à ce qui sort de l'eau, jusqu'à 2 m (au-delà, ou sans carte : 2)
+      float distContact(vec2 xz) {
+        if (zoneContact.w < 0.5) return 2.0;
+        vec2 st = ((xz - zoneContact.xy) / zoneContact.z + 0.5) / tailleContact;
+        if (st.x < 0.0 || st.y < 0.0 || st.x > 1.0 || st.y > 1.0) return 2.0;
+        return texture2D(contact, st).r * 2.0;
+      }
       void main() {
         float t = smoothstep(0.05, 1.6, vProf);
         vec3 c = mix(clair, profond, t);
         vec3 lampe = c * lumiereLampes(vMonde, vec3(0.0, 1.0, 0.0));
-        float a = mix(0.45, 0.9, smoothstep(0.0, 0.45, vProf));
+        float a = mix(0.42, 0.88, smoothstep(0.0, 0.45, vProf));
         // des lignes d'eau parallèles à la rive (ou en anneaux autour d'une île), qui avancent doucement
         float d = centre.z > 0.5
           ? length(vMonde.xz - centre.xy) * 0.42 + temps * 0.12 + 0.35 * sin(atan(vMonde.x - centre.x, vMonde.z - centre.y) * 9.0)
           : (rive - vMonde.z) * 0.42 - temps * 0.12 + 0.35 * sin(vMonde.x * 0.06);
         float l = abs(fract(d) - 0.5);
-        c = mix(c, profond * 0.85, (1.0 - smoothstep(0.035, 0.07, l)) * 0.4 * smoothstep(0.06, 0.25, vProf));
-        // des éclats de soleil : quelques cases de 25 cm qui s'allument et s'éteignent, de près
-        vec2 k = floor(vMonde.xz * 4.0);
-        float e = hasard2(k + floor(temps * 1.5 + hasard2(k) * 7.0));
-        c = mix(c, ecume, step(0.992, e) * (1.0 - smoothstep(10.0, 40.0, vLoin)) * smoothstep(0.03, 0.12, vProf));
-        float bord = 1.0 - smoothstep(0.0, 0.07 + 0.03 * sin(temps * 1.6 + vMonde.x * 0.4), vProf);
-        c = mix(c, ecume, bord * 0.85);
-        a = max(a, bord * 0.9);
+        c = mix(c, profond * 0.85, (1.0 - smoothstep(0.035, 0.07, l)) * 0.26 * smoothstep(0.06, 0.25, vProf));
         c *= mix(vec3(1.0), vec3(0.22, 0.27, 0.45), nuit);
+        // les rides, le ciel reflété, les éclats du soleil
+        float rides = ridesEau(vMonde);
+        vec3 n = normaleEau(vMonde.xz, temps, 0.55 * rides);
+        float fres;
+        c = eclairerEau(c, vMonde, n, nuit, 0.42, fres);
+        a = mix(a, 1.0, fres * 0.5);
+        // l'écume : un liseré au bord ; la vague qui monte sur la plage et se retire (une ligne d'écume qui avance vers
+        // le bord, rompue par un bruit) ; des ronds autour de ce qui sort de l'eau
+        float bruitE1 = bruitE(vMonde.xz * vec2(1.6, 0.7) + vec2(temps * 0.25, 0.0)).x;
+        float bord = 1.0 - smoothstep(0.0, 0.06 + 0.035 * sin(temps * 1.6 + vMonde.x * 0.4), vProf);
+        float ph = fract(temps * 0.085 + bruitE(vMonde.xz * 0.04).x * 0.7);
+        float dl = mix(0.3, 0.0, ph);
+        float vague = (1.0 - smoothstep(0.0, 0.028, abs(vProf - dl))) * smoothstep(0.0, 0.25, ph) * (1.0 - smoothstep(0.7, 1.0, ph));
+        vague *= smoothstep(0.3, 0.55, bruitE1) * rides;
+        float dc = distContact(vMonde.xz);
+        float collier = (1.0 - smoothstep(0.04, 0.16, dc)) * (0.7 + 0.3 * bruitE1);
+        float onde = fract(dc * 1.4 - temps * 0.45);
+        float anneaux = smoothstep(0.0, 0.06, onde) * (1.0 - smoothstep(0.06, 0.16, onde)) * (1.0 - smoothstep(0.25, 1.4, dc)) * 0.55 * rides;
+        float mousse = clamp(max(max(bord * 0.85, vague * 0.8), max(collier, anneaux)), 0.0, 1.0);
+        c = mix(c, ecume * mix(1.0, 0.32, nuit), mousse);
+        a = max(a, mousse * 0.92);
         // (les lampes de la rive, la lanterne de la barque : leur lumière sur l'eau)
         c += lampe * 0.8;
         gl_FragColor = vec4(c, a);
@@ -682,11 +730,163 @@ function creerEau(lieu, P, lampes) {
         #include <fog_fragment>
       }`,
   });
-  // (les mêmes uniformes que le décor : UniformsUtils.merge les aurait copiés)
-  Object.assign(mat.uniforms, lampes);
+  // (les mêmes uniformes que le décor et le ciel : UniformsUtils.merge les aurait copiés)
+  Object.assign(mat.uniforms, lampes, uniformesEau(lieu, ciel));
+  mat.uniforms.contact = { value: contact?.texture || null };
+  if (contact) {
+    mat.uniforms.zoneContact.value.set(contact.x0, contact.z0, contact.pas, 1);
+    mat.uniforms.tailleContact.value.set(contact.nx, contact.nz);
+  }
   const m = new THREE.Mesh(g, mat);
   m.renderOrder = 1;
   return m;
+}
+
+/**
+ * Ce qui sort de l'eau (les pieds du torii, les poteaux des galeries, la barque, les rochers) : là où les faces du décor
+ * traversent le niveau de l'eau, sur l'étendue fine du lieu, au quart de mètre ; puis la distance à ces points (une
+ * transformée de chanfrein, deux passes), jusqu'à 2 m (255). null s'il n'y a rien.
+ */
+function carteContactEau(decor, lieu, pas = 0.25) {
+  if (!lieu.eau) return null;
+  const f = lieu.etendue.fin, niveau = lieu.eau.niveau || 0;
+  const nx = Math.round((f.x1 - f.x0) / pas) + 1, nz = Math.round((f.z1 - f.z0) / pas) + 1, n = nx * nz;
+  const dist = new Float32Array(n).fill(1e9);
+  let marques = 0;
+  const A = new THREE.Vector3(), B = new THREE.Vector3(), Cc = new THREE.Vector3(), boite = new THREE.Box3();
+  const marquer = (x, z) => {
+    const i = Math.round((x - f.x0) / pas), j = Math.round((z - f.z0) / pas);
+    if (i < 0 || j < 0 || i >= nx || j >= nz) return;
+    // (seulement là où il y a vraiment de l'eau : pas sur la plage)
+    if (lieu.terrain(x, z) > niveau - 0.02) return;
+    if (dist[j * nx + i]) marques++;
+    dist[j * nx + i] = 0;
+  };
+  const coupe = (P, Q) => {
+    const t = (niveau - P.y) / (Q.y - P.y);
+    return [P.x + (Q.x - P.x) * t, P.z + (Q.z - P.z) * t];
+  };
+  for (const m of decor) {
+    const pos = m.geometry.attributes.position;
+    m.updateWorldMatrix(true, false);
+    if (!m.geometry.boundingBox) m.geometry.computeBoundingBox();
+    boite.copy(m.geometry.boundingBox).applyMatrix4(m.matrixWorld);
+    if (boite.min.y > niveau || boite.max.y < niveau || boite.max.x < f.x0 || boite.min.x > f.x1 || boite.max.z < f.z0 || boite.min.z > f.z1) continue;
+    const idx = m.geometry.index?.array;
+    const nb = idx ? idx.length : pos.count;
+    for (let k = 0; k + 2 < nb; k += 3) {
+      const ia = idx ? idx[k] : k, ib = idx ? idx[k + 1] : k + 1, ic = idx ? idx[k + 2] : k + 2;
+      A.fromBufferAttribute(pos, ia).applyMatrix4(m.matrixWorld);
+      B.fromBufferAttribute(pos, ib).applyMatrix4(m.matrixWorld);
+      Cc.fromBufferAttribute(pos, ic).applyMatrix4(m.matrixWorld);
+      const bas = Math.min(A.y, B.y, Cc.y), haut = Math.max(A.y, B.y, Cc.y);
+      if (bas > niveau || haut < niveau) continue;
+      // le segment où le triangle coupe le plan de l'eau, marqué tous les demi-pas
+      const pts = [];
+      for (const [P, Q] of [[A, B], [B, Cc], [Cc, A]]) if ((P.y - niveau) * (Q.y - niveau) < 0) pts.push(coupe(P, Q));
+      if (pts.length < 2) { marquer(A.x, A.z); continue; }
+      const [[x0, z0], [x1, z1]] = pts, L = Math.hypot(x1 - x0, z1 - z0), nbp = Math.min(200, Math.ceil(L / (pas / 2)) + 1);
+      for (let s = 0; s <= nbp; s++) marquer(x0 + ((x1 - x0) * s) / nbp, z0 + ((z1 - z0) * s) / nbp);
+    }
+  }
+  if (!marques) return null;
+  // la distance : deux passes de chanfrein (1, √2)
+  const d2 = Math.SQRT2;
+  for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) {
+    const k = j * nx + i;
+    let v = dist[k];
+    if (i > 0) v = Math.min(v, dist[k - 1] + 1);
+    if (j > 0) {
+      v = Math.min(v, dist[k - nx] + 1);
+      if (i > 0) v = Math.min(v, dist[k - nx - 1] + d2);
+      if (i < nx - 1) v = Math.min(v, dist[k - nx + 1] + d2);
+    }
+    dist[k] = v;
+  }
+  for (let j = nz - 1; j >= 0; j--) for (let i = nx - 1; i >= 0; i--) {
+    const k = j * nx + i;
+    let v = dist[k];
+    if (i < nx - 1) v = Math.min(v, dist[k + 1] + 1);
+    if (j < nz - 1) {
+      v = Math.min(v, dist[k + nx] + 1);
+      if (i < nx - 1) v = Math.min(v, dist[k + nx + 1] + d2);
+      if (i > 0) v = Math.min(v, dist[k + nx - 1] + d2);
+    }
+    dist[k] = v;
+  }
+  const d = new Uint8Array(n);
+  for (let k = 0; k < n; k++) d[k] = Math.round(Math.min(1, (dist[k] * pas) / 2) * 255);
+  const texture = new THREE.DataTexture(d, nx, nz, THREE.RedFormat);
+  texture.minFilter = texture.magFilter = THREE.LinearFilter;
+  texture.generateMipmaps = false;
+  texture.needsUpdate = true;
+  return { texture, nx, nz, x0: f.x0, z0: f.z0, pas };
+}
+
+/**
+ * L'ombre au pied des choses (une occlusion ambiante, calculée une fois) : sur l'étendue fine du lieu, au demi-mètre,
+ * ce qui se dresse près du sol (les faces presque verticales du décor, de 0 à 2,2 m au-dessus du sol : murs, troncs,
+ * poteaux, lanternes, rochers, clôtures, buissons), pesé par sa surface et sa hauteur, puis flouté sur un mètre et
+ * demi : le sol s'assombrit doucement à leur pied (styles.js, lireOmbreSol). 255 : rien, jusqu'à 0,6 au pied d'un mur.
+ */
+function carteOmbreSol(decor, lieu, pas = 0.5) {
+  const f = lieu.etendue.fin;
+  const nx = Math.round((f.x1 - f.x0) / pas) + 1, nz = Math.round((f.z1 - f.z0) / pas) + 1, n = nx * nz;
+  // la hauteur du sol, au mètre (lue au plus proche)
+  const hx = Math.ceil((f.x1 - f.x0) / 1) + 1, hz = Math.ceil((f.z1 - f.z0) / 1) + 1, H = new Float32Array(hx * hz);
+  for (let j = 0; j < hz; j++) for (let i = 0; i < hx; i++) H[j * hx + i] = lieu.terrain(f.x0 + i, f.z0 + j);
+  const sol = (x, z) => H[Math.min(hz - 1, Math.max(0, Math.round(z - f.z0))) * hx + Math.min(hx - 1, Math.max(0, Math.round(x - f.x0)))];
+  const occ = new Float32Array(n);
+  const A = new THREE.Vector3(), B = new THREE.Vector3(), Cc = new THREE.Vector3(), N = new THREE.Vector3(), E1 = new THREE.Vector3(), E2 = new THREE.Vector3(), boite = new THREE.Box3();
+  let graine = 1;
+  const hasard = () => { graine = (graine * 16807) % 2147483647; return graine / 2147483647; };
+  for (const m of decor) {
+    const pos = m.geometry.attributes.position;
+    m.updateWorldMatrix(true, false);
+    if (!m.geometry.boundingBox) m.geometry.computeBoundingBox();
+    boite.copy(m.geometry.boundingBox).applyMatrix4(m.matrixWorld);
+    if (boite.max.x < f.x0 || boite.min.x > f.x1 || boite.max.z < f.z0 || boite.min.z > f.z1) continue;
+    const idx = m.geometry.index?.array;
+    const nb = idx ? idx.length : pos.count;
+    for (let k = 0; k + 2 < nb; k += 3) {
+      A.fromBufferAttribute(pos, idx ? idx[k] : k).applyMatrix4(m.matrixWorld);
+      B.fromBufferAttribute(pos, idx ? idx[k + 1] : k + 1).applyMatrix4(m.matrixWorld);
+      Cc.fromBufferAttribute(pos, idx ? idx[k + 2] : k + 2).applyMatrix4(m.matrixWorld);
+      const bas = Math.min(A.y, B.y, Cc.y);
+      if (bas > sol(A.x, A.z) + 2.2) continue;
+      N.crossVectors(E1.subVectors(B, A), E2.subVectors(Cc, A));
+      const aire = N.length() / 2;
+      if (aire < 1e-4 || Math.abs(N.y) / (2 * aire) > 0.55) continue;
+      // des points tirés sur le triangle, un par quart de mètre carré (16 au plus)
+      const nbp = Math.min(16, Math.max(1, Math.round(aire / 0.25)));
+      for (let s = 0; s < nbp; s++) {
+        let u = hasard(), v = hasard();
+        if (u + v > 1) { u = 1 - u; v = 1 - v; }
+        const x = A.x + E1.x * u + E2.x * v, y = A.y + E1.y * u + E2.y * v, z = A.z + E1.z * u + E2.z * v;
+        const hy = y - sol(x, z);
+        if (hy < -0.3 || hy > 2.2) continue;
+        const i = Math.round((x - f.x0) / pas), j = Math.round((z - f.z0) / pas);
+        if (i < 0 || j < 0 || i >= nx || j >= nz) continue;
+        occ[j * nx + i] += (aire / nbp) * (1 - Math.max(0, hy) / 2.2);
+      }
+    }
+  }
+  // flou : trois passes en croix de rayon 2 (un mètre) : à peu près une cloche d'un mètre et demi
+  let a = occ;
+  for (let fois = 0; fois < 3; fois++) {
+    const b = new Float32Array(n), c = new Float32Array(n);
+    for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) { let t = 0; for (let d = -2; d <= 2; d++) { const ii = i + d; if (ii >= 0 && ii < nx) t += a[j * nx + ii]; } b[j * nx + i] = t / 5; }
+    for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) { let t = 0; for (let d = -2; d <= 2; d++) { const jj = j + d; if (jj >= 0 && jj < nz) t += b[jj * nx + i]; } c[j * nx + i] = t / 5; }
+    a = c;
+  }
+  const d = new Uint8Array(n);
+  // (au pied d'un mur de 2 m, après le flou : environ 0,14 ; un cinquième plus sombre)
+  for (let k = 0; k < n; k++) d[k] = Math.round((1 - 0.5 * (1 - Math.exp(-a[k] * 7))) * 255);
+  const texture = new THREE.DataTexture(d, nx, nz, THREE.RedFormat);
+  texture.minFilter = texture.magFilter = THREE.LinearFilter;
+  texture.generateMipmaps = false;
+  texture.needsUpdate = true;
+  return { texture, nx, nz, x0: f.x0, z0: f.z0, pas };
 }
 
 /**
@@ -695,7 +895,7 @@ function creerEau(lieu, P, lampes) {
  * au milieu ; des reflets étirés qui descendent le courant, l'écume des chutes qui bouillonne et file, un liseré
  * d'écume le long des bords ; la nuit, sombre, sauf sous les lanternes.
  */
-function creerEauCourante(geo, P, lampes) {
+function creerEauCourante(geo, P, lampes, lieu, ciel) {
   const mat = new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, fog: true,
     uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
@@ -725,6 +925,7 @@ function creerEauCourante(geo, P, lampes) {
       varying vec3 vMonde;
       #include <fog_pars_fragment>
       ${LAMPES_GLSL}
+      ${EAU_GLSL}
       float hasard2(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
       float bruit2(vec2 p) {
         vec2 i = floor(p), f = fract(p);
@@ -746,14 +947,88 @@ function creerEauCourante(geo, P, lampes) {
         float a = mix(0.72, 0.95, e);
         vec3 lampe = c * lumiereLampes(vMonde, vec3(0.0, 1.0, 0.0));
         c *= mix(vec3(1.0), vec3(0.22, 0.27, 0.45), nuit);
+        // (2026-10-24) les rides vives du courant, le ciel qui s'y reflète, les éclats du soleil ; pas sur l'écume
+        vec3 nr = normaleEau(vMonde.xz * 1.7 + vec2(temps * 0.6, -temps * 0.4), temps * 1.6, 0.4 * ridesEau(vMonde));
+        float fres;
+        vec3 cl = eclairerEau(c, vMonde, nr, nuit, 0.5, fres);
+        c = mix(cl, c, e);
+        a = mix(a, 1.0, fres * 0.4);
         c += lampe * 0.8;
         gl_FragColor = vec4(c, a);
         #include <colorspace_fragment>
         #include <fog_fragment>
       }`,
   });
-  Object.assign(mat.uniforms, lampes);
+  Object.assign(mat.uniforms, lampes, uniformesEau(lieu, ciel));
   const m = new THREE.Mesh(geo, mat);
+  m.renderOrder = 1;
+  return m;
+}
+
+/**
+ * L'eau calme (les rizières de Gokayama, 2026-10-24) : une surface au ras de l'eau, d'un vert de boue, qui reflète le
+ * ciel comme un miroir dès qu'on la regarde de biais ; à peine ridée par le vent ; la nuit, sombre, la lune et les
+ * lanternes s'y reflètent. lieu.eauxCalmes : [[x0, x1, z0, z1, y], …].
+ */
+function creerEauxCalmes(lieu, lampes, ciel) {
+  // bord : la position dans le bassin (m depuis un coin) et sa taille : le reflet sombre des talus le long des bords
+  const pos = [], bord = [], idx = [];
+  for (const [x0, x1, z0, z1, y] of lieu.eauxCalmes) {
+    const k = pos.length / 3, w = x1 - x0, d = z1 - z0;
+    pos.push(x0, y, z0, x1, y, z0, x1, y, z1, x0, y, z1);
+    bord.push(0, 0, w, d, w, 0, w, d, w, d, w, d, 0, d, w, d);
+    idx.push(k, k + 2, k + 1, k, k + 3, k + 2);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('bord', new THREE.Float32BufferAttribute(bord, 4));
+  g.setIndex(idx);
+  const mat = new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, fog: true,
+    uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
+      boue: { value: new THREE.Color('#5f6a45') }, temps: { value: 0 }, nuit: { value: 0 },
+    }]),
+    vertexShader: `
+      attribute vec4 bord;
+      varying vec3 vMonde;
+      varying vec4 vBord;
+      #include <fog_pars_vertex>
+      void main() {
+        vBord = bord;
+        vec4 monde = modelMatrix * vec4(position, 1.0);
+        vMonde = monde.xyz;
+        vec4 mvPosition = viewMatrix * monde;
+        gl_Position = projectionMatrix * mvPosition;
+        #include <fog_vertex>
+      }`,
+    fragmentShader: `
+      uniform vec3 boue;
+      uniform float temps, nuit;
+      varying vec3 vMonde;
+      varying vec4 vBord;
+      #include <fog_pars_fragment>
+      ${LAMPES_GLSL}
+      ${EAU_GLSL}
+      void main() {
+        vec3 c = boue * (0.9 + 0.2 * bruitE(vMonde.xz * 0.35).x);
+        vec3 lampe = c * lumiereLampes(vMonde, vec3(0.0, 1.0, 0.0));
+        c *= mix(vec3(1.0), vec3(0.22, 0.27, 0.45), nuit);
+        vec3 n = normaleEau(vMonde.xz * 1.3, temps * 0.7, 0.12 * ridesEau(vMonde));
+        float fres;
+        c = eclairerEau(c, vMonde, n, nuit, 0.85, fres);
+        c = mix(c, eauCielHaut, 0.2 * fres);
+        // le long des bords, le talus d'herbe s'y reflète (une bande vert sombre, ondulée)
+        float e = min(min(vBord.x, vBord.z - vBord.x), min(vBord.y, vBord.w - vBord.y));
+        float talus = 1.0 - smoothstep(0.12, 0.42 + 0.12 * bruitE(vMonde.xz * 2.1).x, e);
+        c = mix(c, vec3(0.2, 0.3, 0.14) * mix(1.0, 0.3, nuit), talus * 0.7);
+        c += lampe * 1.2;
+        gl_FragColor = vec4(c, mix(0.8, 0.97, fres));
+        #include <colorspace_fragment>
+        #include <fog_fragment>
+      }`,
+  });
+  Object.assign(mat.uniforms, lampes, uniformesEau(lieu, ciel));
+  const m = new THREE.Mesh(g, mat);
   m.renderOrder = 1;
   return m;
 }
@@ -880,6 +1155,73 @@ function creerEtoiles() {
 }
 
 /**
+ * Les rais de lumière (2026-10-24) : dans les sous-bois (sous les cèdres du sanctuaire de Gokayama, dans la clairière du
+ * marchand…), le soleil tombe entre les arbres en faisceaux pâles, penchés comme lui, rayés et qui ondulent doucement
+ * (la poussière dans la lumière). Additifs, effacés en haut, en bas, sur leurs bords vus de biais, tout près de l'œil
+ * (on passe dedans) et au loin ; éteints la nuit. lieu.rais : [{ x, z, y (sinon le sol), haut (m), r0, r1 (le rayon en
+ * haut, en bas), force }].
+ */
+function creerRais(lieu) {
+  if (!lieu.rais?.length) return null;
+  const s = new THREE.Vector3(...lieu.soleil).normalize();
+  const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), s);
+  const pos = [], uv = [], prm = [], idx = [];
+  lieu.rais.forEach((r, i) => {
+    const haut = r.haut || 9, y = r.y ?? lieu.monde.hauteur(r.x, r.z);
+    const g = new THREE.CylinderGeometry(r.r0 ?? 0.4, r.r1 ?? 1.3, haut, 18, 1, true);
+    g.applyQuaternion(q);
+    g.translate(r.x + s.x * haut * 0.5, y + s.y * haut * 0.5 - 0.3, r.z + s.z * haut * 0.5);
+    const k = pos.length / 3, p = g.attributes.position, u = g.attributes.uv;
+    for (let j = 0; j < p.count; j++) { pos.push(p.getX(j), p.getY(j), p.getZ(j)); uv.push(u.getX(j), u.getY(j)); prm.push(r.force ?? 0.09, i * 1.618); }
+    for (const j of g.index.array) idx.push(k + j);
+  });
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  geo.setAttribute('prm', new THREE.Float32BufferAttribute(prm, 2));
+  geo.setIndex(idx);
+  geo.computeVertexNormals();
+  const m = new THREE.Mesh(geo, new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+    uniforms: { temps: { value: 0 }, nuit: { value: 0 } },
+    vertexShader: `
+      attribute vec2 prm;
+      varying vec2 vUv;
+      varying float vFace;
+      varying float vForce;
+      varying float vGraine;
+      varying float vLoin;
+      void main() {
+        vUv = uv;
+        vForce = prm.x;
+        vGraine = prm.y;
+        vec4 mv = modelViewMatrix * vec4(position, 1.0);
+        vFace = abs(dot(normalize(normalMatrix * normal), normalize(-mv.xyz)));
+        vLoin = -mv.z;
+        gl_Position = projectionMatrix * mv;
+      }`,
+    fragmentShader: `
+      uniform float temps, nuit;
+      varying vec2 vUv;
+      varying float vFace;
+      varying float vForce;
+      varying float vGraine;
+      varying float vLoin;
+      void main() {
+        float a = vForce * smoothstep(0.0, 0.3, vUv.y) * (1.0 - smoothstep(0.6, 1.0, vUv.y)) * vFace * vFace;
+        // des stries qui tournent lentement, la poussière qui monte et descend dans la lumière
+        a *= 0.55 + 0.45 * sin(vUv.x * 6.2832 * 4.0 + vGraine + temps * 0.15) * sin(vUv.x * 6.2832 * 7.0 - vGraine * 2.0 - temps * 0.11);
+        a *= 0.8 + 0.2 * sin(vUv.y * 9.0 - temps * 0.6 + vGraine);
+        a *= smoothstep(2.0, 6.0, vLoin) * (1.0 - smoothstep(70.0, 140.0, vLoin)) * (1.0 - nuit);
+        gl_FragColor = vec4(vec3(1.0, 0.95, 0.78) * max(a, 0.0), 1.0);
+      }`,
+  }));
+  m.renderOrder = 2;
+  m.frustumCulled = false;
+  return m;
+}
+
+/**
  * La vapeur (les fumerolles, les marmites, le sauna) : des bouffées blanches aux bords doux qui montent,
  * grossissent et s'effacent. lieu.vapeurs : [{ x, z, y (sinon
  * le sol), n (bouffées), haut (m), large (m), taille (m) }].
@@ -957,8 +1299,11 @@ function appliquerNuit(v) {
   if (M.eau) M.eau.material.uniforms.nuit.value = v;
   for (const c of M.courants) c.material.uniforms.nuit.value = v;
   if (M.vapeurs) M.vapeurs.material.uniforms.nuit.value = v;
+  if (M.rais) M.rais.material.uniforms.nuit.value = v;
   M.etoiles.material.uniforms.nuit.value = v;
   M.mats.lueur.value = v; // les lanternes s'allument
+  M.mats.eauSol.value.w = v;
+  M.finale.nuit(v); // la lueur des lanternes
 }
 
 // ---------------------------------------------------------------- Les textes, l'interface
@@ -2511,7 +2856,9 @@ function dessiner(dt, temps) {
   }
   if (M.eau) M.eau.material.uniforms.temps.value = temps;
   for (const c of M.courants) c.material.uniforms.temps.value = temps;
+  M.mats.eauSol.value.z = temps;
   if (M.vapeurs) M.vapeurs.material.uniforms.temps.value = temps;
+  if (M.rais) M.rais.material.uniforms.temps.value = temps;
   M.etoiles.material.uniforms.temps.value = temps;
   M.touffes.majTouffes(temps, camera);
   M.mats.vent.ventTemps.value = temps;

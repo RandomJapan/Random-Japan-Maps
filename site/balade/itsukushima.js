@@ -1357,6 +1357,8 @@ export function construire(ctx) {
       ],
     },
     soleil: [-0.42, 0.72, 0.55], // d'où vient la lumière (l'après-midi, du sud-ouest)
+    // (2026-10-24) les rais de soleil entre les pins, autour du marchand (balade.js, creerRais)
+    rais: [[27, 23.5], [29.5, 26.8], [24.8, 26]].map(([x, z], i) => ({ x, z, haut: 9, r0: 0.3, r1: 1.0 + 0.25 * i, force: 0.08 })),
     depart: { x: 28, z: -2.5, cap: Math.atan2(TORII.x - 28, TORII.z + 2.5) },
     // les images fixes des captures : de dos vers le torii, ou de face, le torii derrière
     photos: {

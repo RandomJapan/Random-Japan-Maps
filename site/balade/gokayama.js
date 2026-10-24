@@ -1246,19 +1246,16 @@ export function construire(ctx) {
   }
 
   // ---------------------------------------------------------------- Les rizières, le ruisseau
-  const mares = [];
+  const mares = [], eauxCalmes = [];
   {
     const a = atelier(), riz = atelier();
     RIZIERES.forEach((R, i) => {
       const [x0, x1, z0, z1] = R, f = fondRiziere(R), ye = f + 0.12, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
       mares.push([cx, cz]);
-      // l'eau (un peu de vert boueux), et ses lignes claires le long des bords
-      a.boite(x1 - x0 - 1.0, 0.02, z1 - z0 - 1.0, P.eauRiziere, { x: cx, y: ye, z: cz, trait: false, nuance: 0.02 });
-      for (const k of [0.82, 0.55]) {
-        const hx = (x1 - x0 - 1.0) / 2 * k, hz = (z1 - z0 - 1.0) / 2 * k;
-        const yl = ye + 0.03;
-        a.ruban([[cx - hx, yl, cz - hz], [cx + hx, yl, cz - hz], [cx + hx, yl, cz + hz], [cx - hx, yl, cz + hz], [cx - hx, yl, cz - hz]], 0.05, '#c8e4dc');
-      }
+      // le fond de boue ; l'eau elle-même, qui reflète le ciel, est dessinée par balade.js (eauxCalmes, 2026-10-24 :
+      // avant, une boîte bleu clair et deux lignes claires le long des bords)
+      a.boite(x1 - x0 - 1.0, 0.02, z1 - z0 - 1.0, P.boue, { x: cx, y: ye - 0.025, z: cz, trait: false, nuance: 0.02 });
+      eauxCalmes.push([x0 + 0.5, x1 - 0.5, z0 + 0.5, z1 - 0.5, ye + 0.016]);
       // le riz : des touffes en rangs (hautes et vertes, ou toutes petites dans les rizières qu'on vient de planter)
       const jeune = RIZ_JEUNE.includes(i), h = jeune ? 0.16 : 0.62, pasX = 0.42, pasZ = 0.36;
       for (let x = x0 + 0.85; x < x1 - 0.7; x += pasX) {
@@ -2795,6 +2792,7 @@ export function construire(ctx) {
       }
       return false;
     },
+    eauxCalmes,
     flaques: (x, z) => {
       for (const R of RIZIERES) if (x > R[0] + 0.5 && x < R[1] - 0.5 && z > R[2] + 0.5 && z < R[3] - 0.5) return fondRiziere(R) + 0.13;
       return null;
@@ -2816,6 +2814,10 @@ export function construire(ctx) {
     // grenouilles et les insectes la nuit, la kokiriko
     vent: { dir: [0.35, 0.94], force: 0.75 }, oiseaux: ['uguisu', 'milan', 'aosagi'], ambiances: ['riviere', 'ruisseau', 'grenouilles', 'insectes', 'kokiriko'],
     brume: [110, 1700],
+    // (2026-10-24) la brume posée au fond de la vallée, sur la rivière et au pied des forêts d'en face, d'où sortent les
+    // montagnes ; les rais de soleil entre les cèdres du sanctuaire et autour du marchand (balade.js, creerRais)
+    brumeVallee: { bas: RIVIERE_Y, haut: 32, force: 0.58, debut: 50 },
+    rais: [[-50, -21], [-56.5, -33], [-49, -29.5], [-59, -22.5], [-50.5, -39.5], [-55.5, -40.5]].map(([x, z], i) => ({ x, z, haut: 10, r0: 0.35, r1: 1.2 + 0.3 * (i % 3), force: 0.075 })),
     soleil: [-0.45, 0.72, 0.52],
     depart,
     photos: {

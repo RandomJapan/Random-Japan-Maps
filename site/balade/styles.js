@@ -290,6 +290,135 @@ export const SAISONS_GLSL = `
     return mix(c, vec3(0.93, 0.95, 1.0) * (0.9 + 0.1 * n.y), k * saisons.z * 0.95);
   }`;
 
+/**
+ * Ce que le soleil fait briller sur le décor (2026-10-24, « améliorer les graphismes ») : un reflet net sur la laque
+ * vermillon (le torii, les piliers), la tôle et, à peine, les tuiles vernissées ; et les feuillages à contre-jour, quand on
+ * regarde vers le soleil à travers eux, qui s'allument d'un vert doré (la lumière passe à travers les feuilles). Après
+ * les lumières (aomap_fragment) : geometryNormal, geometryViewDir et le soleil (directionalLights[0], la lune la nuit).
+ */
+const REFLETS_DECOR = `#include <aomap_fragment>
+  #if NUM_DIR_LIGHTS > 0
+  {
+    vec3 Ls = directionalLights[0].direction, Lc = directionalLights[0].color;
+    float m = floor(vMatiere + 0.5);
+    float brille = m == ${MATIERES.laque}.0 ? 1.0 : m == ${MATIERES.tole}.0 ? 0.7 : m == ${MATIERES.tuiles}.0 ? 0.3 : 0.0;
+    if (brille > 0.0) {
+      float sp = pow(max(dot(geometryNormal, normalize(Ls + geometryViewDir)), 0.0), m == ${MATIERES.tuiles}.0 ? 20.0 : 56.0);
+      totalEmissiveRadiance += Lc * brille * 0.2 * smoothstep(0.4, 0.62, sp);
+    }
+    float k = floor(vSaison.x + 0.5);
+    if (k > 20.5) k -= 20.0;
+    if ((k > 0.5 && k < 4.5) || abs(k - 11.0) < 0.5 || abs(k - 12.0) < 0.5) {
+      float contre = pow(max(dot(-geometryViewDir, Ls), 0.0), 4.0) * (0.35 + 0.65 * (1.0 - max(dot(geometryNormal, Ls), 0.0)));
+      totalEmissiveRadiance += diffuseColor.rgb * vec3(1.0, 1.12, 0.55) * Lc * contre * 0.26;
+    }
+  }
+  #endif`;
+
+/**
+ * Le liseré de lumière des personnages, comme dans Pokémon X et Y : le bord de leur silhouette, du côté du soleil,
+ * s'éclaire d'un trait doux (bleuté sous la lune) ; ils se détachent du décor.
+ */
+const LISERE_PERSO = `#include <aomap_fragment>
+  #if NUM_DIR_LIGHTS > 0
+  {
+    float bord = 1.0 - clamp(dot(geometryNormal, geometryViewDir), 0.0, 1.0);
+    float cote = clamp(dot(geometryNormal, directionalLights[0].direction) * 0.8 + 0.45, 0.0, 1.0);
+    totalEmissiveRadiance += (diffuseColor.rgb * 0.55 + 0.45) * directionalLights[0].color * smoothstep(0.6, 0.82, bord) * cote * 0.17;
+  }
+  #endif`;
+
+/**
+ * L'eau (la mer, la rivière, le ruisseau, les rizières) : de petites rides qui bougent (un bruit aux dérivées exactes :
+ * trois octaves, une seule lecture chacune), le ciel qui s'y reflète d'autant plus qu'on la regarde de biais (Fresnel),
+ * et le soleil (la lune la nuit) qui y allume des éclats nets et une traînée de lumière. Les rides s'effacent au loin
+ * (sinon elles scintillent) : l'eau lointaine devient un miroir du ciel, comme en vrai.
+ * eauSoleil : d'où vient la lumière (monde) ; eauCielHaut, eauCielHorizon : les couleurs du ciel (celles du ciel
+ * lui-même : elles changent avec la nuit).
+ */
+export const EAU_GLSL = `
+  uniform vec3 eauSoleil, eauCielHaut, eauCielHorizon;
+  float hasardE(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+  // un bruit lisse et ses dérivées (x : la valeur, yz : la pente selon x et z)
+  vec3 bruitE(vec2 p) {
+    vec2 i = floor(p), f = fract(p);
+    vec2 u = f * f * (3.0 - 2.0 * f), du = 6.0 * f * (1.0 - f);
+    float a = hasardE(i), b = hasardE(i + vec2(1.0, 0.0)), c = hasardE(i + vec2(0.0, 1.0)), d = hasardE(i + vec2(1.0, 1.0));
+    float k = a - b - c + d;
+    return vec3(a + (b - a) * u.x + (c - a) * u.y + k * u.x * u.y, du * vec2(b - a + k * u.y, c - a + k * u.x));
+  }
+  // la normale de l'eau en p (monde) : des rides qui vont dans trois directions ; force : leur hauteur (0 : un miroir)
+  vec3 normaleEau(vec2 p, float t, float force) {
+    vec2 g = bruitE(p * 0.55 + vec2(t * 0.23, t * 0.14)).yz * 0.55 * 0.6
+      + bruitE(p * 1.4 + vec2(-t * 0.19, t * 0.31)).yz * 1.4 * 0.28
+      + bruitE(p * 3.3 + vec2(t * 0.43, -t * 0.37)).yz * 3.3 * 0.1;
+    return normalize(vec3(-g.x * force, 1.0, -g.y * force));
+  }
+  // la force des rides selon la distance à l'œil
+  float ridesEau(vec3 p) { return 1.0 - smoothstep(18.0, 120.0, distance(p, cameraPosition)); }
+  // l'eau de couleur c en p, de normale n : le ciel reflété (fres : sa part, renvoyée), les éclats du soleil
+  vec3 eclairerEau(vec3 c, vec3 p, vec3 n, float nuit, float reflet, out float fres) {
+    vec3 V = normalize(cameraPosition - p);
+    fres = 0.03 + 0.97 * pow(1.0 - clamp(dot(n, V), 0.0, 1.0), 5.0);
+    vec3 r = reflect(-V, n);
+    vec3 ciel = mix(eauCielHorizon, eauCielHaut, pow(clamp(r.y, 0.0, 1.0), 0.5));
+    c = mix(c, ciel, clamp(fres * reflet, 0.0, 1.0));
+    float s = max(dot(r, eauSoleil), 0.0);
+    float eclat = smoothstep(0.5, 0.72, pow(s, 260.0));
+    float traine = pow(s, 16.0) * 0.16;
+    vec3 lum = mix(vec3(1.0, 0.97, 0.9), vec3(0.62, 0.7, 0.98) * 0.75, nuit);
+    return c + lum * (eclat * 0.85 + traine * (1.0 - 0.55 * nuit));
+  }`;
+
+/**
+ * Au fond de l'eau peu profonde (sous le niveau de la mer ou de la rivière du lieu), les reflets du soleil dansent : un
+ * réseau de lignes claires qui ondulent (les bords des cellules d'un pavage de Voronoï dont les germes tournent), deux
+ * réseaux mêlés. Ils s'effacent avec la profondeur, au loin (ils scintilleraient) et la nuit.
+ * eauSol : (niveau de l'eau, 1 s'il y en a, temps, nuit).
+ */
+const CAUSTIQUES_GLSL = `
+  uniform vec4 eauSol;
+  float reseau(vec2 p, float t) {
+    vec2 i = floor(p), f = fract(p);
+    float d1 = 8.0, d2 = 8.0;
+    for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
+      vec2 g = vec2(float(x), float(y));
+      vec2 h = vec2(hasard2(i + g), hasard2(i + g + 19.7));
+      vec2 o = g + 0.5 + 0.36 * sin(t * (0.7 + 0.6 * h) + 6.2832 * h.yx);
+      float d = dot(o - f, o - f);
+      if (d < d1) { d2 = d1; d1 = d; } else if (d < d2) d2 = d;
+    }
+    return 1.0 - smoothstep(0.0, 0.14, sqrt(d2) - sqrt(d1));
+  }
+  vec3 caustiques(vec3 p) {
+    if (eauSol.y < 0.5 || eauSol.w > 0.95) return vec3(0.0);
+    float prof = eauSol.x - p.y;
+    if (prof < 0.02 || prof > 2.6) return vec3(0.0);
+    vec2 q = p.xz * 1.15;
+    float flou = fwidth(q.x) + fwidth(q.y);
+    float k = smoothstep(0.02, 0.14, prof) * (1.0 - smoothstep(0.9, 2.6, prof)) * (1.0 - smoothstep(0.12, 0.35, flou)) * (1.0 - eauSol.w);
+    if (k < 0.01) return vec3(0.0);
+    float t = eauSol.z;
+    float c = max(reseau(q + vec2(t * 0.11, t * 0.07), t), 0.7 * reseau(q * 1.7 - vec2(t * 0.09, -t * 0.13) + 3.7, t * 1.3));
+    return vec3(1.0, 0.98, 0.86) * c * k * 0.32;
+  }`;
+
+/**
+ * L'ombre au pied des choses (une occlusion ambiante, calculée une fois : balade.js, carteOmbreSol) : le sol s'assombrit
+ * doucement au pied des murs, des troncs, des lanternes, des rochers, des clôtures et des buissons, là où le ciel en
+ * éclaire moins. ombreSol : au demi-mètre, 255 : rien, moins : plus sombre.
+ */
+const OMBRE_SOL_GLSL = `
+  uniform sampler2D ombreSol;
+  uniform vec4 zoneOmbre; // x0, z0, pas, 1 si la carte existe
+  uniform vec2 tailleOmbre;
+  float lireOmbreSol(vec2 xz) {
+    if (zoneOmbre.w < 0.5) return 1.0;
+    vec2 st = ((xz - zoneOmbre.xy) / zoneOmbre.z + 0.5) / tailleOmbre;
+    if (st.x < 0.0 || st.y < 0.0 || st.x > 1.0 || st.y > 1.0) return 1.0;
+    return texture(ombreSol, st).r;
+  }`;
+
 /** Un bruit lisse (GLSL) : 0 à 1, une bosse par unité. */
 const BRUIT_GLSL = `
   float hasard2(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
@@ -528,6 +657,7 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
         else if (vLueur > 1.5) totalEmissiveRadiance += diffuseColor.rgb * (0.75 + 0.5 * lueur);
         else if (vLueur > 0.5) totalEmissiveRadiance += mix(diffuseColor.rgb, vec3(1.0, 0.78, 0.45), 0.55 * (1.0 - clamp(diffuseColor.r - diffuseColor.b, 0.0, 1.0))) * 1.1 * lueur;`)
       .replace('#include <clipping_planes_fragment>', '#include <clipping_planes_fragment>\ncoupe();')
+      .replace('#include <aomap_fragment>', REFLETS_DECOR)
       .replace('#include <color_fragment>', `#include <color_fragment>
         {
           vec3 nf = normalize(cross(dFdx(vCoupe), dFdy(vCoupe)));
@@ -556,16 +686,19 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
   const carte = { carteSol: { value: null }, zoneSol: { value: new THREE.Vector4(0, 0, 1, 0) }, tailleSol: { value: new THREE.Vector2(1, 1) } };
   // la canopée (balade.js, carteCanopee) : où tombent les feuilles et les pétales
   const canopee = { canopee: { value: null }, zoneCanopee: { value: new THREE.Vector4(0, 0, 1, 0) }, tailleCanopee: { value: new THREE.Vector2(1, 1) } };
+  // l'ombre au pied des choses (balade.js, carteOmbreSol), et l'eau du lieu pour les reflets du soleil au fond
+  const ombreSol = { ombreSol: { value: null }, zoneOmbre: { value: new THREE.Vector4(0, 0, 1, 0) }, tailleOmbre: { value: new THREE.Vector2(1, 1) } };
+  const eauSol = { value: new THREE.Vector4(0, 0, 0, 0) };
   const sol = new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: douce });
   sol.onBeforeCompile = (s) => {
     Object.assign(s.uniforms, communs, carte, { saisons });
     eclairerParLampes(s, lampes);
-    Object.assign(s.uniforms, canopee);
+    Object.assign(s.uniforms, canopee, ombreSol, { eauSol });
     s.vertexShader = s.vertexShader
       .replace('#include <common>', '#include <common>\nattribute float motif;\nvarying float vMotif;\nvarying vec3 vMonde;\nvarying vec3 vMondeN;')
       .replace('#include <project_vertex>', '#include <project_vertex>\nvMotif = motif;\nvMonde = (modelMatrix * vec4(transformed, 1.0)).xyz;\nvMondeN = mat3(modelMatrix) * objectNormal;');
     s.fragmentShader = s.fragmentShader
-      .replace('#include <common>', `#include <common>\nvarying float vMotif;\nvarying vec3 vMonde;\nvarying vec3 vMondeN;${BRUIT_GLSL}${PEINDRE_GLSL}${PEINDRE_SOL_GLSL}${CARTE_SOL_GLSL}${SOL_SAISON_GLSL}`)
+      .replace('#include <common>', `#include <common>\nvarying float vMotif;\nvarying vec3 vMonde;\nvarying vec3 vMondeN;${BRUIT_GLSL}${PEINDRE_GLSL}${PEINDRE_SOL_GLSL}${CARTE_SOL_GLSL}${SOL_SAISON_GLSL}${CAUSTIQUES_GLSL}${OMBRE_SOL_GLSL}`)
       .replace('#include <color_fragment>', `#include <color_fragment>
         {
           float couche = floor(vMotif + 0.5);
@@ -576,7 +709,9 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
           // (la normale lissée du terrain, pas celle de chaque triangle : pas de facettes)
           vec3 nl = normalize(vMondeN);
           diffuseColor.rgb = solSaison(peindreSol(diffuseColor.rgb, couche, vMonde, nl), couche, vMonde, nl);
-        }`);
+          diffuseColor.rgb *= lireOmbreSol(vMonde.xz);
+        }`)
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += caustiques(vMonde);');
   };
   sol.customProgramCacheKey = () => 'sol-carte';
 
@@ -648,7 +783,8 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
       .replace('#include <project_vertex>', '#include <project_vertex>\nvLumP = abs(saison.x - 8.0) < 0.5 ? 1.0 : 0.0;');
     s.fragmentShader = s.fragmentShader
       .replace('#include <common>', '#include <common>\nvarying float vLumP;\nuniform float lueur;')
-      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += diffuseColor.rgb * vLumP * (0.35 + 0.9 * lueur);');
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += diffuseColor.rgb * vLumP * (0.35 + 0.9 * lueur);')
+      .replace('#include <aomap_fragment>', LISERE_PERSO);
   }
   /**
    * Un personnage qui se mouille (le joueur, Kon) : sous la ligne d'eau (ligne : en mètres au-dessus des pieds,
@@ -679,7 +815,7 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
   };
   return {
     corps, corpsPerso, sol, trait: creerTrait(true, epaisseurs.decor), traitPerso: creerTrait(false, epaisseurs.perso),
-    brume, coupe, ecran, epaisseurs, carte, canopee, details, vent, profondeur, persoMouille, lueur, lampes, saisons,
+    brume, coupe, ecran, epaisseurs, carte, canopee, ombreSol, eauSol, details, vent, profondeur, persoMouille, lueur, lampes, saisons,
   };
 }
 
@@ -737,22 +873,77 @@ export function passeFinale(THREE, style, { echantillons = 4, flou = true } = {}
       }
       sortie = s * 0.25;
     }`, { image: { value: image.texture }, profondeur: { value: profondeur }, texel, pres, loin, debut, fin });
+  // la lueur (2026-10-24) : ce qui est très clair (les lanternes la nuit, les éclats du soleil sur l'eau, le soleil)
+  // déborde en un halo doux. Une copie au quart des seules parties claires (au-delà d'un seuil, avec un genou doux),
+  // floutée en deux passes (horizontale, verticale : un flou gaussien de neuf points lus en cinq), ajoutée à l'image.
+  const lumA = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, depthBuffer: false });
+  const lumB = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, depthBuffer: false });
+  const seuil = { value: 0.97 }, forceLueur = { value: 0.25 };
+  const clairs = passe(`
+    precision highp float;
+    uniform sampler2D image;
+    uniform vec2 texel;
+    uniform float seuil;
+    in vec2 vUv;
+    out vec4 sortie;
+    void main() {
+      vec3 s = vec3(0.0);
+      for (int i = 0; i < 4; i++) {
+        vec3 c = texture(image, vUv + vec2(i % 2 == 0 ? -1.0 : 1.0, i < 2 ? -1.0 : 1.0) * texel).rgb;
+        float l = max(c.r, max(c.g, c.b));
+        float g = clamp(l - seuil + 0.08, 0.0, 0.16);
+        s += c * (max(l - seuil, 0.0) + g * g / 0.32) / max(l, 1e-4);
+      }
+      sortie = vec4(s * 0.25, 1.0);
+    }`, { image: { value: image.texture }, texel, seuil });
+  const sens = { value: new THREE.Vector2(1, 0) };
+  const flouLueur = passe(`
+    precision highp float;
+    uniform sampler2D source;
+    uniform vec2 sens;
+    in vec2 vUv;
+    out vec4 sortie;
+    void main() {
+      vec3 c = texture(source, vUv).rgb * 0.2270270;
+      c += (texture(source, vUv + sens * 1.3846154).rgb + texture(source, vUv - sens * 1.3846154).rgb) * 0.3162162;
+      c += (texture(source, vUv + sens * 3.2307692).rgb + texture(source, vUv - sens * 3.2307692).rgb) * 0.0702703;
+      sortie = vec4(c, 1.0);
+    }`, { source: { value: lumA.texture }, sens });
+  // la brume de la vallée (2026-10-24, Gokayama) : au loin, une nappe de brume posée au fond de la vallée (de bas à
+  // haut, en mètres), d'où sortent les montagnes. La position de chaque pixel dans le monde vient de sa profondeur
+  // (inverse de la projection et de la caméra).
+  const vallee = {
+    inverse: { value: new THREE.Matrix4() }, oeil: { value: new THREE.Vector3() },
+    valleeBas: { value: 0 }, valleeHaut: { value: 1 }, valleeForce: { value: 0 }, valleeDebut: { value: 60 }, valleeCouleur: { value: new THREE.Color() },
+  };
   const finale = passe(`
     precision highp float;
-    uniform sampler2D image, profondeur, reduite;
+    uniform sampler2D image, profondeur, reduite, lueur;
     uniform vec2 texelReduit, ecran;
-    uniform float force, saturation, vignette;
+    uniform float force, saturation, vignette, forceLueur;
+    uniform mat4 inverse;
+    uniform vec3 oeil, valleeCouleur;
+    uniform float valleeBas, valleeHaut, valleeForce, valleeDebut;
     ${LINEAIRE}
     in vec2 vUv;
     out vec4 sortie;
     void main() {
       vec3 c = texture(image, vUv).rgb;
-      float f = force > 0.0 ? lointain(texture(profondeur, vUv).r) * force : 0.0;
+      float dp = texture(profondeur, vUv).r;
+      float f = force > 0.0 ? lointain(dp) * force : 0.0;
       if (f > 0.002) {
         vec4 b = texture(reduite, vUv + vec2(-0.7, -0.7) * texelReduit) + texture(reduite, vUv + vec2(0.7, -0.7) * texelReduit)
           + texture(reduite, vUv + vec2(-0.7, 0.7) * texelReduit) + texture(reduite, vUv + vec2(0.7, 0.7) * texelReduit);
         c = mix(c, b.rgb / max(b.a, 1e-4), f * smoothstep(0.0, 0.4, b.a));
       }
+      if (valleeForce > 0.0 && dp < 0.999999) {
+        vec4 w = inverse * vec4(vUv * 2.0 - 1.0, dp * 2.0 - 1.0, 1.0);
+        vec3 p = w.xyz / w.w;
+        float d = distance(p, oeil);
+        float m = valleeForce * smoothstep(valleeDebut, valleeDebut * 3.0, d) * (1.0 - smoothstep(valleeBas, valleeHaut, p.y));
+        c = mix(c, valleeCouleur, clamp(m, 0.0, 1.0));
+      }
+      if (forceLueur > 0.0) c += texture(lueur, vUv).rgb * forceLueur;
       float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
       c = max(mix(vec3(l), c, saturation), 0.0);
       vec2 v = vUv - 0.5;
@@ -764,24 +955,63 @@ export function passeFinale(THREE, style, { echantillons = 4, flou = true } = {}
     image: { value: image.texture }, profondeur: { value: profondeur }, reduite: { value: reduite.texture },
     texelReduit, ecran: { value: new THREE.Vector2(1, 1) }, force: { value: flou ? R.flou.force : 0 },
     saturation: { value: R.saturation }, vignette: { value: R.vignette }, pres, loin, debut, fin,
+    lueur: { value: lumA.texture }, forceLueur, ...vallee,
   });
+  const texelLueur = new THREE.Vector2(1, 1);
+  let valleeBase = 0;
   return {
     /** La taille de l'écran, en pixels réels. */
     dimensionner(l, h) {
       image.setSize(l, h);
-      reduite.setSize(Math.max(1, Math.round(l / 4)), Math.max(1, Math.round(h / 4)));
+      const lq = Math.max(1, Math.round(l / 4)), hq = Math.max(1, Math.round(h / 4));
+      reduite.setSize(lq, hq);
+      lumA.setSize(lq, hq);
+      lumB.setSize(lq, hq);
       texel.value.set(1 / l, 1 / h);
       texelReduit.value.set(1 / reduite.width, 1 / reduite.height);
+      // (le flou de la lueur : un pas d'un texel et demi du quart, la même largeur à l'écran quelle que soit sa taille)
+      texelLueur.set(1.5 / lq, 1.5 / hq).multiplyScalar(Math.max(0.6, Math.min(1.6, h / 900)));
       finale.materiel.uniforms.ecran.value.set(l, h);
+    },
+    /** La lueur selon la nuit (0 le jour : seuls les éclats et le soleil ; 1 la nuit : les lanternes, les fenêtres). */
+    nuit(v) {
+      seuil.value = 0.97 + (0.5 - 0.97) * v;
+      forceLueur.value = 0.25 + (0.9 - 0.25) * v;
+      // (la brume de la vallée, plus légère la nuit : elle noyait les fenêtres éclairées du village)
+      vallee.valleeForce.value = valleeBase * (1 - 0.6 * v);
+    },
+    /** La brume de la vallée du lieu : { bas, haut, force, debut } (m), et sa couleur (un objet Color suivi : la brume). */
+    vallee({ bas, haut, force, debut = 60 }, couleur) {
+      vallee.valleeCouleur.value = couleur;
+      vallee.valleeBas.value = bas;
+      vallee.valleeHaut.value = haut;
+      vallee.valleeForce.value = valleeBase = force;
+      vallee.valleeDebut.value = debut;
     },
     rendre(rendu, scene, cam) {
       pres.value = cam.near;
       loin.value = cam.far;
+      if (vallee.valleeForce.value > 0) {
+        vallee.inverse.value.multiplyMatrices(cam.matrixWorld, cam.projectionMatrixInverse);
+        vallee.oeil.value.setFromMatrixPosition(cam.matrixWorld);
+      }
       rendu.setRenderTarget(image);
       rendu.render(scene, cam);
       if (flou) {
         rendu.setRenderTarget(reduite);
         rendu.render(reduction.scene, camera);
+      }
+      if (forceLueur.value > 0) {
+        rendu.setRenderTarget(lumA);
+        rendu.render(clairs.scene, camera);
+        sens.value.set(texelLueur.x, 0);
+        flouLueur.materiel.uniforms.source.value = lumA.texture;
+        rendu.setRenderTarget(lumB);
+        rendu.render(flouLueur.scene, camera);
+        sens.value.set(0, texelLueur.y);
+        flouLueur.materiel.uniforms.source.value = lumB.texture;
+        rendu.setRenderTarget(lumA);
+        rendu.render(flouLueur.scene, camera);
       }
       rendu.setRenderTarget(null);
       rendu.render(finale.scene, camera);
