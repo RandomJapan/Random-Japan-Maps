@@ -206,6 +206,26 @@ function composer(sr, r, duree) {
       }
       return c;
     },
+    /**
+     * De toutes petites bulles (l'eau qui court : 2026-10-24) : chacune une résonance brève (q oscillations environ, sa
+     * durée suit sa hauteur : quelques millisecondes), qui monte un peu (monte : de combien, à la fin) ; beaucoup de
+     * douces, peu de fortes ; densite(t) (0 à 1, facultatif) : plus ou moins serrées selon l'instant.
+     */
+    perles(nombre, { de, a, f: [f0, f1], g: [g0, g1], q: [q0, q1], monte = 0.2, densite = null }) {
+      for (let k = 0; k < nombre; k++) {
+        const t0 = de + (a - de) * r();
+        if (densite && r() > densite(t0)) continue;
+        const fb = f0 * (f1 / f0) ** r(), qq = q0 + (q1 - q0) * r(), tau = qq / (Math.PI * fb), amp = g0 + (g1 - g0) * r() ** 3;
+        const i0 = Math.round(t0 * sr), m = Math.ceil(tau * 5 * sr), fin = Math.min(n, i0 + m);
+        let ph = r() * TAU;
+        for (let i = i0; i < fin; i++) {
+          const t = (i - i0) / sr;
+          ph += (TAU * fb * (1 + (monte * t) / (tau * 5))) / sr;
+          b[i] += amp * Math.exp(-t / tau) * Math.sin(ph) * Math.min(1, (t * fb) / 1.2);
+        }
+      }
+      return c;
+    },
     /** Une planche qui grince : des à-coups (frottement collé-glissé) qui accélèrent, passés dans deux résonances. */
     craquer(t0, { duree, f0, f1, gain }) {
       const m = Math.ceil(duree * sr), x = new Float32Array(m);
@@ -377,6 +397,23 @@ function houle(r, ...periodes) {
   return (t) => 0.5 + 0.5 * p.reduce((s, [w, ph]) => s + Math.sin(w * t + ph), 0) / p.length;
 }
 
+/**
+ * Un tremblement d'environ f variations par seconde (de 0,2 à 30) : une courbe lisse par des points tirés au sort,
+ * de moyenne 0 et d'écart 1 (les filtres ne descendent pas sous 10 Hz).
+ */
+function tremble(n, sr, r, f) {
+  const pas = sr / f, k = Math.ceil(n / pas) + 4, v = Array.from({ length: k }, () => r() * 2 - 1), x = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const u = i / pas, j = Math.floor(u), t = u - j, p0 = v[j], p1 = v[j + 1], p2 = v[j + 2], p3 = v[j + 3];
+    x[i] = 0.5 * (2 * p1 + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t + (-p0 + 3 * p1 - 3 * p2 + p3) * t * t * t);
+  }
+  let s = 0, s2 = 0;
+  for (let i = 0; i < n; i++) { s += x[i]; s2 += x[i] * x[i]; }
+  const m = s / n, e = Math.sqrt(Math.max(1e-12, s2 / n - m * m));
+  for (let i = 0; i < n; i++) x[i] = (x[i] - m) / e;
+  return x;
+}
+
 const BOUCLES = {
   // le vent doux : un souffle grave qui enfle et retombe lentement
   ventDoux(sr, r) {
@@ -481,34 +518,62 @@ const BOUCLES = {
     }
     return normaliser([boucler(g, sr, F), boucler(d, sr, F)]);
   },
-  // la rivière Shō, en bas de sa gorge : un grondement grave, l'eau qui court (un bruit qui ondule), des glouglous ;
+  // la rivière Shō, en bas de sa gorge (refaite le 2026-10-24, comme le ruisseau) : un grondement grave qui roule (l'eau
+  // large et rapide), un souffle plus clair qui enfle et retombe, des bulles brèves et quelques glouglous graves ;
   // chaque oreille la sienne
   riviere(sr, r) {
-    const L = 12, F = 0.6, T = L + F, n = Math.ceil(T * sr), lent = houle(r, 3.1, 1.3, 0.7);
+    const L = 16, F = 0.8, T = L + F, n = Math.ceil(T * sr);
     const canaux = [0, 1].map((k) => {
-      const fond = brun(n, r);
-      filtrer(fond, sr, 'bas', 380, 0.7);
-      normaliser([fond], 0.55);
-      const eau = blanc(n, r);
-      filtrer(eau, sr, 'bande', 850 + k * 160, 0.55);
-      filtrer(eau, sr, 'bas', 2600);
-      normaliser([eau], 0.35);
-      const gl = composer(sr, r, T).bulles(300, { de: 0, a: T, f: [360, 1300], g: [0.04, 0.2] });
+      const moyen = tremble(n, sr, r, 2.5), lent = tremble(n, sr, r, 0.25);
+      const fond = brun(n, r), eau = blanc(n, r);
+      filtrer(fond, sr, 'bas', 380, 0.6);
+      filtrer(eau, sr, 'bande', 700 + k * 90, 0.6);
+      filtrer(eau, sr, 'bas', 2200, 0.7);
+      normaliser([fond]);
+      normaliser([eau]);
+      const b = composer(sr, r, T)
+        .perles(5000, { de: 0, a: T, f: [380, 2400], g: [0.02, 0.4], q: [5, 11], monte: 0.2 })
+        .perles(160, { de: 0, a: T, f: [160, 420], g: [0.2, 0.7], q: [8, 14], monte: 0.4 }).b;
+      normaliser([b]);
       const x = new Float32Array(n);
-      for (let i = 0; i < n; i++) { const t = i / sr; x[i] = fond[i] + eau[i] * (0.7 + 0.3 * lent(t + k * 2)) + gl.b[i] * 0.55; }
+      for (let i = 0; i < n; i++) x[i] = (fond[i] * 0.6 + eau[i] * 0.4 * (0.7 + 0.3 * Math.tanh(moyen[i])) + b[i] * 0.22) * (0.85 + 0.15 * Math.tanh(lent[i]));
+      filtrer(x, sr, 'bas', 4000, 0.7);
       return boucler(x, sr, F);
     });
     return normaliser(canaux);
   },
-  // le ruisseau du village : un babil de petites bulles, serré, sur un léger souffle d'eau
+  // le ruisseau du village (refait le 2026-10-24 : le propriétaire le trouvait horrible ; c'étaient 170 bulles par seconde,
+  // longues et chantantes, « bloup » : une casserole qui bout) : l'eau qui court sur les cailloux. Un souffle d'eau dans
+  // le médium dont la force tremble (l'eau qui se brise), des milliers de toutes petites bulles brèves (quelques
+  // millisecondes : un pétillement, pas des notes ; beaucoup de douces, peu de fortes ; plus serrées quand l'eau se
+  // brise), de temps en temps un glouglou plus grave, des éclaboussures qui crépitent ; chaque oreille les siennes
   ruisseau(sr, r) {
-    const L = 8, F = 0.4, T = L + F, n = Math.ceil(T * sr);
-    const c = composer(sr, r, T).bulles(1400, { de: 0, a: T, f: [520, 2600], g: [0.05, 0.32] });
-    const x = blanc(n, r);
-    filtrer(x, sr, 'bande', 2400, 0.6);
-    normaliser([x], 0.12);
-    for (let i = 0; i < n; i++) c.b[i] += x[i];
-    return normaliser([boucler(c.b, sr, F)]);
+    const L = 14, F = 0.6, T = L + F, n = Math.ceil(T * sr);
+    const canaux = [0, 1].map(() => {
+      const vite = tremble(n, sr, r, 14), moyen = tremble(n, sr, r, 3), lent = tremble(n, sr, r, 0.4);
+      const grave = blanc(n, r), clair = blanc(n, r);
+      filtrer(grave, sr, 'bande', 520, 0.8);
+      filtrer(grave, sr, 'bas', 1400, 0.7);
+      filtrer(clair, sr, 'bande', 1900, 0.7);
+      filtrer(clair, sr, 'haut', 900, 0.7);
+      normaliser([grave]);
+      normaliser([clair]);
+      const serre = (t) => 0.35 + 0.65 * lisse(-1.2, 1.2, vite[Math.min(n - 1, Math.floor(t * sr))]);
+      const b = composer(sr, r, T)
+        .perles(9000, { de: 0, a: T, f: [650, 3800], g: [0.02, 0.5], q: [6, 14], monte: 0.25, densite: serre })
+        .perles(120, { de: 0, a: T, f: [260, 650], g: [0.15, 0.6], q: [8, 14], monte: 0.5 })
+        .grains(500, { zones: [[0, T, 1]], f: [1500, 5000], d: [0.002, 0.006], g: [0.03, 0.15], q: 1.6 }).b;
+      normaliser([b]);
+      const x = new Float32Array(n);
+      for (let i = 0; i < n; i++) {
+        x[i] = grave[i] * 0.42 * (0.75 + 0.25 * Math.tanh(moyen[i])) * (0.8 + 0.2 * Math.tanh(lent[i]))
+          + clair[i] * 0.26 * (0.7 + 0.3 * Math.tanh(vite[i] * 0.8)) + b[i] * 0.5;
+      }
+      filtrer(x, sr, 'bas', 6500, 0.7);
+      filtrer(x, sr, 'haut', 110, 0.7);
+      return boucler(x, sr, F);
+    });
+    return normaliser(canaux);
   },
   // les rainettes des rizières, la nuit : chacune son chant, des « kerokero » rauques en rafales, à gauche, à droite
   grenouilles(sr, r) {

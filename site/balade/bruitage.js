@@ -31,8 +31,9 @@ const V = {
   ventDoux: [0.0035, 0.006], ventFort: 0.015, feuilles: [0.00075, 0.0043], vagues: 0.0085, vapeur: 0.02, insectes: 0.0056,
   no: 0.0085,
   // Gokayama (2026-10-23) : la rivière en bas de sa gorge, le ruisseau du village, les grenouilles des rizières, la
-  // kokiriko (comme le nō) ; le héron, le chien ; la planche creuse, les canons à eau, le papier, la cloche, les mains
-  riviere: 0.011, ruisseau: 0.008, grenouilles: 0.006, kokiriko: 0.0085, aosagi: 0.05, ouaf: 0.06,
+  // kokiriko (comme le nō) ; le héron, le chien ; la planche creuse, les canons à eau, le papier, la cloche, les mains.
+  // (2026-10-24 : le ruisseau refait, un peu moins fort, et entendu moins loin : balade.js)
+  riviere: 0.011, ruisseau: 0.007, grenouilles: 0.006, kokiriko: 0.0085, aosagi: 0.05, ouaf: 0.06,
   creux: 0.12, jets: 0.1, papier: 0.08, cloche: 0.07, claque: 0.1,
 };
 const lisse = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };

@@ -893,25 +893,29 @@ function carteOmbreSol(decor, lieu, pas = 0.5) {
 
 /**
  * L'eau qui coule (un ruisseau) : un ruban le long de son lit. uv : x, les mètres le long du lit (vers l'aval), y, de 0
- * à 1 d'une rive à l'autre ; ecume (0 à 1) : les petites chutes. Claire (on voit les cailloux du fond), plus foncée
- * au milieu ; des reflets étirés qui descendent le courant, l'écume des chutes qui bouillonne et file, un liseré
- * d'écume le long des bords ; la nuit, sombre, sauf sous les lanternes.
+ * à 1 d'une rive à l'autre ; ecume (0 à 1) : les chutes (et la cascade) ; sens : la direction du courant (x, z). Depuis
+ * le 2026-10-24 (le propriétaire : « la même eau que dans les rizières » ; avant, une eau turquoise pâle, des traînées
+ * blanches et un liseré d'écume le long des bords), celle de l'eau calme (creerEauxCalmes) : un vert de boue qui reflète
+ * le ciel comme un miroir dès qu'on la regarde de biais, le reflet sombre des murets de pierre le long des bords ; des
+ * rides qui descendent le courant ; l'écume blanche seulement là où l'eau tombe ; la nuit, sombre, la lune et les
+ * lanternes s'y reflètent. Des deux côtés : la cascade tombe, on la voit d'en haut par-derrière.
  */
 function creerEauCourante(geo, P, lampes, lieu, ciel) {
   const mat = new THREE.ShaderMaterial({
-    transparent: true, depthWrite: false, fog: true,
+    transparent: true, depthWrite: false, fog: true, side: THREE.DoubleSide,
     uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
-      clair: { value: new THREE.Color(P.eauClaire) }, profond: { value: new THREE.Color(P.eauProfonde) },
-      ecume: { value: new THREE.Color(P.ecume) }, temps: { value: 0 }, nuit: { value: 0 },
+      boue: { value: new THREE.Color('#5f6a45') }, ecume: { value: new THREE.Color(P.ecume) }, temps: { value: 0 }, nuit: { value: 0 },
     }]),
     vertexShader: `
       attribute float ecume;
-      varying vec2 vUv;
+      attribute vec2 sens;
+      varying vec2 vUv, vSens;
       varying float vEcume;
       varying vec3 vMonde;
       #include <fog_pars_vertex>
       void main() {
         vUv = uv;
+        vSens = sens;
         vEcume = ecume;
         vec4 monde = modelMatrix * vec4(position, 1.0);
         vMonde = monde.xyz;
@@ -920,43 +924,36 @@ function creerEauCourante(geo, P, lampes, lieu, ciel) {
         #include <fog_vertex>
       }`,
     fragmentShader: `
-      uniform vec3 clair, profond, ecume;
+      uniform vec3 boue, ecume;
       uniform float temps, nuit;
-      varying vec2 vUv;
+      varying vec2 vUv, vSens;
       varying float vEcume;
       varying vec3 vMonde;
       #include <fog_pars_fragment>
       ${LAMPES_GLSL}
       ${EAU_GLSL}
-      float hasard2(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
-      float bruit2(vec2 p) {
-        vec2 i = floor(p), f = fract(p);
-        f = f * f * (3.0 - 2.0 * f);
-        return mix(mix(hasard2(i), hasard2(i + vec2(1.0, 0.0)), f.x), mix(hasard2(i + vec2(0.0, 1.0)), hasard2(i + vec2(1.0, 1.0)), f.x), f.y);
-      }
       void main() {
-        float s = vUv.x, bord = abs(vUv.y - 0.5) * 2.0;
-        vec3 c = mix(profond, clair, 0.45 + 0.55 * bord);
-        // le courant : des reflets étirés le long du lit, qui descendent ; de petites rides plus sombres
-        float n = bruit2(vec2(s * 1.1 - temps * 1.1, vUv.y * 6.0)) * 0.6 + bruit2(vec2(s * 2.7 - temps * 1.9, vUv.y * 11.0 + 3.1)) * 0.4;
-        c = mix(c, ecume, smoothstep(0.66, 0.84, n) * 0.5);
-        c *= 1.0 - 0.12 * smoothstep(0.55, 0.75, bruit2(vec2(s * 3.4 - temps * 2.4, vUv.y * 9.0 + 7.0)));
-        // l'écume des chutes, qui bouillonne et file vers l'aval ; un liseré le long des bords
-        float b = bruit2(vec2(s * 4.0 - temps * 3.0, vUv.y * 10.0)) * 0.6 + bruit2(vec2(s * 9.0 - temps * 4.0, vUv.y * 21.0)) * 0.4;
-        float e = clamp(vEcume * (0.55 + 0.9 * b), 0.0, 1.0);
-        e = max(e, smoothstep(0.84, 1.0, bord) * (0.25 + 0.5 * b));
-        c = mix(c, ecume, e);
-        float a = mix(0.72, 0.95, e);
+        // (dans le repère du lit : s le long, vers l'aval, w en travers, en mètres ; bord : la distance au muret)
+        float s = vUv.x, w = (vUv.y - 0.5) * 1.24, bord = 0.62 - abs(w);
+        vec3 c = boue * (0.9 + 0.2 * bruitE(vec2(s * 0.35 - temps * 0.3, w * 0.6)).x);
         vec3 lampe = c * lumiereLampes(vMonde, vec3(0.0, 1.0, 0.0));
         c *= mix(vec3(1.0), vec3(0.22, 0.27, 0.45), nuit);
-        // (2026-10-24) les rides vives du courant, le ciel qui s'y reflète, les éclats du soleil ; pas sur l'écume
-        vec3 nr = normaleEau(vMonde.xz * 1.7 + vec2(temps * 0.6, -temps * 0.4), temps * 1.6, 0.4 * ridesEau(vMonde));
+        // les rides, dans le repère du lit, qui descendent le courant, tournées dans le monde (t : vers l'aval)
+        vec3 nl = normaleEau(vec2(s * 1.3 - temps * 1.2, w * 1.3), temps * 0.8, 0.22 * ridesEau(vMonde));
+        vec2 t = normalize(vSens + vec2(1e-5, 0.0));
+        vec3 n = normalize(vec3(nl.x * t.x - nl.z * t.y, nl.y, nl.x * t.y + nl.z * t.x));
         float fres;
-        vec3 cl = eclairerEau(c, vMonde, nr, nuit, 0.5, fres);
-        c = mix(cl, c, e);
-        a = mix(a, 1.0, fres * 0.4);
-        c += lampe * 0.8;
-        gl_FragColor = vec4(c, a);
+        c = eclairerEau(c, vMonde, n, nuit, 0.85, fres);
+        c = mix(c, eauCielHaut, 0.2 * fres);
+        // le long des bords, les murets de pierre s'y reflètent (une bande sombre, ondulée)
+        float murets = 1.0 - smoothstep(0.1, 0.34 + 0.1 * bruitE(vec2(s * 2.1, w * 2.1)).x, bord);
+        c = mix(c, vec3(0.28, 0.29, 0.25) * mix(1.0, 0.3, nuit), murets * 0.6);
+        // l'écume, là où l'eau tombe : elle bouillonne et file vers l'aval
+        float b = bruitE(vec2(s * 4.0 - temps * 3.0, w * 8.0)).x * 0.6 + bruitE(vec2(s * 9.0 - temps * 4.2, w * 17.0)).x * 0.4;
+        float e = clamp(vEcume * (0.4 + 0.9 * b), 0.0, 1.0);
+        c = mix(c, ecume * mix(1.0, 0.4, nuit), e);
+        c += lampe * 1.2;
+        gl_FragColor = vec4(c, mix(mix(0.8, 0.97, fres), 0.95, e));
         #include <colorspace_fragment>
         #include <fog_fragment>
       }`,
@@ -2747,7 +2744,7 @@ function vivre(dt, temps, pasJoueur, pasKon) {
     for (let k = 0; k < ligne.length - 1; k++) {
       const [x0, z0] = ligne[k], [x1, z1] = ligne[k + 1], dx = x1 - x0, dz = z1 - z0;
       const f = Math.min(1, Math.max(0, ((x - x0) * dx + (z - z0) * dz) / (dx * dx + dz * dz || 1)));
-      const px = x0 + f * dx, pz = z0 + f * dz, v = 1 - lisse(1.5, 20, Math.hypot(x - px, z - pz));
+      const px = x0 + f * dx, pz = z0 + f * dz, v = 1 - lisse(1.5, 16, Math.hypot(x - px, z - pz));
       if (v > ruisseau) { ruisseau = v; panRuisseau = panDe(px, pz); }
     }
   }

@@ -900,7 +900,13 @@ export function creerPersonnage(ctx, T) {
     // le col croisé (gauche sur droite) du kimono
     for (const s of [-1, 1]) b.boite(0.05, 0.24, 0.02, T.col, { x: s * 0.04, y: 0.7, z: 0.165, rz: s * 0.42, trait: false });
   }
-  if (T.tablier) b.boite(0.27, 0.42, 0.03, T.tablier, { y: 0.5, z: 0.19, rx: 0.08 }).boite(0.3, 0.035, 0.36, T.tablier, { y: 0.66, trait: false });
+  if (T.tablier) {
+    // le tablier (2026-10-24 : une plaque plate qui flottait devant le buste, comme une feuille tenue à la main) : un pan
+    // courbe qui suit le devant du corps, de la taille aux genoux (plus ample sur une jupe), et sa ceinture nouée
+    const bas0 = bas.sorte === 'jupe' || long ? 0.32 : 0.25, haut0 = bas.sorte === 'jupe' || long ? 0.2 : 0.215;
+    b.piece(new THREE.CylinderGeometry(haut0, bas0, 0.42, 14, 2, true, -0.95, 1.9), T.tablier, { y: 0.41 })
+      .cylindre(0.2, 0.2, 0.035, 16, T.tablier, { y: 0.61, sz: 0.93 });
+  }
   if (T.sac?.sorte === 'dos') {
     b.ovale(0.17, T.sac.c, { y: 0.62, z: -0.2, sx: 1.0, sy: 1.08, sz: 0.55 }, 12)
       .ovale(0.12, T.sac.c, { y: 0.72, z: -0.24, sx: 1.12, sy: 0.4, sz: 0.5 }, 10)
@@ -1220,6 +1226,13 @@ export function creerPersonnage(ctx, T) {
         bras[0].rotation.x = -0.55 + 0.25 * o; bras[1].rotation.x = -0.8 + 0.2 * o;
         bras[0].rotation.z = -0.2 + 0.3 * o; bras[1].rotation.z = 0.4 + 0.25 * o;
         corps.rotation.y = 0.3 * o; corps.rotation.x = 0.2 + courbe;
+      } else if (T.pose === 'washi') {
+        // faire le papier (nagashi-zuki, 2026-10-24) : les deux mains tiennent le bord du cadre pendu au-dessus de la cuve
+        // et le balancent d'avant en arrière, le corps penché qui suit (le même sinus que le cadre : gokayama.js)
+        const o = Math.sin(temps * 1.8);
+        bras[0].rotation.x = bras[1].rotation.x = -1.2 - 0.12 * o;
+        bras[0].rotation.z = -0.1; bras[1].rotation.z = 0.1;
+        corps.rotation.x = 0.16 + 0.04 * o + courbe;
       }
       return pose;
     },
