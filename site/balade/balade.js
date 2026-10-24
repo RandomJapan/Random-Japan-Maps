@@ -149,6 +149,9 @@ function construire() {
   const touffes = creerTouffes(lieu, carte, mats);
   groupe.add(touffes.groupe);
   const eau = lieu.eau ? creerEau(lieu, P, mats.lampes) : null;
+  // l'eau qui coule (un ruisseau : lieu.courants, des rubans le long de son lit)
+  const courants = (lieu.courants || []).map((g) => creerEauCourante(g, P, mats.lampes));
+  for (const c of courants) groupe.add(c);
   const ciel = creerCiel(P, lieu.soleil);
   const etoiles = creerEtoiles();
   ciel.add(etoiles);
@@ -236,7 +239,7 @@ function construire() {
   M = {
     carte, effets, lueurs, betes, mouilleJoueur, mouilleKon, feuillage: densiteFeuillage(lieu), bruitage: creerBruitage({ oiseaux: lieu.oiseaux || [], ambiances: lieu.ambiances || [], betes: [...(lieu.betes?.chats?.length ? ['miaou', 'ronron'] : []), ...(lieu.betes?.chiens?.length ? ['ouaf'] : [])], extras: lieu.sons || [] }), musique: creerMusique(lieu.id), focale: 800,
     marchand, feux, chutes, sac: new Set(), trace: null, saison: 'ete', flash: { v: 0, c: new THREE.Color() }, hemiBase: { intensite: 0, couleur: new THREE.Color() },
-    style, ctx, mats, lieu, groupe, decor, voyageurs, compagnons, kon: null, cadre: null, passants, daims, mouettes, eau, ciel, soleil, hemi, etoiles, vapeurs, touffes, finale: passeFinale(THREE, style, { echantillons: params.get('aa') === '0' ? 0 : 4, flou: params.get('flou') !== '0' }), cible: null, sauvage: null, nuit: { v: 0, cible: 0, fin: null } };
+    style, ctx, mats, lieu, groupe, decor, voyageurs, compagnons, kon: null, cadre: null, passants, daims, mouettes, eau, courants, ciel, soleil, hemi, etoiles, vapeurs, touffes, finale: passeFinale(THREE, style, { echantillons: params.get('aa') === '0' ? 0 : 4, flou: params.get('flou') !== '0' }), cible: null, sauvage: null, nuit: { v: 0, cible: 0, fin: null } };
   choisirVoyageur(sorte || 'garcon');
   choisirCompagnon(espece || 'kon');
   for (const s of ['garcon', 'fille']) habiller(s);
@@ -542,7 +545,18 @@ function terrain(lieu, mats, e, leve = 0, trou = null, carte = null) {
       motif[k / 3] = m;
     }
   }
-  const index = [];
+  // les cases que le lieu veut plus fines (lieu.solDetaille : le lit d'un ruisseau, les bords d'une rizière, un
+  // escalier dans la pente) : chacune en DET × DET ; sur un bord qu'elle partage avec une case ordinaire, ses points
+  // suivent le bord droit de celle-ci (pas de fente entre les deux)
+  const DET = 4, detaille = carte && lieu.solDetaille ? new Uint8Array(nx * nz) : null;
+  const caseFine = (i, j) => !!detaille && i >= 0 && j >= 0 && i < nx && j < nz && detaille[j * nx + i] === 1;
+  const index = [], fines = [];
+  for (let j = 0; j < nz; j++) {
+    for (let i = 0; i < nx; i++) {
+      const x0 = e.x0 + i * e.pas, z0 = e.z0 + j * e.pas, x1 = x0 + e.pas, z1 = z0 + e.pas;
+      if (detaille && !lieu.trouSol?.(x0, z0, x1, z1) && lieu.solDetaille(x0, z0, x1, z1)) detaille[j * nx + i] = 1;
+    }
+  }
   for (let j = 0; j < nz; j++) {
     for (let i = 0; i < nx; i++) {
       const a = j * (nx + 1) + i, b = a + 1, d = a + nx + 1, f = d + 1;
@@ -550,13 +564,45 @@ function terrain(lieu, mats, e, leve = 0, trou = null, carte = null) {
       if (trou && x0 >= trou.x0 && x1 <= trou.x1 && z0 >= trou.z0 && z1 <= trou.z1) continue;
       // les trous de la grille fine que le lieu demande (l'entrée d'un tunnel : le sol y monterait devant)
       if (carte && lieu.trouSol?.(x0, z0, x1, z1)) continue;
+      if (caseFine(i, j)) { fines.push([i, j]); continue; }
       index.push(a, d, b, b, d, f);
     }
   }
+  const posPlus = [], colPlus = [], motifPlus = [];
+  let base = (nx + 1) * (nz + 1);
+  for (const [i, j] of fines) {
+    const x0 = e.x0 + i * e.pas, z0 = e.z0 + j * e.pas, p = e.pas;
+    const h00 = lieu.terrain(x0, z0), h10 = lieu.terrain(x0 + p, z0), h01 = lieu.terrain(x0, z0 + p), h11 = lieu.terrain(x0 + p, z0 + p);
+    for (let v = 0; v <= DET; v++) {
+      for (let u = 0; u <= DET; u++) {
+        const fu = u / DET, fv = v / DET, x = x0 + fu * p, z = z0 + fv * p;
+        let h;
+        if (v === 0 && !caseFine(i, j - 1)) h = h00 + (h10 - h00) * fu;
+        else if (v === DET && !caseFine(i, j + 1)) h = h01 + (h11 - h01) * fu;
+        else if (u === 0 && !caseFine(i - 1, j)) h = h00 + (h01 - h00) * fv;
+        else if (u === DET && !caseFine(i + 1, j)) h = h10 + (h11 - h10) * fv;
+        else h = lieu.terrain(x, z);
+        const [teinte, m] = carte.lire(Math.round((x - carte.x0) / carte.pas), Math.round((z - carte.z0) / carte.pas));
+        c.set(teinte);
+        const n = 1 + 0.04 * (Math.sin(x * 1.3 + z * 0.7) * Math.sin(z * 1.1 - x * 0.4));
+        posPlus.push(x, h + leve, z);
+        colPlus.push(c.r * n, c.g * n, c.b * n);
+        motifPlus.push(m);
+      }
+    }
+    for (let v = 0; v < DET; v++) {
+      for (let u = 0; u < DET; u++) {
+        const a = base + v * (DET + 1) + u, b = a + 1, d = a + DET + 1, f = d + 1;
+        index.push(a, d, b, b, d, f);
+      }
+    }
+    base += (DET + 1) * (DET + 1);
+  }
+  const joindre = (A, B) => { const R = new Float32Array(A.length + B.length); R.set(A); R.set(B, A.length); return R; };
   const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  g.setAttribute('color', new THREE.BufferAttribute(col, 3));
-  g.setAttribute('motif', new THREE.BufferAttribute(motif, 1));
+  g.setAttribute('position', new THREE.BufferAttribute(joindre(pos, posPlus), 3));
+  g.setAttribute('color', new THREE.BufferAttribute(joindre(col, colPlus), 3));
+  g.setAttribute('motif', new THREE.BufferAttribute(joindre(motif, motifPlus), 1));
   g.setIndex(index);
   g.computeVertexNormals();
   const m = new THREE.Mesh(g, mats.sol);
@@ -639,6 +685,75 @@ function creerEau(lieu, P, lampes) {
   // (les mêmes uniformes que le décor : UniformsUtils.merge les aurait copiés)
   Object.assign(mat.uniforms, lampes);
   const m = new THREE.Mesh(g, mat);
+  m.renderOrder = 1;
+  return m;
+}
+
+/**
+ * L'eau qui coule (un ruisseau) : un ruban le long de son lit. uv : x, les mètres le long du lit (vers l'aval), y, de 0
+ * à 1 d'une rive à l'autre ; ecume (0 à 1) : les petites chutes. Claire (on voit les cailloux du fond), plus foncée
+ * au milieu ; des reflets étirés qui descendent le courant, l'écume des chutes qui bouillonne et file, un liseré
+ * d'écume le long des bords ; la nuit, sombre, sauf sous les lanternes.
+ */
+function creerEauCourante(geo, P, lampes) {
+  const mat = new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, fog: true,
+    uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
+      clair: { value: new THREE.Color(P.eauClaire) }, profond: { value: new THREE.Color(P.eauProfonde) },
+      ecume: { value: new THREE.Color(P.ecume) }, temps: { value: 0 }, nuit: { value: 0 },
+    }]),
+    vertexShader: `
+      attribute float ecume;
+      varying vec2 vUv;
+      varying float vEcume;
+      varying vec3 vMonde;
+      #include <fog_pars_vertex>
+      void main() {
+        vUv = uv;
+        vEcume = ecume;
+        vec4 monde = modelMatrix * vec4(position, 1.0);
+        vMonde = monde.xyz;
+        vec4 mvPosition = viewMatrix * monde;
+        gl_Position = projectionMatrix * mvPosition;
+        #include <fog_vertex>
+      }`,
+    fragmentShader: `
+      uniform vec3 clair, profond, ecume;
+      uniform float temps, nuit;
+      varying vec2 vUv;
+      varying float vEcume;
+      varying vec3 vMonde;
+      #include <fog_pars_fragment>
+      ${LAMPES_GLSL}
+      float hasard2(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+      float bruit2(vec2 p) {
+        vec2 i = floor(p), f = fract(p);
+        f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(hasard2(i), hasard2(i + vec2(1.0, 0.0)), f.x), mix(hasard2(i + vec2(0.0, 1.0)), hasard2(i + vec2(1.0, 1.0)), f.x), f.y);
+      }
+      void main() {
+        float s = vUv.x, bord = abs(vUv.y - 0.5) * 2.0;
+        vec3 c = mix(profond, clair, 0.45 + 0.55 * bord);
+        // le courant : des reflets étirés le long du lit, qui descendent ; de petites rides plus sombres
+        float n = bruit2(vec2(s * 1.1 - temps * 1.1, vUv.y * 6.0)) * 0.6 + bruit2(vec2(s * 2.7 - temps * 1.9, vUv.y * 11.0 + 3.1)) * 0.4;
+        c = mix(c, ecume, smoothstep(0.66, 0.84, n) * 0.5);
+        c *= 1.0 - 0.12 * smoothstep(0.55, 0.75, bruit2(vec2(s * 3.4 - temps * 2.4, vUv.y * 9.0 + 7.0)));
+        // l'écume des chutes, qui bouillonne et file vers l'aval ; un liseré le long des bords
+        float b = bruit2(vec2(s * 4.0 - temps * 3.0, vUv.y * 10.0)) * 0.6 + bruit2(vec2(s * 9.0 - temps * 4.0, vUv.y * 21.0)) * 0.4;
+        float e = clamp(vEcume * (0.55 + 0.9 * b), 0.0, 1.0);
+        e = max(e, smoothstep(0.84, 1.0, bord) * (0.25 + 0.5 * b));
+        c = mix(c, ecume, e);
+        float a = mix(0.72, 0.95, e);
+        vec3 lampe = c * lumiereLampes(vMonde, vec3(0.0, 1.0, 0.0));
+        c *= mix(vec3(1.0), vec3(0.22, 0.27, 0.45), nuit);
+        c += lampe * 0.8;
+        gl_FragColor = vec4(c, a);
+        #include <colorspace_fragment>
+        #include <fog_fragment>
+      }`,
+  });
+  Object.assign(mat.uniforms, lampes);
+  const m = new THREE.Mesh(geo, mat);
   m.renderOrder = 1;
   return m;
 }
@@ -840,6 +955,7 @@ function appliquerNuit(v) {
   scene.fog.color.copy(u.horizon.value);
   M.mats.brume.couleur.value.copy(u.horizon.value);
   if (M.eau) M.eau.material.uniforms.nuit.value = v;
+  for (const c of M.courants) c.material.uniforms.nuit.value = v;
   if (M.vapeurs) M.vapeurs.material.uniforms.nuit.value = v;
   M.etoiles.material.uniforms.nuit.value = v;
   M.mats.lueur.value = v; // les lanternes s'allument
@@ -1408,6 +1524,8 @@ const attendre = (ms) => new Promise((r) => setTimeout(r, ms));
 // le dessus) ; il se relève là où il était debout (le siège, lui, est dans ce qui arrête : on y restait coincé).
 // libre : il y reste jusqu'à ce qu'il veuille marcher (ou A : se lever) ; cote : la place du compagnon sur le banc
 let siege = null, vueAvantSiege = null, debout = null;
+/** L'échelle qu'on monte ou descend (jeu.grimper) : { points, duree, t, fin }, ou null. */
+let grimpe = null;
 /** Se lever d'un banc où l'on restait assis : la caméra reste où elle est (on repart de là). */
 function seLever() {
   vueAvantSiege = null;
@@ -1529,6 +1647,15 @@ const jeu = {
     Object.assign(etat, { x, z, y: M.lieu.monde.hauteur(x, z, (y ?? etat.y) + 0.5), vx: 0, vz: 0 });
     if (cap !== undefined) etat.cap = cap;
   },
+  /**
+   * Monter (ou descendre) une échelle : le voyageur suit les points [[x, y, z], …] en duree secondes, tourné vers cap,
+   * les mains l'une au-dessus de l'autre ; se résout en haut (ou en bas).
+   */
+  grimper: (points, duree = 1.8, cap) => new Promise((fin) => {
+    grimpe = { points, duree, t: 0, fin };
+    if (cap !== undefined) etat.cap = cap;
+    M.joueur.geste('grimper');
+  }),
   /** Un son : 'magie' (son.js), ou un son du bruitage ('pelle', 'boite'). */
   son: (nom) => { if (nom === 'magie') son.magie(); else M.bruitage.jouerSon(nom); },
   /** Des mottes de terre jetées en (x, y, z), qui retombent à la hauteur sol. */
@@ -1944,18 +2071,29 @@ function avancer(dt) {
   let dx = fx * avant + rx * cote, dz = fz * avant + rz * cote;
   if (m > 1) { dx /= m; dz /= m; m = 1; }
   if (siege?.libre && m > 0.3) seLever(); // assis sur un banc : on se lève dès qu'on veut marcher
-  const dansLEau = L.eau && L.terrain(etat.x, etat.z) < (L.eau.niveau || 0) - 0.05 && etat.y < (L.eau.niveau || 0) + 0.5;
+  const ne = niveauEau(etat.x, etat.z), dansLEau = ne != null && L.terrain(etat.x, etat.z) < ne - 0.05 && etat.y < ne + 0.5;
   const course = appuye('ShiftLeft', 'ShiftRight') || Math.hypot(joy.x, joy.y) > 0.92;
   const vmax = (course ? COURSE : MARCHE) * (dansLEau ? 0.62 : 1);
   const k = Math.min(1, dt * 10);
   etat.vx += (dx * vmax - etat.vx) * k;
   etat.vz += (dz * vmax - etat.vz) * k;
+  if (grimpe) {
+    // sur l'échelle : le voyageur en suit les points, sans marcher
+    const g = grimpe, Q = g.points, n = Q.length - 1;
+    g.t = Math.min(1, g.t + dt / g.duree);
+    const f = g.t * n, i = Math.min(n - 1, Math.floor(f)), u = f - i;
+    etat.x = Q[i][0] + (Q[i + 1][0] - Q[i][0]) * u;
+    etat.y = Q[i][1] + (Q[i + 1][1] - Q[i][1]) * u;
+    etat.z = Q[i][2] + (Q[i + 1][2] - Q[i][2]) * u;
+    etat.vx = etat.vz = 0;
+    if (g.t >= 1) { grimpe = null; M.joueur.geste(null); g.fin(); }
+  }
   // on glisse le long des obstacles : d'abord le mouvement entier, sinon le même tourné de plus en plus (moins vite :
   // la part qui longe l'obstacle), d'un côté puis de l'autre ; enfin chaque axe à part. (Le long d'une main
   // courante en biais, ni l'axe x ni l'axe z ne passaient : on restait coincé, 2026-10-23.)
   const nx = etat.x + etat.vx * dt, nz = etat.z + etat.vz * dt;
-  let bouge = monde.libre(nx, nz, etat.y, autres);
-  if (bouge) { etat.x = nx; etat.z = nz; }
+  let bouge = grimpe || monde.libre(nx, nz, etat.y, autres);
+  if (bouge && !grimpe) { etat.x = nx; etat.z = nz; }
   for (let i = 1; !bouge && i <= 8; i++) {
     const a = Math.ceil(i / 2) * 0.32 * (i % 2 ? 1 : -1), c = Math.cos(a), s = Math.sin(a);
     const vx = (etat.vx * c + etat.vz * s) * c, vz = (etat.vz * c - etat.vx * s) * c;
@@ -1965,7 +2103,7 @@ function avancer(dt) {
     if (monde.libre(nx, etat.z, etat.y, autres)) { etat.x = nx; etat.vz *= 0.5; } else if (monde.libre(etat.x, nz, etat.y, autres)) { etat.z = nz; etat.vx *= 0.5; } else { etat.vx = etat.vz = 0; }
   }
   etat.vitesse = Math.hypot(etat.vx, etat.vz);
-  etat.y += (monde.hauteur(etat.x, etat.z, etat.y) - etat.y) * Math.min(1, dt * 18);
+  if (!grimpe) etat.y += (monde.hauteur(etat.x, etat.z, etat.y) - etat.y) * Math.min(1, dt * 18);
   if (m > 0.05) etat.cap = tourner(etat.cap, Math.atan2(dx, dz), dt * 10);
   if (siege) Object.assign(etat, { x: siege.x, z: siege.z, y: siege.y - ASSIS, cap: siege.cap, vx: 0, vz: 0, vitesse: 0 });
   if (debout && siege) debout.t += dt;
@@ -2002,7 +2140,8 @@ function avancer(dt) {
       if (monde.libre(rxn, rzn, renard.y)) { renard.x = rxn; renard.z = rzn; }
       renard.cap = tourner(renard.cap, Math.atan2(ex, ez), dt * 8);
     } else renard.cap = tourner(renard.cap, Math.atan2(etat.x - renard.x, etat.z - renard.z), dt * 3);
-    if (d > 8) { renard.x = cx; renard.z = cz; renard.y = etat.y; } // resté coincé (un escalier, un coin) : il rejoint
+    // resté coincé (un escalier, un coin), ou en bas d'une échelle : il rejoint
+    if (d > 8 || (!grimpe && Math.abs(renard.y - etat.y) > 2.2)) { renard.x = cx; renard.z = cz; renard.y = etat.y; }
     renard.y += (monde.hauteur(renard.x, renard.z, renard.y) - renard.y) * Math.min(1, dt * 14);
     // la loutre nage là où l'eau lui monte au-dessus des pattes : elle flotte, la tête hors de l'eau
     renard.nage = false;
@@ -2072,11 +2211,18 @@ function matiereDuSol(x, z, h) {
   if (i >= 0 && j >= 0 && i < c.nx && j < c.nz) return c.lire(i, j)[1];
   return M.lieu.aspectSol(x, z, h)[1];
 }
+/** La surface de l'eau en x, z : une flaque du lieu (une rizière : lieu.flaques(x, z)), ou sa grande eau ; sinon null. */
+function niveauEau(x, z) {
+  const L = M.lieu, f = L.flaques?.(x, z);
+  if (f != null) return f;
+  const e = L.eau;
+  return e && x > e.x0 && x < e.x1 && z > e.z0 && z < e.z1 ? e.niveau || 0 : null;
+}
 /** Sous les pieds en x, z, à la hauteur y : le sol (bruitage-calcul.js, SOLS), la profondeur d'eau, la hauteur du sol naturel. */
 function sousLesPieds(x, z, y) {
   const L = M.lieu, h = L.terrain(x, z);
   if (y > h + 0.12) return { sol: L.monde.solSous(x, z, y), eau: 0, h };
-  const e = L.eau, eau = e && x > e.x0 && x < e.x1 && z > e.z0 && z < e.z1 ? Math.max(0, (e.niveau || 0) - h) : 0;
+  const ne = niveauEau(x, z), eau = ne == null ? 0 : Math.max(0, ne - h);
   const sol = eau > 0.03 ? 'eau' : SON_DU_SOL[matiereDuSol(x, z, h)] || 'terre';
   // (l'hiver du calendrier magique : la neige crisse sous les pas)
   return { sol: M.mats.saisons.value.z > 0.5 && NEIGEUX.has(sol) ? 'neige' : sol, eau, h };
@@ -2128,7 +2274,7 @@ function unPas(qui, cote) {
   if (!kon && M.trace) E.trace(M.trace, x, p.y, z, course);
   if (sol === 'eau') {
     // des gouttes jetées autour du pied, et un rond
-    const niveau = M.lieu.eau.niveau || 0, k = Math.min(1, eau / 0.3);
+    const niveau = niveauEau(x, z) ?? 0, k = Math.min(1, eau / 0.3);
     E.eclabousser(x, niveau, z, Math.round((kon ? 4 : 8) + k * (kon ? 5 : 10) * (course ? 1.5 : 1)), { sol: niveau, force: (kon ? 0.55 : 0.8) * (course ? 1.3 : 1) });
     if (!kon || cote > 0) E.rond(x, niveau, z, kon ? 0.45 : course ? 1 : 0.7, 1.3);
   } else if (sol === 'bois') {
@@ -2184,7 +2330,7 @@ function vivre(dt, temps, pasJoueur, pasKon) {
       if (o.rond <= 0) {
         const bouge = p.vitesse > 0.5;
         o.rond = bouge ? 0.32 : 1.5;
-        E.rond(p.x, niveau, p.z, (bouge ? 0.85 : 0.6) * (qui === 'kon' ? 0.6 : 1), 1.7);
+        E.rond(p.x, niveauEau(p.x, p.z) ?? niveau, p.z, (bouge ? 0.85 : 0.6) * (qui === 'kon' ? 0.6 : 1), 1.7);
       }
     } else if (o.v > 0.2 && o.ligne > 0.08) {
       // l'eau dégoutte des habits (du pelage), d'autant moins qu'ils sèchent
@@ -2294,6 +2440,7 @@ function dessiner(dt, temps) {
     pasKon = kon.animer(dt, renard.vitesse, temps, renard.nage);
   }
   for (const p of M.passants) {
+    if (p.dedans && !p.perso.objet.visible) continue;
     p.perso.objet.position.set(p.etat.x, p.etat.y, p.etat.z);
     p.perso.objet.rotation.y = p.etat.cap;
     const pied = p.perso.animer(dt, p.etat.v, temps + p.x);
@@ -2363,6 +2510,7 @@ function dessiner(dt, temps) {
     M.hemi.color.copy(M.hemiBase.couleur).lerp(M.flash.c, Math.min(0.7, M.flash.v));
   }
   if (M.eau) M.eau.material.uniforms.temps.value = temps;
+  for (const c of M.courants) c.material.uniforms.temps.value = temps;
   if (M.vapeurs) M.vapeurs.material.uniforms.temps.value = temps;
   M.etoiles.material.uniforms.temps.value = temps;
   M.touffes.majTouffes(temps, camera);
@@ -2427,7 +2575,10 @@ function dessiner(dt, temps) {
   M.mats.coupe.cible.value.set(etat.x, etat.y + 0.95, etat.z);
   for (const p of M.passants) {
     const d = Math.hypot(camera.position.x - p.etat.x, camera.position.z - p.etat.z), loin = d > TRAIT_PASSANT;
-    p.perso.objet.visible = d > 1.1;
+    // (un passant dans une maison, dedans : [x0, x1, z0, z1] : caché, et immobile, quand la caméra est dehors à plus de
+    // 14 m ; par la porte, on ne le verrait pas)
+    const q = camera.position, dehors = p.dedans && !(q.x > p.dedans[0] && q.x < p.dedans[1] && q.z > p.dedans[2] && q.z < p.dedans[3]);
+    p.perso.objet.visible = d > 1.1 && !(dehors && d > 14);
     if (loin !== p.loin) { p.loin = loin; for (const t of p.traits) t.visible = !loin; }
   }
 

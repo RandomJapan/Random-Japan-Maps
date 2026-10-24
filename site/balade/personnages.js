@@ -717,6 +717,13 @@ export function creerHeros(ctx, sorte = 'garcon') {
       jambes[0].rotation.x = 0.28 * Math.max(0, d); jambes[1].rotation.x = 0.28 * Math.max(0, -d);
       danseur.position.y = 0.03 * Math.abs(Math.sin(b));
       tete.rotation.z = 0.07 * d;
+    } else if (g === 'grimper') {
+      // monter à une échelle : les mains l'une au-dessus de l'autre, devant le visage (pas dedans : la tête est
+      // grosse), les genoux qui montent tour à tour
+      const o = Math.sin(t * 7.5);
+      B.rotation.x = -1.75 - 0.22 * o; G.rotation.x = -1.75 + 0.22 * o; B.rotation.z = 0.32; G.rotation.z = -0.32;
+      jambes[0].rotation.x = -0.55 * Math.max(0, o); jambes[1].rotation.x = -0.55 * Math.max(0, -o);
+      corps.rotation.x = -0.06; tete.rotation.x = -0.12;
     } else if (g === 'offrir') {
       // se pencher et poser quelque chose devant soi, des deux mains
       const s = Math.sin(Math.min(1, t / 1.2) * PI);
@@ -734,7 +741,7 @@ export function creerHeros(ctx, sorte = 'garcon') {
     asseoir(oui) { assis = oui; },
     /** La danse des fêtes (oui), ou plus ; t0 : où en est la musique (en battements), pour danser en mesure. */
     danser(oui, t0 = 0) { danse = oui; tDanse = t0; },
-    /** Un geste ('victoire', 'saut', 'salut', 'coeur', 'coucou', 'creuser', 'offrir', 'prier', 'washi', 'kokiriko'), ou null. */
+    /** Un geste ('victoire', 'saut', 'salut', 'coeur', 'coucou', 'creuser', 'offrir', 'prier', 'washi', 'kokiriko', 'grimper'), ou null. */
     geste(g) { if (g !== geste) tGeste = 0; geste = g; },
     /**
      * Porter la pièce id (tenues.js) à sa place ('tete', 'yeux', 'habit', 'dos') : sur la tête, elle remplace la casquette ou

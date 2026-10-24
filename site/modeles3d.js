@@ -350,16 +350,16 @@ export function ateliers(THREE, repeindre = null, matieres = null, sortes = null
         }
         return a;
       },
-      /** Une lanterne de pierre (tōrō) posée en x, z. */
-      lanterne(x, z, s = 1) {
+      /** Une lanterne de pierre (tōrō) posée en x, z (son pied à la hauteur y0). */
+      lanterne(x, z, s = 1, y0 = 0) {
         const p = { x, z };
-        return a.cylindre(0.05 * s, 0.055 * s, 0.06 * s, 6, C.pierre2, { ...p, y: -0.01 * s })
-          .cylindre(0.019 * s, 0.022 * s, 0.13 * s, 6, C.pierre2, { ...p, y: 0.085 * s })
-          .cylindre(0.046 * s, 0.04 * s, 0.025 * s, 6, C.pierre3, { ...p, y: 0.16 * s })
-          .cylindre(0.032 * s, 0.032 * s, 0.055 * s, 6, C.pierre2, { ...p, y: 0.2 * s })
-          .boite(0.034 * s, 0.026 * s, 0.07 * s, '#4a3c2c', { ...p, y: 0.2 * s, trait: false })
-          .cylindre(0.012 * s, 0.065 * s, 0.04 * s, 6, C.pierre3, { ...p, y: 0.247 * s })
-          .boule(0.014 * s, C.pierre3, { ...p, y: 0.275 * s }, 1);
+        return a.cylindre(0.05 * s, 0.055 * s, 0.06 * s, 6, C.pierre2, { ...p, y: y0 - 0.01 * s })
+          .cylindre(0.019 * s, 0.022 * s, 0.13 * s, 6, C.pierre2, { ...p, y: y0 + 0.085 * s })
+          .cylindre(0.046 * s, 0.04 * s, 0.025 * s, 6, C.pierre3, { ...p, y: y0 + 0.16 * s })
+          .cylindre(0.032 * s, 0.032 * s, 0.055 * s, 6, C.pierre2, { ...p, y: y0 + 0.2 * s })
+          .boite(0.034 * s, 0.026 * s, 0.07 * s, '#4a3c2c', { ...p, y: y0 + 0.2 * s, trait: false })
+          .cylindre(0.012 * s, 0.065 * s, 0.04 * s, 6, C.pierre3, { ...p, y: y0 + 0.247 * s })
+          .boule(0.014 * s, C.pierre3, { ...p, y: y0 + 0.275 * s }, 1);
       },
       /**
        * Une parcelle au contour irrégulier (étang, plage, îlot, sol d'un jardin…) : le dessus à y = haut, et un
