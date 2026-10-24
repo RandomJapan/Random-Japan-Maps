@@ -671,7 +671,7 @@ body.plongeon .vol-grues, body.en-jeu .vol-grues { display: none; }
 /* De loin, un point est centré sur son lieu. (De près, .repere est en position relative, posé sur la ligne de base du
    conteneur de la carte : tout le repère est ~14 px plus bas que son lieu ; ses blasons ont été réglés ainsi, avec les
    modèles 3D.) Les points dessinés ensemble (points.js) sont sur leur lieu : ceux qui restent en HTML aussi. */
-body.mode-dev #carte.loin .repere { position: absolute; } /* (en essai : mode développeur, comme points.js) */
+#carte.loin .repere { position: absolute; }
 /* Les points des lieux sans état particulier, dessinés ensemble (points.js) : le même dessin que ci-dessus */
 .points-lieux { position: absolute; left: 0; top: 0; pointer-events: none; }
 

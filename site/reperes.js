@@ -35,8 +35,6 @@ export function gererReperes(map, { points: avecPoints = true } = {}) {
   let loin = false; // la vue de loin (sous ZOOM_POINTS)
   let clavier = false; // on navigue au clavier : tous les lieux en repères HTML, qu'on atteint avec Tab
   let plongee = false; // un plongeon (filmé) : enregistrement.js compose l'image avec les repères HTML
-  // en essai (2026-10-24) : seulement en mode développeur, le temps que le propriétaire l'essaie sur son portable
-  let dev = false;
   let survole = null; // le suivi du point sous la souris, redevenu repère HTML
   let dessines = []; // les suivis dessinés sur la toile, dans l'ordre des lieux (du nord au sud)
   let listeChangee = false;
@@ -50,7 +48,7 @@ export function gererReperes(map, { points: avecPoints = true } = {}) {
   }
 
   // (plus près que la vue de loin : une fois les images de son épingle prêtes)
-  const enPoint = (s) => toile && dev && s.point && !clavier && !plongee && !s.particulier && s !== survole && (loin || toile.pret(s));
+  const enPoint = (s) => toile && s.point && !clavier && !plongee && !s.particulier && s !== survole && (loin || toile.pret(s));
 
   function appliquer(repere, s) {
     const { lng, lat } = repere.getLngLat();
@@ -129,10 +127,9 @@ export function gererReperes(map, { points: avecPoints = true } = {}) {
     // la nuit, un itinéraire, un plongeon : sur la page entière
     const page = () => {
       const corps = document.body.classList;
-      const p = corps.contains('plongeon'), d = corps.contains('mode-dev');
-      if (p === plongee && d === dev) return false;
+      const p = corps.contains('plongeon');
+      if (p === plongee) return false;
       plongee = p;
-      dev = d;
       return true;
     };
     page();
@@ -155,7 +152,7 @@ export function gererReperes(map, { points: avecPoints = true } = {}) {
         s.particulier = PARTICULIERS.some((k) => el.classList.contains(k));
         parElement.set(el, s);
         observerClasses(el);
-        if (dev) toile.preparer(s); // (ses images, d'avance : seulement là où la toile sert)
+        toile.preparer(s); // (ses images, d'avance)
       }
       suivis.set(repere, s);
       if (fluides) repere.setSubpixelPositioning(true);
