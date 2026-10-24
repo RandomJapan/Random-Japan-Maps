@@ -7,10 +7,10 @@
 //  les toits du feu, et le belvédère sur le flanc de la montagne d'où l'on voit tout le village. D'après la vidéo du
 //  propriétaire (2026-10-23 : le méandre turquoise vu du ciel, les cerisiers, les rizières inondées, le torii et la
 //  fête du sanctuaire, les montagnes encore enneigées au printemps).
-//  Son secret : le plancher qui sonne creux. Dans la maison-musée, près du foyer, une planche sonne creux sous les
-//  pas : dessous, la fosse où l'on fabriquait en secret le salpêtre de la poudre à canon pour le seigneur de Kaga
-//  (à l'époque d'Edo, c'était la richesse cachée de Gokayama) ; et, dans un coffre laqué, la bannière rouge des Heike,
-//  les guerriers vaincus qui, dit la légende, se sont réfugiés dans ces montagnes en 1185 ; et un koban (tresors.js).
+//  Son secret : les lucioles des Heike. La nuit, au bord du ruisseau, près du minshuku, une luciole dorée attend parmi
+//  les autres ; de place en place, elle mène le long du ruisseau, puis par l'escalier du sanctuaire, jusqu'à la tombe
+//  d'un guerrier Heike cachée sous les cèdres (les vaincus de 1185 se seraient réfugiés dans ces montagnes, et leurs
+//  âmes seraient devenues des lucioles) ; un koban y attend (tresors.js).
 //  Bunbuku, le marchand, attend sous les grands cèdres du sanctuaire.
 //  Repère : x vers l'est, z vers le sud, y vers le haut, en mètres ; le village vers y = 0 à 3 (il monte doucement
 //  vers l'ouest, la montagne), la rivière à y = −14, au fond de sa gorge. Les distances sont resserrées.
@@ -43,9 +43,13 @@ const RIZIERES = [[-8, 6, -58, -46], [-32, -18, -24, -15], [8, 22, -6, 3], [-34,
 const RIZ_JEUNE = [1, 5];
 // les chemins de terre : le chemin principal (du parking, au nord-est, jusqu'au bord de la berge, au sud) et ses branches
 const CHEMIN = [[38, -62], [24, -48], [10, -32], [3, -14], [0, 6], [3, 24], [8, 42], [14, 58], [22, 68]];
+// le petit chemin du deuxième pont (2026-10-24, demandé par le propriétaire) : du chemin de la maison g2, par-dessus le
+// ruisseau, jusqu'au torii du sanctuaire
+const CHEMIN_PONT = [[-33.5, -0.1], [-37.2, -6.0], [-38.0, -10.0], [-38.0, -16.0], [-37.0, -21.0], [-34.6, -25.4]];
 const CHEMINS = [
   CHEMIN,
   [[3, -14], [-6, -26], [-20, -30], [-35, -26.5]], // vers le sanctuaire (le torii)
+  CHEMIN_PONT,
   [[10, -32], [20.6, -26]], // le minshuku
   [[0, 6], [16, 8], [27.3, 12]],
   [[3, 24], [-10.4, 22]], // la maison-musée
@@ -60,13 +64,15 @@ const CHEMINS = [
 ];
 // le sanctuaire (地主神社) : son esplanade taillée dans le pied de la montagne, à l'ouest, sous les cèdres ; le torii en
 // bas, le sanctuaire tourné vers l'est (vers le village) ; le marchand au nord de l'esplanade
-const SANCTUAIRE = { x0: -62, x1: -46, z0: -41, z1: -17, haut: 1.5, sanctuaire: [-55, -26.5], torii: [-36, -26.5], marches: [-46, -44, -26.5] };
+const SANCTUAIRE = { x0: -62, x1: -46, z0: -41, z1: -17, haut: 1.5, sanctuaire: [-55, -26.5], torii: [-36, -26.5], marches: [-46, -43.12, -26.5] };
 const MARCHAND = { x: -52, z: -37, cap: Math.atan2(-44 + 52, -30 + 37) };
 const WASHI = { x: -20, z: -7 }; // l'atelier de papier, au bord du ruisseau
 // le secret (2026-10-24) : la tombe du guerrier Heike, sous les cèdres derrière le sanctuaire ; le chemin de la luciole
-// dorée, du bord du ruisseau à la tombe (devant le torii, l'escalier, l'esplanade au nord du sanctuaire)
+// dorée, du bord du ruisseau à la tombe : sur la rive nord, de près du minshuku (où l'on demande la nuit ; elle attendait
+// d'abord à 60 m de là, près du sanctuaire, et le propriétaire ne la trouvait pas) jusqu'au bout du deuxième pont, puis
+// devant le torii, l'escalier, l'esplanade au nord du sanctuaire
 const TOMBE = { x: -60.3, z: -21.8 };
-const LUCIOLE = [[-38.5, -16.3], [-37.8, -21.6], [-39.0, -26.5], [-45.0, -26.5], [-52.8, -21.3], [TOMBE.x, TOMBE.z]];
+const LUCIOLE = [[21.4, -15.5], [12.3, -13.6], [5.3, -12.0], [-6.9, -10.7], [-18.6, -12.2], [-28.6, -14.1], [-38.5, -16.3], [-37.8, -21.6], [-39.0, -26.5], [-45.0, -26.5], [-52.8, -21.3], [TOMBE.x, TOMBE.z]];
 const KOKIRIKO = { x: 14, z: 18, l: 4.4, p: 3.2, h: 0.5 }; // la petite scène de la danse
 const CASERNE = { x: 14, z: -20 }; // le local des pompiers (消防)
 // les canons à eau (放水銃), dans leurs petites cabanes au toit de chaume, entre les maisons
@@ -140,6 +146,21 @@ function naturel(x, z) {
 
 const Y_BELVEDERE = BELVEDERE_Y;
 const Y_ESPLANADE = niveau(SANCTUAIRE.x1, -27) + SANCTUAIRE.haut;
+/**
+ * L'escalier du sanctuaire (refait le 2026-10-24) : huit marches de 36 cm de giron, du pied (à l'est, marches[1] de
+ * SANCTUAIRE) jusqu'au bord de l'esplanade (marches[0]). Avant, cinq marches de 30 cm sur 2 m, où l'on marchait sur
+ * une pente droite ; en haut, sur 10 cm, le sol (qui remontait jusqu'à l'esplanade) passait 1 cm au-dessus d'elle :
+ * trop raide, il arrêtait le voyageur, qui ne passait qu'en glissant de côté, ou pas du tout. Maintenant, sous
+ * l'escalier, le sol reste au niveau du pied (solSansEscalier), et l'on marche le long de chemin, par le milieu de
+ * chaque marche. marches[j] : j = 0 en haut, contre l'esplanade ; x0, x1, et son dessus h.
+ */
+const ESC_S = (() => {
+  const [xHaut, xPied, z] = SANCTUAIRE.marches, n = 8, giron = (xPied - xHaut) / n;
+  const yPied = niveau(xPied + 0.4, z), monte = (Y_ESPLANADE - yPied) / n;
+  const marches = Array.from({ length: n }, (_, j) => ({ x0: xHaut + j * giron, x1: xHaut + (j + 1) * giron, h: Y_ESPLANADE - j * monte }));
+  const chemin = [[xPied + 0.3, z, yPied], ...marches.map((m) => [(m.x0 + m.x1) / 2, z, m.h]).reverse(), [xHaut - 0.35, z, Y_ESPLANADE]];
+  return { xHaut, xPied, z, giron, monte, yPied, marches, chemin, demi: 1.25, large: 1.3 };
+})();
 /** Le fond d'une rizière (au niveau du sol en son milieu, un peu creusé). */
 const fondRiziere = ([x0, x1, z0, z1]) => niveau((x0 + x1) / 2, (z0 + z1) / 2) - 0.25;
 
@@ -162,10 +183,12 @@ function solSansEscalier(x, z) {
     const f = fondRiziere(R);
     h = e < 0 ? f + 0.38 * lisse(-0.62, -0.47, e) : f + 0.38 + (h - f - 0.38) * lisse(0, 1.6, e);
   }
-  // l'esplanade du sanctuaire
+  // l'esplanade du sanctuaire ; sous son escalier, le sol reste au niveau du pied (ESC_S : ses marches sont pleines)
   {
     const S = SANCTUAIRE, e = Math.max(x - S.x1, S.x0 - x, z - S.z1, S.z0 - z);
     if (e < 3) h += (Y_ESPLANADE - h) * (e < 0 ? 1 : x > S.x1 ? (1 - lisse(0, 0.8, e)) : 1 - lisse(0, 3, e));
+    const E = ESC_S;
+    if (x > E.xHaut + 0.01 && x < E.xPied && Math.abs(z - E.z) < E.large + 0.45) h = Math.min(h, E.yPied - 0.05);
   }
   // le belvédère : le sol monte jusqu'à sa plate-forme
   {
@@ -666,8 +689,13 @@ export function construire(ctx) {
     a.boite(Mi.W - 0.6, 0.1, 1.3, P.bois2, { y: yV, z: Mi.l2 + 0.7 })
       .boite(Mi.W - 0.66, 0.06, 0.06, '#3e2f25', { y: yV - 0.06, z: Mi.l2 + 1.33 });
     for (const x of [-Mi.w2 + 0.6, 0, Mi.w2 - 0.6]) a.boite(0.1, yV + 0.5, 0.1, '#3e2f25', { x, y: (yV - 0.5) / 2, z: Mi.l2 + 1.25 });
-    bancs.push({ de: [Mi.x - Mi.w2 + 1, Mi.z + Mi.l2 + 0.9], a: [Mi.x + Mi.w2 - 1, Mi.z + Mi.l2 + 0.9], y: Mi.y + yV + 0.05, cap: 0, vue: 0.3 });
-    monde.mur(Mi.x - Mi.w2 + 0.3, Mi.z + Mi.l2 + 0.5, Mi.x + Mi.w2 - 0.3, Mi.z + Mi.l2 + 0.5, 0.35);
+    // (on y monte : une marche de 50 cm, ou deux par la pierre plate du milieu ; assis, on est au bord. Avant le
+    // 2026-10-24, elle n'était qu'un dessin : on y marchait au niveau du sol, les jambes dans les planches, jusqu'à un mur
+    // invisible au milieu)
+    a.cylindre(0.4, 0.44, 0.3, 9, P.pierre, { x: 0, y: 0.12, z: Mi.l2 + 1.72, sx: 1.25, ry: 0.3 });
+    monde.surface(Mi.x - 0.5, Mi.x + 0.5, Mi.z + Mi.l2 + 1.4, Mi.z + Mi.l2 + 2.05, Mi.y + 0.27, { sol: 'pierre' });
+    monde.surface(Mi.x - Mi.w2 + 0.3, Mi.x + Mi.w2 - 0.3, Mi.z + Mi.l2 + 0.05, Mi.z + Mi.l2 + 1.35, Mi.y + yV + 0.05, { sol: 'bois' });
+    bancs.push({ de: [Mi.x - Mi.w2 + 1, Mi.z + Mi.l2 + 1.12], a: [Mi.x + Mi.w2 - 1, Mi.z + Mi.l2 + 1.12], y: Mi.y + yV + 0.05, cap: 0, vue: 0.3 });
     for (let k = 0; k < 4; k++) {
       for (let j = 0; j < 6 - k; j++) {
         a.cylindre(0.09, 0.09, 0.9, 7, j % 2 ? '#a07a52' : '#8a6644', { x: -Mi.w2 + 1.7 + ((j * 7 + k * 3) % 5 - 2) * 0.015, y: 0.09 + k * 0.16, z: -Mi.l2 - 1.1 + (j - (5 - k) / 2) * 0.19, rx: 0, rz: PI / 2 });
@@ -1120,9 +1148,11 @@ export function construire(ctx) {
     // le nord : ce que montre le musée (le mino et le chapeau de paille au mur, des bottes de paille pour la neige, la
     // sasara et les baguettes de la kokiriko sur un présentoir, des feuilles de papier), le panneau du salpêtre ; l'échelle
     // qui monte au grenier
-    a.boite(2.2, 0.06, 0.5, P.bois, { x: -1.2, y: yI + 0.75, z: -l2 + 0.45 })
-      .boite(2.2, 0.06, 0.5, P.bois, { x: -1.2, y: yI + 0.3, z: -l2 + 0.45 });
-    for (const x of [-2.25, -0.15]) a.boite(0.06, 0.8, 0.5, '#3e2f25', { x, y: yI + 0.4, z: -l2 + 0.45 });
+    // (les planches s'arrêtent dans les montants, plus profonds de 2 cm devant et derrière : à la même profondeur, leurs
+    // faces étaient dans les mêmes plans et scintillaient, 2026-10-24)
+    a.boite(2.06, 0.06, 0.5, P.bois, { x: -1.2, y: yI + 0.75, z: -l2 + 0.45 })
+      .boite(2.06, 0.06, 0.5, P.bois, { x: -1.2, y: yI + 0.3, z: -l2 + 0.45 });
+    for (const x of [-2.25, -0.15]) a.boite(0.07, 0.81, 0.54, '#3e2f25', { x, y: yI + 0.405, z: -l2 + 0.45 });
     for (const [x, c] of [[-2.0, '#c9a65a'], [-1.65, '#b8975a']]) a.cylindre(0.07, 0.09, 0.3, 8, c, { x, y: yI + 0.95, z: -l2 + 0.45 }).ovale(0.09, c, { x, y: yI + 0.86, z: -l2 + 0.52, sy: 0.5, sz: 1.5 }, 6);
     for (let k = 0; k < 9; k++) a.boite(0.012, 0.12, 0.05, '#e8d29a', { x: -1.1 + Math.cos(PI * k / 8) * 0.17, y: yI + 0.86 + Math.sin(PI * k / 8) * 0.17, z: -l2 + 0.42, rz: PI * k / 8 - PI / 2 });
     a.baton([-0.75, yI + 0.8, -l2 + 0.45], [-0.45, yI + 0.82, -l2 + 0.5], 0.014, '#d8c27a', 5).baton([-0.72, yI + 0.82, -l2 + 0.52], [-0.42, yI + 0.8, -l2 + 0.42], 0.014, '#d8c27a', 5);
@@ -1307,13 +1337,14 @@ export function construire(ctx) {
   // lieu.courants), des cailloux au fond ; le pont de planches du chemin principal, posé sur les murets ; à l'est, la
   // cascade qui tombe dans la gorge
   const courants = [];
-  // (le pont : là où le chemin principal croise le ruisseau ; le pont va le long de z, comme le chemin à cet endroit)
-  const PONT = (() => {
+  // (les ponts : là où le chemin principal croise le ruisseau, et, depuis le 2026-10-24, là où le petit chemin de la
+  // maison g2 au torii le croise ; ils vont le long de z, comme les chemins à ces endroits)
+  const PONTS = [CHEMIN, CHEMIN_PONT].map((ligne) => {
     let best = null;
-    for (const q of RU.pts) { const d = surLaLigne(CHEMIN, q.x, q.z).d; if (!best || d < best.d) best = { d, q }; }
+    for (const q of RU.pts) { const d = surLaLigne(ligne, q.x, q.z).d; if (!best || d < best.d) best = { d, q }; }
     const hautMax = Math.max(...RU.pts.filter((q) => Math.abs(q.s - best.q.s) < 1.8).map((q) => q.haut));
     return { x: best.q.x, z: best.q.z, y: hautMax };
-  })();
+  });
   {
     const a = atelier(), P0 = RU.pts, N = P0.length;
     // les murets : de chaque côté, la face du lit, le dessus, la face qui descend dans le sol, et leurs deux bouts
@@ -1350,18 +1381,18 @@ export function construire(ctx) {
       const q = P0[i], t = hasard(q.x * 1.7, q.z * 2.3), off = (t - 0.5) * 0.8;
       a.rocher(q.x - q.tz * off, q.w - 0.12, q.z + q.tx * off, 0.06 + t * 0.06, t > 0.5 ? '#8a8478' : '#6f6a60', { trait: false });
     }
-    // (on ne marche pas dans le ruisseau, sauf sur le pont. Près du pont, le mur n'arrête que ceux qui ne sont pas sur
-    // son tablier (ses bouts, des demi-cercles de 1 m, le recouvrent) : avant le 2026-10-24, il n'y en avait pas là, et
-    // de la berge, à côté du pont, on descendait dans le lit sans pouvoir en remonter)
+    // (on ne marche pas dans le ruisseau, sauf sur les ponts. Près d'un pont, le mur n'arrête que ceux qui ne sont pas
+    // sur son tablier (ses bouts, des demi-cercles de 1 m, le recouvrent) : avant le 2026-10-24, il n'y en avait pas là,
+    // et de la berge, à côté du pont, on descendait dans le lit sans pouvoir en remonter)
     for (let i = 0; i < N - 1; i += 2) {
       const q = P0[i], u = P0[Math.min(N - 1, i + 2)];
-      const pres = Math.min(Math.abs(q.x - PONT.x), Math.abs(u.x - PONT.x)) <= 1.9 && Math.abs((q.z + u.z) / 2 - PONT.z) <= 2.5;
-      monde.mur(q.x, q.z, u.x, u.z, 1.0, undefined, pres ? PONT.y + 0.05 : undefined);
+      const pont = PONTS.find((B) => Math.min(Math.abs(q.x - B.x), Math.abs(u.x - B.x)) <= 1.9 && Math.abs((q.z + u.z) / 2 - B.z) <= 2.5);
+      monde.mur(q.x, q.z, u.x, u.z, 1.0, undefined, pont ? pont.y + 0.05 : undefined);
     }
-    // le pont : deux poutres de rondins posées sur les murets, le tablier de planches en travers, deux bordures, une
+    // les ponts : deux poutres de rondins posées sur les murets, le tablier de planches en travers, deux bordures, une
     // petite rambarde de bambou de chaque côté ; une pierre plate à chaque bout, pour monter
-    {
-      const { x: bx, z: bz, y: yh } = PONT, yT = yh + 0.2;
+    for (const { x: bx, z: bz, y: yh } of PONTS) {
+      const yT = yh + 0.2;
       for (const sg of [-1, 1]) a.cylindre(0.08, 0.08, 3.3, 8, '#6a5240', { x: bx + sg * 0.62, y: yh + 0.08, z: bz, rx: PI / 2 });
       for (let k = 0; k < 9; k++) a.boite(1.9, 0.07, 0.33, k % 2 ? P.bois : P.bois2, { x: bx, y: yT - 0.035, z: bz - 1.44 + k * 0.36 });
       for (const sg of [-1, 1]) {
@@ -1432,20 +1463,39 @@ export function construire(ctx) {
   const SA = SANCTUAIRE, [xS, zS] = SA.sanctuaire, yS = Y_ESPLANADE;
   {
     const a = atelier();
-    const [mx0, mx1, mz] = SA.marches;
-    // le mur de pierres (devant l'esplanade, à l'est), coupé par l'escalier
+    const [mx0, mx1, mz] = SA.marches, E = ESC_S;
+    // le mur de pierres (devant l'esplanade, à l'est), coupé par l'escalier ; dessus, une rangée de pierres de
+    // couronnement, 8 cm plus haut que l'esplanade (à fleur, son dessus était dans le plan du sol)
     const yBas = niveau(SA.x1 + 1, -27);
     for (const [z0, z1] of [[SA.z0, mz - 1.4], [mz + 1.4, SA.z1]]) {
-      a.piece(new THREE.BoxGeometry(0.9, yS - yBas + 1.2, z1 - z0, 1, 4, Math.round((z1 - z0) / 0.5)), P.pierre, { x: SA.x1 + 0.2, y: (yS + yBas - 1.2) / 2, z: (z0 + z1) / 2, teinte: pierres });
+      a.piece(new THREE.BoxGeometry(0.9, yS - yBas + 1.2, z1 - z0, 1, 4, Math.round((z1 - z0) / 0.5)), P.pierre, { x: SA.x1 + 0.2, y: (yS + yBas - 1.2) / 2, z: (z0 + z1) / 2, teinte: pierres })
+        .piece(new THREE.BoxGeometry(1.0, 0.1, z1 - z0 + 0.04, 1, 1, Math.round((z1 - z0) / 0.7)), P.pierreFonce, { x: SA.x1 + 0.2, y: yS + 0.03, z: (z0 + z1) / 2, teinte: pierres });
     }
-    // l'escalier : cinq marches de pierre pleines, entre deux murets
-    const nM = 5, hM = (yS - yBas) / nM;
-    for (let k = 0; k < nM; k++) {
-      const x = mx1 - (k + 0.5) * ((mx1 - mx0) / nM), y = yBas + (k + 1) * hM;
-      a.boite((mx1 - mx0) / nM + 0.02, y - yBas + 0.6, 2.6 + (k % 2) * 0.02, P.pierreFonce, { x, y: (y + yBas - 0.6) / 2, z: mz });
+    // l'escalier (ESC_S, refait le 2026-10-24) : huit marches de pierre pleines (une largeur sur deux, 1 cm de moins :
+    // leurs côtés se chevauchent ; la plus haute, 1,2 cm sous l'esplanade qu'elle touche), entre deux murets en pente
+    // (sode-ishi) coiffés d'une pierre plus large, un pilier carré à chaque bout ; on y marche le long de E.chemin
+    E.marches.forEach((m, j) => {
+      const h = j === 0 ? m.h - 0.012 : m.h, e = j % 2 ? 0.01 : 0, bas = E.yPied - 0.6 - e;
+      a.boite(m.x1 - m.x0 + 0.02, h - bas, 2 * E.large + 0.02 - e, j % 2 ? P.pierre : '#aaa396', { x: (m.x0 + m.x1) / 2, y: (h + bas) / 2, z: mz, nuance: 0.04 });
+    });
+    {
+      const pente = (yS - E.yPied) / (mx1 - mx0), L = mx1 - mx0 + 0.5, xc = (mx0 - 0.35 + mx1 + 0.15) / 2;
+      const dessus = (x) => yS + 0.48 - pente * (x - mx0), cisaille = (x, y, z) => [x, y - pente * x, z];
+      for (const s of [-1, 1]) {
+        const zc = mz + s * 1.42;
+        a.piece(new THREE.BoxGeometry(L, 1.4, 0.28, 4, 1, 1), P.pierre, { x: xc, y: dessus(xc) - 0.7, z: zc, deformer: cisaille, teinte: pierres })
+          .piece(new THREE.BoxGeometry(L + 0.04, 0.09, 0.36, 4, 1, 1), P.pierreFonce, { x: xc, y: dessus(xc) + 0.035, z: zc, deformer: cisaille });
+        for (const [px, y0] of [[mx0 - 0.22, yS], [mx1 + 0.02, E.yPied]]) {
+          const yH = y0 + 0.82;
+          a.boite(0.4, 1.12, 0.4, P.pierre, { x: px, y: yH - 0.56, z: zc })
+            .boite(0.44, 0.08, 0.44, P.pierreFonce, { x: px, y: yH + 0.04, z: zc })
+            .piece(new THREE.CylinderGeometry(0.03, 0.29, 0.16, 4), P.pierreFonce, { x: px, y: yH + 0.16, z: zc, ry: PI / 4 });
+          monde.cercle(px, zc, 0.3);
+        }
+        monde.mur(mx0 - 0.25, zc, mx1 + 0.05, zc, 0.17);
+      }
     }
-    for (const s of [-1, 1]) a.baton([mx0 - 0.4, yS + 0.22, mz + s * 1.45], [mx1 + 0.5, yBas + 0.22, mz + s * 1.45], 0.17, P.pierre, 6);
-    monde.rampe(mx0, mx1, mz - 1.3, mz + 1.3, 'x', yS, yBas, { sol: 'pierre' });
+    monde.chemin(E.chemin, E.demi, { sol: 'pierre' });
     monde.surface(SA.x0, SA.x1, SA.z0, SA.z1, yS, { sol: 'terre' });
     monde.mur(SA.x1 + 0.2, SA.z0, SA.x1 + 0.2, mz - 1.75, 0.45); monde.mur(SA.x1 + 0.2, mz + 1.75, SA.x1 + 0.2, SA.z1, 0.45);
     // l'allée de dalles, du torii à l'escalier, et sur l'esplanade jusqu'au sanctuaire
@@ -2531,18 +2581,22 @@ export function construire(ctx) {
       t.colorSpace = THREE.SRGBColorSpace;
       return t;
     })();
-    const points = (n, taille, couleur) => {
+    // (attenue : sa taille en mètres ; sinon, en pixels, la même de près et de loin)
+    const points = (n, taille, couleur, attenue = true) => {
       const geo = new THREE.BufferGeometry();
       geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3).setUsage(THREE.DynamicDrawUsage));
       geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(n * 3).fill(1), 3).setUsage(THREE.DynamicDrawUsage));
-      const m = new THREE.Points(geo, new THREE.PointsMaterial({ size: taille, sizeAttenuation: true, vertexColors: true, color: couleur, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, map: tache, fog: false }));
+      const m = new THREE.Points(geo, new THREE.PointsMaterial({ size: taille, sizeAttenuation: attenue, vertexColors: true, color: couleur, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, map: tache, fog: false }));
       m.frustumCulled = false;
       return m;
     };
-    // la luciole dorée : un halo et son cœur ; l'essaim des lucioles qui s'allument autour de la tombe
-    const halo = points(1, 1.3, '#ffb52e'), coeur = points(1, 0.26, '#fff3c4'), essaim = points(36, 0.2, '#ffffff');
-    feu.add(halo, coeur);
-    deNuit.add(feu, essaim);
+    // la luciole dorée : un halo et son cœur, et une étincelle qui garde la même taille à l'écran (on la voit de loin ;
+    // 2026-10-24 : le propriétaire ne la trouvait pas) ; quand elle vole, une traînée d'étincelles ; l'essaim des lucioles
+    // qui s'allument autour de la tombe
+    const halo = points(1, 1.3, '#ffb52e'), coeur = points(1, 0.26, '#fff3c4'), phare = points(1, 8, '#ffe08a', false);
+    const essaim = points(36, 0.2, '#ffffff'), trainee = points(16, 0.1, '#ffffff');
+    feu.add(halo, coeur, phare);
+    deNuit.add(feu, essaim, trainee);
     // (le koban, sur la pierre des offrandes : de jour aussi, une fois là)
     const koban = ctx.maillage(atelier().ovale(0.045, '#f2c84f', { sy: 0.15, sz: 1.4 }, 10).fin(0, false));
     koban.position.set(TOMBE.x + 0.95, yTombe + 0.2, TOMBE.z + 0.08);
@@ -2552,11 +2606,15 @@ export function construire(ctx) {
     const etapes = LUCIOLE.map(([x, z], k) => [x, k === LUCIOLE.length - 1 ? yTombe + 1.95 : monde.hauteur(x, z) + 1.25, z]);
     const fin = etapes.length - 1, posee = [TOMBE.x, yTombe + 1.79, TOMBE.z];
     // (sa lumière, une petite lampe qui la suit : lueurs.js, mobile)
-    const lampe = { x: etapes[0][0], y: etapes[0][1], z: etapes[0][2], halo: 0, sol: etapes[0][1] - 1.25, r: 1.5, c: '#b8923e', mobile: true };
+    const lampe = { x: etapes[0][0], y: etapes[0][1], z: etapes[0][2], halo: 0, sol: etapes[0][1] - 1.25, r: 2.4, c: '#c89a3e', mobile: true };
     lumieres.push(lampe);
-    const e = { k: 0, mode: 'attend', t: 0, duree: 1, de: null, vu: false, arrivee: false, pose: false, essaim: -1, trouve: secretTrouve('heike') };
+    // (loin : on l'a vue de loin, la caméra l'a montrée ; vu : on l'a rejointe une première fois)
+    const e = { k: 0, mode: 'attend', t: 0, duree: 1, de: null, loin: false, vu: false, arrivee: false, pose: false, essaim: -1, trouve: secretTrouve('heike') };
     const vol = Array.from({ length: 36 }, (_, i) => ({ a: (i / 36) * 2 * PI * 3.7, r: 0.45 + (i % 7) * 0.2, v: 0.2 + (i % 5) * 0.07, h: (i % 9) * 0.12, ph: i * 1.7, rythme: 0.6 + (i % 4) * 0.15 }));
     const pos = essaim.geometry.attributes.position, col = essaim.geometry.attributes.color;
+    // la traînée : les dernières places de la luciole quand elle vole (un point tous les 5 centièmes de seconde)
+    const traces = Array.from({ length: 16 }, () => ({ x: 0, y: -100, z: 0, t: -10 })), posT = trainee.geometry.attributes.position, colT = trainee.geometry.attributes.color;
+    let iTrace = 0, derniereTrace = -1;
     return {
       objet,
       kobanVisible: () => koban.visible,
@@ -2581,6 +2639,19 @@ export function construire(ctx) {
           // elle attend : de petits cercles, elle monte et descend ; quand on arrive, elle repart vers la suite
           const b = etapes[e.k], d = Math.hypot(j.x - b[0], j.z - b[2]);
           p = e.pose ? posee : [b[0] + Math.cos(temps * 1.6) * 0.28, b[1] + Math.sin(temps * 2.3) * 0.15, b[2] + Math.sin(temps * 1.6) * 0.28];
+          // (pas de dedans une maison : au réveil, dans le minshuku, la caméra aurait montré un mur)
+          const dehors = !Object.values(MAISON).some((m) => Math.abs(j.x - m.x) < m.w2 + 0.3 && Math.abs(j.z - m.z) < m.l2 + 0.3);
+          if (nuit > 0.5 && e.k === 0 && !e.loin && !e.vu && d < 12 && d >= 3.6 && dehors) {
+            // vue de loin : la caméra la montre, au bord du ruisseau, par-dessus l'épaule du voyageur (assez haut pour que
+            // sa tête ne la cache pas, un peu de côté)
+            e.loin = true;
+            c.scene(async (jeu) => {
+              const ux = (b[0] - j.x) / d, uz = (b[2] - j.z) / d;
+              jeu.cadrer({ de: [j.x - ux * 2.6 - uz * 0.9, j.y + 2.6, j.z - uz * 2.6 + ux * 0.9], vers: [b[0], b[1] - 0.25, b[2]], champ: 45 });
+              await jeu.dire(jeu.tx('lucioleLoin'));
+              jeu.cadrer(null);
+            });
+          }
           if (nuit > 0.5 && e.k < fin && d < (e.k === 0 ? 3.6 : 3.9)) {
             if (!e.vu) {
               e.vu = true;
@@ -2610,12 +2681,29 @@ export function construire(ctx) {
         // la luciole : elle brille doucement, sans s'éteindre comme les autres ; sa lumière la suit. (La taille des points
         // de three.js ne tient pas compte du champ de la caméra : on la corrige, sinon, sur un écran en hauteur au champ
         // plus large, ils paraissent bien plus gros que le reste.)
-        const k = 1 / Math.tan(((c.champ ?? 50) * PI) / 360);
+        const k = 1 / Math.tan(((c.champ ?? 50) * PI) / 360), souffle = 0.8 + 0.2 * Math.sin(temps * 2.7);
         feu.position.set(p[0], p[1], p[2]);
-        halo.material.size = 0.5 * k * (0.82 + 0.18 * Math.sin(temps * 2.7));
-        coeur.material.size = 0.1 * k;
+        halo.material.size = 0.8 * k * souffle;
+        coeur.material.size = 0.16 * k;
+        phare.material.size = 7 + 2 * souffle;
         essaim.material.size = 0.08 * k;
+        trainee.material.size = 0.07 * k;
         Object.assign(lampe, { x: p[0], y: p[1], z: p[2] });
+        // la traînée d'étincelles, qui s'éteignent en 0,9 s
+        if (e.mode === 'vole' && temps - derniereTrace > 0.05) {
+          Object.assign(traces[iTrace], { x: p[0] + (hasard(temps, 1) - 0.5) * 0.12, y: p[1] + (hasard(temps, 2) - 0.5) * 0.12, z: p[2] + (hasard(temps, 3) - 0.5) * 0.12, t: temps });
+          iTrace = (iTrace + 1) % traces.length;
+          derniereTrace = temps;
+        }
+        let traineeVue = false;
+        traces.forEach((s, i) => {
+          const b = Math.max(0, 1 - (temps - s.t) / 0.9);
+          if (b > 0) traineeVue = true;
+          posT.setXYZ(i, s.x, s.y - (temps - s.t) * 0.25, s.z);
+          colT.setXYZ(i, b, 0.82 * b, 0.4 * b);
+        });
+        trainee.visible = traineeVue;
+        if (traineeVue) { posT.needsUpdate = true; colT.needsUpdate = true; }
         // l'essaim : au moment où elle se pose, les lucioles s'allument autour de la tombe et montent vers les cèdres ;
         // ensuite (et une fois le secret trouvé), quelques-unes tournent autour d'elle
         if (e.essaim === -2) e.essaim = temps;
@@ -3196,7 +3284,7 @@ function aspectSol(P, x, z, h) {
   // (la mousse autour de la tombe du guerrier Heike)
   if (Math.hypot(x - TOMBE.x, z - TOMBE.z) < 1.8 + 0.4 * bruitDoux(x * 2, z * 2, 1)) return [bruit > 0.5 ? '#4f6a3c' : '#5a7444', M.herbe];
   if (x > S.x0 && x < S.x1 + 0.4 && z > S.z0 && z < S.z1) return [Math.abs(z - S.marches[2]) < 0.9 ? P.pierre : P.terreClaire, Math.abs(z - S.marches[2]) < 0.9 ? M.dalles : M.terre];
-  if (x > S.torii[0] - 1 && x < S.x1 && Math.abs(z - S.marches[2]) < 1.0) return [P.pierre, M.dalles];
+  if (x < S.torii[0] + 1 && x > S.x1 && Math.abs(z - S.marches[2]) < 1.0 + 0.15 * bruitDoux(x, z, 1.5)) return [P.chemin, M.terre];
   // l'escalier et le belvédère
   {
     const e = versEscalier(x, z);
@@ -3339,7 +3427,7 @@ const TEXTES = {
     menu: ['Le menu, écrit à la main sur des planchettes :', '« Zaru soba » (soba froides) 800 yens, « kake soba » (soba chaudes) 700 yens, « tofu dengaku » (tofu grillé au miso) 500 yens, « iwana » grillé au sel 600 yens.'],
     manekineko: ['Un « maneki-neko », le chat qui salue de la patte : il attire les clients et la chance.', 'Tu lui caresses la tête… Il a l’air content !'],
     guideNuit: ['Le soir, toute la famille se réunissait autour du foyer pour se réchauffer et raconter des histoires.', 'On dit que certaines maisons cachent encore des secrets sous leur plancher…'],
-    enfant: ['Je chasse les libellules rouges ! Les « akatombo ».', 'Tu sais quoi ? Mon grand-père dit que la nuit, au bord du ruisseau, il y a une luciole dorée, plus brillante que les autres…', 'Si on la suit, elle montre un secret ! Mais moi, je n’ai pas le droit de sortir la nuit…'],
+    enfant: ['Je chasse les libellules rouges ! Les « akatombo ».', 'Tu sais quoi ? Mon grand-père dit que la nuit, au bord du ruisseau, près du minshuku, il y a une luciole dorée, plus brillante que les autres…', 'Si on la suit, elle montre un secret ! Mais moi, je n’ai pas le droit de sortir la nuit…'],
     enfantNuit: ['Il fait nuit, je dois rentrer… Oh, regarde, une luciole !', '… Non, elle est verte. Pas dorée.'],
     photographe: ['D’ici, on voit tout le village : les toits de chaume, les rizières, la rivière turquoise.', 'Au printemps avec les cerisiers, et l’hiver sous la neige, c’est encore plus beau !'],
     photographeNuit: ['La nuit, les fenêtres des maisons brillent comme des lanternes. Une photo magique !'],
@@ -3376,7 +3464,8 @@ const TEXTES = {
     butsudan: ['L’autel de la famille, le « butsudan » : laqué noir dehors, tout doré dedans.', 'On y honore les ancêtres : une bougie, un bâton d’encens, un coup de clochette… « tiiin ».'],
     butsudanNuit: ['À la lueur des bougies, l’or de l’autel brille doucement dans la nuit.', 'On y honore les ancêtres : une bougie, un bâton d’encens, un coup de clochette… « tiiin ».'],
     vitrine: ['Des objets d’autrefois : un mino et un chapeau de paille, des bottes de paille pour la neige…', '…la sasara et les baguettes de la kokiriko, et quelques feuilles de papier de Gokayama.'],
-    lucioleDoree: ['Parmi les lucioles du ruisseau, l’une brille plus fort que les autres…', 'Elle est dorée ! Elle tourne autour de toi… puis s’éloigne doucement, comme pour te montrer le chemin.'],
+    lucioleLoin: ['Là-bas, au bord du ruisseau, une petite lumière brille plus fort que les autres lucioles…', 'Une lumière dorée. Approche-toi doucement.'],
+    lucioleDoree: ['C’est une luciole, toute dorée ! Elle tourne autour de toi…', '… puis s’éloigne doucement le long du ruisseau, comme pour te montrer le chemin.'],
     lucioleCompagnon: {
       kon: ['« Une luciole d’or… Les anciens disaient qu’elles portent les âmes. Suivons-la, doucement ! »'],
       pon: ['« Elle brille comme une pièce d’or ! On la suit ? Elle mène peut-être à un festin ! »'],
@@ -3511,7 +3600,7 @@ const TEXTES = {
     menu: ['The menu, handwritten on wooden boards:', '“Zaru soba” (cold soba) 800 yen, “kake soba” (hot soba) 700 yen, “tofu dengaku” (tofu grilled with miso) 500 yen, salt-grilled “iwana” 600 yen.'],
     manekineko: ['A “maneki-neko”, the beckoning cat: it waves its paw to bring in customers and good luck.', 'You pat its head… It looks happy!'],
     guideNuit: ['In the evening the whole family gathered around the hearth to keep warm and tell stories.', 'They say some houses still hide secrets under their floors…'],
-    enfant: ['I’m catching red dragonflies! “Akatombo”.', 'You know what? My grandpa says that at night, by the stream, there’s a golden firefly, brighter than the others…', 'If you follow it, it shows you a secret! But I’m not allowed out at night…'],
+    enfant: ['I’m catching red dragonflies! “Akatombo”.', 'You know what? My grandpa says that at night, by the stream near the minshuku, there’s a golden firefly, brighter than the others…', 'If you follow it, it shows you a secret! But I’m not allowed out at night…'],
     enfantNuit: ['It’s dark, I have to go home… Oh, look, a firefly!', '… No, it’s green. Not golden.'],
     photographe: ['From here you can see the whole village: the thatched roofs, the rice fields, the turquoise river.', 'In spring with the cherry blossoms, and in winter under the snow, it’s even more beautiful!'],
     photographeNuit: ['At night the windows of the houses glow like lanterns. A magical photo!'],
@@ -3548,7 +3637,8 @@ const TEXTES = {
     butsudan: ['The family altar, the “butsudan”: black lacquer outside, all gold inside.', 'Here the ancestors are honoured: a candle, a stick of incense, a tap of the little bell… “tiiing”.'],
     butsudanNuit: ['By candlelight, the gold of the altar glows softly in the night.', 'Here the ancestors are honoured: a candle, a stick of incense, a tap of the little bell… “tiiing”.'],
     vitrine: ['Objects of old: a mino and a straw hat, straw boots for the snow…', '…the sasara and the kokiriko sticks, and a few sheets of Gokayama paper.'],
-    lucioleDoree: ['Among the fireflies by the stream, one shines brighter than the others…', 'It’s golden! It circles around you… then drifts slowly away, as if to show you the way.'],
+    lucioleLoin: ['Over there, by the stream, a tiny light shines brighter than the other fireflies…', 'A golden light. Go closer, gently.'],
+    lucioleDoree: ['It’s a firefly, all golden! It circles around you…', '… then drifts slowly away along the stream, as if to show you the way.'],
     lucioleCompagnon: {
       kon: ['“A golden firefly… The elders said they carry souls. Let’s follow it, gently!”'],
       pon: ['“It shines like a gold coin! Shall we follow it? Maybe it leads to a feast!”'],
@@ -3683,7 +3773,7 @@ const TEXTES = {
     menu: ['手書きの　おしながき：', '「ざるそば」八百円、「かけそば」七百円、「とうふ田楽」五百円、「岩魚の塩焼き」六百円。'],
     manekineko: ['まねきねこ。手を　あげて、お客さんと　しあわせを　まねくんだ。', 'あたまを　なでると……うれしそう！'],
     guideNuit: ['夜は　家族みんなが　いろりを　かこんで、あたたまりながら　むかし話を　したんです。', 'いまでも　床下に　ひみつを　かくしている　家が　あるとか……'],
-    enfant: ['赤とんぼを　つかまえてるんだ！', 'しってる？ おじいちゃんが　いうには、夜の　小川に、ほかより　ずっと　ひかる　金色の　ホタルが　いるんだって……', 'ついていくと、ひみつを　おしえて　くれるって！ でも　ぼく、夜は　外に　出られないんだ……'],
+    enfant: ['赤とんぼを　つかまえてるんだ！', 'しってる？ おじいちゃんが　いうには、夜、民宿の　そばの　小川に、ほかより　ずっと　ひかる　金色の　ホタルが　いるんだって……', 'ついていくと、ひみつを　おしえて　くれるって！ でも　ぼく、夜は　外に　出られないんだ……'],
     enfantNuit: ['もう　夜だ、かえらなきゃ……あっ、見て、ホタル！', '……ちがう、みどりだ。金色じゃない。'],
     photographe: ['ここから　村ぜんぶが　見えるの。かやぶき屋根、田んぼ、エメラルド色の　川。', '春の　さくらや、冬の　雪景色は　もっと　すてきよ！'],
     photographeNuit: ['夜は　家の　まどが　ちょうちんみたいに　ひかるの。まほうの　ような　写真に　なるわ！'],
@@ -3720,7 +3810,8 @@ const TEXTES = {
     butsudan: ['家の　ぶつだん。そとは　くろい　うるし、なかは　ぜんぶ　金色。', 'ごせんぞさまを　たいせつに　します。ろうそく、おせんこう、りんを　ひとつ……「チーン」。'],
     butsudanNuit: ['ろうそくの　あかりで、ぶつだんの　金が　やさしく　ひかって　います。', 'ごせんぞさまを　たいせつに　します。ろうそく、おせんこう、りんを　ひとつ……「チーン」。'],
     vitrine: ['むかしの　道具。みのと　すげがさ、雪の　ための　わらぐつ……', '……ささらと　こきりこの　ぼう、それに　五箇山和紙。'],
-    lucioleDoree: ['小川の　ホタルの　中に、ひとつだけ　つよく　ひかる　ホタルが　いる……', '金色だ！ きみの　まわりを　くるりと　とんで……道を　おしえるように、ゆっくり　はなれていく。'],
+    lucioleLoin: ['あそこ、小川の　そばで、ほかの　ホタルより　つよく　ひかる　小さな　あかりが　ある……', '金色の　あかりだ。そっと　ちかづいて　みよう。'],
+    lucioleDoree: ['金色の　ホタルだ！ きみの　まわりを　くるりと　とんで……', '……小川に　そって、道を　おしえるように、ゆっくり　はなれていく。'],
     lucioleCompagnon: {
       kon: ['「金色の　ホタル……むかしの　人は、たましいを　はこぶと　いったよ。そっと　ついていこう！」'],
       pon: ['「小判みたいに　ひかってる！ ついていく？ ごちそうが　あるかも！」'],

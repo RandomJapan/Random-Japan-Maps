@@ -75,7 +75,7 @@ export function creerMonde({ terrain, cadre, profond = -0.6, pente = null }) {
   /**
    * Où se tient quelqu'un en x, z qui arrive de la hauteur y : la plus haute surface qu'il atteint d'un pas
    * (jamais le dessus d'un bloc plein : posé dedans, un passant y montait, sur le toit d'une boutique), et
-   * laquelle (null : le sol naturel ; à égalité, la surface : un escalier posé à fleur du sol). Un plancher
+   * laquelle (null : le sol naturel ; à 2 cm près, la surface : un escalier posé à fleur du sol). Un plancher
    * d'étage (etage : un grenier, où l'on monte par une échelle) ne compte que pour qui vient de quelque part (y
    * fini) : sans y, on cherche le sol, pas l'étage (un passant, un départ).
    */
@@ -85,7 +85,10 @@ export function creerMonde({ terrain, cadre, profond = -0.6, pente = null }) {
     for (const s of surfaces) {
       if (s.plein || (s.etage && y === Infinity) || !dedans(s, x, z)) continue;
       const h = hauteurDe(s, x, z);
-      if (h <= y + PAS && h >= choix) { choix = h; surface = s; }
+      // (à 2 cm près, une surface l'emporte sur le sol naturel : là où le sol passait à peine au-dessus d'un escalier,
+      // c'est lui qu'on suivait, et sa pente arrêtait le voyageur ; 2026-10-24, le haut de l'escalier du sanctuaire de
+      // Gokayama)
+      if (h <= y + PAS && h >= (surface ? choix : choix - 0.02)) { choix = h; surface = s; }
       if (h < bas) bas = h;
     }
     return choix > -Infinity ? { h: choix, surface } : { h: bas, surface: null };
