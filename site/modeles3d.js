@@ -67,6 +67,9 @@ const SORTES = {
   // (la balade, Gokayama : le chaume des toits, que la neige couvre même en pente ; le riz des rizières, une herbe qui
   // jaunit à l'automne et qu'on moissonne : il tombe, comme les houppiers, 20 + la sorte de l'herbe)
   chaume: 13, riz: 25,
+  // (Gokayama : les croisillons des shōji, qui s'éclairent un peu la nuit, vus de loin : sombres, d'un pixel de large, ils
+  // grésillaient sur le papier allumé quand la caméra bougeait, 2026-10-24)
+  treillis: 14,
 };
 // La sorte d'une pièce d'après sa couleur, quand l'atelier ne l'a pas dite
 const SORTE_COULEUR = {

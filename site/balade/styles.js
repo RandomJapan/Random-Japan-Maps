@@ -32,7 +32,7 @@ const PALETTE = {
   terreRouge: '#b8775a', terreClaire: '#ddd5c6', route: '#c2bcb0', beton: '#dcd7cb', tole: '#5d8a86',
   // Gokayama (2026-10-23) : le chaume des grands toits, le bois noirci par la fumée du foyer, le papier des shōji, les
   // rizières, les cèdres, la rivière turquoise en contrebas
-  chaume: '#b39a6d', chaumeFonce: '#8d7653', chaumeClair: '#c8b283', boisNoir: '#5b4537', boisGris: '#9a8f82', shoji: '#f3ecda',
+  chaume: '#b39a6d', chaumeFonce: '#8d7653', chaumeClair: '#c8b283', boisNoir: '#5b4537', boisGris: '#9a8f82', shoji: '#f3ecda', shojiCadre: '#5a4436',
   riz: '#78b84a', rizClair: '#9ccd5e', boue: '#7a6a52', eauRiziere: '#9cc6bc', cedre: '#3d6f45', cedreFonce: '#2f5a3a',
   peau: '#ffdcbc', joue: '#ff9e98', cheveux: '#553a2a', cheveuxFille: '#74452c', casquette: '#2f9aa0', visiere: '#24797e',
   haut: '#e8583e', hautFille: '#f59aa6', short: '#3d5a8f', chaussures: '#ffffff', semelle: '#5a4c56', sac: '#f2bd45', sangle: '#99673f',
@@ -78,7 +78,7 @@ function matieres(P) {
   mettre(M.laque, 'vermillon', 'vermillonFonce');
   mettre(M.tole, 'tole');
   mettre(M.chaume, 'chaume', 'chaumeFonce', 'chaumeClair');
-  mettre(M.bois, 'boisNoir', 'boisGris');
+  mettre(M.bois, 'boisNoir', 'boisGris', 'shojiCadre');
   mettre(M.feuillage, 'cedre', 'cedreFonce');
   return t;
 }
@@ -648,12 +648,15 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
     s.vertexShader = s.vertexShader
       .replace('#include <common>', `#include <common>\nattribute float matiere;\nattribute vec3 saison;\nattribute vec3 contour;\nuniform vec3 saisons;\nvarying float vMatiere;\nvarying float vLueur;\nvarying vec3 vCoupe;\nvarying vec3 vCoupeN;\nvarying vec3 vLisse;\nvarying vec3 vSaison;${VENT_GLSL}${CHUTE_GLSL}`)
       .replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed += souffleObjet(transformed, saison);\nif (tombee(saison)) transformed = vec3(0.0);')
-      .replace('#include <project_vertex>', '#include <project_vertex>\nvLisse = mat3(modelMatrix) * contour;\nvSaison = saison;\nvMatiere = matiere;\nvLueur = abs(saison.x - 8.0) < 0.5 ? 1.0 : abs(saison.x - 9.0) < 0.5 ? 2.0 : abs(saison.x - 10.0) < 0.5 ? 3.0 : 0.0;\nvCoupe = (modelMatrix * vec4(transformed, 1.0)).xyz;\nvCoupeN = normalize(mat3(modelMatrix) * objectNormal);');
+      .replace('#include <project_vertex>', '#include <project_vertex>\nvLisse = mat3(modelMatrix) * contour;\nvSaison = saison;\nvMatiere = matiere;\nvLueur = abs(saison.x - 8.0) < 0.5 ? 1.0 : abs(saison.x - 9.0) < 0.5 ? 2.0 : abs(saison.x - 10.0) < 0.5 ? 3.0 : abs(saison.x - 14.0) < 0.5 ? 4.0 : 0.0;\nvCoupe = (modelMatrix * vec4(transformed, 1.0)).xyz;\nvCoupeN = normalize(mat3(modelMatrix) * objectNormal);');
     eclairerParLampes(s, lampes);
     s.fragmentShader = s.fragmentShader
       .replace('#include <common>', `#include <common>\nvarying float vMatiere;\nvarying float vLueur;\nvarying vec3 vLisse;\nvarying vec3 vSaison;\nuniform float lueur;${COUPE_GLSL}${PEINDRE_GLSL}${SAISONS_GLSL}`)
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
-        if (vLueur > 2.5) totalEmissiveRadiance += diffuseColor.rgb * vec3(1.0, 0.86, 0.68) * 0.55 * lueur;
+        // (les croisillons des shōji, la nuit : de loin, ils prennent un peu de la lumière du papier, la fenêtre devient
+        // une vitre de papier allumée ; de près, ils restent sombres)
+        if (vLueur > 3.5) totalEmissiveRadiance += vec3(1.0, 0.78, 0.45) * 0.62 * lueur * smoothstep(7.0, 28.0, distance(vCoupe, cameraPosition));
+        else if (vLueur > 2.5) totalEmissiveRadiance += diffuseColor.rgb * vec3(1.0, 0.86, 0.68) * 0.55 * lueur;
         else if (vLueur > 1.5) totalEmissiveRadiance += diffuseColor.rgb * (0.75 + 0.5 * lueur);
         else if (vLueur > 0.5) totalEmissiveRadiance += mix(diffuseColor.rgb, vec3(1.0, 0.78, 0.45), 0.55 * (1.0 - clamp(diffuseColor.r - diffuseColor.b, 0.0, 1.0))) * 1.1 * lueur;`)
       .replace('#include <clipping_planes_fragment>', '#include <clipping_planes_fragment>\ncoupe();')
@@ -888,13 +891,19 @@ export function passeFinale(THREE, style, { echantillons = 4, flou = true } = {}
     out vec4 sortie;
     void main() {
       vec3 s = vec3(0.0);
+      float poids = 0.0;
       for (int i = 0; i < 4; i++) {
         vec3 c = texture(image, vUv + vec2(i % 2 == 0 ? -1.0 : 1.0, i < 2 ? -1.0 : 1.0) * texel).rgb;
         float l = max(c.r, max(c.g, c.b));
         float g = clamp(l - seuil + 0.08, 0.0, 0.16);
-        s += c * (max(l - seuil, 0.0) + g * g / 0.32) / max(l, 1e-4);
+        vec3 b = c * (max(l - seuil, 0.0) + g * g / 0.32) / max(l, 1e-4);
+        // (une moyenne de Karis : chaque point compte d'autant moins qu'il est clair ; un petit point très clair, qui
+        // apparaît et disparaît d'une image à l'autre, ne fait plus clignoter le halo, 2026-10-24)
+        float w = 1.0 / (1.0 + max(b.r, max(b.g, b.b)));
+        s += b * w;
+        poids += w;
       }
-      sortie = vec4(s * 0.25, 1.0);
+      sortie = vec4(s / poids, 1.0);
     }`, { image: { value: image.texture }, texel, seuil });
   const sens = { value: new THREE.Vector2(1, 0) };
   const flouLueur = passe(`
@@ -958,7 +967,8 @@ export function passeFinale(THREE, style, { echantillons = 4, flou = true } = {}
     lueur: { value: lumA.texture }, forceLueur, ...vallee,
   });
   const texelLueur = new THREE.Vector2(1, 1);
-  let valleeBase = 0;
+  // (la nuit, la lueur passe deux fois par le flou : plus large, plus douce)
+  let valleeBase = 0, lueurNuit = 0;
   return {
     /** La taille de l'écran, en pixels réels. */
     dimensionner(l, h) {
@@ -975,8 +985,11 @@ export function passeFinale(THREE, style, { echantillons = 4, flou = true } = {}
     },
     /** La lueur selon la nuit (0 le jour : seuls les éclats et le soleil ; 1 la nuit : les lanternes, les fenêtres). */
     nuit(v) {
-      seuil.value = 0.97 + (0.5 - 0.97) * v;
-      forceLueur.value = 0.25 + (0.9 - 0.25) * v;
+      // (2026-10-24 : plus douce la nuit, le propriétaire trouvait que la lueur des fenêtres scintillait ; avant, un seuil
+      // de 0,5 et une force de 0,9)
+      seuil.value = 0.97 + (0.55 - 0.97) * v;
+      forceLueur.value = 0.25 + (0.82 - 0.25) * v;
+      lueurNuit = v;
       // (la brume de la vallée, plus légère la nuit : elle noyait les fenêtres éclairées du village)
       vallee.valleeForce.value = valleeBase * (1 - 0.6 * v);
     },
@@ -1012,6 +1025,16 @@ export function passeFinale(THREE, style, { echantillons = 4, flou = true } = {}
         flouLueur.materiel.uniforms.source.value = lumB.texture;
         rendu.setRenderTarget(lumA);
         rendu.render(flouLueur.scene, camera);
+        if (lueurNuit > 0.3) {
+          sens.value.set(texelLueur.x * 2.2, 0);
+          flouLueur.materiel.uniforms.source.value = lumA.texture;
+          rendu.setRenderTarget(lumB);
+          rendu.render(flouLueur.scene, camera);
+          sens.value.set(0, texelLueur.y * 2.2);
+          flouLueur.materiel.uniforms.source.value = lumB.texture;
+          rendu.setRenderTarget(lumA);
+          rendu.render(flouLueur.scene, camera);
+        }
       }
       rendu.setRenderTarget(null);
       rendu.render(finale.scene, camera);

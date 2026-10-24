@@ -448,7 +448,7 @@ export const infos = {
 };
 
 /** Les couleurs qui s'allument la nuit (le papier des shōji) et le chaume des toits (la neige l'hiver, même en pente). */
-export const sortesNuit = (P) => ({ [P.shoji]: 'lumiere', [P.chaume]: 'chaume', [P.chaumeFonce]: 'chaume', [P.chaumeClair]: 'chaume' });
+export const sortesNuit = (P) => ({ [P.shoji]: 'lumiere', [P.shojiCadre]: 'treillis', [P.chaume]: 'chaume', [P.chaumeFonce]: 'chaume', [P.chaumeClair]: 'chaume' });
 
 export function construire(ctx) {
   const { THREE, atelier, P, peinture } = ctx;
@@ -481,7 +481,7 @@ export function construire(ctx) {
     const X = coupes(w, nx), Y = coupes(h, ny), pos = [], couleurs = [];
     for (let j = 0; j < Y.length - 1; j++) {
       for (let i = 0; i < X.length - 1; i++) {
-        const c = i % 2 === 0 || j % 2 === 0 ? P.boisNoir : P.shoji, [x0, x1, y0, y1] = [X[i], X[i + 1], Y[j], Y[j + 1]];
+        const c = i % 2 === 0 || j % 2 === 0 ? P.shojiCadre : P.shoji, [x0, x1, y0, y1] = [X[i], X[i + 1], Y[j], Y[j + 1]];
         pos.push(x0, y0, 0, x1, y0, 0, x1, y1, 0, x0, y0, 0, x1, y1, 0, x0, y1, 0);
         couleurs.push(c, c);
       }
