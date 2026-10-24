@@ -58,7 +58,8 @@ const ordinateur = () => matchMedia('(hover: hover) and (pointer: fine)').matche
 export function reglagesDe(niveau) {
   const pr = ratioEcran();
   if (niveau === 'tres-legere') {
-    return { finesse: Math.min(pr, Math.max(0.75, pr * 0.6)), finesseRepos: pr, texture: 1024, textureRepos: 1024, maillage: 128, lissage: false, houle: 6, ressac: false, decor: false, telechargements: 8 };
+    // textures de 512 en mouvement (2026-10-24 : sur une Iris Xe, en refaire une de 1 024 coûte 12 à 20 ms), 1 024 au plus à l'arrêt
+    return { finesse: Math.min(pr, Math.max(0.75, pr * 0.6)), finesseRepos: pr, texture: 512, textureRepos: 1024, maillage: 128, lissage: false, houle: 6, ressac: false, decor: false, telechargements: 8 };
   }
   if (niveau === 'legere') {
     const finesse = Math.min(pr, Math.max(1, pr * 0.8));
@@ -187,14 +188,19 @@ export function brancherQualite(map, outils) {
     let bord = 0;
     for (let i = 0; i < 4; i++) bord = Math.max(bord, Math.hypot(coins[i][0] - coins[(i + 1) % 4][0], coins[i][1] - coins[(i + 1) % 4][1]));
     const besoin = (bord * finesseFine) / 1.25;
-    return Math.max(min, [1024, 1536, 2048].find((t) => t >= besoin && t <= max) ?? max);
+    return Math.max(min, [1024, 1536, 2048].find((t) => t >= besoin && t <= max) ?? max); // jamais moins de 1 024 à l'arrêt
   }
 
-  /** La taille des textures d'une tuile : celle du mouvement (légère), ou, carte immobile, celle de sa taille à l'écran. */
+  /**
+   * La taille des textures d'une tuile : celle du mouvement (légère), ou, carte immobile, celle de sa taille à l'écran.
+   * La rotation du départ n'est pas un geste (setBearing, sans options.moving) : au moins 1 024, la première image
+   * de la carte ne prend pas les textures de 512 des gestes de « très légère ».
+   */
   function texturePour(tuile, proposee) {
     const r = etat?.r;
     if (!r || r.texture === r.textureRepos) return proposee;
-    return etat.calme ? taillePour(tuile, r.texture, r.textureRepos, r.finesseRepos) : r.texture;
+    if (etat.calme) return taillePour(tuile, r.texture, r.textureRepos, r.finesseRepos);
+    return etat.geste ? r.texture : Math.max(r.texture, 1024);
   }
 
   /** Toutes les tuiles passent à leurs nouvelles textures dans la même image ; les anciennes retournent à la réserve. */
@@ -276,11 +282,11 @@ export function brancherQualite(map, outils) {
    * refont, cachées ; à l'arrêt (REPOS), l'image devient fine et les montre dans la même image, d'un seul coup.
    * Vrai s'il reste des textures à refaire.
    */
-  function regler(bouge) {
+  function regler(bouge, geste) {
     const r = reglagesDe(plein ? 'fine' : niveau);
     const calme = !bouge && !plein;
     const arret = plein || (calme && performance.now() - dernier >= REPOS);
-    etat = { r, calme, arret };
+    etat = { r, calme, arret, geste };
     if (!calme) { affinages = 0; montrerTout(); } // en mouvement : les dernières textures, tout de suite
     else if (arret && pret) montrerTout();
     // pendant un film, enregistrement.js règle lui-même la finesse
@@ -428,7 +434,7 @@ export function brancherQualite(map, outils) {
       // un « move » tout récent compte aussi : la rotation du départ (setBearing à chaque image) ne met pas
       // options.moving ; sans cela, ses textures refaites restaient cachées jusqu'aux 4 s d'attente (2026-10-21 :
       // l'interrupteur jour/nuit changeait la carte quelques secondes après l'appui)
-      const encore = regler(!!options?.moving || performance.now() - dernier < 100);
+      const encore = regler(!!options?.moving || performance.now() - dernier < 100, !!options?.moving);
       faites = 0;
       try {
         return chrono ? chronometrer(rendu, this, arguments) : rendu.apply(this, arguments);

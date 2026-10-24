@@ -19,6 +19,7 @@ import { brancherPrecharge } from './precharge.js';
 import { brancherTuilesRelief } from './tuiles-relief.js';
 import { brancherSocle } from './socle.js';
 import { coucheHorizon } from './horizon.js';
+import { brancherTexturesRelief } from './textures-relief.js';
 import { gererReperes } from './reperes.js';
 import { preparerAmbiance } from './ambiance.js';
 import { niveauDeDepart, brancherQualite } from './qualite.js';
@@ -828,6 +829,11 @@ function allegerCorrespondances() {
 }
 map.once('load', stabiliserRelief);
 map.once('load', allegerCorrespondances);
+// Les textures du relief redessinées moins souvent, et une par une (textures-relief.js) : les saccades des puces
+// graphiques intégrées dans la vue de loin (2026-10-24)
+map.once('load', () => {
+  try { brancherTexturesRelief(map); } catch (e) { console.warn('Relief : textures inchangées', e); }
+});
 // La mer jusqu'à l'horizon, sous tout le reste (horizon.js) : ajoutée avant les premières textures du relief
 const ajouterHorizon = () => { try { map.addLayer(coucheHorizon(map), 'fond'); } catch (e) { console.warn('Horizon indisponible', e); } };
 if (map.style?._loaded) ajouterHorizon(); else map.once('style.load', ajouterHorizon);
