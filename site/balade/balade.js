@@ -26,7 +26,7 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.min.js';
 import { ateliers } from '../modeles3d.js';
 import { MATIERES } from './textures.js';
-import { creerStyle, matieresStyle, eclairerParLampes, LAMPES_GLSL, EAU_GLSL, passeFinale, rafale, VENT_GLSL, VITESSE_RAFALE } from './styles.js';
+import { creerStyle, matieresStyle, eclairerParLampes, LAMPES_GLSL, EAU_GLSL, passeFinale, rafale, VENT_GLSL, VITESSE_RAFALE, PENTE_NEIGE, QUART_ABRI, DIRECTIONS_NEIGE } from './styles.js';
 import { creerHeros, creerPersonnage, creerCompagnon, COMPAGNONS, COMPAGNONS_SECRETS, creerDaim, creerMarchand } from './personnages.js';
 import { creerPassant, avancerPassant, tourner, lisse, pointDuBanc, ASSIS } from './monde.js';
 import { creerEtiquettes } from './etiquettes.js';
@@ -253,9 +253,11 @@ function construire() {
   // les feux d'artifice ; ce qui tombe du ciel selon la saison (le calendrier magique)
   const feux = creerFeux(THREE);
   groupe.add(feux.groupe);
-  const chutes = creerChutes(THREE);
+  const chutes = creerChutes(THREE, mats.abri);
   groupe.add(chutes.groupe);
   scene.add(groupe);
+  // ce qui est à l'abri sous un toit : ni neige, ni feuilles mortes, ni flocons (styles.js, abrite)
+  carteAbri(decor, lieu, mats.abri);
   M = {
     carte, effets, lueurs, betes, mouilleJoueur, mouilleKon, feuillage: densiteFeuillage(lieu), bruitage: creerBruitage({ oiseaux: lieu.oiseaux || [], ambiances: lieu.ambiances || [], betes: [...(lieu.betes?.chats?.length ? ['miaou', 'ronron'] : []), ...(lieu.betes?.chiens?.length ? ['ouaf'] : [])], extras: lieu.sons || [] }), musique: creerMusique(lieu.id), focale: 800,
     marchand, feux, chutes, sac: new Set(), trace: null, saison: 'ete', flash: { v: 0, c: new THREE.Color() }, hemiBase: { intensite: 0, couleur: new THREE.Color() },
@@ -897,6 +899,125 @@ function carteOmbreSol(decor, lieu, pas = 0.5) {
   texture.generateMipmaps = false;
   texture.needsUpdate = true;
   return { texture, nx, nz, x0: f.x0, z0: f.z0, pas };
+}
+
+/**
+ * Ce qui est à l'abri sous un toit (2026-10-25 ; l'hiver du calendrier magique, la neige couvrait les planchers du
+ * donjon de Himeji, des maisons de Gokayama et du sauna, et des flocons tombaient dedans : la neige ne regardait que la
+ * normale). La neige tombe un peu de biais : pour quatre directions penchées de 30° (DIRECTIONS_NEIGE), la carte
+ * graphique dessine une fois, vue d'en haut le long de la pente, la hauteur du décor (sans les feuillages, ni l'herbe, les
+ * pétales et l'eau posés au sol : seulement les objets du décor, calque CALQUE_ABRI) ; le plus haut morceau sur chaque
+ * droite reste (le test de profondeur). Une demi-flottante par point, les quatre cartes dans les quarts d'une même
+ * texture, autour de l'étendue fine. abrite (styles.js) compare un point à ces hauteurs : un point qui voit le ciel dans
+ * au moins une direction reçoit la neige. Pas de flottants dessinables (vieille carte graphique) : rien n'est à l'abri.
+ * (Le 2026-10-25, d'abord une seule carte, tout droit d'en haut : les toits bas du donjon, sous les avant-toits de
+ * l'étage au-dessus, cinq mètres plus haut, perdaient leur neige.)
+ */
+const CALQUE_ABRI = 7;
+function carteAbri(decor, lieu, u) {
+  if (!rendu.extensions.has('EXT_color_buffer_float') && !rendu.extensions.has('EXT_color_buffer_half_float')) return;
+  const f = lieu.etendue.fin, b = new THREE.Box3();
+  // de la plus basse à la plus haute des choses à comparer : le décor, et le sol de l'étendue fine (la gorge)
+  let bas = -20, haut = 10;
+  for (const m of decor) {
+    m.updateWorldMatrix(true, false);
+    if (!m.geometry.boundingBox) m.geometry.computeBoundingBox();
+    b.copy(m.geometry.boundingBox).applyMatrix4(m.matrixWorld);
+    if (b.max.x < f.x0 || b.min.x > f.x1 || b.max.z < f.z0 || b.min.z > f.z1) continue;
+    bas = Math.min(bas, b.min.y);
+    haut = Math.max(haut, b.max.y);
+    m.layers.enable(CALQUE_ABRI);
+  }
+  bas = Math.max(-80, bas) - 1;
+  haut = Math.min(150, haut) + 1;
+  const Q = QUART_ABRI;
+  const cible = new THREE.WebGLRenderTarget(2 * Q, 2 * Q, { type: THREE.HalfFloatType, format: THREE.RedFormat, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, generateMipmaps: false });
+  // la hauteur du monde, pour chaque point dessiné ; les feuillages (et l'herbe, les pétales, l'eau) ne cachent rien
+  const mat = new THREE.ShaderMaterial({
+    side: THREE.DoubleSide,
+    vertexShader: `
+      attribute vec3 saison;
+      varying float vY;
+      varying float vJete;
+      void main() {
+        vec4 p = modelMatrix * vec4(position, 1.0);
+        vY = p.y;
+        float s = floor(saison.x + 0.5);
+        vJete = s > 20.5 || (s > 0.5 && s < 7.5) || abs(s - 11.0) < 0.5 || abs(s - 12.0) < 0.5 ? 1.0 : 0.0;
+        gl_Position = projectionMatrix * viewMatrix * p;
+      }`,
+    fragmentShader: `
+      varying float vY;
+      varying float vJete;
+      void main() {
+        if (vJete > 0.5) discard;
+        gl_FragColor = vec4(vY, 0.0, 0.0, 1.0);
+      }`,
+  });
+  const cam = new THREE.Camera();
+  cam.layers.set(CALQUE_ABRI);
+  const fond = new THREE.Color(), alpha = rendu.getClearAlpha();
+  rendu.getClearColor(fond);
+  // (rien sur une droite : une hauteur bien plus basse que tout)
+  rendu.setClearColor(new THREE.Color(-1000, 0, 0), 1);
+  scene.overrideMaterial = mat;
+  u.abriFin.value.set(f.x0, f.z0, f.x1, f.z1);
+  DIRECTIONS_NEIGE.forEach(([dx, dz], k) => {
+    const tx = dx * PENTE_NEIGE, tz = dz * PENTE_NEIGE;
+    // le rectangle au sol (x − y·tx, z − y·tz) de tout ce qu'on comparera, de bas à haut
+    const x0 = f.x0 - Math.max(tx * bas, tx * haut), x1 = f.x1 - Math.min(tx * bas, tx * haut);
+    const z0 = f.z0 - Math.max(tz * bas, tz * haut), z1 = f.z1 - Math.min(tz * bas, tz * haut);
+    const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, hx = (x1 - x0) / 2, hz = (z1 - z0) / 2;
+    u.abriRect.value[k].set(cx, cz, hx, hz);
+    // une projection parallèle penchée : x, z le long de la pente → l'image ; le plus haut, le plus près
+    cam.projectionMatrix.set(
+      1 / hx, -tx / hx, 0, -cx / hx,
+      0, -tz / hz, 1 / hz, -cz / hz,
+      0, -2 / (haut - bas), 0, 1 + (2 * bas) / (haut - bas),
+      0, 0, 0, 1,
+    );
+    cam.projectionMatrixInverse.copy(cam.projectionMatrix).invert();
+    const vx = (k % 2) * Q, vy = Math.floor(k / 2) * Q;
+    cible.viewport.set(vx, vy, Q, Q);
+    cible.scissor.set(vx, vy, Q, Q);
+    cible.scissorTest = true;
+    rendu.setRenderTarget(cible);
+    rendu.render(scene, cam);
+  });
+  scene.overrideMaterial = null;
+  // un point de plus de chaque côté, le plus haut des neuf (dans son quart) : une fente de quelques millimètres entre
+  // deux morceaux d'un toit (les travées de la galerie d'Itsukushima) laissait passer des traînées de neige
+  const fente = new THREE.WebGLRenderTarget(2 * Q, 2 * Q, { type: THREE.HalfFloatType, format: THREE.RedFormat, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, generateMipmaps: false, depthBuffer: false });
+  const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), new THREE.ShaderMaterial({
+    depthTest: false, depthWrite: false,
+    uniforms: { carte: { value: cible.texture } },
+    vertexShader: `
+      varying vec2 vUv;
+      void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`,
+    fragmentShader: `
+      uniform sampler2D carte;
+      varying vec2 vUv;
+      void main() {
+        vec2 px = floor(vUv * ${2 * Q}.0), coin = floor(px / ${Q}.0) * ${Q}.0;
+        float h = -1000.0;
+        for (int j = -1; j <= 1; j++) for (int i = -1; i <= 1; i++) {
+          vec2 q = clamp(px + vec2(i, j), coin, coin + ${Q - 1}.0);
+          h = max(h, texelFetch(carte, ivec2(q), 0).r);
+        }
+        gl_FragColor = vec4(h, 0.0, 0.0, 1.0);
+      }`,
+  }));
+  const camQuad = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  rendu.setRenderTarget(fente);
+  rendu.render(quad, camQuad);
+  rendu.setRenderTarget(null);
+  rendu.setClearColor(fond, alpha);
+  mat.dispose();
+  quad.geometry.dispose();
+  quad.material.dispose();
+  cible.dispose();
+  for (const m of decor) m.layers.disable(CALQUE_ABRI);
+  u.abri.value = fente.texture;
 }
 
 /**
@@ -2581,8 +2702,9 @@ function sousLesPieds(x, z, y) {
   if (y > h + 0.12) return { sol: L.monde.solSous(x, z, y), eau: 0, h };
   const ne = niveauEau(x, z), eau = ne == null ? 0 : Math.max(0, ne - h);
   const sol = eau > 0.03 ? 'eau' : SON_DU_SOL[matiereDuSol(x, z, h)] || 'terre';
-  // (l'hiver du calendrier magique : la neige crisse sous les pas)
-  return { sol: M.mats.saisons.value.z > 0.5 && NEIGEUX.has(sol) ? 'neige' : sol, eau, h };
+  // (l'hiver du calendrier magique : la neige crisse sous les pas ; pas sous un toit, la salle du bas du donjon, dont le
+  // plancher est au niveau du sol : les toits de la caméra, monde.abri)
+  return { sol: M.mats.saisons.value.z > 0.5 && NEIGEUX.has(sol) && L.monde.abri(x, z, h) === Infinity ? 'neige' : sol, eau, h };
 }
 const NEIGEUX = new Set(['herbe', 'terre', 'sousBois', 'sable', 'roche']);
 /** De quel côté de l'écran est x, z (−1 à gauche, 1 à droite), pour le son. */

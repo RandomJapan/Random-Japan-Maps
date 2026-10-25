@@ -5,15 +5,20 @@
 //  des pétales de cerisier au printemps, des feuilles d'érable et de ginkgo à l'automne, des flocons l'hiver.
 //  Tout est calculé sur la carte graphique : chaque flocon a sa place de départ dans une boîte qui suit la caméra (il
 //  y revient par le haut quand il sort par le bas) ; rien à faire à chaque image que l'heure et la place de l'œil.
+//  Rien ne tombe sous un toit (la carte des abris, styles.js ABRI_GLSL ; 2026-10-25, il neigeait dans le donjon) : par
+//  une fenêtre, on voit tomber la neige dehors.
 //  SAISONS : 'ete' (celle de tous les jours, rien ne tombe), 'printemps', 'automne', 'hiver'.
-//  creerChutes(THREE) → { groupe, regler(saison), maj(dt, temps, oeil, focale, nuit) }.
+//  creerChutes(THREE, abri) → { groupe, regler(saison), maj(dt, temps, oeil, focale, nuit) } ; abri : les uniformes de
+//  la carte des abris (matieresStyle, styles.js).
 // ================================================================
+
+import { ABRI_GLSL } from './styles.js';
 
 export const SAISONS = ['ete', 'printemps', 'automne', 'hiver'];
 const N = 520;
 const BOITE = [34, 16, 34];
 
-export function creerChutes(THREE) {
+export function creerChutes(THREE, abri) {
   const base = new Float32Array(N * 3), prm = new Float32Array(N * 4);
   for (let i = 0; i < N; i++) {
     base[i * 3] = Math.random() * BOITE[0]; base[i * 3 + 1] = Math.random() * BOITE[1]; base[i * 3 + 2] = Math.random() * BOITE[2];
@@ -22,7 +27,7 @@ export function creerChutes(THREE) {
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(base, 3));
   geo.setAttribute('prm', new THREE.BufferAttribute(prm, 4));
-  const u = { temps: { value: 0 }, oeil: { value: new THREE.Vector3() }, sorte: { value: 0 }, force: { value: 0 }, focale: { value: 800 }, nuit: { value: 0 }, boite: { value: new THREE.Vector3(...BOITE) } };
+  const u = { temps: { value: 0 }, oeil: { value: new THREE.Vector3() }, sorte: { value: 0 }, force: { value: 0 }, focale: { value: 800 }, nuit: { value: 0 }, boite: { value: new THREE.Vector3(...BOITE) }, ...abri };
   const points = new THREE.Points(geo, new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, uniforms: u,
     vertexShader: `
@@ -31,6 +36,7 @@ export function creerChutes(THREE) {
       uniform vec3 oeil, boite;
       varying vec4 vPrm;
       varying float vAlpha;
+      ${ABRI_GLSL}
       void main() {
         vPrm = prm;
         // la chute (les flocons plus lents), le balancement ; puis ramené dans la boîte autour de l'œil
@@ -43,7 +49,7 @@ export function creerChutes(THREE) {
         gl_PointSize = force > 0.001 ? clamp(t * prm.z * focale / max(-mv.z, 0.5), 1.0, 40.0) : 0.0;
         // ils s'effacent au bord de la boîte (on ne les voit pas apparaître) et tout près de l'œil
         vec3 q = abs(p - oeil) / (boite * 0.5);
-        vAlpha = force * (1.0 - smoothstep(0.75, 1.0, max(q.x, max(q.y, q.z)))) * smoothstep(0.6, 1.6, -mv.z);
+        vAlpha = force * (1.0 - smoothstep(0.75, 1.0, max(q.x, max(q.y, q.z)))) * smoothstep(0.6, 1.6, -mv.z) * (1.0 - abrite(p));
       }`,
     fragmentShader: `
       uniform float sorte, temps, nuit;
