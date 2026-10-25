@@ -83,14 +83,15 @@ export function capeMino(THREE, a, { y = 0.78, k = 1 } = {}) {
  * Le collier de magatama (勾玉, Takachiho, 2026-10-25) : les joyaux en forme de virgule des dieux du Japon (le collier
  * suspendu à l'arbre sacré devant la grotte d'Amaterasu, avec le miroir). Un cordon autour du cou qui retombe sur la
  * poitrine, des perles de cornaline et de cristal, trois magatama de jade, le plus grand au milieu. bas : la hauteur du bas
- * du cordon ; avant : son écart devant le buste ; fille : le buste de la fille.
+ * du cordon ; avant : son écart devant le buste ; rayon(y) : le rayon du buste à la hauteur y (le tee-shirt, le chemisier,
+ * une tenue : un cylindre aplati devant, d'aplati).
  */
-export function collierMagatama(THREE, a, { bas = 0.735, avant = 0.014, fille = false } = {}) {
+export function collierMagatama(THREE, a, { bas = 0.735, avant = 0.014, rayon = (y) => 0.15 + 0.022 * Math.min(1, Math.max(0, (0.8 - y) / 0.25)), aplati = 0.9 } = {}) {
   const PI = Math.PI, CORDE = '#7a2a24', JADE = '#3f9a64', JADE2 = '#6cc28a';
-  // le devant du buste à la hauteur y, à l'écart x du milieu (le tee-shirt, le chemisier : un cylindre aplati devant)
+  // le devant du buste à la hauteur y, à l'écart x du milieu
   const buste = (x, y) => {
-    const r = fille ? 0.145 + 0.021 * Math.min(1, Math.max(0, (0.805 - y) / 0.25)) : 0.15 + 0.022 * Math.min(1, Math.max(0, (0.8 - y) / 0.25));
-    return 0.9 * r * Math.sqrt(Math.max(0, 1 - (x / r) ** 2));
+    const r = rayon(y);
+    return aplati * r * Math.sqrt(Math.max(0, 1 - (x / r) ** 2));
   };
   // le point du cordon à l'angle t (0 : derrière la nuque, π : en bas, devant) : autour du cou (caché sous la grosse tête),
   // puis sur la poitrine en U, à avant du buste
@@ -102,26 +103,41 @@ export function collierMagatama(THREE, a, { bas = 0.735, avant = 0.014, fille = 
   };
   const tour = [];
   for (let k = 0; k <= 32; k++) tour.push(point((k / 32) * 2 * PI));
-  a.tube(tour, 0.0075, CORDE, { cotes: 5, pas: 64, trait: false });
-  // les perles : cornaline (orangée) et cristal, sur le devant du cordon
-  for (let k = 0; k < 10; k++) {
-    const t = PI * (0.66 + 0.68 * (k / 9));
-    if (Math.abs(t - PI) < 0.1) continue;
-    const [x, y, z] = point(t);
-    a.boule(0.0135, k % 2 ? '#e8f2ee' : '#d8642a', { x, y, z: z + 0.004, trait: false }, 1);
-  }
-  // les magatama : une tête ronde et une queue qui s'enroule (une virgule), percée en haut ; le grand au milieu, deux
-  // petits de chaque côté
-  const virgule = (x, y, z, k, rz) => {
-    a.piece(fuseau(THREE, [[0, 0, 0], [0, -0.035, 0.032], [0, -0.05, -0.006]], 0.019, (t) => 1 - 0.78 * t, 8, 10), JADE, { x, y, z, ry: PI / 2, rz, ordre: 'ZYX', sx: k * 0.6, sy: k, sz: k, teinte: (px, py) => (py > y - 0.012 ? JADE2 : JADE) })
-      .boule(0.019 * k, JADE2, { x, y, z, sz: 0.6 }, 1)
-      .ovale(0.006 * k, '#1e3a2a', { x, y: y + 0.004 * k, z: z + 0.011 * k, sz: 0.4, trait: false }, 5);
+  a.tube(tour, 0.0065, CORDE, { cotes: 5, pas: 64, trait: false });
+  // les perles : cornaline (orangée) et cristal, de chaque côté, entre les petits magatama et le cou (devant les magatama,
+  // elles les cachaient) ; le cordon nu de l'un à l'autre
+  [0.86, 1.06, 1.26].forEach((e, k) => {
+    for (const s of [-1, 1]) {
+      const [x, y, z] = point(PI + s * e);
+      a.boule(0.0095, k % 2 ? '#e8f2ee' : '#d8642a', { x, y, z: z + 0.003, trait: false }, 1);
+    }
+  });
+  // les magatama : la forme des « virgules » du yin et du yang (une tête ronde, percée, et une queue qui s'effile en
+  // s'enroulant), en jade poli (les bords arrondis), suspendus au cordon par leur trou ; le grand au milieu, un petit de
+  // chaque côté, la queue tournée vers le milieu. (La première version, une virgule en tube vue de face avec un point
+  // sombre, ressemblait à une petite grenouille verte.) En unités de u : haute de 3,9, large de 3, le trou en (0,1 ; 1).
+  const contour = [];
+  const arc = (cx, cy, r, a0, a1, n, depuis = 0) => { for (let k = depuis; k <= n; k++) { const t = a0 + ((a1 - a0) * k) / n; contour.push([cx + r * Math.cos(t), cy + r * Math.sin(t)]); } };
+  // (le dos : le grand demi-cercle, du bout de la queue jusqu'en haut ; la tête, autour de son côté ; le creux : le
+  // petit demi-cercle jusqu'au bout de la queue, émoussé, sinon l'arrondi des bords s'y croiserait)
+  arc(0, 0, 2, -PI / 2 + 0.35, PI / 2, 16);
+  arc(0, 1, 1, PI / 2, (3 * PI) / 2, 12, 1);
+  arc(0, -1, 1, PI / 2, -PI / 2 + 0.5, 10, 1);
+  const magatama = (x, y, z, u, sens, rz) => {
+    const forme = new THREE.Shape(contour.map(([px, py]) => new THREE.Vector2(px * sens, py)));
+    const trou = new THREE.Path();
+    trou.absarc(0.1 * sens, 1, 0.48, 0, 2 * PI, true);
+    forme.holes.push(trou);
+    const g = new THREE.ExtrudeGeometry(forme, { depth: 0.6, bevelEnabled: true, bevelThickness: 0.32, bevelSize: 0.18, bevelSegments: 2, curveSegments: 10 });
+    // (le trou sur le cordon : la forme se place sous lui, un peu devant, et le cordon passe derrière elle)
+    g.translate(-0.1 * sens, -1, -0.3 + 0.62);
+    a.piece(g, JADE, { x, y, z, rz, s: u, teinte: (px, py) => (py > y - 0.4 * u ? JADE2 : JADE) });
   };
   const [, yb, zb] = point(PI);
-  virgule(0, yb - 0.024, zb + 0.01, 1.5, 0);
+  magatama(0, yb, zb, 0.0125, 1, 0);
   for (const s of [-1, 1]) {
-    const [x, y, z] = point(PI + s * 0.42);
-    virgule(x, y - 0.018, z + 0.008, 0.95, -s * 0.5);
+    const [x, y, z] = point(PI + s * 0.6);
+    magatama(x, y, z, 0.0082, s, s * 0.22);
   }
   return a;
 }
@@ -163,7 +179,7 @@ export function creerHeros(ctx, sorte = 'garcon') {
 
   // le buste : le bas (jupe, short), le haut (chemisier, tee-shirt et veste), le cou, le sac (chacun à part : une
   // tenue en cache certains)
-  const bas = atelier(), haut = atelier(), cou = atelier(), b = atelier();
+  const bas = atelier(), haut = atelier(), cou = atelier(), b = atelier(), foulard = atelier();
   if (fille) {
     // la jupe plissée (des plis qui s'ouvrent vers le bas, d'un bleu et d'un bleu plus sombre), sa ceinture
     const plis = (x, y, z) => { const t = Math.atan2(x, z), f = (0.11 - y) / 0.22, k = 1 + 0.06 * f * (0.5 + 0.5 * Math.cos(12 * t)); return [x * k, y, z * k]; };
@@ -175,13 +191,14 @@ export function creerHeros(ctx, sorte = 'garcon') {
       .boite(0.27, 0.16, 0.018, P.col, { y: 0.755, z: -0.142, rx: 0.18 })
       .boite(0.25, 0.02, 0.022, P.colRayure, { y: 0.692, z: -0.131, rx: 0.18 });
     cou.cylindre(0.05, 0.056, 0.08, 10, PEAU, { y: 0.815 });
+    // le « foulard » : le devant du col marin et le nœud rouge, ses deux boucles, ses deux pans (à part : le collier de
+    // magatama le remplace)
     for (const s of [-1, 1]) {
-      haut.boite(0.046, 0.17, 0.016, P.col, { x: s * 0.058, y: 0.748, z: 0.137 + s * 0.002, rz: s * 0.5, rx: -0.22 })
-        // le nœud rouge : ses deux boucles, ses deux pans
+      foulard.boite(0.046, 0.17, 0.016, P.col, { x: s * 0.058, y: 0.748, z: 0.137 + s * 0.002, rz: s * 0.5, rx: -0.22 })
         .ovale(0.034, P.noeud, { x: s * 0.036, y: 0.688, z: 0.158, sx: 1.3, sy: 0.78, sz: 0.45, rz: -s * 0.25 }, 10)
         .boite(0.026, 0.07, 0.01, P.noeud, { x: s * 0.018, y: 0.645, z: 0.156 + s * 0.0015, rz: s * 0.25, rx: -0.15 });
     }
-    haut.ovale(0.017, P.noeud, { y: 0.688, z: 0.168, sz: 0.6 }, 8);
+    foulard.ovale(0.017, P.noeud, { y: 0.688, z: 0.168, sz: 0.6 }, 8);
   } else {
     // le short et sa ceinture, le tee-shirt ; la veste ouverte devant (un cylindre ouvert : le tee-shirt se voit
     // entre ses revers), ses épaules, son col relevé derrière la nuque
@@ -219,6 +236,12 @@ export function creerHeros(ctx, sorte = 'garcon') {
   }
   const mBas = maillage(bas.fin(0, false)), mHaut = maillage(haut.fin(0, false)), mSac = maillage(b.fin(0, false));
   corps.add(mBas, mHaut, maillage(cou.fin(0, false)), mSac);
+  // (le foulard de la fille : on ne le voit qu'avec son chemisier, et sans rien au cou : le collier le remplace, sinon
+  // il se perdait entre le nœud rouge et le col blanc, 2026-10-25)
+  const mFoulard = fille ? maillage(foulard.fin(0, false)) : null;
+  if (mFoulard) corps.add(mFoulard);
+  let auCou = false;
+  const majFoulard = () => { if (mFoulard) mFoulard.visible = mHaut.visible && !auCou; };
 
   // les bras (pivot à l'épaule) : la manche, l'avant-bras, la main et son pouce
   const main = (a, s, c = PEAU) => a.ovale(0.048, c, { y: -0.31, sx: 0.78, sy: 1.08 }, 10).ovale(0.02, c, { x: -s * 0.022, y: -0.288, z: 0.03, sy: 1.4, rx: 0.3 }, 6);
@@ -653,6 +676,26 @@ export function creerHeros(ctx, sorte = 'garcon') {
   };
   const habits = {};
   let habitPorte = null, long = false;
+  // le collier de magatama : posé sur le buste de ce qu'on porte (avec le buste des habits de tous les jours, il
+  // s'enfonçait à moitié dans le happi, les robes et l'armure) ; un par buste, fait la première fois
+  const entre = (y, y0, y1) => Math.min(1, Math.max(0, (y0 - y) / (y0 - y1)));
+  const robeBuste = { rayon: (y) => 0.168 + 0.037 * entre(y, 0.81, 0.5), aplati: 0.92, bas: 0.74, avant: 0.024 };
+  const BUSTES = {
+    'habit-defaut': fille ? { rayon: (y) => 0.145 + 0.021 * entre(y, 0.805, 0.555), aplati: 0.9, bas: 0.752, avant: 0.024 }
+      : { rayon: (y) => 0.15 + 0.022 * entre(y, 0.8, 0.55), aplati: 0.9, bas: 0.722, avant: 0.014 },
+    happi: { rayon: (y) => 0.172 + ((fille ? 0.218 : 0.206) - 0.172) * entre(y, 0.81, fille ? 0.5 : 0.405), aplati: 0.92, bas: 0.74, avant: 0.024 },
+    yukata: robeBuste, kimonoOr: robeBuste,
+    armure: { rayon: (y) => 0.185 + 0.007 * entre(y, 0.81, 0.5), aplati: 0.9, bas: 0.74, avant: 0.026 },
+  };
+  const colliers = {};
+  let habitCourant = 'habit-defaut';
+  const majCollier = () => {
+    for (const m of Object.values(colliers)) m.visible = false;
+    if (!auCou) return;
+    const k = BUSTES[habitCourant] ? habitCourant : 'habit-defaut';
+    if (!colliers[k]) { colliers[k] = maillage(collierMagatama(THREE, atelier(), BUSTES[k]).fin(0, false)); corps.add(colliers[k]); }
+    colliers[k].visible = true;
+  };
   // le sac à dos : la tenue le garde ou non (garde : 'sac'), et le mino le cache (sur le dos, à sa place)
   let sacGarde = true, dosPorte = null;
   const majSac = () => { mSac.visible = sacGarde && !dosPorte; };
@@ -660,8 +703,11 @@ export function creerHeros(ctx, sorte = 'garcon') {
   function habiller(id) {
     if (habitPorte) for (const m of habitPorte.meshes) m.visible = false;
     const f = HABITS[id];
+    habitCourant = f ? id : 'habit-defaut';
+    majCollier();
     if (!f) {
       mHaut.visible = mBas.visible = true;
+      majFoulard();
       sacGarde = true;
       majSac();
       for (const m of [...brasBase, ...jambesBase]) m.visible = true;
@@ -679,6 +725,7 @@ export function creerHeros(ctx, sorte = 'garcon') {
     const h = habits[id];
     for (const m of h.meshes) m.visible = true;
     mHaut.visible = false;
+    majFoulard();
     mBas.visible = h.garde.includes('bas');
     sacGarde = h.garde.includes('sac');
     majSac();
@@ -845,11 +892,9 @@ export function creerHeros(ctx, sorte = 'garcon') {
       }
       // au cou : rien ('cou-rien'), ou le collier de magatama (Takachiho)
       if (place === 'cou') {
-        if (id === 'magatama' && !pieces.magatama) {
-          pieces.magatama = maillage(collierMagatama(THREE, atelier(), fille ? { bas: 0.778, avant: 0.026, fille } : { bas: 0.722 }).fin(0, false));
-          corps.add(pieces.magatama);
-        }
-        if (pieces.magatama) pieces.magatama.visible = id === 'magatama';
+        auCou = id === 'magatama';
+        majCollier();
+        majFoulard();
         return;
       }
       if (place !== 'tete' && place !== 'yeux') return;
