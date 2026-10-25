@@ -120,6 +120,39 @@ const MOTIFS = {
     <path d="M66 58 L80 70 L72 72 Z M58 44 L44 40 L52 52 Z"/>
     <path d="M10 104 q8 -5 16 0 t16 0 t16 0 t16 0 t16 0 t16 0" fill="none" stroke-width="3"/>
     <path d="M70 96 q6 -4 12 0 t12 0" fill="none" stroke-width="2.5"/>`,
+  // Takachiho (2026-10-25) : la barque sous la cascade entre les colonnes de basalte ; les nouilles dans le bambou ; le
+  // masque d'Okame et les grelots du kagura ; les cèdres mariés et leur corde ; les tas de pierres de la grotte des dieux
+  barque: `<rect x="8" y="10" width="9" height="56"/><rect x="19" y="5" width="9" height="61"/><rect x="30" y="12" width="9" height="54"/>
+    <rect x="82" y="8" width="9" height="58"/><rect x="93" y="4" width="9" height="62"/><rect x="104" y="12" width="8" height="54"/>
+    <path d="M46 8 L46 58 M53 6 L53 61 M60 8 L60 58" fill="none" stroke-width="3" stroke-linecap="round"/>
+    <path d="M40 64 q5 -5 10 0 t10 0 t10 0" fill="none" stroke-width="2.5"/>
+    <circle cx="68" cy="68" r="5"/><rect x="63" y="72" width="10" height="9"/>
+    <path d="M26 80 L96 80 L88 94 Q60 99 34 94 Z"/><path d="M40 85 L84 85" class="vide" fill="none" stroke-width="2"/>
+    <path d="M44 90 L22 102 M80 90 L102 102" fill="none" stroke-width="3" stroke-linecap="round"/>
+    <path d="M6 106 q8 -5 16 0 t16 0 t16 0 t16 0 t16 0 t16 0" fill="none" stroke-width="3"/>`,
+  somen: `<path d="M8 34 L112 64 L112 78 L8 48 Z"/>
+    <path d="M28 41 L26 50 M52 48 L50 57 M76 55 L74 64 M100 62 L98 71" class="vide" fill="none" stroke-width="2"/>
+    <path d="M36 48 q5 -3 9 1 t9 1 t9 1" class="vide" fill="none" stroke-width="2.6" stroke-linecap="round"/>
+    <path d="M86 10 L66 58 M97 14 L73 60" fill="none" stroke-width="3.5" stroke-linecap="round"/>
+    <path d="M28 82 L92 82 Q90 106 60 106 Q30 106 28 82 Z"/><path d="M36 87 L84 87" class="vide" fill="none" stroke-width="2"/>`,
+  kagura: `<circle cx="52" cy="58" r="33"/>
+    <path d="M30 40 Q52 24 74 40" class="vide" fill="none" stroke-width="2.4"/>
+    <ellipse cx="42" cy="34" rx="5" ry="2.6" class="vide"/><ellipse cx="62" cy="34" rx="5" ry="2.6" class="vide"/>
+    <path d="M35 54 q6 -6 12 0 M57 54 q6 -6 12 0" class="vide" fill="none" stroke-width="3" stroke-linecap="round"/>
+    <ellipse cx="52" cy="76" rx="4.5" ry="3" class="vide"/>
+    <path d="M96 40 L96 104" fill="none" stroke-width="3.5" stroke-linecap="round"/>
+    <circle cx="96" cy="22" r="4.5"/><circle cx="89" cy="30" r="4.5"/><circle cx="103" cy="30" r="4.5"/><circle cx="86" cy="39" r="4.5"/><circle cx="96" cy="38" r="4.5"/><circle cx="106" cy="39" r="4.5"/>
+    <path d="M92 104 l-6 10 M96 104 l0 11 M100 104 l6 10" fill="none" stroke-width="2.5" stroke-linecap="round"/>`,
+  meoto: `<path d="M34 40 L45 6 L56 40 Z"/><path d="M64 40 L75 6 L86 40 Z"/>
+    <path d="M30 58 L45 24 L60 58 Z"/><path d="M60 58 L75 24 L90 58 Z"/>
+    <path d="M41 58 L43 88 Q52 96 60 101 Q68 96 77 88 L79 58 L70 58 L68 84 Q64 88 60 90 Q56 88 52 84 L50 58 Z"/>
+    <path d="M30 68 Q60 82 90 68" fill="none" stroke-width="4.5"/>
+    <path d="M44 74 l-2 10 M60 78 l0 11 M76 74 l2 10" fill="none" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M12 106 L108 106" fill="none" stroke-width="3"/>`,
+  ishi: `<path d="M8 104 Q10 32 60 24 Q110 32 112 104 L100 104 Q98 46 60 40 Q22 46 20 104 Z"/>
+    <ellipse cx="44" cy="96" rx="14" ry="5.5"/><ellipse cx="44" cy="85.5" rx="11" ry="4.5"/><ellipse cx="44" cy="76.5" rx="8" ry="3.6"/><ellipse cx="44" cy="69" rx="5" ry="2.8"/>
+    <ellipse cx="75" cy="97" rx="12" ry="5"/><ellipse cx="75" cy="87.5" rx="9" ry="4"/><ellipse cx="75" cy="79.5" rx="6" ry="3.2"/>
+    <ellipse cx="60" cy="100" rx="5" ry="3"/>`,
 };
 
 /** Un tampon en SVG : t = { id, motif, ja (nom japonais), encre, forme ('rond' | 'carre') }, lieuJa (le lieu en japonais). */

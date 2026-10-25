@@ -272,7 +272,10 @@ export function avancerPassant(p, dt, monde, joueur, autres) {
     }
   }
   p.v += (voulu - p.v) * Math.min(1, dt * 6);
-  p.y += (monde.hauteur(p.x, p.z, p.y) - p.y) * Math.min(1, dt * 14);
+  // (la hauteur du sol, seulement quand il a bougé : la plupart restent à leur place ; une vingtaine de calculs du relief par
+  // image de moins, 2026-10-25)
+  if (p.x !== p.hx || p.z !== p.hz || p.hy === undefined) { p.hy = monde.hauteur(p.x, p.z, p.y); p.hx = p.x; p.hz = p.z; }
+  p.y += (p.hy - p.y) * Math.min(1, dt * 14);
 }
 
 export function tourner(a, b, f) {

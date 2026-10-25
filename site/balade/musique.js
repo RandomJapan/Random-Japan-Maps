@@ -7,7 +7,9 @@
 //  - Gokayama (2026-10-23) : un air de montagne, mélancolique et chaleureux, sur la gamme des chants populaires (la
 //    mineur, la do ré mi sol), flûte de bambou, shamisen, et les claquements de la sasara et des baguettes de la kokiriko ;
 //  - Himeji (2026-10-25) : un air de château, noble et un peu mélancolique, sur la gamme in (mi fa la si do), la flûte
-//    traversière des fêtes (fue), le koto et le taiko.
+//    traversière des fêtes (fue), le koto et le taiko ;
+//  - Takachiho (2026-10-25) : un air de gorge et de mythe, qui se balance comme une barque (des rythmes pointés), sur la
+//    gamme ritsu (sol la do ré mi), la flûte du kagura, le koto, le taiko et les grelots (suzu) que secouent les danseurs.
 //  La nuit, le même air plus lent, en boîte à musique. Une introduction, puis la boucle (A, A', B).
 //  Pour danser (la danse achetée au marchand, 2026-10-23), un troisième air, celui d'une fête d'été (bon-odori) : la
 //  flûte de fête (shinobue), le shamisen, le grand tambour et la clochette de cuivre (atarigane) ; fete(oui).
@@ -166,6 +168,41 @@ const AIRS = {
     jour: { tempo: 88, lead: 'fue', arpege: 'koto', basse: 'pizz', nappe: true, batterie: 'taiko' },
     nuit: { tempo: 66, lead: 'boite', arpege: 'kotoDoux', basse: 'pizzDoux', nappe: true, batterie: null },
   },
+  // Sol majeur, une mélodie sur la gamme ritsu (sol la do ré mi, sans demi-ton : celle de la musique des sanctuaires) : la
+  // rivière émeraude au fond de sa gorge, le mythe de la grotte céleste ; des rythmes pointés, comme les coups de rame
+  takachiho: {
+    gamme: [7, 9, 11, 0, 2, 4, 6], // sol majeur (pour la seconde voix)
+    intro: ['G', 'G'],
+    A: {
+      accords: ['G', 'Em', 'C', 'D', 'G', 'Em', 'Am D', 'G'],
+      melodie: [
+        [74, 6], [76, 2], [74, 4], [72, 4],
+        [69, 6], [67, 2], [64, 8],
+        [67, 4], [69, 4], [72, 6], [74, 2],
+        [76, 6], [74, 2], [69, 8],
+        [74, 6], [76, 2], [79, 4], [76, 4],
+        [74, 6], [72, 2], [69, 8],
+        [67, 4], [69, 4], [72, 4], [69, 4],
+        [67, 12], [null, 4],
+      ],
+      fin2: [[67, 8], [69, 4], [72, 4]],
+    },
+    B: {
+      accords: ['C', 'D', 'Em', 'Am', 'C', 'D', 'Em D', 'G'],
+      melodie: [
+        [79, 6], [81, 2], [79, 4], [76, 4],
+        [74, 6], [76, 2], [74, 8],
+        [76, 4], [79, 4], [81, 6], [79, 2],
+        [76, 6], [74, 2], [72, 8],
+        [72, 4], [74, 4], [76, 4], [79, 4],
+        [81, 6], [79, 2], [76, 8],
+        [74, 4], [76, 2], [74, 2], [72, 4], [69, 4],
+        [67, 8], [69, 4], [74, 4],
+      ],
+    },
+    jour: { tempo: 92, lead: 'fue', arpege: 'koto', basse: 'pizz', nappe: true, batterie: 'kagura' },
+    nuit: { tempo: 68, lead: 'boite', arpege: 'kotoDoux', basse: 'pizzDoux', nappe: true, batterie: null },
+  },
   // Ré majeur, la gamme yo (ré mi sol la si) : l'air de la danse des fêtes d'été, sautillant (112 battements : la
   // danse du voyageur est réglée dessus, personnages.js)
   odori: {
@@ -275,6 +312,12 @@ export function partition(lieu, moment) {
         e.push({ b: t0, i: 'taiko', v: 0.75 }, { b: t0 + 2, i: 'taiko', v: 0.45 });
         for (const o of [1, 3]) e.push({ b: t0 + o, i: 'sasara', v: 1 });
         for (const o of [0.5, 1.5, 2.5, 3.5]) e.push({ b: t0 + o, i: 'bois', v: 0.4 });
+      } else if (arr.batterie === 'kagura') {
+        // le kagura : le grand tambour sur le premier temps (et un écho sur le « et » du troisième), les grelots (suzu)
+        // secoués sur le deuxième et le quatrième, le bois à contretemps
+        e.push({ b: t0, i: 'taiko', v: 0.85 }, { b: t0 + 2.5, i: 'taiko', v: 0.45 });
+        for (const o of [1, 3]) e.push({ b: t0 + o, i: 'suzu', v: 1 });
+        for (const o of [1.5, 3.5]) e.push({ b: t0 + o, i: 'bois', v: 0.4 });
       } else if (arr.batterie === 'legere') {
         e.push({ b: t0, i: 'grosse', v: 1 }, { b: t0 + 1.5, i: 'grosse', v: 0.5 }, { b: t0 + 2, i: 'grosse', v: 0.9 });
         e.push({ b: t0 + 1, i: 'caisse', v: 1 }, { b: t0 + 3, i: 'caisse', v: 1 });
@@ -303,9 +346,9 @@ export function partition(lieu, moment) {
 const VOLUME = { jour: 0.125, nuit: 0.26, fete: 0.13 };
 const NIVEAU = {
   shakuhachi: 0.16, flute: 0.15, boite: 0.11, koto: 0.085, marimba: 0.075, pizz: 0.2, basse: 0.13, cordes: 0.018,
-  taiko: 0.42, grosse: 0.3, caisse: 0.05, shaker: 0.018, bois: 0.05, fue: 0.11, shamisen: 0.09, kane: 0.035, sasara: 0.1,
+  taiko: 0.42, grosse: 0.3, caisse: 0.05, shaker: 0.018, bois: 0.05, fue: 0.11, shamisen: 0.09, kane: 0.035, sasara: 0.1, suzu: 0.028,
 };
-const PLACE = { koto: -0.3, marimba: 0.3, shaker: 0.35, bois: -0.25, cordes: 0, pizz: -0.1, basse: 0, shamisen: -0.3, kane: 0.35, sasara: 0.3 };
+const PLACE = { koto: -0.3, marimba: 0.3, shaker: 0.35, bois: -0.25, cordes: 0, pizz: -0.1, basse: 0, shamisen: -0.3, kane: 0.35, sasara: 0.3, suzu: 0.32 };
 
 export function creerMusique(lieu) {
   let ctx = null, sortie = null, reverbe = null, bruit = null, ondes = {};
@@ -524,6 +567,21 @@ export function creerMusique(lieu) {
         break;
       }
       case 'shaker': souffle(t, 0.05, 7500, 1.2, niveau, vers); break;
+      case 'suzu': {
+        // les grelots du kagura (suzu) : une grappe de petites cloches qu'on secoue, des notes aiguës qui ne tombent pas
+        // juste et tremblent, en deux secousses
+        for (const t1 of [t, t + 0.06]) {
+          for (let k = 0; k < 6; k++) {
+            const o = osc('sine', 3150 * (1 + k * 0.137 + Math.random() * 0.02), t1), gk = ctx.createGain();
+            gk.gain.setValueAtTime(niveau * (1 - k * 0.12) * (t1 > t ? 0.6 : 1), t1);
+            gk.gain.exponentialRampToValueAtTime(0.0001, t1 + 0.32);
+            o.connect(gk).connect(vers);
+            o.start(t1); o.stop(t1 + 0.35);
+          }
+        }
+        souffle(t, 0.03, 6000, 1.5, niveau * 0.6, vers);
+        break;
+      }
       case 'sasara': {
         // la binzasara : des lamelles de bois qui claquent les unes contre les autres, en cascade (« jararan »)
         for (let k = 0; k < 9; k++) souffle(t + k * 0.0095 + Math.random() * 0.004, 0.02, 2400 + Math.random() * 2000, 3, niveau * (1 - k / 11), vers);

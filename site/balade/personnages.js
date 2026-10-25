@@ -79,6 +79,53 @@ export function capeMino(THREE, a, { y = 0.78, k = 1 } = {}) {
   return a;
 }
 
+/**
+ * Le collier de magatama (勾玉, Takachiho, 2026-10-25) : les joyaux en forme de virgule des dieux du Japon (le collier
+ * suspendu à l'arbre sacré devant la grotte d'Amaterasu, avec le miroir). Un cordon autour du cou qui retombe sur la
+ * poitrine, des perles de cornaline et de cristal, trois magatama de jade, le plus grand au milieu. bas : la hauteur du bas
+ * du cordon ; avant : son écart devant le buste ; fille : le buste de la fille.
+ */
+export function collierMagatama(THREE, a, { bas = 0.735, avant = 0.014, fille = false } = {}) {
+  const PI = Math.PI, CORDE = '#7a2a24', JADE = '#3f9a64', JADE2 = '#6cc28a';
+  // le devant du buste à la hauteur y, à l'écart x du milieu (le tee-shirt, le chemisier : un cylindre aplati devant)
+  const buste = (x, y) => {
+    const r = fille ? 0.145 + 0.021 * Math.min(1, Math.max(0, (0.805 - y) / 0.25)) : 0.15 + 0.022 * Math.min(1, Math.max(0, (0.8 - y) / 0.25));
+    return 0.9 * r * Math.sqrt(Math.max(0, 1 - (x / r) ** 2));
+  };
+  // le point du cordon à l'angle t (0 : derrière la nuque, π : en bas, devant) : autour du cou (caché sous la grosse tête),
+  // puis sur la poitrine en U, à avant du buste
+  const point = (t) => {
+    const c = Math.cos(t), devant = Math.max(0, -c), d2 = devant * devant;
+    const x = Math.sin(t) * (0.1 - 0.045 * d2), y = 0.84 + (bas - 0.84) * d2;
+    const derriere = -0.07 * Math.max(0, c), w = Math.min(1, Math.max(0, -c / 0.3));
+    return [x, y, derriere * (1 - w) + (buste(x, y) + avant) * w];
+  };
+  const tour = [];
+  for (let k = 0; k <= 32; k++) tour.push(point((k / 32) * 2 * PI));
+  a.tube(tour, 0.0075, CORDE, { cotes: 5, pas: 64, trait: false });
+  // les perles : cornaline (orangée) et cristal, sur le devant du cordon
+  for (let k = 0; k < 10; k++) {
+    const t = PI * (0.66 + 0.68 * (k / 9));
+    if (Math.abs(t - PI) < 0.1) continue;
+    const [x, y, z] = point(t);
+    a.boule(0.0135, k % 2 ? '#e8f2ee' : '#d8642a', { x, y, z: z + 0.004, trait: false }, 1);
+  }
+  // les magatama : une tête ronde et une queue qui s'enroule (une virgule), percée en haut ; le grand au milieu, deux
+  // petits de chaque côté
+  const virgule = (x, y, z, k, rz) => {
+    a.piece(fuseau(THREE, [[0, 0, 0], [0, -0.035, 0.032], [0, -0.05, -0.006]], 0.019, (t) => 1 - 0.78 * t, 8, 10), JADE, { x, y, z, ry: PI / 2, rz, ordre: 'ZYX', sx: k * 0.6, sy: k, sz: k, teinte: (px, py) => (py > y - 0.012 ? JADE2 : JADE) })
+      .boule(0.019 * k, JADE2, { x, y, z, sz: 0.6 }, 1)
+      .ovale(0.006 * k, '#1e3a2a', { x, y: y + 0.004 * k, z: z + 0.011 * k, sz: 0.4, trait: false }, 5);
+  };
+  const [, yb, zb] = point(PI);
+  virgule(0, yb - 0.024, zb + 0.01, 1.5, 0);
+  for (const s of [-1, 1]) {
+    const [x, y, z] = point(PI + s * 0.42);
+    virgule(x, y - 0.018, z + 0.008, 0.95, -s * 0.5);
+  }
+  return a;
+}
+
 export function creerHeros(ctx, sorte = 'garcon') {
   const { THREE, atelier, P, maillage } = ctx;
   const PI = Math.PI, fille = sorte === 'fille', PEAU = P.peau, H = fille ? P.cheveuxFille : P.cheveux;
@@ -749,22 +796,35 @@ export function creerHeros(ctx, sorte = 'garcon') {
       const s = Math.sin(Math.min(1, t / 1.2) * PI);
       corps.rotation.x = 0.55 * s; tete.rotation.x = 0.3 * s;
       B.rotation.x = G.rotation.x = -1.05 * s; B.rotation.z = 0.1; G.rotation.z = -0.1;
+    } else if (g === 'baguettes') {
+      // attraper des nouilles au vol (Takachiho) : le bol dans la main gauche, la droite plonge ses baguettes dans le
+      // bambou, puis remonte
+      const u = Math.min(1, t / 0.35), plonge = Math.sin(u * PI);
+      B.rotation.x = -1.0 - 0.5 * plonge; B.rotation.z = 0.3 + 0.12 * plonge;
+      G.rotation.x = -0.85; G.rotation.z = -0.32;
+      corps.rotation.x = 0.06 + 0.2 * plonge; tete.rotation.x = 0.18 + 0.1 * plonge;
     }
   }
 
-  let phase = 0, salut = 0, foulee = 0, assis = false, danse = false, tDanse = 0, geste = null, tGeste = 0;
+  let phase = 0, salut = 0, foulee = 0, assis = false, danse = false, tDanse = 0, geste = null, tGeste = 0, rame = null;
   return {
     objet: racine,
     /** Une petite courbette (on lui parle, il remercie…). */
     saluer() { salut = 1; },
+    /**
+     * Ramer (Takachiho, 2026-10-25) : assis dans la barque, tourné vers l'arrière comme les rameurs, les mains sur les deux
+     * rames ; phase (radians) : où en est le coup de rame (les bras tendus vers l'avant à l'attaque, puis tirés vers la
+     * poitrine, le corps qui se penche et se redresse) ; null : plus de rames.
+     */
+    ramer(p) { rame = p; },
     /** Assis sur un banc (oui) ou debout : les jambes tendues devant (la racine posée à la hauteur du siège moins ASSIS). */
     asseoir(oui) { assis = oui; },
     /** La danse des fêtes (oui), ou plus ; t0 : où en est la musique (en battements), pour danser en mesure. */
     danser(oui, t0 = 0) { danse = oui; tDanse = t0; },
-    /** Un geste ('victoire', 'saut', 'salut', 'coeur', 'coucou', 'creuser', 'offrir', 'prier', 'washi', 'kokiriko', 'grimper'), ou null. */
+    /** Un geste ('victoire', 'saut', 'salut', 'coeur', 'coucou', 'creuser', 'offrir', 'prier', 'washi', 'kokiriko', 'grimper', 'baguettes'), ou null. */
     geste(g) { if (g !== geste) tGeste = 0; geste = g; },
     /**
-     * Porter la pièce id (tenues.js) à sa place ('tete', 'yeux', 'habit', 'dos') : sur la tête, elle remplace la casquette ou
+     * Porter la pièce id (tenues.js) à sa place ('tete', 'yeux', 'habit', 'dos', 'cou') : sur la tête, elle remplace la casquette ou
      * le chapeau ('defaut' : les remettre ; 'nue' : rien) ; 'aucune' : rien sur les yeux ; 'habit-defaut' : les habits de
      * tous les jours ; sur le dos, le sac ('sac') ou le mino. (Ce qu'on laisse sous ses pas et ce que porte le compagnon
      * ne sont pas sur le voyageur.)
@@ -781,6 +841,15 @@ export function creerHeros(ctx, sorte = 'garcon') {
           dosPorte = pieces.mino;
         }
         majSac();
+        return;
+      }
+      // au cou : rien ('cou-rien'), ou le collier de magatama (Takachiho)
+      if (place === 'cou') {
+        if (id === 'magatama' && !pieces.magatama) {
+          pieces.magatama = maillage(collierMagatama(THREE, atelier(), fille ? { bas: 0.778, avant: 0.026, fille } : { bas: 0.722 }).fin(0, false));
+          corps.add(pieces.magatama);
+        }
+        if (pieces.magatama) pieces.magatama.visible = id === 'magatama';
         return;
       }
       if (place !== 'tete' && place !== 'yeux') return;
@@ -835,6 +904,20 @@ export function creerHeros(ctx, sorte = 'garcon') {
         jambes[0].rotation.x = jambes[1].rotation.x = -1.3;
         bras[0].rotation.x = bras[1].rotation.x = -0.55;
         corps.rotation.x = -0.05 + courbe;
+        if (rame !== null) {
+          // (o = −1 : l'attaque, les pelles du côté de la proue ; o = 1 : la fin du coup, du côté de la poupe — balade.js, piloter)
+          // à l'attaque, penché vers la poupe, les bras tendus, les genoux pliés ; puis il tire : les poignées vers la
+          // poitrine, le buste qui se redresse en arrière, les jambes qui poussent ; la tête suit un peu en retard
+          const o = Math.sin(rame), tire = 0.5 + 0.5 * o;
+          bras[0].rotation.x = bras[1].rotation.x = -1.35 + 0.65 * tire;
+          bras[0].rotation.z = 0.42; bras[1].rotation.z = -0.42;
+          corps.rotation.x = 0.04 - 0.24 * o;
+          tete.rotation.x = 0.1 * Math.sin(rame - 0.5);
+          jambes[0].rotation.x = jambes[1].rotation.x = -1.15 + 0.2 * o;
+          return 0;
+        }
+        // (un geste, même assis : prendre le miroir depuis la barque)
+        if (geste) { tGeste += dt; poseGeste(geste, tGeste); jambes[0].rotation.x = jambes[1].rotation.x = -1.3; tete.rotation.y = 0; return 0; }
       } else if (danse) {
         tDanse += dt * (112 / 60);
         poseDanse(tDanse);
@@ -867,6 +950,10 @@ export function creerHeros(ctx, sorte = 'garcon') {
  * Pour Gokayama (2026-10-23) : chapeau 'sugegasa' (le chapeau de paille conique), mino (la cape de paille, sur le dos),
  * instrument 'sasara' (la binzasara : des lamelles de bois enfilées en arc, qu'on fait claquer) ou 'kokiriko' (les deux
  * baguettes de bambou), pose 'kokiriko' (le danseur, debout) ou 'balai' (balayer la cour du sanctuaire).
+ * Pour le kagura de Takachiho (2026-10-25) : masque 'okame' (le visage rond et rieur d'Uzume, la déesse qui dansa devant la
+ * grotte) ou 'tajikarao' (le dieu de la force, rouge, les yeux d'or), coiffure 'criniere' (sa grande crinière), instrument
+ * 'suzu' (les grelots en grappe, dans la main droite, et le gohei de papier dans la gauche), pose 'kagura' (danser) ;
+ * pose 'ramer' (assis dans une barque).
  * Renvoie { objet, animer(dt, vitesse, temps), saluer(), asseoir(oui) }.
  */
 export function creerPersonnage(ctx, T) {
@@ -1012,6 +1099,20 @@ export function creerPersonnage(ctx, T) {
         .baton([0, -0.3, 0.02], [0, -0.3, 0.32], 0.012, '#3a2420', 4, { trait: false });
     }
     if (T.instrument === 'taiko') a.baton([0, -0.3, 0.02], [0, -0.32, 0.26], 0.012, '#3a2420', 4, { trait: false });
+    if (T.instrument === 'suzu' && s === -1) {
+      // les grelots du kagura (kagura-suzu) : un manche, trois étages de petites cloches d'or autour d'une tige, et les
+      // rubans des cinq couleurs qui pendent du manche
+      a.baton([0, -0.28, 0.02], [0, -0.5, 0.02], 0.011, '#c8302c', 5, { trait: false });
+      for (const [y, n, r] of [[-0.44, 7, 0.036], [-0.475, 5, 0.026], [-0.505, 3, 0.014]]) {
+        for (let k = 0; k < n; k++) a.boule(0.014, P.or, { x: Math.cos((k / n) * 2 * PI) * r, y, z: 0.02 + Math.sin((k / n) * 2 * PI) * r, trait: false }, 1);
+      }
+      ['#2f6fb0', '#f2c443', '#e8452e', '#f4f0e6', '#5aa64a'].forEach((c, k) => a.boite(0.012, 0.2, 0.004, c, { x: (k - 2) * 0.012, y: -0.18, z: 0.035 + (k % 2) * 0.004, rz: (k - 2) * 0.06, trait: false }));
+    }
+    if (T.instrument === 'suzu' && s === 1) {
+      // le gohei : un bâton blanc d'où pendent des bandes de papier pliées en zigzag
+      a.baton([0, -0.28, 0.02], [0, -0.66, 0.02], 0.01, '#f4f0e6', 5, { trait: false });
+      for (const dx of [-1, 1]) for (let k = 0; k < 4; k++) a.boite(0.05, 0.05, 0.006, '#fbfaf4', { x: dx * (0.03 + (k % 2) * 0.02), y: -0.6 + k * 0.045, z: 0.02, rz: dx * (k % 2 ? 0.4 : -0.4), trait: false });
+    }
     // les baguettes de la kokiriko : deux bâtons de bambou peints, un dans chaque main
     if (T.instrument === 'kokiriko') a.baton([0, -0.3, 0.02], [-s * 0.02, -0.34, 0.25], 0.011, '#d8c27a', 5, { trait: false }).boite(0.026, 0.026, 0.03, '#d8302c', { x: -s * 0.018, y: -0.337, z: 0.21, trait: false });
     // le balai de bambou (la main droite) : le long manche, la touffe de brindilles au bout
@@ -1070,7 +1171,31 @@ export function creerPersonnage(ctx, T) {
     for (const s of [-1, 1]) t.piece(new THREE.TorusGeometry(0.06, 0.009, 4, 14), '#3a3236', { x: s * 0.105, y: 0.22, z: 0.29, trait: false });
     t.boite(0.07, 0.012, 0.01, '#3a3236', { y: 0.235, z: 0.3, trait: false });
   }
-  if (T.masque) {
+  if (T.masque === 'okame') {
+    // le masque d'Okame (Uzume, la déesse qui dansa devant la grotte d'Amaterasu) : un visage tout rond, les joues
+    // pleines et roses, les yeux plissés de rire, les deux sourcils peints en haut du front, la toute petite bouche rouge
+    const MQ = '#fbf6ee';
+    t.ovale(0.212, MQ, { y: 0.2, z: 0.115, sx: 1.12, sy: 1.08, sz: 0.95 }, 16);
+    for (const s of [-1, 1]) {
+      t.ovale(0.07, '#f2b4ab', { x: s * 0.115, y: 0.13, z: 0.25, sx: 1.15, sy: 0.85, sz: 0.4, trait: false }, 10)
+        .piece(new THREE.TorusGeometry(0.03, 0.007, 3, 9, PI * 0.8), '#2a2420', { x: s * 0.07, y: 0.235, z: 0.312, rz: PI * 0.1, trait: false })
+        .ovale(0.022, '#2a2420', { x: s * 0.065, y: 0.36, z: 0.285, sx: 1.3, sy: 0.7, sz: 0.4, trait: false }, 6);
+    }
+    t.ovale(0.016, '#c8372d', { y: 0.085, z: 0.31, sx: 1.2, sy: 0.75, sz: 0.5, trait: false }, 6);
+  } else if (T.masque === 'tajikarao') {
+    // le masque de Tajikarao (le dieu de la force, qui arracha la porte de la grotte) : rouge, les sourcils épais froncés,
+    // les grands yeux d'or, le gros nez, la bouche ouverte qui crie, ses dents
+    const MQ = '#c8402c';
+    t.ovale(0.212, MQ, { y: 0.2, z: 0.12, sx: 1.06, sy: 1.14, sz: 0.95 }, 16);
+    for (const s of [-1, 1]) {
+      t.boite(0.12, 0.034, 0.03, '#2a2420', { x: s * 0.075, y: 0.315, z: 0.29, rz: s * 0.38 })
+        .ovale(0.036, '#f2c443', { x: s * 0.075, y: 0.245, z: 0.3, sx: 1.25, sy: 0.9, sz: 0.4, trait: false }, 8)
+        .ovale(0.016, '#2a2420', { x: s * 0.075, y: 0.245, z: 0.316, sz: 0.4, trait: false }, 6);
+    }
+    t.ovale(0.045, '#b8362a', { y: 0.17, z: 0.315, sx: 1.25, sy: 0.85, sz: 0.65 }, 8)
+      .ovale(0.05, '#3a1414', { y: 0.075, z: 0.29, sx: 1.6, sy: 0.75, sz: 0.5, trait: false }, 8)
+      .boite(0.1, 0.018, 0.012, '#f4f0e6', { y: 0.098, z: 0.312, trait: false });
+  } else if (T.masque) {
     // le masque blanc (ko-omote) : un ovale un peu plus petit que le visage, les sourcils peints haut sur le
     // front, les yeux fendus, la petite bouche rouge
     const MQ = '#f7f1e6';
@@ -1103,6 +1228,17 @@ export function creerPersonnage(ctx, T) {
       .boite(0.1, 0.07, 0.04, P.blanc, { y: -0.08, z: -0.29 });
   } else if (T.coiffure === 'chignon') {
     t.ovale(0.26, C1, { y: 0.17, z: -0.1, sx: 1.05, sz: 0.85 }, 14).boule(0.11, C1, { y: 0.5, z: -0.2 }, 1);
+  } else if (T.coiffure === 'criniere') {
+    // la crinière du kagura : une grande masse de cheveux qui se dresse autour du masque et retombe dans le dos
+    t.ovale(0.3, C1, { y: 0.2, z: -0.08, sx: 1.12, sy: 1.06, sz: 0.95 }, 14)
+      .boite(0.52, 0.72, 0.1, C1, { y: -0.24, z: -0.26, rx: 0.1 });
+    for (let k = 0; k < 15; k++) {
+      // des mèches en pointe, tout autour du haut et de l'arrière de la tête
+      const a = -PI * 0.92 + (k / 14) * PI * 1.84, e = 0.25 + 0.55 * ((k * 0.618) % 1);
+      const dx = Math.sin(a) * Math.cos(e), dy = Math.sin(e), dz = -Math.cos(a) * Math.cos(e) * 0.9 - 0.1;
+      const l = 0.22 + 0.1 * ((k * 0.37) % 1), n = Math.hypot(dx, dy, dz);
+      t.cone(0.075, l, 4, C1, { x: (dx / n) * (0.3 + l * 0.35), y: CY + (dy / n) * (0.3 + l * 0.35), z: (dz / n) * (0.3 + l * 0.35), rx: Math.acos(dy / n) * (dz > 0 ? 1 : -1), rz: -Math.atan2(dx, dy) * 0.6, sz: 0.55 });
+    }
   } else if (T.coiffure === 'kazura') {
     // la perruque du nō : de longs cheveux noirs qui tombent dans le dos, et le bandeau rouge et or
     t.ovale(0.28, C1, { y: 0.14, z: -0.09, sx: 1.06, sy: 1.02, sz: 0.88 }, 14)
@@ -1183,6 +1319,14 @@ export function creerPersonnage(ctx, T) {
         jambes[0].rotation.x = jambes[1].rotation.x = -1.3;
         bras[0].rotation.x = bras[1].rotation.x = -0.55;
         corps.rotation.x = -0.05 + courbe;
+        if (T.pose === 'ramer') {
+          // un promeneur qui rame (Takachiho) : le même mouvement que le voyageur, à son rythme (la même phase que ses rames :
+          // takachiho.js, promeneurs ; la poussée plus vive que le retour)
+          const ph = temps * 2.6 + decalage, o = Math.sin(ph + 0.35 * Math.sin(ph)), tire = 0.5 + 0.5 * o;
+          bras[0].rotation.x = bras[1].rotation.x = -1.35 + 0.65 * tire;
+          bras[0].rotation.z = 0.42; bras[1].rotation.z = -0.42;
+          corps.rotation.x = 0.04 - 0.24 * o;
+        }
         return 0;
       }
       if (seiza) {
@@ -1246,6 +1390,35 @@ export function creerPersonnage(ctx, T) {
         bras[0].rotation.x = -0.55 + 0.25 * o; bras[1].rotation.x = -0.8 + 0.2 * o;
         bras[0].rotation.z = -0.2 + 0.3 * o; bras[1].rotation.z = 0.4 + 0.25 * o;
         corps.rotation.y = 0.3 * o; corps.rotation.x = 0.2 + courbe;
+      } else if (T.pose === 'kagura') {
+        if (T.masque === 'tajikarao') {
+          // Tajikarao : la force ; il cherche la porte de la grotte, la saisit à pleins bras et l'arrache, en frappant le
+          // plancher du pied
+          // les poses clés [moment du cycle de 4,2 s, bras (rx), écart des bras (rz), buste penché, hauteur (accroupi)]
+          const CLES = [[0, -1.0, 0.35, 0.05, 0], [0.4, -1.55, 0.25, 0.32, -0.07], [0.5, -2.3, 1.05, -0.22, 0.03], [0.8, -2.25, 1.0, -0.2, 0.03], [1, -1.0, 0.35, 0.05, 0]];
+          const f = (((temps + decalage) / 4.2) % 1 + 1) % 1;
+          let k = 0;
+          while (k < CLES.length - 2 && f > CLES[k + 1][0]) k++;
+          const A = CLES[k], Bc = CLES[k + 1], v = (f - A[0]) / (Bc[0] - A[0]), w = v * v * (3 - 2 * v), m = (i) => A[i] + (Bc[i] - A[i]) * w;
+          const tient = f > 0.5 && f < 0.8 ? 0.03 * Math.sin(temps * 38) : 0;
+          bras[0].rotation.x = bras[1].rotation.x = m(1) + tient;
+          bras[0].rotation.z = -m(2); bras[1].rotation.z = m(2);
+          corps.rotation.x = m(3) + courbe; corps.rotation.y = 0.25 * Math.sin((temps + decalage) * 0.6);
+          // (le pied qui frappe le plancher en arrachant la porte)
+          const frappe = f > 0.44 && f < 0.56 ? Math.sin(((f - 0.44) / 0.12) * PI) : 0;
+          jambes[0].rotation.x = -0.45 * frappe; jambes[1].rotation.x = 0.1 * frappe;
+          corps.position.y = m(4) + respire;
+        } else {
+          // Uzume : la danse lente ; le bras droit levé fait frémir les grelots, le gauche balance le gohei ; elle tourne
+          const u = temps * 0.7 + decalage, s2 = 0.5 + 0.5 * Math.sin(u), b = (temps + decalage) * (92 / 60) * PI;
+          bras[0].rotation.x = -1.9 - 0.4 * s2 + 0.05 * Math.sin(temps * 26); bras[0].rotation.z = -0.35;
+          bras[1].rotation.x = -0.6 - 0.8 * (1 - s2); bras[1].rotation.z = 0.5;
+          corps.rotation.y = 0.5 * Math.sin(u * 0.5); corps.rotation.x = 0.04 + courbe;
+          tete.rotation.z = 0.12 * Math.sin(u);
+          // (les genoux qui plient sur les temps de la musique, un pied puis l'autre qui s'élève : elle danse en mesure)
+          corps.position.y = -0.03 * Math.abs(Math.sin(b)) + respire;
+          jambes[0].rotation.x = -0.3 * Math.max(0, Math.sin(b / 2)); jambes[1].rotation.x = -0.3 * Math.max(0, -Math.sin(b / 2));
+        }
       } else if (T.pose === 'washi') {
         // faire le papier (nagashi-zuki, 2026-10-24) : les deux mains tiennent le bord du cadre pendu au-dessus de la cuve
         // et le balancent d'avant en arrière, le corps penché qui suit (le même sinus que le cadre : gokayama.js)

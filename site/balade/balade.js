@@ -11,15 +11,17 @@
 //  à Itsukushima, des goélands tournent sur la baie et s'envolent quand on approche (mouettes.js) ; à Aogashima,
 //  des grives, des lézards, des chats, des papillons et des milans (betes.js) ; à Gokayama (2026-10-23), des hérons dans
 //  les rizières, des grenouilles, des libellules rouges, un chien, des lucioles la nuit ; à Himeji (2026-10-25), des
-//  aigrettes sur les pelouses, des libellules, les carpes des douves. Des bancs où s'asseoir ; un passant
+//  aigrettes sur les pelouses, des libellules, les carpes des douves ; à Takachiho (2026-10-25), les coqs et les poules
+//  du sanctuaire, les carpes de l'étang, et une barque qu'on loue pour ramer jusque sous la cascade (piloter). Des
+//  bancs où s'asseoir ; un passant
 //  fait tomber la nuit et revenir le jour (les étoiles, les lanternes allumées, l'air de nuit : lueurs.js).
 //  Tous les tampons d'un lieu font gagner une pièce de tenue (tenues.js) : on l'essaie dans la garde-robe, vu de face.
 //  Chaque lieu cache un secret (2026-10-23 : les corbeaux sacrés d'Itsukushima, la boîte au trésor d'Aogashima ; les
-//  lucioles des Heike de Gokayama ; la dixième assiette d'Okiku à Himeji) : il
+//  lucioles des Heike de Gokayama ; la dixième assiette d'Okiku à Himeji ; le miroir du soleil à Takachiho) : il
 //  donne un koban, la monnaie de Bunbuku, le marchand ambulant (tresors.js), qui vend des objets précieux : la danse des
 //  fêtes, la traînée sous les pas, les accessoires du compagnon, les feux d'artifice (feux.js), des tenues entières,
 //  l'appareil photo (photo.js), trois compagnons secrets et le calendrier magique (calendrier.js : les saisons).
-//  ?lieu=itsukushima|aogashima|gokayama|himeji ; ?perso=garcon|fille ; ?compagnon=kon|pon|chapu ; ?langue=en|fr|ja ;
+//  ?lieu=itsukushima|aogashima|gokayama|himeji|takachiho ; ?perso=garcon|fille ; ?compagnon=kon|pon|chapu ; ?langue=en|fr|ja ;
 //  ?photo=heros|perso : une image fixe (captures) ; ?demo : une partie jouée image par image (vidéos) ;
 //  ?ciel=parchemin : un essai du style (styles.js) ; ?flou=0 : sans le flou du lointain ; ?aa=0 : sans anticrénelage.
 // ================================================================
@@ -49,9 +51,10 @@ import * as itsukushima from './itsukushima.js';
 import * as aogashima from './aogashima.js';
 import * as gokayama from './gokayama.js';
 import * as himeji from './himeji.js';
+import * as takachiho from './takachiho.js';
 
 // chaque lieu : { infos (noms, tampons, textes : sans rien construire), construire(ctx) }
-const LIEUX = { itsukushima, aogashima, gokayama, himeji };
+const LIEUX = { itsukushima, aogashima, gokayama, himeji, takachiho };
 const params = new URLSearchParams(location.search);
 const PHOTO = params.get('photo');
 const DEMO = params.has('demo');
@@ -60,6 +63,12 @@ const MARCHE = 3.4, COURSE = 6.6; // m/s
 // au-delà, un passant n'a plus son trait d'encre (un ou deux pixels à cette distance) : six appels de dessin de moins
 // chacun, ce qui compte quand on voit tout un village d'en haut (le belvédère de Gokayama)
 const TRAIT_PASSANT = 60;
+// de même, le trait d'encre d'un morceau de décor dont la boîte est à plus de TRAIT_DECOR mètres de la caméra : la forêt et
+// les falaises au loin (Takachiho, 2026-10-25 : depuis le pont, en regardant toute la gorge, leurs traits doublaient les
+// triangles de l'image)
+const TRAIT_DECOR = 75;
+// au-delà, un passant ne porte plus d'ombre (Takachiho, 2026-10-25)
+const OMBRE_PASSANT = 28;
 const $ = (s) => document.querySelector(s);
 
 let langue = LANGUES.includes(params.get('langue')) ? params.get('langue') : choisirLangue();
@@ -132,16 +141,22 @@ function construire() {
   // (decor : leurs corps, pour savoir ce qui cacherait le voyageur à une caméra posée devant lui : cadrerDeFace ; un
   // décor du dedans, o.dedans : [x0, x1, z0, z1], n'est dessiné que la caméra dans ce rectangle : on ne le voit pas de
   // dehors, le dedans d'un donjon ; [x0, x1, z0, z1, y0, y1] : et entre ces deux hauteurs, un étage)
-  const decor = [], decorsDedans = [];
+  const decor = [], decorsDedans = [], traitsDecor = [];
   for (const o of lieu.objets) {
     const m = maillage(o.fin, o.ombre, o.trait !== false);
     m.position.set(o.x, o.y, o.z);
     m.rotation.y = o.ry;
+    // (le décor ne bouge jamais : sa matrice est calculée une fois, pas à chaque image ; Takachiho, 2026-10-25)
+    m.updateMatrix();
+    m.matrixAutoUpdate = false;
+    for (const c of m.children) { c.updateMatrix(); c.matrixAutoUpdate = false; }
     groupe.add(m);
     decor.push(m.children[0]);
     // (et sa boîte : la caméra dedans, au milieu de ce décor, on le dessine en premier, voir dessiner ; o.avant : un objet
     // toujours dessiné, lui aussi en premier la caméra dans sa boîte, les murs d'un étage où l'on entre)
     if (o.dedans || o.avant) { m.updateWorldMatrix(true, true); decorsDedans.push([m, o.dedans, new THREE.Box3().setFromObject(m)]); }
+    // (son trait d'encre, et la boîte du morceau : loin de la caméra, on ne dessine plus le trait, voir dessiner)
+    if (m.children[1]) { m.updateWorldMatrix(true, true); traitsDecor.push([m.children[1], new THREE.Box3().setFromObject(m.children[0])]); }
   }
   // les textes des plaques et des enseignes (le nom du tunnel…)
   if (lieu.etiquettes?.length && params.get('etiquettes') !== '0') groupe.add(creerEtiquettes(THREE, lieu.etiquettes, { anisotropie: Math.min(8, rendu.capabilities.getMaxAnisotropy()) }));
@@ -169,6 +184,8 @@ function construire() {
   // l'eau qui coule (un ruisseau : lieu.courants, des rubans le long de son lit) ; l'eau calme (les rizières)
   const courants = (lieu.courants || []).map((g) => creerEauCourante(g, P, mats.lampes, lieu, ciel));
   if (lieu.eauxCalmes?.length) courants.push(creerEauxCalmes(lieu, mats.lampes, ciel));
+  // les cascades (Takachiho) : leur voile, leur écume, un arc-en-ciel (leurs uniformes : comme l'eau qui coule)
+  for (const c of lieu.cascades || []) courants.push(...creerCascade(c, P, mats.lampes, lieu, ciel));
   for (const c of courants) groupe.add(c);
   const etoiles = creerEtoiles();
   ciel.add(etoiles);
@@ -233,6 +250,24 @@ function construire() {
   if (betes) groupe.add(betes.groupe);
   const effets = creerEffets(THREE);
   groupe.add(effets.groupe);
+  // la barque qu'on loue (Takachiho, 2026-10-25) : amarrée au ponton tant qu'on ne monte pas dedans ; ses deux rames, qui
+  // pivotent sur leurs tolets
+  let barque = null;
+  if (lieu.barque) {
+    const B = lieu.barque, objet = new THREE.Group();
+    objet.add(maillage(B.coque(ctx.atelier()).fin(0, true)));
+    const rames = [-1, 1].map((s) => {
+      const p = new THREE.Group();
+      p.position.set(s * B.tolet[0], B.tolet[1], B.tolet[2]);
+      p.add(maillage(B.rame(ctx.atelier(), s).fin(0, false)));
+      objet.add(p);
+      return p;
+    });
+    objet.position.set(B.quai.x, B.niveau, B.quai.z);
+    objet.rotation.y = B.quai.cap;
+    groupe.add(objet);
+    barque = { objet, rames, x: B.quai.x, z: B.quai.z, cap: B.quai.cap, v: 0, w: 0, phase: 0, rame: 0, actif: false, arrose: 0, cascade: false };
+  }
   // les halos et les flaques de lumière des lanternes, la nuit
   const lueurs = creerLueurs(THREE, lieu.lumieres || [], mats.lampes);
   groupe.add(lueurs.groupe);
@@ -242,11 +277,13 @@ function construire() {
   let marchand = null;
   if (lieu.marchand) {
     const q = lieu.marchand;
-    marchand = { ...q, y: lieu.monde.hauteur(q.x, q.z), perso: creerMarchand(ctxPerso), capVoulu: q.cap };
+    marchand = { ...q, y: lieu.monde.hauteur(q.x, q.z), perso: creerMarchand(ctxPerso), capVoulu: q.cap, traits: [], loin: false };
     marchand.perso.objet.position.set(q.x, marchand.y, q.z);
     marchand.perso.objet.rotation.y = q.cap;
     groupe.add(marchand.perso.objet);
     sansOmbreRecue(marchand.perso.objet);
+    // (ses traits d'encre : loin de la caméra, on ne les dessine plus, comme ceux des passants)
+    marchand.perso.objet.traverse((m) => { if (m.material === mats.traitPerso) marchand.traits.push(m); });
     lieu.monde.cercle(q.x, q.z, 0.62);
     lieu.interactions.push({ id: 'marchand', x: q.x, z: q.z, y: marchand.y, rayon: 2.2, haut: 1.75, verbe: 'parler', action: () => parlerMarchand() });
   }
@@ -256,12 +293,15 @@ function construire() {
   const chutes = creerChutes(THREE, mats.abri);
   groupe.add(chutes.groupe);
   scene.add(groupe);
+  // (la scène et son groupe ne bougent pas : sinon, leur matrice recalculée à chaque image forçait celles de tous les objets,
+  // même du décor immobile)
+  scene.matrixAutoUpdate = groupe.matrixAutoUpdate = false;
   // ce qui est à l'abri sous un toit : ni neige, ni feuilles mortes, ni flocons (styles.js, abrite)
   carteAbri(decor, lieu, mats.abri);
   M = {
     carte, effets, lueurs, betes, mouilleJoueur, mouilleKon, feuillage: densiteFeuillage(lieu), bruitage: creerBruitage({ oiseaux: lieu.oiseaux || [], ambiances: lieu.ambiances || [], betes: [...(lieu.betes?.chats?.length ? ['miaou', 'ronron'] : []), ...(lieu.betes?.chiens?.length ? ['ouaf'] : [])], extras: lieu.sons || [] }), musique: creerMusique(lieu.id), focale: 800,
-    marchand, feux, chutes, sac: new Set(), trace: null, saison: 'ete', flash: { v: 0, c: new THREE.Color() }, hemiBase: { intensite: 0, couleur: new THREE.Color() },
-    style, ctx, mats, lieu, groupe, decor, decorsDedans, voyageurs, compagnons, kon: null, cadre: null, passants, daims, mouettes, eau, courants, ciel, soleil, hemi, etoiles, vapeurs, rais, touffes, finale: passeFinale(THREE, style, { echantillons: params.get('aa') === '0' ? 0 : 4, flou: params.get('flou') !== '0' }), cible: null, sauvage: null, nuit: { v: 0, cible: 0, fin: null } };
+    marchand, feux, chutes, barque, sac: new Set(), trace: null, saison: 'ete', flash: { v: 0, c: new THREE.Color() }, hemiBase: { intensite: 0, couleur: new THREE.Color() },
+    style, ctx, mats, lieu, groupe, decor, decorsDedans, traitsDecor, voyageurs, compagnons, kon: null, cadre: null, passants, daims, mouettes, eau, courants, ciel, soleil, hemi, etoiles, vapeurs, rais, touffes, finale: passeFinale(THREE, style, { echantillons: params.get('aa') === '0' ? 0 : 4, flou: params.get('flou') !== '0' }), cible: null, sauvage: null, nuit: { v: 0, cible: 0, fin: null } };
   choisirVoyageur(sorte || 'garcon');
   choisirCompagnon(espece || 'kon');
   for (const s of ['garcon', 'fille']) habiller(s);
@@ -665,8 +705,10 @@ function creerEau(lieu, P, lampes, ciel, contact) {
   g.setAttribute('profondeur', new THREE.BufferAttribute(prof, 1));
   const mat = new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, fog: true,
+    // (lieu.eau.clair, profond : les couleurs d'une eau à elle, l'émeraude des gorges de Takachiho ; sensLignes : 1, les lignes
+    // d'eau descendent vers +z, le courant d'une rivière, plutôt que de monter vers la plage)
     uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
-      clair: { value: new THREE.Color(P.eauClaire) }, profond: { value: new THREE.Color(P.eauProfonde) },
+      clair: { value: new THREE.Color(e.clair || P.eauClaire) }, profond: { value: new THREE.Color(e.profond || P.eauProfonde) }, sensLignes: { value: e.sensLignes ?? -1 },
       ecume: { value: new THREE.Color(P.ecume) }, temps: { value: 0 }, rive: { value: lieu.rive ?? 0 },
       centre: { value: new THREE.Vector3(...(lieu.centreRive || [0, 0]), lieu.centreRive ? 1 : 0) }, nuit: { value: 0 },
       zoneContact: { value: new THREE.Vector4(0, 0, 1, 0) }, tailleContact: { value: new THREE.Vector2(1, 1) },
@@ -686,7 +728,7 @@ function creerEau(lieu, P, lampes, ciel, contact) {
       }`,
     fragmentShader: `
       uniform vec3 clair, profond, ecume, centre;
-      uniform float temps, rive, nuit;
+      uniform float temps, rive, nuit, sensLignes;
       uniform sampler2D contact;
       uniform vec4 zoneContact;
       uniform vec2 tailleContact;
@@ -710,7 +752,7 @@ function creerEau(lieu, P, lampes, ciel, contact) {
         // des lignes d'eau parallèles à la rive (ou en anneaux autour d'une île), qui avancent doucement
         float d = centre.z > 0.5
           ? length(vMonde.xz - centre.xy) * 0.42 + temps * 0.12 + 0.35 * sin(atan(vMonde.x - centre.x, vMonde.z - centre.y) * 9.0)
-          : (rive - vMonde.z) * 0.42 - temps * 0.12 + 0.35 * sin(vMonde.x * 0.06);
+          : (rive - vMonde.z) * 0.42 + sensLignes * temps * 0.12 + 0.35 * sin(vMonde.x * 0.06);
         float l = abs(fract(d) - 0.5);
         c = mix(c, profond * 0.85, (1.0 - smoothstep(0.035, 0.07, l)) * 0.26 * smoothstep(0.06, 0.25, vProf));
         c *= mix(vec3(1.0), vec3(0.22, 0.27, 0.45), nuit);
@@ -1033,7 +1075,8 @@ function creerEauCourante(geo, P, lampes, lieu, ciel) {
   const mat = new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, fog: true, side: THREE.DoubleSide,
     uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
-      boue: { value: new THREE.Color('#5f6a45') }, ecume: { value: new THREE.Color(P.ecume) }, temps: { value: 0 }, nuit: { value: 0 },
+      // (geo.userData.couleur : une eau à elle, la rivière Iwato de Takachiho, claire et verte)
+      boue: { value: new THREE.Color(geo.userData?.couleur || '#5f6a45') }, ecume: { value: new THREE.Color(P.ecume) }, temps: { value: 0 }, nuit: { value: 0 },
     }]),
     vertexShader: `
       attribute float ecume;
@@ -1162,6 +1205,142 @@ function creerEauxCalmes(lieu, lampes, ciel) {
   const m = new THREE.Mesh(g, mat);
   m.renderOrder = 1;
   return m;
+}
+
+/**
+ * Une cascade (2026-10-25, Takachiho : la cascade de Manai, qui tombe de dix-sept mètres dans la gorge ; celle de la rivière
+ * Iwato) : un voile d'eau qui part du bord (x, z, y0), s'écarte de la paroi en tombant (sortie : la direction hors de la
+ * paroi ; avance : de combien, en bas, comme l'eau lancée d'un bord), s'élargit (large en haut, une fois et demie en bas),
+ * jusqu'à l'eau (y1). Des traînées blanches qui descendent vite, l'eau verte et transparente au bord du haut, de plus en plus
+ * blanche en bas ; le reflet du ciel ; la nuit, sombre, les lampes. En bas, une écume qui bouillonne sur l'eau ; par beau
+ * temps, un arc-en-ciel pâle dans la brume (arcEnCiel : son rayon, ou 0). Des deux côtés (on la voit aussi d'en haut, de
+ * dos). La brume elle-même : lieu.vapeurs. Renvoie ses morceaux (leurs uniformes temps et nuit, comme l'eau qui coule).
+ */
+function creerCascade(c, P, lampes, lieu, ciel) {
+  const [ox, oz] = c.sortie, px = -oz, pz = ox, haut = c.y0 - c.y1, N = 30, NL = 12;
+  const pos = [], uv = [], idx = [];
+  for (let i = 0; i <= N; i++) {
+    const t = i / N, y = c.y0 - haut * t, large = c.large * (1 + 0.5 * t), sort = c.avance * Math.sqrt(t);
+    for (let j = 0; j <= NL; j++) {
+      const s = j / NL - 0.5, bombe = 0.18 * (1 - 4 * s * s) * Math.min(1, t * 4);
+      pos.push(c.x + ox * (sort + bombe) + px * s * large, y, c.z + oz * (sort + bombe) + pz * s * large);
+      uv.push(s + 0.5, t * haut);
+    }
+  }
+  for (let i = 0; i < N; i++) for (let j = 0; j < NL; j++) { const a = i * (NL + 1) + j, b = a + 1, d = a + NL + 1, f = d + 1; idx.push(a, d, b, b, d, f); }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx);
+  const mat = new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, fog: true, side: THREE.DoubleSide,
+    uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
+      ecume: { value: new THREE.Color(P.ecume) }, vert: { value: new THREE.Color(lieu.eau?.clair || P.eauClaire) }, temps: { value: 0 }, nuit: { value: 0 }, haut: { value: haut },
+    }]),
+    vertexShader: `
+      varying vec2 vUv;
+      varying vec3 vMonde;
+      #include <fog_pars_vertex>
+      void main() {
+        vUv = uv;
+        vec4 monde = modelMatrix * vec4(position, 1.0);
+        vMonde = monde.xyz;
+        vec4 mvPosition = viewMatrix * monde;
+        gl_Position = projectionMatrix * mvPosition;
+        #include <fog_vertex>
+      }`,
+    fragmentShader: `
+      uniform vec3 ecume, vert;
+      uniform float temps, nuit, haut;
+      varying vec2 vUv;
+      varying vec3 vMonde;
+      #include <fog_pars_fragment>
+      ${LAMPES_GLSL}
+      ${EAU_GLSL}
+      void main() {
+        float u = vUv.x, v = vUv.y, t = v / haut;
+        // des traînées qui tombent : un bruit étiré en hauteur, qui descend de plus en plus vite (l'eau accélère)
+        float chute = v * 0.55 - temps * (2.2 + 1.6 * t);
+        float b = bruitE(vec2(u * 15.0, chute)).x * 0.6 + bruitE(vec2(u * 33.0 + 7.0, chute * 1.9)).x * 0.4;
+        float traine = smoothstep(0.35, 0.8, b);
+        // verte et transparente au bord du haut, puis blanche ; les bords du voile plus légers, déchirés
+        vec3 c = mix(vert * 1.05, ecume, clamp(0.35 + 0.65 * smoothstep(0.0, 0.25, t) * (0.55 + 0.45 * traine), 0.0, 1.0));
+        float bord = smoothstep(0.0, 0.14 + 0.05 * sin(v * 3.0 + temps), u) * (1.0 - smoothstep(0.86 - 0.05 * sin(v * 2.3 - temps), 1.0, u));
+        float a = (0.42 + 0.5 * traine + 0.25 * smoothstep(0.6, 1.0, t)) * bord;
+        a *= smoothstep(0.0, 0.03, t) * 0.4 + 0.6;
+        vec3 lampe = c * lumiereLampes(vMonde, vec3(0.0, 1.0, 0.0));
+        c *= mix(vec3(1.0), vec3(0.3, 0.34, 0.5), nuit);
+        c += lampe * 0.9;
+        gl_FragColor = vec4(c, clamp(a, 0.0, 0.95));
+        #include <colorspace_fragment>
+        #include <fog_fragment>
+      }`,
+  });
+  Object.assign(mat.uniforms, lampes, uniformesEau(lieu, ciel));
+  const voile = new THREE.Mesh(g, mat);
+  voile.renderOrder = 2;
+  // l'écume, en bas : un disque qui bouillonne sur l'eau, plus blanc là où tombe le voile
+  const bx = c.x + ox * c.avance, bz = c.z + oz * c.avance, R = c.large * 1.25 + 1.2;
+  const ge = new THREE.CircleGeometry(R, 40);
+  ge.rotateX(-Math.PI / 2);
+  ge.translate(bx + ox * 0.4, c.y1 + 0.03, bz + oz * 0.4);
+  const matE = new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, fog: true,
+    uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { ecume: { value: new THREE.Color(P.ecume) }, centre: { value: new THREE.Vector3(bx, c.y1, bz) }, rayon: { value: R }, temps: { value: 0 }, nuit: { value: 0 } }]),
+    vertexShader: `
+      varying vec3 vMonde;
+      #include <fog_pars_vertex>
+      void main() {
+        vec4 monde = modelMatrix * vec4(position, 1.0);
+        vMonde = monde.xyz;
+        vec4 mvPosition = viewMatrix * monde;
+        gl_Position = projectionMatrix * mvPosition;
+        #include <fog_vertex>
+      }`,
+    fragmentShader: `
+      uniform vec3 ecume, centre;
+      uniform float rayon, temps, nuit;
+      varying vec3 vMonde;
+      #include <fog_pars_fragment>
+      ${EAU_GLSL}
+      void main() {
+        vec2 d = vMonde.xz - centre.xz;
+        float r = length(d) / rayon;
+        // des bouillons qui s'écartent du pied de la chute
+        float b = bruitE(d * 1.6 - normalize(d + 1e-4) * temps * 1.4).x * 0.6 + bruitE(d * 3.7 + temps * 0.8).x * 0.4;
+        float a = (1.0 - smoothstep(0.15, 1.0, r)) * smoothstep(0.3, 0.75, b + 0.35 * (1.0 - r));
+        gl_FragColor = vec4(ecume * mix(1.0, 0.35, nuit), a * 0.9);
+        #include <colorspace_fragment>
+        #include <fog_fragment>
+      }`,
+  });
+  const ecume = new THREE.Mesh(ge, matE);
+  ecume.renderOrder = 2;
+  const morceaux = [voile, ecume];
+  // l'arc-en-ciel : un arc pâle dans la brume, tourné vers la gorge ; seulement le jour
+  if (c.arcEnCiel) {
+    const ra = c.arcEnCiel, ga = new THREE.RingGeometry(ra * 0.82, ra, 48, 1, 0.15, Math.PI - 0.3);
+    const matA = new THREE.ShaderMaterial({
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+      uniforms: { r0: { value: ra * 0.82 }, r1: { value: ra }, nuit: { value: 0 }, temps: { value: 0 } },
+      vertexShader: `varying vec2 vP; void main() { vP = position.xy; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+      fragmentShader: `
+        uniform float r0, r1, nuit, temps;
+        varying vec2 vP;
+        void main() {
+          float k = (length(vP) - r0) / (r1 - r0), ang = atan(vP.y, vP.x);
+          vec3 c = clamp(vec3(abs(k * 6.0 - 3.0) - 1.0, 2.0 - abs(k * 6.0 - 2.0), 2.0 - abs(k * 6.0 - 4.0)), 0.0, 1.0);
+          float a = sin(k * 3.14159) * smoothstep(0.15, 0.8, sin(ang)) * (0.85 + 0.15 * sin(temps * 0.7)) * (1.0 - nuit) * 0.22;
+          gl_FragColor = vec4(c * a, 1.0);
+        }`,
+    });
+    const arc = new THREE.Mesh(ga, matA);
+    arc.position.set(bx + ox * 1.6, c.y1 - ra * 0.25, bz + oz * 1.6);
+    arc.rotation.y = Math.atan2(ox, oz);
+    arc.renderOrder = 3;
+    morceaux.push(arc);
+  }
+  return morceaux;
 }
 
 /**
@@ -1506,6 +1685,8 @@ const tactile = matchMedia('(pointer: coarse)').matches;
 const touches = new Set();
 const joy = { x: 0, y: 0, id: null };
 const ACTION = ['KeyE', 'Space', 'Enter', 'NumpadEnter'];
+// un petit jeu qui prend les appuis sur A (jeu.capterAppuis : les nouilles de Takachiho) : la fonction qui les reçoit
+let appuis = null;
 addEventListener('keydown', (e) => {
   son.reveiller();
   if (etat.mode === 'video') return;
@@ -1517,6 +1698,7 @@ addEventListener('keydown', (e) => {
     e.preventDefault();
     return;
   }
+  if (appuis) { if (!e.repeat && ACTION.includes(e.code)) appuis(); e.preventDefault(); return; }
   if (etat.mode === 'danse') { e.preventDefault(); arreterDanse(); return; }
   if (e.code === 'Escape') { fermerTout(); return; }
   if (etat.mode !== 'jeu') return;
@@ -1539,6 +1721,7 @@ let glisse = null;
 toile.addEventListener('pointerdown', (e) => {
   son.reveiller();
   if (dialogue.ouvert()) { dialogue.appuyer(); return; }
+  if (appuis) { appuis(); return; }
   if (etat.mode === 'danse') { arreterDanse(); return; }
   if (glisse) return;
   glisse = { id: e.pointerId, x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY };
@@ -1556,7 +1739,7 @@ toile.addEventListener('pointermove', (e) => {
   glisse.x = e.clientX;
   glisse.y = e.clientY;
 });
-const lacher = (e) => { if (glisse && e.pointerId === glisse.id) glisse = null; };
+const lacher = (e) => { if (glisse && e.pointerId === glisse.id) { glisse = null; glisseFin = performance.now(); } };
 toile.addEventListener('pointerup', lacher);
 toile.addEventListener('pointercancel', lacher);
 // (avec l'appareil photo, on peut s'approcher plus près)
@@ -1588,6 +1771,7 @@ $('.bouton-a').addEventListener('pointerdown', (e) => {
   e.preventDefault();
   son.reveiller();
   if (dialogue.ouvert()) dialogue.appuyer();
+  else if (appuis) appuis();
   else if (etat.mode === 'danse') arreterDanse();
   else if (etat.mode === 'jeu') agir();
 });
@@ -1677,7 +1861,7 @@ function gene(de, cible = etat) {
 }
 let avantTenue = null;
 function ouvrirGarderobe() {
-  if (etat.mode !== 'jeu' && etat.mode !== 'menu') return;
+  if ((etat.mode !== 'jeu' && etat.mode !== 'menu') || M.barque?.actif) return;
   fermerTout();
   if (siege) seLever();
   touches.clear();
@@ -1911,13 +2095,27 @@ function video() {
 
 // ---------------------------------------------------------------- Parler, lire, tamponner
 /** Ce qui est à portée et devant le joueur (gens, panneaux, objets, daims, le compagnon), le mieux placé d'abord. */
+/** Un passant qui n'est là qu'à un moment (quand : 'nuit' ou 'jour' : les danseurs du kagura, la nuit) : absent à l'autre. */
+const absent = (p) => !!p.quand && (p.quand === 'nuit') !== (M.nuit.v > 0.5);
 function cibleProche() {
   const L = M.lieu;
   if (siege?.libre) return { x: etat.x, z: etat.z, y: etat.y, haut: 1.55, verbe: 'lever', lever: true };
   const cands = [];
+  // (dans la barque : seulement ce qu'on fait depuis l'eau, accoster, prendre ce qui est sous la falaise)
+  if (M.barque?.actif) {
+    for (const i of L.interactions) {
+      if (!i.barque || (i.si && !i.si(jeu))) continue;
+      cands.push({ ...i, verbe: typeof i.verbe === 'function' ? i.verbe(jeu) : i.verbe, y: i.y ?? etat.y, haut: i.haut || 1.6 });
+    }
+    let mieux = null, sc = Infinity;
+    for (const c of cands) { const d = Math.hypot(c.x - M.barque.x, c.z - M.barque.z); if (d < (c.rayon || 3) && d < sc) { sc = d; mieux = c; } }
+    return mieux;
+  }
   for (const i of L.interactions) {
+    if (i.barque) continue;
     if (i.passant) {
       const p = M.passants.find((q) => q.id === i.passant);
+      if (!p || absent(p)) continue;
       cands.push({ ...i, x: p.etat.x, z: p.etat.z, y: p.etat.y, rayon: 1.8, haut: 1.95 * (p.tenue.taille || 1), p });
     } else {
       // pres(x, z) : un endroit qui suit le joueur (le long d'une corde…), sinon le point fixe de l'interaction ;
@@ -2004,6 +2202,8 @@ const attendre = (ms) => new Promise((r) => setTimeout(r, ms));
 let siege = null, vueAvantSiege = null, debout = null;
 /** L'échelle qu'on monte ou descend (jeu.grimper) : { points, duree, t, fin }, ou null. */
 let grimpe = null;
+/** Le chemin que le voyageur suit en marchant (jeu.marcher) : { points, cum (les longueurs), v, s, i, fin }, ou null. */
+let marche = null;
 /** Se lever d'un banc où l'on restait assis : la caméra reste où elle est (on repart de là). */
 function seLever() {
   vueAvantSiege = null;
@@ -2134,6 +2334,40 @@ const jeu = {
     if (cap !== undefined) etat.cap = cap;
     M.joueur.geste('grimper');
   }),
+  /**
+   * Monter dans la barque (Takachiho) : le voyageur s'assoit au milieu, le compagnon à la proue ; la caméra passe derrière.
+   * On rame dès que le dialogue est fini.
+   */
+  embarquer() {
+    const b = M.barque, B = M.lieu.barque;
+    if (!b) return;
+    Object.assign(b, { actif: true, v: 0, w: 0, x: B.quai.x, z: B.quai.z, cap: B.quai.cap, cascade: false });
+    if (siege) seLever();
+    M.joueur.asseoir(true);
+    Object.assign(cam, { lacet: b.cap + Math.PI, tangage: 0.34, distance: 7.6 });
+    camera.userData.place = false;
+    piloter(0, 0, 0);
+  },
+  /** Descendre de la barque : on la rend au ponton (elle retourne à son anneau), le voyageur se retrouve sur le ponton. */
+  debarquer() {
+    const b = M.barque, B = M.lieu.barque;
+    if (!b?.actif) return;
+    b.actif = false;
+    Object.assign(b, { x: B.quai.x, z: B.quai.z, cap: B.quai.cap, v: 0, w: 0, arrose: 0 });
+    b.objet.position.set(b.x, B.niveau, b.z);
+    b.objet.rotation.set(0, b.cap, 0);
+    b.rames.forEach((r, i) => r.rotation.set(0, (i ? 1 : -1) * 0.15, (i ? 1 : -1) * 0.12));
+    M.joueur.ramer(null);
+    M.joueur.asseoir(false);
+    const [x, z, cap] = B.debarque;
+    Object.assign(etat, { x, z, cap, vx: 0, vz: 0, y: M.lieu.monde.hauteur(x, z, B.niveau + 1) });
+    Object.assign(renard, { x: x - Math.sin(cap) * 1.1, z: z - Math.cos(cap) * 1.1, nage: false });
+    renard.y = M.lieu.monde.hauteur(renard.x, renard.z, B.niveau + 1);
+    Object.assign(cam, { lacet: cap + Math.PI, tangage: 0.24, distance: 6.4 });
+    camera.userData.place = false;
+  },
+  /** Est-on dans la barque ? */
+  get enBarque() { return !!M.barque?.actif; },
   /** Un son : 'magie' (son.js), ou un son du bruitage ('pelle', 'boite'). */
   son: (nom) => { if (nom === 'magie') son.magie(); else M.bruitage.jouerSon(nom); },
   /** Des mottes de terre jetées en (x, y, z), qui retombent à la hauteur sol. */
@@ -2150,6 +2384,38 @@ const jeu = {
       M.nuit.camera = null;
     }
   },
+  /**
+   * Le temps d'un petit jeu (les nouilles qui glissent de Takachiho) : chaque appui sur A (la touche, le bouton, un appui
+   * sur l'écran) appelle fn ; null : les appuis reprennent leur rôle.
+   */
+  capterAppuis(fn) { appuis = fn; },
+  /** Une consigne en bas de l'écran (celle d'un petit jeu), ou plus (null). */
+  aide(texte) {
+    const el = $('.aide');
+    if (texte) { el.textContent = texte; el.classList.remove('vue'); return; }
+    el.classList.add('vue');
+    el.textContent = tactile ? t('aideTel') : t('aideOrdi');
+  },
+  /**
+   * Le voyageur marche le long des points [[x, z], …], à vitesse m/s (faire trois fois le tour des cèdres mariés) : ses
+   * pas, le compagnon qui suit ; se résout au bout.
+   */
+  marcher: (points, vitesse = 1.6) => new Promise((fin) => {
+    const cum = [0];
+    for (let i = 1; i < points.length; i++) cum.push(cum[i - 1] + Math.hypot(points[i][0] - points[i - 1][0], points[i][1] - points[i - 1][1]));
+    if (points.length < 2 || cum[cum.length - 1] < 0.01) { fin(); return; }
+    marche = { points, cum, v: vitesse, s: 0, i: 0, fin };
+  }),
+  /** Le compagnon danse (oui), ou s'arrête. */
+  danserCompagnon(oui) { M.kon.danser(oui, 0); },
+  /** Un éclat de lumière sur tout le paysage, de cette couleur, qui s'éteint en duree secondes (la lumière qui jaillit de la grotte). */
+  eclat(couleur = '#fff4d8', duree = 0.35) {
+    M.flash.c.set(couleur);
+    M.flash.v = 1.1;
+    M.flash.vite = 1.1 / Math.max(0.1, duree);
+  },
+  /** Joue-t-on sur un écran tactile ? (les consignes : « glisse », « appuie ») */
+  tactile,
 };
 
 
@@ -2157,7 +2423,7 @@ const jeu = {
 /** Les scènes que le lieu demande (la porte de bambous qui s'ouvre…) : jouées dès qu'on est libre. */
 const scenes = [];
 /** Ce que reçoit, à chaque image, ce que le lieu anime : le joueur, la nuit, une scène à jouer. */
-const contexteAnime = { joueur: etat, get nuit() { return M.nuit.v; }, get champ() { return camera.fov; }, scene: (fn) => scenes.push(fn) };
+const contexteAnime = { joueur: etat, get nuit() { return M.nuit.v; }, get champ() { return camera.fov; }, get oeil() { return camera.position; }, scene: (fn) => scenes.push(fn) };
 /** Une scène : le joueur s'arrête le temps d'un dialogue (fn(jeu)), puis repart. */
 async function jouerScene(fn) {
   etat.mode = 'dialogue';
@@ -2331,7 +2597,7 @@ function acheterArticle(id) {
 
 // ---- la danse des fêtes (bon-odori) : la caméra de face, l'air de la fête ; une touche, un appui, et l'on s'arrête
 function commencerDanse() {
-  if (etat.mode !== 'jeu') return;
+  if (etat.mode !== 'jeu' || M.barque?.actif) return;
   if (siege) seLever();
   touches.clear();
   etat.vx = etat.vz = 0;
@@ -2431,7 +2697,7 @@ const photo = creerPhoto($('.photo'), {
   fermer: () => fermerPhoto(),
 });
 function ouvrirPhoto() {
-  if (etat.mode !== 'jeu') return;
+  if (etat.mode !== 'jeu' || M.barque?.actif) return;
   if (siege) seLever();
   touches.clear();
   etat.vx = etat.vz = 0;
@@ -2539,7 +2805,7 @@ function cadrerTrio() {
 
 function avancer(dt) {
   const L = M.lieu, monde = L.monde;
-  const autres = M.passants.map((p) => [p.etat.x, p.etat.z, 0.45]);
+  const autres = M.passants.filter((p) => !absent(p)).map((p) => [p.etat.x, p.etat.z, 0.45]);
   // la direction voulue, par rapport à la caméra
   const libre = etat.mode === 'jeu';
   const avant = libre ? (appuye('KeyW', 'ArrowUp') ? 1 : 0) - (appuye('KeyS', 'ArrowDown') ? 1 : 0) + joy.y : 0;
@@ -2548,6 +2814,12 @@ function avancer(dt) {
   const fx = -Math.sin(cam.lacet), fz = -Math.cos(cam.lacet), rx = Math.cos(cam.lacet), rz = -Math.sin(cam.lacet);
   let dx = fx * avant + rx * cote, dz = fz * avant + rz * cote;
   if (m > 1) { dx /= m; dz /= m; m = 1; }
+  // dans la barque (Takachiho) : avant et arrière font ramer, les côtés tournent ; les passants font leur ronde
+  if (M.barque?.actif) {
+    piloter(dt, Math.max(-1, Math.min(1, avant)), Math.max(-1, Math.min(1, cote)));
+    for (const p of M.passants) avancerPassant(p.etat, dt, monde, { x: etat.x, z: etat.z }, M.passants.filter((q) => q !== p).map((q) => [q.etat.x, q.etat.z, 0.6]));
+    return;
+  }
   if (siege?.libre && m > 0.3) seLever(); // assis sur un banc : on se lève dès qu'on veut marcher
   const ne = niveauEau(etat.x, etat.z), dansLEau = ne != null && L.terrain(etat.x, etat.z) < ne - 0.05 && etat.y < ne + 0.5;
   const course = appuye('ShiftLeft', 'ShiftRight') || Math.hypot(joy.x, joy.y) > 0.92;
@@ -2566,12 +2838,24 @@ function avancer(dt) {
     etat.vx = etat.vz = 0;
     if (g.t >= 1) { grimpe = null; M.joueur.geste(null); g.fin(); }
   }
+  if (marche) {
+    // (jeu.marcher) le voyageur suit le chemin à son pas, comme s'il marchait (les jambes, le compagnon qui suit)
+    const g = marche, n = g.cum.length - 1;
+    g.s = Math.min(g.cum[n], g.s + g.v * dt);
+    while (g.i < n - 1 && g.s > g.cum[g.i + 1]) g.i++;
+    const A = g.points[g.i], B = g.points[g.i + 1], l = g.cum[g.i + 1] - g.cum[g.i] || 1, u = Math.min(1, (g.s - g.cum[g.i]) / l);
+    const px = A[0] + (B[0] - A[0]) * u, pz = A[1] + (B[1] - A[1]) * u, k = 1 / Math.max(dt, 1e-4);
+    etat.vx = (px - etat.x) * k; etat.vz = (pz - etat.z) * k;
+    etat.x = px; etat.z = pz;
+    etat.cap = tourner(etat.cap, Math.atan2(B[0] - A[0], B[1] - A[1]), dt * 8);
+    if (g.s >= g.cum[n]) { marche = null; etat.vx = etat.vz = 0; g.fin(); }
+  }
   // on glisse le long des obstacles : d'abord le mouvement entier, sinon le même tourné de plus en plus (moins vite :
   // la part qui longe l'obstacle), d'un côté puis de l'autre ; enfin chaque axe à part. (Le long d'une main
   // courante en biais, ni l'axe x ni l'axe z ne passaient : on restait coincé, 2026-10-23.)
   const nx = etat.x + etat.vx * dt, nz = etat.z + etat.vz * dt;
-  let bouge = grimpe || monde.libre(nx, nz, etat.y, autres);
-  if (bouge && !grimpe) { etat.x = nx; etat.z = nz; }
+  let bouge = grimpe || marche || monde.libre(nx, nz, etat.y, autres);
+  if (bouge && !grimpe && !marche) { etat.x = nx; etat.z = nz; }
   for (let i = 1; !bouge && i <= 8; i++) {
     const a = Math.ceil(i / 2) * 0.32 * (i % 2 ? 1 : -1), c = Math.cos(a), s = Math.sin(a);
     const vx = (etat.vx * c + etat.vz * s) * c, vz = (etat.vz * c - etat.vx * s) * c;
@@ -2639,6 +2923,88 @@ function avancer(dt) {
   }
   herbesHautes(dt);
 }
+
+/**
+ * Ramer (Takachiho, 2026-10-25) : la barque avance dans la direction de sa proue quand on pousse en avant (on recule plus
+ * lentement), tourne quand on pousse sur les côtés ; un peu d'élan, un courant léger vers l'aval ; elle bute sur les
+ * parois de la gorge, les rochers et les autres barques (lieu.barque.zone, obstacles : deux cercles, la proue et la poupe).
+ * Le voyageur rame, assis, tourné vers l'arrière comme les rameurs (ses bras suivent les rames) ; le compagnon est assis à
+ * la proue (la loutre nage à côté ; le petit dragon vole au-dessus). Sous la cascade, on est trempé (et, la première fois,
+ * le tampon : lieu.barque.surCascade). La caméra se replace derrière la barque, sauf si on vient de la tourner.
+ */
+function piloter(dt, pousse, vire) {
+  const B = M.lieu.barque, b = M.barque;
+  b.v += (pousse * (pousse > 0 ? 2.3 : 1.1) - b.v) * Math.min(1, dt * 0.9);
+  b.w += (-vire * 0.85 - b.w) * Math.min(1, dt * 2.6);
+  b.cap += b.w * dt;
+  const [cx, cz] = B.courant || [0, 0];
+  const nx = b.x + Math.sin(b.cap) * b.v * dt + cx * dt, nz = b.z + Math.cos(b.cap) * b.v * dt + cz * dt;
+  if (barqueLibre(nx, nz, b.cap)) { b.x = nx; b.z = nz; } else { b.v *= -0.35; b.w *= 0.5; }
+  // les coups de rame : à chaque attaque, le bruit et deux ronds dans l'eau, là où plongent les pelles
+  const rame = Math.abs(pousse) > 0.1 || Math.abs(vire) > 0.1, avant = b.phase;
+  b.rame += ((rame ? 1 : 0) - b.rame) * Math.min(1, dt * 3);
+  // (la poussée, pelles dans l'eau, cos(phase) > 0, plus vive que le retour)
+  b.phase += dt * (rame ? 2.4 + Math.abs(b.v) * 0.6 : 0.6 * b.rame) * (1 + 0.35 * Math.cos(b.phase));
+  // (l'attaque : la phase passe par −π/2, les pelles entrent dans l'eau du côté de la proue)
+  const k = (p) => Math.floor((p + Math.PI / 2) / (2 * Math.PI));
+  if (rame && k(avant) !== k(b.phase)) {
+    M.bruitage.jouerSon('rame', { force: 0.9 });
+    for (const s of [-1, 1]) {
+      const px = b.x + Math.cos(b.cap) * s * 1.55 + Math.sin(b.cap) * 0.4, pz = b.z - Math.sin(b.cap) * s * 1.55 + Math.cos(b.cap) * 0.4;
+      M.effets.rond(px, B.niveau, pz, 0.9, 1.6);
+      M.effets.eclabousser(px, B.niveau, pz, 5, { sol: B.niveau, force: 0.45 });
+    }
+  }
+  // derrière la barque, quand elle avance : son sillage
+  b.sillage = (b.sillage || 0) - dt * Math.abs(b.v);
+  if (b.sillage < 0) { b.sillage = 0.9; M.effets.rond(b.x - Math.sin(b.cap) * 1.6, B.niveau, b.z - Math.cos(b.cap) * 1.6, 1.1, 2.2); }
+  // sous la cascade : on est trempé ; la barque tangue ; la première fois, la scène du lieu (le tampon)
+  const ar = B.arrose, dArr = ar ? Math.hypot(b.x - ar.x, b.z - ar.z) : Infinity;
+  b.arrose = ar && dArr < ar.r ? 1 : Math.max(0, b.arrose - dt * 0.8);
+  if (ar && dArr < ar.r) {
+    Object.assign(mouille.joueur, { v: 1, ligne: 1.45, hors: 0 });
+    Object.assign(mouille.kon, { v: 1, ligne: 0.6, hors: 0, ebroue: false });
+    if (Math.random() < dt * 14) M.effets.eclabousser(b.x + (Math.random() - 0.5) * 2, B.niveau + 1.6, b.z + (Math.random() - 0.5) * 2, 3, { sol: B.niveau, force: 0.4 });
+    if (!b.cascade) { b.cascade = true; if (B.surCascade) scenes.push((jeu) => B.surCascade(jeu)); }
+  } else if (ar && dArr > ar.r + 6) b.cascade = false;
+  // la barque sur l'eau : elle se balance, penche dans les virages (et sous la cascade)
+  const t = performance.now() / 1000, houle = 0.025 * Math.sin(t * 1.7) + 0.06 * b.arrose * Math.sin(t * 6.1);
+  b.objet.position.set(b.x, B.niveau - 0.03 + houle, b.z);
+  // (dans le repère de la barque : le tangage, la proue qui se soulève un peu à chaque poussée ; le roulis)
+  b.objet.rotation.set(0.012 * Math.sin(t * 1.3) + 0.05 * b.arrose * Math.sin(t * 5.3) - 0.03 * Math.max(0, Math.cos(b.phase)) * b.rame, b.cap, -b.w * 0.07 + 0.015 * Math.sin(t * 1.1), 'YXZ');
+  // les rames : elles balaient d'avant en arrière, la pelle dans l'eau pendant le coup, levée au retour
+  b.rames.forEach((r, i) => {
+    const s = i ? 1 : -1, o = Math.sin(b.phase);
+    // (la pelle dans l'eau pendant la poussée — de la proue vers la poupe —, levée pendant le retour)
+    r.rotation.set(0, s * (0.15 + 0.5 * o * Math.max(0.15, b.rame)), s * (0.12 + (0.2 * Math.max(0, -Math.cos(b.phase)) - 0.05 * Math.max(0, Math.cos(b.phase))) * b.rame));
+  });
+  // le voyageur sur le banc du milieu, tourné vers la poupe ; le compagnon à la proue
+  const c = Math.cos(b.cap), sn = Math.sin(b.cap), ici = (lx, lz) => [b.x + lx * c + lz * sn, b.z - lx * sn + lz * c];
+  const [jx, jz] = ici(0, B.siege);
+  Object.assign(etat, { x: jx, z: jz, y: B.niveau - 0.03 + houle + B.assise - ASSIS, cap: b.cap + Math.PI, vx: 0, vz: 0, vitesse: 0 });
+  M.joueur.ramer(b.rame > 0.05 ? b.phase : null);
+  renard.banc = null;
+  if (espece === 'chapu') {
+    const [rx, rz] = ici(1.4, 0.2);
+    Object.assign(renard, { x: rx, z: rz, y: B.niveau - 0.13, cap: b.cap, vitesse: Math.abs(b.v), nage: true });
+  } else {
+    const [rx, rz] = ici(0, B.proue);
+    Object.assign(renard, { x: rx, z: rz, y: B.niveau - 0.03 + houle + B.assise + (espece === 'fuwa' ? 0.7 : 0), cap: b.cap, vitesse: 0, nage: false });
+  }
+  // la caméra revient derrière la barque (on regarde où l'on va), sauf si on vient de la tourner
+  if (!glisse && performance.now() - glisseFin > 1800) cam.lacet = tourner(cam.lacet, b.cap + Math.PI, dt * 1.3);
+}
+/** La barque peut-elle être en x, z, tournée vers cap ? (sa proue et sa poupe dans l'eau libre, loin des obstacles) */
+function barqueLibre(x, z, cap) {
+  const B = M.lieu.barque, autres = B.obstacles?.() || [];
+  for (const k of [-1, 1]) {
+    const px = x + Math.sin(cap) * 0.95 * k, pz = z + Math.cos(cap) * 0.95 * k;
+    if (!B.zone(px, pz, 0.62)) return false;
+    for (const [ox, oz, r] of autres) if ((px - ox) ** 2 + (pz - oz) ** 2 < (r + 0.62) ** 2) return false;
+  }
+  return true;
+}
+let glisseFin = 0;
 
 // ---- les hautes herbes : à force d'y marcher, un daim sauvage en jaillit (une fois par visite)
 const herbes = { metres: 0, seuil: 6 + Math.random() * 8, fait: false };
@@ -2871,7 +3237,8 @@ function vivre(dt, temps, pasJoueur, pasKon) {
   const oiseau = oiseaux.includes('uguisu') && feuilles > 0.3 && Math.random() < 0.7 ? 'uguisu' : oiseaux.includes('milan') ? 'milan' : null;
   // les musiciens d'une scène (le nō d'Itsukushima, la kokiriko de Gokayama) : on les entend en s'approchant, et la
   // musique de la balade baisse
-  const sc = L.musiciens, no = sc ? 1 - lisse(sc.pres, sc.loin, Math.hypot(sc.x - x, sc.z - z)) : 0;
+  // (nuit : seulement la nuit, comme le kagura de Takachiho)
+  const sc = L.musiciens, no = sc ? (1 - lisse(sc.pres, sc.loin, Math.hypot(sc.x - x, sc.z - z))) * (sc.nuit ? M.nuit.v : 1) : 0;
   // (Gokayama) le ruisseau le plus proche (L.ruisseaux : des lignes brisées) ; la nuit, les grenouilles des rizières
   // (L.mares : leurs milieux)
   let ruisseau = 0, panRuisseau = 0, grenouilles = 0;
@@ -2884,9 +3251,16 @@ function vivre(dt, temps, pasJoueur, pasKon) {
     }
   }
   if (M.nuit.v > 0.02) for (const [mx, mz] of L.mares || []) grenouilles = Math.max(grenouilles, (1 - lisse(8, 55, Math.hypot(mx - x, mz - z))) * M.nuit.v);
+  // (Takachiho) la cascade la plus proche : son grondement, plus fort près de la chute d'eau (sur sa hauteur)
+  let cascade = 0, panCascade = 0;
+  for (const c of L.cascades || []) {
+    const yy = Math.min(c.y0, Math.max(c.y1, etat.y)), v = 1 - lisse(3, 42, Math.hypot(c.x - x, c.z - z, yy - etat.y));
+    if (v > cascade) { cascade = v; panCascade = panDe(c.x, c.z); }
+  }
   M.bruitage.ambiance({
     vent, feuilles, vagues: oreille.mer.vagues, panVagues: oreille.mer.pan, vapeur: Math.min(1, vapeur), panVapeur, nuit: M.nuit.v, oiseau, no,
     panNo: sc ? panDe(sc.x, sc.z) : 0, scene: sc?.son || 'no', eauSon: L.eau?.son || 'vagues', ruisseau, panRuisseau, grenouilles,
+    grenouilleSon: L.sonGrenouilles || 'grenouilles', cascade, panCascade,
   }, d);
   M.musique.maj(M.nuit.v, 1 - 0.8 * no);
 }
@@ -2919,10 +3293,19 @@ function dessiner(dt, temps) {
     pasKon = kon.animer(dt, renard.vitesse, temps, renard.nage);
   }
   for (const p of M.passants) {
-    if (p.dedans && !p.perso.objet.visible) continue;
+    if ((p.dedans || p.quand) && !p.perso.objet.visible) continue;
+    // (loin de la caméra, au-delà de TRAIT_PASSANT, un passant ne s'anime qu'une image sur quatre, avec le temps écoulé
+    // depuis ; ses matrices ne sont pas recalculées entre-temps : à cette distance, cela ne se voit pas ; 2026-10-25)
+    p.dtCumul = (p.dtCumul || 0) + dt;
+    p.tour = ((p.tour || 0) + 1) % 4;
+    const gele = p.loin && p.tour !== 0;
+    p.perso.objet.userData.gele = gele;
+    if (gele) continue;
+    const dtp = p.dtCumul;
+    p.dtCumul = 0;
     p.perso.objet.position.set(p.etat.x, p.etat.y, p.etat.z);
     p.perso.objet.rotation.y = p.etat.cap;
-    const pied = p.perso.animer(dt, p.etat.v, temps + p.x);
+    const pied = p.perso.animer(dtp, p.etat.v, temps + p.x);
     // (l'hiver du calendrier : les passants aussi laissent leurs pas dans la neige)
     if (pied && p.etat.v > 0.2 && M.mats.saisons.value.z > 0.5) pasDansLaNeige(p.etat, pied);
   }
@@ -2945,6 +3328,7 @@ function dessiner(dt, temps) {
       const d = Math.hypot(c.x - camera.position.x, c.y - camera.position.y, c.z - camera.position.z), force = c.fort / (1 + Math.max(0, d - 6) * 0.12);
       if (PHOTO || etat.mode === 'depart' || force < 0.08) continue;
       if (c.nom === 'miaou' || c.nom === 'ouaf') M.bruitage.bete(c.nom, { force, pan: panDe(c.x, c.z) });
+      else if (c.nom === 'coq') M.bruitage.jouerSon('coq', { force, pan: panDe(c.x, c.z) });
       else M.bruitage.oiseau(c.nom, { force, pan: panDe(c.x, c.z) });
     }
   }
@@ -2970,7 +3354,8 @@ function dessiner(dt, temps) {
   if (scenes.length && etat.mode === 'jeu' && !dialogue.ouvert()) jouerScene(scenes.shift());
   // le marchand : il se tourne vers le voyageur qui lui parle, le regarde quand il approche
   if (M.marchand) {
-    const mq = M.marchand, o = mq.perso.objet;
+    const mq = M.marchand, o = mq.perso.objet, loin = Math.hypot(camera.position.x - mq.x, camera.position.z - mq.z) > TRAIT_PASSANT;
+    if (loin !== mq.loin) { mq.loin = loin; for (const t of mq.traits) t.visible = !loin; }
     o.rotation.y = tourner(o.rotation.y, mq.capVoulu, dt * 3);
     const d = Math.hypot(etat.x - mq.x, etat.z - mq.z), a = Math.atan2(etat.x - mq.x, etat.z - mq.z) - o.rotation.y;
     mq.perso.animer(dt, temps, d < 7 ? Math.atan2(Math.sin(a), Math.cos(a)) : null);
@@ -2984,7 +3369,8 @@ function dessiner(dt, temps) {
   M.touffes.groupe.visible = sv.z < 0.5;
   // l'éclat d'un feu d'artifice : la lumière du ciel prend sa couleur un instant
   if (M.flash.v > 0) {
-    M.flash.v = Math.max(0, M.flash.v - dt * 3.2);
+    M.flash.v = Math.max(0, M.flash.v - dt * (M.flash.vite || 3.2));
+    if (M.flash.v === 0) M.flash.vite = 0;
     M.hemi.intensity = M.hemiBase.intensite + 1.4 * M.flash.v;
     M.hemi.color.copy(M.hemiBase.couleur).lerp(M.flash.c, Math.min(0.7, M.flash.v));
   }
@@ -3030,7 +3416,9 @@ function dessiner(dt, temps) {
   vue.tangage = saut ? tangage : vue.tangage + (tangage - vue.tangage) * (1 - Math.exp(-dt * 4));
   const cp = Math.cos(vue.tangage);
   const dir = new THREE.Vector3(Math.sin(cam.lacet) * cp, Math.sin(vue.tangage), Math.cos(cam.lacet) * cp);
-  const libre = Math.max(1.2, monde.visee(vise, dir, distance));
+  let libre = Math.max(1.2, monde.visee(vise, dir, distance));
+  // (dans la barque : la caméra reste au-dessus de l'eau libre de la gorge, elle n'entre pas dans les parois de basalte)
+  if (M.barque?.actif && lieu.barque.camera) while (libre > 1.6 && !lieu.barque.camera(vise.x + dir.x * libre, vise.z + dir.z * libre)) libre -= 0.35;
   // elle se rapproche d'un coup (sans traverser le mur), et recule doucement
   vue.distance = saut || libre < vue.distance ? libre : vue.distance + (libre - vue.distance) * (1 - Math.exp(-dt * 2.5));
   const voulu = vise.clone().addScaledVector(dir, vue.distance);
@@ -3060,9 +3448,14 @@ function dessiner(dt, temps) {
     // 14 m ; par la porte, on ne le verrait pas. [x0, x1, z0, z1, y0, y1] : à un étage, la caméra à un autre étage)
     const q = camera.position, dehors = p.dedans && !(q.x > p.dedans[0] && q.x < p.dedans[1] && q.z > p.dedans[2] && q.z < p.dedans[3]);
     const autreEtage = p.dedans?.[4] != null && !(q.y > p.dedans[4] && q.y < p.dedans[5]);
-    p.perso.objet.visible = d > 1.1 && !(autreEtage || (dehors && d > 14));
+    p.perso.objet.visible = !absent(p) && d > 1.1 && !(autreEtage || (dehors && d > 14));
     if (loin !== p.loin) { p.loin = loin; for (const t of p.traits) t.visible = !loin; }
+    // (au-delà de OMBRE_PASSANT, son ombre, petite à cette distance, n'est plus dessinée : six appels de moins dans la carte
+    // des ombres)
+    const ombre = d < OMBRE_PASSANT;
+    if (ombre !== p.ombre) { p.ombre = ombre; p.perso.objet.traverse((m) => { if (m.isMesh && m.material !== M.mats.traitPerso) m.castShadow = ombre; }); }
   }
+  for (const [t, boite] of M.traitsDecor) t.visible = boite.distanceToPoint(camera.position) < TRAIT_DECOR;
   for (const [m, d, boite] of M.decorsDedans) {
     const q = camera.position;
     if (d) { const [x0, x1, z0, z1, y0 = -Infinity, y1 = Infinity] = d; m.visible = q.x > x0 && q.x < x1 && q.z > z0 && q.z < z1 && q.y > y0 && q.y < y1; }
@@ -3098,7 +3491,7 @@ function dessiner(dt, temps) {
 
   // l'image : la scène lissée, puis la passe finale à l'écran (le lointain flou) ; ce qui est caché (les compagnons
   // qu'on n'a pas choisis, l'autre voyageur, les bêtes au loin…) ne recalcule pas ses matrices
-  for (const c of M.groupe.children) c.matrixWorldAutoUpdate = c.visible;
+  for (const c of M.groupe.children) c.matrixWorldAutoUpdate = c.visible && !c.userData.gele;
   M.finale.rendre(rendu, scene, camera);
 }
 
@@ -3222,7 +3615,8 @@ if (DEMO) {
   window.__pret = true;
 } else {
   rendu.setAnimationLoop((now) => {
-    const dt = Math.min(0.05, (now - avant) / 1000);
+    // (jamais négatif : la première image peut porter une date un peu antérieure à la fin du chargement)
+    const dt = Math.min(0.05, Math.max(0, (now - avant) / 1000));
     adapter(now - avant);
     avant = now;
     if (PHOTO) temps = 1.2; else { temps += dt; avancer(dt); }

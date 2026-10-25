@@ -13,8 +13,8 @@ import { aAchete } from './tresors.js';
 
 // (le 2026-10-23, des pièces qu'on achète au marchand avec les koban des secrets, tresors.js : achat ; et trois places
 // de plus : la tenue entière, ce qu'on laisse sous ses pas, ce que porte le compagnon ; puis, avec Gokayama, ce qu'on
-// porte sur le dos : le sac, ou le mino, la cape de paille)
-export const PLACES = ['tete', 'yeux', 'habit', 'dos', 'pas', 'compagnon'];
+// porte sur le dos : le sac, ou le mino, la cape de paille ; avec Takachiho, ce qu'on porte au cou : le collier de magatama)
+export const PLACES = ['tete', 'yeux', 'habit', 'dos', 'cou', 'pas', 'compagnon'];
 /**
  * Les pièces, par place (une seule pièce par place à la fois) ; lieu : le lieu dont il faut tous les tampons ; achat :
  * l'article du marchand qui la débloque (tresors.js) ; sans l'un ni l'autre : dès le départ. 'defaut' : la casquette du
@@ -36,6 +36,8 @@ export const PIECES = [
   { id: 'armure', place: 'habit', achat: 'armure' },
   { id: 'sac', place: 'dos' },
   { id: 'mino', place: 'dos', lieu: 'gokayama' },
+  { id: 'cou-rien', place: 'cou' },
+  { id: 'magatama', place: 'cou', lieu: 'takachiho' },
   { id: 'trace-aucune', place: 'pas' },
   { id: 'trace-petales', place: 'pas', achat: 'traces' },
   { id: 'trace-etoiles', place: 'pas', achat: 'traces' },
@@ -45,7 +47,7 @@ export const PIECES = [
   { id: 'cp-chapeau', place: 'compagnon', achat: 'accessoires' },
   { id: 'cp-grelot', place: 'compagnon', achat: 'accessoires' },
 ];
-const PAR_DEFAUT = { tete: 'defaut', yeux: 'aucune', habit: 'habit-defaut', dos: 'sac', pas: 'trace-aucune', compagnon: 'cp-defaut' };
+const PAR_DEFAUT = { tete: 'defaut', yeux: 'aucune', habit: 'habit-defaut', dos: 'sac', cou: 'cou-rien', pas: 'trace-aucune', compagnon: 'cp-defaut' };
 const CLE = 'baladeTenue', CLE_VUES = 'baladeTenuesVues';
 
 const lire = (cle, defaut) => { try { return JSON.parse(localStorage.getItem(cle)) ?? defaut; } catch { return defaut; } };
@@ -187,6 +189,13 @@ const DESSINS = {
     ${[11, 15, 19, 23, 27, 31, 35, 38].map((x) => `<path d="M${x} 38 l1 5" stroke="#a8874a" stroke-width="1.6" stroke-linecap="round"/>`).join('')}
     ${[14, 18, 22, 26, 30, 34].map((x) => `<path d="M${x} 12 L${x - 2 + (x - 24) * 0.2} 36" stroke="#b8975a" stroke-width="1"/>`).join('')}
     <ellipse cx="24" cy="8.5" rx="8" ry="3" fill="#d9bd78" stroke="${ENCRE}" stroke-width="1.6"/>`,
+  // au cou : rien (le haut d'un tee-shirt) ; le collier de magatama de Takachiho (le cordon, ses perles, le joyau de jade)
+  'cou-rien': `<path d="M4 44 Q5 31 16 28 Q19 34 24 34 Q29 34 32 28 Q43 31 44 44 Z" fill="#f4f0e6" stroke="${ENCRE}" stroke-width="2.2" stroke-linejoin="round"/>
+    <path d="M18 16 V28 Q24 33 30 28 V16" fill="#ffdcbc" stroke="${ENCRE}" stroke-width="2.2" stroke-linejoin="round"/>`,
+  magatama: `${trait('M9 9 Q11 29 24 31 Q37 29 39 9', '#7a2a24', 2)}
+    ${[[11.2, 19], [15.4, 25.6], [32.6, 25.6], [36.8, 19]].map(([x, y], k) => `<circle cx="${x}" cy="${y}" r="2.7" fill="${k % 3 ? '#e8f2ee' : '#d8642a'}" stroke="${ENCRE}" stroke-width="1.3"/>`).join('')}
+    <path d="M26 29 A6.5 6.5 0 1 1 26 42 Q21.5 42 20 46.5 Q14 40 19.6 33.6 A6.5 6.5 0 0 1 26 29 Z" fill="#3f9a64" stroke="${ENCRE}" stroke-width="2.1" stroke-linejoin="round"/>
+    <path d="M23 32.5 Q26 31 29 33" fill="none" stroke="#9fe0b4" stroke-width="1.6" stroke-linecap="round"/><circle cx="26.5" cy="35" r="1.6" fill="${ENCRE}"/>`,
   // sous tes pas : rien ; des pétales ; des étoiles ; des feuilles d'érable
   'trace-aucune': `<path d="M8 32 Q10 24 18 24 L28 26 Q36 27 36 32 Q36 37 28 37 H12 Q8 37 8 32 Z" fill="#ffffff" stroke="${ENCRE}" stroke-width="2"/>
     <path d="M8 34.5 H36" stroke="#d8452e" stroke-width="2.4"/>`,

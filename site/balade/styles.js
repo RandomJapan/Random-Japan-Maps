@@ -57,6 +57,10 @@ const PALETTE = {
   // clair des cours, les fenêtres de la ville
   platre: '#f5f2ea', tuileShiro: '#7b8188', tuileShiroClaire: '#8b9097', mortier: '#ece8df', gravier: '#e2dccd', gravierFonce: '#cbc3b0',
   vitreVille: '#b9c7cf',
+  // Takachiho (2026-10-25) : le basalte en colonnes des gorges, sa mousse, le bas mouillé ; l'eau émeraude ; le bois brut du
+  // sanctuaire
+  basalte: '#7c7268', basalteFonce: '#5f5850', basalteClair: '#958a7d', basalteMouille: '#4b4a41', mousseRoche: '#6c8b47', mousseRocheFonce: '#557540',
+  emeraude: '#6fd4b4', emeraudeFonce: '#167a6c', boisBrut: '#c9a77c', boisBrutFonce: '#a8875e',
 };
 const PARCHEMIN = { cielHaut: '#ead9b4', horizon: '#f0ead2', nuage: '#fbf4e2' };
 
@@ -87,6 +91,9 @@ function matieres(P) {
   mettre(M.enduit, 'platre', 'mortier');
   mettre(M.tuiles, 'tuileShiro', 'tuileShiroClaire');
   mettre(M.pierre, '#b2ab9b', '#c5beae');
+  mettre(M.pierre, 'basalte', 'basalteFonce', 'basalteClair', 'basalteMouille');
+  mettre(M.feuillage, 'mousseRoche', 'mousseRocheFonce');
+  mettre(M.bois, 'boisBrut', 'boisBrutFonce');
   return t;
 }
 

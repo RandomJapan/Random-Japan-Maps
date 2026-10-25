@@ -648,6 +648,98 @@ const BOUCLES = {
     for (let i = 0; i < n; i++) { g[i] = fl.b[i] * 0.9 + tb.b[i] * 0.6; d[i] = fl.b[i] * 0.6 + tb.b[i] * 0.9; }
     return normaliser([boucler(echo(g, sr), sr, F), boucler(echo(d, sr), sr, F)]);
   },
+  // la cascade de Manai (Takachiho, 2026-10-25) : dix-sept mètres de chute dans le bassin de la gorge. Un grondement grave
+  // qui roule, le corps de l'eau qui s'écrase (un souffle large dans le médium, dont la force tremble), l'embrun qui
+  // siffle plus haut, des milliers de gouttes qui éclatent ; chaque oreille la sienne
+  cascade(sr, r) {
+    const L = 12, F = 0.8, T = L + F, n = Math.ceil(T * sr);
+    const canaux = [0, 1].map((k) => {
+      const vite = tremble(n, sr, r, 6), lent = tremble(n, sr, r, 0.35);
+      const grave = brun(n, r), corps = blanc(n, r), embrun = blanc(n, r);
+      filtrer(grave, sr, 'bas', 210 + k * 25, 0.6);
+      filtrer(corps, sr, 'bande', 820 + k * 70, 0.45);
+      filtrer(corps, sr, 'bas', 2600, 0.7);
+      filtrer(embrun, sr, 'bande', 3600 + k * 300, 0.6);
+      normaliser([grave]);
+      normaliser([corps]);
+      normaliser([embrun]);
+      const b = composer(sr, r, T)
+        .perles(14000, { de: 0, a: T, f: [450, 3200], g: [0.02, 0.35], q: [4, 9], monte: 0.15 })
+        .perles(400, { de: 0, a: T, f: [140, 380], g: [0.2, 0.6], q: [6, 12], monte: 0.3 }).b;
+      normaliser([b]);
+      const x = new Float32Array(n);
+      for (let i = 0; i < n; i++) {
+        x[i] = (grave[i] * 0.62 + corps[i] * 0.5 * (0.8 + 0.2 * Math.tanh(vite[i])) + embrun[i] * 0.16 * (0.75 + 0.25 * Math.tanh(vite[i] * 0.7)) + b[i] * 0.3)
+          * (0.9 + 0.1 * Math.tanh(lent[i]));
+      }
+      filtrer(x, sr, 'bas', 7000, 0.7);
+      return boucler(x, sr, F);
+    });
+    return normaliser(canaux);
+  },
+  // les grenouilles kajika (Buergeria buergeri), la nuit, au bord de la rivière : on dirait des oiseaux. Chacune sa phrase
+  // de notes sifflées qui montent (« pi, pi, pi… fiririri »), de plus en plus serrées jusqu'à un trille ; l'écho de la gorge
+  kajika(sr, r) {
+    const L = 12, F = 0.4, T = L + F;
+    const g = composer(sr, r, T), d = composer(sr, r, T);
+    for (let k = 0; k < 5; k++) {
+      const c = k % 2 ? g : d, f0 = 2250 + r() * 650, force = 0.4 + r() * 0.6;
+      for (let t = r() * 3; t < T - 2.2; t += 3.4 + r() * 4.2) {
+        const notes = 4 + Math.floor(r() * 5);
+        let tt = t;
+        for (let j = 0; j < notes; j++) {
+          const u = j / Math.max(1, notes - 1), duree = 0.05 + 0.05 * (1 - u), f = f0 * (1 + 0.16 * u);
+          c.ton(tt, duree, (q) => f * (1 + (0.09 * q) / duree), (q) => ad(0.008, 0.02, duree)(q) * force * (0.6 + 0.4 * u), 0.05);
+          tt += duree + 0.11 * (1 - u) + 0.03;
+        }
+        // le trille de la fin : une note tenue qui palpite
+        const du = 0.35 + r() * 0.3, ft = f0 * 1.2;
+        c.ton(tt, du, (q) => ft * (1 + 0.04 * Math.sin(TAU * 7 * q)), (q) => ad(0.02, 0.12, du)(q) * force * (0.55 + 0.45 * Math.sin(TAU * 32 * q)) ** 2, 0.05);
+      }
+    }
+    const n = g.b.length, x = new Float32Array(n), y = new Float32Array(n);
+    for (let i = 0; i < n; i++) { x[i] = g.b[i] + d.b[i] * 0.3; y[i] = d.b[i] + g.b[i] * 0.3; }
+    return normaliser([boucler(echo(echo(x, sr), sr), sr, F), boucler(echo(echo(y, sr), sr), sr, F)]);
+  },
+  // le kagura de la nuit (Takachiho) : la flûte de bambou (une mélodie lente sur la gamme des chants populaires, des notes
+  // qui glissent), le grand tambour (« don », et le bord frappé, « ka »), les grelots de la danseuse (suzu) qui
+  // frémissent ; une phrase de seize temps, sans les voix
+  kagura(sr, r) {
+    const temps = 60 / 92, L = 16 * temps, F = 0.5, T = L + F;
+    const fl = composer(sr, r, T), pc = composer(sr, r, T), gr = composer(sr, r, T);
+    // la flûte : [début en demi-temps, durée en demi-temps, note] ; mi sol la si ré (la gamme du min'yō)
+    const notes = [[0, 3, 76], [3, 1, 79], [4, 4, 81], [8, 2, 79], [10, 2, 76], [12, 4, 74],
+      [16, 2, 76], [18, 2, 79], [20, 3, 83], [23, 1, 81], [24, 4, 79], [28, 2, 76], [30, 2, 74]];
+    for (const [b, du, m] of notes) {
+      const f = 440 * 2 ** ((m - 69) / 12), t0 = 0.05 + b * temps * 0.5, d = du * temps * 0.5 * 0.96, glisse = Math.min(0.12, d * 0.25);
+      fl.ton(t0, d, (t) => f * (t < glisse ? 0.96 + (0.04 * t) / glisse : 1) * (1 + 0.012 * Math.sin(TAU * 5.5 * t) * Math.min(1, t / 0.3)), (t) => ad(0.04, 0.15, d)(t) * 0.5, 0.2)
+        .bruit(t0, { type: 'bande', f: f * 2, q: 2.2, duree: d, forme: ad(0.03, 0.12, d), gain: 0.13 });
+    }
+    // le tambour : « don » sur le premier temps, « don-don » sur le troisième, le bord (« ka ») à contretemps
+    const don = (t0, g = 1) => pc.modes(t0, [[78, 0.9 * g, 0.3], [140, 0.4 * g, 0.18], [230, 0.15 * g, 0.08]]).bruit(t0, { type: 'bas', f: 260, tau: 0.04, gain: 0.4 * g });
+    const ka = (t0, g = 1) => pc.modes(t0, [[880, 0.4 * g, 0.03], [1650, 0.2 * g, 0.015]]).bruit(t0, { type: 'bande', f: 2200, q: 1.2, tau: 0.01, gain: 0.25 * g });
+    for (let b = 0; b < 16; b++) {
+      const t0 = 0.05 + b * temps;
+      if (b % 4 === 0) don(t0, 1);
+      if (b % 4 === 2) { don(t0, 0.7); don(t0 + temps / 2, 0.5); }
+      if (b % 2 === 1) ka(t0 + temps / 2, 0.7);
+    }
+    // les grelots : une gerbe de petites cloches aiguës qui frémit, sur le deuxième et le quatrième temps
+    for (let b = 1; b < 16; b += 2) {
+      const t0 = 0.05 + b * temps;
+      for (let k = 0; k < 9; k++) {
+        const tk = t0 + r() * 0.12, f = 3800 + r() * 2400;
+        gr.modes(tk, [[f, 0.25 + r() * 0.2, 0.09 + r() * 0.08], [f * 1.53, 0.1, 0.05]]);
+      }
+      gr.bruit(t0, { type: 'haut', f: 6000, duree: 0.2, forme: ad(0.005, 0.15, 0.2), gain: 0.05 });
+    }
+    normaliser([fl.b]);
+    normaliser([pc.b], 0.9);
+    normaliser([gr.b], 0.5);
+    const n = fl.b.length, g = new Float32Array(n), d = new Float32Array(n);
+    for (let i = 0; i < n; i++) { g[i] = fl.b[i] * 0.9 + pc.b[i] * 0.6 + gr.b[i] * 0.7; d[i] = fl.b[i] * 0.6 + pc.b[i] * 0.9 + gr.b[i] * 0.45; }
+    return normaliser([boucler(echo(g, sr), sr, F), boucler(echo(d, sr), sr, F)]);
+  },
 };
 
 // ---------------------------------------------------------------- Les oiseaux
@@ -892,6 +984,54 @@ function plouf(sr) {
   return cadrer([c.b], sr, 0.22);
 }
 
+// ---------------------------------------------------------------- Takachiho
+/** Un coup de rame : la pelle qui entre dans l'eau et la tire (un souffle d'eau qui descend), des bulles, le tolet qui cogne. */
+function rame(sr) {
+  const r = alea(graine('rame')), c = composer(sr, r, 0.9);
+  c.bruit(0.01, { f: (t) => 900 - 500 * Math.min(1, t / 0.35), q: 0.8, attaque: 0.02, tau: 0.12, gain: 0.8 })
+    .bruit(0.0, { type: 'bas', f: 350, attaque: 0.004, tau: 0.05, gain: 0.5 })
+    .bulles(9, { de: 0.06, a: 0.5, f: [380, 1100], g: [0.08, 0.25] })
+    .modes(0.03, [[420, 0.18, 0.04], [960, 0.08, 0.02]]);
+  return cadrer([c.b], sr, 0.22);
+}
+/** Le coq : « ko-ke-kok-kōōō », trois syllabes brèves et une longue qui monte et retombe ; l'écho de la vallée. */
+function coq(sr) {
+  const r = alea(graine('coq')), c = composer(sr, r, 1.9);
+  const voix = { fc: 1900, bw: 1300, rauque: 0.38 };
+  c.cri(0.02, 0.12, (t) => 560 + 300 * t, ad(0.01, 0.04, 0.12), voix)
+    .cri(0.18, 0.1, (t) => 700 + 200 * t, ad(0.01, 0.04, 0.1), voix)
+    .cri(0.33, 0.14, (t) => 760 - 100 * t, ad(0.01, 0.05, 0.14), voix)
+    .cri(0.53, 0.78, (t) => (t < 0.18 ? 740 + 500 * t : 830 - 140 * Math.max(0, t - 0.4)) * (1 + 0.018 * Math.sin(TAU * 7 * t)), (t) => ad(0.03, 0.3, 0.78)(t) * 1.1, voix);
+  return cadrer([echo(echo(c.b, sr), sr)], sr, 0.22);
+}
+/** Une pierre qu'on pose sur une autre (la grotte des dieux) : un « toc » sec qui sonne un peu, un second contact plus doux. */
+function caillou(sr) {
+  const r = alea(graine('caillou')), c = composer(sr, r, 0.4);
+  const sonne = [[2150, 0.6, 0.016], [3720, 0.35, 0.01], [5300, 0.18, 0.006]];
+  c.modes(0.01, sonne).bruit(0.01, { type: 'haut', f: 2500, attaque: 0.0004, tau: 0.005, gain: 0.4 })
+    .bruit(0.01, { type: 'bas', f: 320, attaque: 0.001, tau: 0.015, gain: 0.35 })
+    .modes(0.07, sonne.map(([f, a, tau]) => [f * 1.04, a * 0.3, tau]));
+  return cadrer([echo(c.b, sr)], sr, 0.22);
+}
+/** La porte de pierre de la grotte qui s'écarte : un grondement qui roule, la pierre qui racle et crisse, un choc sourd. */
+function roc(sr) {
+  const r = alea(graine('roc')), D = 3.2, c = composer(sr, r, D);
+  const tenu = (t) => lisse(0, 0.4, t) * (1 - lisse(2.0, 2.4, t));
+  c.bruit(0.0, { type: 'bas', f: 140, grave: true, duree: 2.5, forme: (t) => tenu(t) * (0.75 + 0.25 * Math.sin(TAU * 3.1 * t)), gain: 1.2 })
+    .craquer(0.15, { duree: 2.1, f0: 30, f1: 55, gain: 0.5 })
+    .grains(380, { zones: [[0.1, 2.3, 1]], f: [500, 3500], d: [0.002, 0.008], g: [0.05, 0.3], q: 1.2 })
+    .bruit(2.35, { type: 'bas', f: 120, grave: true, attaque: 0.005, tau: 0.25, gain: 1.5 })
+    .bruit(2.35, { f: 600, q: 0.7, attaque: 0.002, tau: 0.05, gain: 0.5 });
+  return cadrer([echo(echo(c.b, sr), sr)], sr, 0.25);
+}
+/** Des nouilles aspirées (« zuzuzu » : au Japon, on les aspire bruyamment, c'est poli) : un souffle qui monte, saccadé. */
+function slurp(sr) {
+  const r = alea(graine('slurp')), D = 0.7, c = composer(sr, r, D);
+  c.bruit(0.0, { f: (t) => 900 + 3200 * Math.min(1, t / 0.5), q: 2, duree: 0.55, forme: (t) => ad(0.04, 0.12, 0.55)(t) * (0.45 + 0.55 * Math.abs(Math.sin(TAU * 9 * t))), gain: 0.8 })
+    .bulles(5, { de: 0.05, a: 0.45, f: [600, 1400], g: [0.05, 0.15] });
+  return cadrer([c.b], sr, 0.22);
+}
+
 /** Les feux d'artifice : la fusée qui siffle en montant ; l'éclat grave et son écho sur les montagnes ; les mille éclats. */
 const FEUX = {
   depart(sr, r) {
@@ -941,6 +1081,11 @@ export function fabriquer(quoi, sr) {
   if (sorte === 'claque') return claque(sr);
   if (sorte === 'assiette') return assiette(sr);
   if (sorte === 'plouf') return plouf(sr);
+  if (sorte === 'rame') return rame(sr);
+  if (sorte === 'coq') return coq(sr);
+  if (sorte === 'caillou') return caillou(sr);
+  if (sorte === 'roc') return roc(sr);
+  if (sorte === 'slurp') return slurp(sr);
   if (sorte === 'feu') return FEUX[nom](sr, alea(graine(quoi)));
   throw new Error(`son inconnu : ${quoi}`);
 }

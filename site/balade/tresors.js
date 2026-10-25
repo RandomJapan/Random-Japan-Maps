@@ -11,7 +11,7 @@
 // ================================================================
 
 /** Le secret de chaque lieu. */
-export const SECRETS = { itsukushima: 'corbeaux', aogashima: 'tresor', gokayama: 'heike', himeji: 'okiku' };
+export const SECRETS = { itsukushima: 'corbeaux', aogashima: 'tresor', gokayama: 'heike', himeji: 'okiku', takachiho: 'miroir' };
 /**
  * Ce que vend Bunbuku, du moins cher au plus cher. sorte : 'objet' (on s'en sert depuis le menu), 'tenue' (dans la
  * garde-robe), 'compagnon' (un nouveau compagnon). pieces : les pièces de tenue qu'il débloque (tenues.js).

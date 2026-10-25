@@ -13,13 +13,16 @@
 //  nuit), qui aboie quand on arrive et remue la queue quand on le caresse ; la nuit, des lucioles au bord du ruisseau.
 //  Les bêtes de Himeji (2026-10-25) : des aigrettes blanches (les « hérons blancs » du surnom du château) qui chassent
 //  sur les pelouses, comme les hérons ; des libellules rouges.
+//  Les bêtes de Takachiho (2026-10-25) : les coqs et les poules en liberté du sanctuaire (les « oiseaux au long chant »
+//  du mythe : leur chant fit sortir Amaterasu de sa grotte) qui marchent, picorent, s'écartent en courant quand on
+//  approche ; le coq chante de temps en temps ; la nuit, ils dorment, accroupis.
 //  creerBetes(ctx, o) → { groupe, animer(dt, temps, joueur, kon, nuit, paisible) → les sons de cette image
 //  [{ nom, x, y, z, fort }], cibles() → celles à qui l'on peut faire quelque chose [{ sorte, id, x, y, z, rayon,
 //  haut, verbe, bete }] }
 //  o : { monde, grives: [[[x, z], …], …] (les coins de chacune), lezards: [[x, z], …], chats: [{ id, x, z, cap,
 //  robe: 'roux' | 'pie', dort }], papillons: [[x, z], …], milans: [{ x, z, r, h, sens }], herons: [[[x, z], …], …] (les
 //  rizières de chacun), aigrettes (de même : leurs pelouses), grenouilles: [{ x, z, eau: [x, z] }] (sur la diguette, et où elle saute), libellules: [[x, z], …],
-//  chiens: [{ id, x, z, cap }], lucioles: [[x, z], …] (où elles volent) } ; joueur : { x, z,
+//  chiens: [{ id, x, z, cap }], lucioles: [[x, z], …] (où elles volent), coqs: [{ maisons: [[x, z], …], poule }] } ; joueur : { x, z,
 //  vitesse } ; kon : { x, z } ; paisible : pendant un dialogue (personne ne s'enfuit).
 //  Repère : x vers l'est, z vers le sud, y vers le haut ; une bête regarde vers +z.
 // ================================================================
@@ -28,7 +31,7 @@ const PI = Math.PI;
 const lisse = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
 const tourner = (a, b, f) => { const d = ((b - a + PI) % (2 * PI) + 2 * PI) % (2 * PI) - PI; return a + d * Math.min(1, f); };
 // plus grandes que nature, à l'échelle des voyageurs (grosses têtes, comme dans les jeux) : sinon, on ne les voyait pas
-const T = { grive: 2.2, lezard: 2.6, papillon: 2.4, milan: 1.3, chat: 1.35, heron: 1.4, aigrette: 1.25, grenouille: 3, libellule: 2.2, chien: 1.35 };
+const T = { grive: 2.2, lezard: 2.6, papillon: 2.4, milan: 1.3, chat: 1.35, heron: 1.4, aigrette: 1.25, grenouille: 3, libellule: 2.2, chien: 1.35, coq: 1.3 };
 const G = { dos: '#4b3f30', ventre: '#d4662c', tete: '#211d1f', bec: '#e8b62e', pattes: '#c9a46a' };
 const L = { dos: '#3b2f26', rayure: '#e5c46a', queue: '#3f86d8', ventre: '#d9c9a6' };
 const ROBES = {
@@ -240,6 +243,43 @@ function formesGokayama(ctx) {
   };
 }
 
+// ---------------------------------------------------------------- Les coqs de Takachiho (faits seulement là-bas)
+const COQ = { rouge: '#d8302c', or: '#e8a23a', orFonce: '#c8782a', roux: '#b8562a', brun: '#7a4424', noir: '#1f2a26', vert: '#2f5a44', jaune: '#e8b62e', oeil: '#1e1a18' };
+const POULE = { corps: '#b8865a', fonce: '#8a6440', clair: '#d8b088' };
+function formesCoqs(ctx) {
+  const { atelier } = ctx;
+  // le coq : le corps roux, le ventre noir, le camail doré qui tombe du cou sur les épaules, la crête dentelée et les
+  // barbillons rouges, le bec jaune, la grande queue noire aux reflets verts en faucilles, les ailes brunes, les pattes jaunes
+  const oiseau = (poule) => {
+    const C = poule ? POULE.corps : COQ.roux, a = atelier()
+      .ovale(0.11, C, { y: 0.24, sx: 0.8, sy: 0.85, sz: 1.25, teinte: (x, y) => (!poule && y < 0.205 ? COQ.noir : C) }, 12)
+      .ovale(0.072, poule ? POULE.clair : COQ.or, { y: 0.34, z: 0.08, sx: 0.85, sy: 1.1, sz: 0.9, teinte: (x, y) => (!poule && y < 0.32 ? COQ.orFonce : poule ? POULE.clair : COQ.or) }, 10)
+      .ovale(0.05, poule ? POULE.clair : COQ.or, { y: 0.43, z: 0.12 }, 10)
+      .cone(0.014, 0.042, 6, COQ.jaune, { y: 0.425, z: 0.18, rx: PI / 2 + 0.2 })
+      .ovale(0.014, COQ.rouge, { y: 0.388, z: 0.152, sx: 0.7, sy: poule ? 1.0 : 1.7, sz: 0.6 }, 6);
+    // la crête : trois ou cinq dents
+    for (let k = 0; k < (poule ? 3 : 5); k++) a.ovale(poule ? 0.012 : 0.018, COQ.rouge, { y: 0.475 + (poule ? 0.002 : 0.012) * Math.sin((k / 4) * PI), z: 0.085 + k * (poule ? 0.017 : 0.016), sx: 0.45, sy: 1.25, sz: 0.8 }, 6);
+    for (const s of [-1, 1]) {
+      a.ovale(0.008, COQ.oeil, { x: s * 0.042, y: 0.442, z: 0.14, trait: false }, 5)
+        .ovale(0.08, poule ? POULE.fonce : COQ.brun, { x: s * 0.075, y: 0.25, z: -0.01, sx: 0.3, sy: 0.65, sz: 1.15 }, 8)
+        .baton([s * 0.035, 0.16, 0.0], [s * 0.04, 0.012, 0.012], 0.011, COQ.jaune, 5)
+        .boite(0.02, 0.01, 0.075, COQ.jaune, { x: s * 0.04, y: 0.006, z: 0.04, trait: false })
+        .boite(0.012, 0.008, 0.04, COQ.jaune, { x: s * 0.04, y: 0.006, z: -0.01, trait: false });
+    }
+    if (poule) {
+      // la queue courte de la poule, dressée
+      a.cone(0.06, 0.15, 6, POULE.fonce, { y: 0.33, z: -0.14, rx: -0.75, sx: 0.45 });
+    } else {
+      // les faucilles de la queue : elles montent en arrière, puis retombent en arc
+      for (const [x, h, l, c] of [[-0.03, 0.2, 0.36, COQ.noir], [0, 0.26, 0.42, COQ.vert], [0.03, 0.2, 0.36, COQ.noir], [-0.015, 0.14, 0.3, COQ.vert], [0.015, 0.14, 0.3, COQ.noir]]) {
+        a.tube([[x, 0.28, -0.1], [x * 1.2, 0.3 + h, -0.1 - l * 0.45], [x * 1.4, 0.26 + h * 0.8, -0.1 - l * 0.8], [x * 1.5, 0.18 + h * 0.2, -0.1 - l]], 0.016, c, { cotes: 5, pas: 12 });
+      }
+    }
+    return a.fin(0, false);
+  };
+  return { coq: oiseau(false), poule: oiseau(true) };
+}
+
 /** Une petite tache de lumière ronde (les lucioles), dessinée une fois. */
 function tacheRonde(THREE) {
   if (typeof document === 'undefined') return null;
@@ -256,10 +296,11 @@ function tacheRonde(THREE) {
   return t;
 }
 
-export function creerBetes(ctx, { monde, grives = [], lezards = [], chats = [], papillons = [], milans = [], herons = [], aigrettes = [], grenouilles = [], libellules = [], chiens = [], lucioles = [] }) {
+export function creerBetes(ctx, { monde, grives = [], lezards = [], chats = [], papillons = [], milans = [], herons = [], aigrettes = [], grenouilles = [], libellules = [], chiens = [], lucioles = [], coqs = [] }) {
   const { THREE, maillage } = ctx;
   const F = formes(ctx);
   const FG = herons.length + aigrettes.length + grenouilles.length + libellules.length + chiens.length ? formesGokayama(ctx) : null;
+  const FC = coqs.length ? formesCoqs(ctx) : null;
   const groupe = new THREE.Group();
   const hasard = Math.random;
   const sol = (x, z, y = Infinity) => monde.hauteur(x, z, y);
@@ -373,6 +414,16 @@ export function creerBetes(ctx, { monde, grives = [], lezards = [], chats = [], 
     monde.cercle(c.x, c.z, 0.45);
     return { ...c, racine, assis, tete, couche, y: racine.position.y, joie: 0, ouaf: 0, pres: false };
   });
+  // ---- Takachiho : les coqs et les poules du sanctuaire
+  const CQ_ = coqs.map((c, i) => {
+    const racine = new THREE.Group(), corps = new THREE.Group();
+    corps.scale.setScalar(T.coq * (c.poule ? 0.85 : 1));
+    racine.add(corps);
+    corps.add(maillage(c.poule ? FC.poule : FC.coq, false));
+    groupe.add(racine);
+    const [x, z] = c.maisons[0];
+    return { poule: !!c.poule, racine, corps, maisons: c.maisons, ici: 0, x, z, y: sol(x, z), cap: hasard() * 2 * PI, mode: 'marche', cible: null, picore: 0, crie: 0, prochain: hasard() * 2, chant: 6 + hasard() * 20 + i * 11, pas: 0, dort: 0 };
+  });
   // ---- les lucioles : des points de lumière qui dérivent et clignotent (la nuit seulement)
   let lucioles_ = null;
   if (lucioles.length) {
@@ -416,7 +467,7 @@ export function creerBetes(ctx, { monde, grives = [], lezards = [], chats = [], 
   return {
     groupe,
     /** Toutes, par sorte (pour les essais). */
-    toutes: { grives: G_, lezards: L_, chats: C_, papillons: P_, milans: M_, herons: H_, grenouilles: R_, libellules: L2_, chiens: D_ },
+    toutes: { grives: G_, lezards: L_, chats: C_, papillons: P_, milans: M_, herons: H_, grenouilles: R_, libellules: L2_, chiens: D_, coqs: CQ_ },
     animer(dt, temps, joueur, kon, nuit = 0, paisible = false) {
       const sons = [], jour = nuit < 0.5;
       const loinDe = (b) => Math.hypot(b.x - joueur.x, b.z - joueur.z);
@@ -471,6 +522,55 @@ export function creerBetes(ctx, { monde, grives = [], lezards = [], chats = [], 
           p.rotation.y = s * 1.33 * (1 - vol);
           p.rotation.z = s * (0.05 + (0.35 + bat) * vol);
         });
+      }
+      // ---- les coqs et les poules : ils marchent à petits pas autour de leur coin, picorent, s'écartent en courant (en
+      // battant des ailes) vers un autre coin quand on arrive tout près ; le coq chante, la tête levée ; la nuit, ils dorment
+      for (const q of CQ_) {
+        q.racine.visible = loinDe(q) < 55;
+        if (!q.racine.visible) continue;
+        q.dort += ((jour ? 0 : 1) - q.dort) * Math.min(1, dt * 1.5);
+        let court = 0, avance = 0;
+        if (jour) {
+          const dj = loinDe(q), dk = Math.hypot(q.x - kon.x, q.z - kon.z);
+          if (!paisible && q.mode !== 'fuite' && (dj < 1.9 || dk < 1.3)) {
+            let meilleur = q.ici, loin = -1;
+            q.maisons.forEach(([mx, mz], k) => { const d = Math.hypot(mx - joueur.x, mz - joueur.z); if (k !== q.ici && d > loin) { loin = d; meilleur = k; } });
+            const [mx, mz] = q.maisons[meilleur];
+            q.ici = meilleur;
+            q.cible = [mx + (hasard() - 0.5) * 1.2, mz + (hasard() - 0.5) * 1.2];
+            q.mode = 'fuite';
+            q.crie = 0;
+          }
+          if (q.cible) {
+            const dx = q.cible[0] - q.x, dz = q.cible[1] - q.z, d = Math.hypot(dx, dz), v = q.mode === 'fuite' ? 3.0 : 0.42;
+            q.cap = tourner(q.cap, Math.atan2(dx, dz), dt * (q.mode === 'fuite' ? 9 : 5));
+            const nx = q.x + Math.sin(q.cap) * v * dt, nz = q.z + Math.cos(q.cap) * v * dt;
+            if (d < 0.25 || !monde.libre(nx, nz, q.y)) { q.cible = null; q.mode = 'marche'; q.prochain = 0.5 + hasard() * 1.8; }
+            else { q.x = nx; q.z = nz; q.y = sol(q.x, q.z, q.y + 0.5); avance = v; court = q.mode === 'fuite' ? 1 : 0; }
+          } else if ((q.prochain -= dt) <= 0) {
+            q.prochain = 0.6 + hasard() * 2.2;
+            if (hasard() < 0.45) q.picore = 0.75;
+            else {
+              const [hx, hz] = q.maisons[q.ici], a = hasard() * 2 * PI, r = hasard() * 2.2;
+              q.cible = [hx + Math.sin(a) * r, hz + Math.cos(a) * r];
+            }
+          }
+          q.picore = Math.max(0, q.picore - dt);
+          // le coq chante : la tête levée, le cou tendu (« kokekokkō »)
+          if (!q.poule && (q.chant -= dt) <= 0 && q.mode !== 'fuite') { q.chant = 28 + hasard() * 45; q.crie = 1.4; q.cible = null; sons.push({ nom: 'coq', x: q.x, y: q.y + 0.6, z: q.z, fort: 1 }); }
+          q.crie = Math.max(0, q.crie - dt);
+        }
+        q.pas += dt * (avance > 1 ? 16 : 9) * (avance > 0 ? 1 : 0);
+        q.racine.position.set(q.x, q.y - 0.12 * T.coq * q.dort, q.z);
+        q.racine.rotation.y = q.cap;
+        // (u : où en est le coup de bec, de 0 à 1 ; c : le chant, de 0 à 1,4 s)
+        const u = 1 - q.picore / 0.75, c = 1.4 - q.crie;
+        const pique = q.picore <= 0 ? 0 : u < 0.2 ? -0.12 * Math.sin((u / 0.2) * (PI / 2)) : u < 0.32 ? -0.12 + 0.82 * ((u - 0.2) / 0.12) : u < 0.5 ? 0.7 + 0.03 * Math.sin(u * 90) : 0.7 * (1 - lisse(0.5, 1, u));
+        const leve = q.crie <= 0 ? 0 : c < 0.2 ? -0.12 * Math.sin((c / 0.2) * (PI / 2)) : c < 0.45 ? -0.12 + 0.5 * lisse(0.2, 0.45, c) : c < 1.1 ? 0.38 + 0.03 * Math.sin(c * 42) : 0.38 * (1 - lisse(1.1, 1.4, c));
+        const marche = avance > 0 && court === 0 ? 1 : 0;
+        q.corps.rotation.x = pique - leve + 0.12 * court + 0.06 * Math.sin(q.pas * 2) * marche;
+        q.corps.rotation.z = 0.07 * Math.sin(q.pas) * marche;
+        q.corps.position.y = (avance > 0 ? Math.abs(Math.sin(q.pas)) * 0.03 : 0) + court * 0.05 * Math.abs(Math.sin(q.pas * 0.5));
       }
       // ---- les lézards : couchés au chaud, ils filent quand on court vers eux (ou qu'on arrive tout près)
       for (const l of L_) {
@@ -719,6 +819,7 @@ export function creerBetes(ctx, { monde, grives = [], lezards = [], chats = [], 
       for (const h of H_) if (h.racine.visible && h.mode === 'sol') c.push({ sorte: h.sorte, x: h.x, y: h.y, z: h.z, rayon: 4.8, haut: 1.5, verbe: 'regarder' });
       for (const g of R_) if (g.racine.visible && g.mode === 'pose') c.push({ sorte: 'grenouille', x: g.x, y: g.y, z: g.z, rayon: 2.3, haut: 0.4, verbe: 'regarder' });
       for (const l of L2_) if (l.racine.visible && l.pose > 0) c.push({ sorte: 'libellule', x: l.x, y: l.y - 0.4, z: l.z, rayon: 2.2, haut: 1.0, verbe: 'regarder' });
+      for (const q of CQ_) if (q.racine.visible && q.mode !== 'fuite' && q.dort < 0.5) c.push({ sorte: q.poule ? 'poule' : 'coq', x: q.x, y: q.y, z: q.z, rayon: 2.6, haut: 0.75, verbe: 'regarder' });
       for (const d of D_) c.push({ sorte: 'chien', id: d.id, x: d.x, y: d.y, z: d.z, rayon: 1.8, haut: 0.9, verbe: 'caresser', bete: { caresser() { d.joie = 6; } } });
       for (const ch of C_) {
         c.push({
