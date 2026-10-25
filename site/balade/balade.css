@@ -185,7 +185,19 @@ body.tactile .dialogue-choix { bottom: calc(var(--bas) + 248px); }
   border-radius: 6px; transform: rotate(-6deg);
 }
 
-.menu { box-sizing: border-box; width: min(380px, 100%); padding: 14px 18px; display: flex; flex-direction: column; gap: 10px; }
+/* (2026-10-25 : sur un téléphone, le menu dépassait de l'écran, on ne pouvait ni le faire défiler ni le fermer : il défile
+   dans sa boîte, et sa croix reste en haut) */
+.menu {
+  box-sizing: border-box; width: min(380px, 100%); max-height: calc(100dvh - 24px); overflow-y: auto; overscroll-behavior: contain;
+  touch-action: pan-y; padding: 14px 18px; display: flex; flex-direction: column; gap: 10px;
+}
+/* (sous les filets du cadre, à 5 px du bord : top compte depuis le haut du padding, 14 px) */
+.menu-tete { position: sticky; top: -9px; z-index: 1; display: flex; align-items: center; justify-content: space-between; margin: -9px -13px 0; padding: 5px 9px 6px 13px; background: var(--papier); border-radius: 6px 6px 0 0; }
+.menu-tete b { font-size: 19px; font-weight: 800; }
+.menu-tete .fermer {
+  flex: none; width: 38px; height: 38px; border-radius: 50%; background: var(--rouge); color: #fff; border: 3px solid var(--encre);
+  font-size: 20px; line-height: 1; padding: 0;
+}
 .menu > button, .menu-carte {
   display: flex; justify-content: space-between; align-items: center; background: var(--papier-2); border: 3px solid var(--encre);
   border-radius: 8px; padding: 8px 12px; font-size: 17px; text-decoration: none; color: inherit;

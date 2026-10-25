@@ -213,12 +213,35 @@ export function construire(ctx) {
   };
   /** Les pierres des murs : des rangs de trois teintes, décalés. */
   const pierres = (x, y, z) => TONS[Math.floor(hasard(Math.floor(x / 0.62) * 1.7 + Math.floor(z / 0.62) * 0.9, Math.floor(y / 0.38) * 1.3) * 4) % 4];
-  /** Les tuiles du château : gris-bleu, le dessous des toits et les arêtes blanchis au plâtre (le « héron blanc »). */
-  const TUILES = { tuile: P.tuileShiro, tuile2: P.tuileShiroClaire, bord: P.mortier };
+  /** Les tuiles du château : gris-bleu, le dessous des toits et les arêtes blanchis au plâtre (le « héron blanc ») ; le
+   * bord des toits, le bout des tuiles, gris (2026-10-25 : tout blanc, vu d'en dessous, le bord ne se voyait pas). */
+  const TUILES = { tuile: P.tuileShiro, tuile2: P.tuileShiroClaire, bord: P.mortier, avant: P.tuileShiro };
   /** Un repère tourné : la pose (x, y, z, ry) d'une pièce donnée dans le repère d'un objet posé en x, z, tourné de ry. */
   const repere = (x0, z0, ry0) => {
     const c = Math.cos(ry0), s = Math.sin(ry0);
     return (lx, y, lz, o = {}) => ({ ...o, x: x0 + lx * c + lz * s, y, z: z0 - lx * s + lz * c, ry: ry0 + (o.ry || 0) });
+  };
+  /**
+   * Un toit japonais (atelier.toitJapon : L × Pp, haut de h, ratio du haut ; o : la pose, releve, creux…) et ses quatre
+   * arêtes de coin (sumi-mune, 2026-10-25, « plus de détails ») : un faîtage blanchi au plâtre qui suit le coin du toit,
+   * du haut jusqu'au coin relevé, et au bout une tuile d'about grise (onigawara), tournée vers dehors.
+   */
+  const toitH = (a, L, Pp, h, ratio, o = {}) => {
+    a.toitJapon(L, Pp, h, ratio, { ...o, ...TUILES });
+    const { creux = 1.7, releve = 0.05 } = o, R = repere(o.x || 0, o.z || 0, o.ry || 0), y = o.y || 0;
+    const r = Math.min(0.13, Math.max(0.055, L * 0.0065));
+    for (const [cx, cz] of [[-L / 2, Pp / 2], [L / 2, Pp / 2], [L / 2, -Pp / 2], [-L / 2, -Pp / 2]]) {
+      const pts = [];
+      for (let i = 0; i <= 8; i++) {
+        const v = 0.02 + (i / 8) * 0.95, k = (1 - v + v * ratio) * (1 + 0.06 * (1 - v));
+        const q = R(cx * k, y + h * v ** creux + releve * (1 - v) ** 2 + r * 0.55, cz * k);
+        pts.push([q.x, q.y, q.z]);
+      }
+      a.tube(pts, r, P.mortier, { cotes: 4, pas: 8, trait: false });
+      const [x0, y0, z0] = pts[0], [x1, , z1] = pts[1];
+      a.boite(r * 3.4, r * 4.2, r * 1.4, '#5c6066', { x: x0, y: y0 + r * 1.2, z: z0, ry: Math.atan2(x0 - x1, z0 - z1) });
+    }
+    return a;
   };
 
   // ---------------------------------------------------------------- Les murs de pierre (ishigaki)
@@ -364,7 +387,7 @@ export function construire(ctx) {
     }
     a.boite(l + 1.4, 0.4, 0.46, '#4a3a2e', R(0, y + H - 0.55, 0))
       .boite(l + 1.0, 0.24, 0.3, '#4a3a2e', R(0, y + H - 0.1, 0));
-    a.toitJapon(l + 2.6, 2.6, 1.0, 0.18, { ...R(0, y + H + 0.05, 0), releve: 0.18, rangs: 14, epaisseur: 0.1, ...TUILES });
+    toitH(a, l + 2.6, 2.6, 1.0, 0.18, { ...R(0, y + H + 0.05, 0), releve: 0.18, rangs: 14, epaisseur: 0.1, ...TUILES });
     return a;
   }
 
@@ -455,8 +478,11 @@ export function construire(ctx) {
     // Nishi-no-maru) et au coin nord-ouest
     // (au nord, le mur serré contre le pied de la première terrasse, qui s'évase : un vide restait entre eux en haut)
     enceinte(a, [[T1.x1 + 0.35, ESPLANADE.z0 - 0.3], [ESPLANADE.x1 - 0.2, ESPLANADE.z0 - 0.3], [ESPLANADE.x1 - 0.2, ENCEINTE_Z]], 0, { dehors: [1, 0] });
-    enceinte(a, [[ESPLANADE.x0 + 0.2, NISHI.z1 + 0.6], [ESPLANADE.x0 + 0.2, ENCEINTE_Z]], 0, { dehors: [-1, 0] });
-    enceinte(a, [[ESPLANADE.x0 + 0.2, ESPLANADE.z0 - 0.3], [T1.x0 - 0.35, ESPLANADE.z0 - 0.3]], 0, { dehors: [0, -1] });
+    // (2026-10-25 : à l'ouest, le mur finissait au coin de la Nishi-no-maru, à côté de sa pierre, qui se penche en
+    // arrière : en haut, un vide entre eux ; il tourne maintenant dans son flanc est, au nord du coin. Au nord-ouest, le
+    // mur s'arrêtait au pied de ce même flanc : il entre dans la pierre)
+    enceinte(a, [[ESPLANADE.x0 - 0.9, NISHI.z1 - 0.4], [ESPLANADE.x0 + 0.2, NISHI.z1 - 0.4], [ESPLANADE.x0 + 0.2, ENCEINTE_Z]], 0, { dehors: [-1, 0], libre0: false });
+    enceinte(a, [[ESPLANADE.x0 - 0.6, ESPLANADE.z0 - 0.3], [T1.x0 - 0.35, ESPLANADE.z0 - 0.3]], 0, { dehors: [0, -1], libre0: false });
     // les lanternes de papier de la porte, la nuit
     for (const s of [-1, 1]) {
       a.chochin(s * 2.2, 3.2, OTEMON.z + 0.45, 7);
@@ -578,14 +604,22 @@ export function construire(ctx) {
 
   // ---------------------------------------------------------------- Les terrasses, les escaliers, les portes, les murs
   /** Les fenêtres d'un bâtiment de plâtre (W × D, centré en x, z) : sur ses quatre faces, à la hauteur y, des panneaux
-   * sombres et leurs barreaux blancs (renji-mado) ; n : combien par mètre de face. */
-  function fenetres(a, x, z, y, W, D, { par = 1 / 2.6, l = 0.9, h = 0.62 } = {}) {
+   * sombres et leurs barreaux blancs (renji-mado) ; n : combien par mètre de face ; cadre : un cadre de plâtre en relief
+   * autour, son appui, et six barreaux (le donjon, 2026-10-25). */
+  function fenetres(a, x, z, y, W, D, { par = 1 / 2.6, l = 0.9, h = 0.62, cadre = false } = {}) {
+    const nb = cadre ? 6 : 4;
     for (let c = 0; c < 4; c++) {
       const ry = (c * PI) / 2, long = c % 2 ? D : W, prof = c % 2 ? W : D, R = repere(x, z, ry), k = Math.max(1, Math.floor(long * par));
       for (let i = 0; i < k; i++) {
         const lx = -long / 2 + ((i + 0.5) * long) / k;
-        a.boite(l, h, 0.04, P.noir, R(lx, y, prof / 2 + 0.02, { trait: false }));
-        for (let b = 0; b < 4; b++) a.boite(0.055, h - 0.04, 0.03, P.platre, R(lx - l / 2 + (b + 0.5) * (l / 4), y, prof / 2 + 0.045, { trait: false }));
+        // (avec un cadre, la fenêtre est posée sur l'entourage en relief)
+        const e = cadre ? 0.07 : 0;
+        if (cadre) {
+          a.boite(l + 0.16, h + 0.16, 0.07, P.platre, R(lx, y, prof / 2 + 0.035, { trait: false }))
+            .boite(l + 0.3, 0.05, 0.13, P.platre, R(lx, y - h / 2 - 0.105, prof / 2 + 0.065, { trait: false }));
+        }
+        a.boite(l, h, cadre ? 0.012 : 0.04, P.noir, R(lx, y, prof / 2 + (cadre ? e + 0.006 : 0.02), { trait: false }));
+        for (let b = 0; b < nb; b++) a.boite(0.05, h - 0.04, 0.03, P.platre, R(lx - l / 2 + (b + 0.5) * (l / nb), y, prof / 2 + e + 0.027, { trait: false }));
       }
     }
   }
@@ -604,13 +638,13 @@ export function construire(ctx) {
     a.boite(W, 0.5, D, P.pierreFonce, { x, y: y + 0.2, z, teinte: pierres })
       .boite(W - 0.1, h1, D - 0.1, P.platre, { x, y: y + 0.4 + h1 / 2, z });
     fenetres(a, x, z, y + 2.1, W - 0.1, D - 0.1);
-    a.toitJapon(W + 2.0, D + 2.0, 1.1, deux ? 0.62 : 0.26, { x, y: y + 3.3, z, releve: 0.24, rangs: 14, epaisseur: 0.12, ...TUILES });
+    toitH(a, W + 2.0, D + 2.0, 1.1, deux ? 0.62 : 0.26, { x, y: y + 3.3, z, releve: 0.24, rangs: 14, epaisseur: 0.12, ...TUILES });
     if (deux) {
       const w = (W + 2.0) * 0.62 - 0.3, d = (D + 2.0) * 0.62 - 0.3, y2 = y + 4.3;
       const h2 = 2.3 + sousToit(w + 1.9, d + 1.9, 1.3, 0.22, 1.7, 0.12, w, d);
       a.boite(w, h2, d, P.platre, { x, y: y2 + h2 / 2, z });
       fenetres(a, x, z, y2 + 1.3, w, d);
-      a.toitJapon(w + 1.9, d + 1.9, 1.3, 0.22, { x, y: y2 + 2.3, z, releve: 0.24, rangs: 12, epaisseur: 0.12, ...TUILES });
+      toitH(a, w + 1.9, d + 1.9, 1.3, 0.22, { x, y: y2 + 2.3, z, releve: 0.24, rangs: 12, epaisseur: 0.12, ...TUILES });
     }
     // (un bloc à leur forme : le segment épais d'avant, arrondi, dépassait de leurs bouts de sa demi-largeur, un mur
     // invisible de deux mètres devant elles)
@@ -671,47 +705,131 @@ export function construire(ctx) {
     enceinte(a, [[T3.x0 + 0.35, T3.z0 + 0.35], [T3.x0 + 0.35, T3.z1 - 0.35]], T3.h, { dehors: [-1, 0] });
     enceinte(a, [[T3.x1 - 0.35, T3.z1 - 0.35], [T3.x1 - 0.35, T3.z0 + 0.35]], T3.h, { dehors: [1, 0] });
     enceinte(a, [[T3.x1 - 0.35, T3.z0 + 0.35], [T3.x0 + 0.35, T3.z0 + 0.35]], T3.h, { dehors: [0, -1] });
-    // la porte en losange (菱の門), en haut du premier escalier : le rez-de-chaussée (quatre grands poteaux, les murs de
-    // plâtre de part et d'autre du passage, les battants ouverts), la poutre aux losanges dorés qui lui donne son nom,
-    // l'étage blanc et ses fenêtres (deux fenêtres en cloche, cerclées d'or, au-dessus du passage), le grand toit
+    // la porte en losange (菱の門), en haut du premier escalier : une porte à tour (yagura-mon), refaite le 2026-10-25
+    // (« refais la porte au losange en mieux »). En bas, les deux grands poteaux de devant (kagami-bashira) et deux plus
+    // minces derrière, sur leurs pierres, leurs pieds bardés de fer ; la grande poutre (kabuki) et ses deux losanges fleuris
+    // dorés (hanabishi), qui donnent son nom à la porte ; les deux battants ouverts, de planches, leurs bandes de fer et
+    // leurs clous dorés, la petite porte (kuguri) dans l'un d'eux ; de part et d'autre du passage, les ailes de plâtre sur
+    // leur pierre, leurs poteaux et leur traverse de bois. Au-dessus, la tour blanche : les bouts des solives sous son
+    // plancher, une bande de bois sombre, le bandeau de plâtre ; devant, deux fenêtres en cloche (katōmado) cerclées
+    // d'or, au cadre laqué noir, et des fenêtres à barreaux laqués noirs devant le papier ; derrière et aux bouts, des
+    // fenêtres à barreaux. Le toit à croupes et pignons (irimoya), ses arêtes, ses pignons blancs et leurs ornements
+    // dorés ; les lanternes de papier sous la poutre
     {
-      const x = HISHI.x, z = HISHI.z, y = T1.h, H1 = 3.6, W = 12.4, D = 3.2;
-      for (const sx of [-1, 1]) for (const sz of [-1, 1]) a.boite(0.46, H1, 0.46, '#4a3a2e', { x: x + sx * 2.25, y: y + H1 / 2, z: z + sz * 1.35 });
-      for (const s of [-1, 1]) {
-        const xc = x + s * 4.35;
+      // (son propre objet, 2026-10-25 : la caméra ne la dessine que si elle la voit)
+      const a = atelier(), x = HISHI.x, z = HISHI.z, y = T1.h, H1 = 3.6, W = 12.4, D = 3.2;
+      const BOIS = '#3e3028', PLANCHE = '#5a4636', PLANCHE2 = '#4e3c2e', LAQUE = '#262022', FER = '#2c2a2a';
+      // les poteaux, leurs pierres, leurs pieds de fer et leur bague dorée
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+        const px = x + sx * 2.25, pz = z + sz * 1.35, l = sz > 0 ? 0.52 : 0.42, pp = sz > 0 ? 0.62 : 0.42;
+        a.boite(l, H1, pp, BOIS, { x: px, y: y + H1 / 2, z: pz })
+          .boite(l + 0.3, 0.14, pp + 0.3, P.pierreFonce, { x: px, y: y + 0.05, z: pz })
+          .boite(l + 0.03, 0.42, pp + 0.03, FER, { x: px, y: y + 0.33, z: pz, trait: false })
+          .boite(l + 0.036, 0.04, pp + 0.036, P.or, { x: px, y: y + 0.555, z: pz, trait: false });
+      }
+      for (const s2 of [-1, 1]) {
+        const xc = x + s2 * 4.35;
+        // l'aile : sa pierre, son plâtre, le poteau du bout et la traverse, devant et derrière
         a.boite(3.7, 0.7, D, P.pierreFonce, { x: xc, y: y + 0.35, z, teinte: pierres })
-          .boite(3.66, H1 - 0.7, D - 0.24, P.platre, { x: xc, y: y + 0.7 + (H1 - 0.7) / 2, z });
-        // les battants ouverts, contre le mur du passage, leurs bandes de fer
-        a.boite(0.14, H1 - 0.5, 2.0, '#5a4636', { x: x + s * 1.95, y: y + (H1 - 0.5) / 2 + 0.05, z: z - 0.3 });
-        for (const yy of [0.7, 1.6, 2.5]) a.boite(0.155, 0.12, 1.94, P.noir, { x: x + s * 1.95, y: y + yy, z: z - 0.3, trait: false });
-        // (un bloc à la forme de l'aile : le segment épais d'avant, arrondi, rétrécissait le passage à 1,8 m)
-        monde.surface(s < 0 ? x - 6.45 : x + 2.38, s < 0 ? x - 2.38 : x + 6.45, z - D / 2 - 0.25, z + D / 2 + 0.25, y + H1 + 5, { plein: true });
-        monde.cercle(x + s * 2.25, z + 1.35, 0.36);
-        monde.cercle(x + s * 2.25, z - 1.35, 0.36);
-      }
-      a.boite(W + 0.3, 0.32, D + 0.5, '#4a3a2e', { x, y: y + H1 + 0.05, z })
-        .boite(W, 2.65 + sousToit(W + 2.6, D + 3.4, 1.5, 0.3, 1.7, 0.14, W, D + 0.3), D + 0.3, P.platre, { x, y: y + H1 + 0.2 + (2.65 + sousToit(W + 2.6, D + 3.4, 1.5, 0.3, 1.7, 0.14, W, D + 0.3)) / 2, z })
-        // la poutre du passage et ses losanges (菱) dorés
-        .boite(5.1, 0.46, 0.46, '#3e3028', { x, y: y + H1 - 0.4, z: z + 1.38 });
-      for (let k = -2; k <= 2; k++) a.boite(0.3, 0.3, 0.05, P.or, { x: x + k * 0.92, y: y + H1 - 0.4, z: z + 1.63, rz: PI / 4, trait: false });
-      // les fenêtres de l'étage : deux en cloche (katōmado), cerclées d'or, au-dessus du passage ; des fenêtres à barreaux
-      for (const s of [-1, 1]) {
-        const wx = x + s * 1.1, wy = y + H1 + 1.45, wz = z + (D + 0.3) / 2;
-        a.boite(0.9, 1.0, 0.05, P.noir, { x: wx, y: wy, z: wz + 0.02, trait: false })
-          .piece(new THREE.CylinderGeometry(0.45, 0.45, 0.05, 14, 1, false, 0, PI), P.noir, { x: wx, y: wy + 0.5, z: wz + 0.02, rx: PI / 2, rz: PI / 2, trait: false })
-          .piece(new THREE.TorusGeometry(0.47, 0.035, 4, 14, PI), P.or, { x: wx, y: wy + 0.5, z: wz + 0.05, trait: false });
-        for (const sx of [-1, 1]) a.boite(0.07, 1.0, 0.05, P.or, { x: wx + sx * 0.47, y: wy, z: wz + 0.05, trait: false });
-        for (const k of [3.4, 5.0]) {
-          a.boite(1.0, 0.6, 0.04, P.noir, { x: x + s * k, y: wy, z: wz + 0.02, trait: false });
-          for (let b = 0; b < 4; b++) a.boite(0.055, 0.56, 0.03, P.platre, { x: x + s * k - 0.375 + b * 0.25, y: wy, z: wz + 0.045, trait: false });
+          .boite(3.66, H1 - 0.7, D - 0.24, P.platre, { x: xc, y: y + 0.7 + (H1 - 0.7) / 2, z })
+          .boite(0.32, H1 - 0.7, D - 0.2, BOIS, { x: x + s2 * 6.05, y: y + 0.7 + (H1 - 0.7) / 2, z });
+        for (const sz of [-1, 1]) a.boite(3.3, 0.18, 0.04, BOIS, { x: xc - s2 * 0.15, y: y + 2.35, z: z + sz * ((D - 0.24) / 2 + 0.02), trait: false });
+        // le battant ouvert, contre le mur du passage : des planches, trois bandes de fer et leurs clous dorés (sur la
+        // face qui regarde le passage)
+        const xd = x + s2 * 1.93, zd = z - 0.3, hd = H1 - 0.5, ld = 2.0;
+        a.piece(new THREE.BoxGeometry(0.14, hd, ld, 1, 1, 8), PLANCHE, { x: xd, y: y + hd / 2 + 0.05, z: zd, teinte: (px, py, pz) => (Math.floor((pz - zd) / 0.25 + 100) % 2 ? PLANCHE : PLANCHE2) });
+        for (const yy of [0.55, 1.6, 2.65]) {
+          a.boite(0.155, 0.13, ld - 0.06, FER, { x: xd, y: y + yy, z: zd, trait: false });
+          for (let k = 0; k < 6; k++) a.cylindre(0.032, 0.032, 0.03, 6, P.or, { x: xd - s2 * 0.09, y: y + yy, z: zd - ld / 2 + 0.2 + k * 0.32, rz: PI / 2, trait: false });
         }
+        if (s2 < 0) {
+          // la petite porte (kuguri) découpée dans le battant de l'ouest
+          const zk = zd + 0.35, xk = xd + 0.075;
+          for (const dz of [-0.4, 0.4]) a.boite(0.012, 1.3, 0.04, LAQUE, { x: xk, y: y + 0.12 + 0.65, z: zk + dz, trait: false });
+          a.boite(0.012, 0.04, 0.84, LAQUE, { x: xk, y: y + 1.44, z: zk, trait: false })
+            .cylindre(0.03, 0.03, 0.03, 8, FER, { x: xk + 0.012, y: y + 0.85, z: zk + 0.28, rz: PI / 2, trait: false });
+        }
+        // (un bloc à la forme de l'aile : le segment épais d'avant, arrondi, rétrécissait le passage à 1,8 m)
+        monde.surface(s2 < 0 ? x - 6.45 : x + 2.38, s2 < 0 ? x - 2.38 : x + 6.45, z - D / 2 - 0.25, z + D / 2 + 0.25, y + H1 + 5, { plein: true });
+        monde.cercle(x + s2 * 2.25, z + 1.35, 0.36);
+        monde.cercle(x + s2 * 2.25, z - 1.35, 0.36);
       }
-      a.toitJapon(W + 2.6, D + 3.4, 1.5, 0.3, { x, y: y + H1 + 2.85, z, releve: 0.28, rangs: 18, epaisseur: 0.14, ...TUILES });
+      // la grande poutre de devant et ses losanges fleuris dorés (sur une plaque laquée), ses ferrures dorées près des
+      // poteaux ; la poutre de derrière
+      const yP = y + H1 - 0.42, zF = z + 1.38 + 0.25;
+      a.boite(5.1, 0.5, 0.5, BOIS, { x, y: yP, z: z + 1.38 })
+        .boite(5.0, 0.36, 0.4, BOIS, { x, y: y + H1 - 0.32, z: z - 1.35 });
+      for (const sx of [-1, 1]) {
+        const cx = x + sx * 1.15;
+        a.boite(0.66, 0.44, 0.02, LAQUE, { x: cx, y: yP, z: zF + 0.005, trait: false })
+          .boite(0.7, 0.025, 0.025, P.or, { x: cx, y: yP + 0.23, z: zF + 0.01, trait: false })
+          .boite(0.7, 0.025, 0.025, P.or, { x: cx, y: yP - 0.23, z: zF + 0.01, trait: false });
+        for (const [dx, dy] of [[0, 0.11], [0, -0.11], [0.11, 0], [-0.11, 0]]) a.boite(0.115, 0.115, 0.02, P.or, { x: cx + dx, y: yP + dy, z: zF + 0.025, rz: PI / 4, trait: false });
+        a.cylindre(0.035, 0.035, 0.02, 8, '#c84a2c', { x: cx, y: yP, z: zF + 0.04, rx: PI / 2, trait: false });
+        a.boite(0.26, 0.46, 0.02, P.or, { x: x + sx * 1.85, y: yP, z: zF + 0.01, trait: false })
+          .boite(0.18, 0.38, 0.02, LAQUE, { x: x + sx * 1.85, y: yP, z: zF + 0.025, trait: false });
+        for (const dy of [-0.12, 0.12]) a.cylindre(0.025, 0.025, 0.02, 6, P.or, { x: x + sx * 1.85, y: yP + dy, z: zF + 0.04, rx: PI / 2, trait: false });
+      }
+      // la tour : sa poutre de plancher, les bouts des solives dessous (devant, derrière), le plâtre, une bande de bois
+      // sombre en bas, le bandeau de plâtre au-dessus des fenêtres
+      const hT = 2.65 + sousToit(W + 2.6, D + 3.4, 1.5, 0.3, 1.7, 0.14, W, D + 0.3), yT0 = y + H1 + 0.2, wy = y + H1 + 1.45;
+      a.boite(W + 0.3, 0.32, D + 0.5, BOIS, { x, y: y + H1 + 0.05, z })
+        .boite(W, hT, D + 0.3, P.platre, { x, y: yT0 + hT / 2, z })
+        .boite(W + 0.04, 0.2, D + 0.34, '#3e3830', { x, y: yT0 + 0.12, z, trait: false })
+        .boite(W + 0.1, 0.1, D + 0.4, P.platre, { x, y: wy + 1.05, z, trait: false });
+      for (const sz of [-1, 1]) for (let k = 0; k < 22; k++) a.boite(0.14, 0.14, 0.75, BOIS, { x: x - W / 2 + 0.3 + (k * (W - 0.6)) / 21, y: y + H1 - 0.18, z: z + sz * 1.58, trait: false });
+      // une fenêtre en cloche (katōmado), en x, sa base à yb, sur la face z (sens sz : +1 devant) : l'anneau doré, le cadre
+      // laqué noir, le papier, cinq barreaux et une traverse laqués
+      // (le contour d'une fenêtre en cloche, large de k mètre, sa base à y0 : les côtés droits, les épaules qui s'évasent,
+      // l'arc en accolade qui monte en pointe)
+      const cloche = (k, y0 = 0) => {
+        const f = new THREE.Shape(), w = 0.5 * k;
+        f.moveTo(-w, y0); f.lineTo(w, y0); f.lineTo(w, y0 + 0.7 * k);
+        f.quadraticCurveTo(w + 0.09 * k, y0 + 0.8 * k, w * 0.9, y0 + 0.9 * k);
+        f.bezierCurveTo(w * 0.9, y0 + 1.1 * k, w * 0.25, y0 + 1.12 * k, 0, y0 + 1.42 * k);
+        f.bezierCurveTo(-w * 0.25, y0 + 1.12 * k, -w * 0.9, y0 + 1.1 * k, -w * 0.9, y0 + 0.9 * k);
+        f.quadraticCurveTo(-w - 0.09 * k, y0 + 0.8 * k, -w, y0 + 0.7 * k);
+        f.lineTo(-w, y0);
+        return f;
+      };
+      const anneau = (k1, y1, k0, y0) => { const f = cloche(k1, y1); f.holes.push(cloche(k0, y0)); return f; };
+      const katomado = (wx, yb, zf) => {
+        a.piece(new THREE.ExtrudeGeometry(anneau(1.14, -0.06, 1.0, 0), { depth: 0.045, bevelEnabled: false, curveSegments: 6 }), P.or, { x: wx, y: yb, z: zf, trait: false })
+          .piece(new THREE.ExtrudeGeometry(anneau(1.0, 0, 0.82, 0.07), { depth: 0.03, bevelEnabled: false, curveSegments: 6 }), LAQUE, { x: wx, y: yb, z: zf, trait: false })
+          .piece(new THREE.ShapeGeometry(cloche(0.82, 0.07), 6), P.shoji, { x: wx, y: yb, z: zf + 0.005, trait: false });
+        for (let b = 0; b < 5; b++) a.boite(0.04, 0.58, 0.035, LAQUE, { x: wx - 0.3 + b * 0.15, y: yb + 0.36, z: zf + 0.02, trait: false });
+        a.boite(0.74, 0.04, 0.035, LAQUE, { x: wx, y: yb + 0.45, z: zf + 0.02, trait: false });
+      };
+      // une fenêtre à barreaux laqués noirs devant le papier, centrée en (lx, ly) dans le repère R (face vers +z local)
+      const renji = (R, lx, ly) => {
+        a.boite(1.0, 0.6, 0.03, P.shoji, R(lx, ly, 0.015, { trait: false }));
+        for (const sy of [-1, 1]) a.boite(1.14, 0.07, 0.06, LAQUE, R(lx, ly + sy * 0.335, 0.03, { trait: false }));
+        for (const sx of [-1, 1]) a.boite(0.07, 0.6, 0.06, LAQUE, R(lx + sx * 0.535, ly, 0.03, { trait: false }));
+        for (let b = 0; b < 6; b++) a.boite(0.04, 0.6, 0.04, LAQUE, R(lx - 0.42 + b * 0.168, ly, 0.035, { trait: false }));
+      };
+      const zDevant = z + (D + 0.3) / 2, Rav = repere(x, zDevant, 0), Rar = repere(x, z - (D + 0.3) / 2, PI);
+      for (const sx of [-1, 1]) {
+        katomado(x + sx * 1.1, wy - 0.62, zDevant);
+        for (const k of [3.4, 5.0]) renji(Rav, sx * k, wy);
+        for (const k of [1.6, 4.2]) renji(Rar, sx * k, wy);
+        renji(repere(x + sx * W / 2, z, sx * PI / 2), 0, wy);
+      }
+      // le toit : quatre pans, ses arêtes (toitH) ; en haut, le pignon (irimoya), son triangle blanc et ses ornements
+      // dorés, l'arête du faîte et ses tuiles d'about
+      const lt = W + 2.6, dt = D + 3.4, yR = y + H1 + 2.85 + 1.5, lg = lt * 0.3 * 1.21;
+      toitH(a, lt, dt, 1.5, 0.3, { x, y: y + H1 + 2.85, z, releve: 0.28, rangs: 18, epaisseur: 0.14 });
+      a.pignon(lg, 1.0, dt * 0.32, P.platre, { x, y: yR - 0.06, z });
+      deuxPans(a, lg + 0.4, dt * 0.34 + 0.4, 1.08, yR - 0.12, { x, z });
+      for (const sx of [-1, 1]) {
+        gegyo(a, { x: x + sx * (lg / 2 + 0.02), y: yR + 0.62, z, ry: sx * PI / 2 }, 1.0);
+        a.boite(0.2, 0.46, 0.36, '#5c6066', { x: x + sx * (lg / 2 + 0.32), y: yR + 1.02, z });
+      }
       a.chochin(x - 1.6, y + 2.9, z + 1.55, 6).chochin(x + 1.6, y + 2.9, z + 1.55, 6);
       lumieres.push({ x, y: y + 2.9, z: z + 1.9, halo: 0.5, sol: y, r: 3.6 });
       monde.toit(x - 2.3, x + 2.3, z - D / 2, z + D / 2, y + H1 - 0.15, y + H1 + 4.6);
       monde.bloc(x - W / 2, x - 2.5, z - D / 2, z + D / 2, y - 1, y + H1 + 4.3);
       monde.bloc(x + 2.5, x + W / 2, z - D / 2, z + D / 2, y - 1, y + H1 + 4.3);
+      poser(a.fin(0, peinture), 0, 0, { y: 0 });
     }
     // les autres portes, dans des murs qui barrent les terrasses
     for (const G of PORTES) {
@@ -739,9 +857,11 @@ export function construire(ctx) {
     enceinte(a, [[ESC.ni.x1 + 0.5, T3.z1 - 0.35], [T3.x1 - 0.35, T3.z1 - 0.35]], T3.h, { dehors: [0, 1] });
     // les bouts des terrasses qui ne donnent que sur la colline (au fond de l'impasse, aux coins) : des murs aussi
     enceinte(a, [[T1.x0 + 0.35, T1.z0 + 0.35], [ESC.i.x0 - 1, T1.z0 + 0.35]], T1.h, { dehors: [0, -1] });
-    enceinte(a, [[T2.x1 + 0.35, T1.z0 + 0.35], [T1.x1 - 0.35, T1.z0 + 0.35]], T1.h, { dehors: [0, -1] });
-    enceinte(a, [[T2.x0 + 0.35, T2.z0 + 0.35], [T3.x0, T2.z0 + 0.35]], T2.h, { dehors: [0, -1] });
-    enceinte(a, [[T3.x1, T2.z0 + 0.35], [T2.x1 - 0.35, T2.z0 + 0.35]], T2.h, { dehors: [0, -1] });
+    // (2026-10-25 : ces trois murs finissaient devant le coin d'un mur de pierre penché, celui de la terrasse du dessus,
+    // et l'on voyait la colline par le vide entre eux ; leur bout tourne maintenant dans la pierre)
+    enceinte(a, [[T2.x1 - 0.2, T2.z1 - 0.3], [T2.x1 - 0.2, T1.z0 + 0.35], [T1.x1 - 0.35, T1.z0 + 0.35]], T1.h, { dehors: [0, -1], libre0: false });
+    enceinte(a, [[T2.x0 + 0.35, T2.z0 + 0.35], [T3.x0 + 0.1, T2.z0 + 0.35], [T3.x0 + 0.1, T3.z1 - 0.3]], T2.h, { dehors: [0, -1], libre1: false });
+    enceinte(a, [[T3.x1 - 0.1, T3.z1 - 0.3], [T3.x1 - 0.1, T2.z0 + 0.35], [T2.x1 - 0.35, T2.z0 + 0.35]], T2.h, { dehors: [0, -1], libre0: false });
     // les tours d'angle
     yagura(a, T1.x1 - 3.4, T1.z1 - 3.0, T1.h, 5.0, 4.4);
     yagura(a, T1.x0 + 3.4, T1.z1 - 3.0, T1.h, 4.6, 4.2);
@@ -768,13 +888,27 @@ export function construire(ctx) {
     for (const s of [-1, 1]) a.piece(new THREE.BoxGeometry(L - (s > 0 ? 0 : 0.012), 0.12, l, Math.max(1, Math.round(L / 0.3)), 1, 1), P.tuileShiro, R(0, y + h / 2, (s * p) / 4, { rx: s * ang, ordre: 'YXZ', teinte: rangs }));
     return a.boite(L + 0.12, 0.13, 0.22, P.mortier, R(0, y + h + 0.03, 0));
   }
+  /** Un gegyo (懸魚) : l'ornement doré pendu sous la pointe d'un pignon (un cœur renversé entre deux ailes enroulées),
+   * face vers +z de sa pose o (son dos à o.z) ; k : sa taille (environ 0,45 × 0,36 m à 1). */
+  function gegyo(a, o, k = 1) {
+    const f = new THREE.Shape(), pt = (x, y) => [x * k, y * k];
+    f.moveTo(...pt(0, 0.06));
+    f.bezierCurveTo(...pt(0.1, 0.1), ...pt(0.24, 0.04), ...pt(0.2, -0.06));
+    f.bezierCurveTo(...pt(0.17, -0.13), ...pt(0.08, -0.12), ...pt(0.06, -0.1));
+    f.bezierCurveTo(...pt(0.08, -0.18), ...pt(0.04, -0.24), ...pt(0, -0.3));
+    f.bezierCurveTo(...pt(-0.04, -0.24), ...pt(-0.08, -0.18), ...pt(-0.06, -0.1));
+    f.bezierCurveTo(...pt(-0.08, -0.12), ...pt(-0.17, -0.13), ...pt(-0.2, -0.06));
+    f.bezierCurveTo(...pt(-0.24, 0.04), ...pt(-0.1, 0.1), ...pt(0, 0.06));
+    return a.piece(new THREE.ExtrudeGeometry(f, { depth: 0.04, bevelEnabled: false, curveSegments: 5 }), P.or, { ...o, trait: false });
+  }
   /** Un pignon triangulaire (chidori-hafu) sur la pente d'un toit : son triangle blanc tourné vers dehors (+z local), ses
-   * deux petits pans, l'arête ; en x, z, au bas y, tourné de ry ; large de w, haut de h, profond de d. */
+   * deux petits pans, l'arête, l'ornement doré sous la pointe ; en x, z, au bas y, tourné de ry ; large de w, haut de h,
+   * profond de d. */
   function hafu(a, x, z, y, ry, w, h, d) {
     const R = repere(x, z, ry);
     a.pignon(d, h * 0.96, w * 0.92, P.platre, R(0, y, -d / 2 + 0.06, { ry: PI / 2 }));
     deuxPans(a, d + 0.3, w + 0.5, h + 0.1, y - 0.06, { ...R(0, 0, -d / 2 + 0.2), ry: ry + PI / 2 });
-    a.boite(0.18, 0.18, 0.08, P.or, R(0, y + h * 0.66, 0.2, { trait: false }));
+    gegyo(a, R(0, y + h * 0.74, 0.09), 0.8 + w * 0.12);
     return a;
   }
   /**
@@ -796,7 +930,7 @@ export function construire(ctx) {
     pignon.lineTo(w * 0.47, -0.05);
     a.piece(new THREE.ShapeGeometry(pignon), P.platre, { x, y, z: zAvant - 0.35 });
     // l'ornement doré (gegyo) au sommet, et deux petits clous dorés
-    a.boite(0.42, 0.24, 0.05, P.or, { x, y: y + h - 0.32, z: zAvant - 0.33, trait: false });
+    gegyo(a, { x, y: y + h - 0.16, z: zAvant - 0.33 }, 1.35);
     for (const sx of [-1, 1]) a.cylindre(0.05, 0.05, 0.04, 8, P.or, { x: x + sx * 0.8, y: y + h * 0.62, z: zAvant - 0.33, rx: PI / 2, trait: false });
     return a;
   }
@@ -985,10 +1119,12 @@ export function construire(ctx) {
         const lt = E.W + 3.0, ratio = (suivant.W + 0.3) / lt, dt = (suivant.D + 0.3) / ratio;
         const yMur = E.y1 + sousToit(lt, dt, E.toit, ratio, 1.5, 0.16, E.W, E.D);
         a.boite(E.W, yMur - E.y0 + 0.1, E.D, P.platre, { x: X, y: (E.y0 - 0.1 + yMur) / 2, z: Z });
-        fenetres(a, X, Z, E.y0 + E.h * 0.56, E.W, E.D, { par: 1 / 2.2 });
+        fenetres(a, X, Z, E.y0 + E.h * 0.56, E.W, E.D, { par: 1 / 2.2, cadre: true });
+        // (2026-10-25) un bandeau de plâtre en relief tout autour, au-dessus des fenêtres (nageshi)
+        a.boite(E.W + 0.1, 0.1, E.D + 0.1, P.platre, { x: X, y: E.y0 + E.h * 0.56 + 0.47, z: Z, trait: false });
         // le bas de chaque étage : une bande de bois sombre
         a.boite(E.W + 0.04, 0.22, E.D + 0.04, '#3e3830', { x: X, y: E.y0 + 0.11, z: Z });
-        a.toitJapon(lt, dt, E.toit, ratio, { x: X, y: E.y1, z: Z, releve: 0.3, rangs: Math.round(lt * 1.4), epaisseur: 0.16, creux: 1.5, ...TUILES });
+        toitH(a, lt, dt, E.toit, ratio, { x: X, y: E.y1, z: Z, releve: 0.3, rangs: Math.round(lt * 1.4), epaisseur: 0.16, creux: 1.5, ...TUILES });
         // les pignons : au sud et au nord aux étages pairs, à l'est et à l'ouest aux autres
         // (sous le dernier étage, où l'on entre, les pignons s'arrêtent à son mur : profonds de 2,4 m, ils entraient dans la
         // pièce ; sous les autres, leur bout est caché dans l'étage du dessus)
@@ -998,6 +1134,15 @@ export function construire(ctx) {
           if (i === 0 && s > 0) karahafu(a, X, E.y1 + 0.16, Z + E.D / 2 + 1.25, 4.6, 1.05, 2.6);
           else if (i % 2 === 0) hafu(a, X, Z + s * (E.D / 2 + 0.55), E.y1 + 0.18, s > 0 ? 0 : PI, w, hh, prof);
           else hafu(a, X + s * (E.W / 2 + 0.55), Z, E.y1 + 0.18, s > 0 ? PI / 2 : -PI / 2, w, hh, prof);
+        }
+        // (2026-10-25, « rajoute plus de détails au grand donjon ») d'autres pignons, comme les toits superposés du vrai
+        // donjon : deux petits côte à côte à l'est et à l'ouest du premier et du troisième toit, un grand au sud et au nord
+        // du deuxième, un petit au sud et au nord du quatrième (arrêté au mur du dernier étage) ; leur bout est caché
+        // dans l'étage du dessus, et leur pointe reste sous ses fenêtres
+        const autres = [{ ew: 3.0, w: 2.8, h: 1.15 }, { ns: true, w: 4.4, h: 1.3 }, { ew: 2.0, w: 2.2, h: 1.15 }, { ns: true, w: 2.4, h: 1.15 }][i];
+        for (const s of [-1, 1]) {
+          if (autres.ns) hafu(a, X, Z + s * (E.D / 2 + 0.55), E.y1 + 0.18, s > 0 ? 0 : PI, autres.w, E.toit * autres.h, i === 3 ? E.D / 2 + 0.55 - suivant.D / 2 : 2.4);
+          else for (const dz of [-autres.ew, autres.ew]) hafu(a, X + s * (E.W / 2 + 0.55), Z + dz, E.y1 + 0.18, s > 0 ? PI / 2 : -PI / 2, autres.w, E.toit * autres.h, 2.4);
         }
       } else {
         // le dernier étage : ses murs ouverts de fenêtres (on voit dedans, on voit dehors), leurs barreaux de bois ; le
@@ -1113,7 +1258,7 @@ export function construire(ctx) {
         monde.toit(X - w2, X + w2, Z - d2, Z + d2, y1 - 0.3, y1 + 4);
         // le grand toit : quatre pans, puis le pignon du haut (irimoya), son triangle blanc, l'arête, les shachihoko
         const lt = E.W + 3.0, dt = E.D + 3.0, yR = y1 + E.toit;
-        a.toitJapon(lt, dt, E.toit, 0.38, { x: X, y: y1, z: Z, releve: 0.36, rangs: Math.round(lt * 1.4), epaisseur: 0.18, creux: 1.5, ...TUILES });
+        toitH(a, lt, dt, E.toit, 0.38, { x: X, y: y1, z: Z, releve: 0.36, rangs: Math.round(lt * 1.4), epaisseur: 0.18, creux: 1.5, ...TUILES });
         const lg = lt * 0.46;
         a.pignon(lg, 1.3, dt * 0.36, P.platre, { x: X, y: yR - 0.08, z: Z });
         deuxPans(a, lg + 0.5, dt * 0.38 + 0.4, 1.38, yR - 0.14, { x: X, z: Z });
@@ -1137,14 +1282,14 @@ export function construire(ctx) {
     const h0 = E0.h + sousToit(lt, (E1.D + 0.3) / ratio, 1.3, ratio, 1.7, 0.13, E0.W, E0.D);
     a.boite(E0.W, h0, E0.D, P.platre, { x: X, y: yS + h0 / 2, z: Z });
     fenetres(a, X, Z, yS + E0.h * 0.56, E0.W, E0.D, { par: 1 / 2.2 });
-    a.toitJapon(lt, (E1.D + 0.3) / ratio, 1.3, ratio, { x: X, y: yS + E0.h, z: Z, releve: 0.32, rangs: 16, epaisseur: 0.13, ...TUILES });
+    toitH(a, lt, (E1.D + 0.3) / ratio, 1.3, ratio, { x: X, y: yS + E0.h, z: Z, releve: 0.32, rangs: 16, epaisseur: 0.13, ...TUILES });
     hafu(a, X, Z + E0.D / 2 + 0.5, yS + E0.h + 0.15, 0, 2.6, 1.6, 2.0);
     const y1 = yS + E0.h + 1.2;
     const h1 = E1.h + sousToit(E1.W + 2.4, E1.D + 2.4, 1.5, 0.36, 1.7, 0.13, E1.W, E1.D);
     a.boite(E1.W, h1, E1.D, P.platre, { x: X, y: y1 + h1 / 2, z: Z });
     fenetres(a, X, Z, y1 + E1.h * 0.56, E1.W, E1.D, { par: 1 / 2.2 });
     lt = E1.W + 2.4;
-    a.toitJapon(lt, E1.D + 2.4, 1.5, 0.36, { x: X, y: y1 + E1.h, z: Z, releve: 0.36, rangs: 12, epaisseur: 0.13, ...TUILES });
+    toitH(a, lt, E1.D + 2.4, 1.5, 0.36, { x: X, y: y1 + E1.h, z: Z, releve: 0.36, rangs: 12, epaisseur: 0.13, ...TUILES });
     const yR = y1 + E1.h + 1.5, lg = lt * 0.44;
     a.pignon(lg, 0.95, (E1.D + 2.4) * 0.34, P.platre, { x: X, y: yR - 0.06, z: Z });
     deuxPans(a, lg + 0.4, (E1.D + 2.4) * 0.36 + 0.3, 1.0, yR - 0.1, { x: X, z: Z });
@@ -1368,6 +1513,119 @@ export function construire(ctx) {
     // la gare de Himeji, au bout de l'avenue : un long bâtiment de verre, son quai couvert
     immeuble(0, 335, 90, 22, 18, 0);
     for (const [k, a] of SECTEURS) poser(a.fin(0, peinture), 0, 0, { y: 0, ombre: false, trait: k < 8 });
+  }
+
+  // ---------------------------------------------------------------- Les nuages
+  // (2026-10-25, « rajoute les nuages dans le ciel ») des cumulus blancs, loin au-dessus des montagnes, tout autour : des
+  // boules serrées autour d'une plus grosse, le dessous aplati
+  {
+    const a = atelier();
+    for (const [x, y, z, s] of [[-380, 230, -760, 52], [60, 270, -880, 66], [420, 240, -720, 48], [760, 260, -420, 54], [-760, 220, -380, 50], [-860, 250, 160, 46], [880, 230, 260, 50], [-300, 260, 820, 56], [360, 220, 780, 44], [130, 300, -620, 38], [-620, 280, -820, 44]]) {
+      const n = 7 + Math.floor(hasard(x, z) * 3), lobe = (r, px, py, pz) => a.piece(new THREE.IcosahedronGeometry(r, 1), P.nuage, { x: px, y: py, z: pz, sy: 0.8, deformer: (u, v, w) => [u, Math.max(v, -0.3 * r), w] });
+      lobe(s, x, y, z);
+      for (let i = 0; i < n; i++) {
+        const t = (i / n) * 2 * PI + hasard(i, x) * 0.6, r = s * (0.5 + 0.3 * hasard(z, i)), d = s * (0.95 + 0.35 * hasard(i + 3, z));
+        lobe(r, x + Math.cos(t) * d * 1.35, y - s * 0.12 + r * 0.25, z + Math.sin(t) * d * 0.55);
+      }
+      lobe(s * 0.62, x + s * 0.3, y + s * 0.55, z);
+      lobe(s * 0.5, x - s * 0.55, y + s * 0.4, z + s * 0.1);
+    }
+    // (sans trait d'encre : à 800 m, il ferait un pixel, flouté par la distance ; deux fois moins de triangles)
+    poser(a.fin(0, false), 0, 0, { y: 0, ombre: false, trait: false });
+  }
+
+  // ---------------------------------------------------------------- Le salon de thé, à droite du grand donjon
+  // (2026-10-25, « rajoute des éléments du décor, un stand de nourriture, sur le côté droit du grand donjon ») À l'est du
+  // donjon, contre le mur : un petit salon de thé (茶屋) de bois sous son toit de tuiles ; son comptoir, la marmite d'oden
+  // de Himeji (姫路おでん : on le mange avec une sauce soja au gingembre) qui fume, les brochettes de dango, le thé ;
+  // trois norens bleus ; l'enseigne d'une glace au matcha ; devant, deux bancs couverts de feutre rouge sous une grande
+  // ombrelle rouge, la carte, les poubelles ; le marchand derrière son comptoir, une cliente sur un banc (ce repère :
+  // son devant vers +z, l'ouest du monde)
+  const CHAYA = { x: 23.3, z: -55, ry: -PI / 2 };
+  const RC = repere(CHAYA.x, CHAYA.z, CHAYA.ry), mC = (lx, lz) => { const q = RC(lx, 0, lz); return [q.x, q.z]; };
+  const vapeurs = [];
+  {
+    const a = atelier(), R = RC, y = T3.h, BOIS = '#6a4e38', BOIS2 = '#5e4430', FONCE = '#4a3628', ROUGE = '#c8402c';
+    // les poteaux, le mur du fond (des planches), les côtés à mi-hauteur, les poutres de devant et du fond
+    for (const lx of [-1.7, 1.7]) for (const lz of [-1.0, 1.0]) a.boite(0.14, 2.6, 0.14, FONCE, R(lx, y + 1.3, lz));
+    a.piece(new THREE.BoxGeometry(3.3, 2.55, 0.06, 13, 1, 1), BOIS, { ...R(0, y + 1.275, -1.0), teinte: (px, py, pz) => (Math.floor(pz / 0.25 + 400) % 2 ? BOIS : BOIS2) });
+    for (const lx of [-1.7, 1.7]) a.boite(0.05, 1.0, 1.9, BOIS, R(lx, y + 0.5, 0));
+    for (const lz of [-1.0, 1.0]) a.boite(3.6, 0.14, 0.12, FONCE, R(0, y + 2.38, lz));
+    // le comptoir et son plateau
+    a.boite(3.1, 0.88, 0.5, BOIS, R(0, y + 0.44, 0.78))
+      .boite(3.3, 0.06, 0.66, '#8a6848', R(0, y + 0.91, 0.8));
+    // le toit de tuiles, ses arêtes
+    toitH(a, 4.4, 3.0, 0.85, 0.3, { ...R(0, y + 2.48, 0), releve: 0.12, rangs: 10, epaisseur: 0.08 });
+    // les trois norens bleus, sous la poutre de devant
+    for (const [lx, texte] of [[-1.12, 'おでん'], [0, '茶屋'], [1.12, 'だんご']]) {
+      a.boite(1.08, 0.55, 0.02, '#2f4a6a', R(lx, y + 2.03, 1.08, { trait: false }));
+      ecrire({ ...R(0, y, 0) }, { texte, fond: '#2f4a6a', encre: '#f4efe6', x: lx, y: 2.03, z: 1.095, l: 1.0, h: 0.5 });
+    }
+    // la marmite d'oden : ses parois d'inox, le bouillon, deux séparations, le radis, les œufs, le konjac, les chikuwa,
+    // leurs piques ; elle fume
+    const xo = -0.85, zo = 0.8, yo = y + 0.94;
+    for (const sz of [-1, 1]) a.boite(0.8, 0.2, 0.03, '#a8acb0', R(xo, yo + 0.1, zo + sz * 0.205));
+    for (const sx of [-1, 1]) a.boite(0.03, 0.2, 0.38, '#a8acb0', R(xo + sx * 0.385, yo + 0.1, zo));
+    a.boite(0.73, 0.02, 0.37, '#b07a3c', R(xo, yo + 0.14, zo, { trait: false }));
+    for (const sx of [-1, 1]) a.boite(0.012, 0.055, 0.37, '#a8acb0', R(xo + sx * 0.13, yo + 0.1725, zo, { trait: false }));
+    for (const [dx, dz] of [[-0.26, -0.08], [-0.24, 0.09], [0.02, 0.06]]) a.cylindre(0.055, 0.055, 0.04, 10, '#ead9b0', R(xo + dx, yo + 0.16, zo + dz));
+    for (const [dx, dz] of [[0.0, -0.09], [0.26, 0.08], [-0.02, 0.12]]) a.ovale(0.04, '#d9b98a', R(xo + dx, yo + 0.17, zo + dz, { sy: 1.25 }), 8);
+    for (const [dx, dz] of [[0.25, -0.07], [0.28, 0.0]]) a.boite(0.09, 0.03, 0.07, '#7a7470', R(xo + dx, yo + 0.165, zo + dz, { ry: 0.5, rx: 0.3 }));
+    a.cylindre(0.025, 0.025, 0.16, 8, '#c89a5a', R(xo - 0.05, yo + 0.165, zo - 0.02, { rz: PI / 2, ry: 0.3 }));
+    for (const [dx, dz] of [[-0.26, -0.08], [0.26, 0.08], [0.25, -0.07]]) { const b = R(xo + dx, 0, zo + dz), c = R(xo + dx + 0.03, 0, zo + dz + 0.05); a.baton([b.x, yo + 0.15, b.z], [c.x, yo + 0.32, c.z], 0.006, '#e8d8b0', 4, { trait: false }); }
+    { const q = R(xo, 0, zo); vapeurs.push({ x: q.x, z: q.z, y: yo + 0.2, n: 4, haut: 1.3, large: 0.14, taille: 0.3 }); }
+    // les dango sur leur assiette (rose, blanc, vert), deux tasses de thé, la théière
+    a.cylindre(0.17, 0.15, 0.02, 14, '#f4f2ea', R(0.55, yo + 0.01, 0.8));
+    for (const dz of [-0.06, 0, 0.06]) {
+      const b = R(0.4, 0, 0.8 + dz), c = R(0.72, 0, 0.8 + dz);
+      a.baton([b.x, yo + 0.04, b.z], [c.x, yo + 0.04, c.z], 0.005, '#e8d8b0', 4, { trait: false });
+      ['#f2a8b8', '#f4f0e6', '#8fbf6a'].forEach((cb, k) => a.boule(0.026, cb, R(0.48 + k * 0.06, yo + 0.05, 0.8 + dz), 1));
+    }
+    for (const lx of [1.08, 1.22]) a.cylindre(0.035, 0.03, 0.07, 10, '#4e6a4a', R(lx, yo + 0.035, 0.72));
+    a.ovale(0.075, '#3a3a36', R(1.3, yo + 0.07, 0.88, { sy: 0.8 }), 10).cone(0.018, 0.09, 6, '#3a3a36', R(1.36, yo + 0.09, 0.82, { rz: -0.9, ry: 0.8 }));
+    // l'enseigne de la glace au matcha : un grand cornet sur son pied, la petite pancarte
+    const [xg, zg] = [2.35, 1.6];
+    a.boite(0.4, 0.06, 0.4, '#8a8a86', R(xg, y + 0.03, zg))
+      .cylindre(0.03, 0.03, 1.25, 8, '#c8c8c4', R(xg, y + 0.62, zg))
+      .boite(0.52, 0.34, 0.03, '#f4f2ea', R(xg, y + 0.9, zg + 0.04))
+      .cone(0.16, 0.44, 12, '#d9a860', R(xg, y + 1.46, zg, { rx: PI }))
+      .cylindre(0.17, 0.19, 0.12, 14, '#9dc46c', R(xg, y + 1.74, zg))
+      .cylindre(0.12, 0.165, 0.12, 14, '#a8cc78', R(xg, y + 1.86, zg))
+      .cylindre(0.05, 0.115, 0.12, 14, '#9dc46c', R(xg, y + 1.98, zg))
+      .cone(0.05, 0.1, 10, '#a8cc78', R(xg, y + 2.09, zg));
+    ecrire({ ...R(0, y, 0) }, { texte: '抹茶ソフト', fond: '#f4f2ea', encre: '#3a7a3a', x: xg, y: 0.9, z: zg + 0.06, l: 0.48, h: 0.3 });
+    // la carte, sur un petit chevalet : « お品書き »
+    const [xm, zm] = [-2.35, 1.5];
+    a.boite(0.58, 0.8, 0.04, '#33332f', R(xm, y + 0.78, zm))
+      .boite(0.64, 0.05, 0.06, '#7a5a40', R(xm, y + 1.2, zm))
+      .boite(0.64, 0.05, 0.06, '#7a5a40', R(xm, y + 0.36, zm));
+    for (const sx of [-1, 1]) a.boite(0.05, 0.4, 0.05, '#7a5a40', R(xm + sx * 0.25, y + 0.18, zm));
+    ecrire({ ...R(0, y, 0) }, { texte: 'お品書き', lignes: 3, fond: '#33332f', encre: '#f4f2ea', x: xm, y: 0.78, z: zm + 0.025, l: 0.52, h: 0.74 });
+    // les poubelles
+    for (const [lx, c] of [[2.4, '#3a6a8a'], [2.85, '#6a8a3a']]) a.cylindre(0.18, 0.17, 0.75, 12, c, R(lx, y + 0.375, -0.5)).cylindre(0.19, 0.19, 0.04, 12, '#2a2a2e', R(lx, y + 0.77, -0.5));
+    // devant : deux bancs couverts de feutre rouge (on s'y assoit, sauf là où la cliente est assise), la grande ombrelle
+    for (const [cx, de, aa] of [[-1.1, -0.7, 0.7], [1.3, -0.7, -0.2]]) {
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) a.boite(0.07, 0.42, 0.07, '#5a4436', R(cx + sx * 0.7, y + 0.21, 3.4 + sz * 0.17));
+      a.boite(1.6, 0.06, 0.45, '#8a6a4a', R(cx, y + 0.45, 3.4))
+        .boite(1.64, 0.015, 0.49, ROUGE, R(cx, y + 0.4875, 3.4, { trait: false }));
+      for (const sz of [-1, 1]) a.boite(1.64, 0.12, 0.012, ROUGE, R(cx, y + 0.435, 3.4 + sz * 0.251, { trait: false }));
+      const A = RC(cx + de, 0, 3.4), B = RC(cx + aa, 0, 3.4);
+      bancs.push({ de: [A.x, A.z], a: [B.x, B.z], y: y + 0.495, cap: CHAYA.ry, vue: 0.3 });
+      const A1 = RC(cx - 0.85, 0, 3.4), B1 = RC(cx + 0.85, 0, 3.4);
+      monde.mur(A1.x, A1.z, B1.x, B1.z, 0.28);
+    }
+    const [xp, zp] = [0.1, 3.4];
+    a.cylindre(0.03, 0.03, 2.3, 8, '#8a6a4a', R(xp, y + 1.15, zp))
+      .piece(new THREE.ConeGeometry(1.7, 0.45, 24), ROUGE, R(xp, y + 2.15, zp))
+      .cylindre(0.04, 0.03, 0.12, 8, '#8a6a4a', R(xp, y + 2.42, zp));
+    for (let k = 0; k < 12; k++) { const t = (k / 12) * 2 * PI, b = R(xp, 0, zp), c = R(xp + Math.cos(t) * 1.62, 0, zp + Math.sin(t) * 1.62); a.baton([b.x, y + 1.91, b.z], [c.x, y + 1.91, c.z], 0.008, '#e8d8b0', 4, { trait: false }); }
+    poser(a.fin(0, peinture), 0, 0, { y: 0 });
+    // ce qui arrête : le salon, l'ombrelle, l'enseigne, la carte, les poubelles ; la caméra n'entre pas dans le salon
+    // (jusqu'au mur de la terrasse : derrière le salon, il restait un recoin d'où l'on parlait au marchand à travers le
+    // mur du fond)
+    monde.surface(CHAYA.x - 1.1, T3.x1 - 0.3, CHAYA.z - 1.85, CHAYA.z + 1.85, y + 3, { plein: true });
+    monde.bloc(CHAYA.x - 1.1, CHAYA.x + 1.15, CHAYA.z - 1.85, CHAYA.z + 1.85, y - 1, y + 3.4);
+    for (const [lx, lz, r] of [[xp, zp, 0.12], [xg, zg, 0.28], [xm, zm, 0.36], [2.4, -0.5, 0.22], [2.85, -0.5, 0.22]]) monde.cercle(...mC(lx, lz), r);
   }
 
   // ---------------------------------------------------------------- L'étal de la vieille dame, le pique-nique, les panneaux
@@ -1684,6 +1942,9 @@ export function construire(ctx) {
   const PEAU = P.peau, NOIR = '#2a2420', SAL = [SALLE.x0, SALLE.x1, SALLE.z0, SALLE.z1];
   const MERE = { x: NAPPE.x + 0.95, z: NAPPE.z - 0.45 }, JIJI = { x: NAPPE.x - 0.95, z: NAPPE.z + 0.35 }, SIEGE = { x: NAPPE.x + 0.15, z: NAPPE.z + 0.95 };
   const PEINTRE = { x: -7.6, z: -40.8 }, VIDEASTE = { x: 13.6, z: -41.6 };
+  // (2026-10-25 : les gens des terrasses, cachés quand la caméra est hors de leur terrasse et à plus de 14 m d'eux ;
+  // derrière les murs, on ne les voyait pas, et chacun coûtait douze appels de dessin vu de l'esplanade ou du pont)
+  const SUR = (T) => [T.x0, T.x1, T.z0, T.z1];
   const passants = [
     { id: 'gardien', x: -4.6, z: -3.6, cap: -2.2, tenue: { taille: 1.04, peau: PEAU, cheveux: NOIR, coiffure: 'court', chapeau: { sorte: 'casquette', c: '#2f3a5a', c2: '#c8a040' }, haut: '#2f3a5a', manches: 'longues', bas: { sorte: 'pantalon', c: '#2f3a5a' }, chaussures: '#2a2a2e', semelle: '#2a2a2e' } },
     { id: 'vieille', x: ETAL.x + 0.85, z: ETAL.z, cap: -PI / 2, tenue: { taille: 0.92, peau: '#f0c8a6', cheveux: '#d8d4cc', coiffure: 'chignon', chapeau: { sorte: 'foulard', c: '#e8e0d0' }, haut: '#6a7a8a', manches: 'longues', tablier: '#f2ead8', bas: { sorte: 'pantalon', c: '#4a4a56' }, chaussures: '#3a3236', semelle: '#3a3236', yeux: 'plisses' } },
@@ -1692,11 +1953,13 @@ export function construire(ctx) {
     { id: 'petit', x: NAPPE.x + 2.4, z: NAPPE.z + 0.8, cap: 0, ronde: [[NAPPE.x + 2.4, NAPPE.z + 0.8], [NAPPE.x + 2.6, NAPPE.z + 3.6], [NAPPE.x - 1.6, NAPPE.z + 3.4], [NAPPE.x - 2.4, NAPPE.z - 1.6]], vitesse: 1.5, attente: [0.5, 2], tenue: { taille: 0.72, peau: PEAU, cheveux: NOIR, coiffure: 'court', chapeau: { sorte: 'casquette', c: '#e8452e', c2: '#ffffff' }, haut: '#f2c443', manches: 'courtes', bas: { sorte: 'short', c: '#3d5a8f' }, chaussures: P.blanc, semelle: '#3a3236' } },
     { id: 'samourai', x: 7.5, z: 3.0, cap: PI - 0.3, tenue: { taille: 1.1, peau: '#e8bf98', cheveux: NOIR, coiffure: 'chignon', chapeau: { sorte: 'bandeau', c: '#f4efe6' }, haut: '#3a2a2a', manches: 'kimono', col: '#c8a040', bas: { sorte: 'hakama', c: '#2a2a3a', c2: '#3a3a4a' }, chaussures: '#f4f0e6', semelle: '#c9b48a' } },
     { id: 'guide', x: DONJON.x + 3.8, z: DONJON.z + 3.2, cap: -2.4, dedans: SAL, tenue: { taille: 1.0, peau: '#f2c9a8', cheveux: '#4a3428', coiffure: 'queue', haut: '#a8452e', manches: 'longues', tablier: '#3a3a42', bas: { sorte: 'pantalon', c: '#3a3a42' }, chaussures: '#3a3236', semelle: '#3a3236' } },
-    { id: 'peintre', x: PEINTRE.x, z: PEINTRE.z, cap: vers(PEINTRE.x, PEINTRE.z, DONJON.x, DONJON.z) + 0.5, tenue: { taille: 1.0, peau: PEAU, cheveux: '#8a8478', coiffure: 'court', chapeau: { sorte: 'bob', c: '#c9b48a' }, haut: '#7a8f6a', manches: 'longues', tablier: '#c8b8a0', bas: { sorte: 'pantalon', c: '#5a4a3a' }, chaussures: '#5a3a2a', semelle: '#3a3236', yeux: 'plisses' } },
-    { id: 'eleve', x: 2, z: -24.6, cap: 0, ronde: [[2, -24.6], [-15, -24.8], [-15, -28.5], [2, -28.5]], vitesse: 1.3, attente: [1, 3], tenue: { taille: 0.8, peau: PEAU, cheveux: NOIR, coiffure: 'court', chapeau: { sorte: 'ecolier', c: '#f2c443' }, haut: '#ffffff', manches: 'courtes', bas: { sorte: 'short', c: '#2f3a5a' }, chaussures: P.blanc, semelle: '#3a3236', sac: { sorte: 'randoseru', c: '#c8302c', c2: '#7a1a18' } } },
-    { id: 'jardinier', x: 12, z: -13.6, cap: 0.4, tenue: { taille: 1.02, peau: '#e8bf98', cheveux: '#5a5650', coiffure: 'court', chapeau: { sorte: 'bandeau', c: '#2f4a7a' }, haut: '#5a6a5a', manches: 'longues', bas: { sorte: 'pantalon', c: '#4a4a40' }, chaussures: '#3a3236', semelle: '#3a3236', pose: 'balai', yeux: 'plisses' } },
+    { id: 'peintre', x: PEINTRE.x, z: PEINTRE.z, dedans: SUR(T3), cap: vers(PEINTRE.x, PEINTRE.z, DONJON.x, DONJON.z) + 0.5, tenue: { taille: 1.0, peau: PEAU, cheveux: '#8a8478', coiffure: 'court', chapeau: { sorte: 'bob', c: '#c9b48a' }, haut: '#7a8f6a', manches: 'longues', tablier: '#c8b8a0', bas: { sorte: 'pantalon', c: '#5a4a3a' }, chaussures: '#5a3a2a', semelle: '#3a3236', yeux: 'plisses' } },
+    { id: 'eleve', x: 2, z: -24.6, dedans: SUR(T2), cap: 0, ronde: [[2, -24.6], [-15, -24.8], [-15, -28.5], [2, -28.5]], vitesse: 1.3, attente: [1, 3], tenue: { taille: 0.8, peau: PEAU, cheveux: NOIR, coiffure: 'court', chapeau: { sorte: 'ecolier', c: '#f2c443' }, haut: '#ffffff', manches: 'courtes', bas: { sorte: 'short', c: '#2f3a5a' }, chaussures: P.blanc, semelle: '#3a3236', sac: { sorte: 'randoseru', c: '#c8302c', c2: '#7a1a18' } } },
+    { id: 'jardinier', x: 12, z: -13.6, dedans: SUR(T1), cap: 0.4, tenue: { taille: 1.02, peau: '#e8bf98', cheveux: '#5a5650', coiffure: 'court', chapeau: { sorte: 'bandeau', c: '#2f4a7a' }, haut: '#5a6a5a', manches: 'longues', bas: { sorte: 'pantalon', c: '#4a4a40' }, chaussures: '#3a3236', semelle: '#3a3236', pose: 'balai', yeux: 'plisses' } },
     { id: 'touriste', x: -1.3, z: 31.6, cap: PI, tenue: { taille: 1.04, peau: PEAU, cheveux: '#c8a46a', coiffure: 'queue', chapeau: { sorte: 'soleil', c: '#f2e6c4' }, haut: '#4a8aa8', manches: 'courtes', bas: { sorte: 'pantalon', c: '#e8e2d4' }, chaussures: P.blanc, semelle: '#3a3236', sac: { sorte: 'dos', c: '#e8913a', c2: '#99673f' }, appareil: true } },
-    { id: 'videaste', x: VIDEASTE.x, z: VIDEASTE.z, cap: vers(VIDEASTE.x, VIDEASTE.z, DONJON.x, DONJON.z), tenue: { taille: 1.1, peau: PEAU, cheveux: '#3a2a20', coiffure: 'court', chapeau: { sorte: 'bob', c: '#2f3440' }, haut: '#2f3440', manches: 'courtes', bas: { sorte: 'pantalon', c: '#c9b48a' }, chaussures: P.blanc, semelle: '#3a3236', appareil: true } },
+    { id: 'videaste', x: VIDEASTE.x, z: VIDEASTE.z, dedans: SUR(T3), cap: vers(VIDEASTE.x, VIDEASTE.z, DONJON.x, DONJON.z), tenue: { taille: 1.1, peau: PEAU, cheveux: '#3a2a20', coiffure: 'court', chapeau: { sorte: 'bob', c: '#2f3440' }, haut: '#2f3440', manches: 'courtes', bas: { sorte: 'pantalon', c: '#c9b48a' }, chaussures: P.blanc, semelle: '#3a3236', appareil: true } },
+    { id: 'chaya', x: mC(0.1, 0.15)[0], z: mC(0.1, 0.15)[1], dedans: SUR(T3), cap: CHAYA.ry, tenue: { taille: 1.02, peau: '#e8bf98', cheveux: NOIR, coiffure: 'court', chapeau: { sorte: 'bandeau', c: '#f3efe4' }, haut: '#3f5a8a', manches: 'longues', tablier: '#f6efe0', bas: { sorte: 'pantalon', c: '#3a3a42' }, chaussures: '#3a3236', semelle: '#3a3236', yeux: 'plisses' } },
+    { id: 'gourmande', x: mC(1.78, 3.4)[0], z: mC(1.78, 3.4)[1], dedans: SUR(T3), cap: CHAYA.ry, assis: T3.h + 0.495, tenue: { taille: 0.98, peau: '#f2c9a8', cheveux: '#5a3a2a', coiffure: 'queue', chapeau: { sorte: 'soleil', c: '#f2e6c4' }, haut: '#e89a6a', manches: 'courtes', bas: { sorte: 'jupe', c: '#4a5a7a' }, chaussures: P.blanc, semelle: '#3a3236', sac: { sorte: 'dos', c: '#7a9a5a', c2: '#4a6a3a' } } },
   ];
   {
     // le chevalet du peintre et sa toile (le donjon peint) ; le trépied du vidéaste, qui filme le donjon
@@ -1926,6 +2189,21 @@ export function construire(ctx) {
     { id: 'fusils', x: SALLE.x0 + 1.1, z: DONJON.z, y: SALLE.y, rayon: 1.7, verbe: 'regarder', action: (jeu) => jeu.dire(jeu.tx('fusils')) },
     { id: 'armure', x: DONJON.x - 3.3, z: SALLE.z0 + 1.6, y: SALLE.y, rayon: 1.8, verbe: 'regarder', action: (jeu) => jeu.dire(jeu.tx('armure')) },
     ...Object.entries(PANNEAUX).map(([id, p]) => ({ id: `panneau-${id}`, x: p.x, z: p.z, rayon: 1.8, verbe: 'lire', action: (jeu) => jeu.dire(jeu.tx(`panneau-${id}`)) })),
+    {
+      // le marchand du salon de thé : une brochette d'oden de Himeji ; fermé la nuit
+      id: 'chaya', passant: 'chaya', verbe: 'parler',
+      async action(jeu) {
+        if (jeu.estNuit) { await jeu.dire(jeu.tx('chayaNuit'), 'chaya'); return; }
+        const r = await jeu.choisir(jeu.tx('chaya'), [jeu.t('oui'), jeu.t('non')], 'chaya');
+        if (r !== 0) { await jeu.dire(jeu.tx('chayaNon'), 'chaya'); return; }
+        jeu.saluer();
+        await jeu.dire(jeu.tx('oden'));
+        await jeu.dire(jeu.tx('odenCompagnon')[jeu.compagnon], 'compagnon');
+      },
+    },
+    parler('gourmande'),
+    { id: 'carteChaya', x: mC(-2.35, 2.1)[0], z: mC(-2.35, 2.1)[1], y: T3.h, rayon: 1.3, haut: 1.0, verbe: 'lire', action: (jeu) => jeu.dire(jeu.txn('carteChaya')) },
+    { id: 'glace', x: mC(2.35, 2.2)[0], z: mC(2.35, 2.2)[1], y: T3.h, rayon: 1.3, haut: 1.9, verbe: 'regarder', action: (jeu) => jeu.dire(jeu.tx('glace')) },
     ...interactionsBancs(bancs),
   ];
   // les bêtes : les regarder
@@ -1936,7 +2214,7 @@ export function construire(ctx) {
   const heros = { x: -2.2, z: 13.6 };
   return {
     ...infos, textes: TEXTES,
-    objets, monde, terrain, etiquettes, passants, daims: [], interactions, actionDaim: null, vapeurs: [], bancs, lumieres, actionBete, animes,
+    objets, monde, terrain, etiquettes, passants, daims: [], interactions, actionDaim: null, vapeurs, bancs, lumieres, actionBete, animes,
     // (le secret, tresors.js ; le marchand, sous les cerisiers de l'esplanade ; les sons à fabriquer en plus ; les feux
     // d'artifice, tirés derrière le donjon)
     secret: 'okiku', marchand: MARCHAND, sons: ['assiette', 'plouf', 'cloche', 'claque', 'papier'],
@@ -2036,7 +2314,7 @@ function toileDonjon(c, W, H) {
 // ---------------------------------------------------------------- Les textes du lieu
 const TEXTES = {
   fr: {
-    noms: { gardien: 'Le gardien du château', vieille: 'La vieille dame', mere: 'La maman', jiji: 'Le grand-père', petit: 'Le petit garçon', samourai: 'Le samouraï', guide: 'La guide du donjon', peintre: 'Le peintre', eleve: 'L’écolier', jardinier: 'Le jardinier', touriste: 'La touriste', videaste: '@random_japan_place' },
+    noms: { gardien: 'Le gardien du château', vieille: 'La vieille dame', mere: 'La maman', jiji: 'Le grand-père', petit: 'Le petit garçon', samourai: 'Le samouraï', guide: 'La guide du donjon', peintre: 'Le peintre', eleve: 'L’écolier', jardinier: 'Le jardinier', touriste: 'La touriste', videaste: '@random_japan_place', chaya: 'Le marchand du salon de thé', gourmande: 'La gourmande' },
     tampons: {
       sakura: ['Les cerisiers', 'Un pique-nique sur l’esplanade'],
       hishi: ['La porte en losange', 'L’entrée du labyrinthe'],
@@ -2143,9 +2421,26 @@ const TEXTES = {
     armure: ['Deux armures de samouraï (鎧, yoroi), posées sur leurs coffres.', 'Des plaques laquées, cousues de cordons de soie bleue ou rouge ; le casque (兜, kabuto) et ses cornes dorées.', 'En temps de paix, on rangeait l’armure dans son coffre. À la guerre, le coffre partait avec elle.'],
     aigrette: ['Une aigrette blanche, toute fine, qui marche lentement dans l’herbe.', 'C’est elle, le « héron blanc » (白鷺, shirasagi) qui a donné son surnom au château !'],
     libellule: ['Une libellule rouge (akatombo) passe au-dessus de l’herbe.'],
+    chaya: ['Bienvenue au salon de thé ! Après tous ces escaliers, une petite pause ?', 'Ici, la spécialité, c’est l’oden de Himeji : des légumes et des œufs mijotés dans un bouillon… qu’on mange avec une sauce soja au gingembre !', 'Tu veux goûter ?'],
+    chayaNon: ['Pas de souci ! Il y a aussi des dango, et une glace au thé vert. Reviens quand tu veux !'],
+    chayaNuit: ['Le salon de thé est fermé pour ce soir. La marmite d’oden refroidit…', 'Reviens demain matin !'],
+    oden: ['Le marchand te tend une brochette fumante : un œuf, un morceau de radis daikon, du konjac.', 'Tu la trempes dans la sauce soja au gingembre… C’est chaud, doux et piquant à la fois. Délicieux !'],
+    odenCompagnon: {
+      kon: ['« Un œuf qui a mijoté toute la matinée… Il a le goût du bouillon ! »'],
+      pon: ['« Encore une brochette ? Et une autre ? Pon pon, j’ai un ventre de tanuki ! »'],
+      chapu: ['« Ça fume comme une source chaude ! Attention, ça brûle la langue ! »'],
+      gao: ['« Le gingembre, ça réveille ! Gao ! »'],
+      fuwa: ['« Fuwa… Le bouillon est doux comme la mer. »'],
+      saya: ['« Le radis a poussé tout l’hiver dans la terre froide… Il est si tendre. »'],
+    },
+    gourmande: ['Je fais une pause : un dango et un thé vert, avec le donjon juste là… Le bonheur !', 'Tu as goûté l’oden ? Ici, on le mange avec du gingembre. C’est une spécialité de Himeji !'],
+    gourmandeNuit: ['Je voulais voir le château illuminé… mais le salon de thé est fermé. Tant pis pour mon dango !'],
+    carteChaya: ['« お品書き » : la carte.', 'Oden de Himeji (姫路おでん) : 400 yens. Dango (団子) : 200 yens. Glace au matcha (抹茶ソフト) : 350 yens. Le thé vert est offert !'],
+    carteChayaNuit: ['En bas de la carte, écrit à la craie : « Fermé. À demain ! »'],
+    glace: ['Un grand cornet en plastique : une glace au thé vert (抹茶ソフト, matcha sofuto).', 'Au Japon, on en trouve dans presque tous les lieux touristiques, chacun avec son parfum. Ici, le matcha !'],
   },
   en: {
-    noms: { gardien: 'Castle keeper', vieille: 'Old lady', mere: 'Mom', jiji: 'Grandpa', petit: 'Little boy', samourai: 'Samurai', guide: 'Keep guide', peintre: 'Painter', eleve: 'Schoolboy', jardinier: 'Gardener', touriste: 'Tourist', videaste: '@random_japan_place' },
+    noms: { gardien: 'Castle keeper', vieille: 'Old lady', mere: 'Mom', jiji: 'Grandpa', petit: 'Little boy', samourai: 'Samurai', guide: 'Keep guide', peintre: 'Painter', eleve: 'Schoolboy', jardinier: 'Gardener', touriste: 'Tourist', videaste: '@random_japan_place', chaya: 'Tea stall keeper', gourmande: 'Snacking visitor' },
     tampons: {
       sakura: ['The cherry trees', 'A picnic on the lawn'],
       hishi: ['The Diamond Gate', 'Into the maze'],
@@ -2252,9 +2547,26 @@ const TEXTES = {
     armure: ['Two samurai armors (鎧, yoroi), set on their chests.', 'Lacquered plates laced with blue or red silk cords; the helmet (兜, kabuto) and its golden horns.', 'In times of peace, the armor was kept in its chest. In war, the chest went along with it.'],
     aigrette: ['A slender white egret, walking slowly through the grass.', 'It’s the “white heron” (白鷺, shirasagi) that gave the castle its nickname!'],
     libellule: ['A red dragonfly (akatombo) flies over the grass.'],
+    chaya: ['Welcome to the tea stall! After all those stairs, how about a little break?', 'Our specialty is Himeji oden: vegetables and eggs simmered in broth… eaten with a ginger soy sauce!', 'Want to try some?'],
+    chayaNon: ['No problem! We also have dango and green tea ice cream. Come back anytime!'],
+    chayaNuit: ['The tea stall is closed for tonight. The oden pot is cooling down…', 'Come back tomorrow morning!'],
+    oden: ['The keeper hands you a steaming skewer: an egg, a piece of daikon radish, some konjac.', 'You dip it in the ginger soy sauce… Hot, mild and zesty all at once. Delicious!'],
+    odenCompagnon: {
+      kon: ['“An egg that simmered all morning… It tastes of the broth!”'],
+      pon: ['“Another skewer? And another? Pon pon, I’ve got a tanuki belly!”'],
+      chapu: ['“It steams like a hot spring! Careful, it’s hot!”'],
+      gao: ['“Ginger wakes you up! Gao!”'],
+      fuwa: ['“Fuwa… The broth is gentle like the sea.”'],
+      saya: ['“The radish grew all winter in the cold earth… It’s so tender.”'],
+    },
+    gourmande: ['Taking a break: dango and green tea, with the keep right there… Pure happiness!', 'Have you tried the oden? Here they eat it with ginger. It’s a Himeji specialty!'],
+    gourmandeNuit: ['I wanted to see the castle lit up… but the tea stall is closed. No dango for me!'],
+    carteChaya: ['“お品書き”: the menu.', 'Himeji oden (姫路おでん): 400 yen. Dango (団子): 200 yen. Matcha soft serve (抹茶ソフト): 350 yen. Green tea is free!'],
+    carteChayaNuit: ['Chalked at the bottom of the menu: “Closed. See you tomorrow!”'],
+    glace: ['A big plastic cone: green tea soft serve (抹茶ソフト, matcha sofuto).', 'In Japan you find them at almost every sightseeing spot, each with its own flavor. Here, matcha!'],
   },
   ja: {
-    noms: { gardien: 'お城の　係員さん', vieille: 'おばあさん', mere: 'お母さん', jiji: 'おじいさん', petit: '男の子', samourai: 'おさむらいさん', guide: '天守の　ガイドさん', peintre: '絵かきさん', eleve: '小学生', jardinier: '庭師さん', touriste: '観光客', videaste: '@random_japan_place' },
+    noms: { gardien: 'お城の　係員さん', vieille: 'おばあさん', mere: 'お母さん', jiji: 'おじいさん', petit: '男の子', samourai: 'おさむらいさん', guide: '天守の　ガイドさん', peintre: '絵かきさん', eleve: '小学生', jardinier: '庭師さん', touriste: '観光客', videaste: '@random_japan_place', chaya: '茶屋の　おじさん', gourmande: 'おやつ中の　お姉さん' },
     tampons: {
       sakura: ['桜', '三の丸で　お花見'],
       hishi: ['菱の門', '迷路の　入口'],
@@ -2361,5 +2673,22 @@ const TEXTES = {
     armure: ['よろいが　二つ、はこの　上に　かざって　ある。', 'うるしを　ぬった　いたを、青や　赤の　ひもで　つないで　ある。金の　くわがたの　ついた　かぶと。', 'へいわな　ときは　よろいを　はこに　しまい、いくさの　ときは　はこごと　もって　いったんだ。'],
     aigrette: ['ほっそりした　白い　白鷺が、草の　中を　ゆっくり　歩いて　いる。', 'この　「白鷺」が、お城の　名前の　もとに　なったんだ！'],
     libellule: ['赤とんぼが　草の　上を　とんで　いく。'],
+    chaya: ['いらっしゃい！　階段を　たくさん　のぼって　つかれたでしょう。　ひと休み　して　いきなよ。', 'うちの　名物は　姫路おでん。　しょうが　じょうゆで　食べるんだ！', '食べて　みる？'],
+    chayaNon: ['いいよ！　だんごも　抹茶ソフトも　あるからね。　また　おいで！'],
+    chayaNuit: ['今日は　もう　店じまい。　おでんの　なべも　冷めて　きたよ。', 'また　明日の　朝　おいで！'],
+    oden: ['ほかほかの　くしを　もらった。　たまごと　だいこんと　こんにゃく。', 'しょうが　じょうゆを　つけて……　あつくて、やさしくて、ぴりっと　する。　おいしい！'],
+    odenCompagnon: {
+      kon: ['「朝から　にこんだ　たまご……　おだしの　味が　します！」'],
+      pon: ['「もう　一本？　もう　一本！　ポンポン、たぬきの　おなかは　まだ　入るよ！」'],
+      chapu: ['「おんせんみたいに　ゆげが　出てる！　あついから　気をつけて！」'],
+      gao: ['「しょうがで　目が　さめる！　ガオ！」'],
+      fuwa: ['「ふわ……　おだしが　海みたいに　やさしい。」'],
+      saya: ['「だいこんは　冬の　つめたい　土で　そだったの……　とても　やわらかい。」'],
+    },
+    gourmande: ['ひと休み　中。　天守を　見ながら　だんごと　お茶……　しあわせ！', 'おでん　食べた？　ここでは　しょうがで　食べるの。　姫路の　名物なんだよ！'],
+    gourmandeNuit: ['ライトアップを　見に　来たけど……　茶屋は　しまってた。　だんご、残念！'],
+    carteChaya: ['「お品書き」。', '姫路おでん　400円、だんご　200円、抹茶ソフト　350円。　お茶は　サービス！'],
+    carteChayaNuit: ['メニューの　下に　チョークで　「本日　閉店。　また　明日！」'],
+    glace: ['大きな　プラスチックの　ソフトクリーム。　抹茶ソフトの　かんばんだ。', '日本の　観光地には　たいてい　ご当地ソフトが　ある。　ここは　抹茶味！'],
   },
 };

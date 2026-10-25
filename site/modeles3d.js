@@ -268,7 +268,8 @@ export function ateliers(THREE, repeindre = null, matieres = null, sortes = null
        * rangs de deux teintes. o : creux (exposant du profil), releve (hauteur des coins relevés), position…
        */
       toitJapon(largeur, profondeur, h, ratioHaut, o = {}) {
-        const { creux = 1.7, releve = 0.05, epaisseur = 0.022, rangs = 14, tuile = C.tuile, tuile2 = C.tuileClaire, bord = C.faitage } = o;
+        // (avant : la couleur du bandeau du bord, entre le dessus et le dessous ; celle du dessous par défaut)
+        const { creux = 1.7, releve = 0.05, epaisseur = 0.022, rangs = 14, tuile = C.tuile, tuile2 = C.tuileClaire, bord = C.faitage, avant = bord } = o;
         const L = largeur / 2, P = profondeur / 2;
         const coins = [[-L, P], [L, P], [L, -P], [-L, -P]];
         const tri = [], couleurs = [];
@@ -299,13 +300,15 @@ export function ateliers(THREE, repeindre = null, matieres = null, sortes = null
             const A = point(k, i / nu, 0), B = point(k, (i + 1) / nu, 0);
             const a2 = point(k, i / nu, 0, true), b2 = point(k, (i + 1) / nu, 0, true);
             tri.push(a2, b2, B, a2, B, A);
-            couleurs.push(bord, bord);
+            couleurs.push(avant, avant);
           }
         }
         if (ratioHaut > 0) {
-          const T = coins.map(([x, z]) => [x * ratioHaut, h, z * ratioHaut]);
-          tri.push(T[0], T[1], T[2], T[0], T[2], T[3]);
-          couleurs.push(tuile, tuile);
+          // (le dessus, et sous lui le dessous du haut, tourné vers le bas : vu d'en dessous, de près, on voyait le ciel
+          // par le haut du toit ; 2026-10-25)
+          const T = coins.map(([x, z]) => [x * ratioHaut, h, z * ratioHaut]), Td = T.map(([x, y, z]) => [x, y - epaisseur, z]);
+          tri.push(T[0], T[1], T[2], T[0], T[2], T[3], Td[0], Td[2], Td[1], Td[0], Td[3], Td[2]);
+          couleurs.push(tuile, tuile, bord, bord);
         }
         const g = new THREE.BufferGeometry();
         g.setAttribute('position', new THREE.Float32BufferAttribute(tri.flat(), 3));

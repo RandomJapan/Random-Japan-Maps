@@ -152,15 +152,16 @@ export const VENT_GLSL = `
   }`;
 
 /**
- * Les houppiers des arbres à feuilles caduques (sortes 21 à 23 : modeles3d.js, arbre(…, { caduc })) tombent : un
- * triangle sur six à l'automne, tous l'hiver (chacun à son tirage : la saison qui change les fait tomber peu à peu) ;
- * on voit alors les branches, dessous. Un triangle tombé se replie en un point (rien n'est dessiné), son trait et son
- * ombre aussi. Il faut l'uniforme saisons.
+ * Les houppiers des arbres à feuilles caduques (sortes 21 à 23 : modeles3d.js, arbre(…, { caduc })) tombent l'hiver
+ * (chacun à son tirage : la saison qui change les fait tomber peu à peu) ; on voit alors les branches, dessous. Un
+ * triangle tombé se replie en un point (rien n'est dessiné), son trait et son ombre aussi. Il faut l'uniforme saisons.
+ * (Jusqu'au 2026-10-25, un triangle sur six tombait aussi à l'automne : les touffes, creuses, montraient des trous ; les
+ * feuilles tombées sont maintenant au sol, solSaison.)
  */
 export const CHUTE_GLSL = `
   bool tombee(vec3 saison) {
     if (saison.x < 20.5) return false;
-    return saison.z < saisons.z * 1.02 || saison.z < saisons.y * 0.17;
+    return saison.z < saisons.z * 1.02;
   }`;
 
 /**
@@ -269,7 +270,11 @@ export const SAISONS_GLSL = `
     vec3 tendre = c * vec3(1.0, 1.12, 0.82) + vec3(0.04, 0.06, 0.0);
     vec3 pr = s == 1.0 ? (arbre < 0.5 ? rose : tendre) : s == 3.0 ? rose : s == 2.0 ? vec3(0.5, 0.74, 0.3) * (0.7 + 0.6 * l) : tendre;
     vec3 teinteA = arbre < 0.33 ? vec3(0.95, 0.7, 0.22) : arbre < 0.66 ? vec3(0.92, 0.45, 0.16) : vec3(0.8, 0.24, 0.14);
-    vec3 au = s == 1.0 ? teinteA * (0.62 + 0.75 * l) * (0.92 + 0.16 * tirage) : s == 2.0 ? vec3(0.84, 0.17, 0.12) * (0.65 + 0.7 * l) : s == 3.0 ? vec3(0.9, 0.5, 0.25) * (0.65 + 0.7 * l) : c * vec3(1.18, 0.98, 0.55);
+    // (les cerisiers, l'automne : rouges, orangés ou dorés, un arbre d'une teinte, quelques feuilles plus rouges ; 2026-10-25,
+    // ils étaient tous d'un même brun clair)
+    vec3 cerisierA = arbre < 0.4 ? vec3(0.86, 0.3, 0.16) : arbre < 0.75 ? vec3(0.93, 0.5, 0.18) : vec3(0.95, 0.7, 0.26);
+    cerisierA = mix(cerisierA, vec3(0.8, 0.22, 0.13), step(0.8, tirage) * 0.55);
+    vec3 au = s == 1.0 ? teinteA * (0.62 + 0.75 * l) * (0.92 + 0.16 * tirage) : s == 2.0 ? vec3(0.84, 0.17, 0.12) * (0.65 + 0.7 * l) : s == 3.0 ? cerisierA * (0.66 + 0.7 * l) * (0.94 + 0.12 * tirage) : c * vec3(1.18, 0.98, 0.55);
     vec3 hi = s == 5.0 ? c * vec3(1.05, 0.95, 0.7) : mix(c, vec3(0.55, 0.48, 0.42) * (0.6 + 0.6 * l), 0.7);
     return c + (pr - c) * saisons.x + (au - c) * saisons.y + (hi - c) * saisons.z;
   }
@@ -584,20 +589,26 @@ const SOL_SAISON_GLSL = `
     if (couche != ${MATIERES.estran}.0 && couche != ${MATIERES.sable}.0 && saisons.x + saisons.y > 0.001) {
       vec4 k = lireCanopee(p.xz);
       if (k.r > 0.02) {
-        float h, h2;
+        float h, h2, h3;
+        // (2026-10-25, « au printemps des feuilles de cerisier au sol, en automne des feuilles d'automne par terre » :
+        // plus grandes, plus serrées, et sous les arbres le sol prend un peu leur teinte, qu'on voit de loin)
         if (saisons.x > 0.001 && k.g > 0.02) {
-          float v = max(feuilleSol(p.xz, 0.095, k.r * k.g * 0.9, 2.0, h), feuilleSol(p.xz + 0.031, 0.07, k.r * k.g * 0.6, 2.0, h2));
-          pr = mix(pr, mix(vec3(0.98, 0.62, 0.74), vec3(1.0, 0.82, 0.88), h), v);
+          float v = max(max(feuilleSol(p.xz, 0.13, k.r * k.g, 2.0, h), feuilleSol(p.xz + 0.031, 0.095, k.r * k.g * 0.8, 2.0, h2)), feuilleSol(p.xz + 0.071, 0.07, k.r * k.g * 0.6, 2.0, h3));
+          pr = mix(pr, pr * vec3(1.06, 0.94, 0.98) + vec3(0.07, 0.02, 0.05), k.r * k.g * 0.45);
+          pr = mix(pr, mix(vec3(0.98, 0.62, 0.74), vec3(1.0, 0.84, 0.89), h), v);
         }
         if (saisons.y > 0.001) {
           float erable = step(0.72, k.b);
-          float v1 = feuilleSol(p.xz, 0.15, k.r * 0.75, erable, h);
-          float v2 = feuilleSol(p.xz + 0.057, 0.11, k.r * 0.55, erable, h2);
-          float hh = v1 > v2 ? h : h2;
+          float v1 = feuilleSol(p.xz, 0.21, k.r * 0.85, erable, h);
+          float v2 = feuilleSol(p.xz + 0.057, 0.15, k.r * 0.7, erable, h2);
+          float v3 = feuilleSol(p.xz + 0.113, 0.11, k.r * 0.5, erable, h3);
+          float hh = v1 > v2 ? (v1 > v3 ? h : h3) : (v2 > v3 ? h2 : h3);
           float t = clamp(k.b + (hh - 0.5) * 0.55, 0.0, 1.0);
           vec3 f = t < 0.5 ? mix(vec3(0.95, 0.74, 0.2), vec3(0.92, 0.46, 0.15), t * 2.0) : mix(vec3(0.92, 0.46, 0.15), vec3(0.78, 0.17, 0.12), t * 2.0 - 1.0);
           if (hh > 0.86) f = vec3(0.6, 0.38, 0.22);
-          au = mix(au, f * (0.9 + 0.2 * hh), max(v1, v2));
+          vec3 litiere = (k.b < 0.5 ? mix(vec3(0.8, 0.6, 0.22), vec3(0.78, 0.42, 0.16), k.b * 2.0) : mix(vec3(0.78, 0.42, 0.16), vec3(0.66, 0.2, 0.12), k.b * 2.0 - 1.0)) * (0.85 + 0.25 * bruitLisse(p.xz * 1.3));
+          au = mix(au, litiere, k.r * 0.42);
+          au = mix(au, f * (0.9 + 0.2 * hh), max(max(v1, v2), v3));
         }
       }
     }

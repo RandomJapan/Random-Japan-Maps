@@ -1661,6 +1661,7 @@ function ouvrirMenu() {
   const T = t('tresors');
   const choix = (cle, valeurs, actuel) => `<div class="menu-ligne"><span>${t(cle)}</span><div>${valeurs.map(([v, nom]) => `<button type="button" data-${cle.toLowerCase()}="${v}" class="${v === actuel ? 'actif' : ''}">${nom}</button>`).join('')}</div></div>`;
   $('.menu').innerHTML = `
+    <div class="menu-tete"><b>${t('menu')}</b><button type="button" class="fermer" aria-label="${t('fermer')}">×</button></div>
     <button type="button" class="menu-carnet">${t('carnet')} <small>${$('.carnet-n').textContent}</small></button>
     <button type="button" class="menu-tenue">${t('tenue').titre} <small>${PIECES.filter((p) => p.lieu && gagnee(p, totalTampons)).length}/${PIECES.filter((p) => p.lieu).length}</small></button>
     ${kobanTrouves() > 0 ? `<p class="menu-koban">${dessinKoban(22, 'menu')}<span>${T.menuKoban}</span><b>${koban()}</b></p>` : ''}
@@ -1679,6 +1680,7 @@ function ouvrirMenu() {
 $('.menu').addEventListener('click', (e) => {
   const b = e.target.closest('button');
   if (!b) return;
+  if (b.classList.contains('fermer')) { fermerTout(); return; }
   if (b.classList.contains('menu-carnet')) { fermerTout(); ouvrirCarnet(); return; }
   if (b.classList.contains('menu-tenue')) { fermerTout(); ouvrirGarderobe(); return; }
   const d = b.dataset;
