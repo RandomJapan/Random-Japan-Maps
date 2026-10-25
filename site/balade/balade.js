@@ -129,14 +129,17 @@ function construire() {
   // le vent du lieu : d'où il pousse, sa force
   mats.vent.ventDir.value.set(...(lieu.vent?.dir || [0.6, 0.8])).normalize();
   mats.vent.ventForce.value = lieu.vent?.force ?? 1;
-  // (decor : leurs corps, pour savoir ce qui cacherait le voyageur à une caméra posée devant lui : cadrerDeFace)
-  const decor = [];
+  // (decor : leurs corps, pour savoir ce qui cacherait le voyageur à une caméra posée devant lui : cadrerDeFace ; un
+  // décor du dedans, o.dedans : [x0, x1, z0, z1], n'est dessiné que la caméra dans ce rectangle : on ne le voit pas de
+  // dehors, le dedans d'un donjon)
+  const decor = [], decorsDedans = [];
   for (const o of lieu.objets) {
     const m = maillage(o.fin, o.ombre, o.trait !== false);
     m.position.set(o.x, o.y, o.z);
     m.rotation.y = o.ry;
     groupe.add(m);
     decor.push(m.children[0]);
+    if (o.dedans) decorsDedans.push([m, o.dedans]);
   }
   // les textes des plaques et des enseignes (le nom du tunnel…)
   if (lieu.etiquettes?.length && params.get('etiquettes') !== '0') groupe.add(creerEtiquettes(THREE, lieu.etiquettes, { anisotropie: Math.min(8, rendu.capabilities.getMaxAnisotropy()) }));
@@ -253,7 +256,7 @@ function construire() {
   M = {
     carte, effets, lueurs, betes, mouilleJoueur, mouilleKon, feuillage: densiteFeuillage(lieu), bruitage: creerBruitage({ oiseaux: lieu.oiseaux || [], ambiances: lieu.ambiances || [], betes: [...(lieu.betes?.chats?.length ? ['miaou', 'ronron'] : []), ...(lieu.betes?.chiens?.length ? ['ouaf'] : [])], extras: lieu.sons || [] }), musique: creerMusique(lieu.id), focale: 800,
     marchand, feux, chutes, sac: new Set(), trace: null, saison: 'ete', flash: { v: 0, c: new THREE.Color() }, hemiBase: { intensite: 0, couleur: new THREE.Color() },
-    style, ctx, mats, lieu, groupe, decor, voyageurs, compagnons, kon: null, cadre: null, passants, daims, mouettes, eau, courants, ciel, soleil, hemi, etoiles, vapeurs, rais, touffes, finale: passeFinale(THREE, style, { echantillons: params.get('aa') === '0' ? 0 : 4, flou: params.get('flou') !== '0' }), cible: null, sauvage: null, nuit: { v: 0, cible: 0, fin: null } };
+    style, ctx, mats, lieu, groupe, decor, decorsDedans, voyageurs, compagnons, kon: null, cadre: null, passants, daims, mouettes, eau, courants, ciel, soleil, hemi, etoiles, vapeurs, rais, touffes, finale: passeFinale(THREE, style, { echantillons: params.get('aa') === '0' ? 0 : 4, flou: params.get('flou') !== '0' }), cible: null, sauvage: null, nuit: { v: 0, cible: 0, fin: null } };
   choisirVoyageur(sorte || 'garcon');
   choisirCompagnon(espece || 'kon');
   for (const s of ['garcon', 'fille']) habiller(s);
@@ -2932,6 +2935,7 @@ function dessiner(dt, temps) {
     p.perso.objet.visible = d > 1.1 && !(dehors && d > 14);
     if (loin !== p.loin) { p.loin = loin; for (const t of p.traits) t.visible = !loin; }
   }
+  for (const [m, [x0, x1, z0, z1]] of M.decorsDedans) m.visible = camera.position.x > x0 && camera.position.x < x1 && camera.position.z > z0 && camera.position.z < z1;
 
   // le soleil suit le joueur (les ombres se calculent autour de lui), par pas d'un texel de la carte d'ombres :
   // sinon, à chaque pas du joueur, les bords des ombres glissent d'une fraction de texel et scintillent
