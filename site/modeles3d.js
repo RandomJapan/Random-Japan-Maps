@@ -595,9 +595,10 @@ export function ateliers(THREE, repeindre = null, matieres = null, sortes = null
           touffes.push([Math.sin(t) * 0.3 * L, 0.52, Math.cos(t) * 0.3 * L, 0.13]);
         }
         const T = (o.loin ? [touffes[0], touffes[1], touffes[3], touffes[5]] : touffes).map(([dx, dy, dz, r]) => [x + penche[0] + dx * h, y0 + dy * h, z + penche[1] + dz * h, r * h]);
-        // les maîtresses branches : de la fourche vers trois des touffes de la couronne
-        for (const k of [1, 3, 4]) {
-          const [tx, ty, tz, r] = T[Math.min(k, T.length - 1)];
+        // les maîtresses branches : de la fourche vers trois des touffes de la couronne (au loin, il n'y en a que quatre : les
+        // trois dernières ; avant le 2026-10-25, la troisième branche y était posée deux fois)
+        for (const k of o.loin ? [1, 2, 3] : [1, 3, 4]) {
+          const [tx, ty, tz, r] = T[k];
           a.fut(fourche, [tx, ty - r * 0.2, tz], rb * 0.55, rb * 0.3, ct, 5);
         }
         // (les deux petites touffes du bas, moins fines)

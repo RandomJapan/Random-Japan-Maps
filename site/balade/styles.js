@@ -61,6 +61,10 @@ const PALETTE = {
   // sanctuaire
   basalte: '#7c7268', basalteFonce: '#5f5850', basalteClair: '#958a7d', basalteMouille: '#4b4a41', mousseRoche: '#6c8b47', mousseRocheFonce: '#557540',
   emeraude: '#6fd4b4', emeraudeFonce: '#167a6c', boisBrut: '#c9a77c', boisBrutFonce: '#a8875e',
+  // (2026-10-25, la liste du propriétaire) le bronze patiné de la statue de Tajikarao ; l'écorce de cyprès des toits du sanctuaire
+  bronzeStatue: '#6e5e42', bronzeOmbre: '#5a4c36', patine: '#6a9a84', ecorce: '#8a7058', ecorceFonce: '#7a6250',
+  // le champ de thé (le dessus des rangs, plus clair : les jeunes pousses)
+  the: '#3f7d3a', theClair: '#5f9a4a', theFonce: '#356a32',
 };
 const PARCHEMIN = { cielHaut: '#ead9b4', horizon: '#f0ead2', nuage: '#fbf4e2' };
 
@@ -94,6 +98,10 @@ function matieres(P) {
   mettre(M.pierre, 'basalte', 'basalteFonce', 'basalteClair', 'basalteMouille');
   mettre(M.feuillage, 'mousseRoche', 'mousseRocheFonce');
   mettre(M.bois, 'boisBrut', 'boisBrutFonce');
+  // (le bronze : la laque, son reflet net ; l'écorce de cyprès des toits : la paille du chaume, ses fibres)
+  mettre(M.laque, 'bronzeStatue', 'bronzeOmbre', 'patine');
+  mettre(M.chaume, 'ecorce', 'ecorceFonce');
+  mettre(M.feuillage, 'the', 'theClair', 'theFonce');
   return t;
 }
 
