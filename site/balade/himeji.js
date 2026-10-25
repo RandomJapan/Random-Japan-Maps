@@ -77,6 +77,20 @@ const Y_HAUT = ETAGES[4].y0 + 0.15;
 const HAUT = { x0: -ETAGES[4].W / 2 + 0.2, x1: ETAGES[4].W / 2 - 0.2, z0: DONJON.z - ETAGES[4].D / 2 + 0.2, z1: DONJON.z + ETAGES[4].D / 2 - 0.2 };
 const MONTEE = { x: 4.0, z: -58.6 }; // le pied de l'escalier de la salle basse (à côté du poteau de x = 5,5, pas dessus)
 const DESCENTE = { x: 2.6, z: -57.2 }; // la trappe de l'escalier, au dernier étage
+// le deuxième étage (2026-10-25), dans le deuxième étage blanc : son plancher, l'intérieur de ses murs ; la grande pièce du
+// milieu (moya), et tout autour le couloir des guerriers (武者走り) ; ses fenêtres, plus hautes que celles des autres étages
+// (on y voit dehors) ; le pied de l'escalier qui monte, la trappe de celui qui arrive d'en bas (là où l'on descend)
+const ETAGE2 = ETAGES[1];
+const Y_MILIEU = ETAGE2.y0 + 0.15;
+const MILIEU = { x0: -ETAGE2.W / 2 + 0.2, x1: ETAGE2.W / 2 - 0.2, z0: DONJON.z - ETAGE2.D / 2 + 0.2, z1: DONJON.z + ETAGE2.D / 2 - 0.2 };
+const MOYA = { x0: -5.6, x1: 5.6, z0: DONJON.z - 3.9, z1: DONJON.z + 3.9 };
+const Y_FEN2 = ETAGE2.y0 + 1.66, H_FEN2 = 0.9;
+const MONTEE2 = { x: 4.4, z: -55.0 };
+const TRAPPE2 = { x: -4.0, z: -54.3 };
+/** Les fenêtres d'un mur long de L (fenetres(), un tous les 2,2 m) : leurs milieux, du centre du mur. */
+const centresFenetres = (L) => { const k = Math.max(1, Math.floor(L * (1 / 2.2))); return Array.from({ length: k }, (_, i) => -L / 2 + ((i + 0.5) * L) / k); };
+/** L'enduit des murs, dedans (pas le plâtre du dehors, qui s'illumine la nuit). */
+const ENDUIT = '#ebe3d4';
 // le petit donjon (乾小天守), au nord-ouest du grand, et le couloir qui les relie
 const PETIT = { x: -21, z: -62, W: 10, D: 8.4, h: 4.5 };
 // le marchand, sous les cerisiers à l'ouest de l'esplanade
@@ -172,7 +186,7 @@ export function construire(ctx) {
   const { THREE, atelier, P, peinture } = ctx;
   const objets = [];
   const monde = creerMonde({ terrain, cadre: dansLeCadre, profond: null, pente: 0.85 });
-  const poser = (fin, x, z, o = {}) => objets.push({ fin, x, z, y: o.y ?? terrain(x, z), ry: o.ry || 0, ombre: o.ombre !== false, trait: o.trait !== false, dedans: o.dedans });
+  const poser = (fin, x, z, o = {}) => objets.push({ fin, x, z, y: o.y ?? terrain(x, z), ry: o.ry || 0, ombre: o.ombre !== false, trait: o.trait !== false, dedans: o.dedans, avant: o.avant });
   /** L'angle qui tourne vers (vx, vz) le devant (+z) d'un objet posé en (x, z). */
   const vers = (x, z, vx, vz) => Math.atan2(vx - x, vz - z);
   const bancs = [], lumieres = [], animes = [];
@@ -606,7 +620,7 @@ export function construire(ctx) {
   /** Les fenêtres d'un bâtiment de plâtre (W × D, centré en x, z) : sur ses quatre faces, à la hauteur y, des panneaux
    * sombres et leurs barreaux blancs (renji-mado) ; n : combien par mètre de face ; cadre : un cadre de plâtre en relief
    * autour, son appui, et six barreaux (le donjon, 2026-10-25). */
-  function fenetres(a, x, z, y, W, D, { par = 1 / 2.6, l = 0.9, h = 0.62, cadre = false } = {}) {
+  function fenetres(a, x, z, y, W, D, { par = 1 / 2.6, l = 0.9, h = 0.62, cadre = false, ouvert = false } = {}) {
     const nb = cadre ? 6 : 4;
     for (let c = 0; c < 4; c++) {
       const ry = (c * PI) / 2, long = c % 2 ? D : W, prof = c % 2 ? W : D, R = repere(x, z, ry), k = Math.max(1, Math.floor(long * par));
@@ -615,10 +629,14 @@ export function construire(ctx) {
         // (avec un cadre, la fenêtre est posée sur l'entourage en relief)
         const e = cadre ? 0.07 : 0;
         if (cadre) {
-          a.boite(l + 0.16, h + 0.16, 0.07, P.platre, R(lx, y, prof / 2 + 0.035, { trait: false }))
-            .boite(l + 0.3, 0.05, 0.13, P.platre, R(lx, y - h / 2 - 0.105, prof / 2 + 0.065, { trait: false }));
+          // (ouvert, le deuxième étage où l'on entre : l'entourage est un cadre, et le milieu un vrai trou dans le mur)
+          if (ouvert) {
+            for (const sy of [-1, 1]) a.boite(l + 0.16, 0.08, 0.07, P.platre, R(lx, y + sy * (h / 2 + 0.04), prof / 2 + 0.035, { trait: false }));
+            for (const sx of [-1, 1]) a.boite(0.08, h, 0.07, P.platre, R(lx + sx * (l / 2 + 0.04), y, prof / 2 + 0.035, { trait: false }));
+          } else a.boite(l + 0.16, h + 0.16, 0.07, P.platre, R(lx, y, prof / 2 + 0.035, { trait: false }));
+          a.boite(l + 0.3, 0.05, 0.13, P.platre, R(lx, y - h / 2 - 0.105, prof / 2 + 0.065, { trait: false }));
         }
-        a.boite(l, h, cadre ? 0.012 : 0.04, P.noir, R(lx, y, prof / 2 + (cadre ? e + 0.006 : 0.02), { trait: false }));
+        if (!ouvert) a.boite(l, h, cadre ? 0.012 : 0.04, P.noir, R(lx, y, prof / 2 + (cadre ? e + 0.006 : 0.02), { trait: false }));
         for (let b = 0; b < nb; b++) a.boite(0.05, h - 0.04, 0.03, P.platre, R(lx - l / 2 + (b + 0.5) * (l / nb), y, prof / 2 + e + 0.027, { trait: false }));
       }
     }
@@ -946,8 +964,10 @@ export function construire(ctx) {
     return a;
   }
   {
-    // (ad : le décor du dedans, ajouté le 2026-10-25 : dessiné seulement la caméra dans le donjon ou à moins de 9 m de lui)
-    const a = atelier(), ad = atelier(), X = DONJON.x, Z = DONJON.z, yT = T3.h;
+    // (ad : le décor du dedans, ajouté le 2026-10-25 : dessiné seulement la caméra dans le donjon ou à moins de 9 m de lui,
+    // et à la hauteur de son étage : ad la salle basse, adM le deuxième étage, adH le dernier ; am : la coque du deuxième
+    // étage, ses murs, son plancher, son plafond, toujours dessinée, mais en premier quand la caméra y est)
+    const a = atelier(), ad = atelier(), adM = atelier(), adH = atelier(), am = atelier(), X = DONJON.x, Z = DONJON.z, yT = T3.h;
     // le socle de pierre : ses quatre flancs (ouverts au sud pour la porte : au-dessus d'elle, le linteau de pierre), son
     // dessus ; le couloir d'entrée, ses murs et son plafond, la porte de bois bardée de fer, grande ouverte
     const S = { x0: X - DONJON.W / 2 + DONJON.retrait, x1: X + DONJON.W / 2 - DONJON.retrait, z0: Z - DONJON.D / 2 + DONJON.retrait, z1: Z + DONJON.D / 2 - DONJON.retrait, h: Y_SOCLE, mur: DONJON.h };
@@ -1110,6 +1130,37 @@ export function construire(ctx) {
       monde.toit(x0 - 0.5, x1 + 0.5, z0 - 0.5, z1 + 0.5, SALLE.plafond, Y_SOCLE + 0.1);
     }
 
+    // (un étage où l'on entre, le deuxième : ses quatre murs en deux couches, le plâtre blanc dehors, l'enduit dedans,
+    // chacune d'une pièce percée de vraies fenêtres, là où fenetres() les encadre ; son plancher de planches, son plafond.
+    // Un bloc plein, avant : on ne voyait ni dehors ni dedans)
+    const etageOuvert = (E, yMur) => {
+      const w2 = E.W / 2, d2 = E.D / 2, f0 = Y_FEN2 - H_FEN2 / 2, f1 = Y_FEN2 + H_FEN2 / 2;
+      const couche = (long, ep, c, L, pose, y0, y1, o = {}) => {
+        const V = (u, v) => new THREE.Vector2(u, v), f = new THREE.Shape([V(-long / 2, y0), V(long / 2, y0), V(long / 2, y1), V(-long / 2, y1)]);
+        for (const cf of centresFenetres(L)) f.holes.push(new THREE.Path([V(cf - 0.45, f0), V(cf - 0.45, f1), V(cf + 0.45, f1), V(cf + 0.45, f0)]));
+        // (sans écart de peinture d'un triangle à l'autre : les longs triangles des trous faisaient des taches)
+        am.piece(new THREE.ExtrudeGeometry(f, { depth: ep, bevelEnabled: false }), c, { nuance: 0, ...pose, ...o });
+      };
+      for (const s of [-1, 1]) {
+        couche(E.W, 0.12, P.platre, E.W, { x: X, z: Z + s * d2 - (s > 0 ? 0.12 : 0) }, E.y0 - 0.1, yMur);
+        couche(E.W - 0.24, 0.08, ENDUIT, E.W, { x: X, z: Z + s * (d2 - 0.12) - (s > 0 ? 0.08 : 0) }, Y_MILIEU - 0.1, E.y1, { trait: false });
+        couche(E.D - 0.24, 0.12, P.platre, E.D, { x: X + s * w2 - (s > 0 ? 0.12 : 0), z: Z, ry: PI / 2 }, E.y0 - 0.1, yMur);
+        couche(E.D - 0.4, 0.08, ENDUIT, E.D, { x: X + s * (w2 - 0.12) - (s > 0 ? 0.08 : 0), z: Z, ry: PI / 2 }, Y_MILIEU - 0.1, E.y1, { trait: false });
+      }
+      const nP = Math.round((E.D - 0.4) / 0.3), lP = (E.D - 0.4) / nP;
+      am.piece(new THREE.BoxGeometry(E.W - 0.4, 0.1, E.D - 0.4, 1, 1, nP), P.bois2, { x: X, y: Y_MILIEU - 0.05, z: Z, teinte: (x, yy, z) => (Math.floor((z - Z + (E.D - 0.4) / 2) / lP) % 2 ? P.bois2 : P.bois) })
+        .boite(E.W - 0.4, 0.12, E.D - 0.4, '#5a4a3c', { x: X, y: E.y1 - 0.06, z: Z });
+    };
+    /** Un bandeau tout autour d'un étage (W × D, dépassant de dep, haut de h) : une boîte pleine, ou quatre bandes (enBandes :
+     * l'étage où l'on entre, la boîte traversait la pièce). */
+    const ceinture = (W, D, dep, h, c, y, enBandes, o = {}) => {
+      if (!enBandes) { a.boite(W + 2 * dep, h, D + 2 * dep, c, { x: X, y, z: Z, ...o }); return; }
+      for (const s of [-1, 1]) {
+        a.boite(W + 2 * dep, h, dep + 0.03, c, { x: X, y, z: Z + s * (D / 2 + dep / 2 - 0.015), ...o })
+          .boite(dep + 0.03, h, D - 0.06, c, { x: X + s * (W / 2 + dep / 2 - 0.015), y, z: Z, ...o });
+      }
+    };
+
     // les cinq étages blancs, de plus en plus petits ; leurs fenêtres ; leurs toits gris aux bords blancs, les pignons
     // triangulaires (chidori-hafu), au premier étage un pignon courbe (kara-hafu) au-dessus de l'entrée ; le dernier étage,
     // ouvert (on y monte), son grand toit à pignons et ses deux shachihoko
@@ -1118,17 +1169,22 @@ export function construire(ctx) {
       if (i < 4) {
         const lt = E.W + 3.0, ratio = (suivant.W + 0.3) / lt, dt = (suivant.D + 0.3) / ratio;
         const yMur = E.y1 + sousToit(lt, dt, E.toit, ratio, 1.5, 0.16, E.W, E.D);
-        a.boite(E.W, yMur - E.y0 + 0.1, E.D, P.platre, { x: X, y: (E.y0 - 0.1 + yMur) / 2, z: Z });
-        fenetres(a, X, Z, E.y0 + E.h * 0.56, E.W, E.D, { par: 1 / 2.2, cadre: true });
+        // (le deuxième étage, où l'on entre : des murs percés de vraies fenêtres, un peu plus grandes ; les bandeaux en
+        // quatre bandes)
+        const ouvert = i === 1;
+        if (ouvert) etageOuvert(E, yMur);
+        else a.boite(E.W, yMur - E.y0 + 0.1, E.D, P.platre, { x: X, y: (E.y0 - 0.1 + yMur) / 2, z: Z });
+        fenetres(a, X, Z, ouvert ? Y_FEN2 : E.y0 + E.h * 0.56, E.W, E.D, { par: 1 / 2.2, cadre: true, ...(ouvert ? { h: H_FEN2, ouvert } : {}) });
         // (2026-10-25) un bandeau de plâtre en relief tout autour, au-dessus des fenêtres (nageshi)
-        a.boite(E.W + 0.1, 0.1, E.D + 0.1, P.platre, { x: X, y: E.y0 + E.h * 0.56 + 0.47, z: Z, trait: false });
+        ceinture(E.W, E.D, 0.05, 0.1, P.platre, E.y0 + E.h * 0.56 + 0.47, ouvert, { trait: false });
         // le bas de chaque étage : une bande de bois sombre
-        a.boite(E.W + 0.04, 0.22, E.D + 0.04, '#3e3830', { x: X, y: E.y0 + 0.11, z: Z });
+        ceinture(E.W, E.D, 0.02, 0.22, '#3e3830', E.y0 + 0.11, ouvert);
         toitH(a, lt, dt, E.toit, ratio, { x: X, y: E.y1, z: Z, releve: 0.3, rangs: Math.round(lt * 1.4), epaisseur: 0.16, creux: 1.5, ...TUILES });
         // les pignons : au sud et au nord aux étages pairs, à l'est et à l'ouest aux autres
         // (sous le dernier étage, où l'on entre, les pignons s'arrêtent à son mur : profonds de 2,4 m, ils entraient dans la
         // pièce ; sous les autres, leur bout est caché dans l'étage du dessus)
-        const w = 3.8 - i * 0.45, hh = E.toit * 1.3, prof = i === 3 ? E.W / 2 + 0.55 - suivant.W / 2 : 2.4;
+        // (sous le deuxième étage aussi, depuis qu'on y entre ; 2026-10-25)
+        const w = 3.8 - i * 0.45, hh = E.toit * 1.3, prof = i === 3 ? E.W / 2 + 0.55 - suivant.W / 2 : i === 0 ? E.D / 2 + 0.55 - suivant.D / 2 + 0.08 : 2.4;
         for (const s of [-1, 1]) {
           // (au premier toit, au sud, au-dessus de l'entrée : un pignon courbe, kara-hafu)
           if (i === 0 && s > 0) karahafu(a, X, E.y1 + 0.16, Z + E.D / 2 + 1.25, 4.6, 1.05, 2.6);
@@ -1142,7 +1198,7 @@ export function construire(ctx) {
         const autres = [{ ew: 3.0, w: 2.8, h: 1.15 }, { ns: true, w: 4.4, h: 1.3 }, { ew: 2.0, w: 2.2, h: 1.15 }, { ns: true, w: 2.4, h: 1.15 }][i];
         for (const s of [-1, 1]) {
           if (autres.ns) hafu(a, X, Z + s * (E.D / 2 + 0.55), E.y1 + 0.18, s > 0 ? 0 : PI, autres.w, E.toit * autres.h, i === 3 ? E.D / 2 + 0.55 - suivant.D / 2 : 2.4);
-          else for (const dz of [-autres.ew, autres.ew]) hafu(a, X + s * (E.W / 2 + 0.55), Z + dz, E.y1 + 0.18, s > 0 ? PI / 2 : -PI / 2, autres.w, E.toit * autres.h, 2.4);
+          else for (const dz of [-autres.ew, autres.ew]) hafu(a, X + s * (E.W / 2 + 0.55), Z + dz, E.y1 + 0.18, s > 0 ? PI / 2 : -PI / 2, autres.w, E.toit * autres.h, i === 0 ? E.W / 2 + 0.55 - suivant.W / 2 + 0.08 : 2.4);
         }
       } else {
         // le dernier étage : ses murs ouverts de fenêtres (on voit dedans, on voit dehors), leurs barreaux de bois ; le
@@ -1173,10 +1229,10 @@ export function construire(ctx) {
         // (2026-10-25) des poteaux de bois sombre aux coins et entre les fenêtres de l'est et de l'ouest, la poutre qui court
         // au-dessus des fenêtres, deux poutres de plus au plafond
         const PO = '#4a3a2e', xi = w2 - e - 0.09, zi = d2 - e - 0.09;
-        for (const px of [-1, 1]) for (const pz of [-1, 1]) ad.boite(0.18, E.h - 0.12, 0.18, PO, { x: X + px * xi, y: y0 + (E.h - 0.12) / 2, z: Z + pz * zi });
-        for (const px of [-1, 1]) for (const pz of [-1.03, 1.03]) ad.boite(0.16, E.h - 0.12, 0.14, PO, { x: X + px * (w2 - e - 0.07), y: y0 + (E.h - 0.12) / 2, z: Z + pz });
+        for (const px of [-1, 1]) for (const pz of [-1, 1]) adH.boite(0.18, E.h - 0.12, 0.18, PO, { x: X + px * xi, y: y0 + (E.h - 0.12) / 2, z: Z + pz * zi });
+        for (const px of [-1, 1]) for (const pz of [-1.03, 1.03]) adH.boite(0.16, E.h - 0.12, 0.14, PO, { x: X + px * (w2 - e - 0.07), y: y0 + (E.h - 0.12) / 2, z: Z + pz });
         for (const s of [-1, 1]) {
-          ad.boite(E.W - 2 * e, 0.1, 0.06, PO, { x: X, y: f1 + 0.12, z: Z + s * (d2 - e - 0.03), trait: false })
+          adH.boite(E.W - 2 * e, 0.1, 0.06, PO, { x: X, y: f1 + 0.12, z: Z + s * (d2 - e - 0.03), trait: false })
             .boite(0.06, 0.1, E.D - 2 * e, PO, { x: X + s * (w2 - e - 0.03), y: f1 + 0.12, z: Z, trait: false })
             .boite(E.W - 2 * e, 0.2, 0.2, '#3a2c22', { x: X, y: y1 - 0.22, z: Z + s * 1.7 });
         }
@@ -1190,46 +1246,46 @@ export function construire(ctx) {
         {
           const HINOKI = '#d8b583', FONCE = '#a8804f', LAQUE = '#2e2420', CUIVRE = '#6f9e8a', CUIVRE2 = '#62917d';
           const yB = yF + 0.34, zC = zA - 0.12, yR = yB + 1.02, rangs = (px) => (Math.floor(px / 0.08 + 100) % 2 ? CUIVRE : CUIVRE2);
-          ad.boite(2.3, 0.34, 1.16, LAQUE, { x: X, y: yF + 0.17, z: zA + 0.05 })
+          adH.boite(2.3, 0.34, 1.16, LAQUE, { x: X, y: yF + 0.17, z: zA + 0.05 })
             .boite(2.3, 0.04, 0.02, P.or, { x: X, y: yB - 0.03, z: zA + 0.64, trait: false })
             .boite(1.14, 0.1, 0.91, FONCE, { x: X, y: yB + 0.05, z: zA + 0.015 })
             .boite(1.14, 0.03, 0.2, HINOKI, { x: X, y: yB + 0.115, z: zA + 0.37 })
             .boite(0.86, 0.6, 0.52, HINOKI, { x: X, y: yB + 0.4, z: zC });
-          for (const sx of [-1, 1]) for (const sz of [-1, 1]) ad.boite(0.07, 0.66, 0.07, FONCE, { x: X + sx * 0.43, y: yB + 0.43, z: zC + sz * 0.26 });
+          for (const sx of [-1, 1]) for (const sz of [-1, 1]) adH.boite(0.07, 0.66, 0.07, FONCE, { x: X + sx * 0.43, y: yB + 0.43, z: zC + sz * 0.26 });
           for (const sx of [-1, 1]) {
-            ad.boite(0.36, 0.48, 0.02, LAQUE, { x: X + sx * 0.19, y: yB + 0.38, z: zC + 0.27 });
-            for (const sy of [-1, 1]) ad.boite(0.3, 0.025, 0.012, P.or, { x: X + sx * 0.19, y: yB + 0.38 + sy * 0.2, z: zC + 0.285, trait: false });
-            ad.cylindre(0.025, 0.025, 0.012, 8, P.or, { x: X + sx * 0.05, y: yB + 0.38, z: zC + 0.285, rx: PI / 2, trait: false });
+            adH.boite(0.36, 0.48, 0.02, LAQUE, { x: X + sx * 0.19, y: yB + 0.38, z: zC + 0.27 });
+            for (const sy of [-1, 1]) adH.boite(0.3, 0.025, 0.012, P.or, { x: X + sx * 0.19, y: yB + 0.38 + sy * 0.2, z: zC + 0.285, trait: false });
+            adH.cylindre(0.025, 0.025, 0.012, 8, P.or, { x: X + sx * 0.05, y: yB + 0.38, z: zC + 0.285, rx: PI / 2, trait: false });
           }
-          ad.piece(new THREE.BoxGeometry(1.3, 0.05, 0.75, 8, 1, 1), CUIVRE, { x: X, y: yR - 0.2, z: zC + 0.3, rx: 0.588, teinte: rangs })
+          adH.piece(new THREE.BoxGeometry(1.3, 0.05, 0.75, 8, 1, 1), CUIVRE, { x: X, y: yR - 0.2, z: zC + 0.3, rx: 0.588, teinte: rangs })
             .piece(new THREE.BoxGeometry(1.28, 0.05, 0.55, 8, 1, 1), CUIVRE, { x: X, y: yR - 0.17, z: zC - 0.21, rx: -0.68, teinte: rangs })
             .pignon(0.88, 0.3, 0.52, HINOKI, { x: X, y: yB + 0.7, z: zC })
             .boite(1.36, 0.07, 0.12, CUIVRE2, { x: X, y: yR + 0.01, z: zC });
-          for (const sx of [-1, 1]) for (const sr of [-1, 1]) ad.boite(0.022, 0.34, 0.035, FONCE, { x: X + sx * 0.63, y: yR + 0.06, z: zC, rx: sr * 0.62 });
-          for (const kx of [-0.3, 0, 0.3]) ad.cylindre(0.028, 0.028, 0.17, 7, FONCE, { x: X + kx, y: yR + 0.075, z: zC, rx: PI / 2 });
-          ad.shimenawa([[X - 0.55, yB + 0.66, zC + 0.46], [X, yB + 0.59, zC + 0.5], [X + 0.55, yB + 0.66, zC + 0.46]], 0.02, [[X - 0.27, yB + 0.6, zC + 0.5], [X + 0.27, yB + 0.6, zC + 0.5]]);
-          ad.boite(0.08, 0.1, 0.05, LAQUE, { x: X, y: yB + 0.18, z: zA + 0.38 })
+          for (const sx of [-1, 1]) for (const sr of [-1, 1]) adH.boite(0.022, 0.34, 0.035, FONCE, { x: X + sx * 0.63, y: yR + 0.06, z: zC, rx: sr * 0.62 });
+          for (const kx of [-0.3, 0, 0.3]) adH.cylindre(0.028, 0.028, 0.17, 7, FONCE, { x: X + kx, y: yR + 0.075, z: zC, rx: PI / 2 });
+          adH.shimenawa([[X - 0.55, yB + 0.66, zC + 0.46], [X, yB + 0.59, zC + 0.5], [X + 0.55, yB + 0.66, zC + 0.46]], 0.02, [[X - 0.27, yB + 0.6, zC + 0.5], [X + 0.27, yB + 0.6, zC + 0.5]]);
+          adH.boite(0.08, 0.1, 0.05, LAQUE, { x: X, y: yB + 0.18, z: zA + 0.38 })
             .cylindre(0.08, 0.08, 0.012, 16, P.or, { x: X, y: yB + 0.3, z: zA + 0.38, rx: PI / 2, trait: false });
           for (const sx of [-1, 1]) {
-            ad.cylindre(0.045, 0.04, 0.16, 8, '#f4f2ea', { x: X + sx * 0.9, y: yB + 0.08, z: zA - 0.15 })
+            adH.cylindre(0.045, 0.04, 0.16, 8, '#f4f2ea', { x: X + sx * 0.9, y: yB + 0.08, z: zA - 0.15 })
               .houppe(0.1, '#3f6a3a', { x: X + sx * 0.9, y: yB + 0.27, z: zA - 0.15, sy: 1.3, sorte: 'persistant' }, 0)
               .ovale(0.045, '#f4f2ea', { x: X + sx * 0.88, y: yB + 0.07, z: zA + 0.25, sy: 1.5 }, 8)
               .cylindre(0.016, 0.02, 0.07, 6, '#f4f2ea', { x: X + sx * 0.88, y: yB + 0.17, z: zA + 0.25 })
               .boite(0.04, 0.22, 0.04, '#f4efe2', { x: X + sx * 1.0, y: yB + 0.11, z: zA + 0.5, trait: false })
               .ovale(0.025, '#ffcf6a', { x: X + sx * 1.0, y: yB + 0.25, z: zA + 0.5, sy: 1.6, sorte: 'lampe', trait: false }, 5);
           }
-          ad.boite(0.16, 0.08, 0.13, HINOKI, { x: X + 0.62, y: yB + 0.04, z: zA + 0.52 })
+          adH.boite(0.16, 0.08, 0.13, HINOKI, { x: X + 0.62, y: yB + 0.04, z: zA + 0.52 })
             .dome(0.035, '#f6f4ee', { x: X + 0.6, y: yB + 0.08, z: zA + 0.52 })
             .cone(0.022, 0.05, 6, '#ffffff', { x: X + 0.66, y: yB + 0.105, z: zA + 0.52 });
           // le tronc à offrandes, ses barreaux et ses coins dorés, « 賽銭 » sur le devant
           const zO = zA + 1.02, BOITE = '#5a3e2a';
-          ad.boite(0.74, 0.42, 0.4, BOITE, { x: X, y: yF + 0.21, z: zO });
-          for (let k = 0; k < 5; k++) ad.boite(0.7, 0.025, 0.04, FONCE, { x: X, y: yF + 0.432, z: zO - 0.14 + k * 0.07, trait: false });
-          for (const sx of [-1, 1]) for (const sz of [-1, 1]) ad.boite(0.05, 0.05, 0.05, P.or, { x: X + sx * 0.35, y: yF + 0.405, z: zO + sz * 0.18, trait: false });
+          adH.boite(0.74, 0.42, 0.4, BOITE, { x: X, y: yF + 0.21, z: zO });
+          for (let k = 0; k < 5; k++) adH.boite(0.7, 0.025, 0.04, FONCE, { x: X, y: yF + 0.432, z: zO - 0.14 + k * 0.07, trait: false });
+          for (const sx of [-1, 1]) for (const sz of [-1, 1]) adH.boite(0.05, 0.05, 0.05, P.or, { x: X + sx * 0.35, y: yF + 0.405, z: zO + sz * 0.18, trait: false });
           ecrire({ x: X, y: yF, z: zO }, { texte: '賽銭', fond: BOITE, encre: '#e8d39a', x: 0, y: 0.22, z: 0.205, l: 0.32, h: 0.16 });
           // la cloche (鈴), pendue au plafond, et sa corde tressée de rouge, de blanc et de violet
           const zS = zA + 0.92;
-          ad.baton([X, y1 - 0.12, zS], [X, yF + 2.28, zS], 0.012, '#3a3030', 4, { trait: false })
+          adH.baton([X, y1 - 0.12, zS], [X, yF + 2.28, zS], 0.012, '#3a3030', 4, { trait: false })
             .boule(0.075, P.or, { x: X, y: yF + 2.22, z: zS }, 1)
             .tube([[X, yF + 2.15, zS], [X + 0.01, yF + 1.7, zS + 0.02], [X - 0.01, yF + 1.25, zS + 0.03], [X, yF + 1.0, zS + 0.03]], 0.028, '#c8402c', { cotes: 6, pas: 16, teinte: (px, py) => ['#c8402c', '#f4efe6', '#6a3a8a'][Math.floor(py * 9 + 300) % 3] })
             .cone(0.045, 0.12, 6, '#c8402c', { x: X, y: yF + 0.95, z: zS + 0.03, rx: PI });
@@ -1265,10 +1321,239 @@ export function construire(ctx) {
         for (const s of [-1, 1]) shachi(a, X + s * (lg / 2 + 0.05), yR + 1.2, Z, s, 1.0);
       }
     });
+
+    // le deuxième étage (2026-10-25 : « rajoute la possibilité de monter un étage de plus… tu peux te baser sur cette
+    // vidéo », What's Inside Himeji Castle, de la chaîne Anywhere But Home : son image du couloir des guerriers) : au
+    // milieu, la grande pièce (moya), ses poteaux, ses linteaux et leurs clous de fer, ses cloisons de planches ; tout
+    // autour, le couloir des guerriers (武者走り, musha-bashiri) : le plancher ciré, les râteliers d'armes (武具掛け) entre
+    // les fenêtres et sur les cloisons, les volets des meurtrières (狭間) sous les fenêtres et leurs barreaux de bois, les
+    // poutres courbes (ebi-kōryō) qui descendent vers le mur, le plafond en pente et ses chevrons ; les deux grands piliers ;
+    // l'escalier qui monte, la trappe de celui qui arrive d'en bas ; de vieilles tuiles sur une estrade ; deux lampes
+    {
+      const E = ETAGE2, YM = Y_MILIEU, yP = E.y1 - 0.12, hM = yP - YM, w2 = E.W / 2 - 0.2, d2 = E.D / 2 - 0.2;
+      const PO = '#4a3a2e', FONCE = '#3a2c22', NOIR_F = '#2a2624', BOIS_R = '#5a4636', CLAIR = '#6a5240';
+      const f0 = Y_FEN2 - H_FEN2 / 2, f1 = Y_FEN2 + H_FEN2 / 2, yLin = YM + 1.85, yHautPente = yP - 0.02, yBasPente = YM + 2.41;
+      const yPoutreIn = YM + 2.75, ySabliere = YM + 2.29;
+      const mM = [YM - 0.5, YM + 2.6];
+      // les quatre murs, vus du dedans (leur enduit) : un repère par mur, u le long du mur, d vers la pièce
+      const MURS = [
+        { R: repere(X, Z - d2, 0), long: 2 * w2, L: E.W },
+        { R: repere(X, Z + d2, PI), long: 2 * w2, L: E.W },
+        { R: repere(X + w2, Z, -PI / 2), long: 2 * d2, L: E.D },
+        { R: repere(X - w2, Z, PI / 2), long: 2 * d2, L: E.D },
+      ];
+      // un râtelier d'armes (武具掛け) : une planche debout et ses chevilles de bois de chaque côté ; sur les murs du dehors,
+      // un clou de fer (釘隠し) sur le linteau au-dessus
+      const ratelier = (R, u, clou) => {
+        adM.boite(0.1, 1.5, 0.04, BOIS_R, R(u, YM + 1.07, 0.021));
+        for (let k = 0; k < 6; k++) for (const s of [-1, 1]) adM.boite(0.08, 0.045, 0.05, CLAIR, R(u + s * 0.09, YM + 0.45 + k * 0.24, 0.026, { trait: false }));
+        if (clou) adM.cylindre(0.05, 0.05, 0.025, 6, NOIR_F, R(u, f1 + 0.12, 0.074, { rx: PI / 2, ordre: 'YXZ', trait: false }));
+      };
+      for (const { R, long, L } of MURS) {
+        const cs = centresFenetres(L), ps = cs.slice(1).map((c, k) => (c + cs[k]) / 2);
+        // la plinthe ; le linteau au-dessus des fenêtres ; la sablière, où viennent les poutres courbes
+        // (le linteau, les cadres et les barreaux des fenêtres, et plus bas les pentes du plafond, se voient de dehors, par
+        // les fenêtres : ils sont dans am, toujours dessinée ; sans eux, les fenêtres de cet étage paraissaient éclairées)
+        adM.boite(long, 0.12, 0.03, FONCE, R(0, YM + 0.06, 0.016))
+          .boite(long, 0.14, 0.1, FONCE, R(0, ySabliere, 0.051));
+        am.boite(long, 0.12, 0.06, PO, R(0, f1 + 0.12, 0.031));
+        for (const u of cs) {
+          // la fenêtre, vue du dedans : son cadre de bois, l'appui, les barreaux dans l'épaisseur du mur
+          for (const s of [-1, 1]) am.boite(0.06, H_FEN2, 0.03, PO, R(u + s * 0.48, Y_FEN2, 0.016));
+          am.boite(1.02, 0.06, 0.03, PO, R(u, f1 + 0.03, 0.016))
+            .boite(1.14, 0.04, 0.12, CLAIR, R(u, f0 - 0.02, 0.061));
+          for (let b = 1; b < 5; b++) am.boite(0.035, H_FEN2, 0.035, BOIS_R, R(u - 0.45 + b * 0.18, Y_FEN2, -0.05, { trait: false }));
+          for (const t of [1 / 3, 2 / 3]) am.boite(0.9, 0.03, 0.03, BOIS_R, R(u, f0 + t * H_FEN2, -0.05, { trait: false }));
+          // sous la fenêtre, le volet de bois d'une meurtrière (狭間) : carré, rond ou triangulaire, et son bouton
+          const yV = YM + 0.55, k = ((Math.round(u * 10 + L * 3) % 3) + 3) % 3;
+          if (k === 0) adM.boite(0.22, 0.22, 0.03, BOIS_R, R(u, yV, 0.016));
+          else if (k === 1) adM.cylindre(0.12, 0.12, 0.03, 14, BOIS_R, R(u, yV, 0.016, { rx: PI / 2, ordre: 'YXZ' }));
+          else adM.cylindre(0.15, 0.15, 0.03, 3, BOIS_R, R(u, yV - 0.02, 0.016, { rx: -PI / 2, ordre: 'YXZ' }));
+          adM.boite(0.04, 0.04, 0.03, NOIR_F, R(u, yV, 0.046, { trait: false }));
+        }
+        // entre les fenêtres, les râteliers
+        for (const u of ps) ratelier(R, u, true);
+      }
+      // les poteaux des quatre coins
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) adM.boite(0.18, yBasPente - YM, 0.18, PO, { x: X + sx * (w2 - 0.09), y: (YM + yBasPente) / 2, z: Z + sz * (d2 - 0.09) });
+
+      // la grande pièce : ses poteaux, leur linteau (et ses clous de fer), le petit mur de plâtre au-dessus, la poutre du
+      // haut ; dans certaines travées, des cloisons de planches (et des râteliers côté couloir), dans les autres, le seuil
+      const xs = [-5.6, -5.6 + 11.2 / 6, -5.6 + 22.4 / 6, 0, 5.6 - 22.4 / 6, 5.6 - 11.2 / 6, 5.6].map((v) => X + v);
+      const zs = [-3.9, -1.95, 0, 1.95, 3.9].map((v) => Z + v);
+      const poteaux = [...xs.flatMap((x) => [[x, MOYA.z0], [x, MOYA.z1]]), ...zs.slice(1, -1).flatMap((z) => [[X + MOYA.x0, z], [X + MOYA.x1, z]])];
+      for (const [x, z] of poteaux) {
+        adM.boite(0.2, hM, 0.2, PO, { x, y: YM + hM / 2, z });
+        monde.cercle(x, z, 0.2, ...mM);
+      }
+      const yK = yHautPente - 0.2 - (yLin + 0.12);
+      for (const s of [-1, 1]) {
+        const zc = s < 0 ? MOYA.z0 : MOYA.z1, xc = X + (s < 0 ? MOYA.x0 : MOYA.x1);
+        adM.boite(11.2, 0.12, 0.12, PO, { x: X, y: yLin + 0.06, z: zc })
+          .boite(11.2, yK, 0.08, ENDUIT, { x: X, y: yLin + 0.12 + yK / 2, z: zc, trait: false })
+          .boite(11.36, 0.2, 0.22, FONCE, { x: X, y: yP - 0.1, z: zc })
+          .boite(0.12, 0.12, 7.8, PO, { x: xc, y: yLin + 0.06, z: Z })
+          .boite(0.08, yK, 7.8, ENDUIT, { x: xc, y: yLin + 0.12 + yK / 2, z: Z, trait: false })
+          .boite(0.22, 0.2, 7.6, FONCE, { x: xc, y: yP - 0.1, z: Z });
+      }
+      for (const [x, z] of poteaux) {
+        const surX = Math.abs(z - MOYA.z0) < 0.01 || Math.abs(z - MOYA.z1) < 0.01;
+        for (const s of [-1, 1]) {
+          if (surX) adM.cylindre(0.045, 0.045, 0.02, 6, NOIR_F, { x, y: yLin + 0.06, z: z + s * 0.07, rx: PI / 2, trait: false });
+          if (Math.abs(x - X - MOYA.x0) < 0.01 || Math.abs(x - X - MOYA.x1) < 0.01) adM.cylindre(0.045, 0.045, 0.02, 6, NOIR_F, { x: x + s * 0.07, y: yLin + 0.06, z, rz: PI / 2, trait: false });
+        }
+      }
+      // les travées : [début, fin, le long de x ?, la ligne, le côté du couloir (+1/−1)] ; cloison (planches) ou seuil
+      const travees = [];
+      for (let k = 0; k < 6; k++) for (const s of [-1, 1]) travees.push({ a: xs[k], b: xs[k + 1], enX: true, ligne: s < 0 ? MOYA.z0 : MOYA.z1, s, cloison: k !== 2 && k !== 3 });
+      for (let k = 0; k < 4; k++) for (const s of [-1, 1]) travees.push({ a: zs[k], b: zs[k + 1], enX: false, ligne: X + (s < 0 ? MOYA.x0 : MOYA.x1), s, cloison: k === 0 || k === 3 });
+      for (const t of travees) {
+        const long = t.b - t.a - 0.2, mil = (t.a + t.b) / 2;
+        if (!t.cloison) {
+          adM.boite(t.enX ? long : 0.1, 0.03, t.enX ? 0.1 : long, CLAIR, { x: t.enX ? mil : t.ligne, y: YM + 0.015, z: t.enX ? t.ligne : mil, trait: false });
+          continue;
+        }
+        const n = Math.round(long / 0.22), l = long / n, planches = (x, yy, z) => (Math.floor(((t.enX ? x : z) - (mil - long / 2)) / l) % 2 ? '#5a4a3c' : '#514234');
+        adM.piece(new THREE.BoxGeometry(t.enX ? long : 0.06, 1.85, t.enX ? 0.06 : long, t.enX ? n : 1, 1, t.enX ? 1 : n), '#5a4a3c', { x: t.enX ? mil : t.ligne, y: YM + 0.925, z: t.enX ? t.ligne : mil, teinte: planches });
+        // (côté couloir : deux râteliers)
+        const ry = t.enX ? (t.s < 0 ? PI : 0) : (t.s < 0 ? -PI / 2 : PI / 2);
+        for (const du of [-0.42, 0.42]) {
+          const c = mil + du;
+          ratelier(repere(t.enX ? c : t.ligne + t.s * 0.03, t.enX ? t.ligne + t.s * 0.03 : c, ry), 0, false);
+        }
+        monde.mur(t.enX ? t.a : t.ligne, t.enX ? t.ligne : t.a, t.enX ? t.b : t.ligne, t.enX ? t.ligne : t.b, 0.2, ...mM);
+        monde.bloc(t.enX ? t.a : t.ligne - 0.1, t.enX ? t.b : t.ligne + 0.1, t.enX ? t.ligne - 0.1 : t.a, t.enX ? t.ligne + 0.1 : t.b, YM - 0.2, yLin);
+      }
+      // des armes sur les râteliers des cloisons : trois lances côté nord, à l'ouest ; trois fusils côté sud, à l'est
+      const LAITON = '#c9a24a', zLn = MOYA.z0 - 0.03 - 0.09;
+      for (let k = 0; k < 3; k++) {
+        const ys = YM + 1.17 + k * 0.24 + 0.045, xa = X - 5.45 + (k % 2) * 0.15, xb = xa + 3.4;
+        adM.baton([xa, ys, zLn], [xb, ys, zLn], 0.022, '#3a2a22', 5)
+          .cone(0.035, 0.3, 4, '#c9c6bc', { x: xb + 0.15, y: ys, z: zLn, rz: -PI / 2 })
+          .boite(0.06, 0.05, 0.05, LAITON, { x: xb - 0.02, y: ys, z: zLn, trait: false });
+      }
+      const zFs = MOYA.z1 + 0.03 + 0.09, xF = (xs[5] + xs[6]) / 2 + 0.05;
+      for (let k = 0; k < 3; k++) {
+        const yy = YM + 0.93 + k * 0.24 + 0.05;
+        adM.boite(1.15, 0.04, 0.04, '#3b3b40', { x: xF + 0.22, y: yy, z: zFs })
+          .piece(new THREE.BoxGeometry(0.55, 0.08, 0.05, 2, 1, 1), '#7a4a2a', { x: xF - 0.6, y: yy - 0.015, z: zFs, deformer: (px, py, pz) => [px, py + (px < 0 ? (py < 0 ? -0.055 : -0.03) : 0), pz] })
+          .boite(0.09, 0.035, 0.055, LAITON, { x: xF - 0.3, y: yy + 0.005, z: zFs + 0.004, trait: false });
+        for (const xb of [xF + 0.1, xF + 0.55]) adM.boite(0.02, 0.05, 0.05, LAITON, { x: xb, y: yy, z: zFs, trait: false });
+      }
+      // la plaque « 武具掛け », sur la cloison du sud, entre ses deux râteliers (comme dans la vidéo)
+      {
+        const xP = (xs[4] + xs[5]) / 2, zP = MOYA.z1 + 0.03 + 0.012;
+        adM.boite(0.11, 0.36, 0.02, NOIR_F, { x: xP, y: YM + 1.15, z: zP });
+        ecrire({ x: xP, y: YM, z: zP }, { texte: '武具掛け', vertical: true, fond: NOIR_F, encre: '#f2eee4', x: 0, y: 1.15, z: 0.012, l: 0.09, h: 0.33 });
+      }
+      // le plafond du couloir : en pente, du haut des poteaux de la pièce jusqu'au mur ; ses chevrons ; les poutres courbes
+      // (ebi-kōryō) qui vont de chaque poteau au mur ; aux coins, une arêtière
+      const course = 1.9, montee = yHautPente - yBasPente, aP = Math.atan2(montee, course), lP = Math.hypot(course, montee) + 0.04;
+      const yMilPente = (yHautPente + yBasPente) / 2 + 0.02;
+      for (const s of [-1, 1]) {
+        const zc = Z + s * (3.9 + course / 2), xc = X + s * (5.6 + course / 2);
+        am.boite(2 * w2, 0.04, lP, '#6a5444', { x: X, y: yMilPente, z: zc, rx: s * aP })
+          .boite(lP, 0.04, 2 * d2, '#6a5444', { x: xc, y: yMilPente, z: Z, rz: -s * aP });
+        for (let x = -5.4; x <= 5.41; x += 0.45) adM.boite(0.07, 0.08, lP - 0.04, BOIS_R, { x: X + x, y: yMilPente - 0.065, z: zc, rx: s * aP });
+        for (let z = -3.6; z <= 3.61; z += 0.45) adM.boite(lP - 0.04, 0.08, 0.07, BOIS_R, { x: xc, y: yMilPente - 0.065, z: Z + z, rz: -s * aP });
+        for (const sz of [-1, 1]) adM.baton([X + s * 5.6, yHautPente - 0.12, Z + sz * 3.9], [X + s * (w2 - 0.06), yBasPente - 0.1, Z + sz * (d2 - 0.06)], 0.07, FONCE, 4);
+      }
+      const drop = yPoutreIn - ySabliere, courbe = (px, py, pz) => [px, py - drop * (px / course + 0.5) ** 2, pz];
+      for (const [x, z] of poteaux) {
+        const vers = [];
+        if (Math.abs(z - MOYA.z0) < 0.01) vers.push(PI / 2);
+        if (Math.abs(z - MOYA.z1) < 0.01) vers.push(-PI / 2);
+        if (Math.abs(x - X - MOYA.x1) < 0.01) vers.push(0);
+        if (Math.abs(x - X - MOYA.x0) < 0.01) vers.push(PI);
+        for (const ry of vers) {
+          const dx = Math.cos(ry), dz = -Math.sin(ry);
+          adM.piece(new THREE.BoxGeometry(course, 0.2, 0.14, 8, 1, 1), FONCE, { x: x + dx * course / 2, y: yPoutreIn, z: z + dz * course / 2, ry, deformer: courbe });
+        }
+      }
+      // le plafond de la grande pièce : deux grosses poutres, une poutre en travers
+      for (const sz of [-1.3, 1.3]) adM.boite(11.2, 0.3, 0.26, FONCE, { x: X, y: yP - 0.15, z: Z + sz });
+      adM.boite(0.22, 0.24, 7.8, FONCE, { x: X, y: yP - 0.12, z: Z });
+      // les deux grands piliers, qui traversent l'étage (ils montent du sous-sol), leurs bagues de fer
+      for (const s of [-1, 1]) {
+        adM.cylindre(0.46, 0.48, hM + 0.05, 14, '#6a5240', { x: X + s * 2.6, y: YM + (hM + 0.05) / 2, z: Z });
+        for (const yy of [0.5, 2.5]) adM.cylindre(0.5, 0.5, 0.1, 14, NOIR_F, { x: X + s * 2.6, y: YM + yy, z: Z, trait: false });
+        monde.cercle(X + s * 2.6, Z, 0.7, ...mM);
+      }
+      // l'escalier qui monte (raide, vers le nord, jusqu'à la trappe du plafond) : ses limons, ses marches, ses rampes
+      {
+        const ex = MONTEE2.x, ez0 = MONTEE2.z - 1.0, ez1 = ez0 - 1.9;
+        for (const s of [-1, 1]) {
+          adM.baton([ex + s * 0.55, YM, ez0], [ex + s * 0.55, yP + 0.2, ez1 - 0.1], 0.07, '#4a3a2e', 4)
+            .baton([ex + s * 0.64, YM + 0.85, ez0 + 0.05], [ex + s * 0.64, yP - 0.03, ez0 - 1.9 * (1 - 0.85 / hM) + 0.05], 0.035, '#4a3a2e', 4)
+            .boite(0.07, 0.9, 0.07, '#4a3a2e', { x: ex + s * 0.64, y: YM + 0.45, z: ez0 + 0.05 });
+        }
+        for (let k = 1; k <= 11; k++) { const f = k / 12; adM.boite(1.04, 0.05, 0.26, '#6a5240', { x: ex, y: YM + hM * f, z: ez0 + (ez1 - ez0) * f }); }
+        adM.boite(1.2, 0.02, 1.0, P.noir, { x: ex, y: yP - 0.011, z: ez1 - 0.25, trait: false });
+        monde.mur(ex, ez0, ex, ez1, 0.75, ...mM);
+        // la plaque « 二階 » et le panneau « 順路 » (le sens de la visite), sur le poteau à côté
+        const xq = X + MOYA.x1 - 0.1 - 0.011;
+        adM.boite(0.02, 0.42, 0.14, '#3a2c22', { x: xq, y: YM + 1.55, z: Z });
+        ecrire({ x: xq, y: YM, z: Z, ry: -PI / 2 }, { texte: '二階', vertical: true, fond: '#3a2c22', encre: '#e8d39a', x: 0, y: 1.55, z: 0.012, l: 0.11, h: 0.36 });
+        adM.boite(0.02, 0.18, 0.4, '#f4f0e6', { x: xq, y: YM + 1.95, z: Z - 1.95 });
+        ecrire({ x: xq, y: YM, z: Z - 1.95, ry: -PI / 2 }, { texte: '順路 →', fond: '#f4f0e6', encre: '#2a2624', x: 0, y: 1.95, z: 0.012, l: 0.36, h: 0.15 });
+      }
+      // la trappe de l'escalier qui arrive d'en bas, sa rambarde sur trois côtés (on descend par le nord)
+      {
+        const tx = TRAPPE2.x, tz0 = TRAPPE2.z + 0.4, tz1 = tz0 + 1.4;
+        adM.boite(1.0, 0.02, 1.4, P.noir, { x: tx, y: YM + 0.006, z: (tz0 + tz1) / 2, trait: false });
+        for (const [x0b, z0b, x1b, z1b] of [[tx - 0.5, tz0, tx - 0.5, tz1], [tx + 0.5, tz0, tx + 0.5, tz1], [tx - 0.5, tz1, tx + 0.5, tz1]]) adM.baton([x0b, YM + 0.9, z0b], [x1b, YM + 0.9, z1b], 0.04, '#4a3a2e', 4);
+        for (const [px, pz] of [[tx - 0.5, tz0], [tx + 0.5, tz0], [tx + 0.5, tz1], [tx - 0.5, tz1]]) adM.boite(0.08, 0.9, 0.08, '#4a3a2e', { x: px, y: YM + 0.45, z: pz });
+        monde.mur(tx, tz0 + 0.3, tx, tz1 - 0.3, 0.55, ...mM);
+      }
+      // l'estrade aux vieilles tuiles : un oni-gawara (la tuile à tête de démon), deux tuiles rondes à blason, une étiquette
+      {
+        const zE = Z - 1.0, TUILE = '#6a6e72', TUILE2 = '#7a7e82';
+        adM.boite(1.6, 0.42, 0.6, '#5a4030', { x: X, y: YM + 0.21, z: zE })
+          .boite(1.56, 0.02, 0.56, '#a8322a', { x: X, y: YM + 0.43, z: zE, trait: false });
+        // (l'oni-gawara : un bloc, son visage rond, ses cornes)
+        adM.boite(0.4, 0.34, 0.12, TUILE, { x: X - 0.45, y: YM + 0.61, z: zE })
+          .cylindre(0.11, 0.11, 0.04, 12, TUILE2, { x: X - 0.45, y: YM + 0.62, z: zE + 0.07, rx: PI / 2 });
+        for (const s of [-1, 1]) adM.cone(0.05, 0.14, 5, TUILE, { x: X - 0.45 + s * 0.15, y: YM + 0.84, z: zE, rz: -s * 0.4 });
+        for (const xt of [0.15, 0.55]) {
+          adM.boite(0.06, 0.1, 0.18, '#3a2c22', { x: X + xt, y: YM + 0.49, z: zE })
+            .cylindre(0.13, 0.13, 0.04, 16, TUILE, { x: X + xt, y: YM + 0.67, z: zE + 0.02, rx: PI / 2 })
+            .cylindre(0.08, 0.08, 0.02, 12, TUILE2, { x: X + xt, y: YM + 0.67, z: zE + 0.05, rx: PI / 2, trait: false });
+          for (let k = 0; k < 3; k++) { const t = (k * 2 * PI) / 3; adM.cylindre(0.025, 0.025, 0.012, 8, TUILE, { x: X + xt + 0.045 * Math.sin(t), y: YM + 0.67 + 0.045 * Math.cos(t), z: zE + 0.065, rx: PI / 2, trait: false }); }
+        }
+        adM.boite(0.42, 0.13, 0.02, '#f4efe2', { x: X, y: YM + 0.24, z: zE + 0.311 });
+        ecrire({ x: X, y: YM, z: zE + 0.311 }, { texte: '姫路城の瓦', fond: '#f4efe2', encre: '#2a2624', x: 0, y: 0.24, z: 0.012, l: 0.38, h: 0.1 });
+        monde.mur(X - 0.8, zE, X + 0.8, zE, 0.45, ...mM);
+      }
+      // des lampes de papier : deux dans les coins du couloir, deux dans la grande pièce (la nuit, elle était toute noire)
+      for (const [lx, lz] of [[X - w2 + 0.6, Z - d2 + 0.55], [X + w2 - 0.6, Z + d2 - 0.55], [X - 4.6, Z - 3.2], [X + 4.8, Z + 3.2]]) {
+        adM.boite(0.32, 0.06, 0.32, '#3e2f25', { x: lx, y: YM + 0.03, z: lz })
+          .boite(0.28, 0.55, 0.28, P.shoji, { x: lx, y: YM + 0.36, z: lz, sorte: 'lampe' })
+          .boite(0.32, 0.04, 0.32, '#3e2f25', { x: lx, y: YM + 0.66, z: lz });
+        lumieres.push({ x: lx, y: YM + 0.4, z: lz, halo: 0.3, sol: YM, r: 3.8, c: '#ffb860' });
+        monde.cercle(lx, lz, 0.3, ...mM);
+      }
+      // (ce qui arrête : les murs, le plancher, un étage ; pour la caméra : les murs, le plafond)
+      monde.mur(MILIEU.x0, MILIEU.z0, MILIEU.x1, MILIEU.z0, 0.3, ...mM); monde.mur(MILIEU.x0, MILIEU.z1, MILIEU.x1, MILIEU.z1, 0.3, ...mM);
+      monde.mur(MILIEU.x0, MILIEU.z0, MILIEU.x0, MILIEU.z1, 0.3, ...mM); monde.mur(MILIEU.x1, MILIEU.z0, MILIEU.x1, MILIEU.z1, 0.3, ...mM);
+      monde.surface(MILIEU.x0, MILIEU.x1, MILIEU.z0, MILIEU.z1, YM, { sol: 'bois', etage: true });
+      const W2 = E.W / 2, D2 = E.D / 2;
+      for (const s of [-1, 1]) {
+        monde.bloc(X - W2 - 0.2, X + W2 + 0.2, Z + s * D2 - 0.2, Z + s * D2 + 0.2, E.y0 - 0.2, E.y1 + 0.2);
+        monde.bloc(X + s * W2 - 0.2, X + s * W2 + 0.2, Z - D2, Z + D2, E.y0 - 0.2, E.y1 + 0.2);
+      }
+      monde.toit(X - W2, X + W2, Z - D2, Z + D2, yBasPente - 0.15, E.y1 + 1.2);
+    }
     poser(a.fin(0, peinture), 0, 0, { y: 0 });
-    poser(ad.fin(0, peinture), 0, 0, { y: 0, dedans: [X - DONJON.W / 2 - 9, X + DONJON.W / 2 + 9, Z - DONJON.D / 2 - 9, Z + DONJON.D / 2 + 9] });
-    // (le donjon, au-dessus du socle et jusqu'au dernier étage : la caméra n'y entre pas ; le dernier étage a ses murs)
-    monde.bloc(X - ETAGES[0].W / 2, X + ETAGES[0].W / 2, Z - ETAGES[0].D / 2, Z + ETAGES[0].D / 2, Y_SOCLE, ETAGES[4].y0 - 0.15);
+    poser(am.fin(0, peinture), 0, 0, { y: 0, avant: true });
+    // (chaque étage son décor du dedans : la caméra dans le donjon, ou à moins de 9 m de lui, et à sa hauteur)
+    const R9 = [X - DONJON.W / 2 - 9, X + DONJON.W / 2 + 9, Z - DONJON.D / 2 - 9, Z + DONJON.D / 2 + 9];
+    poser(ad.fin(0, peinture), 0, 0, { y: 0, dedans: [...R9, yT - 3, Y_SOCLE + 1] });
+    poser(adM.fin(0, peinture), 0, 0, { y: 0, dedans: [MILIEU.x0 - 0.5, MILIEU.x1 + 0.5, MILIEU.z0 - 0.5, MILIEU.z1 + 0.5, ETAGE2.y0 - 0.6, ETAGE2.y1 + 1.5] });
+    poser(adH.fin(0, peinture), 0, 0, { y: 0, dedans: [...R9, ETAGES[4].y0 - 1, ETAGES[4].y1 + 8] });
+    // (le donjon, au-dessus du socle et jusqu'au dernier étage : la caméra n'y entre pas, sauf au deuxième étage ; le
+    // deuxième et le dernier ont leurs murs)
+    monde.bloc(X - ETAGES[0].W / 2, X + ETAGES[0].W / 2, Z - ETAGES[0].D / 2, Z + ETAGES[0].D / 2, Y_SOCLE, ETAGE2.y0 - 0.05);
+    monde.bloc(X - ETAGES[0].W / 2, X + ETAGES[0].W / 2, Z - ETAGES[0].D / 2, Z + ETAGES[0].D / 2, ETAGE2.y1 + 0.1, ETAGES[4].y0 - 0.15);
   }
 
   // ---------------------------------------------------------------- Le petit donjon, son couloir ; la Nishi-no-maru
@@ -1939,12 +2224,16 @@ export function construire(ctx) {
   animes.push({ objet: okiku.objet, maj: (dt, temps, c) => okiku.maj(dt, temps, c) });
 
   // ---------------------------------------------------------------- Les gens
-  const PEAU = P.peau, NOIR = '#2a2420', SAL = [SALLE.x0, SALLE.x1, SALLE.z0, SALLE.z1];
+  // (la guide de la salle basse, et les gens du deuxième étage : cachés la caméra à un autre étage ; etage : le plancher
+  // où ils se tiennent)
+  const PEAU = P.peau, NOIR = '#2a2420', SAL = [SALLE.x0, SALLE.x1, SALLE.z0, SALLE.z1, T3.h - 2, Y_SOCLE + 1];
+  const MIL = [MILIEU.x0 - 0.5, MILIEU.x1 + 0.5, MILIEU.z0 - 0.5, MILIEU.z1 + 0.5, ETAGE2.y0 - 0.6, ETAGE2.y1 + 1.5];
+  const PHOTO = { x: -1.4, z: -54.6 };
   const MERE = { x: NAPPE.x + 0.95, z: NAPPE.z - 0.45 }, JIJI = { x: NAPPE.x - 0.95, z: NAPPE.z + 0.35 }, SIEGE = { x: NAPPE.x + 0.15, z: NAPPE.z + 0.95 };
   const PEINTRE = { x: -7.6, z: -40.8 }, VIDEASTE = { x: 13.6, z: -41.6 };
   // (2026-10-25 : les gens des terrasses, cachés quand la caméra est hors de leur terrasse et à plus de 14 m d'eux ;
   // derrière les murs, on ne les voyait pas, et chacun coûtait douze appels de dessin vu de l'esplanade ou du pont)
-  const SUR = (T) => [T.x0, T.x1, T.z0, T.z1];
+  const SUR = (T) => [T.x0, T.x1, T.z0, T.z1], X0 = DONJON.x;
   const passants = [
     { id: 'gardien', x: -4.6, z: -3.6, cap: -2.2, tenue: { taille: 1.04, peau: PEAU, cheveux: NOIR, coiffure: 'court', chapeau: { sorte: 'casquette', c: '#2f3a5a', c2: '#c8a040' }, haut: '#2f3a5a', manches: 'longues', bas: { sorte: 'pantalon', c: '#2f3a5a' }, chaussures: '#2a2a2e', semelle: '#2a2a2e' } },
     { id: 'vieille', x: ETAL.x + 0.85, z: ETAL.z, cap: -PI / 2, tenue: { taille: 0.92, peau: '#f0c8a6', cheveux: '#d8d4cc', coiffure: 'chignon', chapeau: { sorte: 'foulard', c: '#e8e0d0' }, haut: '#6a7a8a', manches: 'longues', tablier: '#f2ead8', bas: { sorte: 'pantalon', c: '#4a4a56' }, chaussures: '#3a3236', semelle: '#3a3236', yeux: 'plisses' } },
@@ -1960,6 +2249,10 @@ export function construire(ctx) {
     { id: 'videaste', x: VIDEASTE.x, z: VIDEASTE.z, dedans: SUR(T3), cap: vers(VIDEASTE.x, VIDEASTE.z, DONJON.x, DONJON.z), tenue: { taille: 1.1, peau: PEAU, cheveux: '#3a2a20', coiffure: 'court', chapeau: { sorte: 'bob', c: '#2f3440' }, haut: '#2f3440', manches: 'courtes', bas: { sorte: 'pantalon', c: '#c9b48a' }, chaussures: P.blanc, semelle: '#3a3236', appareil: true } },
     { id: 'chaya', x: mC(0.1, 0.15)[0], z: mC(0.1, 0.15)[1], dedans: SUR(T3), cap: CHAYA.ry, tenue: { taille: 1.02, peau: '#e8bf98', cheveux: NOIR, coiffure: 'court', chapeau: { sorte: 'bandeau', c: '#f3efe4' }, haut: '#3f5a8a', manches: 'longues', tablier: '#f6efe0', bas: { sorte: 'pantalon', c: '#3a3a42' }, chaussures: '#3a3236', semelle: '#3a3236', yeux: 'plisses' } },
     { id: 'gourmande', x: mC(1.78, 3.4)[0], z: mC(1.78, 3.4)[1], dedans: SUR(T3), cap: CHAYA.ry, assis: T3.h + 0.495, tenue: { taille: 0.98, peau: '#f2c9a8', cheveux: '#5a3a2a', coiffure: 'queue', chapeau: { sorte: 'soleil', c: '#f2e6c4' }, haut: '#e89a6a', manches: 'courtes', bas: { sorte: 'jupe', c: '#4a5a7a' }, chaussures: P.blanc, semelle: '#3a3236', sac: { sorte: 'dos', c: '#7a9a5a', c2: '#4a6a3a' } } },
+    // au deuxième étage : le guide bénévole, la petite fille à la fenêtre (trop haute pour elle), le photographe
+    { id: 'benevole', x: X0 - 6.55, z: DONJON.z - 1.4, cap: PI / 2, etage: Y_MILIEU, dedans: MIL, tenue: { taille: 1.0, peau: '#e8bf98', cheveux: '#d8d4cc', coiffure: 'court', chapeau: { sorte: 'casquette', c: '#3a7a6a', c2: '#f4f0e6' }, haut: '#3a7a6a', manches: 'longues', bas: { sorte: 'pantalon', c: '#4a4a52' }, chaussures: '#e8e4dc', semelle: '#e8e4dc', yeux: 'plisses' } },
+    { id: 'enfant', x: X0 - 2.2, z: MILIEU.z1 - 0.55, cap: 0, etage: Y_MILIEU, dedans: MIL, tenue: { taille: 0.7, peau: '#f2c9a8', cheveux: NOIR, coiffure: 'queue', haut: '#f29ab0', manches: 'courtes', bas: { sorte: 'jupe', c: '#f2e6c4' }, chaussures: '#f4f0e6', semelle: '#f4f0e6' } },
+    { id: 'photographe', x: PHOTO.x, z: PHOTO.z, cap: vers(PHOTO.x, PHOTO.z, DONJON.x - 2.6, DONJON.z), etage: Y_MILIEU, dedans: MIL, tenue: { taille: 1.12, peau: '#f0c8a6', cheveux: '#d8b878', coiffure: 'court', haut: '#5a7a9a', manches: 'courtes', bas: { sorte: 'short', c: '#c9b48a' }, chaussures: '#e8e4dc', semelle: '#e8e4dc', sac: { sorte: 'dos', c: '#2f3440', c2: '#1f2430' }, appareil: true } },
   ];
   {
     // le chevalet du peintre et sa toile (le donjon peint) ; le trépied du vidéaste, qui filme le donjon
@@ -1976,6 +2269,20 @@ export function construire(ctx) {
 
   // ---------------------------------------------------------------- Ce qu'on peut faire (tout passe par `jeu`)
   const parler = (id) => ({ id, passant: id, verbe: 'parler', action: (jeu) => jeu.dire(jeu.txn(id), id) });
+  // (les arrivées des escaliers du donjon, après le texte de la montée : en bas, au pied de l'escalier ; au deuxième
+  // étage, venant d'en bas, à côté de la trappe, ou venant d'en haut, au pied de l'escalier qui monte ; tout en haut, près
+  // de la trappe)
+  const ARRIVEES = {
+    bas: [MONTEE.x - 0.4, MONTEE.z + 1.0, 0, SALLE.y],
+    milieu: [TRAPPE2.x, TRAPPE2.z - 0.3, PI / 2, Y_MILIEU],
+    milieuHaut: [MONTEE2.x, MONTEE2.z + 0.05, 0, Y_MILIEU],
+    haut: [DESCENTE.x - 0.4, DESCENTE.z + 0.6, PI, Y_HAUT],
+  };
+  const arriver = async (jeu, ou, texte) => {
+    await jeu.dire(jeu.tx(texte));
+    jeu.placer(...ARRIVEES[ou]);
+    jeu.cadrer(null);
+  };
   const yN = terrain(NAPPE.x, NAPPE.z), zAutel = DONJON.z - ETAGES[4].D / 2 + 0.2 + 0.55;
   const interactions = [
     {
@@ -2138,28 +2445,64 @@ export function construire(ctx) {
       },
     },
     {
-      // monter au dernier étage (une coupure : six étages d'escaliers raides) ; redescendre
+      // monter (des coupures : des étages d'escaliers raides) : au deuxième étage, ou tout en haut (2026-10-25 : « devant
+      // l'échelle, tu choisis deuxième étage ou le dernier ») ; redescendre, de même
       id: 'monter', x: MONTEE.x, z: MONTEE.z, y: SALLE.y, rayon: 1.5, haut: 1.6, verbe: 'monter',
       async action(jeu) {
-        jeu.cadrer({ de: [DONJON.x + 15, T3.h + 2.2, DONJON.z + 21], vers: [DONJON.x, ETAGES[3].y0, DONJON.z], champ: 50 });
+        const r = await jeu.choisir(jeu.tx('monterOu'), jeu.tx('etagesHaut'));
+        if (r !== 0 && r !== 1) return;
+        jeu.cadrer({ de: [DONJON.x + 15, T3.h + 2.2, DONJON.z + 21], vers: [DONJON.x, ETAGES[r ? 3 : 1].y0, DONJON.z], champ: 50 });
         await jeu.attendre(500);
-        await jeu.dire(jeu.tx('monterTexte'));
-        jeu.placer(DESCENTE.x - 0.4, DESCENTE.z + 0.6, PI, Y_HAUT);
-        jeu.cadrer(null);
+        await arriver(jeu, r ? 'haut' : 'milieu', r ? 'monterTexte' : 'monter2Texte');
         await jeu.attendre(200);
-        await jeu.dire(jeu.tx('enHaut'));
+        await jeu.dire(jeu.tx(r ? 'enHaut' : 'auMilieu'));
       },
     },
     {
       id: 'descendre', x: DESCENTE.x, z: DESCENTE.z, y: Y_HAUT, rayon: 1.3, haut: 1.6, verbe: 'descendre',
       async action(jeu) {
-        jeu.cadrer({ de: [DONJON.x - 16, T3.h + 2.5, DONJON.z + 20], vers: [DONJON.x, ETAGES[2].y0, DONJON.z], champ: 50 });
+        const r = await jeu.choisir(jeu.tx('descendreOu'), jeu.tx('etagesBas'));
+        if (r !== 0 && r !== 1) return;
+        jeu.cadrer({ de: [DONJON.x - 16, T3.h + 2.5, DONJON.z + 20], vers: [DONJON.x, ETAGES[r ? 2 : 1].y0, DONJON.z], champ: 50 });
         await jeu.attendre(500);
-        await jeu.dire(jeu.tx('descendreTexte'));
-        jeu.placer(MONTEE.x - 0.4, MONTEE.z + 1.0, 0, SALLE.y);
+        await arriver(jeu, r ? 'bas' : 'milieuHaut', r ? 'descendreTexte' : 'descendreMilieuTexte');
+      },
+    },
+    {
+      // au deuxième étage : monter tout en haut, redescendre au sous-sol
+      id: 'monter2', x: MONTEE2.x, z: MONTEE2.z, y: Y_MILIEU, rayon: 1.4, haut: 1.6, verbe: 'monter',
+      async action(jeu) {
+        jeu.cadrer({ de: [DONJON.x + 15, T3.h + 2.2, DONJON.z + 21], vers: [DONJON.x, ETAGES[3].y0, DONJON.z], champ: 50 });
+        await jeu.attendre(500);
+        await arriver(jeu, 'haut', 'monterHautTexte');
+        await jeu.attendre(200);
+        await jeu.dire(jeu.tx('enHaut'));
+      },
+    },
+    {
+      id: 'descendre2', x: TRAPPE2.x, z: TRAPPE2.z, y: Y_MILIEU, rayon: 1.3, haut: 1.6, verbe: 'descendre',
+      async action(jeu) {
+        jeu.cadrer({ de: [DONJON.x - 16, T3.h + 2.5, DONJON.z + 20], vers: [DONJON.x, ETAGES[0].y0, DONJON.z], champ: 50 });
+        await jeu.attendre(500);
+        await arriver(jeu, 'bas', 'descendreBasTexte');
+      },
+    },
+    {
+      // la vue par une fenêtre du sud du deuxième étage, entre ses barreaux de bois
+      id: 'fenetre2', x: DONJON.x, z: MILIEU.z1 - 0.55, y: Y_MILIEU, rayon: 1.2, haut: 1.7, verbe: 'regarder',
+      async action(jeu) {
+        jeu.placer(DONJON.x, MILIEU.z1 - 0.75, 0, Y_MILIEU);
+        jeu.cadrer({ de: [DONJON.x, Y_FEN2 + 0.05, MILIEU.z1 - 0.25], vers: [DONJON.x + 1, 4, -20], champ: 55 });
+        await jeu.attendre(700);
+        await jeu.dire(jeu.txn('fenetre2'));
         jeu.cadrer(null);
       },
     },
+    { id: 'bukikake', x: DONJON.x + 2.8, z: MOYA.z1 + 0.7, y: Y_MILIEU, rayon: 1.6, verbe: 'regarder', action: (jeu) => jeu.dire(jeu.tx('bukikake')) },
+    { id: 'pilierEst', x: DONJON.x + 2.6, z: DONJON.z + 0.9, y: Y_MILIEU, rayon: 1.5, verbe: 'regarder', action: (jeu) => jeu.dire(jeu.tx('pilierEst')) },
+    { id: 'vitrine', x: DONJON.x, z: DONJON.z - 0.3, y: Y_MILIEU, rayon: 1.3, haut: 1.0, verbe: 'regarder', action: (jeu) => jeu.dire(jeu.tx('vitrine')) },
+    { id: 'meurtriere', x: MILIEU.x1 - 0.55, z: DONJON.z + 2.4, y: Y_MILIEU, rayon: 1.2, haut: 0.7, verbe: 'regarder', action: (jeu) => jeu.dire(jeu.tx('meurtriere')) },
+    parler('benevole'), parler('enfant'), parler('photographe'),
     {
       // la vue du dernier étage, par la fenêtre du sud : le château, la ville, les montagnes (le tampon)
       id: 'tenshu', x: DONJON.x, z: HAUT.z1 - 0.6, y: Y_HAUT, rayon: 1.5, haut: 1.6, verbe: 'regarder',
@@ -2314,7 +2657,7 @@ function toileDonjon(c, W, H) {
 // ---------------------------------------------------------------- Les textes du lieu
 const TEXTES = {
   fr: {
-    noms: { gardien: 'Le gardien du château', vieille: 'La vieille dame', mere: 'La maman', jiji: 'Le grand-père', petit: 'Le petit garçon', samourai: 'Le samouraï', guide: 'La guide du donjon', peintre: 'Le peintre', eleve: 'L’écolier', jardinier: 'Le jardinier', touriste: 'La touriste', videaste: '@random_japan_place', chaya: 'Le marchand du salon de thé', gourmande: 'La gourmande' },
+    noms: { gardien: 'Le gardien du château', vieille: 'La vieille dame', mere: 'La maman', jiji: 'Le grand-père', petit: 'Le petit garçon', samourai: 'Le samouraï', guide: 'La guide du donjon', peintre: 'Le peintre', eleve: 'L’écolier', jardinier: 'Le jardinier', touriste: 'La touriste', videaste: '@random_japan_place', chaya: 'Le marchand du salon de thé', gourmande: 'La gourmande', benevole: 'Le guide bénévole', enfant: 'La petite fille', photographe: 'Le photographe' },
     tampons: {
       sakura: ['Les cerisiers', 'Un pique-nique sur l’esplanade'],
       hishi: ['La porte en losange', 'L’entrée du labyrinthe'],
@@ -2412,6 +2755,26 @@ const TEXTES = {
     monterTexte: ['Tu montes des escaliers de bois très raides… un étage, deux, trois…', '… quatre, cinq, six. Te voilà tout en haut du donjon !'],
     enHaut: ['Le dernier étage du donjon. Par les fenêtres, tout le château, et la ville jusqu’aux montagnes.'],
     descendreTexte: ['Tu redescends les six étages en tenant bien la rampe…'],
+    monterOu: ['Un escalier de bois très raide. Jusqu’où montes-tu ?'],
+    etagesHaut: ['Au deuxième étage', 'Tout en haut'],
+    descendreOu: ['Jusqu’où descends-tu ?'],
+    etagesBas: ['Au deuxième étage', 'Au sous-sol'],
+    monter2Texte: ['Tu montes des escaliers de bois très raides… un étage, deux.', 'Te voici au deuxième étage !'],
+    auMilieu: ['Au milieu, une grande pièce. Tout autour, un long couloir de bois : le couloir des guerriers (武者走り, musha-bashiri).', 'En cas d’attaque, les soldats y couraient d’une fenêtre à l’autre.'],
+    monterHautTexte: ['Encore des escaliers raides… trois, quatre, cinq, six.', 'Te voilà tout en haut du donjon !'],
+    descendreBasTexte: ['Tu redescends deux étages en tenant bien la rampe, jusqu’au sous-sol…'],
+    descendreMilieuTexte: ['Tu redescends quatre étages en tenant bien la rampe… Te revoilà au deuxième étage.'],
+    bukikake: ['« 武具掛け » (bugukake) : des râteliers d’armes, tout le long des murs.', 'Sur ces chevilles de bois, on posait des fusils et des lances. Il y avait de la place pour des centaines d’armes !', 'Le donjon était le dernier refuge du château : il fallait pouvoir s’y défendre longtemps.'],
+    pilierEst: ['Le grand pilier de l’est (東大柱). Avec celui de l’ouest, il traverse tous les planchers, du sous-sol jusqu’au sixième étage.', 'Les deux piliers portent le donjon comme une colonne vertébrale.'],
+    vitrine: ['De vieilles tuiles des toits du château, gardées après les grands travaux.', 'Au bout de chaque tuile ronde, un blason (家紋, kamon) : les seigneurs qui ont réparé le château y mettaient celui de leur famille.'],
+    fenetre2: ['Entre les barreaux de bois : les toits gris du château, la terrasse, et la ville au loin.', 'Les fenêtres sont petites, avec des barreaux : on voyait l’ennemi sans être vu.'],
+    fenetre2Nuit: ['Dehors, la ville brille dans la nuit. Juste en dessous, les toits du château luisent sous les projecteurs.'],
+    meurtriere: ['Sous la fenêtre, un petit volet de bois. Derrière, un trou dans le mur : rond, carré ou en triangle (狭間, sama).', 'On y passait le canon d’un fusil, ou on tirait des flèches. Le château en compte des centaines !'],
+    benevole: ['Bonjour ! Je suis guide bénévole : je fais visiter le château le week-end.', 'Tu vois ce couloir qui fait le tour de l’étage ? C’est le musha-bashiri, le couloir des guerriers.', 'Et ce plancher qui brille… Tout le monde visite en chaussettes : on enlève ses chaussures à l’entrée du donjon !'],
+    benevoleNuit: ['Le soir, le donjon est tout calme. Écoute… le vieux bois craque sous nos pas.', 'Quatre cents ans de chaussettes, ça polit un plancher !'],
+    enfant: ['Je veux voir dehors… mais la fenêtre est trop haute !', 'Hop, sur la pointe des pieds… Je vois les toits ! On dirait des vagues grises !'],
+    enfantNuit: ['Maman a dit qu’on rentrait après les illuminations. Encore cinq minutes !'],
+    photographe: ['Wow… Regarde ce pilier ! Pardon, je viens d’Australie.', 'Chez moi, rien n’est aussi vieux. Ce bois a quatre cents ans… Je prends tout en photo !'],
     tenshu: ['Tout en bas, les toits gris et les murs blancs du château, ses terrasses, l’esplanade et ses cerisiers.', 'Plus loin, la grande avenue file tout droit jusqu’à la gare de Himeji. Et au fond, les montagnes.', 'D’ici, le seigneur du château voyait tout son domaine.'],
     tenshuNuit: ['La ville brille de mille fenêtres allumées. Tout en bas, les murs blancs du château luisent dans la nuit.'],
     osakabe: ['Tu fais tinter la cloche, tu salues deux fois, deux battements de mains…', 'Le petit sanctuaire d’Osakabe (長壁神社), qui protège le château depuis toujours.', 'On raconte qu’Osakabe, une princesse-esprit, vivait cachée tout en haut du donjon, et qu’elle a donné une épée au célèbre samouraï Miyamoto Musashi.'],
@@ -2440,7 +2803,7 @@ const TEXTES = {
     glace: ['Un grand cornet en plastique : une glace au thé vert (抹茶ソフト, matcha sofuto).', 'Au Japon, on en trouve dans presque tous les lieux touristiques, chacun avec son parfum. Ici, le matcha !'],
   },
   en: {
-    noms: { gardien: 'Castle keeper', vieille: 'Old lady', mere: 'Mom', jiji: 'Grandpa', petit: 'Little boy', samourai: 'Samurai', guide: 'Keep guide', peintre: 'Painter', eleve: 'Schoolboy', jardinier: 'Gardener', touriste: 'Tourist', videaste: '@random_japan_place', chaya: 'Tea stall keeper', gourmande: 'Snacking visitor' },
+    noms: { gardien: 'Castle keeper', vieille: 'Old lady', mere: 'Mom', jiji: 'Grandpa', petit: 'Little boy', samourai: 'Samurai', guide: 'Keep guide', peintre: 'Painter', eleve: 'Schoolboy', jardinier: 'Gardener', touriste: 'Tourist', videaste: '@random_japan_place', chaya: 'Tea stall keeper', gourmande: 'Snacking visitor', benevole: 'Volunteer guide', enfant: 'Little girl', photographe: 'Photographer' },
     tampons: {
       sakura: ['The cherry trees', 'A picnic on the lawn'],
       hishi: ['The Diamond Gate', 'Into the maze'],
@@ -2538,6 +2901,26 @@ const TEXTES = {
     monterTexte: ['You climb very steep wooden stairs… one floor, two, three…', '… four, five, six. You’re at the very top of the keep!'],
     enHaut: ['The top floor of the keep. Through the windows: the whole castle, and the town all the way to the mountains.'],
     descendreTexte: ['You go back down the six floors, holding the handrail tight…'],
+    monterOu: ['Very steep wooden stairs. How far up do you go?'],
+    etagesHaut: ['To the second floor', 'All the way up'],
+    descendreOu: ['How far down do you go?'],
+    etagesBas: ['To the second floor', 'To the basement'],
+    monter2Texte: ['You climb very steep wooden stairs… one floor, two.', 'Here you are on the second floor!'],
+    auMilieu: ['In the middle, a big room. All around it, a long wooden corridor: the warriors’ corridor (武者走り, musha-bashiri).', 'During an attack, soldiers ran along it from one window to the next.'],
+    monterHautTexte: ['More steep stairs… three, four, five, six.', 'You’re at the very top of the keep!'],
+    descendreBasTexte: ['You go back down two floors to the basement, holding the handrail tight…'],
+    descendreMilieuTexte: ['You go back down four floors, holding the handrail tight… Back on the second floor.'],
+    bukikake: ['“武具掛け” (bugukake): weapon racks, all along the walls.', 'Guns and spears rested on these wooden pegs. There was room for hundreds of weapons!', 'The keep was the castle’s last refuge: it had to hold out for a long time.'],
+    pilierEst: ['The great east pillar (東大柱). Together with the west one, it goes through every floor, from the basement up to the sixth.', 'The two pillars hold up the keep like a backbone.'],
+    vitrine: ['Old tiles from the castle’s roofs, kept after the big restoration.', 'At the end of each round tile there’s a crest (家紋, kamon): the lords who repaired the castle put their family’s crest there.'],
+    fenetre2: ['Between the wooden bars: the castle’s gray roofs, the terrace, and the town far away.', 'The windows are small and barred: you could watch the enemy without being seen.'],
+    fenetre2Nuit: ['Outside, the town sparkles in the night. Just below, the castle’s roofs glow in the floodlights.'],
+    meurtriere: ['Under the window, a little wooden shutter. Behind it, a hole in the wall: round, square or triangular (狭間, sama).', 'Soldiers pushed a gun barrel through it, or shot arrows. The castle has hundreds of them!'],
+    benevole: ['Hello! I’m a volunteer guide: I show visitors around the castle on weekends.', 'See this corridor that goes all the way around the floor? It’s the musha-bashiri, the warriors’ corridor.', 'And this shiny floor… Everyone visits in socks: you take your shoes off at the entrance of the keep!'],
+    benevoleNuit: ['In the evening, the keep is so quiet. Listen… the old wood creaks under our feet.', 'Four hundred years of socks really polish a floor!'],
+    enfant: ['I want to see outside… but the window’s too high!', 'Up on tiptoe… I can see the roofs! They look like gray waves!'],
+    enfantNuit: ['Mom said we’d go home after the illumination. Five more minutes!'],
+    photographe: ['Wow… Look at this pillar! I’m from Australia, by the way.', 'Back home, nothing is this old. This wood is four hundred years old… I’m taking pictures of everything!'],
     tenshu: ['Far below: the gray roofs and white walls of the castle, its terraces, the lawn and its cherry trees.', 'Further away, the great avenue runs straight to Himeji Station. And in the distance, the mountains.', 'From here, the lord of the castle could see his whole domain.'],
     tenshuNuit: ['The town sparkles with a thousand lit windows. Far below, the castle’s white walls glow in the night.'],
     osakabe: ['You ring the bell, bow twice, clap twice…', 'The little shrine of Osakabe (長壁神社), who has always protected the castle.', 'They say Osakabe, a spirit princess, lived hidden at the top of the keep, and gave a sword to the famous samurai Miyamoto Musashi.'],
@@ -2566,7 +2949,7 @@ const TEXTES = {
     glace: ['A big plastic cone: green tea soft serve (抹茶ソフト, matcha sofuto).', 'In Japan you find them at almost every sightseeing spot, each with its own flavor. Here, matcha!'],
   },
   ja: {
-    noms: { gardien: 'お城の　係員さん', vieille: 'おばあさん', mere: 'お母さん', jiji: 'おじいさん', petit: '男の子', samourai: 'おさむらいさん', guide: '天守の　ガイドさん', peintre: '絵かきさん', eleve: '小学生', jardinier: '庭師さん', touriste: '観光客', videaste: '@random_japan_place', chaya: '茶屋の　おじさん', gourmande: 'おやつ中の　お姉さん' },
+    noms: { gardien: 'お城の　係員さん', vieille: 'おばあさん', mere: 'お母さん', jiji: 'おじいさん', petit: '男の子', samourai: 'おさむらいさん', guide: '天守の　ガイドさん', peintre: '絵かきさん', eleve: '小学生', jardinier: '庭師さん', touriste: '観光客', videaste: '@random_japan_place', chaya: '茶屋の　おじさん', gourmande: 'おやつ中の　お姉さん', benevole: 'ボランティアガイドさん', enfant: '女の子', photographe: 'カメラマンさん' },
     tampons: {
       sakura: ['桜', '三の丸で　お花見'],
       hishi: ['菱の門', '迷路の　入口'],
@@ -2664,6 +3047,26 @@ const TEXTES = {
     monterTexte: ['とても　急な　木の　階段を　のぼる……一階、二階、三階……', '……四階、五階、六階。天守の　てっぺんに　ついた！'],
     enHaut: ['天守の　さいじょうかい。まどから、お城　ぜんぶと、山まで　つづく　町が　見える。'],
     descendreTexte: ['手すりに　しっかり　つかまって、六階　ぶん　おりる……'],
+    monterOu: ['とても　急な　木の　階段。どこまで　のぼる？'],
+    etagesHaut: ['二階まで', 'てっぺんまで'],
+    descendreOu: ['どこまで　おりる？'],
+    etagesBas: ['二階まで', '地下まで'],
+    monter2Texte: ['とても　急な　木の　階段を　のぼる……一階、二階。', '二階に　ついた！'],
+    auMilieu: ['まん中に　大きな　へや。その　まわりを、長い　木の　ろうかが　ぐるりと　かこむ。武者走りだ。', 'せめられた　とき、さむらいたちは　ここを　走って、まどから　まどへ　いそいだ。'],
+    monterHautTexte: ['まだまだ　急な　階段……三階、四階、五階、六階。', '天守の　てっぺんに　ついた！'],
+    descendreBasTexte: ['手すりに　しっかり　つかまって、地下まで　二階　ぶん　おりる……'],
+    descendreMilieuTexte: ['手すりに　しっかり　つかまって、四階　ぶん　おりる……二階に　もどって　きた。'],
+    bukikake: ['「武具掛け」。かべに　ずらりと　ならぶ、武器を　かける　たな。', 'この　木の　くぎに、鉄砲や　やりを　のせた。何百もの　武器が　おけたんだ！', '天守は　お城の　さいごの　とりで。長く　たたかえるように　して　あった。'],
+    pilierEst: ['東の　大柱。西の　大柱と　いっしょに、地下から　六階まで、すべての　ゆかを　つらぬいて　いる。', '二本の　柱が、せぼねの　ように　天守を　ささえて　いるんだ。'],
+    vitrine: ['お城の　屋根の　古い　かわら。大きな　修理の　あとに　のこされた　もの。', 'まるい　かわらの　先には、家紋が　ついて　いる。お城を　なおした　殿さまたちが、じぶんの　家の　家紋を　入れたんだ。'],
+    fenetre2: ['木の　こうしの　あいだから、お城の　灰色の　屋根、くるわ、そして　とおくの　町が　見える。', 'まどは　小さくて、こうしが　ある。こちらは　見えずに、てきを　見はれたんだ。'],
+    fenetre2Nuit: ['外では、夜の　町が　きらきら　かがやく。すぐ　下では、お城の　屋根が　ライトに　てらされて　いる。'],
+    meurtriere: ['まどの　下に、小さな　木の　ふた。その　うしろには、かべの　あな。まる、しかく、さんかく……「狭間」だ。', 'ここから　鉄砲を　出したり、矢を　いたり　した。お城には　何百も　あるんだって！'],
+    benevole: ['こんにちは！　ボランティアガイドです。週末に　お城を　あんない　して　います。', 'この　階を　ぐるりと　まわる　ろうかが　あるでしょう？　武者走りと　いって、さむらいの　ための　ろうかです。', 'それに、ぴかぴかの　ゆか……みなさん　くつしたで　見学します。天守の　入り口で　くつを　ぬぐんですよ！'],
+    benevoleNuit: ['夜の　天守は　しずかですね。聞いて……古い　木が　足の　下で　きしむ　音。', '四百年ぶんの　くつしたが、この　ゆかを　みがいたんです！'],
+    enfant: ['外が　見たいのに……まどが　高すぎる！', 'せのびして……屋根が　見えた！　灰色の　なみ　みたい！'],
+    enfantNuit: ['ライトアップを　見たら　帰るって、ママが　言ってた。あと　五分だけ！'],
+    photographe: ['ワオ……この　柱、見て！　あ、ぼく、オーストラリアから　来たんだ。', 'ぼくの　国には、こんなに　古い　ものは　ない。この　木は　四百年も　前の　もの……ぜんぶ　写真に　とるよ！'],
     tenshu: ['下には、お城の　はい色の　屋根と　白い　かべ、くるわ、桜の　三の丸。', 'その　さきに、姫路駅まで　まっすぐ　のびる　大通り。そして　とおくに　山。', 'お殿さまは、ここから　自分の　領地を　ぜんぶ　見わたして　いたんだ。'],
     tenshuNuit: ['町には　たくさんの　まどの　明かり。下では、お城の　白い　かべが　夜に　光って　いる。'],
     osakabe: ['すずを　ならして、二回　おじぎ、二回　はくしゅ……', '長壁神社。ずっと　お城を　まもって　いる　神さま。', 'むかし、長壁という　ひめが　天守の　てっぺんに　かくれ住み、有名な　剣豪　宮本武蔵に　刀を　さずけた、という　話が　あるんだよ。'],

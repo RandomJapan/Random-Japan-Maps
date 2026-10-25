@@ -131,7 +131,7 @@ function construire() {
   mats.vent.ventForce.value = lieu.vent?.force ?? 1;
   // (decor : leurs corps, pour savoir ce qui cacherait le voyageur à une caméra posée devant lui : cadrerDeFace ; un
   // décor du dedans, o.dedans : [x0, x1, z0, z1], n'est dessiné que la caméra dans ce rectangle : on ne le voit pas de
-  // dehors, le dedans d'un donjon)
+  // dehors, le dedans d'un donjon ; [x0, x1, z0, z1, y0, y1] : et entre ces deux hauteurs, un étage)
   const decor = [], decorsDedans = [];
   for (const o of lieu.objets) {
     const m = maillage(o.fin, o.ombre, o.trait !== false);
@@ -139,7 +139,9 @@ function construire() {
     m.rotation.y = o.ry;
     groupe.add(m);
     decor.push(m.children[0]);
-    if (o.dedans) decorsDedans.push([m, o.dedans]);
+    // (et sa boîte : la caméra dedans, au milieu de ce décor, on le dessine en premier, voir dessiner ; o.avant : un objet
+    // toujours dessiné, lui aussi en premier la caméra dans sa boîte, les murs d'un étage où l'on entre)
+    if (o.dedans || o.avant) { m.updateWorldMatrix(true, true); decorsDedans.push([m, o.dedans, new THREE.Box3().setFromObject(m)]); }
   }
   // les textes des plaques et des enseignes (le nom du tunnel…)
   if (lieu.etiquettes?.length && params.get('etiquettes') !== '0') groupe.add(creerEtiquettes(THREE, lieu.etiquettes, { anisotropie: Math.min(8, rendu.capabilities.getMaxAnisotropy()) }));
@@ -207,7 +209,8 @@ function construire() {
     groupe.add(perso.objet);
     sansOmbreRecue(perso.objet);
     const etatP = creerPassant(p);
-    etatP.y = p.assis != null ? p.assis - ASSIS : lieu.monde.hauteur(p.x, p.z);
+    // (etage : le plancher où il se tient, un étage où l'on monte : sans, on cherche le sol)
+    etatP.y = p.assis != null ? p.assis - ASSIS : lieu.monde.hauteur(p.x, p.z, p.etage);
     if (p.assis != null) perso.asseoir(true);
     const traits = [];
     perso.objet.traverse((q) => { if (q.material === mats.traitPerso) traits.push(q); });
@@ -2932,12 +2935,21 @@ function dessiner(dt, temps) {
   for (const p of M.passants) {
     const d = Math.hypot(camera.position.x - p.etat.x, camera.position.z - p.etat.z), loin = d > TRAIT_PASSANT;
     // (un passant dans une maison, dedans : [x0, x1, z0, z1] : caché, et immobile, quand la caméra est dehors à plus de
-    // 14 m ; par la porte, on ne le verrait pas)
+    // 14 m ; par la porte, on ne le verrait pas. [x0, x1, z0, z1, y0, y1] : à un étage, la caméra à un autre étage)
     const q = camera.position, dehors = p.dedans && !(q.x > p.dedans[0] && q.x < p.dedans[1] && q.z > p.dedans[2] && q.z < p.dedans[3]);
-    p.perso.objet.visible = d > 1.1 && !(dehors && d > 14);
+    const autreEtage = p.dedans?.[4] != null && !(q.y > p.dedans[4] && q.y < p.dedans[5]);
+    p.perso.objet.visible = d > 1.1 && !(autreEtage || (dehors && d > 14));
     if (loin !== p.loin) { p.loin = loin; for (const t of p.traits) t.visible = !loin; }
   }
-  for (const [m, [x0, x1, z0, z1]] of M.decorsDedans) m.visible = camera.position.x > x0 && camera.position.x < x1 && camera.position.z > z0 && camera.position.z < z1;
+  for (const [m, d, boite] of M.decorsDedans) {
+    const q = camera.position;
+    if (d) { const [x0, x1, z0, z1, y0 = -Infinity, y1 = Infinity] = d; m.visible = q.x > x0 && q.x < x1 && q.z > z0 && q.z < z1 && q.y > y0 && q.y < y1; }
+    // (la caméra dans sa boîte, au milieu de ce décor : il passe avant le reste, et ce qu'il cache derrière lui, les
+    // murs, la ville, n'est plus peint pour rien. Au deuxième étage du donjon de Himeji, dessiné après le reste, il
+    // coûtait 1 ms de carte graphique sur 3 ; 2026-10-25)
+    const avant = m.visible && boite.containsPoint(q) ? -1 : 0;
+    if (m.userData.avant !== avant) { m.userData.avant = avant; m.traverse((c) => { c.renderOrder = avant; }); }
+  }
 
   // le soleil suit le joueur (les ombres se calculent autour de lui), par pas d'un texel de la carte d'ombres :
   // sinon, à chaque pas du joueur, les bords des ombres glissent d'une fraction de texel et scintillent
