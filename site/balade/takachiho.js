@@ -157,6 +157,20 @@ function surIwato(x, z) {
   return { d: dmin, cote: (x - best.cx) * best.nx + (z - best.cz) * best.nz >= 0 ? 1 : -1, s: sm, cx: best.cx, cz: best.cz };
 }
 
+/** Le dessus du tablier d'un pont (PONT_S, PONT_N) : de la place, à l'ouest, à la promenade, à l'est, un peu en pente. */
+function tablier(Pt) {
+  const g = surGorge(0, Pt.z), x0 = g.cx - g.w - RAMBARDE - 1.0, x1 = g.cx + g.w + RAMBARDE + 1.0, y0 = RIVE_O + 0.04, y1 = RIVE_E + 0.04;
+  return { g, x0, x1, y0, y1, yA: (x) => y0 + (y1 - y0) * (x - x0) / (x1 - x0) };
+}
+const TABLIERS = [PONT_S, PONT_N].map((Pt) => ({ Pt, ...tablier(Pt) }));
+/** La hauteur du tablier au-dessus de (x, z) si un pont y passe (marge : en plus de lui, tout autour), sinon null. */
+function sousTablier(x, z, marge = 0) {
+  for (const t of TABLIERS) {
+    if (Math.abs(z - t.Pt.z) < t.Pt.l / 2 + marge && x > t.x0 - marge && x < t.x1 + marge) return t.yA(Math.min(t.x1, Math.max(t.x0, x)));
+  }
+  return null;
+}
+
 // ---------------------------------------------------------------- Le relief
 /** Le contour de l'étang (le rayon selon l'angle autour de son centre, angle 0 vers +z). */
 const rayonEtang = (a) => ETANG.r * (1 + 0.12 * Math.sin(3 * a + 1) + 0.07 * Math.sin(5 * a + 0.4));
@@ -234,6 +248,15 @@ function terrain(x, z) {
   // sous l'escalier du sanctuaire à la rivière : le sol au niveau des marches (le chemin y passe)
   const e = surLaLigne(DESCENTE, x, z);
   if (e.d < 1.6) h = Math.min(h, e.h - 0.05 + Math.max(0, h - e.h) * lisse(1.0, 1.6, e.d));
+  // sous le tablier des ponts : le sol reste dessous (au bout est, la promenade est un peu plus haute que le tablier, et le
+  // sol le recouvrait), puis remonte en 60 cm de chaque côté
+  for (const t of TABLIERS) {
+    const dz = Math.abs(z - t.Pt.z) - t.Pt.l / 2;
+    if (dz < 0.6 && x > t.x0 && x < t.x1) {
+      const sous = t.yA(x) - 0.03;
+      if (h > sous) h = sous + (h - sous) * lisse(0, 0.6, dz);
+    }
+  }
   return h;
 }
 
@@ -356,8 +379,10 @@ export function construire(ctx) {
     const pts = Array.from({ length: k }, (_, i) => { const a = phi + (i / k) * 2 * PI; return [cx + Math.cos(a) * r, cz + Math.sin(a) * r]; });
     for (let i = 0; i < k; i++) {
       const [ax, az] = pts[i], [bx, bz] = pts[(i + 1) % k], am = phi + ((i + 0.5) / k) * 2 * PI, n = [Math.cos(am), 0, Math.sin(am)];
-      // (la face, en deux ou trois bandes : le bas mouillé, sombre ; le milieu ; le haut, la mousse par endroits)
-      const bandes = [y0, Math.max(y0, Math.min(y1, NIV + 0.75)), Math.max(y0, Math.min(y1, y1 - 1.1)), y1];
+      // (la face, en deux ou trois bandes : le bas mouillé, sombre ; le milieu ; le haut, la mousse par endroits. Des bornes
+      // qui montent : sur un tambour court, la bande du haut commençait sous le haut de la bande mouillée, et les deux se
+      // recouvraient sur la même face : elles scintillaient au bord de l'eau)
+      const mouille = Math.max(y0, Math.min(y1, NIV + 0.75)), bandes = [y0, mouille, Math.max(mouille, y1 - 1.1), y1];
       for (let b = 0; b < 3; b++) {
         const ya = bandes[b], yb = bandes[b + 1];
         if (yb - ya < 0.02) continue;
@@ -433,14 +458,16 @@ export function construire(ctx) {
     }
   }
   // l'eau de la cascade passe par une encoche dans le bord ; le palier de l'escalier est posé sur les colonnes ; la
-  // rivière Iwato tombe dans la gorge par une autre encoche
+  // rivière Iwato tombe dans la gorge par une autre encoche ; sous les deux ponts, les colonnes s'arrêtent sous le tablier
+  // (leurs dessus le traversaient, entre les parapets)
+  const sousPont = (x, z) => { const t = sousTablier(x, z, 0.75); return t === null ? null : t - 0.12; };
   paroi(-1, 96, -152, (x, z) => {
     if (Math.abs(z - CASCADE.z) < 1.55) return -0.95;
     if (z > ESCALIER.z0 - 2.4 && z < ESCALIER.z0 + 0.2) return -0.18;
     if (Math.abs(z + 121) < 2.4) return NIV_I - 0.7;
-    return null;
+    return sousPont(x, z);
   });
-  paroi(1, 96, -152);
+  paroi(1, 96, -152, sousPont);
   // la falaise au nord de la rivière Iwato (sans colonnes là où s'ouvrent les deux grottes), jusqu'au bord de la gorge
   {
     const face = [];
@@ -494,10 +521,10 @@ export function construire(ctx) {
     for (let i = 0; i < n; i++) {
       const z = ESCALIER.z0 + (i + 0.5) * giron, [px] = piedParoi(-1, z), yT = -monte * (i + 1) + monte * 0.0;
       const yHaut = -monte * i;
-      // la marche : une dalle de pierre (son dessus au niveau du chemin en son milieu) ; une sur deux un rien plus large
-      // (leurs faces de côté ne se superposent pas)
-      const w = ESCALIER.l + (i % 2 ? 0.006 : 0);
-      a.boite(w, 0.34, giron + 0.03, i % 3 ? P.pierre : P.pierreFonce, { x: px + w / 2 + 0.02, y: yHaut - monte * 0.5 - 0.17 + monte * 0.5, z });
+      // la marche : une dalle de pierre (son dessus au niveau du chemin en son milieu) ; une sur deux un rien plus large et
+      // décalée de 6 mm vers la paroi (leurs faces de côté, des deux côtés, ne se superposent pas)
+      const w = ESCALIER.l + (i % 2 ? 0.012 : 0), xm = px + 0.02 - (i % 2 ? 0.006 : 0);
+      a.boite(w, 0.34, giron + 0.03, i % 3 ? P.pierre : P.pierreFonce, { x: xm + w / 2, y: yHaut - monte * 0.5 - 0.17 + monte * 0.5, z });
       ligne.push([px + 0.95, z, yHaut - monte * 0.5]);
       rampe.push([px + ESCALIER.l + 0.06, z, yHaut]);
       void yT;
@@ -639,8 +666,7 @@ export function construire(ctx) {
    * flèche de la voûte sous le tablier.
    */
   function pontPierre(Pt, { haut = 6.5 } = {}) {
-    const a = atelier(), g = surGorge(0, Pt.z), x0 = g.cx - g.w - RAMBARDE - 1.0, x1 = g.cx + g.w + RAMBARDE + 1.0, l = Pt.l;
-    const y0 = RIVE_O + 0.04, y1 = RIVE_E + 0.04, yA = (x) => y0 + (y1 - y0) * (x - x0) / (x1 - x0);
+    const a = atelier(), { g, x0, x1, y0, y1, yA } = tablier(Pt), l = Pt.l;
     // le tablier : une dalle épaisse en pente, couverte de dalles ; les parapets
     const n = 12, pos = [], couleurs = [];
     for (let i = 0; i < n; i++) {
@@ -831,7 +857,8 @@ export function construire(ctx) {
     a.boite(9, 3.2, 6, P.blanc, R(0, y + 1.6, 0))
       .boite(9.04, 0.22, 6.04, P.boisFonce, R(0, y + 3.2, 0))
       .boite(9.04, 0.6, 6.04, P.boisFonce, R(0, y + 0.3, 0));
-    for (const lx of [-4.4, -1.5, 1.5, 4.4]) a.boite(0.2, 3.2, 0.2, P.boisFonce, R(lx, y + 1.6, 3.02));
+    // (ceux des coins dépassent de 4 cm des murs de côté : leur face y était dans le plan du mur, elle scintillait)
+    for (const lx of [-4.44, -1.5, 1.5, 4.44]) a.boite(0.2, 3.2, 0.2, P.boisFonce, R(lx, y + 1.6, 3.02));
     for (const lx of [-3, 0, 3]) a.boite(2.2, 1.1, 0.04, P.shoji, R(lx, y + 1.95, 3.03)).boite(2.24, 0.06, 0.05, P.shojiCadre, R(lx, y + 1.95, 3.045));
     a.toitJapon(10.6, 7.6, 1.8, 0.15, { ...R(0, y + 3.3, 0), releve: 0.15 });
     // l'enseigne : 千穂の家, et la bannière « 元祖流しそうめん »
@@ -1218,7 +1245,8 @@ export function construire(ctx) {
       for (let k = 0; k <= 12; k++) { const f = k / 12, z = zs + (zn - zs) * f, yk = yb + (ym - yb) * Math.sin(f * PI); pts.push([x, z, yk]); }
       for (let k = 0; k < 12; k++) {
         const [, za, ya] = pts[k], [, zb, yb2] = pts[k + 1];
-        a.boite(1.6, 0.12, Math.hypot(zb - za, yb2 - ya) + 0.03, k % 2 ? P.bois : P.bois2, { x, y: (ya + yb2) / 2 - 0.06, z: (za + zb) / 2, rx: Math.atan2(ya - yb2, za - zb) * -1 });
+        // (une sur deux un rien plus large : les bouts de deux planches qui se chevauchent ne sont pas dans le même plan)
+        a.boite(1.6 + (k % 2) * 0.02, 0.12, Math.hypot(zb - za, yb2 - ya) + 0.03, k % 2 ? P.bois : P.bois2, { x, y: (ya + yb2) / 2 - 0.06, z: (za + zb) / 2, rx: Math.atan2(ya - yb2, za - zb) * -1 });
       }
       for (const s of [-1, 1]) {
         a.tube(pts.map(([px, pz, py]) => [px + s * 0.78, py - 0.2, pz]), 0.09, P.boisFonce, { cotes: 6, pas: 24 });
@@ -1307,7 +1335,9 @@ export function construire(ctx) {
         let yy = sol - 0.02;
         for (let k = 0; k < etages; k++) {
           const r = (0.2 - k * 0.032) * (0.8 + 0.4 * hasard(i + k, 5.3));
-          a.piece(new THREE.IcosahedronGeometry(r, 0), TONS[(i + k) % 5], { x: x + (hasard(i, k) - 0.5) * 0.05, y: yy + r * 0.45, z: z + (hasard(k, i) - 0.5) * 0.05, sy: 0.5, ry: hasard(i * k, 2) * 3, trait: false, nuance: 0.08 });
+          // (chaque pierre tournée à sa façon : celles du bas étaient toutes tournées pareil, et deux tas voisins avaient des
+          // faces dans le même plan)
+          a.piece(new THREE.IcosahedronGeometry(r, 0), TONS[(i + k) % 5], { x: x + (hasard(i, k) - 0.5) * 0.05, y: yy + r * 0.45, z: z + (hasard(k, i) - 0.5) * 0.05, sy: 0.5, ry: hasard(i * 3.1 + k, 2) * 3, trait: false, nuance: 0.08 });
           yy += r * 0.82;
         }
         n++;
@@ -1327,10 +1357,11 @@ export function construire(ctx) {
     {
       const g = surIwato(GROTTE.x, GROTTE.z), y0 = NIV_I + 0.3;
       const R = repere(GROTTE.x, GROTTE.z, PI);
-      // la fente : une niche sombre, le cadre de rocher autour
+      // la fente : une niche sombre, le cadre de rocher autour (le linteau 2 cm en retrait des montants : leurs faces
+      // étaient dans les mêmes plans, aux coins)
       a.boite(3.4, 4.6, 1.6, '#1e1a18', R(0, y0 + 2.3, 0.6, { trait: false }))
         .boite(1.0, 5.2, 2.0, P.basalteFonce, R(-2.1, y0 + 2.6, 0.2)).boite(1.0, 5.2, 2.0, P.basalteFonce, R(2.1, y0 + 2.6, 0.2))
-        .boite(5.2, 1.0, 2.0, P.basalteFonce, R(0, y0 + 5.1, 0.2));
+        .boite(5.16, 1.0, 1.96, P.basalteFonce, R(0, y0 + 5.1, 0.2));
       a.shimenawa([R(-2.2, 0, -0.9), R(0, 0, -1.0), R(2.2, 0, -0.9)].map((q, i) => [q.x, y0 + 4.5 - (i === 1 ? 0.3 : 0), q.z]), 0.08, [R(-1, 0, -1), R(1, 0, -1)].map((q) => [q.x, y0 + 4.2, q.z]));
       void g;
     }
@@ -1373,6 +1404,8 @@ export function construire(ctx) {
         if (p[1] > 90 || p[1] < -140) continue;
         if (cote < 0 && (Math.abs(p[1] - CASCADE.z) < 2.6 || (p[1] > ESCALIER.z0 - 3 && p[1] < PONTON.z1 + 0.5))) continue;
         const ox = cote * p[3], oz = cote * p[4], fx = p[0] + ox * p[2], fz = p[1] + oz * p[2], a = morceauBord(fz), u = hasard(fx * 2.3, fz * 1.9);
+        // (rien sous les ponts : les buissons du bord poussaient sur le tablier)
+        if (sousTablier(fx, fz, 1.2) !== null) continue;
         const haut = terrain(fx + ox * 2.6, fz + oz * 2.6);
         // une touffe de fougères ou un petit buisson, accroché au rebord d'une colonne, à mi-hauteur (ou en haut)
         if (u < 0.35) {
