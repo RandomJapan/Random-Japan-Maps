@@ -300,17 +300,21 @@ export const SAISONS_GLSL = `
   // sur un feuillage (sortes 1 à 4, 11, 12), la neige suit sa forme lissée (pas ses facettes : on aurait dit des
   // rochers), en un manteau épais au bord ondulé ; abri : 1 sous un toit (ABRI_GLSL), pas de neige
   vec3 neigeFeuillage(vec3 c, float sorte, vec3 nf, vec3 nl, vec3 p, float abri) {
-    float hiver = saisons.z * (1.0 - abri);
-    if (hiver < 0.001) return c;
+    if (saisons.z < 0.001) return c;
     float s = floor(sorte + 0.5);
     if (s > 20.5) s -= 20.0;
-    bool feuillage = (s > 0.5 && s < 4.5) || abs(s - 11.0) < 0.5 || abs(s - 12.0) < 0.5;
     // (le chaume des toits de Gokayama, sorte 13 : un manteau épais, même sur ses pentes à 60°, comme sur les photos
-    // d'hiver ; ses bords ondulés)
+    // d'hiver ; ses bords ondulés. Aussi la pierre que porte la statue de Tajikarao, à Takachiho : vue d'en bas, la
+    // neige de son dessus ne se voyait pas, de profil ; elle y fait un coussin qui descend sur ses flancs. Rien n'est
+    // jamais au-dessus d'eux : ils ne regardent pas l'abri, qui, d'un point plus large tout autour de chaque chose,
+    // ôtait la neige des flancs de la pierre ; 2026-10-25)
     if (abs(s - 13.0) < 0.5) {
       float o = sin(p.x * 2.1 + p.z * 1.7) * 0.05 + (hasardSaison(floor(p.xz * 3.0)) - 0.5) * 0.06;
-      return mix(c, vec3(0.93, 0.95, 1.0) * (0.92 + 0.08 * nf.y), smoothstep(0.08, 0.3, nf.y + o) * hiver * 0.97);
+      return mix(c, vec3(0.93, 0.95, 1.0) * (0.92 + 0.08 * nf.y), smoothstep(0.08, 0.3, nf.y + o) * saisons.z * 0.97);
     }
+    float hiver = saisons.z * (1.0 - abri);
+    if (hiver < 0.001) return c;
+    bool feuillage = (s > 0.5 && s < 4.5) || abs(s - 11.0) < 0.5 || abs(s - 12.0) < 0.5;
     if (!feuillage || dot(nl, nl) < 0.01) return neigeSaison(c, nf, hiver);
     vec3 n = normalize(nl);
     float ondule = (hasardSaison(floor(p.xz * 2.3)) - 0.5) * 0.12 + sin(p.x * 3.1 + p.z * 2.3) * sin(p.z * 2.7 - p.x * 1.3) * 0.12;

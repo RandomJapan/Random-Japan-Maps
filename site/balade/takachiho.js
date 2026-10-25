@@ -405,7 +405,7 @@ export function construire(ctx) {
    * dz, ecart) : le point de sa surface dans la direction (dx, dy, dz) de son repère, écarté de ecart vers l'extérieur.
    */
   const rocherSculpte = (a, x, y, z, r, o = {}) => {
-    const { sx = 1, sy = 1, sz = 1, ry = 0, rz = 0, graine: g = 1, fond = -0.62, mousse = 0.45, finesse = 2, trait = true } = o;
+    const { sx = 1, sy = 1, sz = 1, ry = 0, rz = 0, graine: g = 1, fond = -0.62, mousse = 0.45, finesse = 2, trait = true, sorte } = o;
     const tons = o.tons || [P.basalteClair, P.basalte, P.basalteFonce, P.mousseRoche, P.mousseRocheFonce];
     const k = (ux, uy, uz) => 1 + 0.1 * Math.sin(ux * 2.9 + g) * Math.cos(uy * 2.3 - g * 0.7) + 0.07 * Math.sin(uz * 3.7 + ux * 1.7 + g * 2.1) + 0.04 * Math.sin(uy * 5.3 + uz * 4.1 + g * 1.3);
     const local = (px, py, pz) => {
@@ -413,7 +413,7 @@ export function construire(ctx) {
       return [ux * kk * r * sx, Math.max(uy * kk, fond) * r * sy, uz * kk * r * sz];
     };
     a.piece(new THREE.IcosahedronGeometry(1, finesse), tons[1], {
-      x, y, z, ry, rz, ordre: 'YXZ', trait, nuance: 0.07, deformer: local,
+      x, y, z, ry, rz, ordre: 'YXZ', trait, nuance: 0.07, deformer: local, sorte,
       teinte: (px, py, pz) => {
         const h = (py - y) / (r * sy), b = bruitDoux(px * 1.9 + g * 3, pz * 1.9 - g * 3, 1.2);
         if (h > mousse + 0.3 * (b - 0.5)) return b > 0.5 ? tons[3] : tons[4];
@@ -1578,8 +1578,9 @@ export function construire(ctx) {
         const t = -1.25 + (k / 8) * 2.5;
         a.cone(0.06, 0.36, 5, BO, bz(T(Math.sin(t) * 0.13, y0 + 2.2 + Math.cos(t) * 0.03, -0.1 - 0.03 * Math.abs(t), { rx: -1.95, rz: Math.sin(t) * 0.5 })));
       }
-      // la porte de pierre, en bronze elle aussi, posée sur ses mains
-      rocherSculpte(a, ...Q(0, 3.22, 0.08), 0.62, { sx: 1.75, sy: 0.82, sz: 1.08, ry: ry + 0.12, rz: 0.1, graine: 5.3, fond: -0.9, mousse: 0.7, tons: [BO, '#4f4230', '#463a2a', PA, BO] });
+      // la porte de pierre, en bronze elle aussi, posée sur ses mains ; l'hiver, un épais coussin de neige dessus, qui
+      // descend sur ses flancs (sorte manteau : vue d'en bas, la neige de son seul dessus ne se voyait pas)
+      rocherSculpte(a, ...Q(0, 3.22, 0.08), 0.62, { sx: 1.75, sy: 0.82, sz: 1.08, ry: ry + 0.12, rz: 0.1, graine: 5.3, fond: -0.9, mousse: 0.7, tons: [BO, '#4f4230', '#463a2a', PA, BO], sorte: 'manteau' });
       monde.cercle(x, z, 1.15);
     }
     // l'arbre sacré (神木) et sa corde ; le bassin des ablutions (chōzuya) et son dragon de bronze ; le stand des
@@ -2652,9 +2653,10 @@ export function construire(ctx) {
     { id: 'chiho', x: SOMEN.x - 0.15, z: SOMEN.z0 - 1.35, cap: 0, tenue: { taille: 0.95, peau: '#f0c8a6', cheveux: '#3a2a22', coiffure: 'chignon', chapeau: { sorte: 'foulard', c: '#2f4a7a' }, haut: '#f4f0e6', manches: 'longues', tablier: '#2f4a7a', bas: { sorte: 'pantalon', c: '#3a3a42' }, chaussures: '#3a3236', semelle: '#3a3236', yeux: 'plisses' } },
     { id: 'famille', x: SOMEN.x - 1.35, z: SOMEN.z0 + 1.6, cap: PI / 2, assis: terrain(SOMEN.x - 1.35, SOMEN.z0 + 1.6) + 0.43, tenue: { taille: 0.98, peau: '#f2c9a8', cheveux: '#4a3428', coiffure: 'queue', haut: '#e8a8b8', manches: 'courtes', bas: { sorte: 'jupe', c: '#5a6a8a' }, chaussures: '#f4f0e6', semelle: '#3a3236' } },
     { id: 'petit', x: SOMEN.x - 1.35, z: SOMEN.z0 + 2.7, cap: PI / 2, assis: terrain(SOMEN.x - 1.35, SOMEN.z0 + 2.7) + 0.43, tenue: { taille: 0.72, peau: PEAU, cheveux: NOIR, coiffure: 'court', chapeau: { sorte: 'casquette', c: '#5aa64a', c2: '#ffffff' }, haut: '#f2c443', manches: 'courtes', bas: { sorte: 'short', c: '#3d5a8f' }, chaussures: P.blanc, semelle: '#3a3236' } },
-    // (dans le champ de thé, entre deux rangs : la cueilleuse)
-    // (cachée quand la caméra est loin, hors du jardin : un passant coûte une vingtaine d'appels de dessin)
-    { id: 'fermiere', x: -57, z: 30.5, cap: PI / 2 + 0.5, dedans: [-70, -38, 12, 50], tenue: { taille: 0.94, peau: '#e8bf98', cheveux: '#5a5650', coiffure: 'chignon', chapeau: { sorte: 'sugegasa', c: '#d8c08a' }, haut: '#3f5f88', manches: 'longues', tablier: '#e8e0cc', bas: { sorte: 'pantalon', c: '#4a4a56' }, chaussures: '#3a3236', semelle: '#3a3236', yeux: 'plisses' } },
+    // (dans le champ de thé, entre deux rangs : la cueilleuse. Toujours dessinée, comme les autres passants du dehors :
+    // cachée hors du jardin, caméra à plus de 14 m (dedans), elle apparaissait d'un coup devant soi en arrivant ; elle
+    // coûte 11 à 18 appels de dessin, 1 % de triangles, rien de mesurable au processeur ; 2026-10-25)
+    { id: 'fermiere', x: -57, z: 30.5, cap: PI / 2 + 0.5, tenue: { taille: 0.94, peau: '#e8bf98', cheveux: '#5a5650', coiffure: 'chignon', chapeau: { sorte: 'sugegasa', c: '#d8c08a' }, haut: '#3f5f88', manches: 'longues', tablier: '#e8e0cc', bas: { sorte: 'pantalon', c: '#4a4a56' }, chaussures: '#3a3236', semelle: '#3a3236', yeux: 'plisses' } },
     { id: 'boutique', x: BOUTIQUE.x + 1.7, z: BOUTIQUE.z, cap: PI / 2, tenue: { taille: 0.96, peau: '#f0c8a6', cheveux: '#d8d4cc', coiffure: 'chignon', haut: '#8a5a7a', manches: 'longues', tablier: '#f2ead8', bas: { sorte: 'pantalon', c: '#4a4a56' }, chaussures: '#3a3236', semelle: '#3a3236', yeux: 'plisses' } },
     // (un pas derrière le garde-corps : il était dedans)
     { id: 'videaste', x: 13.7, z: VUE_CASCADE.z - 1.6, cap: -PI / 2 - 0.1, tenue: { taille: 1.1, peau: PEAU, cheveux: '#3a2a20', coiffure: 'court', chapeau: { sorte: 'bob', c: '#2f3440' }, haut: '#2f3440', manches: 'courtes', bas: { sorte: 'pantalon', c: '#c9b48a' }, chaussures: P.blanc, semelle: '#3a3236', appareil: true } },

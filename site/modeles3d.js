@@ -65,8 +65,9 @@ const SORTES = {
   feuillu: 1, erable: 2, cerisier: 3, conifere: 4, herbe: 5, tapis: 6, eau: 7, lumiere: 8, lampe: 9, illumine: 10,
   buisson: 11, persistant: 12, houppier: 21, houppierErable: 22, houppierCerisier: 23,
   // (la balade, Gokayama : le chaume des toits, que la neige couvre même en pente ; le riz des rizières, une herbe qui
-  // jaunit à l'automne et qu'on moissonne : il tombe, comme les houppiers, 20 + la sorte de l'herbe)
-  chaume: 13, riz: 25,
+  // jaunit à l'automne et qu'on moissonne : il tombe, comme les houppiers, 20 + la sorte de l'herbe ; manteau : le même
+  // épais manteau de neige sur autre chose, la pierre que porte la statue de Tajikarao à Takachiho, 2026-10-25)
+  chaume: 13, manteau: 13, riz: 25,
   // (Gokayama : les croisillons des shōji, qui s'éclairent un peu la nuit, vus de loin : sombres, d'un pixel de large, ils
   // grésillaient sur le papier allumé quand la caméra bougeait, 2026-10-24)
   treillis: 14,
