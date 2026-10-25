@@ -1795,7 +1795,8 @@ export function construire(ctx) {
     pendu.rotation.y = PI;
     pendu.visible = false;
     objet.add(pendu);
-    const lueurPendu = points(1, 1.6, '#fff0c0');
+    // (sa lueur : petite, pour ne pas faire une tache blanche quand la caméra est tout près)
+    const lueurPendu = points(1, 0.6, '#fff0c0');
     lueurPendu.geometry.attributes.position.setXYZ(0, pendu.position.x, pendu.position.y, pendu.position.z + 0.05);
     lueurPendu.visible = false;
     objet.add(lueurPendu);
@@ -1810,7 +1811,7 @@ export function construire(ctx) {
         const p = 0.6 + 0.4 * Math.sin(temps * 3.1) * Math.sin(temps * 1.7 + 1);
         eclat.material.size = 6 + 5 * p;
         lueur.material.size = 0.45 + 0.3 * p;
-        lueurPendu.material.size = 1.4 + 0.4 * Math.sin(temps * 2);
+        lueurPendu.material.size = 0.5 + 0.15 * Math.sin(temps * 2);
         pendu.visible = lueurPendu.visible = secretTrouve('miroir') || pendu.visible;
         pendu.rotation.y = PI + Math.sin(temps * 0.8) * 0.25;
         return [];
@@ -1825,24 +1826,77 @@ export function construire(ctx) {
     const q = R(0, y0 + 2.1, 0.1);
     roc.position.set(q.x, q.y, q.z);
     objet.add(roc);
-    // la lumière : un cône doré qui sort de la grotte, additif, qui s'efface
-    const rayon = new THREE.Mesh(new THREE.CylinderGeometry(3.4, 1.15, 10, 28, 1, true), new THREE.ShaderMaterial({
+    // la lumière qui jaillit : un éventail de rayons dorés (additifs) qui partent de la grotte, toujours tournés vers la
+    // caméra autour de la verticale (ils restent droits, et devant la falaise : leur plan est à 2 m de l'entrée) ; ils
+    // poussent d'un coup, chatoient, puis s'effacent. (Un cône de lumière, vu d'en face depuis le lieu de prière, ne se
+    // voyait presque pas : on regardait dans son axe.)
+    const CENTRE_RAIS = new THREE.Vector3(GROTTE.x, y0 + 2.5, GROTTE.z + 2.2), NB_RAIS = 15;
+    const posR = [], raiR = [];
+    for (let i = 0; i < NB_RAIS; i++) {
+      // (de −100° à +100° autour de la verticale ; un rayon sur deux plus large, des longueurs de 6 à 12 m)
+      const ang = ((i / (NB_RAIS - 1)) - 0.5) * 3.5 + (hasard(i, 7.7) - 0.5) * 0.14;
+      const L = 6 + 6 * hasard(i, 3.3), demi = (i % 2 ? 0.045 : 0.075) * (0.8 + 0.4 * hasard(i, 5.1)), r0 = 0.45;
+      const ax = Math.sin(ang), ay = Math.cos(ang), px = ay, py = -ax, g = hasard(i, 9.4);
+      const coin = (r, w, sv, u) => { posR.push(ax * r + px * w, ay * r + py * w, 0); raiR.push(sv, u, g); };
+      const w0 = 0.1, w1 = L * demi;
+      // (deux triangles : la base, étroite, près de la grotte ; le bout, large)
+      coin(r0, -w0, 0, -1); coin(L, -w1, 1, -1); coin(L, w1, 1, 1);
+      coin(r0, -w0, 0, -1); coin(L, w1, 1, 1); coin(r0, w0, 0, 1);
+    }
+    const geoRais = new THREE.BufferGeometry();
+    geoRais.setAttribute('position', new THREE.Float32BufferAttribute(posR, 3));
+    geoRais.setAttribute('rai', new THREE.Float32BufferAttribute(raiR, 3));
+    const rais = new THREE.Mesh(geoRais, new THREE.ShaderMaterial({
       transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
-      uniforms: { force: { value: 0 }, couleur: { value: new THREE.Color('#ffd98a') } },
-      vertexShader: `varying float vH; varying vec3 vN; varying vec3 vV;
-        void main() { vH = uv.y; vec4 mv = modelViewMatrix * vec4(position, 1.0); vN = normalMatrix * normal; vV = -mv.xyz; gl_Position = projectionMatrix * mv; }`,
-      fragmentShader: `uniform float force; uniform vec3 couleur; varying float vH; varying vec3 vN; varying vec3 vV;
+      uniforms: { force: { value: 0 }, pousse: { value: 0 }, temps: { value: 0 }, centre: { value: CENTRE_RAIS }, couleur: { value: new THREE.Color('#ffd27a') } },
+      vertexShader: `uniform vec3 centre; uniform float pousse; uniform float temps;
+        attribute vec3 rai; varying vec3 vRai;
         void main() {
-          float face = pow(abs(dot(normalize(vN), normalize(vV))), 1.1);
-          float allonge = (1.0 - vH) * (1.0 - vH) * smoothstep(0.0, 0.06, vH);
-          gl_FragColor = vec4(couleur * force * face * allonge, 1.0);
+          vRai = rai;
+          // (le plan des rayons : face à la caméra, autour de la verticale)
+          vec3 versCam = cameraPosition - centre; versCam.y = 0.0;
+          vec3 droite = normalize(vec3(versCam.z, 0.0, -versCam.x) + vec3(1e-5, 0.0, 0.0));
+          // (ils poussent depuis la grotte, et leur longueur respire un peu, chacun à son rythme)
+          float l = mix(0.12, 1.0, pousse) * (0.93 + 0.07 * sin(temps * (1.1 + rai.z) + rai.z * 6.283));
+          vec2 p = position.xy * mix(1.0, l, rai.x);
+          vec3 w = centre + droite * p.x + vec3(0.0, p.y, 0.0);
+          gl_Position = projectionMatrix * viewMatrix * vec4(w, 1.0);
+        }`,
+      fragmentShader: `uniform float force; uniform float temps; uniform vec3 couleur; varying vec3 vRai;
+        void main() {
+          float s = vRai.x, bord = 1.0 - smoothstep(0.2, 1.0, abs(vRai.y));
+          float fondu = pow(1.0 - s, 1.5) * smoothstep(0.0, 0.06, s);
+          float chatoie = 0.72 + 0.28 * sin(temps * (2.3 + 1.7 * vRai.z) + vRai.z * 6.283);
+          // (plus blanc près de la grotte, plus doré au bout)
+          vec3 c = mix(vec3(1.0, 0.97, 0.86), couleur, smoothstep(0.0, 0.5, s));
+          gl_FragColor = vec4(c * force * bord * fondu * chatoie, 1.0);
         }`,
     }));
-    // (le cône : l'axe y du cylindre tourné vers le sud et vers le ciel, son bout étroit à la grotte)
-    rayon.rotation.x = PI / 2 - 0.75;
-    rayon.position.set(GROTTE.x, y0 + 2.4 + 5 * Math.sin(0.75), GROTTE.z + 0.4 + 5 * Math.cos(0.75));
-    rayon.renderOrder = 3;
-    objet.add(rayon);
+    rais.frustumCulled = false;
+    rais.renderOrder = 3;
+    rais.visible = false;
+    // le cœur éblouissant, à l'entrée ; et le dedans de la grotte qui s'allume quand la pierre roule (une lueur chaude qui
+    // reste ensuite : on voit de loin que la porte est ouverte)
+    const coeur = points(1, 7, '#fff1c8');
+    coeur.geometry.attributes.position.setXYZ(0, GROTTE.x, y0 + 2.4, GROTTE.z + 1.0);
+    coeur.visible = false;
+    const dedans = new THREE.Mesh(new THREE.PlaneGeometry(3.3, 4.5), new THREE.ShaderMaterial({
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+      uniforms: { force: { value: 0 }, temps: { value: 0 } },
+      vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+      fragmentShader: `uniform float force; uniform float temps; varying vec2 vUv;
+        void main() {
+          vec2 d = (vUv - vec2(0.5, 0.42)) * vec2(1.6, 1.15);
+          float r = 1.0 - smoothstep(0.0, 0.62, length(d));
+          float vacille = 0.9 + 0.1 * sin(temps * 3.1) * sin(temps * 1.7 + 1.3);
+          gl_FragColor = vec4(mix(vec3(1.0, 0.62, 0.22), vec3(1.0, 0.93, 0.7), r) * r * force * vacille, 1.0);
+        }`,
+    }));
+    // (juste devant le fond sombre de la niche, derrière le devant de la pierre : fermée, elle le cache)
+    dedans.position.set(GROTTE.x, y0 + 2.3, GROTTE.z + 0.26);
+    dedans.renderOrder = 2;
+    dedans.visible = false;
+    objet.add(rais, coeur, dedans);
     const koban = ctx.maillage(atelier().ovale(0.045, '#f2c84f', { sy: 0.15, sz: 1.4 }, 10).fin(0, false));
     koban.position.set(OFFRANDES.x, 0.8, OFFRANDES.z);
     koban.scale.setScalar(1.8);
@@ -1852,12 +1906,12 @@ export function construire(ctx) {
     brille.visible = false;
     objet.add(koban, brille);
     // (tOuvre : le temps depuis qu'elle s'ouvre ; Infinity : ouverte depuis toujours, le secret déjà trouvé ; −1 : fermée)
-    let tOuvre = secretTrouve('miroir') ? Infinity : -1, eclat = 0, kobanLa = false;
+    let tOuvre = secretTrouve('miroir') ? Infinity : -1, eclat = 0, tJaillit = -1, kobanLa = false;
     return {
       objet,
       ouvrir() { tOuvre = 0; },
       /** La lumière jaillit de la grotte. */
-      jaillir() { eclat = 1; },
+      jaillir() { eclat = 1; tJaillit = 0; },
       montrerKoban() { kobanLa = true; },
       prendreKoban() { kobanLa = false; },
       get kobanVisible() { return kobanLa; },
@@ -1876,9 +1930,24 @@ export function construire(ctx) {
         const p = R(-2.6 * ouvre + tremble, y0 + 2.1 - 0.5 * ouvre, 0.1 - 0.8 * ouvre);
         roc.position.set(p.x, p.y, p.z);
         roc.rotation.z = 1.1 * ouvre;
-        eclat = Math.max(0, eclat - dt * 0.12);
-        rayon.material.uniforms.force.value = 1.9 * Math.min(1, eclat * 2.5);
-        rayon.visible = eclat > 0.01;
+        // la lumière : les rayons poussent d'un coup (ease-out), éblouissent un instant (un éclat qui retombe), tiennent
+        // quelques secondes et s'effacent ; le dedans s'allume avec la porte qui roule, flambe, puis garde une lueur
+        eclat = Math.max(0, eclat - dt * 0.11);
+        if (tJaillit >= 0) tJaillit += dt;
+        const e = Math.min(1, eclat * 2.5), coup = tJaillit >= 0 ? Math.exp(-tJaillit * 2.2) : 0;
+        const uR = rais.material.uniforms;
+        uR.force.value = 1.7 * e * (1 + 0.8 * coup);
+        uR.pousse.value = tJaillit >= 0 ? 1 - Math.exp(-tJaillit * 6) : 0;
+        uR.temps.value = temps;
+        rais.visible = eclat > 0.01;
+        coeur.visible = eclat > 0.01;
+        coeur.material.opacity = e * (0.85 + 0.15 * Math.sin(temps * 3.4));
+        coeur.material.size = 5 + 4 * coup + 1.2 * e;
+        const base = tOuvre === Infinity ? 0.35 : tOuvre >= 0 ? 0.7 * ouvre : 0;
+        const uD = dedans.material.uniforms;
+        uD.force.value = Math.max(base, 1.4 * e);
+        uD.temps.value = temps;
+        dedans.visible = uD.force.value > 0.005;
         koban.visible = brille.visible = kobanLa;
         koban.rotation.y = temps * 1.4;
         brille.material.size = 0.28 + 0.12 * Math.sin(temps * 5);
@@ -2112,14 +2181,16 @@ export function construire(ctx) {
         await jeu.attendre(700);
         // (des éclats de roche qui tombent devant la grotte quand la pierre se met à rouler)
         jeu.terre(GROTTE.x + 0.6, NIV_I + 2.2, GROTTE.z + 1.0, NIV_I + 0.35, 14);
-        await jeu.attendre(1500);
+        const [grondement, lumiere] = jeu.tx('lumiere');
+        await Promise.all([jeu.dire([grondement]), jeu.attendre(1400)]);
+        // la lumière jaillit dans le noir de l'éclipse ; un instant après, le jour revient
         porte.jaillir();
-        jeu.eclat('#ffe7a0', 1.4);
+        jeu.eclat('#ffe7a0', 0.8);
         jeu.son('magie');
+        await jeu.attendre(1900);
         jeu.nuit(false);
-        await jeu.attendre(1500);
         jeu.danserCompagnon(false);
-        await jeu.dire(jeu.tx('lumiere'));
+        await jeu.dire([lumiere]);
         porte.montrerKoban();
         jeu.cadrer({ de: [YOHAI.x + 2.4, 1.9, YOHAI.z + 1.6], vers: [OFFRANDES.x, 0.8, OFFRANDES.z], champ: 50 });
         await jeu.attendre(500);
