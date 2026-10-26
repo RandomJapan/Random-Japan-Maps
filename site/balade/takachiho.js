@@ -151,7 +151,7 @@ function piedNordEn(x) {
 }
 /** Le couloir de vue du lieu de prière vers la grotte d'Amaterasu, de l'autre côté de la rivière : ni arbre ni buisson. */
 const vueGrotte = (x, z) => z < YOHAI.z - 1 && z > GROTTE.z + 0.5 && Math.abs(x - GROTTE.x) < 3.6 + 0.14 * (YOHAI.z - z);
-const DEPART = { x: -0.6, z: 65.1 };
+const DEPART = { x: -0.6, z: 65.25 };
 
 // ---------------------------------------------------------------- La géométrie de la gorge
 /** Les segments de l'axe de la gorge (précalculés). */
@@ -412,7 +412,11 @@ function terrain(x, z) {
     if (u > -2 && u < l + 2 && w < 1.8) {
       const yl = ay + (by - ay) * Math.min(1, Math.max(0, u / l)), cible = yl - 0.05 - 0.25 * lisse(-0.7, 0.1, u) * (1 - lisse(l - 0.1, l + 0.7, u));
       const f = (1 - lisse(1.8, 3.0, w)) * (1 - lisse(1.25, 1.8, -u)) * (1 - lisse(l + 1.25, l + 1.8, u));
-      if (h > cible) h -= (h - cible) * f;
+      // (du côté de la rivière, en bas, à côté des marches : là où le muret s'arrête avant elles, le sol reste au niveau de
+      // la corniche, sans creux)
+      const ws = (x - ax) * ez - (z - az) * ex, garde = ws < 0 ? lisse(0.8, 0.95, w) * lisse(l - 1.6, l - 0.9, u) : 0;
+      const c2 = cible + (Math.max(cible, by - 0.02) - cible) * garde;
+      if (h > c2) h -= (h - c2) * f;
     }
   }
   // sous le tablier des ponts : le sol reste dessous (au bout est, la promenade est un peu plus haute que le tablier, et le
@@ -476,6 +480,12 @@ function libreSousYasu(x, z) {
   const ly = SOL_YASU - 0.5 + (archeYasu((u0 + u1) / 2)[1] - SOL_YASU + 0.5) * 1.02;
   return SOL_YASU - 0.5 + (ly - SOL_YASU + 0.5) * c ** 0.7 - terrain(x, z);
 }
+/** Le bord d'une corniche de la rivière Iwato, là où elle tombe dans l'eau (sa grille de sol de 25 cm : solDetaille). */
+function bordCorniche(x, z) {
+  if (x > -20 || z > -100) return false;
+  const v = surIwato(x, z);
+  return v.d > 2.2 && v.d < 3.7 && (v.cote < 0 ? x > -73 && x < -27 : x > -92.5 && x < -56);
+}
 /** Le ponton et l'escalier des barques (dans la gorge, le long de la paroi ouest). */
 function dansEscalier(x, z) {
   if (z < ESCALIER.z0 - 2.4 || z > PONTON.z1) return false;
@@ -499,9 +509,13 @@ function dansLeCadreNu(x, z) {
     const e = surLaLigne(DESCENTE, x, z);
     if (e.d < 0.7) return true;
     const v = surIwato(x, z);
-    if (v.cote < 0 && x > -70 && x < -46 && v.d > 3.1 && v.d < 5.2) return true;
+    // (les corniches s'arrêtent 30 cm avant leur bord, qui tombe dans l'eau, ses pieds sur le plat : 2026-10-26, « à côté du
+    // pont qui mène à la grotte, le personnage flotte au-dessus de l'eau » : on allait jusqu'au bord, où la grille du sol,
+    // d'un mètre, descendait en biais vers l'eau ; on y était jusqu'à 40 cm au-dessus du sol dessiné. Sa grille y est aussi
+    // de 25 cm : bordCorniche, solDetaille)
+    if (v.cote < 0 && x > -70 && x < -46 && v.d > 3.3 && v.d < 5.2) return true;
     if (surLaLigne([[PONT_I.sx, PONT_I.sz], [PONT_I.nx, PONT_I.nz]], x, z).d < 0.75) return true;
-    if (v.cote > 0 && x < -59 && x > -90.5 && v.d > 3.1 && v.d < PIED_NORD(v.cx) - 0.25) return true;
+    if (v.cote > 0 && x < -59 && x > -90.5 && v.d > 3.3 && v.d < PIED_NORD(v.cx) - 0.25) return true;
     // (la grotte des dieux : partout où sa voûte passe à plus de 1,8 m au-dessus du sol ; 2026-10-26, « j'étais bloqué par un
     // mur invisible » : on n'allait que dans une ellipse, et tout autour, sur 1 à 2 m, la voûte était encore à 2 à 5 m)
     if (z < YASU.z + 0.4 + penteYasu() * (x - YASU.x) && Math.abs(x - YASU.x) < YASU.rx + 0.5 && libreSousYasu(x, z) > 1.8) return true;
@@ -616,7 +630,8 @@ export function construire(ctx) {
   const lanterne = (a, x, z, y = terrain(x, z)) => {
     a.lanterne(x, z, 6, y);
     lumieres.push({ x, y: y + 1.2, z, halo: 0.42, sol: y, r: 2.6 });
-    monde.cercle(x, z, 0.4);
+    // (son toit, à hauteur de tête, a 39 cm de rayon : le corps à côté)
+    monde.cercle(x, z, 0.6);
   };
   /**
    * Un banc de bois (assise à 0,45 m), long de l, en x, z, tourné vers cap ; on peut s'y asseoir. L'assise de deux
@@ -639,7 +654,9 @@ export function construire(ctx) {
     for (const h of [0.62, 0.81]) { const [yy, zz] = montant(h, 0.043); a.boite(l - 0.08, 0.1, 0.03, P.bois2, R(0, yy, zz, T)); }
     const A = R(-l / 2 + 0.25, 0, 0.02), B = R(l / 2 - 0.25, 0, 0.02);
     bancs.push({ de: [A.x, A.z], a: [B.x, B.z], y: y + 0.48, cap, vue: 0.3 });
-    monde.mur(R(-l / 2, 0, 0).x, R(-l / 2, 0, 0).z, R(l / 2, 0, 0).x, R(l / 2, 0, 0).z, 0.25);
+    // (sur toute sa profondeur, de l'avant de l'assise au haut du dossier, et le corps du joueur : à 25 cm de la ligne de
+    // l'assise, il entrait dans le dossier ; 2026-10-26)
+    monde.mur(R(-l / 2 + 0.2, 0, -0.05).x, R(-l / 2 + 0.2, 0, -0.05).z, R(l / 2 - 0.2, 0, -0.05).x, R(l / 2 - 0.2, 0, -0.05).z, 0.48);
   };
   /**
    * Un gros rocher arrondi par le temps (la pierre de Kihachi, la porte de la grotte, celle que porte Tajikarao) : un
@@ -927,7 +944,9 @@ export function construire(ctx) {
       // son pied, et l'on voyait entre elle et les colonnes, plus en retrait, le vide sous l'escalier)
       const w = ESCALIER.l + 0.35 + (i % 2 ? 0.012 : 0), xm = px + 0.02 - 0.35 - (i % 2 ? 0.006 : 0);
       a.boite(w, 0.34, giron + 0.03, i % 3 ? P.pierre : P.pierreFonce, { x: xm + w / 2, y: yHaut - monte * 0.5 - 0.17 + monte * 0.5, z });
-      ligne.push([px + 0.95, z, yHaut - monte * 0.5]);
+      // (le chemin au ras du dessus de la marche, en son milieu : il passait une demi-hauteur de marche plus bas, et les pieds
+      // entraient de 9 cm dans chaque marche ; 2026-10-26)
+      ligne.push([px + 0.95, z, yHaut]);
       rampe.push([px + ESCALIER.l + 0.06, z, yHaut]);
       void yT;
     }
@@ -987,7 +1006,8 @@ export function construire(ctx) {
       const [p0] = piedParoi(-1, PONTON.z0), [p1] = piedParoi(-1, PONTON.z1), px = Math.max(p0, p1);
       const x0 = Math.min(p0, p1) - 0.2, x1 = px + PONTON.l, zc = (PONTON.z0 + PONTON.z1) / 2;
       a.boite(x1 - x0, 0.14, PONTON.z1 - PONTON.z0, P.bois, { x: (x0 + x1) / 2, y: PONTON.y - 0.07, z: zc });
-      for (let z = PONTON.z0 + 0.6; z < PONTON.z1; z += 2.2) a.cylindre(0.1, 0.1, 2.3, 7, P.boisFonce, { x: x1 - 0.12, y: PONTON.y - 1.1, z });
+      // (les pieux dépassent du plancher d'un mètre : on s'y arrête, le corps à côté)
+      for (let z = PONTON.z0 + 0.6; z < PONTON.z1; z += 2.2) { a.cylindre(0.1, 0.1, 2.3, 7, P.boisFonce, { x: x1 - 0.12, y: PONTON.y - 1.1, z }); monde.cercle(x1 - 0.12, z, 0.36); }
       // les planches : des lignes plus sombres
       for (let z = PONTON.z0 + 0.3; z < PONTON.z1 - 0.1; z += 0.3) a.boite(x1 - x0 - 0.04, 0.012, 0.025, P.boisFonce, { x: (x0 + x1) / 2, y: PONTON.y + 0.005, z, trait: false });
       monde.surface(x0, x1, PONTON.z0, PONTON.z1, PONTON.y, { sol: 'bois' });
@@ -995,7 +1015,7 @@ export function construire(ctx) {
       for (const [za, zb] of [[PONTON.z0 + 4.4, PONTON.z1 - 0.2]]) {
         for (let z = za; z <= zb + 0.01; z += 1.6) a.boite(0.07, 0.75, 0.07, P.boisFonce, { x: x1 - 0.06, y: PONTON.y + 0.37, z });
         a.baton([x1 - 0.06, PONTON.y + 0.68, za], [x1 - 0.06, PONTON.y + 0.68, zb], 0.018, '#d8c08a', 4);
-        monde.mur(x1 - 0.05, za, x1 - 0.05, zb, 0.12);
+        monde.mur(x1 - 0.05, za, x1 - 0.05, zb, 0.3);
       }
       monde.mur(x1 - 0.05, PONTON.z0, x1 - 0.05, PONTON.z0 + 0.4, 0.12);
       monde.mur(x0, PONTON.z1 - 0.05, x1, PONTON.z1 - 0.05, 0.12);
@@ -1015,7 +1035,8 @@ export function construire(ctx) {
       ecrire(Rk(0.9, yp, 0.45, { ry: PI / 2 }), { texte: '30分 2000円', sous: '30 min', fond: '#f4ecd8', encre: '#2a2420', x: 0, y: 1.35, z: 0.01, l: 0.62, h: 0.34, cadre: true });
       for (let k = 0; k < 3; k++) a.boite(0.36, 0.48, 0.1, '#e8742e', Rk(-0.95, yp + 1.35 - (k % 2) * 0.05, -0.5 + k * 0.42, { trait: false })).boite(0.3, 0.06, 0.11, '#3a3a40', Rk(-0.95, yp + 1.33, -0.5 + k * 0.42, { trait: false }));
       for (const dz of [-0.62, -0.45]) { const A = Rk(0.96, 0, dz), B2 = Rk(1.06, 0, dz + 0.1); a.baton([A.x, yp + 0.05, A.z], [B2.x, yp + 2.0, B2.z], 0.025, P.bois, 5).boite(0.12, 0.4, 0.03, P.bois2, { x: A.x, y: yp + 0.25, z: A.z, ry: PI / 2 }); }
-      monde.cercle(cx, cz, 1.25);
+      // (la cabane, 1,84 × 2,04 m et son comptoir : un cercle de 1,25 m laissait le corps entrer dans ses coins ; 2026-10-26)
+      monde.mur(Rk(0, 0, -0.2).x, Rk(0, 0, -0.2).z, Rk(0, 0, 0.45).x, Rk(0, 0, 0.45).z, 1.18);
       lumieres.push({ x: cx + 1.05, y: PONTON.y + 1.9, z: cz, halo: 0.35, sol: PONTON.y, r: 3.0, c: '#fff1d0' });
       // les bouées, accrochées à la cabane
       for (const dz of [-0.55, 0.55]) a.piece(new THREE.TorusGeometry(0.2, 0.06, 6, 14), dz < 0 ? '#e8452e' : '#f4efe6', { x: cx + 0.9, y: PONTON.y + 1.2, z: cz + dz, ry: PI / 2, teinte: (x, y, z) => (Math.floor(Math.atan2(y - PONTON.y - 1.2, z - cz - dz) * 2 / PI + 4) % 2 ? '#e8452e' : '#f4efe6') });
@@ -1321,7 +1342,9 @@ export function construire(ctx) {
       a.boite(L, 1.03, 0.3, P.pierre, { x: (x0 + x1) / 2, y: (y0 + y1) / 2 + 0.165, z: zz, rz: t })
         .boite(L + 0.06, 0.08, 0.38, P.pierreFonce, { x: (x0 + x1) / 2, y: (y0 + y1) / 2 + 0.72, z: zz + s * 0.004, rz: t });
       for (const xb2 of [x0, x1]) a.boite(0.42, 1.3, 0.42, P.pierreFonce, { x: xb2, y: yA(xb2) + 0.3, z: zz });
-      monde.mur(x0, zz, x1, zz, 0.2);
+      // (le milieu du joueur à 45 cm de l'axe du muret, son corps avant la pierre ; à 20 cm, on y entrait jusqu'à la taille,
+      // et dans les bornes des deux bouts : 2026-10-26)
+      monde.mur(x0, zz, x1, zz, 0.45);
     }
     monde.rampe(x0, x1, Pt.z - l / 2 + 0.25, Pt.z + l / 2 - 0.25, 'x', y0 + 0.0, y1 + 0.0, { sol: 'pierre' });
     poser(a.fin(0, peinture), 0, 0, { y: 0 });
@@ -1470,7 +1493,8 @@ export function construire(ctx) {
       // (deux pierres d'appui sous ses bouts, sur les bords du canal)
       .boite(0.5, 0.3, 1.5, P.pierreFonce, { x: dx0 - uz * 1.08, y: -0.08, z: dz0 + ux * 1.08, ry: ryD })
       .boite(0.5, 0.3, 1.5, P.pierreFonce, { x: dx0 + uz * 1.08, y: -0.08, z: dz0 - ux * 1.08, ry: ryD });
-    monde.chemin([[dx0 - uz * 1.3, dz0 + ux * 1.3, 0.21], [dx0 + uz * 1.3, dz0 - ux * 1.3, 0.21]], 0.6, { sol: 'pierre' });
+    // (bouts droits : arrondis, ils dépassaient de 60 cm la pierre, et l'on flottait à 18 cm au-dessus du chemin)
+    monde.chemin([[dx0 - uz * 1.3, dz0 + ux * 1.3, 0.21], [dx0 + uz * 1.3, dz0 - ux * 1.3, 0.21]], 0.6, { sol: 'pierre', droits: true });
     poser(a.fin(0, peinture), 0, 0, { y: 0 });
     // (on ne marche pas dans le canal ni sur ses murs : le long de chacun, un mur qui arrête le joueur à 1,08 m de la ligne
     // du canal (son corps avant la pierre), sauf à la dalle, où il s'arrête à son bord ; deux en travers, le long des bords
@@ -1566,8 +1590,10 @@ export function construire(ctx) {
     a.boite(9.1, 0.12, 6.1, BN, R(0, y + 3.46, 0));
     auventTour(a, R, [-4.17, 4.17, -2.77, 2.37], [-5.2, 5.2, -3.6, 3.75], y + 3.92, y + 3.42);
     a.boite(2.9, 0.78, 0.12, '#3a2a20', R(0, y + 4.12, 3.12)).boite(3.04, 0.9, 0.06, '#8a6a48', R(0, y + 4.12, 3.05));
-    for (const sg of [-1, 1]) a.boite(0.1, 0.16, 0.16, BN, R(sg * 1.1, y + 3.72, 3.1));
-    ecrire(R(0, y, 3.19), { texte: '千穂の家', fond: '#3a2a20', encre: '#f4ecd8', x: 0, y: 4.12, z: 0, l: 2.6, h: 0.62, cadre: true });
+    // (ses pieds, du toit jusque sous l'enseigne, un peu en retrait de ses faces : 2026-10-26, « le panneau scintille » ;
+    // leur face avant était dans le plan de l'enseigne, leur face arrière dans celui du cadre, et elles se mêlaient en rayures)
+    for (const sg of [-1, 1]) a.boite(0.1, 0.12, 0.09, BN, R(sg * 1.1, y + 3.685, 3.11));
+    ecrire(R(0, y, 3.2), { texte: '千穂の家', fond: '#3a2a20', encre: '#f4ecd8', x: 0, y: 4.12, z: 0, l: 2.6, h: 0.62, cadre: true });
     // l'étage, un peu en retrait : l'enduit, ses poteaux, sa poutre, trois fenêtres de papier et leur balustrade
     a.boite(8.4, 2.3, 5.2, P.blanc, R(0, y + 4.6, -0.2));
     for (const lx of [-4.2, -1.4, 1.4, 4.2]) a.boite(0.18, 2.3, 0.18, BN, R(lx, y + 4.6, 2.43));
@@ -1587,10 +1613,12 @@ export function construire(ctx) {
       a.boite(0.6, 0.8, 0.04, '#2a2e2a', { ...q, y: y + 0.95 }).boite(0.66, 0.86, 0.03, BN, { ...q, y: y + 0.95, x: q.x - Math.sin(q.ry) * 0.012, z: q.z - Math.cos(q.ry) * 0.012 });
       for (const sg of [-1, 1]) a.boite(0.04, 0.95, 0.04, BN, { ...R(-2.4 + sg * 0.26, 0, 4.0, { ry: 0.25 }), y: y + 0.47 });
       ecrire({ ...q, y }, { texte: 'そうめん 600円', vertical: true, fond: null, encre: '#f4f0e6', x: 0, y: 0.95, z: 0.025, l: 0.22, h: 0.7 });
+      monde.cercle(q.x, q.z, 0.55);
     }
     monde.bloc(CHIHO.x - 3.1, CHIHO.x + 3.1, CHIHO.z - 4.6, CHIHO.z + 4.6, -1, 5);
-    // (un bâtiment plein : on n'y entre pas)
-    monde.surface(CHIHO.x - 3.05, CHIHO.x + 3.05, CHIHO.z - 4.55, CHIHO.z + 4.55, 5, { plein: true });
+    // (un bâtiment plein : on n'y entre pas. 30 cm de plus que son socle tout autour : le joueur s'arrête par son milieu, et à
+    // son bord, son corps entrait de 20 à 30 cm dans les murs et les poteaux ; 2026-10-26)
+    monde.surface(CHIHO.x - 3.35, CHIHO.x + 3.35, CHIHO.z - 4.85, CHIHO.z + 4.85, 5, { plein: true });
     poser(a.fin(0, peinture), 0, 0, { y: 0 });
   }
   {
@@ -1599,7 +1627,7 @@ export function construire(ctx) {
     const a = atelier(), x = SOMEN.x, z0 = SOMEN.z0 - 0.6, z1 = SOMEN.z1 + 0.6, y = 0;
     for (const [px, pz] of [[x - 1.6, z0 - 0.4], [x + 2.4, z0 - 0.4], [x - 1.6, z1 + 0.4], [x + 2.4, z1 + 0.4], [x - 1.6, (z0 + z1) / 2], [x + 2.4, (z0 + z1) / 2]]) {
       a.boite(0.16, 2.6, 0.16, P.bois, { x: px, y: y + 1.3, z: pz });
-      monde.cercle(px, pz, 0.18);
+      monde.cercle(px, pz, 0.36);
     }
     // (son bord ouest 30 cm avant celui de l'auvent du restaurant, plus haut : avant le 2026-10-26, ils se recouvraient)
     a.toitJapon(5.0, z1 - z0 + 2.2, 0.9, 0.1, { x: x + 0.55, y: y + 2.6, z: (z0 + z1) / 2, releve: 0.08, tuile: '#7a6a52', tuile2: '#86765c', bord: P.boisFonce });
@@ -1638,7 +1666,7 @@ export function construire(ctx) {
     for (let k = 0; k < 4; k++) {
       const zk = SOMEN.z0 + 1.0 + k * 1.9;
       a.cylindre(0.2, 0.18, 0.45, 10, P.bois, { x: x + 0.85, y: y + 0.225, z: zk });
-      monde.cercle(x + 0.85, zk, 0.25);
+      monde.cercle(x + 0.85, zk, 0.42);
     }
     // de l'autre côté, la table où mangent les gens
     a.boite(0.6, 0.06, L, P.bois, { x: x - 0.75, y: y + 0.72, z: (SOMEN.z0 + SOMEN.z1) / 2 });
@@ -1650,8 +1678,12 @@ export function construire(ctx) {
       a.cylindre(0.08, 0.05, 0.06, 10, '#f4efe6', { x: x - 0.7, y: y + 0.78, z: zk }).cylindre(0.066, 0.066, 0.01, 10, '#a8723e', { x: x - 0.7, y: y + 0.802, z: zk, trait: false });
       a.boite(0.012, 0.01, 0.22, '#c9a06a', { x: x - 0.55, y: y + 0.76, z: zk, trait: false });
     }
+    // (la gouttière et ses tréteaux ; le tonneau et le baquet ; la table et son banc, d'un seul mur : avant le 2026-10-26, le
+    // banc n'arrêtait rien, et l'on y entrait sur toute sa longueur)
     monde.mur(x, SOMEN.z0 - 0.9, x, SOMEN.z1 + 0.7, 0.32);
-    monde.mur(x - 0.75, SOMEN.z0, x - 0.75, SOMEN.z1, 0.42);
+    monde.cercle(x, SOMEN.z0 - 0.5, 0.64);
+    monde.cercle(x, SOMEN.z1 + 0.42, 0.56);
+    monde.mur(x - 1.0, SOMEN.z0 - 0.1, x - 1.0, SOMEN.z1 + 0.1, 0.78);
     // la pancarte « 流しそうめん »
     ecrire({ x: x + 2.4, y, z: SOMEN.z0 - 0.4, ry: PI / 2 }, { texte: '流しそうめん', vertical: true, fond: '#f4ecd8', encre: '#b8402a', x: 0.12, y: 1.5, z: 0, l: 0.36, h: 1.5, cadre: true });
     poser(a.fin(0, peinture), 0, 0, { y: 0 });
@@ -1718,18 +1750,23 @@ export function construire(ctx) {
       const q = R(sg * 2.45, 0, 4.05);
       a.cylindre(0.035, 0.035, 3.3, 6, '#d8d0c0', { x: q.x, y: y + 1.65, z: q.z }).boite(0.5, 2.0, 0.015, c, { ...R(sg * 2.45 + 0.27, 0, 4.05), y: y + 2.1, trait: false });
       ecrire({ ...R(sg * 2.45 + 0.27, 0, 4.06), y }, { texte, vertical: true, fond: null, encre: '#f8f4ea', x: 0, y: 2.1, z: 0.01, l: 0.3, h: 1.7 });
-      monde.cercle(q.x, q.z, 0.15);
+      // (le mât et le tissu, à hauteur de tête : la tête y entrait)
+      const q2 = R(sg * 2.45 + 0.52, 0, 4.05);
+      monde.mur(q.x, q.z, q2.x, q2.z, 0.3);
     }
     // le distributeur de boissons, contre le mur nord ; sa vitrine éclairée
     {
       a.boite(0.95, 1.85, 0.8, '#e9edf1', R(3.5, y + 0.925, 1.6)).boite(0.7, 0.62, 0.02, '#d7ecf6', R(3.5, y + 1.35, 2.01, { sorte: 'lampe', trait: false }));
       for (let k = 0; k < 8; k++) a.boite(0.07, 0.16, 0.02, COUL[k % COUL.length], R(3.5 - 0.28 + (k % 4) * 0.19, y + 1.2 + Math.floor(k / 4) * 0.28, 2.025, { trait: false }));
       lumieres.push({ ...R(3.5, 0, 2.6), y: y + 1.3, halo: 0.2, sol: y, r: 2.0, c: '#e8f4ff' });
-      monde.cercle(R(3.5, 0, 1.6).x, R(3.5, 0, 1.6).z, 0.6);
+      monde.cercle(R(3.5, 0, 1.6).x, R(3.5, 0, 1.6).z, 0.85);
     }
-    monde.surface(BOUTIQUE.x - 2.25, BOUTIQUE.x + 2.25, BOUTIQUE.z - 3.05, BOUTIQUE.z + 3.05, 5, { plein: true });
+    // (2026-10-26, « je rentre dans le comptoir » : la boutique pleine s'arrêtait au bord de son socle et le mur de l'étal à
+    // 6 cm de moins que son bord ; le corps du joueur y entrait de 20 à 30 cm. Maintenant 26 cm de plus tout autour, et le mur
+    // de l'étal, sur son milieu, arrête le milieu du joueur 28 cm avant son bord)
+    monde.surface(BOUTIQUE.x - 2.52, BOUTIQUE.x + 2.48, BOUTIQUE.z - 3.32, BOUTIQUE.z + 3.32, 5, { plein: true });
     monde.bloc(BOUTIQUE.x - 2.3, BOUTIQUE.x + 2.3, BOUTIQUE.z - 3.1, BOUTIQUE.z + 3.1, -1, 4.5);
-    monde.mur(R(-2.2, 0, 2.8).x, R(-2.2, 0, 2.8).z, R(2.2, 0, 2.8).x, R(2.2, 0, 2.8).z, 0.45);
+    monde.mur(R(-2.0, 0, 2.86).x, R(-2.0, 0, 2.86).z, R(2.0, 0, 2.86).x, R(2.0, 0, 2.86).z, 0.78);
     poser(a.fin(0, peinture), 0, 0, { y: 0 });
   }
 
@@ -1752,7 +1789,9 @@ export function construire(ctx) {
       const y = terrain(p.x, p.z), b = panneau(atelier(), P, { ecrit: true });
       poser(b.fin(0, peinture), p.x, p.z, { y, ry: p.ry });
       ecrire({ x: p.x, y, z: p.z, ry: p.ry }, { ...PAPIER_PANNEAU, texte: TITRES_PANNEAUX[id], fond: '#fff8e8', encre: '#2a2420', lignes: 3 });
-      monde.cercle(p.x, p.z, 0.75);
+      // (le long de la planche et de son petit toit, 1,8 m de large : un cercle de 75 cm laissait la tête entrer par les bouts)
+      const cx = Math.cos(p.ry) * 0.6, cz = -Math.sin(p.ry) * 0.6;
+      monde.mur(p.x - cx, p.z - cz, p.x + cx, p.z + cz, 0.5);
     }
     // les bancs autour de l'étang, aux belvédères de la promenade, devant la scène du kagura
     banc(a, ETANG.x - 3, ETANG.z + 10.8, PI, 1.8);
@@ -1770,12 +1809,12 @@ export function construire(ctx) {
     const ERABLES = [[-14.8, 1.5, 6.5], [-16.5, 30, 6.8], [-22, 23.5, 6.2], [-20, -8, 7.2], [-35.5, -2, 6.6], [-24.4, 18.6, 6.0], [-16, 48, 7.0], [-24, 55, 6.4], [-14.5, -18, 6.8], [-15, -40, 7.0]];
     for (const [x, z, h] of ERABLES) {
       a.arbreTouffu(x, z, h, [P.feuillage, P.herbeFonce, '#7aa848'], { y: terrain(x, z), sorte: 'houppierErable', caduc: true, large: 1.15 });
-      monde.cercle(x, z, 0.4);
+      monde.cercle(x, z, 0.52);
       noterArbre(x, z, h * 0.3);
     }
     for (const [x, z, h] of [[-44, 12, 7.2], [-46, 22, 6.6], [-26, 44, 6.8], [-36, 50, 7.0]]) {
       a.arbreTouffu(x, z, h, ['#6f9a4c', '#7aa654', '#668f46'], { y: terrain(x, z), sorte: 'houppierCerisier', caduc: true });
-      monde.cercle(x, z, 0.4);
+      monde.cercle(x, z, 0.52);
       noterArbre(x, z, h * 0.3);
     }
     poser(a.fin(0, peinture), 0, 0, { y: 0 });
@@ -1808,7 +1847,7 @@ export function construire(ctx) {
       const R = repere(THE.x1 + 1.6, THE.z0 + 3.4, PI / 2);
       a.boite(0.1, 1.5, 0.1, P.boisFonce, R(0, 0.75, 0)).boite(0.5, 1.1, 0.04, '#e8dcc0', R(0, 1.05, 0.07));
       ecrire(R(0, 0, 0.095), { texte: '高千穂 釜炒り茶', vertical: true, fond: null, encre: '#2f5a2a', x: 0, y: 1.05, z: 0, l: 0.3, h: 0.98 });
-      monde.cercle(R(0, 0, 0).x, R(0, 0, 0).z, 0.25);
+      monde.cercle(R(0, 0, 0).x, R(0, 0, 0).z, 0.5);
     }
     // le pavillon : un dallage, quatre poteaux, un toit à quatre pans ; deux bancs (on peut s'y asseoir) ; une lanterne de
     // papier qui s'allume la nuit
@@ -1817,7 +1856,7 @@ export function construire(ctx) {
       a.boite(3.4, 0.14, 3.4, P.pierre, R(0, 0.07, 0));
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
         a.boite(0.16, 2.4, 0.16, P.bois, R(sx * 1.35, 0.14 + 1.2, sz * 1.35));
-        monde.cercle(x + sx * 1.35, z + sz * 1.35, 0.15);
+        monde.cercle(x + sx * 1.35, z + sz * 1.35, 0.36);
       }
       for (const sz of [-1, 1]) a.boite(3.0, 0.14, 0.1, P.boisFonce, R(0, 2.4, sz * 1.35));
       for (const sx of [-1, 1]) a.boite(0.1, 0.12, 3.0, P.boisFonce, R(sx * 1.35, 2.25, 0));
@@ -1862,7 +1901,8 @@ export function construire(ctx) {
           const sg = (k + Math.round(f * 10)) % 2 ? 1 : -1;
           a.houppe(0.7 + 0.35 * hasard(k, f), f > 0.9 ? '#9ac25e' : '#86b452', { x: x + penche[0] * f + sg * 0.45, y: h * f, z: z + penche[1] * f + sg * 0.2, sy: 0.55, sorte: 'persistant', bosses: 0.3 }, 0);
         }
-        monde.cercle(x, z, 0.14);
+        // (la tige, et le corps du joueur : avec 14 cm, les tiges lui passaient à travers ; 2026-10-26)
+        monde.cercle(x, z, 0.3);
       }
     }
     // l'abri des jizō : une banquette de pierre, cinq jizō (le crâne lisse, les mains jointes, le bavoir et le bonnet rouges),
@@ -1878,7 +1918,7 @@ export function construire(ctx) {
           .cone(0.17 * s, 0.26 * s, 10, '#d8402e', { ...R(lx, 0.3 + 0.36 * s, 0.035), sz: 0.45, rx: -0.12, ordre: 'YXZ' })
           .dome(0.135 * s, '#d8402e', { x: q.x, y: 0.3 + 0.63 * s, z: q.z, sy: 0.85 });
       }
-      for (const sg of [-1, 1]) a.boite(0.1, 1.82, 0.1, P.boisFonce, R(sg * 2.15, 0.91, -0.45));
+      for (const sg of [-1, 1]) { a.boite(0.1, 1.82, 0.1, P.boisFonce, R(sg * 2.15, 0.91, -0.45)); monde.cercle(R(sg * 2.15, 0, -0.45).x, R(sg * 2.15, 0, -0.45).z, 0.32); }
       a.boite(4.6, 0.08, 1.3, P.toit, R(0, 1.72, -0.1, { rx: 0.18, ordre: 'YXZ' }));
       lanterne(a, ...[R(2.7, 0, 0.6)].map((q) => [q.x, q.z])[0]);
       monde.mur(R(-2.0, 0, 0).x, R(-2.0, 0, 0).z, R(2.0, 0, 0).x, R(2.0, 0, 0).z, 0.45);
@@ -1908,8 +1948,12 @@ export function construire(ctx) {
         if (k % 2) a.rocher(px, terrain(px, pz) + 0.06, pz, 0.2 + 0.12 * hasard(k, 2), P.basalte);
         else a.houppe(0.36 + 0.14 * hasard(k, 3), k % 4 ? P.fougere : P.mousseRocheFonce, { x: px, y: terrain(px, pz) + 0.16, z: pz, sy: 0.6, sorte: 'persistant' }, 1);
       }
-      // (deux cercles le long de sa grande longueur)
-      for (const e of [-0.95, 0.95]) monde.cercle(K.x + Math.cos(ryK) * e, K.z - Math.sin(ryK) * e, 1.75);
+      // (tout autour, à sa taille, des murs qui suivent sa forme 45 cm plus loin que sa surface : le corps du joueur, et les
+      // papiers et les touffes qui pendent. Avant le 2026-10-26, deux cercles de 1,75 m le long de sa grande longueur : de
+      // côté, sa panse, plus large, entrait dans la tête de qui passait)
+      const anneauK = [];
+      for (let k = 0; k < 24; k++) { const t = (k / 24) * 2 * PI, [px, , pz] = surf(Math.sin(t), 0, Math.cos(t), 0.3); anneauK.push([px, pz]); }
+      anneauK.forEach(([px, pz], k) => { const [qx, qz] = anneauK[(k + 1) % 24]; monde.mur(px, pz, qx, qz, 0.15); });
     }
     // les bancs des belvédères
     banc(a, 12.0 + 3.2, VUE_CASCADE.z + 2.2, -PI / 2, 1.8);
@@ -1926,10 +1970,41 @@ export function construire(ctx) {
   // ablutions ; au nord, au bord de la pente, le lieu de prière face à la grotte d'Amaterasu
   {
     const a = atelier(), y = 0, B = P.boisBrut, BF = P.boisBrutFonce, ECORCE = '#8a7058', ECORCE2 = '#7a6250';
-    /** Un toit à deux pans d'écorce de cyprès (L le long du faîtage, en x local ; Pp de profondeur ; pente) posé à yb dans le
-     * repère R, avec ses rives de bois, son faîtage, et, si chigi, les bois croisés aux deux bouts et les rondins dorés. */
-    const toitEcorce = (R, L, Pp, yb, pente = 0.55, chigi = true) => {
+    /**
+     * Un toit à deux pans d'écorce de cyprès (L le long du faîtage, en x local ; Pp de profondeur ; pente) dans le repère R,
+     * posé sur ses appuis : son dessous passe à yA au-dessus des poutres qui le portent, à zA de part et d'autre du faîtage.
+     * Ses rives de bois, son faîtage, et, si chigi, les bois croisés aux deux bouts et les rondins dorés ; pignon : { x, y0 },
+     * les deux pignons en x = ±x, des planches qui ferment le triangle sous le toit depuis y0 (yA par défaut), une entrait et
+     * un poinçon foncés devant. (2026-10-26, « les toits du sanctuaire et du petit bâtiment à côté ont l'air de flotter, il
+     * faut les raccrocher à la surface d'en dessous » : le bas de leur pente était posé à la hauteur du haut des poutres ; au
+     * droit des poutres, leur dessous passait 30 à 40 cm au-dessus, et sous le faîtage on voyait le ciel par un grand
+     * triangle vide)
+     */
+    const toitEcorce = (R, L, Pp, yA, zA, pente = 0.55, chigi = true, pignon = null) => {
       const demi = Pp / 2 / Math.cos(pente), haut = (Pp / 2) * Math.tan(pente);
+      // (le dessous, sous la ligne de la pente : la plaque d'écorce sombre, sous la grosse)
+      const dv = Math.max(0.13, 0.15 * Math.cos(pente) + 0.025) / Math.cos(pente), yb = yA - (Pp / 2 - zA) * Math.tan(pente) + dv;
+      if (pignon) {
+        // (un pentagone épais de 8 cm : le bas sur les poutres, les côtés jusqu'au toit, 15 mm en deçà de l'appui (pas dans le
+        // plan de la face des poutres), le haut 3 cm dans le toit)
+        const { x: xg, y0 = yA } = pignon, yS = yb + haut - dv + 0.03, ep = 0.04, zG = zA - 0.015;
+        const C5 = [[-zG, y0], [zG, y0], [zG, yA + 0.03], [0, yS], [-zG, yA + 0.03]], cy = (y0 + yS) / 2;
+        for (const e of [-1, 1]) {
+          const pos = [], P3 = (k, dx) => { const q = R(e * xg + dx, C5[k][1], C5[k][0]); return [q.x, q.y, q.z]; }, nx = R(1, 0, 0).x - R(0, 0, 0).x, nz = R(1, 0, 0).z - R(0, 0, 0).z;
+          for (const s of [-1, 1]) for (const [i, j, k] of [[0, 1, 2], [0, 2, 4], [4, 2, 3]]) triangle(pos, P3(i, s * ep), P3(j, s * ep), P3(k, s * ep), [s * nx, 0, s * nz]);
+          for (let k = 0; k < 5; k++) {
+            const [za, ya] = C5[k], [zb, yb2] = C5[(k + 1) % 5], o = R(0, 0, (za + zb) / 2), c0 = R(0, 0, 0);
+            const n = [o.x - c0.x, (ya + yb2) / 2 - cy, o.z - c0.z];
+            triangle(pos, P3(k, -ep), P3((k + 1) % 5, -ep), P3((k + 1) % 5, ep), n);
+            triangle(pos, P3(k, -ep), P3((k + 1) % 5, ep), P3(k, ep), n);
+          }
+          const g = new THREE.BufferGeometry();
+          g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+          a.piece(g, B, { nuance: 0.04 });
+          // (l'entrait et le poinçon, devant le pignon, 5 mm en avant de ses planches)
+          a.boite(0.06, 0.16, zA * 1.9, BF, R(e * (xg + ep + 0.035), y0 + 0.1, 0)).boite(0.06, yS - 0.1 - (y0 + 0.18), 0.14, BF, R(e * (xg + ep + 0.035), (yS - 0.1 + y0 + 0.18) / 2, 0));
+        }
+      }
       for (const s of [-1, 1]) {
         a.boite(L, 0.26, demi + 0.1, ECORCE, R(0, yb + haut / 2, s * Pp / 4, { rx: s * pente, ordre: 'YXZ' }))
           .boite(L + 0.04, 0.05, demi + 0.12, ECORCE2, R(0, yb + haut / 2 - 0.15, s * Pp / 4 + s * 0.004, { rx: s * pente, ordre: 'YXZ' }));
@@ -1954,7 +2029,7 @@ export function construire(ctx) {
       for (const s of [-1, 1]) a.cylindre(0.26, 0.3, 5.4, 12, B, R(s * 2.3, y + 2.7, 0)).cylindre(0.36, 0.36, 0.3, 12, BF, R(s * 2.3, y + 0.15, 0));
       a.boite(6.6, 0.42, 0.5, B, R(0, y + 5.25, 0)).boite(5.4, 0.3, 0.3, B, R(0, y + 4.4, 0)).boite(0.3, 0.86, 0.26, BF, R(0, y + 4.82, 0));
       a.shimenawa([R(-2.2, 0, 0.12), R(0, 0, 0.14), R(2.2, 0, 0.12)].map((q, i) => [q.x, y + 4.05 - (i === 1 ? 0.22 : 0), q.z]), 0.07, [R(-1, 0, 0.14), R(1, 0, 0.14)].map((q) => [q.x, y + 3.85, q.z]));
-      for (const s of [-1, 1]) monde.cercle(R(s * 2.3, 0, 0).x, R(s * 2.3, 0, 0).z, 0.42);
+      for (const s of [-1, 1]) monde.cercle(R(s * 2.3, 0, 0).x, R(s * 2.3, 0, 0).z, 0.56);
     }
     // l'allée : des dalles, les grands cèdres de part et d'autre, les lanternes
     for (let z = TORII.z - 3; z > HAIDEN.z + 5.5; z -= 4.2) {
@@ -1971,11 +2046,12 @@ export function construire(ctx) {
     // tonneaux de saké offerts
     {
       const R = repere(HAIDEN.x, HAIDEN.z, 0);
-      a.boite(9.6, 0.7, 7.4, P.pierre, R(0, y + 0.35, 0)).boite(9.0, 0.12, 6.8, B, R(0, y + 0.76, 0));
+      // (le plancher jusqu'au bord de l'estrade où l'on marche, 3,6 m devant : à 3,4 m, on flottait 12 cm au-dessus de la pierre)
+      a.boite(9.6, 0.7, 7.4, P.pierre, R(0, y + 0.35, 0)).boite(9.0, 0.12, 7.2, B, R(0, y + 0.76, 0));
       for (const lx of [-4.2, -1.4, 1.4, 4.2]) for (const lz of [-3.1, 3.1]) a.cylindre(0.17, 0.17, 3.0, 10, B, R(lx, y + 2.3, lz));
       a.boite(8.8, 2.3, 0.14, BF, R(0, y + 1.95, -3.1)).boite(0.14, 2.3, 6.2, BF, R(-4.3, y + 1.95, 0)).boite(0.14, 2.3, 6.2, BF, R(4.3, y + 1.95, 0));
       a.boite(9.2, 0.3, 7.0, BF, R(0, y + 3.8, 0));
-      toitEcorce(R, 10.4, 8.6, y + 3.95, 0.52, true);
+      toitEcorce(R, 10.4, 8.6, y + 3.95, 3.5, 0.52, true, { x: 4.45 });
       // les marches de bois devant l'estrade
       for (let k = 0; k < 2; k++) a.boite(3.2, 0.26, 0.42, B, R(0, y + 0.13 + k * 0.26, 3.9 + (1 - k) * 0.42));
       a.boite(4.0, 0.9, 0.03, '#f4f0e6', R(0, y + 3.25, 3.2));
@@ -2005,15 +2081,31 @@ export function construire(ctx) {
           .ovale(0.04, '#2a2420', { ...K(-0.08, 0.76, 0.27), trait: false }, 5).ovale(0.04, '#2a2420', { ...K(0.08, 0.76, 0.27), trait: false }, 5);
         for (const s3 of [-1, 1]) a.boite(0.1, 0.36, 0.12, P.pierre, K(s3 * 0.13, 0.18, 0.14)).cone(0.06, 0.16, 5, P.pierreFonce, K(s3 * 0.12, 0.92, 0.0, { rx: -0.4 }));
         a.cone(0.09, 0.32, 6, P.pierreFonce, K(0, 0.25, -0.33, { rx: -2.3 }));
-        monde.cercle(q.x, q.z, 0.62);
+        monde.cercle(q.x, q.z, 0.85);
       }
       monde.surface(HAIDEN.x - 4.5, HAIDEN.x + 4.5, HAIDEN.z - 3.4, HAIDEN.z + 3.6, 0.82, { sol: 'bois' });
-      monde.rampe(HAIDEN.x - 1.6, HAIDEN.x + 1.6, HAIDEN.z + 3.6, HAIDEN.z + 4.4, 'z', 0.82, 0.02, { sol: 'bois' });
+      // (la pente des marches passe par le milieu du dessus de chacune : elle allait 10 cm sous la plus basse)
+      monde.rampe(HAIDEN.x - 1.6, HAIDEN.x + 1.6, HAIDEN.z + 3.42, HAIDEN.z + 4.74, 'z', 0.82, 0.0, { sol: 'bois' });
       // (le dedans est fermé : on prie devant)
       monde.surface(HAIDEN.x - 4.4, HAIDEN.x + 4.4, HAIDEN.z - 3.3, HAIDEN.z + 2.9, 9, { plein: true });
       monde.bloc(HAIDEN.x - 4.5, HAIDEN.x + 4.5, HAIDEN.z - 3.4, HAIDEN.z + 3.0, -1, 8);
-      monde.surface(HAIDEN.x + 5.0, HAIDEN.x + 7.2, HAIDEN.z + 0.8, HAIDEN.z + 2.0, 3, { plein: true });
-      monde.cercle(R(0, 0, 4.95).x, R(0, 0, 4.95).z, 0.6);
+      monde.surface(HAIDEN.x + 4.8, HAIDEN.x + 7.45, HAIDEN.z + 0.65, HAIDEN.z + 2.25, 3, { plein: true });
+      // (2026-10-26, « je rentre dans les surfaces » : d'en bas, on s'arrêtait au bord du plancher, 30 cm à l'intérieur du
+      // soubassement de pierre, le corps dedans ; sur l'estrade, au bord, la tête dans la balustrade et dans les poteaux)
+      // au sol, le long du soubassement, sauf devant les marches, et le long de leurs côtés
+      const murR = (ax, az, bx, bz, r, bas, haut) => { const A = R(ax, 0, az), B2 = R(bx, 0, bz); monde.mur(A.x, A.z, B2.x, B2.z, r, bas, haut); };
+      murR(-4.8, -3.7, 4.8, -3.7, 0.3, -1, 0.5);
+      for (const sg of [-1, 1]) {
+        murR(sg * 4.8, -3.7, sg * 4.8, 3.7, 0.3, -1, 0.5);
+        murR(sg * 4.8, 3.7, sg * 1.65, 3.7, 0.3, -1, 0.5);
+        murR(sg * 1.6, 3.7, sg * 1.6, 4.53, 0.28, -1, 0.45);
+        // sur l'estrade : la balustrade, les poteaux de devant
+        murR(sg * 4.62, -3.5, sg * 4.62, 3.62, 0.3, 0.5, 3);
+        murR(sg * 4.62, 3.62, sg * 1.7, 3.62, 0.3, 0.5, 3);
+        for (const lx of [1.4, 4.2]) monde.cercle(R(sg * lx, 0, 3.1).x, R(sg * lx, 0, 3.1).z, 0.42, 0.5, 3);
+      }
+      // (le tronc des offrandes, 1,6 m de large : un cercle de 60 cm laissait entrer dans ses bouts)
+      murR(-0.45, 4.95, 0.45, 4.95, 0.6);
       for (const s of [-1, 1]) {
         a.chochin(R(s * 3, 0, 3.6).x, y + 2.6, R(s * 3, 0, 3.6).z, 9, '#f4f0e6');
         lumieres.push({ ...R(s * 3, 0, 3.6), y: y + 2.6, halo: 0.4, sol: y, r: 3.4 });
@@ -2023,10 +2115,13 @@ export function construire(ctx) {
     {
       const R = repere(HAIDEN.x, HAIDEN.z - 9, 0);
       a.boite(4.6, 0.9, 4.0, P.pierre, R(0, y + 0.45, 0)).boite(3.6, 2.2, 3.0, B, R(0, y + 2.0, 0)).boite(1.2, 1.6, 0.05, P.or, R(0, y + 1.8, 1.53));
-      toitEcorce(R, 5.2, 4.6, y + 3.1, 0.62, true);
+      // (ses poteaux d'angle et la ceinture de poutres où repose le toit)
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) a.boite(0.2, 2.28, 0.2, BF, R(sx * 1.8, y + 2.06, sz * 1.5));
+      a.boite(3.84, 0.23, 3.24, BF, R(0, y + 3.205, 0));
+      toitEcorce(R, 5.2, 4.6, y + 3.32, 1.62, 0.62, true, { x: 1.85 });
       for (let k = -9; k <= 9; k++) for (const s of [-1, 1]) a.boite(0.16, 1.4, 0.06, BF, R(k * 0.34, y + 0.7, s * 3.4));
       for (let k = -9; k <= 9; k++) for (const s of [-1, 1]) a.boite(0.06, 1.4, 0.16, BF, R(s * 3.2, y + 0.7, k * 0.36));
-      monde.surface(HAIDEN.x - 3.4, HAIDEN.x + 3.4, HAIDEN.z - 12.6, HAIDEN.z - 5.4, 6, { plein: true });
+      monde.surface(HAIDEN.x - 3.5, HAIDEN.x + 3.5, HAIDEN.z - 12.7, HAIDEN.z - 5.3, 6, { plein: true });
     }
     // la scène du kagura (神楽殿) : un pavillon ouvert sur une estrade, tourné vers l'est (le public, sur l'allée), son fond
     // peint, les papiers découpés (hori-mono) pendus au bord du toit, la corde sacrée, des lanternes rouges
@@ -2035,7 +2130,9 @@ export function construire(ctx) {
       a.boite(8.4, 1.0, 6.4, B, R(0, y + 0.5, 0)).boite(8.0, 0.08, 6.0, '#d8b88a', R(0, y + 1.04, 0));
       for (const lx of [-3.8, 3.8]) for (const lz of [-2.8, 2.8]) a.cylindre(0.16, 0.16, 3.4, 10, B, R(lx, y + 2.7, lz));
       a.boite(8.0, 2.6, 0.12, BF, R(0, y + 2.3, -2.95));
-      toitEcorce(R, 9.6, 7.6, y + 4.35, 0.48, false);
+      // (les poutres en haut des poteaux, où repose le toit)
+      for (const s of [-1, 1]) a.boite(8.2, 0.26, 0.24, BF, R(0, y + 4.3, s * 2.8)).boite(0.24, 0.26, 5.8, BF, R(s * 3.8, y + 4.31, 0));
+      toitEcorce(R, 9.6, 7.6, y + 4.43, 2.92, 0.48, false, { x: 3.85 });
       ecrire(R(0, y, -2.88), { texte: '', fond: null, dessin: fondKagura, x: 0, y: 2.6, z: 0, l: 7.6, h: 2.4 });
       a.shimenawa([R(-3.8, 0, 2.95), R(0, 0, 3.0), R(3.8, 0, 2.95)].map((q, i) => [q.x, y + 3.95 - (i === 1 ? 0.2 : 0), q.z]), 0.07, [-2.6, -1.3, 0, 1.3, 2.6].map((dx) => { const q = R(dx, 0, 3.0); return [q.x, y + 3.7, q.z]; }));
       const COUL = ['#e8452e', '#f2c443', '#5aa64a', '#2f6fb0', '#f4f0e6'];
@@ -2047,9 +2144,24 @@ export function construire(ctx) {
         // (le poteau du coin une seule fois : les côtés commencent au deuxième)
         for (let k = ax === bx ? 1 : 0; k <= n; k++) a.boite(0.07, 0.56, 0.07, BF, { x: A.x + (B2.x - A.x) * k / n, y: y + 1.34, z: A.z + (B2.z - A.z) * k / n });
       }
-      monde.surface(KAGURA.x - 2.95, KAGURA.x + 2.95, KAGURA.z - 3.95, KAGURA.z + 3.95, 1.05, { sol: 'bois' });
-      monde.rampe(KAGURA.x + 3.0, KAGURA.x + 4.4, KAGURA.z - 1.0, KAGURA.z + 1.0, 'x', 1.05, 0.05, { sol: 'bois' });
-      monde.mur(KAGURA.x - 3.05, KAGURA.z - 4.1, KAGURA.x - 3.05, KAGURA.z + 4.1, 0.18);
+      // (la pente des marches passe par le milieu du dessus de chacune : elle allait 14 cm sous la plus haute)
+      monde.surface(KAGURA.x - 2.95, KAGURA.x + 3.2, KAGURA.z - 3.95, KAGURA.z + 3.95, 1.05, { sol: 'bois' });
+      monde.rampe(KAGURA.x + 3.2, KAGURA.x + 4.6, KAGURA.z - 1.0, KAGURA.z + 1.0, 'x', 1.05, 0.0, { sol: 'bois' });
+      // (2026-10-26, « je rentre dans la scène » : d'en bas, on s'arrêtait au bord du plancher, 25 cm à l'intérieur du
+      // socle, le corps dedans ; dessus, au bord, la tête dans la balustrade et la paroi du fond. Au sol, le long du socle,
+      // sauf devant les marches ; sur la scène, la paroi du fond, la balustrade, les poteaux)
+      const X = KAGURA.x, Z = KAGURA.z;
+      monde.mur(X - 3.2, Z - 4.2, X + 3.2, Z - 4.2, 0.3, -1, 0.6);
+      monde.mur(X - 3.2, Z + 4.2, X + 3.2, Z + 4.2, 0.3, -1, 0.6);
+      monde.mur(X - 3.2, Z - 4.2, X - 3.2, Z + 4.2, 0.3, -1, 0.6);
+      for (const sg of [-1, 1]) {
+        monde.mur(X + 3.2, Z + sg * 4.2, X + 3.2, Z + sg * 1.05, 0.3, -1, 0.6);
+        monde.mur(X + 3.2, Z + sg * 1.0, X + 4.4, Z + sg * 1.0, 0.28, -1, 0.55);
+        monde.mur(X + 3.1, Z + sg * 4.05, X + 3.1, Z + sg * 1.1, 0.3, 0.6, 3);
+        monde.mur(X - 3.0, Z + sg * 4.05, X + 3.1, Z + sg * 4.05, 0.3, 0.6, 3);
+        for (const dz of [-3.8, 3.8]) monde.cercle(X + sg * 2.8, Z + dz, 0.42, 0.6, 3);
+      }
+      monde.mur(X - 2.95, Z - 4.1, X - 2.95, Z + 4.1, 0.32, 0.6, 3);
       for (const s of [-1, 1]) {
         const q = R(s * 3.4, 0, 2.8);
         a.chochin(q.x, y + 3.2, q.z, 10, '#e8452e');
@@ -2069,7 +2181,7 @@ export function construire(ctx) {
       for (let k = 0; k < 16; k++) {
         const t0 = (k / 16) * 2 * PI, t1 = ((k + 1) / 16) * 2 * PI;
         a.baton([x + Math.sin(t0) * MEOTO.rx, 0.45, z + Math.cos(t0) * MEOTO.rz], [x + Math.sin(t1) * MEOTO.rx, 0.45, z + Math.cos(t1) * MEOTO.rz], 0.03, B, 4);
-        monde.mur(x + Math.sin(t0) * MEOTO.rx, z + Math.cos(t0) * MEOTO.rz, x + Math.sin(t1) * MEOTO.rx, z + Math.cos(t1) * MEOTO.rz, 0.15);
+        monde.mur(x + Math.sin(t0) * MEOTO.rx, z + Math.cos(t0) * MEOTO.rz, x + Math.sin(t1) * MEOTO.rx, z + Math.cos(t1) * MEOTO.rz, 0.28);
       }
       noterArbre(x, z, 3);
     }
@@ -2138,8 +2250,27 @@ export function construire(ctx) {
     // porte-bonheur (des omamori, des joyaux magatama de pierre verte)
     {
       a.arbreTouffu(SHINBOKU.x, SHINBOKU.z, 13, [P.feuillage, P.herbeFonce, '#5a9a4a'], { y: 0, sorte: 'persistant', rTronc: 0.75, large: 1.4, tronc: '#8a7a68' });
-      a.piece(new THREE.TorusGeometry(0.92, 0.07, 6, 20), P.paille, { x: SHINBOKU.x, y: 1.6, z: SHINBOKU.z, rx: PI / 2 });
-      monde.cercle(SHINBOKU.x, SHINBOKU.z, 1.05);
+      // sa corde sacrée (2026-10-26, « autour de l'arbre, je sais pas ce que c'est, il faudrait faire mieux » : un anneau
+      // vert, sa couleur P.paille n'existait pas, à 25 cm du tronc tout autour) : de la paille tressée serrée contre l'écorce,
+      // à 1,6 m (le tronc d'arbreTouffu : son axe penché, son rayon qui diminue) ; devant, vers l'allée d'où l'on vient le
+      // toucher, un gros nœud, des papiers en zigzag et des touffes de paille qui pendent
+      {
+        const { x, z } = SHINBOKU, H = 13, yc = 1.6, bas = -0.12, haut = H * 0.6;
+        // (le hasard de modeles3d.js, d'où vient la pente du tronc)
+        const h3 = (p, q, r) => { const s = Math.sin(p * 127.1 + q * 311.7 + r * 74.7) * 43758.5453; return s - Math.floor(s); };
+        const f = (yc - bas) / (haut - bas), cx = x + (h3(x, z, 1) - 0.5) * 0.08 * H * f, cz = z + (h3(z, x, 2) - 0.5) * 0.08 * H * f;
+        const rc = 0.75 * (1 - 0.5 * f) * 0.96 + 0.07, tour = [];
+        for (let k = 0; k < 28; k++) { const t = (k / 28) * 2 * PI; tour.push([cx + Math.sin(t) * rc, yc + 0.03 * Math.sin(2 * t + 0.6), cz + Math.cos(t) * rc]); }
+        cordeFermee(a, tour, 0.09);
+        const cap = -PI / 2, surCorde = (dt, e) => [cx + Math.sin(cap + dt) * (rc + e), cz + Math.cos(cap + dt) * (rc + e)];
+        const [nx, nz] = surCorde(0, 0.1);
+        a.ovale(0.13, '#d9b968', { x: nx, y: yc, z: nz, sx: 0.8, sy: 1.0, sz: 0.6, ry: cap, nuance: 0.04 }, 8);
+        for (const dt of [-0.75, -0.3, 0.3, 0.75]) { const [px, pz] = surCorde(dt, 0.08); shide(a, px, yc - 0.12, pz, cap + dt, 1.6); }
+        for (const dt of [-0.52, 0.52]) { const [px, pz] = surCorde(dt, 0.07); touffePaille(a, px, yc - 0.08, pz, 0.32); }
+        const [qx, qz] = surCorde(0, 0.12);
+        touffePaille(a, qx, yc - 0.1, qz, 0.4);
+      }
+      monde.cercle(SHINBOKU.x, SHINBOKU.z, 1.25);
       noterArbre(SHINBOKU.x, SHINBOKU.z, 4);
       // le pavillon des ablutions (手水舎), refait le 2026-10-25 (« la fontaine du temple n'est pas bien faite ») : un dallage
       // bordé de pierre ; quatre poteaux sur leurs pierres, des traverses, les poutres, un toit d'écorce de cyprès ; dessous,
@@ -2149,12 +2280,12 @@ export function construire(ctx) {
       a.boite(3.42, 0.1, 2.62, P.pierreFonce, Rc(0, 0.05, 0)).boite(3.3, 0.16, 2.5, P.pierre, Rc(0, 0.08, 0));
       for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
         a.boite(0.3, 0.14, 0.3, P.pierreFonce, Rc(sx * 1.3, 0.23, sz * 0.95)).boite(0.17, 2.38, 0.17, B, Rc(sx * 1.3, 0.3 + 1.19, sz * 0.95));
-        monde.cercle(c.x + sx * 1.3, c.z + sz * 0.95, 0.16);
+        monde.cercle(c.x + sx * 1.3, c.z + sz * 0.95, 0.38);
       }
       // les traverses (à deux hauteurs : elles ne se croisent pas), les poutres, le toit
       for (const sz of [-1, 1]) a.boite(3.0, 0.13, 0.07, BF, Rc(0, 2.02, sz * 0.95)).boite(3.36, 0.16, 0.13, B, Rc(0, 2.6, sz * 0.95));
       for (const sx of [-1, 1]) a.boite(0.07, 0.13, 2.2, BF, Rc(sx * 1.3, 1.86, 0)).boite(0.12, 0.14, 2.3, B, Rc(sx * 1.3, 2.44, 0));
-      toitEcorce(Rc, 3.8, 3.0, 2.68, 0.62, false);
+      toitEcorce(Rc, 3.8, 3.0, 2.68, 1.015, 0.62, false, { x: 1.3, y0: 2.51 });
       // la plaque, sur la poutre de devant
       a.boite(0.74, 0.3, 0.03, BF, Rc(0, 2.33, 1.03));
       ecrire(Rc(0, 0, 1.047), { texte: '手水舎', fond: '#f4ecd8', encre: '#2a2420', x: 0, y: 2.33, z: 0, l: 0.66, h: 0.24, cadre: true });
@@ -2187,7 +2318,10 @@ export function construire(ctx) {
         const q = Rc(lx, 0, bzc + 0.25), m0 = Rc(lx, 0, bzc + 0.2), m1 = Rc(lx + 0.02, 0, bzc - 0.2);
         a.cylindre(0.052, 0.048, 0.075, 10, '#d8c49a', { x: q.x, y: 0.858, z: q.z }).baton([m0.x, 0.84, m0.z], [m1.x, 0.83, m1.z], 0.009, '#c9b07a', 5);
       }
-      monde.cercle(c.x, c.z + bzc, 1.0);
+      // (le bassin, 1,84 m de long, et le rocher du dragon derrière : un cercle d'un mètre au milieu laissait le corps entrer
+      // dans leurs bouts ; 2026-10-26)
+      monde.mur(Rc(-0.5, 0, bzc).x, Rc(-0.5, 0, bzc).z, Rc(0.5, 0, bzc).x, Rc(0.5, 0, bzc).z, 0.71);
+      monde.cercle(Rc(-0.64, 0, bzc - 0.62).x, Rc(-0.64, 0, bzc - 0.62).z, 0.64);
       // le comptoir des porte-bonheur (授与所), refait le 2026-10-25 : un petit pavillon de bois brut sur un socle de pierre,
       // son toit d'écorce de cyprès ; devant, le comptoir couvert d'un tissu blanc, les porte-bonheur (omamori) en rangs de
       // couleurs, les joyaux magatama, des tablettes de vœux (ema) sur leur présentoir ; la miko derrière ; l'enseigne
@@ -2196,14 +2330,16 @@ export function construire(ctx) {
       for (const [lx, lz] of [[-1.5, 0.4], [1.5, 0.4], [-1.5, -1.5], [1.5, -1.5]]) a.boite(0.14, 2.3, 0.14, B, s2(lx, 0.24 + 1.15, lz));
       a.boite(3.0, 2.06, 0.08, BF, s2(0, 1.27, -1.5)).boite(0.08, 2.06, 1.82, BF, s2(-1.5, 1.27, -0.55)).boite(0.08, 2.06, 1.82, BF, s2(1.5, 1.27, -0.55));
       a.boite(3.0, 0.4, 0.06, BF, s2(0, 2.3, 0.4)).boite(3.0, 0.82, 0.62, B, s2(0, 0.65, 0.12)).boite(3.08, 0.05, 0.7, '#f4f0e6', s2(0, 1.085, 0.12));
-      toitEcorce(repere(JUYOSHO.x + 0.45, JUYOSHO.z, -PI / 2), 3.9, 3.0, 2.5, 0.58, false);
+      toitEcorce(repere(JUYOSHO.x + 0.45, JUYOSHO.z, -PI / 2), 3.9, 3.0, 2.5, 0.85, 0.58, false, { x: 1.52, y0: 2.3 });
       for (let k = 0; k < 18; k++) a.boite(0.09, 0.14, 0.025, ['#c8452e', '#2f6fb0', '#f2c443', '#5aa64a', '#e88ab0', '#f4f0e6'][k % 6], s2(-1.3 + (k % 9) * 0.29, 1.19, 0.3 - Math.floor(k / 9) * 0.16, { rx: -0.35, ordre: 'YXZ', trait: false }));
       for (let k = 0; k < 6; k++) a.piece(new THREE.TorusGeometry(0.045, 0.025, 5, 8, PI * 1.3), k % 2 ? '#3a9a6a' : '#5ab08a', s2(-1.15 + k * 0.46, 1.135, -0.08, { rx: PI / 2 }));
       a.boite(0.8, 0.9, 0.05, B, s2(1.85, 0.69, 0.3, { ry: 0.3 }));
       for (let k = 0; k < 6; k++) a.boite(0.2, 0.13, 0.015, '#d8b98a', s2(1.85 - 0.25 + (k % 3) * 0.25, 0.85 - Math.floor(k / 3) * 0.3, 0.335, { ry: 0.3, trait: false }));
       ecrire(s2(0, 0, 0.44), { texte: '授与所', fond: '#f4ecd8', encre: '#2a2420', x: 0, y: 2.3, z: 0, l: 0.9, h: 0.3, cadre: true });
       monde.mur(s2(-1.55, 0, 0.42).x, s2(-1.55, 0, 0.42).z, s2(1.55, 0, 0.42).x, s2(1.55, 0, 0.42).z, 0.32);
-      monde.surface(JUYOSHO.x - 0.1, JUYOSHO.x + 1.65, JUYOSHO.z - 1.6, JUYOSHO.z + 1.6, 4, { plein: true });
+      // (ses côtés et son fond, et les tablettes de vœux : le corps entrait de 20 cm dans ses murs ; 2026-10-26)
+      monde.surface(JUYOSHO.x - 0.1, JUYOSHO.x + 1.85, JUYOSHO.z - 1.82, JUYOSHO.z + 1.82, 4, { plein: true });
+      monde.cercle(s2(1.85, 0, 0.3).x, s2(1.85, 0, 0.3).z, 0.62);
     }
     // le lieu de prière face à la grotte (遥拝所), refait le 2026-10-25 (« refais l'autel où il y a l'arbre et sa petite
     // guirlande ») : une terrasse de dalles bordée de pierre, au bord de la pente ; une barrière de bois aux poteaux pointus
@@ -2221,11 +2357,12 @@ export function construire(ctx) {
       for (const sg of [-1, 1]) a.cylindre(0.125, 0.14, 2.62, 12, B, { x: x + sg * 1.2, y: yt + 1.31, z: z - 1.95 });
       a.cylindre(0.13, 0.13, 3.3, 12, B, { x, y: yt + 2.6, z: z - 1.95, rz: PI / 2 }).boite(2.92, 0.15, 0.1, B, { x, y: yt + 2.1, z: z - 1.95 });
       a.shimenawa([[x - 1.1, yt + 1.95, z - 1.84], [x, yt + 1.8, z - 1.82], [x + 1.1, yt + 1.95, z - 1.84]], 0.05, [[x - 0.55, yt + 1.78, z - 1.82], [x, yt + 1.72, z - 1.82], [x + 0.55, yt + 1.78, z - 1.82]]);
-      for (const sg of [-1, 1]) monde.cercle(x + sg * 1.2, z - 1.95, 0.18);
+      for (const sg of [-1, 1]) monde.cercle(x + sg * 1.2, z - 1.95, 0.38);
       // la barrière, au bord de la pente : des poteaux pointus tous les 50 cm, deux barres
       for (let k = -6; k <= 6; k++) a.boite(0.08, 0.8, 0.08, B, { x: x + k * 0.5, y: yt + 0.4, z: z - 2.17 }).cone(0.058, 0.12, 4, B, { x: x + k * 0.5, y: yt + 0.86, z: z - 2.17, ry: PI / 4 });
       for (const [h, d] of [[0.3, 0.006], [0.68, 0]]) a.boite(6.1, 0.07, 0.05, BF, { x, y: yt + h, z: z - 2.17 + 0.065 + d });
-      monde.mur(x - 3.05, z - 2.15, x + 3.05, z - 2.15, 0.14);
+      // (le milieu du joueur 38 cm avant la barrière, son corps avant les poteaux : à 14 cm, il y entrait ; 2026-10-26)
+      monde.mur(x - 3.05, z - 2.15, x + 3.05, z - 2.15, 0.38);
       // l'arbre sacré : un tronc, des branches, des touffes de feuilles sombres et brillantes ; la corde autour du tronc
       {
         const S = SAKAKI;
@@ -2274,8 +2411,9 @@ export function construire(ctx) {
       }
       // deux lanternes de pierre, aux coins du sud de la terrasse
       for (const sg of [-1, 1]) lanterne(a, x + sg * 2.7, z + 0.95, yt);
-      monde.cercle(SAKAKI.x, SAKAKI.z, 0.45);
-      monde.cercle(OFFRANDES.x, OFFRANDES.z, 0.5);
+      // (l'arbre et ses soies qui pendent à 60 cm de son tronc ; la table, 98 cm de long)
+      monde.cercle(SAKAKI.x, SAKAKI.z, 0.7);
+      monde.mur(OFFRANDES.x - 0.25, OFFRANDES.z, OFFRANDES.x + 0.25, OFFRANDES.z, 0.53);
     }
     // la clôture du sanctuaire, au bord de la pente (au nord), de l'escalier de la rivière au coin est, sauf au lieu de prière.
     // (2026-10-26, « à côté de l'escalier, tu peux enlever la barrière vu qu'il y a déjà les buissons » : elle allait aussi de
@@ -2303,7 +2441,8 @@ export function construire(ctx) {
       .baton([LAMPION.x + 0.3, yl + 2.08, LAMPION.z], [LAMPION.x + 0.3, yl + 1.97, LAMPION.z], 0.004, '#3a3236', 3, { trait: false })
       .chochin(LAMPION.x + 0.3, yl + 1.82, LAMPION.z, 3);
     lumieres.push({ x: LAMPION.x + 0.3, y: yl + 1.82, z: LAMPION.z, halo: 0.55, sol: yl, r: 4.2 });
-    monde.cercle(LAMPION.x, LAMPION.z, 0.12);
+    monde.cercle(LAMPION.x, LAMPION.z, 0.3);
+    monde.cercle(LAMPION.x + 0.3, LAMPION.z, 0.35);
     poser(a.fin(0, peinture), 0, 0, { y: 0 });
   }
   // ---------------------------------------------------------------- La vallée de la rivière Iwato
@@ -2357,7 +2496,9 @@ export function construire(ctx) {
       for (const [s0, s1, yd] of [[-1.1, 0.02, y0 + 0.05], [L - 0.02, L + 1.0, y1 + 0.07]]) {
         const [cx, , cz] = ici((s0 + s1) / 2, 0, 0);
         a.boite(2.0, 0.3, s1 - s0, '#b2ab9b', { x: cx, y: yd - 0.15, z: cz, ry });
-        monde.chemin([ici(s0 - 0.02, 0, 0), ici(s1 + 0.02, 0, 0)].map(([px, , pz]) => [px, pz, yd]), 0.98, { sol: 'pierre' });
+        // (bouts droits : arrondis, la dalle du haut se prolongeait d'un mètre au-dessus des premières marches, et l'on y
+        // marchait 50 cm en l'air ; celle du bas, au-dessus de la rive)
+        monde.chemin([ici(s0 - 0.02, 0, 0), ici(s1 + 0.02, 0, 0)].map(([px, , pz]) => [px, pz, yd]), 0.98, { sol: 'pierre', droits: true });
       }
       monde.chemin([[x0, z0, y0], [x1, z1, y1]], 0.8, { sol: 'pierre' });
       // les murets : un prisme en pente de chaque côté (le dessus 35 cm au-dessus de la ligne, le bas 70 cm dessous), leurs
@@ -2374,19 +2515,23 @@ export function construire(ctx) {
         a.piece(g, c, { nuance: 0.05 });
       };
       for (const sg of [-1, 1]) {
-        const w = sg * 0.92;
-        muret(w, 0.3, 0.34, 1.45, P.pierre);
-        muret(w + sg * 0.003, 0.38, 0.42, -0.31, P.pierreFonce, -0.24, L + 0.24, true);
+        // (le muret du côté de la rivière, sg −1, s'arrête 40 cm avant la dernière marche : entre sa borne et le bout du
+        // pont, le passage vers la corniche, à l'est. Avant le 2026-10-26, sa borne touchait le garde-corps du pont, et l'on
+        // n'y passait qu'à travers lui)
+        const w = sg * 0.92, fin = sg < 0 ? L - 0.4 : L + 0.2;
+        muret(w, 0.3, 0.34, 1.45, P.pierre, -0.2, fin);
+        muret(w + sg * 0.003, 0.38, 0.42, -0.31, P.pierreFonce, -0.24, fin + 0.04, true);
         // les bornes, en haut et en bas
-        for (const [sb, yb] of [[-0.35, y0], [L + 0.35, y1]]) { const [bx, , bz] = ici(sb, w, 0); a.boite(0.36, 0.9, 0.36, P.pierreFonce, { x: bx, y: yb + 0.3, z: bz, ry }); }
+        for (const [sb, yb] of [[-0.35, y0], [fin + 0.15, y0 + (y1 - y0) * Math.min(1, (fin + 0.15) / L)]]) { const [bx, , bz] = ici(sb, w, 0); a.boite(0.36, 0.9, 0.36, P.pierreFonce, { x: bx, y: yb + 0.3, z: bz, ry }); }
         // la main courante : des petits poteaux sur le chaperon, une barre, seulement le long des marches
-        const H = 0.62;
-        for (let k = 0; k <= 6; k++) { const sk = 0.35 + (k / 6) * (L - 0.7), [px, py, pz] = ici(sk, w, y0 + (y1 - y0) * sk / L + 0.42); a.boite(0.06, H, 0.06, P.boisFonce, { x: px, y: py + H / 2, z: pz, ry }); }
-        a.baton(ici(0.35, w, y0 + (y1 - y0) * 0.35 / L + 0.42 + H), ici(L - 0.35, w, y0 + (y1 - y0) * (L - 0.35) / L + 0.42 + H), 0.032, P.bois, 6);
+        const H = 0.62, finM = Math.min(L - 0.35, fin - 0.2);
+        for (let k = 0; k <= 6; k++) { const sk = 0.35 + (k / 6) * (finM - 0.35), [px, py, pz] = ici(sk, w, y0 + (y1 - y0) * sk / L + 0.42); a.boite(0.06, H, 0.06, P.boisFonce, { x: px, y: py + H / 2, z: pz, ry }); }
+        a.baton(ici(0.35, w, y0 + (y1 - y0) * 0.35 / L + 0.42 + H), ici(finM, w, y0 + (y1 - y0) * finM / L + 0.42 + H), 0.032, P.bois, 6);
         // (le muret arrête : on reste sur les marches ; et les bornes. Le milieu du joueur à 47 cm au plus de la ligne des
         // marches, son corps, 30 cm de large de chaque côté, avant le muret : 2026-10-26, arrêté à 74 cm, on entrait dans le
-        // muret jusqu'à la taille, la main courante à travers le corps)
-        const [ax, , az] = ici(-0.6, w, 0), [bx, , bz] = ici(L + 0.6, w, 0);
+        // muret jusqu'à la taille, la main courante à travers le corps. En bas, il s'arrête sur la borne : son bout rond la
+        // couvre, 27 cm au-delà)
+        const [ax, , az] = ici(-0.6, w, 0), [bx, , bz] = ici(fin + 0.15, w, 0);
         monde.mur(ax, az, bx, bz, 0.45);
       }
     }
@@ -2408,8 +2553,10 @@ export function construire(ctx) {
         a.tube(pts.map(([px, pz, py]) => [px + lx * s * 0.78, py - 0.2, pz + lz * s * 0.78]), 0.09, P.boisFonce, { cotes: 6, pas: 24 });
         a.tube(pts.map(([px, pz, py]) => [px + lx * s * 0.78, py + 0.85, pz + lz * s * 0.78]), 0.045, P.bois, { cotes: 6, pas: 24 });
         for (let k = 0; k <= 12; k += 2) a.boite(0.07, 0.85, 0.07, P.boisFonce, { x: pts[k][0] + lx * s * 0.78, y: pts[k][2] + 0.42, z: pts[k][1] + lz * s * 0.78, ry });
-        const [ax, az] = ici(-3.05, s * 0.78), [bx, bz] = ici(3.05, s * 0.78);
-        monde.mur(ax, az, bx, bz, 0.12);
+        // (d'un bout à l'autre, et le corps du joueur : il entrait dans les garde-corps, et dans leurs poteaux des bouts ;
+        // 2026-10-26)
+        const [ax, az] = ici(-sud, s * 0.78), [bx, bz] = ici(nord, s * 0.78);
+        monde.mur(ax, az, bx, bz, 0.3);
       }
       monde.chemin(pts, 0.7, { sol: 'bois' });
       // les dalles de pierre aux deux bouts : au sud, entre la dalle du bas de l'escalier et le pont (3 cm au-dessus d'elle) ;
@@ -2417,7 +2564,7 @@ export function construire(ctx) {
       for (const [t0, t1, w, l, dy] of [[-sud - 1.15, -sud + 0.12, 0, 2.4, 0.1], [nord - 0.12, nord + 1.75, -0.25, 2.7, 0.08]]) {
         const [px, pz] = ici((t0 + t1) / 2, w), y = NIV_I + 0.5 + dy;
         a.boite(l, 0.3, t1 - t0, '#b2ab9b', { x: px, y: y - 0.15, z: pz, ry });
-        monde.chemin([ici(t0, w), ici(t1, w)].map(([qx, qz]) => [qx, qz, y]), l / 2 - 0.15, { sol: 'pierre' });
+        monde.chemin([ici(t0, w), ici(t1, w)].map(([qx, qz]) => [qx, qz, y]), l / 2 - 0.15, { sol: 'pierre', droits: true });
       }
     }
     // la grotte des dieux (天安河原), refaite le 2026-10-26 (« il faut refaire la grotte, il y a des arbres qui dépassent
@@ -2931,10 +3078,13 @@ export function construire(ctx) {
   })();
   animes.push({ objet: promeneurs.objet, maj: (dt, temps, c) => promeneurs.maj(dt, temps, c) });
   /** L'eau où la barque peut aller (avec une marge) : entre les parois, du ponton jusqu'aux rapides du « saut de la lance ». */
-  // (la paroi ouest, derrière l'escalier et le ponton : des blocs pour la caméra, qui s'arrête devant au lieu d'y entrer)
+  // (la paroi ouest, derrière l'escalier et le ponton : des blocs pour la caméra, qui s'arrête devant au lieu d'y entrer.
+  // Leur haut 40 cm sous le plateau : 2026-10-26, « le long de la barrière, quand je marche, ça zoome et dézoome en
+  // permanence » ; ils montaient à 1,5 m au-dessus du chemin du bord, invisibles, de 8 m de large ; la caméra, derrière le
+  // joueur, y butait à chaque tranche de 2 m et se collait à 1,2 m de sa tête, puis reculait)
   for (let z = ESCALIER.z0 - 3; z < PONTON.z1 + 2; z += 2) {
     const [px] = piedParoi(-1, z + 1);
-    monde.bloc(px - 8, px - 0.1, z, z + 2, NIV - 3, 1.5);
+    monde.bloc(px - 8, px - 0.1, z, z + 2, NIV - 3, RIVE_O - 0.4);
   }
   const navigable = (x, z, marge = 0) => {
     if (z > 60 || z < -38.5) return false;
@@ -3441,7 +3591,7 @@ export function construire(ctx) {
     // cachée hors du jardin, caméra à plus de 14 m (dedans), elle apparaissait d'un coup devant soi en arrivant ; elle
     // coûte 11 à 18 appels de dessin, 1 % de triangles, rien de mesurable au processeur ; 2026-10-25)
     { id: 'fermiere', x: -57, z: 30.5, cap: PI / 2 + 0.5, tenue: { taille: 0.94, peau: '#e8bf98', cheveux: '#5a5650', coiffure: 'chignon', chapeau: { sorte: 'sugegasa', c: '#d8c08a' }, haut: '#3f5f88', manches: 'longues', tablier: '#e8e0cc', bas: { sorte: 'pantalon', c: '#4a4a56' }, chaussures: '#3a3236', semelle: '#3a3236', yeux: 'plisses' } },
-    { id: 'boutique', x: BOUTIQUE.x + 1.7, z: BOUTIQUE.z, cap: PI / 2, tenue: { taille: 0.96, peau: '#f0c8a6', cheveux: '#d8d4cc', coiffure: 'chignon', haut: '#8a5a7a', manches: 'longues', tablier: '#f2ead8', bas: { sorte: 'pantalon', c: '#4a4a56' }, chaussures: '#3a3236', semelle: '#3a3236', yeux: 'plisses' } },
+    { id: 'boutique', x: BOUTIQUE.x + 2.05, z: BOUTIQUE.z, cap: PI / 2, tenue: { taille: 0.96, peau: '#f0c8a6', cheveux: '#d8d4cc', coiffure: 'chignon', haut: '#8a5a7a', manches: 'longues', tablier: '#f2ead8', bas: { sorte: 'pantalon', c: '#4a4a56' }, chaussures: '#3a3236', semelle: '#3a3236', yeux: 'plisses' } },
     // (un pas derrière le garde-corps : il était dedans)
     { id: 'videaste', x: 13.7, z: VUE_CASCADE.z - 1.6, cap: -PI / 2 - 0.1, tenue: { taille: 1.1, peau: PEAU, cheveux: '#3a2a20', coiffure: 'court', chapeau: { sorte: 'bob', c: '#2f3440' }, haut: '#2f3440', manches: 'courtes', bas: { sorte: 'pantalon', c: '#c9b48a' }, chaussures: P.blanc, semelle: '#3a3236', appareil: true } },
     // (au sud de la pierre, tourné vers le chemin : il était dans la pierre)
@@ -3783,7 +3933,7 @@ export function construire(ctx) {
     aspectSol: (x, z, h) => aspectSol(P, x, z, h),
     // (le sol en cases de 25 cm le long du canal : dehors, il reste au ras du haut de ses murs ; avec celles d'un mètre, il
     // descendait vers le lit sur un mètre, un fossé le long de chaque mur)
-    solDetaille: (x0, z0, x1, z1) => surLaLigne(CANAL, (x0 + x1) / 2, (z0 + z1) / 2).d < 1.6,
+    solDetaille: (x0, z0, x1, z1) => surLaLigne(CANAL, (x0 + x1) / 2, (z0 + z1) / 2).d < 1.6 || bordCorniche((x0 + x1) / 2, (z0 + z1) / 2),
     // (la grille fine du sol jusqu'aux virages des deux bouts de la gorge, et à l'ouest jusqu'au-delà du virage de l'Iwato : la
     // grosse grille, de 4 m, passait devant les colonnes, et à leur jointure le sol se fendait, au bord de l'eau)
     etendue: { x0: -720, x1: 720, z0: -720, z1: 720, pas: 4, fin: { x0: -116, x1: 40, z0: -168, z1: 126, pas: 1 } },
@@ -3979,7 +4129,7 @@ const TEXTES = {
     },
     yohai: ['Le lieu de prière face à la grotte (天岩戸遥拝所).', 'De l’autre côté de la rivière Iwato, dans la falaise, une fente fermée par un rocher : la grotte où s’enferma Amaterasu, la déesse du soleil.', 'Personne n’a le droit d’y aller : on la salue d’ici. Près du petit torii, l’arbre sacré, un sakaki, et la table des offrandes.'],
     yohaiNuit: ['La nuit, la falaise est toute noire. On devine à peine la grotte, de l’autre côté de la rivière…', 'Le sakaki, l’arbre sacré, frissonne dans le vent.'],
-    yohaiApres: ['Le miroir brille sur le sakaki, tourné vers la grotte. La porte de pierre est entrouverte.', 'On dirait qu’un peu de lumière en sort encore…'],
+    yohaiApres: ['Le miroir brille sur le sakaki, devant la grotte. La porte de pierre est entrouverte.', 'On dirait qu’un peu de lumière en sort encore…'],
     yohaiNuitMiroir: ['Il fait trop sombre : le miroir ne renverrait aucune lumière.', 'Il faudrait le suspendre au sakaki quand le soleil brille.'],
     accrocher: ['Tu suspends le miroir à une branche du sakaki, devant la grotte d’Amaterasu.', 'Comme le firent les dieux, il y a très, très longtemps…'],
     eclipse: ['Soudain, le ciel s’assombrit… Le soleil disparaît, comme le jour où Amaterasu s’enferma dans sa grotte !'],
@@ -4153,7 +4303,7 @@ const TEXTES = {
     },
     yohai: ['The prayer place facing the cave (天岩戸遥拝所).', 'Across the Iwato River, in the cliff, a crack closed by a boulder: the cave where Amaterasu, the sun goddess, shut herself away.', 'No one may go there: people greet it from here. By the little torii stand the sacred tree, a sakaki, and the offering table.'],
     yohaiNuit: ['At night the cliff is pitch black. You can barely make out the cave across the river…', 'The sakaki, the sacred tree, shivers in the wind.'],
-    yohaiApres: ['The mirror shines on the sakaki, facing the cave. The stone door is ajar.', 'It looks as if a little light still spills out…'],
+    yohaiApres: ['The mirror shines on the sakaki, in front of the cave. The stone door is ajar.', 'It looks as if a little light still spills out…'],
     yohaiNuitMiroir: ['It’s too dark: the mirror wouldn’t reflect any light.', 'You should hang it on the sakaki while the sun is shining.'],
     accrocher: ['You hang the mirror on a branch of the sakaki, in front of Amaterasu’s cave.', 'Just as the gods did, a very, very long time ago…'],
     eclipse: ['Suddenly the sky grows dark… The sun disappears, like the day Amaterasu shut herself in her cave!'],
@@ -4327,7 +4477,7 @@ const TEXTES = {
     },
     yohai: ['天岩戸遥拝所（ようはいじょ）。', '岩戸川の　むこう、がけの　中に、岩で　ふさがれた　すきま。お日さまの　女神、天照大御神が　かくれた　岩戸です。', '近くへは　行けないので、ここから　おまいり　します。小さな　鳥居の　そばに、神聖な　木の　さかきと、おそなえの　台。'],
     yohaiNuit: ['夜の　がけは　まっくら。川の　むこうの　岩戸も　ほとんど　見えない……', '神聖な　さかきが　風に　ふるえて　いる。'],
-    yohaiApres: ['さかきに　かけた　かがみが、岩戸の　ほうを　むいて　光って　いる。岩の　とびらは　すこし　あいた　まま。', 'まだ　すこし　光が　もれて　いる　みたい……'],
+    yohaiApres: ['さかきに　かけた　かがみが、岩戸の　まえで　光って　いる。岩の　とびらは　すこし　あいた　まま。', 'まだ　すこし　光が　もれて　いる　みたい……'],
     yohaiNuitMiroir: ['くらすぎる……かがみが　光を　はねかえせない。', 'お日さまが　出て　いる　ときに、さかきに　かけないと。'],
     accrocher: ['天岩戸の　まえの　さかきの　えだに、かがみを　かけた。', 'むかし　むかし、神さまたちが　した　ように……'],
     eclipse: ['とつぜん　空が　くらく　なった……天照大御神が　岩戸に　かくれた　日の　ように、お日さまが　きえた！'],

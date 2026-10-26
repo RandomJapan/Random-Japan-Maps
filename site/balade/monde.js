@@ -62,8 +62,17 @@ const TETE = 2.6;
 export function creerMonde({ terrain, cadre, profond = -0.6, pente = null }) {
   const surfaces = [], cercles = [], murs = [], blocs = [], toits = [];
   const dansAnneau = ([cx, cz, r0, r1], x, z) => { const d = Math.hypot(x - cx, z - cz); return d >= r0 && d <= r1; };
-  const dedans = (s, x, z) => x >= s.x0 && x <= s.x1 && z >= s.z0 && z <= s.z1 && (!s.ligne || surLaLigne(s.ligne, x, z).d <= s.demi)
+  const dedans = (s, x, z) => x >= s.x0 && x <= s.x1 && z >= s.z0 && z <= s.z1 && (!s.ligne || dansLaLigne(s, x, z))
     && (!s.anneau || dansAnneau(s.anneau, x, z));
+  // (un chemin aux bouts droits, s.droits : une dalle ; pas au-delà de son premier ni de son dernier point. Aux bouts ronds,
+  // une dalle de pierre se prolongeait d'une demi-largeur dans le vide, et l'on y marchait en l'air : Takachiho, 2026-10-26,
+  // jusqu'à 50 cm au-dessus des marches du sanctuaire, 18 cm au-dessus du chemin aux bouts de la dalle du canal)
+  const dansLaLigne = (s, x, z) => {
+    if (surLaLigne(s.ligne, x, z).d > s.demi) return false;
+    if (!s.droits) return true;
+    const L = s.ligne, [ax, az] = L[0], [bx, bz] = L[1], [cx, cz] = L[L.length - 2], [dx, dz] = L[L.length - 1];
+    return (x - ax) * (bx - ax) + (z - az) * (bz - az) >= 0 && (x - dx) * (dx - cx) + (z - dz) * (dz - cz) <= 0;
+  };
   const hauteurDe = (s, x, z) => {
     if (s.ligne) return surLaLigne(s.ligne, x, z).h;
     if (!s.rampe) return s.h;
@@ -187,7 +196,10 @@ export function creerMonde({ terrain, cadre, profond = -0.6, pente = null }) {
     terrain, cadre, surfaces, cercles, murs, blocs, toits, hauteur, libre, abri, visee, raideur, solSous,
     surface(x0, x1, z0, z1, h, o = {}) { surfaces.push({ x0, x1, z0, z1, h, ...o }); },
     rampe(x0, x1, z0, z1, axe, h0, h1, o = {}) { surfaces.push({ x0, x1, z0, z1, h: Math.max(h0, h1), rampe: { axe, h0, h1 }, ...o }); },
-    /** Un chemin en pente le long de la ligne brisée points [[x, z, h], …], de demi-largeur demi (un escalier en biais). */
+    /**
+     * Un chemin en pente le long de la ligne brisée points [[x, z, h], …], de demi-largeur demi (un escalier en biais) ;
+     * o.droits : ses bouts sont droits (une dalle), sinon ronds.
+     */
     chemin(points, demi, o = {}) {
       const xs = points.map((p) => p[0]), zs = points.map((p) => p[1]);
       surfaces.push({ x0: Math.min(...xs) - demi, x1: Math.max(...xs) + demi, z0: Math.min(...zs) - demi, z1: Math.max(...zs) + demi, h: Math.max(...points.map((p) => p[2])), ligne: points, demi, ...o });
