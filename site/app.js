@@ -2200,10 +2200,10 @@ async function remplirFiche(l) {
 const BALADES = { 'itsukushima-jinja': 'itsukushima', aogashima: 'aogashima', gokayama: 'gokayama', 'himeji-castle': 'himeji', 'takachiho-gorge': 'takachiho', 'amanoiwato-jinja': 'takachiho' };
 
 /**
- * Les boutons de la fiche (deux pour les visiteurs, pour tenir sur une ligne ; partager est une icône sur la photo,
+ * Les boutons de la fiche (deux, pour tenir sur une ligne, plus « Visiter en 3D » ; partager est une icône sur la photo,
  * « Plus d'infos » un lien après le texte) : la vidéo TikTok, et l'itinéraire Google Maps, ou « Y aller » quand
- * « Près de moi » connaît la position du visiteur (la route se trace sur la carte, pres.js) ; en mode développeur,
- * « Visiter en 3D » pour les lieux de la balade.
+ * « Près de moi » connaît la position du visiteur (la route se trace sur la carte, pres.js) ; et « Visiter en 3D »
+ * pour les lieux de la balade.
  */
 
 function remplirBoutons(l) {
@@ -2211,8 +2211,8 @@ function remplirBoutons(l) {
   if (l.tiktok) boutons.push(`<a class="principal" href="${echapper(l.tiktok)}" target="_blank" rel="noopener">${SVG.tiktok}${echapper(t('voirTiktok'))}</a>`);
   if (pres?.position()) boutons.push(`<button type="button" data-aller>${SVG.route}${echapper(t('yAller'))}</button>`);
   else boutons.push(`<a href="https://www.google.com/maps/dir/?api=1&destination=${l.lat},${l.lng}" target="_blank" rel="noopener">${SVG.route}${echapper(t('itineraire'))}</a>`);
-  // la balade 3D : en mode développeur seulement, tant qu'elle n'est pas publique
-  if (BALADES[l.id]) boutons.push(`<a class="dev" href="balade/?lieu=${BALADES[l.id]}&langue=${langue}">${SVG.balade}${echapper(t('visiter3d'))}</a>`);
+  // la balade 3D (pour tous depuis le 2026-10-26)
+  if (BALADES[l.id]) boutons.push(`<a href="balade/?lieu=${BALADES[l.id]}&langue=${langue}">${SVG.balade}${echapper(t('visiter3d'))}</a>`);
   $('fiche-boutons').innerHTML = boutons.join('');
 }
 

@@ -62,6 +62,31 @@
   </div>
 
   <div class="chargement"><div class="cadre"><span class="sablier"></span><p></p></div></div>
-  <script type="module" src="balade.js"></script>
+  <script>
+    // Si la balade ne peut pas démarrer (un appareil sans WebGL 2 ; reseau : three.js ou un module injoignable) : un
+    // mot et le retour à la carte, plutôt qu'un sablier sans fin (depuis qu'elle est pour tous, 2026-10-26). Une
+    // erreur pendant le chargement qui ne l'empêche pas s'efface avec lui.
+    function echecBalade(reseau) {
+      const ch = document.querySelector('.chargement');
+      if (ch.hidden || ch.classList.contains('echec')) return;
+      const TEXTES = {
+        en: ['This device can’t show the 3D walk.', 'The 3D walk couldn’t load. Check your connection and try again.', 'Back to the map'],
+        fr: ['Ton appareil ne peut pas afficher la balade en 3D.', 'La balade en 3D n’a pas pu se charger. Vérifie ta connexion et réessaie.', 'Retour à la carte'],
+        ja: ['この端末では3Dおさんぽを表示できません。', '3Dおさんぽを読みこめませんでした。接続をたしかめて、もう一度ためしてください。', '地図にもどる'],
+      };
+      let langue = new URLSearchParams(location.search).get('langue');
+      try { if (!TEXTES[langue]) langue = localStorage.getItem('langue'); } catch { /* navigation privée */ }
+      if (!TEXTES[langue]) langue = String(navigator.language || 'en').slice(0, 2).toLowerCase();
+      const [appareil, connexion, retour] = TEXTES[langue] || TEXTES.en;
+      ch.classList.add('echec');
+      ch.querySelector('p').textContent = reseau ? connexion : appareil;
+      const lien = document.createElement('a');
+      lien.href = '../';
+      lien.textContent = retour;
+      ch.querySelector('.cadre').append(lien);
+    }
+    addEventListener('error', () => echecBalade(false));
+  </script>
+  <script type="module" src="balade.js" onerror="echecBalade(true)"></script>
 </body>
 </html>

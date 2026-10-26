@@ -281,6 +281,13 @@ body.en-tenue .joystick, body.en-tenue .bouton-a, body.en-tenue .aide, body.en-t
 .chargement p { margin: 0; font-size: 18px; }
 .sablier { width: 18px; height: 18px; background: var(--rouge); animation: tourne 0.9s steps(4) infinite; }
 @keyframes tourne { to { transform: rotate(360deg); } }
+/* la balade ne peut pas démarrer (index.html, echecBalade) */
+.chargement.echec .cadre { box-sizing: border-box; flex-direction: column; max-width: min(420px, calc(100vw - 32px)); text-align: center; }
+.chargement.echec .sablier { display: none; }
+.chargement.echec a {
+  background: var(--rouge); color: #fff; border: 3px solid var(--encre); border-radius: 8px; padding: 8px 16px;
+  font-size: 16px; text-decoration: none;
+}
 
 @media (max-width: 720px) {
   .titre { padding: 5px 12px 5px 6px; }
