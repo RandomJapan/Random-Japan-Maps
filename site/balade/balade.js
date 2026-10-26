@@ -1224,7 +1224,8 @@ function creerEauxCalmes(lieu, lampes, ciel) {
  * par beau temps, un arc-en-ciel pâle dans la brume (arcEnCiel : son rayon, ou 0). Des deux côtés (on la voit aussi d'en
  * haut, de dos). La brume elle-même : lieu.vapeurs. Renvoie ses morceaux (leurs uniformes temps et nuit, comme l'eau qui
  * coule). Le haut du voile est le bout de l'eau qui arrive (même hauteur, même largeur) : posé plus large ou plus bas, le bout
- * de la rivière dépassait au-dessus de lui comme une planche (2026-10-26, la rivière Iwato).
+ * de la rivière dépassait au-dessus de lui comme une planche (2026-10-26, la rivière Iwato). amont (facultatif) : { long,
+ * pente } : les derniers mètres de l'eau qui arrive, à plat, dessinés avec le voile (le canal de Manai, de sa dalle au bord).
  */
 function creerCascade(c, P, lampes, lieu, ciel) {
   // (refaite le 2026-10-25, « la cascade est un peu mal faite » : un voile bombé qui s'élargit en tombant, et devant lui des
@@ -1234,23 +1235,42 @@ function creerCascade(c, P, lampes, lieu, ciel) {
   const [ox, oz] = c.sortie, px = -oz, pz = ox, haut = c.y0 - c.y1, N = 40, NL = 18, evase = c.evase ?? 1.45;
   // (vol : depuis combien de secondes l'eau a passé le bord, à cette hauteur ; elle part à V0 m/s et tombe en chute libre)
   const V0 = 1.2, G = 9.8, vol = (t) => (Math.sqrt(V0 * V0 + 2 * G * t * haut) - V0) / G;
+  // (amont, facultatif, 2026-10-26 : l'eau qui arrive, sur ses derniers mètres avant le bord (long), à plat, montant de pente
+  // par mètre vers l'amont, dessinée avec le voile : le motif de la cascade y coule déjà, de 0,8 m/s au début à V0 au bord, et
+  // passe le bord sans couture ; elle apparaît sur l'eau qui arrive. Le canal de Manai : avant, son eau finissait au bord
+  // comme une vitre immobile, et la cascade partait de là, d'une autre couleur)
+  const A = c.amont?.long || 0, NA = A ? Math.ceil(A / 0.2) : 0, KA = A ? (V0 / 0.8 - 1) / A : 0;
   const pos = [], uv = [], brin = [], vols = [], idx = [];
-  const nappe = (nl, b, s0, s1, avance, bombe0, large0, ecart) => {
+  const nappe = (nl, b, s0, s1, avance, bombe0, large0, ecart, na = 0) => {
     const base = pos.length / 3;
-    for (let i = 0; i <= N; i++) {
+    for (let i = -na; i <= N; i++) {
+      if (i < 0) {
+        // (d mètres avant le bord, un rien au-dessus de l'eau du canal)
+        const d = (A * -i) / na;
+        for (let j = 0; j <= nl; j++) {
+          const f = j / nl, lat = (s0 + (s1 - s0) * f) * large0;
+          pos.push(c.x - ox * d + px * lat, c.y0 + c.amont.pente * d + 0.006, c.z - oz * d + pz * lat);
+          uv.push(f, -d);
+          brin.push(b);
+          vols.push(-(d + (KA * d * d) / 2) / V0);
+        }
+        continue;
+      }
       const t = i / N, y = c.y0 - haut * t, sort = avance * Math.sqrt(t) + 0.25 * Math.min(1, t * 8), large = large0 * (1 + (evase - 1) * t);
       for (let j = 0; j <= nl; j++) {
         const f = j / nl, s = s0 + (s1 - s0) * f, bombe = bombe0 * (1 - 4 * (f - 0.5) ** 2) * Math.min(1, t * 4) + 0.05 * Math.sin(s * 9 + t * 5 + b) * Math.min(1, t * 6);
-        const lat = s * large + ecart * t * Math.sign(s);
+        // (les filets partent de l'eau qui arrive, dans sa largeur, puis s'écartent : ceux des côtés partaient du haut des
+        // murs du canal de Manai)
+        const lat = s * large * (b ? 0.66 + 0.34 * Math.min(1, t * 5) : 1) + ecart * t * Math.sign(s);
         pos.push(c.x + ox * (sort + bombe) + px * lat, y, c.z + oz * (sort + bombe) + pz * lat);
         uv.push(f, t * haut);
         brin.push(b);
         vols.push(vol(t));
       }
     }
-    for (let i = 0; i < N; i++) for (let j = 0; j < nl; j++) { const a0 = base + i * (nl + 1) + j, b0 = a0 + 1, d = a0 + nl + 1, f = d + 1; idx.push(a0, d, b0, b0, d, f); }
+    for (let i = 0; i < N + na; i++) for (let j = 0; j < nl; j++) { const a0 = base + i * (nl + 1) + j, b0 = a0 + 1, d = a0 + nl + 1, f = d + 1; idx.push(a0, d, b0, b0, d, f); }
   };
-  nappe(NL, 0, -0.5, 0.5, c.avance, 0.18, c.large, 0);
+  nappe(NL, 0, -0.5, 0.5, c.avance, 0.18, c.large, 0, NA);
   // (les filets, un peu devant le voile, de part et d'autre)
   [[-0.62, -0.42, 1.12, 0.35], [-0.3, -0.12, 1.2, 0.1], [0.05, 0.22, 1.16, 0.05], [0.34, 0.5, 1.1, 0.2], [0.58, 0.72, 1.04, 0.45]].forEach(([s0, s1, k, ecart], i) => nappe(3, i + 1, s0, s1, c.avance * k, 0.08, c.large, ecart));
   const g = new THREE.BufferGeometry();
@@ -1262,7 +1282,7 @@ function creerCascade(c, P, lampes, lieu, ciel) {
   const mat = new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, fog: true, side: THREE.DoubleSide,
     uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
-      ecume: { value: new THREE.Color(P.ecume) }, vert: { value: new THREE.Color(lieu.eau?.clair || P.eauClaire) }, temps: { value: 0 }, nuit: { value: 0 }, haut: { value: haut }, large: { value: c.large },
+      ecume: { value: new THREE.Color(P.ecume) }, vert: { value: new THREE.Color(lieu.eau?.clair || P.eauClaire) }, temps: { value: 0 }, nuit: { value: 0 }, haut: { value: haut }, large: { value: c.large }, amont: { value: A },
     }]),
     vertexShader: `
       attribute float brin, vol;
@@ -1287,7 +1307,7 @@ function creerCascade(c, P, lampes, lieu, ciel) {
     // hauteur au bout de CYCLE secondes : le temps est pris modulo CYCLE, et reste petit (les grands nombres abîmaient le hasard)
     fragmentShader: `
       uniform vec3 ecume, vert;
-      uniform float temps, nuit, haut, large;
+      uniform float temps, nuit, haut, large, amont;
       varying vec2 vUv;
       varying float vBrin, vVol;
       varying vec3 vMonde;
@@ -1304,6 +1324,8 @@ function creerCascade(c, P, lampes, lieu, ciel) {
       }
       void main() {
         float u = vUv.x, t = vUv.y / haut, b = vBrin, filet = step(0.5, b);
+        // (am : en amont du bord, de 0 au bord à 1 au début de l'eau qui arrive ; 0 dans la chute)
+        float am = amont > 0.0 ? clamp(-vUv.y / amont, 0.0, 1.0) : 0.0;
         // ph : l'instant où cette eau a passé le bord (à CYCLE près) ; k carreaux par seconde de chute : k × CYCLE carreaux
         float ph = vVol - mod(temps, CYCLE);
         // (les carreaux en travers : tant par mètre de large, en haut ; un filet fait un cinquième du voile)
@@ -1324,14 +1346,16 @@ function creerCascade(c, P, lampes, lieu, ciel) {
         float trou = smoothstep(0.22 + 0.36 * t, 0.5 + 0.3 * t, fil * 0.55 + masse * 0.45 + 0.18 - 0.1 * filet * t);
         // la lame claire et verte qui passe le bord, puis l'eau blanchit ; plus claire sur les fils, un peu d'ombre sur les
         // côtés du voile (il est bombé) et entre les fils
-        vec3 c = mix(vert * 1.08, ecume, clamp(0.2 + 0.8 * smoothstep(0.0, 0.14, t) * (0.6 + 0.3 * traine + 0.1 * paquet), 0.0, 1.0));
-        c *= 0.8 + 0.16 * traine + 0.1 * eclat + 0.08 * paquet + 0.06 * (1.0 - abs(u * 2.0 - 1.0));
+        vec3 c = mix(vert * 1.08, ecume, clamp(0.2 * (1.0 - 0.6 * am) + 0.8 * smoothstep(0.0, 0.14, t) * (0.6 + 0.3 * traine + 0.1 * paquet), 0.0, 1.0));
+        c *= (0.8 + 0.16 * traine + 0.1 * eclat + 0.08 * paquet + 0.06 * (1.0 - abs(u * 2.0 - 1.0))) * (1.0 - 0.18 * am);
         // les bords : déchirés par les masses d'eau, qui descendent avec elle
         float ondule = 0.07 * (masse - 0.5) + 0.04 * (n1 - 0.5);
         float bord = smoothstep(0.0, mix(0.14, 0.3, filet) + ondule, u) * (1.0 - smoothstep(mix(0.86, 0.7, filet) - ondule, 1.0, u));
         float a = (0.34 + 0.58 * traine + 0.08 * masse + 0.14 * paquet) * bord * mix(1.0, trou, mix(0.65, 0.85, filet)) + 0.16 * smoothstep(0.75, 1.0, t) * bord;
         // (en haut, la lame d'eau pleine, qui continue l'eau qui arrive)
         a = max(a, (1.0 - smoothstep(0.0, 0.06, t)) * bord * mix(0.88, 0.6, filet));
+        // (l'eau qui arrive : pleine au bord ; en amont, on voit surtout ses traînées, puis elle s'efface sur celle du canal)
+        if (am > 0.0) a = bord * (0.88 - am * (0.5 - 0.4 * traine)) * (1.0 - smoothstep(0.25, 1.0, am));
         vec3 lampe = c * lumiereLampes(vMonde, vec3(0.0, 1.0, 0.0));
         c *= mix(vec3(1.0), vec3(0.3, 0.34, 0.5), nuit);
         c += lampe * 0.9;
