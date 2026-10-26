@@ -1849,6 +1849,10 @@ export function creerCompagnon(ctx, espece, o = {}) {
   };
 
   let phase = 0, assis = 1, foulee = 0, secousse = 0, saut = 0, tambour = 0, prochainTambour = 6 + Math.random() * 6, danse = false, tDanse = 0;
+  // (la queue qui bat, les anneaux de Fuwa qui ondulent : leur phase avance de dt × leur rythme. 2026-10-26, « quand il se
+  // déplace, sa queue tremble » : c'était sin(temps × rythme), le rythme suivant l'allure ; en marchant, l'allure bouge un peu
+  // à chaque image, et la phase sautait de temps × l'écart, de plus en plus fort au fil de la partie)
+  let phaseQueue = 0, phaseVol = 0;
   const loutre = espece === 'chapu', tanuki = espece === 'pon', vol = !!F.vol, bipede = !!F.bipede;
   return {
     objet: racine,
@@ -1876,6 +1880,8 @@ export function creerCompagnon(ctx, espece, o = {}) {
       cligner(dt);
       const allure = nage ? 0 : Math.min(1, vitesse / 3);
       phase += dt * (nage ? 7 + vitesse * 1.5 : loutre ? 6 + vitesse * 2.6 : bipede ? 7 + vitesse * 3.4 : 6 + vitesse * 3);
+      phaseQueue += dt * (2 + (loutre ? 5 : 4) * allure);
+      phaseVol += dt * (2.6 + 4 * allure);
       const f = Math.floor((phase - PI / 2) / PI);
       let pose = 0;
       if (f !== foulee) { foulee = f; if (allure > 0.3) pose = f & 1 ? -1 : 1; }
@@ -1906,12 +1912,11 @@ export function creerCompagnon(ctx, espece, o = {}) {
         // pattes pagaient dans l'air ; au repos, il se penche un peu en arrière et regarde autour de lui
         bascule.rotation.x = -0.12 * assis + 0.1 * allure;
         corps.position.y = -by + 0.035 * Math.sin(temps * 2.1) + 0.04 * assis;
-        const v = 2.6 + 4 * allure;
         anneaux.forEach(({ g, p }, i) => {
           const k = (i + 1) / anneaux.length;
-          g.position.x = p[0] + (0.035 + 0.03 * allure) * Math.sin(temps * v - i * 0.85) * k;
-          g.position.y = p[1] + 0.03 * Math.sin(temps * v * 0.8 - i * 0.9) * k;
-          g.rotation.y = 0.5 * Math.cos(temps * v - i * 0.85) * k;
+          g.position.x = p[0] + (0.035 + 0.03 * allure) * Math.sin(phaseVol - i * 0.85) * k;
+          g.position.y = p[1] + 0.03 * Math.sin(phaseVol * 0.8 - i * 0.9) * k;
+          g.rotation.y = 0.5 * Math.cos(phaseVol - i * 0.85) * k;
         });
         for (const [i, q] of pattes.entries()) q.rotation.x = 0.5 + 0.45 * Math.sin(temps * 6 + i * 1.7);
         tete.rotation.x = 0.15 * assis + Math.sin(temps * 1.3) * 0.06;
@@ -1934,7 +1939,7 @@ export function creerCompagnon(ctx, espece, o = {}) {
         tete.rotation.x = 1.0 * assis + Math.sin(temps * 1.3) * 0.05;
         tete.rotation.y = Math.sin(temps * 0.8) * 0.55 * assis;
         queue.rotation.x = 1.1 * assis;
-        queue.rotation.y = Math.sin(temps * (2 + 5 * allure)) * (0.15 + 0.2 * allure);
+        queue.rotation.y = Math.sin(phaseQueue) * (0.15 + 0.2 * allure);
         corps.position.y = -by + Math.abs(Math.cos(phase)) * 0.04 * allure;
       } else if (tanuki) {
         // le tanuki assis sur son derrière, droit comme les statues, les pattes arrière devant lui, celles de devant
@@ -1949,7 +1954,7 @@ export function creerCompagnon(ctx, espece, o = {}) {
         ag.rotation.z = 0.2 * assis; ad.rotation.z = -0.2 * assis;
         tete.rotation.x = 0.5 * assis + Math.sin(temps * 1.3) * 0.04;
         tete.rotation.z = Math.sin(temps * 0.7) * 0.1 * assis;
-        queue.rotation.y = Math.sin(temps * (2 + 4 * allure)) * (0.3 + 0.25 * allure);
+        queue.rotation.y = Math.sin(phaseQueue) * (0.3 + 0.25 * allure);
         queue.rotation.x = 0.55 * assis;
         // Pon se tambourine le ventre de temps en temps (pon, poko, pon) ; pas en dansant
         if (assis > 0.9 && !danse) prochainTambour -= dt; else prochainTambour = Math.max(prochainTambour, 3);
@@ -1971,7 +1976,7 @@ export function creerCompagnon(ctx, espece, o = {}) {
         ag.rotation.x += 0.3 * assis * droit; ad.rotation.x += 0.3 * assis * droit;
         tete.rotation.x = 0.3 * assis * droit + Math.sin(temps * 1.3) * 0.04;
         tete.rotation.z = Math.sin(temps * 0.7) * 0.12 * assis;
-        queue.rotation.y = Math.sin(temps * (2 + 4 * allure)) * (0.35 + 0.25 * allure);
+        queue.rotation.y = Math.sin(phaseQueue) * (0.35 + 0.25 * allure);
         queue.rotation.x = 0.2 * assis;
       }
       // la danse : il saute en mesure, se balance, et tourne sur lui-même à la fin de chaque phrase
