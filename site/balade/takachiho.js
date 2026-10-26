@@ -207,6 +207,14 @@ function piedParoi(cote, z) {
   for (const p of AXE) { const d = Math.abs(p[1] - z); if (d < e) { e = d; m = p; } }
   return [m[0] + cote * m[3] * m[2], m[1] + cote * m[4] * m[2], m[3] * cote, m[4] * cote];
 }
+/**
+ * Le bord du ponton, côté eau (x) ; les barques amarrées le longent à 10 cm (avant le 2026-10-26, elles étaient placées
+ * depuis le pied de la paroi à leur hauteur, qui recule vers le sud : elles entraient de 7 à 20 cm sous le ponton).
+ */
+const BORD_PONTON = Math.max(piedParoi(-1, PONTON.z0)[0], piedParoi(-1, PONTON.z1)[0]) + PONTON.l;
+const X_AMARRE = BORD_PONTON + 0.75;
+/** Le bord est du palier du haut de l'escalier des barques (le mur de l'escalier se prolonge dessous, 5 cm en retrait). */
+const X_PALIER = Math.max(piedParoi(-1, ESCALIER.z0 - 2.4)[0], piedParoi(-1, ESCALIER.z0)[0]) + ESCALIER.l + 0.09;
 
 /** Les segments de l'axe de la rivière Iwato (précalculés, avec leur boîte : surIwato). */
 const SEGS_I = (() => {
@@ -305,6 +313,11 @@ const rayonEtang = (a) => ETANG.r * (1 + 0.12 * Math.sin(3 * a + 1) + 0.07 * Mat
 // garde-corps (z) ; la dalle où l'on traverse, au milieu du chemin du bord (x, z, et la direction du canal)
 const CANAL = (() => { const [px, pz] = piedParoi(-1, CASCADE.z); return [[-19.4, 8.0], [-14, 9.2], [px, pz]]; })();
 const CANAL_GARDE = (() => { const [px, pz, ox, oz] = piedParoi(-1, CASCADE.z), x = px + ox * RAMBARDE; return CANAL[1][1] + (CANAL[2][1] - CANAL[1][1]) * (x - CANAL[1][0]) / (CANAL[2][0] - CANAL[1][0]); })();
+/**
+ * Le seuil de pierre à l'entrée du canal, au bord de l'étang (2026-10-26, « la jonction entre le bassin et la rivière est mal
+ * faite ») : son milieu, 20 cm avant le début du canal, et la direction du canal. L'eau de l'étang s'arrête à son bord amont.
+ */
+const SEUIL = (() => { const [ax, az] = CANAL[0], [bx, bz] = CANAL[1], l = Math.hypot(bx - ax, bz - az), dx = (bx - ax) / l, dz = (bz - az) / l; return { x: ax - dx * 0.2, z: az - dz * 0.2, dx, dz }; })();
 const DALLE = (() => {
   const [px, , ox] = piedParoi(-1, CASCADE.z), x = px + ox * (RAMBARDE + 1.3), [ax, az] = CANAL[1], [bx, bz] = CANAL[2], l = Math.hypot(bx - ax, bz - az);
   return { x, z: az + (bz - az) * (x - ax) / (bx - ax), ux: (bx - ax) / l, uz: (bz - az) / l, s: (x - ax) / (bx - ax) * l, l };
@@ -526,6 +539,60 @@ function triangle(pos, A, B, C, n) {
   const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
   if (nx * n[0] + ny * n[1] + nz * n[2] < 0) pos.push(...A, ...C, ...B); else pos.push(...A, ...B, ...C);
 }
+/**
+ * Un mur de pierres appareillées, ajouté à pos et couleurs, tourné vers n : le long de morceaux [{ a: [x, z], b: [x, z],
+ * bas, h0, h1 }] qui se suivent (son pied à bas, son haut de h0 en a à h1 en b). Des assises de 50 cm, des pierres de
+ * 1,2 m décalées d'une demi-pierre d'une assise à l'autre, des joints de 3 cm plus sombres ; le bas mouillé, plus sombre ;
+ * sous l'eau, un seul pan. (Une pierre entière : trois rectangles ; seules celles du haut sont coupées morceau par
+ * morceau, sous la pente des marches.)
+ */
+function appareil(pos, couleurs, morceaux, n) {
+  const H = 0.5, L = 1.2, J = 0.03, MORTIER = '#8c8679', MOUILLE = ['#8f897b', '#7f7a6d', '#888275', '#969083'];
+  const segs = [];
+  let S = 0;
+  for (const m of morceaux) { const l = Math.hypot(m.b[0] - m.a[0], m.b[1] - m.a[1]); if (l > 1e-4) { segs.push({ ...m, s: S, l }); S += l; } }
+  if (!segs.length) return;
+  const bas = Math.min(...segs.map((g) => g.bas)), haut = Math.max(...segs.map((g) => Math.max(g.h0, g.h1)));
+  // (le point du mur à s mètres de son début : x, z, et la hauteur de son haut)
+  const en = (s) => {
+    for (const g of segs) if (s <= g.s + g.l + 1e-6) { const f = Math.max(0, Math.min(1, (s - g.s) / g.l)); return [g.a[0] + (g.b[0] - g.a[0]) * f, g.a[1] + (g.b[1] - g.a[1]) * f, g.h0 + (g.h1 - g.h0) * f]; }
+    const g = segs[segs.length - 1];
+    return [g.b[0], g.b[1], g.h1];
+  };
+  // (un rectangle de s0 à s1, de y0 à y1, coupé sous le haut du mur, morceau par morceau s'il l'atteint, et là où le haut
+  // croise y0 ou y1 : sans ces coupes, un rectangle dont le haut passait sous y0 à un bout descendait dans l'assise du
+  // dessous, et ses triangles s'y superposaient)
+  const pan = (s0, s1, y0, y1, c) => {
+    if (s1 - s0 < 1e-4 || y1 - y0 < 1e-4) return;
+    const jonctions = segs.map((g) => g.s).filter((s) => s > s0 && s < s1);
+    const bords = y1 > Math.min(...[s0, ...jonctions, s1].map((s) => en(s)[2])) ? [s0, ...jonctions, s1] : [s0, s1];
+    for (let k = 0; k + 1 < bords.length; k++) {
+      const A = en(bords[k]), B = en(bords[k + 1]), dh = B[2] - A[2], ts = [0, 1];
+      if (Math.abs(dh) > 1e-9) for (const yc of [y0, y1]) { const t = (yc - A[2]) / dh; if (t > 1e-6 && t < 1 - 1e-6) ts.push(t); }
+      ts.sort((p, q) => p - q);
+      const Q = (t) => [A[0] + (B[0] - A[0]) * t, A[1] + (B[1] - A[1]) * t, Math.min(y1, Math.max(y0, A[2] + dh * t))];
+      for (let m = 0; m + 1 < ts.length; m++) {
+        if (A[2] + dh * (ts[m] + ts[m + 1]) / 2 <= y0 + 1e-6) continue;
+        const [ax, az, ah] = Q(ts[m]), [bx, bz, bh] = Q(ts[m + 1]);
+        if (bh - y0 > 1e-5) { triangle(pos, [ax, y0, az], [bx, y0, bz], [bx, bh, bz], n); couleurs.push(c); }
+        if (ah - y0 > 1e-5) { triangle(pos, [ax, y0, az], [bx, bh, bz], [ax, ah, az], n); couleurs.push(c); }
+      }
+    }
+  };
+  const ySous = Math.max(bas, NIV - 0.3);
+  if (bas < ySous) pan(0, S, bas, ySous, '#5f6659');
+  for (let r = 0, y = ySous; y < haut; r++, y += H) {
+    const dec = (r % 2) * (L / 2);
+    for (let k = 0; k * L - dec < S; k++) {
+      const sa = k * L - dec, sb = Math.min(S, sa + L), s0 = Math.max(0, sa);
+      if (sb - s0 < 1e-4) continue;
+      const c = y < NIV + 0.25 ? MOUILLE[Math.floor(hasard(k * 3.7 + r, r * 1.3) * 4)] : TONS_PIERRE[Math.floor(hasard(k * 3.7 + r, r * 1.3 + 0.7) * 4)];
+      if (sa >= 0) pan(sa, Math.min(sb, sa + J), y, y + H, MORTIER);
+      pan(Math.max(s0, sa + J), sb, y, y + H - J, c);
+      pan(Math.max(s0, sa + J), sb, y + H - J, y + H, MORTIER);
+    }
+  }
+}
 
 export function construire(ctx) {
   const { THREE, atelier, P, peinture } = ctx;
@@ -607,6 +674,42 @@ export function construire(ctx) {
       const qx = lx + nx * ecart, qy = ly + ny * ecart, qz = lz + nz * ecart;
       return [x + qx * c + qz * sn, y + qy, z - qx * sn + qz * c];
     };
+  };
+  /**
+   * Un auvent de tuiles qui fait le tour d'un étage (mokoshi), dans le repère R d'un bâtiment : du rectangle dedans
+   * [x0, x1, z0, z1] (contre les murs de l'étage, à la hauteur yi) au rectangle dehors (à yo) ; quatre pans plans qui se
+   * rejoignent en arêtes aux coins (sans jour ni recouvrement), des rangs de tuiles de deux teintes, le bandeau de rive,
+   * le dessous de bois, une arête de tuiles faîtières à chaque coin.
+   */
+  const auventTour = (a, R, dedans, dehors, yi, yo, { ep = 0.09, rangs = 6 } = {}) => {
+    const [x0, x1, z0, z1] = dedans, [X0, X1, Z0, Z1] = dehors;
+    const I = [[x0, z1], [x1, z1], [x1, z0], [x0, z0]], E = [[X0, Z1], [X1, Z1], [X1, Z0], [X0, Z0]];
+    const mel = (p, q, f) => [p[0] + (q[0] - p[0]) * f, p[1] + (q[1] - p[1]) * f];
+    const pos = [], couleurs = [];
+    for (let k = 0; k < 4; k++) {
+      const a0 = I[k], a1 = I[(k + 1) % 4], b0 = E[k], b1 = E[(k + 1) % 4];
+      const mx = (b0[0] + b1[0] - a0[0] - a1[0]) / 2, mz = (b0[1] + b1[1] - a0[1] - a1[1]) / 2, ml = Math.hypot(mx, mz);
+      const pente = (yi - yo) / ml, haut = [(mx / ml) * pente, 1, (mz / ml) * pente], bas = haut.map((v) => -v), dehorsN = [mx, 0, mz];
+      for (let r = 0; r < rangs; r++) {
+        const f0 = r / rangs, f1 = (r + 1) / rangs, P0 = mel(a0, b0, f0), P1 = mel(a1, b1, f0), Q0 = mel(a0, b0, f1), Q1 = mel(a1, b1, f1);
+        const ya = yi + (yo - yi) * f0, yb = yi + (yo - yi) * f1, c = r % 2 ? P.toitClair : P.toit;
+        triangle(pos, [P0[0], ya, P0[1]], [P1[0], ya, P1[1]], [Q1[0], yb, Q1[1]], haut);
+        triangle(pos, [P0[0], ya, P0[1]], [Q1[0], yb, Q1[1]], [Q0[0], yb, Q0[1]], haut);
+        couleurs.push(c, c);
+      }
+      triangle(pos, [a0[0], yi - ep, a0[1]], [a1[0], yi - ep, a1[1]], [b1[0], yo - ep, b1[1]], bas);
+      triangle(pos, [a0[0], yi - ep, a0[1]], [b1[0], yo - ep, b1[1]], [b0[0], yo - ep, b0[1]], bas);
+      couleurs.push(P.boisFonce, P.boisFonce);
+      triangle(pos, [b0[0], yo - ep, b0[1]], [b1[0], yo - ep, b1[1]], [b1[0], yo, b1[1]], dehorsN);
+      triangle(pos, [b0[0], yo - ep, b0[1]], [b1[0], yo, b1[1]], [b0[0], yo, b0[1]], dehorsN);
+      couleurs.push(P.toitBord, P.toitBord);
+      // l'arête du coin
+      const A = R(a0[0], yi + 0.03, a0[1]), B = R(b0[0], yo + 0.03, b0[1]);
+      a.baton([A.x, A.y, A.z], [B.x, B.y, B.z], 0.045, P.toitBord, 6);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    a.piece(g, P.toit, { ...R(0, 0, 0), couleurs, nuance: 0.04 });
   };
   /** Une corde sacrée fermée qui fait le tour de points [x, y, z] (une pierre, un tronc) : la paille tressée, deux teintes. */
   const cordeFermee = (a, pts, r) => {
@@ -820,7 +923,9 @@ export function construire(ctx) {
       const yHaut = -monte * i;
       // la marche : une dalle de pierre (son dessus au niveau du chemin en son milieu) ; une sur deux un rien plus large et
       // décalée de 6 mm vers la paroi (leurs faces de côté, des deux côtés, ne se superposent pas)
-      const w = ESCALIER.l + (i % 2 ? 0.012 : 0), xm = px + 0.02 - (i % 2 ? 0.006 : 0);
+      // (2026-10-26, « l'escalier n'est pas fermé derrière » : la marche entre de 35 cm dans la falaise ; elle s'arrêtait à
+      // son pied, et l'on voyait entre elle et les colonnes, plus en retrait, le vide sous l'escalier)
+      const w = ESCALIER.l + 0.35 + (i % 2 ? 0.012 : 0), xm = px + 0.02 - 0.35 - (i % 2 ? 0.006 : 0);
       a.boite(w, 0.34, giron + 0.03, i % 3 ? P.pierre : P.pierreFonce, { x: xm + w / 2, y: yHaut - monte * 0.5 - 0.17 + monte * 0.5, z });
       ligne.push([px + 0.95, z, yHaut - monte * 0.5]);
       rampe.push([px + ESCALIER.l + 0.06, z, yHaut]);
@@ -828,24 +933,33 @@ export function construire(ctx) {
     }
     // le chemin (au milieu de chaque marche : monde.chemin), le palier du haut (sur les colonnes), le ponton
     monde.chemin([[piedParoi(-1, ESCALIER.z0 - 2.3)[0] + 0.95, ESCALIER.z0 - 2.3, 0.07], [ligne[0][0], ESCALIER.z0, 0.07], ...ligne, [ligne[n - 1][0], ESCALIER.z1 + 0.2, yBas]], 0.82, { sol: 'pierre' });
-    // le mur extérieur de l'escalier : de la pierre du fond du lit jusqu'au-dessus des marches, en pente, et sa main courante
+    // le mur extérieur de l'escalier : de la pierre du fond du lit jusqu'au-dessus des marches, en pente, et sa main courante.
+    // (2026-10-26, « l'escalier n'est pas fermé derrière… on voit l'intérieur de l'escalier » : un seul pan, une teinte
+    // par marche (des bandes verticales, comme des planches), qui finissait en l'air au nord : sous le palier et derrière
+    // le bout du mur, on voyait le vide sous les marches jusqu'à l'eau. Maintenant un mur appareillé — des pierres de
+    // 1,2 m sur 50 cm, en assises décalées, des joints, le bas mouillé —, prolongé sous le palier, et le corps de
+    // l'escalier fermé au nord, sous le palier, et au sud, au ras du ponton)
     {
-      const pos = [], couleurs = [];
+      const pos = [], couleurs = [], zN = ESCALIER.z0 - 2.4, yPalier = -0.28, xMur = (z) => piedParoi(-1, z)[0] + ESCALIER.l + 0.04;
+      // (le pan, par morceaux le long de z ; sous le palier, droit, sous son bord est : X_PALIER)
+      const morceaux = [{ a: [X_PALIER - 0.05, zN], b: [xMur(ESCALIER.z0), ESCALIER.z0], h0: yPalier, h1: yPalier }];
+      for (let i = 0; i < n; i++) { const z0 = ESCALIER.z0 + i * giron, z1 = z0 + giron; morceaux.push({ a: [xMur(z0), z0], b: [xMur(z1), z1], h0: -monte * i + 0.12, h1: -monte * (i + 1) + 0.12 }); }
+      appareil(pos, couleurs, morceaux.map((m) => ({ ...m, bas: FOND - 0.5 })), [1, 0, 0]);
+      // le chaperon : une bande de dessus, 18 cm, le long des marches
       for (let i = 0; i < n; i++) {
-        const z0 = ESCALIER.z0 + i * giron, z1 = z0 + giron, [p0] = piedParoi(-1, z0), [p1] = piedParoi(-1, z1);
-        const x0 = p0 + ESCALIER.l + 0.04, x1 = p1 + ESCALIER.l + 0.04, h0 = -monte * i + 0.12, h1 = -monte * (i + 1) + 0.12;
-        const c = TONS_PIERRE[Math.floor(hasard(i * 1.7, 3.1) * 4)];
-        triangle(pos, [x0, FOND - 0.5, z0], [x1, FOND - 0.5, z1], [x1, h1, z1], [1, 0, 0]);
-        triangle(pos, [x0, FOND - 0.5, z0], [x1, h1, z1], [x0, h0, z0], [1, 0, 0]);
-        couleurs.push(c, c);
-        // le chaperon : une bande de dessus, 18 cm
+        const z0 = ESCALIER.z0 + i * giron, z1 = z0 + giron, x0 = xMur(z0), x1 = xMur(z1), h0 = -monte * i + 0.12, h1 = -monte * (i + 1) + 0.12;
         triangle(pos, [x0 - 0.18, h0, z0], [x0, h0, z0], [x1, h1, z1], [0, 1, 0]);
         triangle(pos, [x0 - 0.18, h0, z0], [x1, h1, z1], [x1 - 0.18, h1, z1], [0, 1, 0]);
         couleurs.push(P.pierreFonce, P.pierreFonce);
       }
+      // le bout nord, sous le palier (du fond du lit au-dessous du palier, de la falaise au mur), et le bout sud, sous la
+      // dernière marche (au ras du ponton)
+      const pN = piedParoi(-1, zN)[0], zS = ESCALIER.z1, pS = piedParoi(-1, zS)[0];
+      appareil(pos, couleurs, [{ a: [pN - 0.6, zN], b: [X_PALIER - 0.05, zN], bas: FOND - 0.5, h0: yPalier, h1: yPalier }], [0, 0, -1]);
+      appareil(pos, couleurs, [{ a: [pS - 0.6, zS], b: [xMur(zS), zS], bas: FOND - 0.5, h0: yBas - 0.36, h1: yBas - 0.36 }], [0, 0, 1]);
       const g = new THREE.BufferGeometry();
       g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-      a.piece(g, P.pierre, { couleurs, nuance: 0.05 });
+      a.piece(g, P.pierre, { couleurs, nuance: 0.04 });
     }
     // la main courante : des poteaux de bois tous les 1,5 m, une barre ; la nuit, de petites lampes
     for (let i = 0; i < rampe.length; i += 5) {
@@ -860,8 +974,10 @@ export function construire(ctx) {
     // le palier du haut : une grande dalle posée sur les colonnes, entre la place et la première marche
     {
       const [p0] = piedParoi(-1, ESCALIER.z0 - 2.3), [p1] = piedParoi(-1, ESCALIER.z0);
-      // (son dessus 7 cm au-dessus de la place : à 2 cm, sous le sol dessiné, 3 cm plus haut que le terrain, il scintillait)
-      a.boite(4.6, 0.35, 2.5, P.pierre, { x: (p0 + p1) / 2 - 0.6, y: -0.105, z: ESCALIER.z0 - 1.15 });
+      // (son dessus 7 cm au-dessus de la place : à 2 cm, sous le sol dessiné, 3 cm plus haut que le terrain, il scintillait ;
+      // son bord est déborde de 5 cm le mur de l'escalier, prolongé dessous)
+      const xO = (p0 + p1) / 2 - 2.9;
+      a.boite(X_PALIER - xO, 0.35, 2.5, P.pierre, { x: (xO + X_PALIER) / 2, y: -0.105, z: ESCALIER.z0 - 1.15 });
       monde.surface((p0 + p1) / 2 - 2.9, Math.max(p0, p1) + ESCALIER.l - 0.1, ESCALIER.z0 - 2.4, ESCALIER.z0 + 0.05, 0.07, { sol: 'pierre' });
       monde.mur(p1 + ESCALIER.l + 0.02, ESCALIER.z0 - 2.4, p1 + ESCALIER.l + 0.02, ESCALIER.z0 + 0.1, 0.12);
       monde.mur(p0 - 0.4, ESCALIER.z0 - 2.4, p0 + ESCALIER.l + 0.02, ESCALIER.z0 - 2.4, 0.12);
@@ -909,62 +1025,243 @@ export function construire(ctx) {
 
   // ---------------------------------------------------------------- Les barques amarrées (un décor ; celle du joueur, et
   // celles des promeneurs qui rament, sont à part)
-  const barque = (a, R, num = 0) => {
-    // une barque de location : la coque blanche, une bande turquoise, le plat-bord de bois, deux bancs ; les rames rangées
-    const pos = [], couleurs = [];
-    const demi = (u) => 0.62 * Math.sqrt(Math.max(0, 1 - ((u - 0.15) / 1.15) ** 2)) * (u > 0.85 ? 1 - (u - 0.85) / 0.3 * 0.6 : 1);
-    const nS = 16;
-    const sec = (i) => { const u = -1 + (2 * i) / nS, w = Math.max(0.04, demi(u)), fond = -0.16 + 0.1 * Math.max(0, u - 0.5) ** 2; return { u, w, fond, haut: 0.34 + 0.08 * Math.max(0, u) ** 2 }; };
-    for (let i = 0; i < nS; i++) {
-      const A = sec(i), B = sec(i + 1), za = A.u * 1.5, zb = B.u * 1.5;
-      for (const s of [-1, 1]) {
-        // le flanc, en deux bandes : le bas blanc, la bande turquoise en haut
-        const q = (w, y, z) => [s * w, y, z];
-        const yA1 = A.haut - 0.12, yB1 = B.haut - 0.12;
-        triangle(pos, q(A.w * 0.7, A.fond, za), q(B.w * 0.7, B.fond, zb), q(B.w, yB1, zb), [s, -0.2, 0]);
-        triangle(pos, q(A.w * 0.7, A.fond, za), q(B.w, yB1, zb), q(A.w, yA1, za), [s, -0.2, 0]);
-        couleurs.push('#f6f4ee', '#f6f4ee');
-        triangle(pos, q(A.w, yA1, za), q(B.w, yB1, zb), q(B.w, B.haut, zb), [s, 0, 0]);
-        triangle(pos, q(A.w, yA1, za), q(B.w, B.haut, zb), q(A.w, A.haut, za), [s, 0, 0]);
-        couleurs.push('#3aa6a0', '#3aa6a0');
-        // l'intérieur (vu d'en haut), plus clair
-        triangle(pos, q(A.w * 0.66, A.fond + 0.03, za), q(A.w - 0.03, A.haut, za), q(B.w - 0.03, B.haut, zb), [-s, 0.5, 0]);
-        triangle(pos, q(A.w * 0.66, A.fond + 0.03, za), q(B.w - 0.03, B.haut, zb), q(B.w * 0.66, B.fond + 0.03, zb), [-s, 0.5, 0]);
-        couleurs.push('#e8e6dc', '#e8e6dc');
+  // (refaites le 2026-10-26 : « il faudrait les refaire, il y a des surfaces un peu mal faites », « elles sont déjà
+  // remplies d'eau », « elles rentrent dans le ponton », « le bout de bois n'est pas rattaché aux rames ». Avant : une
+  // coque de seize tranches, pointue aux deux bouts, dont l'intérieur s'arrêtait à la bande turquoise sans plat-bord ; l'eau
+  // de la gorge, plus haute que leur fond, se dessinait dedans ; la pelle des rames, penchée à l'envers, flottait à côté
+  // du manche)
+  /** La forme de la coque à u (de −1, le tableau arrière, à 1, la proue) : demi-largeur W au plat-bord, son haut H, le fond F. */
+  const formeBarque = (u) => ({
+    W: u < 0.1 ? 0.44 + 0.18 * (1 - ((u - 0.1) / 1.1) ** 2) : 0.62 * Math.max(0, 1 - ((u - 0.1) / 0.9) ** 2) ** 0.6,
+    H: 0.36 + 0.1 * Math.max(0, u) ** 2 + 0.03 * Math.max(0, -u) ** 2,
+    F: -0.15 + 0.3 * Math.max(0, (u - 0.4) / 0.6) ** 2 + 0.05 * Math.max(0, (-u - 0.5) / 0.5),
+  });
+  /**
+   * Un couple de la coque (son côté x > 0), de la quille au plat-bord : le fond presque plat, le bouchain arrondi, le
+   * flanc, le bas de la bande turquoise, le haut ; e : vers l'intérieur (la coque a 3 cm d'épaisseur, le fond plus).
+   */
+  const couple = (u, e = 0) => {
+    const { W, H, F } = formeBarque(u), Wb = W * 0.6, x = (v) => Math.max(0, v - e);
+    return [[0, F + e * 1.6], [x(Wb * 0.5 + e), F + 0.004 + e * 1.6], [x(Wb), F + 0.028 + e * 1.3], [x(Wb + 0.62 * (W - Wb)), F + 0.42 * (H - 0.11 - F)], [x(W - 0.014), H - 0.11], [x(W), H]];
+  };
+  /** La demi-largeur de l'intérieur de la coque à u, à la hauteur y (pour les bancs). */
+  const largeurDedans = (u, y) => {
+    const c = couple(u, 0.03);
+    for (let j = 0; j + 1 < c.length; j++) if (y <= c[j + 1][1]) { const f = (y - c[j][1]) / (c[j + 1][1] - c[j][1]); return c[j][0] + (c[j + 1][0] - c[j][0]) * Math.max(0, Math.min(1, f)); }
+    return c[c.length - 1][0];
+  };
+  const U_PONT = 0.75, U_TOLET = 0.05 / 1.5;
+  /** Les tolets (où pivotent les rames) : [x, y, z] dans le repère de la barque. */
+  const TOLET = [formeBarque(U_TOLET).W + 0.005, formeBarque(U_TOLET).H + 0.05, 0.05];
+  /**
+   * Une barque de location (dans le repère R d'un objet : R(lx, ly, lz, o) → la pose d'une pièce) : la coque dehors, blanche
+   * avec la bande turquoise ; dedans, plus claire ; le plat-bord de bois qui les relie et en déborde ; le tableau arrière ;
+   * le pont de proue et sa cloison ; le plancher à claire-voie ; trois bancs ; les deux tolets ; un anneau d'amarrage.
+   */
+  const barque = (a, R) => {
+    const pos = [], couleurs = [], N = 24, BLANC = '#f6f4ee', BANDE = '#3aa6a0', DEDANS = '#ebe9e1', FOND_D = '#dedcd2';
+    const us = Array.from({ length: N + 1 }, (_, i) => -1 + (2 * i) / N);
+    const z = (u) => u * 1.5;
+    // dehors : des deux côtés, du tableau à la proue (la coque se referme sur l'étrave)
+    for (let i = 0; i < N; i++) {
+      const A = couple(us[i]), B = couple(us[i + 1]);
+      for (let j = 0; j + 1 < A.length; j++) {
+        const dx = A[j + 1][0] - A[j][0], dy = A[j + 1][1] - A[j][1];
+        for (const s of [-1, 1]) {
+          const p = (Q, u) => [s * Q[0], Q[1], z(u)];
+          const n = [s * dy, -dx, 0];
+          triangle(pos, p(A[j], us[i]), p(B[j], us[i + 1]), p(B[j + 1], us[i + 1]), n);
+          triangle(pos, p(A[j], us[i]), p(B[j + 1], us[i + 1]), p(A[j + 1], us[i]), n);
+          const c = j === 4 ? BANDE : BLANC;
+          couleurs.push(c, c);
+        }
       }
-      // le fond
-      triangle(pos, [-A.w * 0.7, A.fond, za], [A.w * 0.7, A.fond, za], [B.w * 0.7, B.fond, zb], [0, -1, 0]);
-      triangle(pos, [-A.w * 0.7, A.fond, za], [B.w * 0.7, B.fond, zb], [-B.w * 0.7, B.fond, zb], [0, -1, 0]);
-      couleurs.push('#d8d6cc', '#d8d6cc');
-      triangle(pos, [-A.w * 0.66, A.fond + 0.03, za], [B.w * 0.66, B.fond + 0.03, zb], [A.w * 0.66, A.fond + 0.03, za], [0, 1, 0]);
-      triangle(pos, [-A.w * 0.66, A.fond + 0.03, za], [-B.w * 0.66, B.fond + 0.03, zb], [B.w * 0.66, B.fond + 0.03, zb], [0, 1, 0]);
-      couleurs.push('#e0ded4', '#e0ded4');
     }
-    // le tableau arrière
-    const S = sec(0);
-    triangle(pos, [-S.w, S.haut, -1.5], [S.w, S.haut, -1.5], [S.w * 0.7, S.fond, -1.5], [0, 0, -1]);
-    triangle(pos, [-S.w, S.haut, -1.5], [S.w * 0.7, S.fond, -1.5], [-S.w * 0.7, S.fond, -1.5], [0, 0, -1]);
-    couleurs.push('#f6f4ee', '#f6f4ee');
+    // dedans : du tableau (3 cm devant) à la cloison du pont de proue
+    const ud = Array.from({ length: 19 }, (_, i) => -1 + 0.02 + ((U_PONT + 1 - 0.02) * i) / 18);
+    for (let i = 0; i + 1 < ud.length; i++) {
+      const A = couple(ud[i], 0.03), B = couple(ud[i + 1], 0.03);
+      for (let j = 0; j + 1 < A.length; j++) {
+        const dx = A[j + 1][0] - A[j][0], dy = A[j + 1][1] - A[j][1];
+        for (const s of [-1, 1]) {
+          const p = (Q, u) => [s * Q[0], Q[1], z(u)];
+          const n = [-s * dy, dx, 0];
+          triangle(pos, p(A[j], ud[i]), p(B[j], ud[i + 1]), p(B[j + 1], ud[i + 1]), n);
+          triangle(pos, p(A[j], ud[i]), p(B[j + 1], ud[i + 1]), p(A[j + 1], ud[i]), n);
+          const c = j < 2 ? FOND_D : DEDANS;
+          couleurs.push(c, c);
+        }
+      }
+    }
+    // le tableau arrière, dehors et dedans : des bandes d'un côté à l'autre (la bande turquoise en haut)
+    for (const [u, e, n] of [[-1, 0, [0, 0, -1]], [ud[0], 0.03, [0, 0, 1]]]) {
+      const c = couple(u, e);
+      for (let j = 0; j + 1 < c.length; j++) {
+        const [x0, y0] = c[j], [x1, y1] = c[j + 1];
+        triangle(pos, [-x0, y0, z(u)], [x0, y0, z(u)], [x1, y1, z(u)], n);
+        triangle(pos, [-x0, y0, z(u)], [x1, y1, z(u)], [-x1, y1, z(u)], n);
+        const cc = e ? DEDANS : j === 4 ? BANDE : BLANC;
+        couleurs.push(cc, cc);
+      }
+    }
+    // la cloison sous le pont de proue (tournée vers l'arrière), jusqu'au pont
+    {
+      const c = couple(U_PONT, 0.03), yP = formeBarque(U_PONT).H + 0.01;
+      for (let j = 0; j + 1 < c.length; j++) {
+        const [x0, y0] = c[j], [x1, y1] = c[j + 1], y1c = Math.min(y1, yP);
+        triangle(pos, [-x0, y0, z(U_PONT)], [x0, y0, z(U_PONT)], [x1, y1c, z(U_PONT)], [0, 0, -1]);
+        triangle(pos, [-x0, y0, z(U_PONT)], [x1, y1c, z(U_PONT)], [-x1, y1c, z(U_PONT)], [0, 0, -1]);
+        couleurs.push(DEDANS, DEDANS);
+      }
+    }
+    // le plat-bord : une latte de bois qui coiffe la coque et déborde dehors (un profil balayé le long du bord, des deux
+    // côtés, du tableau jusqu'à 6 cm de l'étrave ; son dessus 5 mm plus bas que celui du chapeau du tableau)
+    {
+      const PROFIL = [[0, -0.035], [0.015, -0.035], [0.015, 0.02], [-0.045, 0.02], [-0.045, -0.02], [-0.03, -0.02]];
+      const ub = Array.from({ length: N + 1 }, (_, i) => -1 + (1.96 * i) / N);
+      for (let i = 0; i < N; i++) {
+        const fa = formeBarque(ub[i]), fb = formeBarque(ub[i + 1]);
+        for (let j = 0; j + 1 < PROFIL.length; j++) {
+          const [ax, ay] = PROFIL[j], [bx, by] = PROFIL[j + 1], n2 = [by - ay, -(bx - ax)];
+          for (const s of [-1, 1]) {
+            const p = (f, u, q) => [s * (f.W + q[0]), f.H + q[1], z(u)];
+            const n = [s * n2[0], n2[1], 0];
+            triangle(pos, p(fa, ub[i], PROFIL[j]), p(fb, ub[i + 1], PROFIL[j]), p(fb, ub[i + 1], PROFIL[j + 1]), n);
+            triangle(pos, p(fa, ub[i], PROFIL[j]), p(fb, ub[i + 1], PROFIL[j + 1]), p(fa, ub[i], PROFIL[j + 1]), n);
+            couleurs.push(P.bois, P.bois);
+          }
+        }
+      }
+    }
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-    a.piece(g, '#f6f4ee', { ...R(0, 0, 0), couleurs, nuance: 0.03 });
-    // les bancs, le plat-bord, les tolets
-    for (const z of [-0.95, 0.05, 0.85]) a.boite(1.1 * (z > 0.5 ? 0.75 : 1), 0.04, 0.24, P.bois, R(0, 0.2, z));
-    for (const s of [-1, 1]) a.boite(0.035, 0.03, 0.35, '#5a5a62', R(s * 0.58, 0.38, 0.05));
-    if (num) void num;
+    a.piece(g, BLANC, { ...R(0, 0, 0), couleurs, nuance: 0.025 });
+    // le chapeau du tableau arrière, l'étrave (le bout de bois de la proue), le pont de proue, l'anneau d'amarrage
+    const f0 = formeBarque(-1), fP = formeBarque(U_PONT), fE = formeBarque(0.96);
+    a.boite(2 * f0.W + 0.04, 0.05, 0.07, P.bois, R(0, f0.H + 0.0, -1.5 + 0.02));
+    a.boite(0.07, 0.12, 0.12, P.bois, R(0, fE.H + 0.0, 1.47));
+    {
+      // (le pont : sous le plat-bord jusqu'à son bout, puis jusqu'au bord de la coque ; les bouts du plat-bord fermés)
+      const pp = [], cc = [], st = [[U_PONT, 0.03], [0.96, 0.03], [0.96, 0], [0.975, 0], [0.99, 0], [1, 0]];
+      for (let k = 0; k + 1 < st.length; k++) {
+        const [ua, ea] = st[k], [ub, eb] = st[k + 1], fa = formeBarque(ua), fb = formeBarque(ub);
+        if (ub === ua) continue;
+        const A =[Math.max(0, fa.W - ea), fa.H + 0.01, z(ua)], B = [Math.max(0, fb.W - eb), fb.H + 0.01, z(ub)];
+        triangle(pp, [-A[0], A[1], A[2]], A, B, [0, 1, 0]);
+        triangle(pp, [-A[0], A[1], A[2]], B, [-B[0], B[1], B[2]], [0, 1, 0]);
+        cc.push(P.bois2, P.bois2);
+      }
+      const PR = [[0, -0.035], [0.015, -0.035], [0.015, 0.02], [-0.045, 0.02], [-0.045, -0.02], [-0.03, -0.02]], cx = -0.0125, cy = -0.008;
+      for (const s of [-1, 1]) for (let j = 0; j < PR.length; j++) {
+        const q = (v) => [s * (fE.W + v[0]), fE.H + v[1], z(0.96)];
+        triangle(pp, q([cx, cy]), q(PR[j]), q(PR[(j + 1) % PR.length]), [0, 0, 1]);
+        cc.push(P.bois);
+      }
+      const gp = new THREE.BufferGeometry();
+      gp.setAttribute('position', new THREE.Float32BufferAttribute(pp, 3));
+      a.piece(gp, P.bois2, { ...R(0, 0, 0), couleurs: cc, trait: false });
+    }
+    a.piece(new THREE.TorusGeometry(0.03, 0.007, 4, 10), '#4a4a52', { ...R(0, fE.H + 0.02, 1.3, { rx: PI / 2, ordre: 'YXZ' }), trait: false });
+    // les bancs (rentrés de 1 cm dans la coque), le plancher à claire-voie, les tolets
+    for (const zb of [-1.0, 0.05, 0.85]) {
+      const w = largeurDedans(zb / 1.5, 0.2);
+      a.boite(2 * w + 0.02, 0.04, 0.24, P.bois, R(0, 0.2, zb));
+    }
+    for (const xs of [-0.18, 0, 0.18]) a.boite(0.11, 0.02, 1.25, P.bois2, R(xs, -0.09, -0.08));
+    for (const s of [-1, 1]) {
+      a.cylindre(0.012, 0.012, 0.07, 6, '#4a4a52', R(s * TOLET[0], TOLET[1] - 0.025, TOLET[2], { trait: false }));
+      for (const dz of [-0.035, 0.035]) a.boite(0.012, 0.05, 0.01, '#4a4a52', R(s * TOLET[0], TOLET[1] + 0.02, TOLET[2] + dz, { trait: false }));
+    }
     return a;
   };
+  /**
+   * Une rame, dans son repère : son pivot (le tolet) à l'origine, du côté s (−1 bâbord, 1 tribord) ; le manche sort du
+   * tolet vers s et descend vers l'eau. La poignée (sombre), le manche, la garniture de cuir au tolet, la pelle dans le
+   * prolongement du manche (5 cm dedans), plate, debout dans le plan du manche et de la verticale, le bout peint en
+   * turquoise. Renvoie [géométrie, couleurs].
+   */
+  const geoRame = (s) => {
+    const pos = [], couleurs = [], dx = s * 0.968, dy = -0.251, vx = -dy, vy = dx;
+    // (un point à t mètres le long du manche, écarté de a selon z et de b selon v, perpendiculaire au manche)
+    const pt = (t, a, b) => [dx * t + vx * b, dy * t + vy * b, a];
+    const tube = (t0, t1, r, c, bout = false) => {
+      const K = 8;
+      for (let k = 0; k < K; k++) {
+        const a0 = (k / K) * 2 * PI, a1 = ((k + 1) / K) * 2 * PI, am = (a0 + a1) / 2;
+        const q = (t, a) => pt(t, Math.cos(a) * r, Math.sin(a) * r);
+        const n = [vx * Math.sin(am), vy * Math.sin(am), Math.cos(am)];
+        triangle(pos, q(t0, a0), q(t1, a0), q(t1, a1), n);
+        triangle(pos, q(t0, a0), q(t1, a1), q(t0, a1), n);
+        couleurs.push(c, c);
+        if (bout) { triangle(pos, pt(t0, 0, 0), q(t0, a0), q(t0, a1), [-dx, -dy, 0]); couleurs.push(c); }
+      }
+    };
+    tube(-0.5, -0.36, 0.03, P.boisFonce, true);
+    tube(-0.37, 1.45, 0.026, P.bois);
+    tube(-0.06, 0.08, 0.031, '#5a3a28');
+    // la pelle : des stations le long, sa demi-largeur et sa demi-épaisseur
+    const T = [0, 0.06, 0.16, 0.3, 0.44, 0.5, 0.54, 0.56], Wd = [0.022, 0.05, 0.074, 0.078, 0.078, 0.07, 0.048, 0];
+    const t0 = 1.4, e = (k) => 0.016 - 0.008 * (T[k] / 0.56), coul = (k) => (T[k] >= 0.34 ? '#3aa6a0' : P.bois);
+    for (let k = 0; k + 1 < T.length; k++) {
+      const ta = t0 + T[k], tb = t0 + T[k + 1];
+      for (const f of [-1, 1]) {
+        // les deux faces
+        triangle(pos, pt(ta, f * e(k), -Wd[k]), pt(tb, f * e(k + 1), -Wd[k + 1]), pt(tb, f * e(k + 1), Wd[k + 1]), [0, 0, f]);
+        triangle(pos, pt(ta, f * e(k), -Wd[k]), pt(tb, f * e(k + 1), Wd[k + 1]), pt(ta, f * e(k), Wd[k]), [0, 0, f]);
+        // les deux tranches
+        triangle(pos, pt(ta, -e(k), f * Wd[k]), pt(tb, -e(k + 1), f * Wd[k + 1]), pt(tb, e(k + 1), f * Wd[k + 1]), [vx * f, vy * f, 0]);
+        triangle(pos, pt(ta, -e(k), f * Wd[k]), pt(tb, e(k + 1), f * Wd[k + 1]), pt(ta, e(k), f * Wd[k]), [vx * f, vy * f, 0]);
+        couleurs.push(coul(k), coul(k), coul(k), coul(k));
+      }
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    return [g, couleurs];
+  };
+  const rameDe = (a, s) => { const [g, couleurs] = geoRame(s); return a.piece(g, P.bois, { couleurs, nuance: 0.03 }); };
+  /** Les rames rangées dans la barque (amarrée) : couchées sur les bancs, à plat, la pelle vers l'arrière (repère de la barque). */
+  const RANGEE = (s) => ({ x: s * 0.2, y: 0.252, z: 0.6, rx: PI / 2, ry: s * PI / 2, rz: s * 0.2535 });
+  /**
+   * Ce qui empêche l'eau de la gorge de se dessiner dans la barque : un couvercle au ras du plat-bord qui n'écrit que la
+   * profondeur, dessiné après tout ce qui est opaque (la coque, les gens, les rames) et avant l'eau, transparente.
+   */
+  const MASQUE_EAU = new THREE.MeshBasicMaterial({ colorWrite: false });
+  const masqueBarque = () => {
+    const pos = [];
+    for (let i = 0; i < 24; i++) {
+      const u0 = -1 + i / 12, u1 = -1 + (i + 1) / 12, a = formeBarque(u0), b = formeBarque(u1);
+      const p = (f, u, s) => [s * Math.max(0, f.W - 0.02), f.H - 0.012, u * 1.5];
+      triangle(pos, p(a, u0, -1), p(a, u0, 1), p(b, u1, 1), [0, 1, 0]);
+      triangle(pos, p(a, u0, -1), p(b, u1, 1), p(b, u1, -1), [0, 1, 0]);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    const m = new THREE.Mesh(g, MASQUE_EAU);
+    m.renderOrder = 5;
+    return m;
+  };
+  // les barques amarrées le long du ponton, à 10 cm de son bord ; leurs rames rangées ; leurs couvercles
+  const masquesAmarrees = new THREE.Group();
   {
     const a = atelier();
-    const [p] = piedParoi(-1, 50), xB = p + PONTON.l + 0.95;
     for (const z of [50.2, 53.5, 56.6]) {
-      const R = repere(xB, z, PI + (hasard(z, 1) - 0.5) * 0.12), y = NIV - 0.02;
-      barque(a, (lx, ly, lz, o = {}) => ({ ...R(lx, y + ly, lz, o) }));
-      // les deux rames, rangées dans la barque
-      for (const s of [-1, 1]) a.baton([0, 0, 0].map((v, i) => [R(s * 0.22, 0, -0.9).x, y + 0.24, R(s * 0.22, 0, -0.9).z][i]), [R(s * 0.18, 0, 1.1).x, y + 0.26, R(s * 0.18, 0, 1.1).z], 0.03, P.bois, 5);
+      const cap = PI + (hasard(z, 1) - 0.5) * 0.06, R = repere(X_AMARRE, z, cap), y = NIV - 0.02;
+      const Ry = (lx, ly, lz, o = {}) => ({ ...R(lx, y + ly, lz, o) });
+      barque(a, Ry);
+      for (const s of [-1, 1]) {
+        const q = RANGEE(s), [g, couleurs] = geoRame(s);
+        a.piece(g, P.bois, { ...Ry(q.x, q.y, q.z), rx: q.rx, ry: cap + q.ry, rz: q.rz, ordre: 'YXZ', couleurs, nuance: 0.03 });
+      }
+      const m = masqueBarque();
+      m.position.set(X_AMARRE, y, z);
+      m.rotation.y = cap;
+      masquesAmarrees.add(m);
     }
+    // des pare-chocs (de vieux pneus blancs) pendus au bord du ponton, entre lui et les barques
+    for (const z of [46.0, 47.4, 49.6, 50.9, 52.9, 54.2, 56.0, 57.2]) a.piece(new THREE.TorusGeometry(0.13, 0.055, 6, 12), '#e9e6de', { x: BORD_PONTON + 0.04, y: PONTON.y - 0.17, z, ry: PI / 2 });
     poser(a.fin(0, peinture), 0, 0, { y: 0 });
   }
+  animes.push({ objet: masquesAmarrees, maj: () => [] });
 
   // ---------------------------------------------------------------- Les deux ponts de pierre
   /**
@@ -1088,7 +1385,13 @@ export function construire(ctx) {
   }
   // (la rivière Iwato tombe dans la gorge, au nord : sa cascade part du bout de son eau, plus bas, la vallée de l'Iwato)
   // l'étang : une eau calme et verte (on voit les carpes), le reflet sombre des rochers de la rive
-  const eauxCalmes = [[ETANG.x - ETANG.r * 1.25, ETANG.x + ETANG.r * 1.25, ETANG.z - ETANG.r * 1.25, ETANG.z + ETANG.r * 1.25, ETANG.eau]];
+  // (l'eau de l'étang s'arrête net au bord amont du seuil du canal : avant le 2026-10-26, elle couvrait les 2,4 premiers mètres
+  // du canal, par-dessus son eau, et s'y coupait en biais)
+  const gardeEtang = (x, z) => {
+    const u = (x - SEUIL.x) * SEUIL.dx + (z - SEUIL.z) * SEUIL.dz, v = Math.abs((x - SEUIL.x) * SEUIL.dz - (z - SEUIL.z) * SEUIL.dx);
+    return v > 1.2 ? 9 : -0.2 - u;
+  };
+  const eauxCalmes = [[ETANG.x - ETANG.r * 1.25, ETANG.x + ETANG.r * 1.25, ETANG.z - ETANG.r * 1.25, ETANG.z + ETANG.r * 1.25, ETANG.eau, gardeEtang]];
   /**
    * Un ruban d'eau qui coule le long des points [x, y, z] (sa largeur l ; ecume(k) : l'écume au point k), pour l'eau qui
    * coule du moteur (uv : les mètres vers l'aval, d'une rive à l'autre ; sens : la direction du courant). o : largeur (en
@@ -1138,9 +1441,26 @@ export function construire(ctx) {
     rubanEau(pts, 1.15, () => 0, '#3d8a76', { largeur: 1.15 });
     const a = atelier();
     // les murs de pierre du canal, du lit jusqu'à 4 cm au-dessus du sol, et une dalle où le chemin le traverse
+    // (le premier morceau commence 30 cm plus tôt, sous les deux pierres de garde de l'entrée)
     for (let k = 0; k < pts.length - 1; k++) {
-      const [x0, , z0] = pts[k], [x1, , z1] = pts[k + 1], dx = x1 - x0, dz = z1 - z0, l = Math.hypot(dx, dz), ry = Math.atan2(dx, dz);
+      const [x0, , z0] = k ? pts[k] : [pts[0][0] - SEUIL.dx * 0.3, 0, pts[0][2] - SEUIL.dz * 0.3], [x1, , z1] = pts[k + 1], dx = x1 - x0, dz = z1 - z0, l = Math.hypot(dx, dz), ry = Math.atan2(dx, dz);
       for (const s of [-1, 1]) a.boite(0.28, 0.86, l + 0.02, TONS_PIERRE[(k + (s > 0 ? 1 : 0)) % 4], { x: (x0 + x1) / 2 + Math.cos(ry) * 0.72 * s, y: -0.39, z: (z0 + z1) / 2 - Math.sin(ry) * 0.72 * s, ry });
+    }
+    // l'entrée du canal, au bord de l'étang : un seuil de pierre taillée en travers, 1,5 cm sous l'eau de l'étang, sur lequel
+    // l'eau file en une lame vive avant de descendre le canal ; de chaque côté, une grosse pierre de garde qui ferme le
+    // cercle des pierres de la rive et cache le bout des murs
+    {
+      const ry = Math.atan2(SEUIL.dx, SEUIL.dz), px = SEUIL.dz, pz = -SEUIL.dx;
+      a.boite(2.0, 0.5, 0.4, '#a1998a', { x: SEUIL.x, y: ETANG.eau - 0.015 - 0.25, z: SEUIL.z, ry });
+      for (const s of [-1, 1]) {
+        rocherSculpte(a, SEUIL.x + px * s * 1.05 - SEUIL.dx * 0.05, ETANG.eau + 0.3, SEUIL.z + pz * s * 1.05 - SEUIL.dz * 0.05, 0.5, {
+          sx: 1.0, sy: 0.8, sz: 0.9, ry: ry + s * 0.4, graine: 3.1 + s, fond: -0.75, mousse: 0.55, finesse: 1,
+          tons: [P.roche, P.pierreFonce, P.basalteFonce, P.mousseRoche, P.mousseRocheFonce],
+        });
+        monde.cercle(SEUIL.x + px * s * 1.05, SEUIL.z + pz * s * 1.05, 0.55);
+      }
+      const q = (f, y) => [SEUIL.x + SEUIL.dx * f, y, SEUIL.z + SEUIL.dz * f];
+      rubanEau([q(-0.21, ETANG.eau - 0.004), q(0, ETANG.eau - 0.008), q(0.2, ETANG.eau - 0.02), q(0.27, ETANG.eau - 0.026)], 1.44, (k) => [0.15, 0.35, 0.55, 0.3][k], '#6fbfa6', { largeur: 1.44, vif: true });
     }
     // la dalle : une pierre plate de 2,6 m en travers du canal, posée sur ses deux bords, son dessus 20 cm au-dessus du chemin ;
     // ses arêtes un peu cassées (une pierre plus étroite dessus)
@@ -1195,7 +1515,8 @@ export function construire(ctx) {
     a.lanterne(ILOT.x + 0.8, ILOT.z - 0.5, 4.5, 0.15);
     poser(a.fin(0, peinture), 0, 0, { y: 0 });
     lumieres.push({ x: ILOT.x + 0.8, y: 1.05, z: ILOT.z - 0.5, halo: 0.32, sol: ETANG.eau, r: 2.2 });
-    ecrire({ x: ETANG.x + 9.6, y: 0, z: ETANG.z - 4.5, ry: -PI / 2 + 0.4 }, { texte: 'おのころ池', sous: 'Onokoro-ike', fond: '#f4ecd8', encre: '#2a2420', x: 0, y: 1.2, z: 0.07, l: 0.9, h: 0.5, cadre: true });
+    // (son nom est sur son panneau : PANNEAUX.etang ; avant le 2026-10-26, une pancarte « おのころ池 » sans poteau ni
+    // panneau flottait à 1,2 m au-dessus de l'herbe)
   }
 
   // ---------------------------------------------------------------- Le restaurant des nouilles (千穂の家) et sa gouttière
@@ -1238,12 +1559,15 @@ export function construire(ctx) {
     ecrire(R(0, y, 3.1), { texte: 'そうめん', fond: null, encre: '#f4ecd8', x: 0, y: 2.25, z: 0, l: 1.7, h: 0.42 });
     a.boite(2.6, 0.14, 0.6, P.pierre, R(0, y + 0.52, 3.32));
     for (const sg of [-1, 1]) { const q = R(sg * 1.27, 0, 3.2); a.chochin(q.x, y + 2.75, q.z, 9, '#d8402e'); lumieres.push({ x: q.x, y: y + 2.75, z: q.z, halo: 0.4, sol: y, r: 3.2 }); }
-    // l'auvent de tuiles entre les deux étages, sa poutre ; l'enseigne
+    // l'auvent de tuiles entre les deux étages (un mokoshi tout autour), sa poutre ; l'enseigne posée dessus sur deux pieds.
+    // (2026-10-26, « le toit est un peu mal fait, il se superpose avec les autres toitures, on voit un espace entre les
+    // toitures » : c'étaient trois planches penchées, devant et sur les côtés, qui se croisaient aux coins, un jour entre
+    // elles. Maintenant quatre pans qui se rejoignent en arêtes ; devant, il s'arrête 30 cm avant le toit de la terrasse)
     a.boite(9.1, 0.12, 6.1, BN, R(0, y + 3.46, 0));
-    a.boite(9.9, 0.1, 1.75, P.toit, R(0, y + 3.6, 3.25, { rx: 0.3, ordre: 'YXZ' })).boite(9.9, 0.05, 1.75, P.toitBord, R(0, y + 3.54, 3.255, { rx: 0.3, ordre: 'YXZ' }));
-    for (const sg of [-1, 1]) a.boite(1.5, 0.1, 6.0, P.toit, R(sg * 4.85, y + 3.6, -0.35, { rz: -sg * 0.3, ordre: 'YXZ' }));
-    a.boite(2.9, 0.78, 0.12, '#3a2a20', R(0, y + 4.18, 3.12)).boite(3.04, 0.9, 0.06, '#8a6a48', R(0, y + 4.18, 3.05));
-    ecrire(R(0, y, 3.19), { texte: '千穂の家', fond: '#3a2a20', encre: '#f4ecd8', x: 0, y: 4.18, z: 0, l: 2.6, h: 0.62, cadre: true });
+    auventTour(a, R, [-4.17, 4.17, -2.77, 2.37], [-5.2, 5.2, -3.6, 3.75], y + 3.92, y + 3.42);
+    a.boite(2.9, 0.78, 0.12, '#3a2a20', R(0, y + 4.12, 3.12)).boite(3.04, 0.9, 0.06, '#8a6a48', R(0, y + 4.12, 3.05));
+    for (const sg of [-1, 1]) a.boite(0.1, 0.16, 0.16, BN, R(sg * 1.1, y + 3.72, 3.1));
+    ecrire(R(0, y, 3.19), { texte: '千穂の家', fond: '#3a2a20', encre: '#f4ecd8', x: 0, y: 4.12, z: 0, l: 2.6, h: 0.62, cadre: true });
     // l'étage, un peu en retrait : l'enduit, ses poteaux, sa poutre, trois fenêtres de papier et leur balustrade
     a.boite(8.4, 2.3, 5.2, P.blanc, R(0, y + 4.6, -0.2));
     for (const lx of [-4.2, -1.4, 1.4, 4.2]) a.boite(0.18, 2.3, 0.18, BN, R(lx, y + 4.6, 2.43));
@@ -1277,10 +1601,20 @@ export function construire(ctx) {
       a.boite(0.16, 2.6, 0.16, P.bois, { x: px, y: y + 1.3, z: pz });
       monde.cercle(px, pz, 0.18);
     }
-    a.toitJapon(5.2, z1 - z0 + 2.2, 0.9, 0.1, { x: x + 0.4, y: y + 2.6, z: (z0 + z1) / 2, releve: 0.08, tuile: '#7a6a52', tuile2: '#86765c', bord: P.boisFonce });
-    // le tonneau d'eau, en haut ; le tuyau de bambou qui verse dans la gouttière
-    a.cylindre(0.38, 0.4, 0.95, 14, P.bois2, { x, y: y + 0.85, z: SOMEN.z0 - 0.5 })
-      .cylindre(0.405, 0.405, 0.05, 14, '#5a4a3a', { x, y: y + 0.7, z: SOMEN.z0 - 0.5 })
+    // (son bord ouest 30 cm avant celui de l'auvent du restaurant, plus haut : avant le 2026-10-26, ils se recouvraient)
+    a.toitJapon(5.0, z1 - z0 + 2.2, 0.9, 0.1, { x: x + 0.55, y: y + 2.6, z: (z0 + z1) / 2, releve: 0.08, tuile: '#7a6a52', tuile2: '#86765c', bord: P.boisFonce });
+    // le tonneau d'eau, en haut, sur son tréteau ; le tuyau de bambou qui verse dans la gouttière. (2026-10-26, « la fontaine
+    // flotte dans les airs, et le seau qui reçoit l'eau à la fin aussi » : leur fond était à 37 et 44 cm au-dessus de l'herbe,
+    // sur rien)
+    const tretau = (zc, l, h) => {
+      a.boite(l + 0.06, 0.05, l + 0.06, P.boisFonce, { x, y: y + h - 0.025, z: zc });
+      for (const [dx, dz] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) a.boite(0.07, h - 0.05, 0.07, P.boisFonce, { x: x + dx * (l / 2 - 0.02), y: y + (h - 0.05) / 2, z: zc + dz * (l / 2 - 0.02) });
+      for (const s of [-1, 1]) a.boite(l - 0.04, 0.05, 0.04, P.bois, { x, y: y + 0.12, z: zc + s * (l / 2 - 0.02) });
+    };
+    tretau(SOMEN.z0 - 0.5, 0.78, 0.38);
+    a.cylindre(0.38, 0.4, 0.95, 14, P.bois2, { x, y: y + 0.86, z: SOMEN.z0 - 0.5 })
+      .cylindre(0.405, 0.405, 0.05, 14, '#5a4a3a', { x, y: y + 0.6, z: SOMEN.z0 - 0.5 })
+      .cylindre(0.39, 0.39, 0.05, 14, '#5a4a3a', { x, y: y + 1.12, z: SOMEN.z0 - 0.5 })
       .baton([x, y + 1.33, SOMEN.z0 - 0.42], [x, y + 1.18, SOMEN.z0 - 0.02], 0.035, '#8fb35a', 6);
     // la gouttière : un demi-tube de bambou vert (ouvert en haut), ses nœuds, ses tréteaux ; elle descend du tonneau (au nord)
     // vers le baquet (au sud). (Avant le 2026-10-25, couchée dans l'autre sens, elle montait : l'eau, qui descendait, flottait
@@ -1296,7 +1630,10 @@ export function construire(ctx) {
       a.piece(new THREE.TorusGeometry(0.087, 0.012, 4, 12, PI), '#7a9a4a', { x, y: yk, z: zk, rz: PI });
       for (const s of [-1, 1]) a.baton([x + s * 0.3, y, zk], [x, yk - 0.09, zk], 0.025, P.boisFonce, 4);
     }
-    a.cylindre(0.32, 0.28, 0.36, 12, P.bois2, { x, y: y + 0.62, z: SOMEN.z1 + 0.42 }).cylindre(0.29, 0.29, 0.012, 12, '#9cd0c6', { x, y: y + 0.802, z: SOMEN.z1 + 0.42, trait: false });
+    // le baquet qui reçoit l'eau, en bas, sur son tabouret
+    tretau(SOMEN.z1 + 0.42, 0.56, 0.44);
+    a.cylindre(0.32, 0.28, 0.36, 12, P.bois2, { x, y: y + 0.625, z: SOMEN.z1 + 0.42 }).cylindre(0.29, 0.29, 0.012, 12, '#9cd0c6', { x, y: y + 0.802, z: SOMEN.z1 + 0.42, trait: false })
+      .cylindre(0.33, 0.33, 0.04, 12, '#5a4a3a', { x, y: y + 0.7, z: SOMEN.z1 + 0.42 });
     // les tabourets, côté est
     for (let k = 0; k < 4; k++) {
       const zk = SOMEN.z0 + 1.0 + k * 1.9;
@@ -1337,10 +1674,12 @@ export function construire(ctx) {
     const COUL = ['#e8913a', '#5aa64a', '#c8452e', '#f2c443', '#2f6fb0', '#f4efe6', '#b06aa8', '#8a5a3a'];
     a.boite(6.12, 0.32, 4.52, P.pierreFonce, R(0, y + 0.16, 0));
     // les murs : derrière et côtés (planches en bas, enduit en haut), les poteaux, la poutre de devant, l'enduit dessus
-    a.boite(6.0, 1.1, 0.16, P.bois, R(0, y + 0.87, -2.12)).boite(5.98, 1.75, 0.14, P.blanc, R(0, y + 2.3, -2.12));
-    for (const sg of [-1, 1]) a.boite(0.16, 1.1, 4.2, P.bois, R(sg * 2.92, y + 0.87, -0.05)).boite(0.14, 1.75, 4.18, P.blanc, R(sg * 2.92, y + 2.3, -0.05));
-    for (const lx of [-2.98, -1.0, 1.0, 2.98]) a.boite(0.2, 2.9, 0.2, BN, R(lx, y + 1.77, 2.12));
-    for (const lx of [-2.98, 2.98]) a.boite(0.2, 2.9, 0.2, BN, R(lx, y + 1.77, -2.14));
+    // (2026-10-26, « le marchand de souvenirs n'a pas de toit » : les murs s'arrêtaient à 3,2 m, ouverts sur le ciel ;
+    // ils montent jusqu'au toit de tuiles, posé à 3,62 m)
+    a.boite(6.0, 1.1, 0.16, P.bois, R(0, y + 0.87, -2.12)).boite(5.98, 2.2, 0.14, P.blanc, R(0, y + 2.52, -2.12));
+    for (const sg of [-1, 1]) a.boite(0.16, 1.1, 4.2, P.bois, R(sg * 2.92, y + 0.87, -0.05)).boite(0.14, 2.2, 4.18, P.blanc, R(sg * 2.92, y + 2.52, -0.05));
+    for (const lx of [-2.98, -1.0, 1.0, 2.98]) a.boite(0.2, 3.3, 0.2, BN, R(lx, y + 1.97, 2.12));
+    for (const lx of [-2.98, 2.98]) a.boite(0.2, 3.3, 0.2, BN, R(lx, y + 1.97, -2.14));
     a.boite(6.3, 0.24, 0.22, BN, R(0, y + 3.1, 2.12)).boite(6.0, 0.4, 0.12, P.blanc, R(0, y + 3.42, 2.1));
     // dedans : le sol, les étagères du fond pleines de choses, la table du milieu, une lampe
     a.boite(5.7, 0.04, 4.1, '#b9ab8c', R(0, y + 0.34, 0, { trait: false }));
@@ -1366,6 +1705,9 @@ export function construire(ctx) {
       else a.boite(0.36, 0.1 + 0.07 * (k % 3), 0.28, c, R(lx, y + 0.92 + 0.035 * (k % 3), lz));
     }
     a.boite(6.5, 0.1, 1.55, P.toit, R(0, y + 2.98, 2.9, { rx: 0.28, ordre: 'YXZ' })).boite(6.5, 0.05, 1.55, P.toitBord, R(0, y + 2.92, 2.905, { rx: 0.28, ordre: 'YXZ' }));
+    // le toit : quatre pans de tuiles aux coins relevés, débordant de 90 cm sur les côtés et d'un mètre devant et derrière
+    a.boite(6.14, 0.12, 4.48, BN, R(0, y + 3.55, -0.01));
+    a.toitJapon(7.6, 6.3, 1.7, 0.18, { ...R(0, y + 3.62, -0.01), releve: 0.12 });
     // le noren, les lanternes, l'enseigne
     for (const k of [-1, 0, 1]) a.boite(1.8, 0.62, 0.02, k ? '#2f4a7a' : '#b8402a', R(k * 1.92, y + 2.66, 2.26));
     ecrire(R(0, y, 2.28), { texte: 'おみやげ', fond: null, encre: '#f4ecd8', x: 0, y: 2.66, z: 0, l: 1.3, h: 0.36 });
@@ -1395,7 +1737,7 @@ export function construire(ctx) {
   const PANNEAUX = {
     cascade: { x: -12.6, z: 13.4, ry: -PI / 2 - 0.3 },
     gorge: { x: 12.4, z: 68.6, ry: -PI / 2 + 0.3 },
-    etang: { x: ETANG.x + 9.6, z: ETANG.z - 4.5, ry: -PI / 2 + 0.4, deja: true },
+    etang: { x: ETANG.x + 9.6, z: ETANG.z - 4.5, ry: -PI / 2 + 0.4 },
     barques: { x: -12.6, z: 20.2, ry: -PI / 2 },
     kihachi: { x: KIHACHI.x - 1.4, z: KIHACHI.z + 3.9, ry: PI / 2 + 0.5 },
     yaritobi: { x: 9.6, z: -46.5, ry: PI / 2 + 0.6 },
@@ -1407,7 +1749,6 @@ export function construire(ctx) {
   {
     const a = atelier();
     for (const [id, p] of Object.entries(PANNEAUX)) {
-      if (p.deja) continue;
       const y = terrain(p.x, p.z), b = panneau(atelier(), P, { ecrit: true });
       poser(b.fin(0, peinture), p.x, p.z, { y, ry: p.ry });
       ecrire({ x: p.x, y, z: p.z, ry: p.ry }, { ...PAPIER_PANNEAU, texte: TITRES_PANNEAUX[id], fond: '#fff8e8', encre: '#2a2420', lignes: 3 });
@@ -2529,13 +2870,8 @@ export function construire(ctx) {
   // (la coque et les rames de la barque du joueur, que le moteur anime : balade.js, piloter)
   const ICI = (lx, ly, lz, o = {}) => ({ ...o, x: lx, y: ly, z: lz });
   const tourner = (a, b, f) => { const d = ((b - a + PI) % (2 * PI) + 2 * PI) % (2 * PI) - PI; return a + d * Math.min(1, f); };
-  const rameDe = (a, s) => {
-    // une rame : la poignée vers le milieu de la barque, le manche qui sort par le tolet et descend vers l'eau, la pelle
-    a.baton([-s * 0.5, 0.05, 0], [s * 1.25, -0.4, 0], 0.028, P.bois, 6)
-      .boite(0.42, 0.03, 0.17, P.bois2, { x: s * 1.45, y: -0.46, z: 0, rz: s * 0.34 });
-    return a;
-  };
-  const QUAI = (() => { const [px] = piedParoi(-1, 46.6); return { x: px + PONTON.l + 0.95, z: 46.6, cap: PI, ponton: px + 2.4 }; })();
+  // (la barque et la rame : formeBarque, barque, geoRame, rameDe, plus haut, avec les barques amarrées)
+  const QUAI = (() => { const [px] = piedParoi(-1, 46.6); return { x: X_AMARRE, z: 46.6, cap: PI, ponton: px + 2.4 }; })();
   // les barques amarrées du décor (des obstacles pour la nôtre) et celles des promeneurs (qui rament dans le bassin)
   const AMARREES = [50.2, 53.5, 56.6].map((z) => [QUAI.x, z]);
   const promeneurs = (() => {
@@ -2549,8 +2885,8 @@ export function construire(ctx) {
     const BOUCLES = [{ cx: 2.4, cz: 26, rx: 3.6, rz: 8.5, sens: 1, v: 0.75 }, { cx: 2.2, cz: -2.5, rx: 2.4, rz: 6.2, sens: -1, v: 0.6 }];
     BOUCLES.forEach((bo, i) => {
       const g = new THREE.Group(), coque = new THREE.Group();
-      coque.add(ctx.maillage(barque(atelier(), ICI).fin(0, true)));
-      const rames = [-1, 1].map((s) => { const p = new THREE.Group(); p.position.set(s * 0.6, 0.36, 0.05); p.add(ctx.maillage(rameDe(atelier(), s).fin(0, false))); coque.add(p); return p; });
+      coque.add(ctx.maillage(barque(atelier(), ICI).fin(0, true)), masqueBarque());
+      const rames = [-1, 1].map((s) => { const p = new THREE.Group(); p.position.set(s * TOLET[0], TOLET[1], TOLET[2]); p.add(ctx.maillage(rameDe(atelier(), s).fin(0, false))); coque.add(p); return p; });
       g.add(coque);
       const gens = TENUES[i].map((T, k) => {
         const q = creerPersonnage(ctx.perso || ctx, T);
@@ -2605,12 +2941,16 @@ export function construire(ctx) {
     const g = surGorge(x, z);
     let lim = g.w - 0.1 - marge;
     if (g.cote < 0 && z > ESCALIER.z0 - 2.6 && z < ESCALIER.z1 + 0.4) lim = Math.min(lim, g.w - ESCALIER.l - 0.2 - marge);
-    if (g.cote < 0 && z > PONTON.z0 - 0.4 && z < PONTON.z1 + 0.5) lim = Math.min(lim, g.w - PONTON.l - 0.15 - marge);
+    // (le long du ponton : à 8 cm de son bord, qui est droit, alors que la paroi recule vers le sud)
+    if (z > PONTON.z0 - 0.4 && z < PONTON.z1 + 0.5 && x < BORD_PONTON + 0.08 + marge) return false;
     return g.d < lim;
   };
   const barqueDuLieu = {
     niveau: NIV, quai: QUAI, debarque: [QUAI.ponton, QUAI.z, PI],
-    coque: (a) => barque(a, ICI), rame: rameDe, tolet: [0.6, 0.36, 0.05], siege: 0.05, assise: 0.24, proue: 0.86,
+    coque: (a) => barque(a, ICI), rame: rameDe, tolet: TOLET, siege: 0.05, assise: 0.24, proue: 0.86,
+    masque: masqueBarque,
+    /** Une rame rangée dans la barque amarrée (couchée sur les bancs) ; groupe : son pivot, dans le repère de la barque. */
+    rangerRame(groupe, s) { const q = RANGEE(s); groupe.position.set(q.x, q.y, q.z); groupe.rotation.set(q.rx, q.ry, q.rz, 'YXZ'); },
     zone: navigable, courant: [0, 0.12],
     camera: (x, z) => { const g = surGorge(x, z); return g.d < g.w - 0.35; },
     obstacles: () => {
@@ -2795,25 +3135,121 @@ export function construire(ctx) {
   // lumière en jaillit ; le jour revient ; un koban sur la table des offrandes.
   const MIROIR = (() => { const [px, pz, ox, oz] = piedParoi(-1, -19.5); return { x: px - ox * 0.26, z: pz - oz * 0.26, y: NIV + 0.47, ox, oz, px, pz }; })();
   {
-    // la pierre plate où il est posé, à fleur d'eau contre la paroi, de la mousse, une fougère qui le cache à moitié
-    const a = atelier(), { px, pz, ox, oz } = MIROIR;
-    a.rocher(px - ox * 0.5, NIV - 0.02, pz - oz * 0.5, 0.62, P.basalteFonce, { sy: 0.55 })
-      .rocher(px - ox * 0.2, NIV + 0.1, pz - oz * 0.2 + 0.7, 0.4, P.basalteMouille, { sy: 0.7 })
-      .houppe(0.32, P.mousseRocheFonce, { x: px - ox * 0.1, y: NIV + 0.45, z: pz - oz * 0.1 - 0.62, sy: 0.6, sorte: 'persistant' }, 0)
-      .houppe(0.42, P.fougere, { x: px - ox * 0.05, y: NIV + 0.95, z: pz - oz * 0.05 + 0.55, sy: 0.75, sorte: 'persistant' }, 1);
+    // (refait le 2026-10-26, « refaire mieux le rocher où est posé le miroir, un truc un peu plus stylé » : c'étaient deux
+    // boules de basalte et deux touffes rondes, de mousse et de fougère) Un tronçon de colonne de basalte tombé de la paroi,
+    // debout dans l'eau, à six pans comme elle ; son dessus plat, où le miroir est posé, appuyé contre une petite pierre ;
+    // des coussins de mousse sur ses arêtes ; à côté, un tambour plus bas et un autre, couché à moitié dans l'eau ; des
+    // fougères qui pendent de la paroi au-dessus
+    const a = atelier(), { px, pz, ox, oz } = MIROIR, lx = -oz, lz = ox, yT = NIV + 0.27;
+    // (un point à d mètres de la paroi, vers l'eau, et à l mètres le long d'elle)
+    const ici = (d, l) => [px - ox * d + lx * l, pz - oz * d + lz * l];
+    const cap = Math.atan2(-ox, -oz);
+    const tambour = (d, l, r, y0, y1, o = {}) => {
+      const [x, z] = ici(d, l), h = y1 - y0;
+      a.piece(new THREE.CylinderGeometry(r, r * 1.04, h, 6), P.basalte, {
+        x, y: (y0 + y1) / 2, z, ry: cap + (o.tourne || 0), rx: o.rx || 0, rz: o.rz || 0, ordre: 'YXZ', nuance: 0.06,
+        teinte: (qx, qy) => (qy > y1 - 0.02 ? (o.mousse ? P.mousseRoche : P.basalteClair) : qy < NIV + 0.08 ? P.basalteMouille : qy > y1 - 0.25 ? P.basalteClair : P.basalte),
+      });
+      return [x, z];
+    };
+    tambour(0.45, 0, 0.46, NIV - 1.3, yT, { tourne: 0.2 });
+    tambour(0.5, -0.92, 0.32, NIV - 1.2, NIV + 0.06, { tourne: 0.5, mousse: true });
+    // (le couché : une colonne tombée, en travers du courant, à moitié dans l'eau)
+    tambour(0.75, 0.95, 0.27, NIV - 0.45, NIV + 0.45, { tourne: 1.2, rz: PI / 2 - 0.25 });
+    // la pierre où le miroir s'appuie, contre la paroi
+    const [xa, za] = ici(0.1, 0.05);
+    rocherSculpte(a, xa, yT + 0.08, za, 0.17, { sx: 1.2, sy: 0.9, sz: 0.8, ry: cap, graine: 5.3, fond: -0.5, mousse: 0.3, finesse: 1 });
+    // des coussins de mousse sur les arêtes du dessus (pas là où le miroir est posé)
+    for (const [d, l, r] of [[0.62, 0.3, 0.16], [0.28, -0.32, 0.13], [0.7, -0.12, 0.1]]) {
+      const [x, z] = ici(d, l);
+      a.piece(new THREE.IcosahedronGeometry(r, 1), P.mousseRoche, { x, y: yT + 0.015, z, sy: 0.32, nuance: 0.08, sorte: 'persistant', teinte: (qx, qy, qz) => (bruitDoux(qx * 9, qz * 9, 1) > 0.5 ? P.mousseRoche : P.mousseRocheFonce) });
+    }
+    // des fougères accrochées à la paroi, au-dessus
+    for (const [h, l, t] of [[0.95, 0.35, 0.9], [1.45, -0.4, 1.1], [0.55, -0.85, 0.75]]) {
+      const [x, z] = ici(-0.05, l);
+      fougereParoi(a, x, NIV + h, z, -ox, -oz, t);
+    }
     poser(a.fin(0, peinture), 0, 0, { y: 0 });
-    ROCHERS.push([px - ox * 0.5, pz - oz * 0.5, 0.85]);
+    ROCHERS.push([...ici(0.5, 0), 0.75], [...ici(0.75, 0.95), 0.55], [...ici(0.5, -0.92), 0.5]);
   }
   let miroirPris = false;
   const miroir = (() => {
     const objet = new THREE.Group();
-    // le miroir : un disque de bronze poli, son revers orné d'un soleil, son bouton ; posé de biais dans la fente
-    const disque = (a) => a.cylindre(0.2, 0.2, 0.03, 20, '#b8a060', { rx: PI / 2 })
-      .cylindre(0.17, 0.17, 0.034, 20, '#e8e4d8', { rx: PI / 2, z: 0.002, trait: false })
-      .boule(0.04, '#8a7040', { z: -0.03 }, 1);
-    const sol = ctx.maillage(disque(atelier()).fin(0, false), false, true);
+    // le miroir (refait le 2026-10-26, « le miroir ne ressemble pas trop à un miroir, et il scintille quand il est accroché à
+    // l'arbre » : deux disques l'un dans l'autre, dont les faces de derrière étaient dans le même plan — elles scintillaient
+    // en rayons —, et une face crème mate). Un disque de bronze tourné : devant, la face polie (un reflet : le ciel, la
+    // verdure en bas, l'éclat du soleil, deux reflets en biais) ; derrière, le revers : le bord relevé, un anneau, un soleil
+    // en relief de douze rayons et douze perles d'or, le bouton au milieu, où passe le cordon rouge
+    const PROFIL_MIROIR = [
+      [0, -0.052, '#7d6a3e'], [0.016, -0.05, '#7d6a3e'], [0.028, -0.043, '#7d6a3e'], [0.034, -0.03, '#8a7646'], [0.036, -0.016, '#9c8448'],
+      [0.046, -0.013, '#9c8448'], [0.088, -0.013, '#c9ad62'], [0.092, -0.019, '#c9ad62'], [0.102, -0.019, '#c9ad62'], [0.106, -0.013, '#9c8448'],
+      [0.162, -0.013, '#c9ad62'], [0.17, -0.024, '#c9ad62'], [0.196, -0.024, '#b89a52'], [0.2, -0.016, '#b89a52'], [0.2, 0.006, '#d8c890'], [0.192, 0.012],
+    ];
+    const corpsMiroir = (a) => {
+      const pos = [], couleurs = [], K = 28;
+      for (let j = 0; j + 1 < PROFIL_MIROIR.length; j++) {
+        const [r0, h0, c] = PROFIL_MIROIR[j], [r1, h1] = PROFIL_MIROIR[j + 1], nr = h1 - h0, nh = -(r1 - r0);
+        for (let k = 0; k < K; k++) {
+          const f0 = (k / K) * 2 * PI, f1 = ((k + 1) / K) * 2 * PI, fm = (f0 + f1) / 2, q = (r, h, f) => [r * Math.cos(f), r * Math.sin(f), h];
+          const n = [nr * Math.cos(fm), nr * Math.sin(fm), nh];
+          triangle(pos, q(r0, h0, f0), q(r1, h1, f0), q(r1, h1, f1), n);
+          triangle(pos, q(r0, h0, f0), q(r1, h1, f1), q(r0, h0, f1), n);
+          couleurs.push(c, c);
+        }
+      }
+      // le soleil en relief : douze rayons, 2,5 mm au-dessus du revers ; douze perles entre l'anneau et le bord
+      for (let k = 0; k < 12; k++) {
+        const f = (k / 12) * 2 * PI, q = (r, df) => [r * Math.cos(f + df), r * Math.sin(f + df), -0.0155];
+        triangle(pos, q(0.05, -0.1), q(0.05, 0.1), q(0.086, 0), [0, 0, -1]);
+        couleurs.push('#dcc271');
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      a.piece(g, '#b89a52', { couleurs, nuance: 0.02 });
+      for (let k = 0; k < 12; k++) { const f = ((k + 0.5) / 12) * 2 * PI; a.boule(0.007, '#dcc271', { x: 0.134 * Math.cos(f), y: 0.134 * Math.sin(f), z: -0.016, trait: false }); }
+      return a;
+    };
+    const MATIERE_MIROIR = new THREE.ShaderMaterial({
+      uniforms: {
+        nuit: { value: 0 }, haut: { value: new THREE.Color('#6d9fc4') }, horizon: { value: new THREE.Color('#b9d3da') }, vert: { value: new THREE.Color('#5f7d58') },
+        bas: { value: new THREE.Color('#34443a') }, teinte: { value: new THREE.Color('#f3e6c8') }, soleil: { value: new THREE.Vector3(0.45, 0.8, 0.4).normalize() },
+      },
+      vertexShader: `varying vec3 vN, vP; varying vec2 vUv;
+        void main() { vUv = uv; vec4 m = modelMatrix * vec4(position, 1.0); vP = m.xyz; vN = normalize(mat3(modelMatrix) * normal); gl_Position = projectionMatrix * viewMatrix * m; }`,
+      fragmentShader: `uniform float nuit; uniform vec3 haut, horizon, vert, bas, teinte, soleil; varying vec3 vN, vP; varying vec2 vUv;
+        void main() {
+          vec3 V = normalize(vP - cameraPosition), R = reflect(V, normalize(vN));
+          // (ce qu'il reflète : en bas, l'eau et la roche ; la verdure ; l'horizon clair ; le ciel bleu ; l'éclat du soleil.
+          // Un premier essai, le ciel presque blanc, en faisait une perle blanche)
+          vec3 c = mix(bas, vert, smoothstep(-0.35, 0.0, R.y));
+          c = mix(c, horizon, smoothstep(0.08, 0.22, R.y));
+          c = mix(c, haut, smoothstep(0.25, 0.85, R.y));
+          c += vec3(1.0, 0.96, 0.85) * pow(max(dot(R, soleil), 0.0), 80.0) * 2.0;
+          // (deux reflets en biais, comme sur un miroir dessiné ; ils glissent un peu avec le regard)
+          float d = (vUv.x + vUv.y) * 0.5 + R.x * 0.08;
+          float b = smoothstep(0.05, 0.0, abs(d - 0.36)) + 0.7 * smoothstep(0.025, 0.0, abs(d - 0.47));
+          c = mix(c, vec3(1.0), clamp(b, 0.0, 1.0) * 0.85);
+          // (le bronze poli : doré ; plus sombre au bord du disque ; la nuit, sombre)
+          c *= teinte * mix(1.0, 0.78, smoothstep(0.75, 1.0, length(vUv - 0.5) * 2.0)) * mix(1.0, 0.25, nuit);
+          gl_FragColor = vec4(c, 1.0);
+          #include <colorspace_fragment>
+        }`,
+    });
+    const miroirBronze = (cordon) => {
+      const g = new THREE.Group(), a = corpsMiroir(atelier());
+      // (le cordon rouge : par le bouton, par-dessus le bord, jusqu'à la branche ; et son gland, qui pend du bouton)
+      if (cordon) a.tube([[0, 0.02, -0.05], [0, 0.12, -0.056], [0, 0.205, -0.036], [0, 0.26, -0.012], [0, 0.55, 0]], 0.009, '#c8372d', { trait: false, pas: 16, cotes: 5 })
+        .tube([[0, 0.0, -0.05], [0, -0.07, -0.06], [0, -0.12, -0.058]], 0.008, '#c8372d', { trait: false, pas: 8, cotes: 5 })
+        .cone(0.026, 0.1, 8, '#c8372d', { y: -0.17, z: -0.058, trait: false });
+      g.add(ctx.maillage(a.fin(0, false), false, true));
+      const face = new THREE.Mesh(new THREE.CircleGeometry(0.192, 48), MATIERE_MIROIR);
+      face.position.z = 0.012;
+      g.add(face);
+      return g;
+    };
+    const sol = miroirBronze(false);
     sol.position.set(MIROIR.x, MIROIR.y, MIROIR.z);
-    // (tourné vers l'eau, penché en arrière contre la paroi : le lacet, puis l'inclinaison dans son propre repère)
+    // (tourné vers l'eau, penché en arrière contre sa pierre : le lacet, puis l'inclinaison dans son propre repère)
     sol.rotation.set(-0.38, Math.atan2(-MIROIR.ox, -MIROIR.oz), 0, 'YXZ');
     objet.add(sol);
     // son éclat : un point de lumière de taille fixe à l'écran (visible de loin, de la promenade si l'on regarde bien),
@@ -2821,14 +3257,16 @@ export function construire(ctx) {
     const eclat = points(1, 9, '#fff6d8', false), lueur = points(1, 0.7, '#ffe8a8');
     for (const p of [eclat, lueur]) { p.geometry.attributes.position.setXYZ(0, MIROIR.x - MIROIR.ox * 0.06, MIROIR.y + 0.05, MIROIR.z - MIROIR.oz * 0.06); objet.add(p); }
     // sur l'arbre sacré : le même miroir, suspendu à une branche par un cordon (caché tant qu'on ne l'a pas rapporté)
-    const pendu = ctx.maillage(disque(atelier()).baton([0, 0.2, 0], [0, 0.55, 0], 0.012, '#e8452e', 4, { trait: false }).fin(0, false), false, true);
+    // (sa face polie tournée vers l'est, le soleil levant — Amaterasu est la déesse du soleil —, entre la grotte et le lieu
+    // de prière : de là, on la voit briller ; tournée vers la grotte, on n'en voyait que le revers, comme un gong)
+    const pendu = miroirBronze(true);
     pendu.position.set(SAKAKI.x + 0.3, 1.62, SAKAKI.z + 0.55);
-    pendu.rotation.y = PI;
+    pendu.rotation.y = 1.45;
     pendu.visible = false;
     objet.add(pendu);
     // (sa lueur : petite, pour ne pas faire une tache blanche quand la caméra est tout près)
     const lueurPendu = points(1, 0.6, '#fff0c0');
-    lueurPendu.geometry.attributes.position.setXYZ(0, pendu.position.x, pendu.position.y, pendu.position.z + 0.05);
+    lueurPendu.geometry.attributes.position.setXYZ(0, pendu.position.x + 0.05, pendu.position.y, pendu.position.z);
     lueurPendu.visible = false;
     objet.add(lueurPendu);
     return {
@@ -2837,6 +3275,7 @@ export function construire(ctx) {
       accrocher() { pendu.visible = lueurPendu.visible = true; },
       maj(dt, temps, c) {
         const jour = c.nuit < 0.5, la = !miroirPris && !secretTrouve('miroir');
+        MATIERE_MIROIR.uniforms.nuit.value = c.nuit;
         sol.visible = la;
         eclat.visible = lueur.visible = la && jour;
         const p = 0.6 + 0.4 * Math.sin(temps * 3.1) * Math.sin(temps * 1.7 + 1);
@@ -2844,7 +3283,7 @@ export function construire(ctx) {
         lueur.material.size = 0.45 + 0.3 * p;
         lueurPendu.material.size = 0.5 + 0.15 * Math.sin(temps * 2);
         pendu.visible = lueurPendu.visible = secretTrouve('miroir') || pendu.visible;
-        pendu.rotation.y = PI + Math.sin(temps * 0.8) * 0.25;
+        pendu.rotation.y = 1.45 + Math.sin(temps * 0.8) * 0.22;
         return [];
       },
     };
@@ -3291,7 +3730,11 @@ export function construire(ctx) {
         jeu.cadrer(null);
       },
     },
-    { id: 'koi', x: ETANG.x + 8.4, z: ETANG.z + 1.8, rayon: 2.0, haut: 1.0, verbe: 'regarder', action: (jeu) => jeu.dire(jeu.txn('koi')) },
+    // (les carpes : de tout le tour de l'étang, au bord le plus proche ; avant le 2026-10-26, seulement à l'entrée du canal)
+    {
+      id: 'koi', x: ETANG.x + 8.4, z: ETANG.z + 1.8, rayon: 1.6, haut: 1.0, verbe: 'regarder', action: (jeu) => jeu.dire(jeu.txn('koi')),
+      pres: (x, z) => { const t = Math.atan2(x - ETANG.x, z - ETANG.z), r = rayonEtang(t) + 0.15; return { x: ETANG.x + Math.sin(t) * r, z: ETANG.z + Math.cos(t) * r }; },
+    },
     // le jardin : le champ de thé, les jizō, les bambous, le puits
     { id: 'the', x: THE.x1 + 1.3, z: THE.z0 + 5.5, rayon: 1.8, haut: 1.0, verbe: 'regarder', action: (jeu) => jeu.dire(jeu.tx('the')) },
     { id: 'jizo', x: JIZO.x + 1.3, z: JIZO.z, rayon: 2.0, haut: 1.0, verbe: 'regarder', action: (jeu) => jeu.dire(jeu.tx('jizo')) },
@@ -3365,7 +3808,7 @@ const TAS = { x: 0, z: 0, sol: 0 };
 const ENTREE_YASU = { x: 0, z: 0 };
 // les titres des panneaux (en japonais, peints sur le papier)
 const TITRES_PANNEAUX = {
-  cascade: '真名井の滝', gorge: '高千穂峡', barques: '貸しボート', kihachi: '鬼八の力石', yaritobi: '槍飛', yasu: '天安河原',
+  cascade: '真名井の滝', gorge: '高千穂峡', etang: 'おのころ池', barques: '貸しボート', kihachi: '鬼八の力石', yaritobi: '槍飛', yasu: '天安河原',
   yohai: '天岩戸 遥拝所', meoto: '夫婦杉', tajikarao: '手力雄命',
 };
 /** Le fond peint de la scène du kagura : une montagne bleue dans la brume, le soleil rouge qui se lève, des pins. */
@@ -3538,7 +3981,7 @@ const TEXTES = {
     yohaiNuit: ['La nuit, la falaise est toute noire. On devine à peine la grotte, de l’autre côté de la rivière…', 'Le sakaki, l’arbre sacré, frissonne dans le vent.'],
     yohaiApres: ['Le miroir brille sur le sakaki, tourné vers la grotte. La porte de pierre est entrouverte.', 'On dirait qu’un peu de lumière en sort encore…'],
     yohaiNuitMiroir: ['Il fait trop sombre : le miroir ne renverrait aucune lumière.', 'Il faudrait le suspendre au sakaki quand le soleil brille.'],
-    accrocher: ['Tu suspends le miroir à une branche du sakaki, tourné vers la grotte d’Amaterasu.', 'Comme le firent les dieux, il y a très, très longtemps…'],
+    accrocher: ['Tu suspends le miroir à une branche du sakaki, devant la grotte d’Amaterasu.', 'Comme le firent les dieux, il y a très, très longtemps…'],
     eclipse: ['Soudain, le ciel s’assombrit… Le soleil disparaît, comme le jour où Amaterasu s’enferma dans sa grotte !'],
     coqs: ['Dans le sanctuaire, les coqs se mettent à chanter tous ensemble : « Kokekokkō ! »'],
     danse: {
@@ -3712,7 +4155,7 @@ const TEXTES = {
     yohaiNuit: ['At night the cliff is pitch black. You can barely make out the cave across the river…', 'The sakaki, the sacred tree, shivers in the wind.'],
     yohaiApres: ['The mirror shines on the sakaki, facing the cave. The stone door is ajar.', 'It looks as if a little light still spills out…'],
     yohaiNuitMiroir: ['It’s too dark: the mirror wouldn’t reflect any light.', 'You should hang it on the sakaki while the sun is shining.'],
-    accrocher: ['You hang the mirror on a branch of the sakaki, facing Amaterasu’s cave.', 'Just as the gods did, a very, very long time ago…'],
+    accrocher: ['You hang the mirror on a branch of the sakaki, in front of Amaterasu’s cave.', 'Just as the gods did, a very, very long time ago…'],
     eclipse: ['Suddenly the sky grows dark… The sun disappears, like the day Amaterasu shut herself in her cave!'],
     coqs: ['In the shrine, the roosters all start crowing together: “Kokekokkō!”'],
     danse: {
@@ -3886,7 +4329,7 @@ const TEXTES = {
     yohaiNuit: ['夜の　がけは　まっくら。川の　むこうの　岩戸も　ほとんど　見えない……', '神聖な　さかきが　風に　ふるえて　いる。'],
     yohaiApres: ['さかきに　かけた　かがみが、岩戸の　ほうを　むいて　光って　いる。岩の　とびらは　すこし　あいた　まま。', 'まだ　すこし　光が　もれて　いる　みたい……'],
     yohaiNuitMiroir: ['くらすぎる……かがみが　光を　はねかえせない。', 'お日さまが　出て　いる　ときに、さかきに　かけないと。'],
-    accrocher: ['さかきの　えだに、天岩戸の　ほうへ　むけて、かがみを　かけた。', 'むかし　むかし、神さまたちが　した　ように……'],
+    accrocher: ['天岩戸の　まえの　さかきの　えだに、かがみを　かけた。', 'むかし　むかし、神さまたちが　した　ように……'],
     eclipse: ['とつぜん　空が　くらく　なった……天照大御神が　岩戸に　かくれた　日の　ように、お日さまが　きえた！'],
     coqs: ['神社の　ニワトリたちが、いっせいに　ないた。「コケコッコー！」'],
     danse: {

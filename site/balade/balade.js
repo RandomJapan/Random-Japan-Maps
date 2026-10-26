@@ -256,9 +256,15 @@ function construire() {
   if (lieu.barque) {
     const B = lieu.barque, objet = new THREE.Group();
     objet.add(maillage(B.coque(ctx.atelier()).fin(0, true)));
+    // (B.masque : ce qui empêche l'eau de se dessiner dans la barque, 2026-10-26)
+    if (B.masque) objet.add(B.masque());
+    // (amarrée, ses rames sont rangées dedans : B.rangerRame ; avant le 2026-10-26, elles sortaient de 1,6 m sur les côtés,
+    // et celle du côté du ponton passait au travers)
     const rames = [-1, 1].map((s) => {
       const p = new THREE.Group();
       p.position.set(s * B.tolet[0], B.tolet[1], B.tolet[2]);
+      p.rotation.order = 'YXZ';
+      B.rangerRame?.(p, s);
       p.add(maillage(B.rame(ctx.atelier(), s).fin(0, false)));
       objet.add(p);
       return p;
@@ -1158,8 +1164,11 @@ function creerEauxCalmes(lieu, lampes, ciel) {
   // bord : la position dans le bassin (m depuis un coin) et sa taille : le reflet sombre des talus le long des bords ;
   // profondeur : (avec clair et profond) la hauteur d'eau, une grille de 50 cm
   const E = lieu.eauCalme || {}, couleurs = !!(E.clair && E.profond);
-  const pos = [], bord = [], prof = [], idx = [];
-  for (const [x0, x1, z0, z1, y] of lieu.eauxCalmes) {
+  // garde (6e élément d'un bassin, facultatif) : (x, z) → une distance signée à la ligne où l'eau s'arrête net (négative
+  // au-delà), interpolée d'un sommet à l'autre : une coupe droite (Takachiho, 2026-10-26 : l'étang s'arrête au seuil de son
+  // canal ; avant, son eau débordait dans le canal par-dessus la sienne et s'y coupait en biais sur la grille de 50 cm)
+  const pos = [], bord = [], prof = [], garde = [], idx = [];
+  for (const [x0, x1, z0, z1, y, gardeFn] of lieu.eauxCalmes) {
     const w = x1 - x0, d = z1 - z0, nx = couleurs ? Math.ceil(w / 0.5) : 1, nz = couleurs ? Math.ceil(d / 0.5) : 1, k = pos.length / 3;
     for (let j = 0; j <= nz; j++) {
       for (let i = 0; i <= nx; i++) {
@@ -1167,6 +1176,7 @@ function creerEauxCalmes(lieu, lampes, ciel) {
         pos.push(x, y, z);
         bord.push(x - x0, z - z0, w, d);
         prof.push(couleurs ? Math.max(0, y - lieu.terrain(x, z)) : 1);
+        garde.push(gardeFn ? gardeFn(x, z) : 1);
       }
     }
     for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) { const a = k + j * (nx + 1) + i, b = a + nx + 1; idx.push(a, b, a + 1, a + 1, b, b + 1); }
@@ -1175,6 +1185,7 @@ function creerEauxCalmes(lieu, lampes, ciel) {
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   g.setAttribute('bord', new THREE.Float32BufferAttribute(bord, 4));
   g.setAttribute('profondeur', new THREE.Float32BufferAttribute(prof, 1));
+  g.setAttribute('garde', new THREE.Float32BufferAttribute(garde, 1));
   g.setIndex(idx);
   const mat = new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, fog: true,
@@ -1186,14 +1197,15 @@ function creerEauxCalmes(lieu, lampes, ciel) {
     }]),
     vertexShader: `
       attribute vec4 bord;
-      attribute float profondeur;
+      attribute float profondeur, garde;
       varying vec3 vMonde;
       varying vec4 vBord;
-      varying float vProf;
+      varying float vProf, vGarde;
       #include <fog_pars_vertex>
       void main() {
         vBord = bord;
         vProf = profondeur;
+        vGarde = garde;
         vec4 monde = modelMatrix * vec4(position, 1.0);
         vMonde = monde.xyz;
         vec4 mvPosition = viewMatrix * monde;
@@ -1205,11 +1217,12 @@ function creerEauxCalmes(lieu, lampes, ciel) {
       uniform float temps, nuit, clarte;
       varying vec3 vMonde;
       varying vec4 vBord;
-      varying float vProf;
+      varying float vProf, vGarde;
       #include <fog_pars_fragment>
       ${LAMPES_GLSL}
       ${EAU_GLSL}
       void main() {
+        if (vGarde < 0.0) discard;
         #ifdef COULEURS
           // (la couleur de la rivière : claire au bord, foncée au fond ; à peine marbrée)
           vec3 c = mix(clair, profond, smoothstep(0.04, 0.75, vProf)) * (0.94 + 0.12 * bruitE(vMonde.xz * 0.35).x);
@@ -2486,7 +2499,7 @@ const jeu = {
     Object.assign(b, { x: B.quai.x, z: B.quai.z, cap: B.quai.cap, v: 0, w: 0, arrose: 0 });
     b.objet.position.set(b.x, B.niveau, b.z);
     b.objet.rotation.set(0, b.cap, 0);
-    b.rames.forEach((r, i) => r.rotation.set(0, (i ? 1 : -1) * 0.15, (i ? 1 : -1) * 0.12));
+    b.rames.forEach((r, i) => { const s = i ? 1 : -1; if (B.rangerRame) B.rangerRame(r, s); else r.rotation.set(0, s * 0.15, s * 0.12); });
     M.joueur.ramer(null);
     M.joueur.asseoir(false);
     const [x, z, cap] = B.debarque;
@@ -3123,8 +3136,10 @@ function piloter(dt, pousse, vire) {
   // les rames : elles balaient d'avant en arrière, la pelle dans l'eau pendant le coup, levée au retour
   b.rames.forEach((r, i) => {
     const s = i ? 1 : -1, o = Math.sin(b.phase);
+    // (sur leurs tolets : amarrée, elles étaient rangées dans la barque)
+    r.position.set(s * B.tolet[0], B.tolet[1], B.tolet[2]);
     // (la pelle dans l'eau pendant la poussée — de la proue vers la poupe —, levée pendant le retour)
-    r.rotation.set(0, s * (0.15 + 0.5 * o * Math.max(0.15, b.rame)), s * (0.12 + (0.2 * Math.max(0, -Math.cos(b.phase)) - 0.05 * Math.max(0, Math.cos(b.phase))) * b.rame));
+    r.rotation.set(0,s * (0.15 + 0.5 * o * Math.max(0.15, b.rame)), s * (0.12 + (0.2 * Math.max(0, -Math.cos(b.phase)) - 0.05 * Math.max(0, Math.cos(b.phase))) * b.rame));
   });
   // le voyageur sur le banc du milieu, tourné vers la poupe ; le compagnon à la proue
   const c = Math.cos(b.cap), sn = Math.sin(b.cap), ici = (lx, lz) => [b.x + lx * c + lz * sn, b.z - lx * sn + lz * c];
