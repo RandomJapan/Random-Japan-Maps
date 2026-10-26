@@ -1218,29 +1218,34 @@ function creerEauxCalmes(lieu, lampes, ciel) {
 /**
  * Une cascade (2026-10-25, Takachiho : la cascade de Manai, qui tombe de dix-sept mètres dans la gorge ; celle de la rivière
  * Iwato) : un voile d'eau qui part du bord (x, z, y0), s'écarte de la paroi en tombant (sortie : la direction hors de la
- * paroi ; avance : de combien, en bas, comme l'eau lancée d'un bord), s'élargit (large en haut, une fois et demie en bas),
- * jusqu'à l'eau (y1). Des traînées blanches qui descendent vite, l'eau verte et transparente au bord du haut, de plus en plus
- * blanche en bas ; le reflet du ciel ; la nuit, sombre, les lampes. En bas, une écume qui bouillonne sur l'eau ; par beau
- * temps, un arc-en-ciel pâle dans la brume (arcEnCiel : son rayon, ou 0). Des deux côtés (on la voit aussi d'en haut, de
- * dos). La brume elle-même : lieu.vapeurs. Renvoie ses morceaux (leurs uniformes temps et nuit, comme l'eau qui coule).
+ * paroi ; avance : de combien, en bas, comme l'eau lancée d'un bord), s'élargit (large en haut, evase fois plus en bas : 1,45
+ * par défaut), jusqu'à l'eau (y1). Des traînées blanches qui descendent vite, l'eau verte et transparente au bord du haut, de
+ * plus en plus blanche en bas ; le reflet du ciel ; la nuit, sombre, les lampes. En bas, une écume qui bouillonne sur l'eau ;
+ * par beau temps, un arc-en-ciel pâle dans la brume (arcEnCiel : son rayon, ou 0). Des deux côtés (on la voit aussi d'en
+ * haut, de dos). La brume elle-même : lieu.vapeurs. Renvoie ses morceaux (leurs uniformes temps et nuit, comme l'eau qui
+ * coule). Le haut du voile est le bout de l'eau qui arrive (même hauteur, même largeur) : posé plus large ou plus bas, le bout
+ * de la rivière dépassait au-dessus de lui comme une planche (2026-10-26, la rivière Iwato).
  */
 function creerCascade(c, P, lampes, lieu, ciel) {
   // (refaite le 2026-10-25, « la cascade est un peu mal faite » : un voile bombé qui s'élargit en tombant, et devant lui des
   // filets d'eau séparés, chacun sa courbe ; l'eau passe le bord en lame claire et verte, puis blanchit, se déchire en
   // fils d'argent qui accélèrent, s'ouvre en trous et en gouttes vers le bas ; un seul maillage, l'attribut brin dit de quel
   // filet il s'agit : 0 le voile)
-  const [ox, oz] = c.sortie, px = -oz, pz = ox, haut = c.y0 - c.y1, N = 40, NL = 18;
-  const pos = [], uv = [], brin = [], idx = [];
+  const [ox, oz] = c.sortie, px = -oz, pz = ox, haut = c.y0 - c.y1, N = 40, NL = 18, evase = c.evase ?? 1.45;
+  // (vol : depuis combien de secondes l'eau a passé le bord, à cette hauteur ; elle part à V0 m/s et tombe en chute libre)
+  const V0 = 1.2, G = 9.8, vol = (t) => (Math.sqrt(V0 * V0 + 2 * G * t * haut) - V0) / G;
+  const pos = [], uv = [], brin = [], vols = [], idx = [];
   const nappe = (nl, b, s0, s1, avance, bombe0, large0, ecart) => {
     const base = pos.length / 3;
     for (let i = 0; i <= N; i++) {
-      const t = i / N, y = c.y0 - haut * t, sort = avance * Math.sqrt(t) + 0.25 * Math.min(1, t * 8), large = large0 * (1 + 0.45 * t);
+      const t = i / N, y = c.y0 - haut * t, sort = avance * Math.sqrt(t) + 0.25 * Math.min(1, t * 8), large = large0 * (1 + (evase - 1) * t);
       for (let j = 0; j <= nl; j++) {
-        const f = j / nl, s = s0 + (s1 - s0) * f, bombe = bombe0 * (1 - 4 * (f - 0.5) ** 2) * Math.min(1, t * 4) + 0.05 * Math.sin(s * 9 + t * 5 + b);
+        const f = j / nl, s = s0 + (s1 - s0) * f, bombe = bombe0 * (1 - 4 * (f - 0.5) ** 2) * Math.min(1, t * 4) + 0.05 * Math.sin(s * 9 + t * 5 + b) * Math.min(1, t * 6);
         const lat = s * large + ecart * t * Math.sign(s);
         pos.push(c.x + ox * (sort + bombe) + px * lat, y, c.z + oz * (sort + bombe) + pz * lat);
         uv.push(f, t * haut);
         brin.push(b);
+        vols.push(vol(t));
       }
     }
     for (let i = 0; i < N; i++) for (let j = 0; j < nl; j++) { const a0 = base + i * (nl + 1) + j, b0 = a0 + 1, d = a0 + nl + 1, f = d + 1; idx.push(a0, d, b0, b0, d, f); }
@@ -1252,51 +1257,81 @@ function creerCascade(c, P, lampes, lieu, ciel) {
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
   g.setAttribute('brin', new THREE.Float32BufferAttribute(brin, 1));
+  g.setAttribute('vol', new THREE.Float32BufferAttribute(vols, 1));
   g.setIndex(idx);
   const mat = new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, fog: true, side: THREE.DoubleSide,
     uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
-      ecume: { value: new THREE.Color(P.ecume) }, vert: { value: new THREE.Color(lieu.eau?.clair || P.eauClaire) }, temps: { value: 0 }, nuit: { value: 0 }, haut: { value: haut },
+      ecume: { value: new THREE.Color(P.ecume) }, vert: { value: new THREE.Color(lieu.eau?.clair || P.eauClaire) }, temps: { value: 0 }, nuit: { value: 0 }, haut: { value: haut }, large: { value: c.large },
     }]),
     vertexShader: `
-      attribute float brin;
+      attribute float brin, vol;
       varying vec2 vUv;
-      varying float vBrin;
+      varying float vBrin, vVol;
       varying vec3 vMonde;
       #include <fog_pars_vertex>
       void main() {
         vUv = uv;
         vBrin = brin;
+        vVol = vol;
         vec4 monde = modelMatrix * vec4(position, 1.0);
         vMonde = monde.xyz;
         vec4 mvPosition = viewMatrix * monde;
         gl_Position = projectionMatrix * mvPosition;
         #include <fog_vertex>
       }`,
+    // (refait le 2026-10-26, « juste une sorte d'image fixe, sans écoulement » : le motif glissait de temps × une vitesse qui
+    // dépendait de la hauteur, et se tassait un peu plus à chaque seconde ; au bout d'une minute, des traits fins couchés qui
+    // scintillaient. Maintenant le motif est accroché à l'eau : il dépend de l'instant où elle a passé le bord (vol − temps) ;
+    // il tombe avec elle, s'étire à mesure qu'elle accélère, et ne change pas de forme avec le temps. Ses bruits se répètent en
+    // hauteur au bout de CYCLE secondes : le temps est pris modulo CYCLE, et reste petit (les grands nombres abîmaient le hasard)
     fragmentShader: `
       uniform vec3 ecume, vert;
-      uniform float temps, nuit, haut;
+      uniform float temps, nuit, haut, large;
       varying vec2 vUv;
-      varying float vBrin;
+      varying float vBrin, vVol;
       varying vec3 vMonde;
       #include <fog_pars_fragment>
       ${LAMPES_GLSL}
       ${EAU_GLSL}
+      const float CYCLE = 20.0;
+      // un bruit lisse qui se répète tous les per.y carreaux en hauteur (et per.x en travers)
+      float bruitC(vec2 p, vec2 per) {
+        vec2 i = floor(p), f = fract(p), u = f * f * (3.0 - 2.0 * f);
+        vec2 i0 = mod(i, per), i1 = mod(i + 1.0, per);
+        float a = hasardE(i0), b = hasardE(vec2(i1.x, i0.y)), c = hasardE(vec2(i0.x, i1.y)), d = hasardE(i1);
+        return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+      }
       void main() {
-        float u = vUv.x, v = vUv.y, t = v / haut, b = vBrin, filet = step(0.5, b);
-        // des fils d'argent qui tombent de plus en plus vite (l'eau accélère) : deux bruits étirés en hauteur, fins et vifs
-        float vit = 2.0 + 2.4 * t, chute = v * 0.5 - temps * vit;
-        float n1 = bruitE(vec2(u * mix(18.0, 7.0, filet) + b * 7.3, chute)).x, n2 = bruitE(vec2(u * mix(43.0, 15.0, filet) + b * 13.1, chute * 2.1)).x;
-        float fil = pow(clamp(n1 * 0.6 + n2 * 0.4, 0.0, 1.0), 2.0), traine = smoothstep(0.16, 0.55, fil);
-        // vers le bas, le voile se déchire : des trous s'ouvrent entre les fils ; les filets se défont en gouttes
-        float trou = smoothstep(0.28 + 0.3 * t, 0.62 + 0.25 * t, n1 * 0.7 + n2 * 0.3 + 0.22 - 0.12 * filet * t);
+        float u = vUv.x, t = vUv.y / haut, b = vBrin, filet = step(0.5, b);
+        // ph : l'instant où cette eau a passé le bord (à CYCLE près) ; k carreaux par seconde de chute : k × CYCLE carreaux
+        float ph = vVol - mod(temps, CYCLE);
+        // (les carreaux en travers : tant par mètre de large, en haut ; un filet fait un cinquième du voile)
+        float L = large * mix(1.0, 0.18, filet);
+        // des masses d'eau (larges, lentes) ; des fils d'argent, et des fils plus fins encore (ceux-là s'effacent quand ils ne
+        // font plus qu'un pixel : ils scintillaient au loin)
+        float masse = bruitC(vec2(u * max(1.5, 2.0 * L) + b * 3.1 + 9.0, ph * 0.9), vec2(1e4, 18.0));
+        float c1 = max(3.0, 9.0 * L), c2 = max(6.0, 21.0 * L);
+        float n1 = bruitC(vec2(u * c1 + b * 7.3, ph * 4.0), vec2(1e4, 80.0));
+        float n2 = mix(bruitC(vec2(u * c2 + b * 13.1 + 4.0, ph * 9.0), vec2(1e4, 180.0)), 0.5, smoothstep(0.25, 0.6, fwidth(u * c2)));
+        // les fils sont coupés en tirets (mêmes colonnes, de courts morceaux), et l'eau passe par paquets : des bandes plus
+        // blanches en travers. Ce sont eux qu'on voit descendre (un fil long qui glisse le long de lui-même semble immobile)
+        float tiret = smoothstep(0.36, 0.56, bruitC(vec2(u * c1 + b * 7.3 + 17.0, ph * 14.0), vec2(1e4, 280.0)));
+        float paquet = bruitC(vec2(u * max(1.0, 0.6 * L) + b * 2.3 + 5.0, ph * 3.2), vec2(1e4, 64.0));
+        float fil = n1 * 0.62 + n2 * 0.38, traine = smoothstep(0.46, 0.72, fil) * mix(0.3, 1.0, tiret), eclat = smoothstep(0.7, 0.9, n2) * tiret;
+        // vers le bas, le voile se déchire : des trous s'ouvrent entre les fils, là où passe moins d'eau ; les filets se
+        // défont en gouttes
+        float trou = smoothstep(0.22 + 0.36 * t, 0.5 + 0.3 * t, fil * 0.55 + masse * 0.45 + 0.18 - 0.1 * filet * t);
         // la lame claire et verte qui passe le bord, puis l'eau blanchit ; plus claire sur les fils, un peu d'ombre sur les
-        // côtés du voile (il est bombé)
-        vec3 c = mix(vert * 1.08, ecume, clamp(0.2 + 0.8 * smoothstep(0.0, 0.16, t) * (0.62 + 0.38 * traine), 0.0, 1.0));
-        c *= 0.86 + 0.16 * traine + 0.08 * (1.0 - abs(u * 2.0 - 1.0));
-        float bord = smoothstep(0.0, mix(0.16, 0.3, filet) + 0.06 * sin(v * 2.7 + temps + b), u) * (1.0 - smoothstep(mix(0.84, 0.7, filet) - 0.06 * sin(v * 2.1 - temps + b), 1.0, u));
-        float a = (0.32 + 0.6 * traine) * bord * mix(1.0, trou, mix(0.6, 0.85, filet)) + 0.18 * smoothstep(0.75, 1.0, t) * bord;
-        a = max(a, (1.0 - smoothstep(0.0, 0.05, t)) * bord * mix(0.85, 0.6, filet));
+        // côtés du voile (il est bombé) et entre les fils
+        vec3 c = mix(vert * 1.08, ecume, clamp(0.2 + 0.8 * smoothstep(0.0, 0.14, t) * (0.6 + 0.3 * traine + 0.1 * paquet), 0.0, 1.0));
+        c *= 0.8 + 0.16 * traine + 0.1 * eclat + 0.08 * paquet + 0.06 * (1.0 - abs(u * 2.0 - 1.0));
+        // les bords : déchirés par les masses d'eau, qui descendent avec elle
+        float ondule = 0.07 * (masse - 0.5) + 0.04 * (n1 - 0.5);
+        float bord = smoothstep(0.0, mix(0.14, 0.3, filet) + ondule, u) * (1.0 - smoothstep(mix(0.86, 0.7, filet) - ondule, 1.0, u));
+        float a = (0.34 + 0.58 * traine + 0.08 * masse + 0.14 * paquet) * bord * mix(1.0, trou, mix(0.65, 0.85, filet)) + 0.16 * smoothstep(0.75, 1.0, t) * bord;
+        // (en haut, la lame d'eau pleine, qui continue l'eau qui arrive)
+        a = max(a, (1.0 - smoothstep(0.0, 0.06, t)) * bord * mix(0.88, 0.6, filet));
         vec3 lampe = c * lumiereLampes(vMonde, vec3(0.0, 1.0, 0.0));
         c *= mix(vec3(1.0), vec3(0.3, 0.34, 0.5), nuit);
         c += lampe * 0.9;
@@ -1308,14 +1343,17 @@ function creerCascade(c, P, lampes, lieu, ciel) {
   Object.assign(mat.uniforms, lampes, uniformesEau(lieu, ciel));
   const voile = new THREE.Mesh(g, mat);
   voile.renderOrder = 2;
-  // l'écume, en bas : un disque qui bouillonne sur l'eau, plus blanc là où tombe le voile
-  const bx = c.x + ox * c.avance, bz = c.z + oz * c.avance, R = c.large * 1.25 + 1.2;
-  const ge = new THREE.CircleGeometry(R, 40);
+  // l'écume, en bas : une ellipse qui bouillonne sur l'eau (le long de la paroi, sur toute la largeur du voile ; vers le
+  // large, quelques mètres), plus blanche là où tombe le voile
+  const bx = c.x + ox * c.avance, bz = c.z + oz * c.avance, Ra = c.large * evase * 0.5 + 1.3, Rb = 2.4 + 0.15 * c.large;
+  const ge = new THREE.CircleGeometry(1, 48);
   ge.rotateX(-Math.PI / 2);
-  ge.translate(bx + ox * 0.4, c.y1 + 0.03, bz + oz * 0.4);
+  ge.applyMatrix4(new THREE.Matrix4().set(px * Ra, 0, ox * Rb, bx + ox * 0.4, 0, 1, 0, c.y1 + 0.03, pz * Ra, 0, oz * Rb, bz + oz * 0.4, 0, 0, 0, 1));
   const matE = new THREE.ShaderMaterial({
-    transparent: true, depthWrite: false, fog: true,
-    uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { ecume: { value: new THREE.Color(P.ecume) }, centre: { value: new THREE.Vector3(bx, c.y1, bz) }, rayon: { value: R }, temps: { value: 0 }, nuit: { value: 0 } }]),
+    transparent: true, depthWrite: false, fog: true, side: THREE.DoubleSide,
+    uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
+      ecume: { value: new THREE.Color(P.ecume) }, centre: { value: new THREE.Vector3(bx, c.y1, bz) }, axes: { value: new THREE.Vector4(px / Ra, pz / Ra, ox / Rb, oz / Rb) }, temps: { value: 0 }, nuit: { value: 0 },
+    }]),
     vertexShader: `
       varying vec3 vMonde;
       #include <fog_pars_vertex>
@@ -1328,18 +1366,26 @@ function creerCascade(c, P, lampes, lieu, ciel) {
       }`,
     fragmentShader: `
       uniform vec3 ecume, centre;
-      uniform float rayon, temps, nuit;
+      uniform vec4 axes;
+      uniform float temps, nuit;
       varying vec3 vMonde;
       #include <fog_pars_fragment>
       ${EAU_GLSL}
+      // (comme le voile : un bruit qui se répète, en angle tout autour et en rayon, et le temps modulo 10 s)
+      float bruitC(vec2 p, vec2 per) {
+        vec2 i = floor(p), f = fract(p), u = f * f * (3.0 - 2.0 * f);
+        vec2 i0 = mod(i, per), i1 = mod(i + 1.0, per);
+        float a = hasardE(i0), b = hasardE(vec2(i1.x, i0.y)), c = hasardE(vec2(i0.x, i1.y)), d = hasardE(i1);
+        return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+      }
       void main() {
-        vec2 d = vMonde.xz - centre.xz;
-        float r = length(d) / rayon;
+        vec2 d = vMonde.xz - centre.xz, e = vec2(dot(d, axes.xy), dot(d, axes.zw));
+        float r = length(e), ang = atan(e.x, e.y) / 6.2831853 + 0.5, tm = mod(temps, 10.0);
         // des bouillons qui s'écartent du pied de la chute
-        float b = bruitE(d * 1.6 - normalize(d + 1e-4) * temps * 1.4).x * 0.6 + bruitE(d * 3.7 + temps * 0.8).x * 0.4;
+        float b = bruitC(vec2(ang * 24.0, r * 6.0 - tm * 2.4), vec2(24.0, 24.0)) * 0.6 + bruitC(vec2(ang * 56.0 + 3.0, r * 14.0 - tm * 1.6), vec2(56.0, 16.0)) * 0.4;
         float a = (1.0 - smoothstep(0.15, 1.0, r)) * smoothstep(0.3, 0.75, b + 0.35 * (1.0 - r));
         // (des cercles d'écume qui s'écartent du pied de la chute)
-        float cercles = smoothstep(0.72, 1.0, sin(r * 22.0 - temps * 3.2 + b * 2.0)) * (1.0 - smoothstep(0.35, 1.0, r)) * 0.55;
+        float cercles = smoothstep(0.72, 1.0, sin(r * 22.0 - mod(temps, 19.634954) * 3.2 + b * 2.0)) * (1.0 - smoothstep(0.35, 1.0, r)) * 0.55;
         gl_FragColor = vec4(ecume * mix(1.0, 0.35, nuit), max(a * 0.9, cercles));
         #include <colorspace_fragment>
         #include <fog_fragment>

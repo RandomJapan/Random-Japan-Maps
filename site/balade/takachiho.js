@@ -50,8 +50,9 @@ const PONT_N = { z: -62, l: 2.7 };
 // l'escalier qui descend aux barques, le long de la paroi ouest (de la place jusqu'à l'eau), et le ponton
 const ESCALIER = { z0: 18.4, z1: 44, l: 1.75, n: 87 };
 const PONTON = { z0: 44, z1: 57.6, l: 3.4, y: NIV + 0.35 };
-// la cascade de Manai : là où l'eau de l'étang passe le bord de la paroi ouest
-const CASCADE = { z: 10, haut: -0.5, large: 2.6, avance: 1.5 };
+// la cascade de Manai : là où l'eau de l'étang passe le bord de la paroi ouest (large : en haut, la largeur du canal ;
+// evase : combien de fois plus large en bas)
+const CASCADE = { z: 10, large: 1.15, evase: 3.0, avance: 1.5 };
 // l'étang d'Onokoro (おのころ池) et son îlot ; l'eau en sort par un canal jusqu'à la cascade
 const ETANG = { x: -27, z: 6, r: 8, eau: -0.42, fond: -1.25 };
 const ILOT = { x: -28.6, z: 4.4, r: 1.9 };
@@ -122,6 +123,19 @@ const GROTTE = { x: -40, z: -126.6 };
  * virage de l'ouest et le ravin, au ras de l'eau (à l'ouest de x = −94, c'est le virage : x y suffit encore).
  */
 const PIED_NORD = (x) => 3.2 + 1.8 * lisse(-56.5, -59.5, x) - 1.4 * lisse(-91, -94, x) + 1.0 * (1 - lisse(1.2, 3.8, Math.abs(x - PONT_I.nx)));
+/**
+ * Le z du pied de la falaise du nord de l'Iwato (la ligne des colonnes), en x, à l'est du virage (x > −93) : la grotte des
+ * dieux le suit (axe de l'Iwato : plus bas).
+ */
+function piedNordEn(x) {
+  let z = 0, e = Infinity;
+  for (const [ax, az, sa, nx, nz] of AXE_I) {
+    if (sa < S_FALAISE || ax < -93) continue;
+    const p = PIED_NORD(ax), d = Math.abs(ax + nx * p - x);
+    if (d < e) { e = d; z = az + nz * p; }
+  }
+  return z;
+}
 /** Le couloir de vue du lieu de prière vers la grotte d'Amaterasu, de l'autre côté de la rivière : ni arbre ni buisson. */
 const vueGrotte = (x, z) => z < YOHAI.z - 1 && z > GROTTE.z + 0.5 && Math.abs(x - GROTTE.x) < 3.6 + 0.14 * (YOHAI.z - z);
 const DEPART = { x: -0.6, z: 65.1 };
@@ -244,6 +258,18 @@ const AXE_I = (() => {
 const surAxeI = (s) => AXE_I[Math.max(0, Math.min(AXE_I.length - 1, Math.round(s / 0.5)))];
 /** Le long de l'axe de l'Iwato (s depuis l'amont) : le ravin du sud, sans falaise, jusqu'à S_FALAISE ; puis la falaise. */
 const S_FALAISE = 29;
+/**
+ * Le bout de l'eau de l'Iwato, au bord de la gorge, où commence sa cascade : son milieu (x, z), 30 cm devant le pied de la
+ * paroi ouest de la gorge ; s, la direction hors de la paroi (le dernier mètre et demi de la rivière file droit dans ce
+ * sens : son bout est parallèle à la paroi) ; large, la largeur de l'eau là.
+ */
+const FIN_I = (() => {
+  const [fx, , fox, foz] = piedParoi(-1, -121), sx = -fox, sz = -foz, x = fx + 0.3 * sx;
+  let dernier = null;
+  for (let k = 0; ; k++) { const p = surAxeI(k * 1.5); if (p[0] > x - 1.5) break; dernier = p; }
+  const l = (x - dernier[0]) / sx;
+  return { x, z: dernier[1] + sz * l, sx, sz, large: 6 + lisse(-8, -14, x) };
+})();
 
 /** Le dessus du tablier d'un pont (PONT_S, PONT_N) : de la place, à l'ouest, à la promenade, à l'est, un peu en pente. */
 function tablier(Pt) {
@@ -375,6 +401,21 @@ function terrain(x, z) {
 }
 
 // ---------------------------------------------------------------- Où l'on peut aller
+/** Où est x, z par rapport à l'escalier du sanctuaire à la rivière : u, le long (0 en haut, L en bas) ; w, à côté (sa distance). */
+function versDescente(x, z) {
+  const [[ax, az], [bx, bz]] = DESCENTE, L = Math.hypot(bx - ax, bz - az), ex = (bx - ax) / L, ez = (bz - az) / L;
+  return { u: (x - ax) * ex + (z - az) * ez, w: Math.abs((x - ax) * ez - (z - az) * ex), L };
+}
+/**
+ * À côté de l'escalier du sanctuaire, dans la cour : le creux où le sol descend avec les marches, de leurs murets à 3,2 m de
+ * leur ligne (le terrain y suit les marches jusqu'à 1,8 m, puis remonte à la cour). 2026-10-26 : on y descendait à côté des
+ * marches, sous la main courante, et on y restait coincé (entre le muret et le bout de la cour) ; on n'y va plus, des buissons
+ * le bordent (la lisière).
+ */
+function aCoteDeLaDescente(x, z) {
+  const { u, w, L } = versDescente(x, z);
+  return u > 0.25 && u < L + 2 && w > 0.75 && w < 3.2;
+}
 /** Le ponton et l'escalier des barques (dans la gorge, le long de la paroi ouest). */
 function dansEscalier(x, z) {
   if (z < ESCALIER.z0 - 2.4 || z > PONTON.z1) return false;
@@ -404,7 +445,7 @@ function dansLeCadre(x, z) {
   if (g.cote > 0) return x < 27 && z > -64.5 && z < 73.5; // la promenade
   // la place et le chemin du sanctuaire ; le sanctuaire
   if (z > -66.5 && z < 73.5) return x > (z < -20 ? -30 : -70);
-  return x > SANCT.x0 && x < SANCT.x1 && z > SANCT.z0 && z < -66;
+  return x > SANCT.x0 && x < SANCT.x1 && z > SANCT.z0 && z < -66 && !aCoteDeLaDescente(x, z);
 }
 
 /** Ce que le carnet et le menu savent du lieu, sans le construire. */
@@ -652,12 +693,13 @@ export function construire(ctx) {
   }
   // l'eau de la cascade passe par une encoche dans le bord ; le palier de l'escalier est posé sur les colonnes ; la
   // rivière Iwato tombe dans la gorge par une autre encoche ; sous les deux ponts, les colonnes s'arrêtent sous le tablier
-  // (leurs dessus le traversaient, entre les parapets)
+  // (leurs dessus le traversaient, entre les parapets). Les deux encoches, juste sous l'eau qui y passe, sur sa largeur : le
+  // seuil de pierre d'où elle tombe (2026-10-26 : 40 et 70 cm plus bas, l'eau flottait au-dessus du vide)
   const sousPont = (x, z) => { const t = sousTablier(x, z, 0.75); return t === null ? null : t - 0.12; };
   paroi(-1, 122, -164, (x, z) => {
-    if (Math.abs(z - CASCADE.z) < 1.55) return -0.95;
+    if (Math.abs(z - CANAL[2][1]) < 1.0) return ETANG.eau - 0.24;
     if (z > ESCALIER.z0 - 2.4 && z < ESCALIER.z0 + 0.2) return -0.18;
-    if (Math.abs(z + 121) < 2.4) return NIV_I - 0.7;
+    if (Math.abs(z - FIN_I.z) < FIN_I.large / 2 + 0.3) return NIV_I - 0.12;
     return sousPont(x, z);
   });
   paroi(1, 122, -164, sousPont);
@@ -973,19 +1015,16 @@ export function construire(ctx) {
   const cascades = [];
   {
     const [lx, lz, ox, oz] = piedParoi(-1, CASCADE.z);
-    // (sortie : vers l'est, hors de la paroi ouest)
-    cascades.push({ x: lx - ox * 0.15, z: lz - oz * 0.15, y0: CASCADE.haut, y1: NIV, large: CASCADE.large, sortie: [-ox, -oz], avance: CASCADE.avance, arcEnCiel: 3.2 });
+    // (elle commence au bout du canal, à sa hauteur et de sa largeur, et s'élargit en tombant : sortie, la direction du canal,
+    // vers l'est ; avant le 2026-10-26, un voile de 2,6 m partait 6 cm au-dessus de l'eau d'un canal de 1,15 m)
+    const [ax, az] = CANAL[1], [bx2, bz2] = CANAL[2], lc = Math.hypot(bx2 - ax, bz2 - az);
+    cascades.push({ x: bx2, z: bz2, y0: ETANG.eau - 0.14, y1: NIV, large: CASCADE.large, evase: CASCADE.evase, sortie: [(bx2 - ax) / lc, (bz2 - az) / lc], avance: CASCADE.avance, arcEnCiel: 3.2 });
     // la brume du pied de la chute, et les embruns
     const bx = lx - ox * (CASCADE.avance + 0.4), bz = lz - oz * (CASCADE.avance + 0.4);
     vapeurs.push({ x: bx, z: bz, y: NIV + 0.1, n: 26, haut: 5.5, large: 2.6, taille: 2.8 }, { x: bx - ox * 1.6, z: bz - oz * 1.6, y: NIV + 0.1, n: 14, haut: 3.5, large: 3.4, taille: 2.2 });
     CASCADE_PIED.x = bx; CASCADE_PIED.z = bz;
   }
-  // la rivière Iwato tombe dans la gorge, au nord (on la voit du pont de Shinkyō)
-  {
-    const [lx, lz, ox, oz] = piedParoi(-1, -121);
-    cascades.push({ x: lx - ox * 0.1, z: lz - oz * 0.1, y0: NIV_I - 0.35, y1: NIV, large: 2.2, sortie: [-ox, -oz], avance: 1.2, arcEnCiel: 0 });
-    vapeurs.push({ x: lx - ox * 1.6, z: lz - oz * 1.6, y: NIV + 0.1, n: 14, haut: 3.5, large: 2.0, taille: 2.2 });
-  }
+  // (la rivière Iwato tombe dans la gorge, au nord : sa cascade part du bout de son eau, plus bas, la vallée de l'Iwato)
   // l'étang : une eau calme et verte (on voit les carpes), le reflet sombre des rochers de la rive
   const eauxCalmes = [[ETANG.x - ETANG.r * 1.25, ETANG.x + ETANG.r * 1.25, ETANG.z - ETANG.r * 1.25, ETANG.z + ETANG.r * 1.25, ETANG.eau]];
   /**
@@ -1867,10 +1906,17 @@ export function construire(ctx) {
     // l'eau : un ruban le long de l'axe, du ravin du sud jusqu'au bord de la gorge. 7 m de large : il passe sous les rives et
     // la corniche, et couvre jusqu'au pied de la falaise là où elle tombe dans l'eau (à l'est de la corniche, au virage :
     // avant, une bande de lit à sec, plus bas que l'eau, longeait son pied) ; 6 m au bout, où elle tombe dans la gorge. Elle
-    // s'arrête au bord de la gorge, sur les colonnes, où commence sa cascade (avant, elle avançait de 3 m au-dessus du vide)
-    const pts = [], finI = piedParoi(-1, -121)[0] + 0.3;
-    for (let k = 0; ; k++) { const [x, z] = surAxeI(k * 1.5); if (x > finI) break; pts.push([x, NIV_I - 0.02, z]); }
-    rubanEau(pts, (i) => 6 + lisse(-8, -14, pts[i][0]), (k) => (k > pts.length - 4 ? 0.7 : 0.08 + 0.1 * hasard(k, 3)), '#4f8a76', { largeur: 7 });
+    // s'arrête au bord de la gorge, sur les colonnes, où commence sa cascade (avant, elle avançait de 3 m au-dessus du vide).
+    // Son dernier mètre et demi file tout droit hors de la paroi (son bout, parallèle à la paroi) ; la cascade part de ce bout,
+    // à la même hauteur et de la même largeur, 6 m (2026-10-26, « un espèce de rectangle d'eau qui dépasse » : le ruban de 6 m
+    // dépassait au-dessus d'une cascade de 2,2 m, partie 33 cm plus bas ; les colonnes de l'encoche, 70 cm sous l'eau, le
+    // laissaient flotter dans le vide). Lisse et claire jusqu'au bord (l'eau qui va tomber ne mousse pas encore)
+    const { x: ex, z: ez, sx, sz, large: largeFin } = FIN_I, pts = [];
+    for (let k = 0; ; k++) { const [x, z] = surAxeI(k * 1.5); if (x > ex - 1.5) break; pts.push([x, NIV_I - 0.02, z]); }
+    pts.push([ex, NIV_I - 0.02, ez]);
+    rubanEau(pts, (i) => (i === pts.length - 1 ? largeFin : 6 + lisse(-8, -14, pts[i][0])), (k) => (k > pts.length - 3 ? 0.04 : 0.08 + 0.1 * hasard(k, 3)), '#4f8a76', { largeur: 7 });
+    cascades.push({ x: ex, z: ez, y0: NIV_I - 0.02, y1: NIV, large: largeFin, evase: 1.18, sortie: [sx, sz], avance: 1.3, arcEnCiel: 0 });
+    vapeurs.push({ x: ex + sx * 1.9, z: ez + sz * 1.9, y: NIV + 0.1, n: 18, haut: 3.5, large: 4.4, taille: 2.4 });
     // des rochers dans le lit et sur les bords (de l'écume autour : l'eau vive), pas sous le pont
     for (let k = 0; k < 56; k++) {
       const [x0, z0, , nx, nz] = surAxeI(3 + k * 2.75 + hasard(k, 1) * 1.5), cote = hasard(k, 2) < 0.5 ? -1 : 1, d = (0.6 + 2.4 * hasard(k, 3)) * cote;
@@ -1986,6 +2032,11 @@ export function construire(ctx) {
       // le bord de la paroi, parcouru dans le même sens : le côté droit (derrière les colonnes voisines), le haut (irrégulier,
       // au-dessus du sol de la falaise derrière), le côté gauche ; le bas sous le sol
       const W = RX + 1.7, bas = sol - 1.6, haut0 = Math.max(sol + RY + 2.2, terrain(X, Z - RZ - 3) + 0.4);
+      // (la grotte suit la falaise, qui va un peu de biais : chaque point est poussé en z de cis(x), la pente du pied des
+      // colonnes entre ses deux bords. 2026-10-26, « une fente entre la grotte et le reste de la falaise » : droite, sa paroi
+      // sortait de 75 cm devant les colonnes à l'ouest, et par la fente entre son bord et elles, on voyait dans la grotte ;
+      // maintenant ses deux bords passent 50 cm derrière le devant des colonnes voisines)
+      const penteF = (piedNordEn(X + W) - piedNordEn(X - W)) / (2 * W), cis = (x) => (x - X) * penteF;
       const hautBord = (x) => haut0 + 0.35 * Math.sin(x * 0.9 + 1.3) + 0.25 * Math.sin(x * 2.3);
       const L1 = haut0 - bas, L2 = 2 * W, tour = 2 * L1 + L2;
       const bord = (u) => {
@@ -2000,7 +2051,7 @@ export function construire(ctx) {
       const paroi = (u, k) => {
         const f = (k / NR) ** 1.25, [ax, ay] = arche(u), [bx, by] = bord(u), px = ax + (bx - ax) * f, py = ay + (by - ay) * f;
         const bosse = 0.3 * (bruitDoux(px * 0.55, py * 0.55, 1) - 0.5) + 0.12 * Math.abs(Math.sin(px * 3.4 + 0.5 * Math.sin(py * 0.8)));
-        return [px, py, Z + 0.06 + bosse * Math.sin(f * PI) + avance(u) * (1 - f) ** 1.6 - 0.35 * f * f];
+        return [px, py, Z + cis(px) + 0.06 + bosse * Math.sin(f * PI) + avance(u) * (1 - f) ** 1.6 - 0.35 * f * f];
       };
       // (ses couleurs par grandes plaques douces, un bruit de 2 m : par case, des seuils durs donnaient un damier ; la mousse sur
       // les rebords, là où la paroi regarde vers le haut ; les joints des colonnes plus sombres ; le bas mouillé)
@@ -2020,7 +2071,7 @@ export function construire(ctx) {
         couleurs.push(c, c);
       }
       // l'épaisseur de la lèvre : du contour (en surplomb) jusqu'au bord de la voûte, 75 cm derrière, un peu plus large
-      const levre = (u) => { const [ax, ay] = arche(u); return [X + (ax - X) * 1.03, sol - 0.5 + (ay - sol + 0.5) * 1.02, Z - 0.75]; };
+      const levre = (u) => { const [ax, ay] = arche(u), lx = X + (ax - X) * 1.03; return [lx, sol - 0.5 + (ay - sol + 0.5) * 1.02, Z - 0.75 + cis(lx)]; };
       for (let i = 0; i < NC; i++) {
         const A = paroi(i / NC, 0), B2 = paroi((i + 1) / NC, 0), C2 = levre((i + 1) / NC), D = levre(i / NC), m = [(A[0] + B2[0]) / 2, (A[1] + B2[1]) / 2];
         triangle(pos, A, B2, C2, [X - m[0], sol + 1.5 - m[1], 0]); triangle(pos, A, C2, D, [X - m[0], sol + 1.5 - m[1], 0]);
@@ -2031,7 +2082,7 @@ export function construire(ctx) {
       const NG = 10, TONS_VOUTE = ['#655d55', '#5f5750', '#59524b', '#534c46', '#4d4741', '#47423c', '#423d38', '#3d3833', '#38342f', '#34302c'];
       const voute = (u, k) => {
         const w = (k / NG) * (PI / 2), [lx, ly] = levre(u), c = Math.cos(w);
-        const px = X + (lx - X) * c, py = sol - 0.5 + (ly - sol + 0.5) * c ** 0.7, pz = Z - 0.75 - RZ * Math.sin(w);
+        const px = X + (lx - X) * c, py = sol - 0.5 + (ly - sol + 0.5) * c ** 0.7, pz = Z - 0.75 + cis(px) - RZ * Math.sin(w);
         const b = k ? 0.42 * (bruitDoux(px * 0.8 + 3, pz * 0.8 + py * 0.6, 1) - 0.5) + 0.16 * (bruitDoux(px * 2.1, pz * 2.1 - py, 1) - 0.5) : 0;
         const dx = X - px, dy = sol + 1.2 - py, dz = Z - 1.5 - pz, dl = Math.hypot(dx, dy, dz) || 1;
         return [px + (dx / dl) * b, py + (dy / dl) * b, pz + (dz / dl) * b];
@@ -2056,7 +2107,7 @@ export function construire(ctx) {
         const sg = k % 2 ? 1 : -1, x = X + sg * (RX - 0.9 - 0.6 * hasard(k, 1)), z = Z - 0.8 - 2.0 * hasard(k, 2);
         a.rocher(x, sol, z, 0.42 + 0.32 * hasard(k, 3), k % 3 ? P.basalte : P.basalteFonce);
       }
-      for (const sg of [-1, 1]) a.rocher(X + sg * (RX + 0.9), sol - 0.2, Z + 0.15, 0.5, P.mousseRocheFonce, { sy: 0.7 });
+      for (const sg of [-1, 1]) a.rocher(X + sg * (RX + 0.9), sol - 0.2, Z + 0.15 + cis(X + sg * (RX + 0.9)), 0.5, P.mousseRocheFonce, { sy: 0.7 });
       // des fougères accrochées aux rebords de la paroi (au-dessus de l'ouverture, sur ses côtés), aplaties contre elle ; des
       // buissons bas sur son bord, au-dessus
       for (const [u, k, r] of [[0.16, 4, 1.0], [0.3, 6, 0.85], [0.43, 3, 0.9], [0.61, 5, 1.05], [0.74, 8, 0.8], [0.87, 4, 0.95], [0.53, 8, 0.85], [0.08, 7, 0.9], [0.95, 6, 0.85]]) {
@@ -2065,7 +2116,7 @@ export function construire(ctx) {
       }
       for (let k = 0; k < 5; k++) {
         const x = X - W + 1.6 + (k * (2 * W - 3.2)) / 4 + (hasard(k, 7.3) - 0.5) * 1.2;
-        a.houppe(0.45 + 0.2 * hasard(k, 8.1), k % 2 ? P.jungleFonce : '#4f7a3c', { x, y: hautBord(x) + 0.12, z: Z - 0.55, sy: 0.55, sorte: 'persistant' }, 0);
+        a.houppe(0.45 + 0.2 * hasard(k, 8.1), k % 2 ? P.jungleFonce : '#4f7a3c', { x, y: hautBord(x) + 0.12, z: Z - 0.55 + cis(x), sy: 0.55, sorte: 'persistant' }, 0);
       }
       // le torii de bois brut, à l'entrée ; la corde sacrée tendue sous la lèvre (ses bouts dans la roche), ses papiers
       const R = repere(X, Z - 1.4, 0);
@@ -2378,8 +2429,11 @@ export function construire(ctx) {
         { const ex = (x - YASU.x) / (YASU.rx + 3), ez = (z - YASU.z) / (YASU.rz + 3); if (z < YASU.z + 1.5 && ex * ex + ez * ez < 1) continue; }
         if (vueGrotte(x, z)) continue;
         if (Math.hypot(x - ETANG.x, z - ETANG.z) < ETANG.r + 1.6) continue;
+        // (à côté de l'escalier du sanctuaire : des buissons dans le creux, pas sur les murets ni les marches, pas de cèdre)
+        const ed = versDescente(x, z), pres = ed.u > -1.5 && ed.u < ed.L + 1.5;
+        if (pres && ed.w < 2.2) continue;
         if (proche(x, z, 1.3)) continue;
-        const u = hasard(x * 1.9, z * 2.3);
+        const u = pres && ed.w < 4.5 ? hasard(x * 1.9, z * 2.3) * 0.7 : hasard(x * 1.9, z * 2.3);
         const y = terrain(x, z), a = morceau(x, z);
         planter(x, z);
         if (u < 0.72) a.houppe(0.6 + 0.4 * hasard(z, x), u < 0.4 ? '#4f7a3c' : P.jungleFonce, { x, y: y + 0.25, z, sy: 0.72, sorte: 'persistant' }, u < 0.55 ? 1 : 0);
