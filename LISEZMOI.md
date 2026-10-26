@@ -357,7 +357,7 @@ Visiter un lieu en 3D avec un personnage, comme dans un jeu Pokémon : **Itsukus
 - On parle aux passants, on lit les panneaux, et on collectionne **5 tampons par lieu** dans un carnet. Le vidéaste @random_japan_place propose de regarder ta vidéo TikTok du lieu (si le lecteur de TikTok ne démarre pas, la balade réessaie, puis propose de la voir sur TikTok). À Aogashima, le campeur fait tomber la nuit sur la Voie lactée.
 - Le style : d'abord en gros pixels ; le 22 octobre tu as demandé plus lisse, à la manière de Pokémon X et Y. L'image s'adapte toute seule si l'appareil peine (un peu moins fine, toujours fluide).
 - La flèche ← en haut à gauche ramène à la carte, sur la fiche du lieu.
-- Pour un nouveau lieu, demande-le à Claude : chaque lieu est construit à la main.
+- Pour un nouveau lieu, demande-le à Claude : chaque lieu est construit à la main. Il arrive d'abord en **mode développeur** : toi seul le vois, pour l'essayer. Quand il te plaît, dis à Claude de le mettre en ligne pour tout le monde.
 
 ## Près de moi
 
