@@ -8,12 +8,18 @@ import { CameraMotionBlur } from "@remotion/motion-blur";
 import layout from "../../../../../videos/balade/public/ui/layout.json";
 import { Cadre, Doigt, Etiquette, Fin, Plan, Plans } from "./commun";
 import { Bande, Son } from "./Son";
-import { C, entre, expoEntree, expoSortie, FPS, rebond, s } from "./theme";
+import { C, DUREE, entre, expoEntree, expoSortie, FPS, rebond, s } from "./theme";
 
 const BPM = 112;
 /** L'image du temps n (0 : le début de la vidéo, sur l'entrée de la mélodie). */
 export const b = (n: number) => Math.round((n * 60 * FPS) / BPM);
 const sec = (n: number) => (n * 60) / BPM;
+
+const FICHE = b(43.25); // la fiche du lieu monte
+const APPUI = b(46.5); // le doigt appuie sur « Visit in 3D »
+const PORTAIL = b(47); // le portail s'ouvre sur la balade
+const FIN = b(50.5);
+export const LONGUEUR = DUREE;
 
 export const PLANS: Plan[] = [
   // le crochet : la vraie plage d'Itsukushima à marée basse, puis le jeu (le voyageur marche vers le torii)
@@ -28,19 +34,16 @@ export const PLANS: Plan[] = [
   { de: b(30), a: b(32), prise: "it-herbes", t: 2.2, entree: "punch" },
   { de: b(32), a: b(34), prise: "it-torii", t: 2.55, entree: "punch" },
   { de: b(34), a: b(36), prise: "hm-koi", t: 3.4, entree: "punch", zoom: [1.18, 1.24], centre: [0.6, 0.6] },
-  { de: b(36), a: b(38), prise: "gk-nuit", t: 1.5, entree: "punch", luminosite: 1.4 },
-  { de: b(38), a: b(40), prise: "it-feux", t: 5.75, entree: "punch", zoom: [1.22, 1.3], centre: [0.56, 0.4] },
-  { de: b(40), a: b(42), prise: "tk-grotte", t: 20.9, entree: "eclair" },
-  // la carte : on plonge sur Itsukushima, la fiche s'ouvre, « Visit in 3D »… le portail
-  { de: b(42), a: b(45.5), prise: "carte/ca-itsukushima", t: 1.4, vitesse: 1.3, entree: "fouet" },
-  // (le portail s'ouvre sur la balade : on y danse, un temps et demi, avant la fin)
-  { de: b(45.5), a: b(56), prise: "danse", t: 0.6, entree: "portail", depuis: [702, 1386] },
+  { de: b(36), a: b(39), prise: "tk-grotte", t: 20.9, entree: "eclair" },
+  { de: b(39), a: b(40.5), prise: "gk-nuit", t: 1.5, entree: "punch", luminosite: 1.4 },
+  { de: b(40.5), a: b(42), prise: "it-feux", t: 5.75, entree: "punch", zoom: [1.22, 1.3], centre: [0.56, 0.4] },
+  // la carte : on plonge sur Itsukushima, la fiche s'ouvre (« It's free, right on my map. »), « Visit in 3D »… le portail
+  // (la prise de la carte dure 4,6 s : à 1,15 fois, ses cinq temps finissent à 4,5 s)
+  { de: b(42), a: PORTAIL, prise: "carte/ca-itsukushima", t: 1.4, vitesse: 1.15, entree: "fouet" },
+  // (le portail s'ouvre sur la balade : on y danse, trois temps et demi, avant la fin)
+  { de: PORTAIL, a: b(56), prise: "danse", t: 0.6, entree: "portail", depuis: [702, 1386] },
 ];
 
-const FICHE = b(43.25); // la fiche du lieu monte
-const APPUI = b(45); // le doigt appuie sur « Visit in 3D »
-const PORTAIL = b(45.5); // le portail s'ouvre sur la balade
-const FIN = b(49);
 
 /** La fiche d'Itsukushima (captures de carte.py) : elle monte du bas comme sur un téléphone ; le bouton s'enfonce. */
 const Fiche: React.FC = () => {
@@ -67,8 +70,13 @@ const Fiche: React.FC = () => {
 
 const BANDE: Bande = {
   musique: { fichier: "odori.wav", debut: 0.15 + sec(8), volume: 2.6 },
-  voix: [["a1", 0.15], ["a2", sec(8) + 0.05], ["a3", sec(24) + 0.1], ["a4", sec(30) + 0.05], ["a5", sec(42) + 0.1], ["a6", sec(50)]],
-  durees: { a1: 3.62, a2: 3.36, a3: 1.18, a4: 4.34, a5: 1.78, a6: 1.4 },
+  // chaque réplique (ou morceau de réplique, voix.py) tombe avec son texte à l'écran ; Son vérifie qu'elles ne se
+  // superposent pas
+  voix: [
+    ["a1", 0.15], ["a2", sec(8) + 0.05], ["a3", sec(24) + 0.1],
+    ["a4a", 14.45], ["a4b", sec(32) + 0.08], ["a4c", sec(36) + 0.05], ["a5", sec(42) + 0.1], ["a6", sec(51.5)],
+  ],
+  durees: { a1: 3.62, a2: 3.36, a3: 1.18, a4a: 1.21, a4b: 1.12, a4c: 1.62, a5: 1.78, a6: 1.4 },
   sfx: [
     [0.0, "sfx-jeu/oiseau-mouette.wav", 0.35],
     [sec(4) - 0.05, "sfx/shimmer-sparkle-sweep.mp3", 0.9], [sec(4), "sfx-jeu/magie.wav", 0.7],
@@ -77,34 +85,35 @@ const BANDE: Bande = {
     ]),
     [sec(24), "sfx/impact-deep-whoosh.mp3", 0.6],
     [sec(30), "sfx-jeu/sauvage.wav", 1.6], [sec(32), "sfx-jeu/pression.wav", 1.0], [sec(32) + 0.1, "sfx-jeu/tampon.wav", 1.2],
-    [sec(34), "sfx-jeu/plouf.wav", 1.0], [sec(36), "sfx/light-spell.mp3", 0.6], [sec(38), "sfx-jeu/feu-boum.wav", 0.9],
-    [sec(38) + 0.4, "sfx-jeu/feu-crepite.wav", 0.6], [sec(40), "sfx/impact-epic-trailer.mp3", 0.8], [sec(40), "sfx-jeu/roc.wav", 0.6],
-    [sec(42) - 0.14, "sfx/zoom-air-fast.mp3", 0.9], [sec(43.25), "sfx/paper-slide.mp3", 0.8], [sec(45), "sfx/tap.mp3", 1.6],
-    [sec(45) + 0.1, "sfx/plongee.mp3", 1.1], [sec(46.5), "sfx-jeu/cri-kon.wav", 0.7],
-    [sec(49) + 0.15, "sfx/bass-hit-short.mp3", 0.9], [sec(49) + 0.2, "sfx/pop.mp3", 0.8], [sec(50), "sfx/switch-click-quick.mp3", 0.5],
-    [sec(51), "sfx/sparkle-touch.mp3", 0.8],
+    [sec(34), "sfx-jeu/plouf.wav", 1.0], [sec(36), "sfx/impact-epic-trailer.mp3", 0.8], [sec(36), "sfx-jeu/roc.wav", 0.6],
+    [sec(39), "sfx/light-spell.mp3", 0.6], [sec(40.5), "sfx-jeu/feu-boum.wav", 0.9], [sec(40.5) + 0.4, "sfx-jeu/feu-crepite.wav", 0.6],
+    [sec(42) - 0.14, "sfx/zoom-air-fast.mp3", 0.9], [sec(43.25), "sfx/paper-slide.mp3", 0.8], [sec(46.5), "sfx/tap.mp3", 1.6],
+    [sec(46.5) + 0.1, "sfx/plongee.mp3", 1.1], [sec(48), "sfx-jeu/cri-kon.wav", 0.7],
+    [sec(50.5) + 0.15, "sfx/bass-hit-short.mp3", 0.9], [sec(50.5) + 0.2, "sfx/pop.mp3", 0.8], [sec(51.5), "sfx/switch-click-quick.mp3", 0.5],
+    [sec(52.5), "sfx/sparkle-touch.mp3", 0.8],
   ],
 };
 
 const Textes: React.FC = () => (
   <>
-    <Cadre texte={"I turned the places\nfrom my *TikToks*…"} de={-12} a={b(4) - 6} />
-    <Cadre texte="…into a *video game* 🎮" de={b(4) + 8} a={b(8) - 8} taille={70} />
+    <Cadre texte={"I turned the places\nfrom my *videos*…"} de={-12} a={s(2.3)} />
+    <Cadre texte="…into a *video game* 🎮" de={s(2.45)} a={b(8) - 8} taille={70} />
     <Etiquette n="1" nom="Itsukushima" ja="厳島神社 · Hiroshima" de={b(5)} a={b(8) - 6} />
     <Etiquette n="2" nom="Aogashima" ja="青ヶ島 · Tokyo islands" de={b(9) + 14} a={b(12) - 6} />
     <Etiquette n="3" nom="Gokayama" ja="五箇山 · Toyama" de={b(13) + 14} a={b(16) - 6} />
     <Etiquette n="4" nom="Himeji Castle" ja="姫路城 · Hyōgo" de={b(17) + 14} a={b(20) - 6} />
     <Etiquette n="5" nom="Takachiho" ja="高千穂 · Miyazaki" de={b(21) + 14} a={b(24) - 6} />
-    <Cadre texte="Pick your *companion*" de={b(24) + 6} a={b(30) - 6} />
+    <Cadre texte="Pick your *companion*" de={b(24) + 6} a={s(14.3)} />
+    <Cadre texte="Talk to *everyone* 💬" de={s(14.45)} a={b(30) - 6} />
     <Cadre texte="Wild encounters 🦌" de={b(30) + 3} a={b(32) - 3} taille={56} />
     <Cadre texte="Collect *stamps*" de={b(32) + 3} a={b(34) - 3} taille={56} />
     <Cadre texte="Feed the koi 🐟" de={b(34) + 3} a={b(36) - 3} taille={56} />
-    <Cadre texte="Day & *night* 🌙" de={b(36) + 3} a={b(38) - 3} taille={56} />
-    <Cadre texte="Fireworks 🎆" de={b(38) + 3} a={b(40) - 3} taille={56} />
-    <Cadre texte="Hidden *secrets* 🤫" de={b(40) + 3} a={b(42) - 3} taille={56} />
-    <Cadre texte="It's right on my *map* 🗾" de={b(42) + 6} a={b(44) - 2} />
-    <Cadre texte="Tap “*Visit in 3D*”" de={b(44) + 12} a={PORTAIL + 6} />
-    <Doigt chemin={[[b(44), 860, 1700], [APPUI - 6, 702, 1386]]} appui={APPUI} />
+    <Cadre texte="…and find the *secrets* 🤫" de={b(36) + 3} a={b(39) - 3} taille={56} />
+    <Cadre texte="Day & *night* 🌙" de={b(39) + 3} a={b(40.5) - 3} taille={56} />
+    <Cadre texte="Fireworks 🎆" de={b(40.5) + 3} a={b(42) - 3} taille={56} />
+    <Cadre texte="It's *free*, right on my *map* 🗾" de={b(42) + 6} a={s(24.3)} />
+    <Cadre texte="Tap “*Visit in 3D*”" de={s(24.42)} a={PORTAIL + 6} />
+    <Doigt chemin={[[s(24.3), 860, 1700], [APPUI - 6, 702, 1386]]} appui={APPUI} />
     <Fin de={FIN} titre="Explore Japan in 3D" ligne="5 places · free · on your phone" />
   </>
 );

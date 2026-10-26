@@ -2,12 +2,16 @@
 ElevenLabs v4, voix « Sarah » (celle de la promo de 30 s et de la vidéo « tunnel »), en anglais, stabilité 0,45
 (environ 0,05 $ la réplique). Ce script les retélécharge dans videos/balade/public/voix (pas dans git) et resserre
 chacune dans voix/court/<nom>.wav : silences du début et de la fin coupés, pauses ramenées à 0,2 s, un peu accélérée
-si besoin (atempo : la hauteur ne change pas). Le texte est noté pour mémoire.
+si besoin (atempo : la hauteur ne change pas). Le texte est noté pour mémoire. Les répliques longues sont aussi coupées
+à leurs pauses (COUPES), pour placer chaque morceau avec son texte à l'écran.
     python outils/video/balade/voix.py
+    python outils/video/balade/voix.py mesurer b5 c7    # où parle-t-elle dans ces répliques (pour choisir les coupes)
 """
 import shutil
 import subprocess
+import sys
 import urllib.request
+import wave
 from pathlib import Path
 
 PUBLIC = Path(__file__).resolve().parents[3] / 'videos' / 'balade' / 'public'
@@ -39,13 +43,53 @@ VOIX = {
     'c7': ('m17f3546rzhqqdmarkz6rtb98x8h01je', 'Fireworks, samurai armor, secret companions...', 1.0),
     'c8': ('m178ypcv5k6e51dq70gvkz4bj98h04xf', 'Can you find all five? Link in bio.', 1.0),
 }
+# Les répliques coupées à leurs pauses (secondes dans voix/court/<nom>.wav, mesurées le 2026-10-26) : chaque morceau
+# se place avec son texte à l'écran. Sans ça, une réplique entière débordait sur la suivante (elles se superposaient)
+# ou disait un mot pendant qu'un autre texte était affiché.
+COUPES = {
+    'a4': {'a4a': (0, 1.21), 'a4b': (1.40, 2.52), 'a4c': (2.72, None)},  # Talk to everyone, / collect stamps... / and find the secrets.
+    'b5': {'b5a': (0, 1.32), 'b5b': (1.62, None)},  # But look closely. / Something shines on the cliff.
+    'b6': {'b6a': (0, 1.97), 'b6b': (2.32, None)},  # Hang the mirror facing the cave... / and bring back the sun!
+    'b7': {'b7a': (0, 0.68), 'b7b': (0.96, 1.90), 'b7c': (2.24, None)},  # Takachiho, / in 3D. / Link in bio.
+    'c6': {'c6a': (0, 2.23), 'c6b': (2.50, None)},  # Each secret gives you a gold koban. / Spend them at Bunbuku's shop!
+    'c7': {'c7a': (0, 0.92), 'c7b': (1.03, 2.23), 'c7c': (2.42, None)},  # Fireworks, / samurai armor, / secret companions...
+    'c8': {'c8a': (0, 1.35), 'c8b': (1.66, None)},  # Can you find all five? / Link in bio.
+}
 
 
 def ffmpeg():
     return shutil.which('ffmpeg') or __import__('imageio_ffmpeg').get_ffmpeg_exe()
 
 
+def mesurer(nom):
+    """Les moments où elle parle dans voix/court/<nom>.wav : ce qui dépasse -38 dB par tranches de 10 ms, les silences
+    de moins de 60 ms ne coupent pas (une pause entre deux phrases fait 0,2 à 0,45 s)."""
+    import numpy as np
+    with wave.open(str(PUBLIC / 'voix' / 'court' / f'{nom}.wav')) as w:
+        x = np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16).reshape(-1, w.getnchannels()).mean(axis=1) / 32768
+        sr = w.getframerate()
+    pas = sr // 100
+    k = len(x) // pas
+    actif = 20 * np.log10(np.sqrt((x[:k * pas].reshape(k, pas) ** 2).mean(axis=1) + 1e-12)) > -38
+    morceaux, debut, silence = [], None, 0
+    for i, a in enumerate(actif):
+        if a:
+            debut, silence = (i if debut is None else debut), 0
+        elif debut is not None:
+            silence += 1
+            if silence >= 6:
+                morceaux.append(f'{debut / 100:.2f}-{(i - silence + 1) / 100:.2f}')
+                debut, silence = None, 0
+    if debut is not None:
+        morceaux.append(f'{debut / 100:.2f}-{(k - silence) / 100:.2f}')
+    print(f'{nom} ({len(x) / sr:.2f} s) :', '  '.join(morceaux))
+
+
 def main():
+    if sys.argv[1:2] == ['mesurer']:
+        for nom in sys.argv[2:] or [p.stem for p in sorted((PUBLIC / 'voix' / 'court').glob('*.wav'))]:
+            mesurer(nom)
+        return
     (PUBLIC / 'voix' / 'court').mkdir(parents=True, exist_ok=True)
     for nom, (gen, _texte, vitesse) in VOIX.items():
         f = PUBLIC / 'voix' / f'{nom}.mp3'
@@ -57,6 +101,12 @@ def main():
         if vitesse != 1:
             filtre += f',atempo={vitesse}'
         subprocess.run([ffmpeg(), '-loglevel', 'error', '-y', '-i', str(f), '-af', filtre, '-ar', '48000', str(court)], check=True)
+        for morceau, (de, a) in COUPES.get(nom, {}).items():
+            # un fondu de 10 ms à chaque bout : pas de clic à la coupe
+            fin = f':end={a}' if a is not None else ''
+            subprocess.run([ffmpeg(), '-loglevel', 'error', '-y', '-i', str(court), '-af',
+                            f'atrim=start={de}{fin},asetpts=PTS-STARTPTS,afade=t=in:d=0.01,areverse,afade=t=in:d=0.01,areverse',
+                            '-ar', '48000', str(court.with_name(f'{morceau}.wav'))], check=True)
     print('voix prêtes dans', PUBLIC / 'voix')
 
 
