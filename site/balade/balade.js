@@ -1149,34 +1149,51 @@ function creerEauCourante(geo, P, lampes, lieu, ciel) {
  * ciel comme un miroir dès qu'on la regarde de biais ; à peine ridée par le vent ; la nuit, sombre, la lune et les
  * lanternes s'y reflètent. lieu.eauxCalmes : [[x0, x1, z0, z1, y], …] ; lieu.eauCalme (facultatif, 2026-10-25 : les
  * douves de Himeji) : { boue (sa couleur), bord (le reflet de ses bords : des murs de pierre), clarte (sa transparence,
- * vue d'en haut : 0,2 = à peine, 0,5 = on voit les carpes) }.
+ * vue d'en haut : 0,2 = à peine, 0,5 = on voit les carpes) }. Avec clair et profond (2026-10-26, l'étang de Takachiho :
+ * « l'eau n'est pas de la même couleur que celle de la rivière et de la cascade ») : l'eau prend la couleur de la rivière du
+ * lieu, claire où elle est peu profonde, de plus en plus foncée et opaque vers le fond (selon le sol, lieu.terrain), mais
+ * jamais plus que 1 − clarte (on voit les carpes) ; sans le reflet des talus (ses bords sont des pierres, sur la rive).
  */
 function creerEauxCalmes(lieu, lampes, ciel) {
-  // bord : la position dans le bassin (m depuis un coin) et sa taille : le reflet sombre des talus le long des bords
-  const pos = [], bord = [], idx = [];
+  // bord : la position dans le bassin (m depuis un coin) et sa taille : le reflet sombre des talus le long des bords ;
+  // profondeur : (avec clair et profond) la hauteur d'eau, une grille de 50 cm
+  const E = lieu.eauCalme || {}, couleurs = !!(E.clair && E.profond);
+  const pos = [], bord = [], prof = [], idx = [];
   for (const [x0, x1, z0, z1, y] of lieu.eauxCalmes) {
-    const k = pos.length / 3, w = x1 - x0, d = z1 - z0;
-    pos.push(x0, y, z0, x1, y, z0, x1, y, z1, x0, y, z1);
-    bord.push(0, 0, w, d, w, 0, w, d, w, d, w, d, 0, d, w, d);
-    idx.push(k, k + 2, k + 1, k, k + 3, k + 2);
+    const w = x1 - x0, d = z1 - z0, nx = couleurs ? Math.ceil(w / 0.5) : 1, nz = couleurs ? Math.ceil(d / 0.5) : 1, k = pos.length / 3;
+    for (let j = 0; j <= nz; j++) {
+      for (let i = 0; i <= nx; i++) {
+        const x = x0 + (w * i) / nx, z = z0 + (d * j) / nz;
+        pos.push(x, y, z);
+        bord.push(x - x0, z - z0, w, d);
+        prof.push(couleurs ? Math.max(0, y - lieu.terrain(x, z)) : 1);
+      }
+    }
+    for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) { const a = k + j * (nx + 1) + i, b = a + nx + 1; idx.push(a, b, a + 1, a + 1, b, b + 1); }
   }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   g.setAttribute('bord', new THREE.Float32BufferAttribute(bord, 4));
+  g.setAttribute('profondeur', new THREE.Float32BufferAttribute(prof, 1));
   g.setIndex(idx);
   const mat = new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, fog: true,
+    defines: couleurs ? { COULEURS: 1 } : {},
     uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
-      boue: { value: new THREE.Color(lieu.eauCalme?.boue || '#5f6a45') }, bordEau: { value: new THREE.Color(lieu.eauCalme?.bord || '#334d24') },
-      clarte: { value: lieu.eauCalme?.clarte ?? 0.2 }, temps: { value: 0 }, nuit: { value: 0 },
+      boue: { value: new THREE.Color(E.boue || '#5f6a45') }, bordEau: { value: new THREE.Color(E.bord || '#334d24') },
+      clair: { value: new THREE.Color(E.clair || '#000000') }, profond: { value: new THREE.Color(E.profond || '#000000') },
+      clarte: { value: E.clarte ?? 0.2 }, temps: { value: 0 }, nuit: { value: 0 },
     }]),
     vertexShader: `
       attribute vec4 bord;
+      attribute float profondeur;
       varying vec3 vMonde;
       varying vec4 vBord;
+      varying float vProf;
       #include <fog_pars_vertex>
       void main() {
         vBord = bord;
+        vProf = profondeur;
         vec4 monde = modelMatrix * vec4(position, 1.0);
         vMonde = monde.xyz;
         vec4 mvPosition = viewMatrix * monde;
@@ -1184,27 +1201,39 @@ function creerEauxCalmes(lieu, lampes, ciel) {
         #include <fog_vertex>
       }`,
     fragmentShader: `
-      uniform vec3 boue, bordEau;
+      uniform vec3 boue, bordEau, clair, profond;
       uniform float temps, nuit, clarte;
       varying vec3 vMonde;
       varying vec4 vBord;
+      varying float vProf;
       #include <fog_pars_fragment>
       ${LAMPES_GLSL}
       ${EAU_GLSL}
       void main() {
-        vec3 c = boue * (0.9 + 0.2 * bruitE(vMonde.xz * 0.35).x);
+        #ifdef COULEURS
+          // (la couleur de la rivière : claire au bord, foncée au fond ; à peine marbrée)
+          vec3 c = mix(clair, profond, smoothstep(0.04, 0.75, vProf)) * (0.94 + 0.12 * bruitE(vMonde.xz * 0.35).x);
+          float a = mix(0.4, 1.0 - clarte, smoothstep(0.0, 0.4, vProf));
+        #else
+          vec3 c = boue * (0.9 + 0.2 * bruitE(vMonde.xz * 0.35).x);
+          float a = 1.0 - clarte;
+        #endif
         vec3 lampe = c * lumiereLampes(vMonde, vec3(0.0, 1.0, 0.0));
         c *= mix(vec3(1.0), vec3(0.22, 0.27, 0.45), nuit);
         vec3 n = normaleEau(vMonde.xz * 1.3, temps * 0.7, 0.12 * ridesEau(vMonde));
         float fres;
-        c = eclairerEau(c, vMonde, n, nuit, 0.85, fres);
-        c = mix(c, eauCielHaut, 0.2 * fres);
-        // le long des bords, le talus d'herbe s'y reflète (une bande vert sombre, ondulée)
-        float e = min(min(vBord.x, vBord.z - vBord.x), min(vBord.y, vBord.w - vBord.y));
-        float talus = 1.0 - smoothstep(0.12, 0.42 + 0.12 * bruitE(vMonde.xz * 2.1).x, e);
-        c = mix(c, bordEau * mix(1.0, 0.3, nuit), talus * 0.7);
+        #ifdef COULEURS
+          c = eclairerEau(c, vMonde, n, nuit, 0.55, fres);
+        #else
+          c = eclairerEau(c, vMonde, n, nuit, 0.85, fres);
+          c = mix(c, eauCielHaut, 0.2 * fres);
+          // le long des bords, le talus d'herbe s'y reflète (une bande vert sombre, ondulée)
+          float e = min(min(vBord.x, vBord.z - vBord.x), min(vBord.y, vBord.w - vBord.y));
+          float talus = 1.0 - smoothstep(0.12, 0.42 + 0.12 * bruitE(vMonde.xz * 2.1).x, e);
+          c = mix(c, bordEau * mix(1.0, 0.3, nuit), talus * 0.7);
+        #endif
         c += lampe * 1.2;
-        gl_FragColor = vec4(c, mix(1.0 - clarte, 0.97, fres));
+        gl_FragColor = vec4(c, mix(a, 0.97, fres));
         #include <colorspace_fragment>
         #include <fog_fragment>
       }`,

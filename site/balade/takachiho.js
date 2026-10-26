@@ -108,6 +108,18 @@ const IWATO = [
 const NIV_I = -7.4, LARGE_I = 2.8;
 // le chemin qui descend du sanctuaire à la rivière, le pont en arc, la grotte des dieux (天安河原), la grotte d'Amaterasu
 const DESCENTE = [[-53, -110.6, 0], [-63.4, -118.9, NIV_I + 0.5]];
+// la clôture du sanctuaire, au bord de la pente (au nord) : z, sa ligne ; x0, son bout ouest, le poteau à l'est des murets de
+// l'escalier de la rivière (à l'ouest de l'escalier, il n'y en a plus : les buissons suffisent, 2026-10-26)
+const CLOTURE = (() => { const [[x0, z0], [x1, z1]] = DESCENTE, z = SANCT.z0 + 0.4; return { z, x0: x0 + ((x1 - x0) * (z - z0)) / (z1 - z0) + 1.8 }; })();
+// les buissons et les jeunes cèdres de la lisière, qui arrêtent (2026-10-26, « fais en sorte qu'on ne puisse pas traverser les
+// buissons » : ils débordaient jusqu'à un mètre sur ce qu'on parcourt, et l'on entrait dedans) : par cases de 2 m, des
+// [x, z, rayon] (celui de la touffe, et le corps du voyageur) ; remplies une fois la lisière plantée (construire)
+const HAIES = new Map(), cleHaie = (i, j) => (i + 512) * 1024 + j + 512;
+function dansHaie(x, z) {
+  const l = HAIES.get(cleHaie(Math.floor(x / 2), Math.floor(z / 2)));
+  if (l) for (const [hx, hz, r] of l) if ((x - hx) ** 2 + (z - hz) ** 2 < r * r) return true;
+  return false;
+}
 // le pont en arc : en travers de la rivière, au pied de l'escalier (son bout sud touche la dalle du bas) ; de l'autre côté,
 // un palier de pierre, et la falaise recule là en une petite anse (2026-10-26 : « le pont est mal positionné » : de biais par
 // rapport à l'escalier, à 2 m de son pied, son bout nord butait contre les colonnes). x : où il croise l'axe ; sud, nord : ses
@@ -457,7 +469,11 @@ function dansEscalier(x, z) {
   if (z <= ESCALIER.z1) return x > px + 0.1 && x < px + ESCALIER.l - 0.12;
   return x > px + 0.1 && x < px + PONTON.l - 0.15 && z > PONTON.z0 - 0.2 && z < PONTON.z1 - 0.3;
 }
+/** Ce qu'on parcourt : le cadre du lieu (dansLeCadreNu), sauf dans les buissons de la lisière. */
 function dansLeCadre(x, z) {
+  return dansLeCadreNu(x, z) && !dansHaie(x, z);
+}
+function dansLeCadreNu(x, z) {
   const g = surGorge(x, z);
   // les ponts
   for (const P of [PONT_S, PONT_N]) if (Math.abs(z - P.z) < P.l / 2 - 0.3 && g.d < g.w + RAMBARDE + 1.4) return true;
@@ -480,7 +496,10 @@ function dansLeCadre(x, z) {
   if (g.cote > 0) return x < 27 && z > -64.5 && z < 73.5; // la promenade
   // la place et le chemin du sanctuaire ; le sanctuaire
   if (z > -66.5 && z < 73.5) return x > (z < -20 ? -30 : -70);
-  return x > SANCT.x0 && x < SANCT.x1 && z > SANCT.z0 && z < -66 && !aCoteDeLaDescente(x, z);
+  // (devant la clôture du nord, le corps du voyageur à 30 cm de ses poteaux ; 2026-10-26, « on peut passer derrière la
+  // barrière, là où il y a le petit autel » : le sanctuaire allait 40 cm au-delà de sa ligne, et l'on y marchait, derrière elle
+  // et derrière celle du lieu de prière, au bord de la pente)
+  return x > SANCT.x0 && x < SANCT.x1 && z > SANCT.z0 && z < -66 && !aCoteDeLaDescente(x, z) && !(z < CLOTURE.z + 0.3 && x > CLOTURE.x0 - 0.3);
 }
 
 /** Ce que le carnet et le menu savent du lieu, sans le construire. */
@@ -509,6 +528,7 @@ function triangle(pos, A, B, C, n) {
 
 export function construire(ctx) {
   const { THREE, atelier, P, peinture } = ctx;
+  HAIES.clear();
   const objets = [];
   const monde = creerMonde({ terrain, cadre: dansLeCadre, profond: null, pente: null });
   const poser = (fin, x, z, o = {}) => objets.push({ fin, x, z, y: o.y ?? terrain(x, z), ry: o.ry || 0, ombre: o.ombre !== false, trait: o.trait !== false, dedans: o.dedans, avant: o.avant });
@@ -1915,20 +1935,19 @@ export function construire(ctx) {
       monde.cercle(SAKAKI.x, SAKAKI.z, 0.45);
       monde.cercle(OFFRANDES.x, OFFRANDES.z, 0.5);
     }
-    // la clôture du sanctuaire, au bord de la pente (au nord), sauf au lieu de prière et en haut de l'escalier
+    // la clôture du sanctuaire, au bord de la pente (au nord), de l'escalier de la rivière au coin est, sauf au lieu de prière.
+    // (2026-10-26, « à côté de l'escalier, tu peux enlever la barrière vu qu'il y a déjà les buissons » : elle allait aussi de
+    // l'escalier au coin ouest, derrière les buissons qui le bordent ; on ne la passe plus, dansLeCadre)
     {
-      // (là où l'escalier passe la ligne de la clôture, avec ses murets ; et le lieu de prière : deux ouvertures, un poteau
-      // à chacun de leurs bords)
-      const [[dx0, dz0], [dx1, dz1]] = DESCENTE, f = (SANCT.z0 + 0.4 - dz0) / (dz1 - dz0), xe = dx0 + (dx1 - dx0) * f;
-      const ouvertures = [[YOHAI.x - 3.4, YOHAI.x + 3.4], [xe - 2.0, xe + 1.8]], dans = (x) => ouvertures.some(([u, v]) => x > u && x < v);
-      const poteaux = [];
-      for (let x = SANCT.x0 + 0.5; x < SANCT.x1 - 0.5; x += 2) if (!dans(x)) poteaux.push(x);
-      for (const [u, v] of ouvertures) poteaux.push(u, v);
+      // (le lieu de prière : une ouverture, un poteau à chacun de ses bords ; un au bout ouest, à l'est des murets de l'escalier)
+      const ouverture = [YOHAI.x - 3.4, YOHAI.x + 3.4], dans = (x) => x > ouverture[0] && x < ouverture[1];
+      const poteaux = [CLOTURE.x0, ...ouverture];
+      for (let x = CLOTURE.x0 + 2; x < SANCT.x1 - 0.5; x += 2) if (!dans(x)) poteaux.push(x);
       poteaux.sort((p, q) => p - q);
       poteaux.forEach((x, i) => {
-        a.boite(0.1, 0.9, 0.1, BF, { x, y: 0.45, z: SANCT.z0 + 0.4 });
+        a.boite(0.1, 0.9, 0.1, BF, { x, y: 0.45, z: CLOTURE.z });
         const xn = poteaux[i + 1];
-        if (xn !== undefined && xn - x > 0.2 && !dans((x + xn) / 2)) a.boite(xn - x, 0.06, 0.06, B, { x: (x + xn) / 2, y: 0.8, z: SANCT.z0 + 0.4 });
+        if (xn !== undefined && xn - x > 0.2 && !dans((x + xn) / 2)) a.boite(xn - x, 0.06, 0.06, B, { x: (x + xn) / 2, y: 0.8, z: CLOTURE.z });
       });
     }
     poser(a.fin(0, peinture), 0, 0, { y: 0 });
@@ -2455,7 +2474,7 @@ export function construire(ctx) {
     // (par morceaux de 30 m : la caméra ne dessine que ceux qu'elle voit, et leur trait d'encre seulement de près)
     const MORCEAUX = new Map(), morceau = (x, z) => { const k = `${Math.floor(x / 30)},${Math.floor(z / 30)}`; if (!MORCEAUX.has(k)) MORCEAUX.set(k, atelier()); return MORCEAUX.get(k); };
     // (ce qui est déjà planté le long du bord, par cases de 4 m : on ne plante que là où rien n'est à moins de 1,3 m)
-    const PLANTES = new Map(), cle = (x, z) => `${Math.floor(x / 4)},${Math.floor(z / 4)}`;
+    const PLANTES = new Map(), cle = (x, z) => `${Math.floor(x / 4)},${Math.floor(z / 4)}`, haies = [];
     const planter = (x, z) => { const k = cle(x, z); if (!PLANTES.has(k)) PLANTES.set(k, []); PLANTES.get(k).push([x, z]); };
     const proche = (x, z, r) => { for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) for (const [px, pz] of PLANTES.get(`${Math.floor(x / 4) + i},${Math.floor(z / 4) + j}`) || []) if ((px - x) ** 2 + (pz - z) ** 2 < r * r) return true; return false; };
     for (const [tx, tz] of TRONCS) if (tx > -112 && tx < 54 && tz > -152 && tz < 94) planter(tx, tz);
@@ -2480,8 +2499,26 @@ export function construire(ctx) {
         const u = pres && ed.w < 4.5 ? hasard(x * 1.9, z * 2.3) * 0.7 : hasard(x * 1.9, z * 2.3);
         const y = terrain(x, z), a = morceau(x, z);
         planter(x, z);
-        if (u < 0.72) a.houppe(0.6 + 0.4 * hasard(z, x), u < 0.4 ? '#4f7a3c' : P.jungleFonce, { x, y: y + 0.25, z, sy: 0.72, sorte: 'persistant' }, u < 0.55 ? 1 : 0);
-        else a.sugi(x, z, 3 + 2.5 * hasard(x, z), { y, bas: y - 0.2, loin: true, vert: P.cedre, vertFonce: P.cedreFonce, tronc: '#5e4030' });
+        // (ce qui arrête : la touffe et 25 cm, le corps du voyageur ; le bas des branches du jeune cèdre)
+        if (u < 0.72) {
+          const r = 0.6 + 0.4 * hasard(z, x);
+          a.houppe(r, u < 0.4 ? '#4f7a3c' : P.jungleFonce, { x, y: y + 0.25, z, sy: 0.72, sorte: 'persistant' }, u < 0.55 ? 1 : 0);
+          haies.push([x, z, r + 0.25]);
+        } else {
+          const h = 3 + 2.5 * hasard(x, z);
+          a.sugi(x, z, h, { y, bas: y - 0.2, loin: true, vert: P.cedre, vertFonce: P.cedreFonce, tronc: '#5e4030' });
+          haies.push([x, z, 0.18 * h + 0.2]);
+        }
+      }
+    }
+    // (après la plantation : les buissons ne comptent pas encore dans le cadre qui dit où planter)
+    for (const [x, z, r] of haies) {
+      for (let i = Math.floor((x - r) / 2); i <= Math.floor((x + r) / 2); i++) {
+        for (let j = Math.floor((z - r) / 2); j <= Math.floor((z + r) / 2); j++) {
+          const k = cleHaie(i, j);
+          if (!HAIES.has(k)) HAIES.set(k, []);
+          HAIES.get(k).push([x, z, r]);
+        }
       }
     }
     for (const a of MORCEAUX.values()) poser(a.fin(0, peinture), 0, 0, { y: 0 });
@@ -2610,52 +2647,245 @@ export function construire(ctx) {
   };
 
   // ---------------------------------------------------------------- Les carpes de l'étang (et un esturgeon)
+  // (refaites le 2026-10-26, « remodélise les poissons avec plus de détails » : c'étaient un œuf, une boule pour tête et un
+  // cône pour queue. Maintenant un corps de poisson, des anneaux du museau à la queue : la tête ronde, le dos bombé, le
+  // pédoncule fin ; des nageoires minces (les pectorales en éventail, la dorsale, les pelviennes, l'anale), leurs rayons, leur
+  // bout plus clair ; la queue fourchue ; les barbillons, la bouche, les yeux cerclés de clair ; les robes des variétés de
+  // carpes. L'esturgeon : son rostre, ses barbillons sous le museau, ses rangs de plaques osseuses, sa queue au lobe du haut
+  // plus long. Chacun en trois morceaux, l'avant, l'arrière et la queue, qui ondulent en nageant et se courbent en tournant.)
   const carpes = (() => {
     const objet = new THREE.Group();
-    const ROBES = [['#f4efe6', '#d8462a', null], ['#f4efe6', '#d8462a', '#2a2624'], ['#2a2624', '#d8462a', '#f4efe6'], ['#e8b84a', '#f2cf6a', null], ['#7f96a6', '#d8642a', null], ['#f0c43a', '#f6dc6a', null]];
-    const yE = ETANG.eau, liste = [];
+    // (une couleur « #rrggbb » assombrie de f, ou éclaircie si f < 0)
+    const nuance = (c, f) => '#' + [1, 3, 5].map((i) => Math.min(255, Math.max(0, Math.round(parseInt(c.slice(i, i + 2), 16) * (1 - f)))).toString(16).padStart(2, '0')).join('');
+    // le profil d'un corps : des anneaux [z, demi-largeur, demi-hauteur, hauteur du milieu] du museau à la queue (z décroissant),
+    // en ligne droite entre eux ; profil(z) → [demi-largeur, demi-hauteur, hauteur du milieu]
+    const profilDe = (P) => (z) => {
+      if (z >= P[0][0]) return P[0].slice(1);
+      for (let i = 1; i < P.length; i++) {
+        if (z < P[i][0]) continue;
+        const f = (P[i - 1][0] - z) / (P[i - 1][0] - P[i][0]);
+        return [1, 2, 3].map((j) => P[i - 1][j] + (P[i][j] - P[i - 1][j]) * f);
+      }
+      return P[P.length - 1].slice(1);
+    };
+    const PROFIL_KOI = profilDe([[0.305, 0.006, 0.008, -0.004], [0.29, 0.03, 0.032, -0.002], [0.26, 0.052, 0.055, 0.004], [0.21, 0.072, 0.078, 0.01], [0.14, 0.085, 0.093, 0.014],
+      [0.06, 0.086, 0.091, 0.012], [-0.03, 0.073, 0.077, 0.008], [-0.12, 0.051, 0.055, 0.004], [-0.2, 0.03, 0.036, 0.002], [-0.255, 0.019, 0.03, 0], [-0.285, 0.016, 0.033, 0]]);
+    const PROFIL_ESTURGEON = profilDe([[0.5, 0.006, 0.005, 0.01], [0.46, 0.018, 0.012, 0], [0.4, 0.04, 0.03, -0.005], [0.32, 0.065, 0.05, -0.002], [0.22, 0.08, 0.066, 0.004],
+      [0.08, 0.082, 0.068, 0.006], [-0.08, 0.068, 0.058, 0.006], [-0.22, 0.045, 0.042, 0.006], [-0.34, 0.025, 0.028, 0.01], [-0.42, 0.014, 0.02, 0.018]]);
+    // un tronçon du corps, de z0 (devant) à z1 (derrière), fermé aux deux bouts : un anneau tous les 2 cm, N côtés, le ventre un
+    // peu plus plat ; couleur(x, y, z, rel) : celle de chaque triangle (rel : sa hauteur dans l'anneau, de −1 à 1) ; mince : ses
+    // anneaux à moins de 2,5 cm de ce bout un rien plus étroits (là où il passe dans le morceau voisin : pas deux faces l'une sur
+    // l'autre)
+    const N = 14;
+    const troncon = (a, profil, z0, z1, couleur, mince = false) => {
+      const n = Math.max(2, Math.round((z0 - z1) / 0.02)), anneaux = [];
+      for (let i = 0; i <= n; i++) {
+        const z = z0 + ((z1 - z0) * i) / n, [w, h, yc] = profil(z), k = mince && z0 - z < 0.026 ? 0.96 : 1;
+        anneaux.push([z, w * k, h * k, yc]);
+      }
+      const pos = [], cols = [];
+      const pt = ([z, w, h, yc], k) => { const t = (k / N) * 2 * PI, c = Math.cos(t); return [w * Math.sin(t), yc + h * c * (c < 0 ? 0.92 : 1), z]; };
+      const tri = (A, B, C, nn, [, , h, yc]) => {
+        triangle(pos, A, B, C, nn);
+        const m = [0, 1, 2].map((j) => (A[j] + B[j] + C[j]) / 3);
+        cols.push(couleur(m[0], m[1], m[2], h > 1e-4 ? (m[1] - yc) / h : 0));
+      };
+      for (let i = 0; i < n; i++) {
+        for (let k = 0; k < N; k++) {
+          const t = ((k + 0.5) / N) * 2 * PI, nn = [Math.sin(t), Math.cos(t), 0];
+          const A = pt(anneaux[i], k), B = pt(anneaux[i], k + 1), C = pt(anneaux[i + 1], k + 1), D = pt(anneaux[i + 1], k);
+          tri(A, B, D, nn, anneaux[i]);
+          tri(B, C, D, nn, anneaux[i]);
+        }
+      }
+      for (const [i, s] of [[0, 1], [n, -1]]) {
+        const r = anneaux[i], M0 = [0, r[3], r[0] + s * 0.003];
+        if (r[2] > 0.002) for (let k = 0; k < N; k++) tri(pt(r, k), pt(r, k + 1), M0, [0, 0, s], r);
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      a.piece(g, '#ffffff', { couleurs: cols, nuance: 0.025 });
+    };
+    // une nageoire mince (deux faces, 5 mm) : un éventail de la racine R vers son bord (des points) ; ses rayons, un triangle sur
+    // deux un peu plus foncé ; couleur(r) : près de la racine (r 0,25), vers le bord (0,75, un peu plus clair)
+    const nageoire = (a, R, bord, couleur) => {
+      const poly = [R, ...bord], nn = [0, 0, 0];
+      for (let i = 0; i < poly.length; i++) {
+        const p = poly[i], q = poly[(i + 1) % poly.length];
+        nn[0] += (p[1] - q[1]) * (p[2] + q[2]); nn[1] += (p[2] - q[2]) * (p[0] + q[0]); nn[2] += (p[0] - q[0]) * (p[1] + q[1]);
+      }
+      const l = Math.hypot(...nn) || 1, pos = [], cols = [], mi = (p) => p.map((v, j) => R[j] + (v - R[j]) * 0.45);
+      for (const s of [1, -1]) {
+        const n = nn.map((v) => (v / l) * s), o = (p) => p.map((v, j) => v + n[j] * 0.0025);
+        for (let k = 0; k < bord.length - 1; k++) {
+          const rayon = k % 2 ? 0.07 : 0, A = bord[k], B = bord[k + 1], MA = mi(A), MB = mi(B);
+          triangle(pos, o(R), o(MA), o(MB), n); cols.push(nuance(couleur(0.25), rayon));
+          triangle(pos, o(MA), o(A), o(B), n); cols.push(nuance(couleur(0.75), rayon - 0.06));
+          triangle(pos, o(MA), o(B), o(MB), n); cols.push(nuance(couleur(0.75), rayon - 0.06));
+        }
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      a.piece(g, '#ffffff', { couleurs: cols, nuance: 0.02 });
+    };
+    const BLANC = '#f6f2ea', ROUGE = '#d63c26', NOIR = '#262220';
+    // les robes des carpes : corps(x, y, z, rel, t, p, e) (t : de grandes taches, p : de petites, e : le filet des écailles) ;
+    // nageoire(r)
+    const ROBES = [
+      // kohaku : blanc, de grandes taches rouges sur le dos
+      { corps: (x, y, z, rel, t) => (rel > -0.3 && t > 0.5 ? ROUGE : BLANC), nageoire: () => BLANC },
+      // taishō sanke : blanc, des taches rouges et de petites taches noires
+      { corps: (x, y, z, rel, t, p) => (rel > -0.2 && p > 0.74 ? NOIR : rel > -0.3 && t > 0.52 ? ROUGE : BLANC), nageoire: () => BLANC },
+      // shōwa : noir, des taches rouges et blanches ; le pied des nageoires noir
+      { corps: (x, y, z, rel, t) => (rel > -0.4 && t > 0.6 ? ROUGE : t < 0.3 || rel < -0.65 ? BLANC : NOIR), nageoire: (r) => (r < 0.5 ? NOIR : BLANC) },
+      // yamabuki ogon : tout d'or, le dos plus brillant
+      { corps: (x, y, z, rel) => (rel > 0.55 ? '#f6d460' : '#ecb935'), nageoire: () => '#f0c64c' },
+      // asagi : le dos bleu-gris en filet d'écailles ; les flancs, les joues et le pied des nageoires orange
+      { corps: (x, y, z, rel, t, p, e) => (rel < -0.25 || (z > 0.2 && rel < 0.3) ? '#de6a32' : e ? '#8098aa' : '#8ea4b4'), nageoire: (r) => (r < 0.5 ? '#de6a32' : '#d4d8d8') },
+      // chagoi : bronze, en filet d'écailles
+      { corps: (x, y, z, rel, t, p, e) => (e ? '#9d6b39' : '#ab7841'), nageoire: () => '#b48250' },
+      // tanchō : blanc, un rond rouge sur la tête
+      { corps: (x, y, z, rel) => (rel > 0.2 && Math.hypot(x, z - 0.22) < 0.034 ? ROUGE : BLANC), nageoire: () => BLANC },
+      // platine : blanc d'argent, le dos plus brillant
+      { corps: (x, y, z, rel) => (rel > 0.55 ? '#fbfaf5' : '#e2e1da'), nageoire: () => '#e9e8e1' },
+    ];
+    // Où une carpe peut aller : à plus d'un cinquième du rayon de l'étang de sa rive (l'eau y est assez profonde) et à plus de
+    // 2,9 m du milieu de l'îlot (ses pierres vont jusqu'à 2,45 m) ; marge : la distance à ce bord, positive dedans. Son museau
+    // peut aller 45 cm plus près.
+    // (2026-10-26, « au milieu, là où il y a les cailloux et le petit sapin, les poissons se bloquent » : chacune visait un point
+    // au hasard, souvent derrière l'îlot, et s'arrêtait net dès que son pas suivant y entrait ; puis un autre point, à chaque
+    // image : elles tremblaient sur place, le nez dans les pierres. Maintenant elles visent un point qu'elles voient (le chemin
+    // ne passe pas par l'îlot), s'écartent des bords et des autres avant d'y arriver, et tournent sans s'arrêter.)
+    const R_ILOT = ILOT.r + 1.0;
+    const marge = (x, z) => Math.min(rayonEtang(Math.atan2(x - ETANG.x, z - ETANG.z)) * 0.8 - Math.hypot(x - ETANG.x, z - ETANG.z), Math.hypot(x - ILOT.x, z - ILOT.z) - R_ILOT);
+    const pente = (x, z) => [marge(x + 0.1, z) - marge(x - 0.1, z), marge(x, z + 0.1) - marge(x, z - 0.1)];
+    const voit = (x0, z0, x1, z1) => surLaLigne([[x0, z0], [x1, z1]], ILOT.x, ILOT.z).d > R_ILOT + 0.3;
+    const but = (k, temps) => {
+      for (let e = 0; e < 16; e++) {
+        const a = hasard(temps * 3.1 + e, k.ph) * 2 * PI, r = 7 * Math.sqrt(hasard(k.ph + e * 1.7, temps)), x = ETANG.x + Math.sin(a) * r, z = ETANG.z + Math.cos(a) * r;
+        if (marge(x, z) > 0.5 && Math.hypot(x - k.x, z - k.z) > 2 && voit(k.x, k.z, x, z)) return [x, z];
+      }
+      return null;
+    };
+    const liste = [];
     for (let i = 0; i < 9; i++) {
-      const esturgeon = i === 8, [c1, c2, c3] = esturgeon ? ['#6a6e6a', '#8a8e86', null] : ROBES[i % ROBES.length], k = 0.95 + 0.25 * hasard(i, 3.1);
-      const robe = (x, y, z) => { const t = bruitDoux(x * 9 + i * 3, z * 9 - i, 1); return c3 && t > 0.72 ? c3 : t > 0.45 ? c2 : c1; };
-      const corps = atelier().ovale(0.11, c1, { sx: 0.82, sy: 0.62, sz: esturgeon ? 3.6 : 2.4, teinte: robe }, 12)
-        .ovale(0.075, c1, { z: esturgeon ? 0.36 : 0.22, sx: 0.95, sy: 0.8, sz: esturgeon ? 1.6 : 1.1, teinte: robe }, 8);
-      if (esturgeon) for (let s = 0; s < 6; s++) corps.cone(0.02, 0.04, 4, '#d8d4c4', { z: -0.25 + s * 0.1, y: 0.07, trait: false });
-      for (const s of [-1, 1]) corps.ovale(0.012, '#1e1a18', { x: s * 0.06, y: 0.02, z: esturgeon ? 0.45 : 0.27, trait: false }, 5);
-      const queue = atelier().piece(new THREE.ConeGeometry(0.1, 0.2, 4), c1, { z: -0.1, rx: -PI / 2, sx: 0.12, teinte: robe });
-      const g = new THREE.Group(), pivotQ = new THREE.Group();
-      g.add(ctx.maillage(corps.fin(0, false), false, false));
-      pivotQ.position.z = esturgeon ? -0.38 : -0.25;
-      pivotQ.add(ctx.maillage(queue.fin(0, false), false, false));
-      g.add(pivotQ);
-      g.scale.setScalar(1.8 * k);
+      const esturgeon = i === 8, robe = ROBES[i % ROBES.length], g0 = i * 3.7 + 1.3, kk = 0.95 + 0.25 * hasard(i, 3.1);
+      const profil = esturgeon ? PROFIL_ESTURGEON : PROFIL_KOI, [nez, j1, j2, fin] = esturgeon ? [0.5, -0.02, -0.3, -0.42] : [0.305, 0, -0.2, -0.285];
+      const dos = (z) => { const [, h, yc] = profil(z); return yc + h; }, ventre = (z) => { const [, h, yc] = profil(z); return yc - h * 0.92; };
+      const corps = esturgeon
+        ? (x, y, z, rel) => (rel > 0.35 ? '#596058' : rel < -0.45 ? '#dcd7c8' : '#7a8078')
+        : (x, y, z, rel) => {
+          const e = (Math.floor((Math.atan2(x, y - profil(z)[2]) / (2 * PI) + 1) * N) + Math.floor(z / 0.021)) % 2 === 0;
+          return robe.corps(x, y, z, rel, bruitDoux(x * 9 + g0 * 7.3, z * 7 - g0 * 3.1, 1), bruitDoux(x * 30 + g0, z * 26 + g0 * 2, 1), e);
+        };
+      const nag = esturgeon ? (r) => (r < 0.5 ? '#6a6f68' : '#8a8e86') : robe.nageoire;
+      const avant = atelier(), arriere = atelier(), bout = atelier();
+      troncon(avant, profil, nez, j1 - 0.025, corps);
+      troncon(arriere, profil, j1 + 0.025, j2 - 0.025, corps, true);
+      troncon(bout, profil, j2 + 0.025, fin, corps, true);
+      if (!esturgeon) {
+        for (const s of [-1, 1]) {
+          // les pectorales, en éventail, un peu tombantes ; les pelviennes, sous le ventre
+          nageoire(avant, [s * 0.055, -0.045, 0.165], [[s * 0.06, -0.048, 0.19], [s * 0.105, -0.066, 0.186], [s * 0.15, -0.08, 0.157], [s * 0.172, -0.088, 0.116], [s * 0.16, -0.086, 0.08],
+            [s * 0.125, -0.075, 0.07], [s * 0.085, -0.06, 0.1], [s * 0.06, -0.05, 0.135]], nag);
+          nageoire(arriere, [s * 0.03, -0.066, -0.01], [[s * 0.034, -0.07, 0.02], [s * 0.064, -0.093, 0], [s * 0.08, -0.106, -0.04], [s * 0.06, -0.098, -0.058], [s * 0.034, -0.078, -0.04]], nag);
+          // les barbillons, aux coins de la bouche ; les yeux, cerclés de clair
+          const cb = nuance(corps(s * 0.02, -0.01, 0.29, -0.2), 0.1);
+          avant.baton([s * 0.02, -0.012, 0.29], [s * 0.036, -0.03, 0.318], 0.0035, cb, 4).baton([s * 0.012, -0.005, 0.298], [s * 0.02, -0.014, 0.316], 0.0025, cb, 4);
+          avant.ovale(0.015, '#e6dcc0', { x: s * 0.046, y: 0.02, z: 0.252, sx: 0.5 }, 6).ovale(0.0105, '#17130f', { x: s * 0.0505, y: 0.02, z: 0.254, sx: 0.5 }, 6)
+            .ovale(0.0035, '#ffffff', { x: s * 0.0545, y: 0.025, z: 0.258 }, 4);
+        }
+        avant.ovale(0.011, nuance(corps(0, -0.006, 0.3, 0), 0.2), { y: -0.006, z: 0.3, sx: 1.35, sy: 0.8, sz: 0.6 }, 6);
+        // la dorsale, longue (en deux : elle passe la jointure) ; l'anale ; la queue fourchue
+        nageoire(avant, [0, dos(0.05) - 0.008, 0.05], [[0, dos(0.1) - 0.004, 0.1], [0, dos(0.085) + 0.05, 0.082], [0, dos(0.04) + 0.047, 0.04], [0, dos(-0.004) + 0.042, -0.004], [0, dos(-0.004) - 0.006, -0.004]], nag);
+        nageoire(arriere, [0, dos(-0.065) - 0.008, -0.065], [[0, dos(0.004) - 0.006, 0.004], [0, dos(0.004) + 0.042, 0.004], [0, dos(-0.05) + 0.036, -0.05], [0, dos(-0.1) + 0.027, -0.1],
+          [0, dos(-0.128) + 0.008, -0.128], [0, dos(-0.132) - 0.004, -0.132]], nag);
+        nageoire(arriere, [0, ventre(-0.155) + 0.008, -0.155], [[0, ventre(-0.125) + 0.002, -0.125], [0, ventre(-0.14) - 0.034, -0.14], [0, ventre(-0.178) - 0.03, -0.178], [0, ventre(-0.19) + 0.002, -0.19]], nag);
+        nageoire(bout, [0, 0.002, -0.27], [[0, 0.03, -0.262], [0, 0.075, -0.32], [0, 0.13, -0.43], [0, 0.105, -0.447], [0, 0.06, -0.405], [0, 0.004, -0.366], [0, -0.055, -0.4], [0, -0.1, -0.442],
+          [0, -0.125, -0.425], [0, -0.07, -0.315], [0, -0.026, -0.262]], nag);
+      } else {
+        for (const s of [-1, 1]) {
+          // les pectorales, à plat comme des ailes ; les pelviennes ; les yeux, petits
+          nageoire(avant, [s * 0.05, -0.035, 0.25], [[s * 0.058, -0.037, 0.28], [s * 0.13, -0.05, 0.245], [s * 0.172, -0.058, 0.175], [s * 0.15, -0.055, 0.14], [s * 0.09, -0.045, 0.18], [s * 0.058, -0.04, 0.22]], nag);
+          nageoire(arriere, [s * 0.03, -0.05, -0.12], [[s * 0.034, -0.054, -0.09], [s * 0.08, -0.07, -0.115], [s * 0.088, -0.075, -0.17], [s * 0.04, -0.06, -0.16]], nag);
+          avant.ovale(0.0085, '#141210', { x: s * 0.042, y: 0.012, z: 0.37, sx: 0.6 }, 6);
+          // un rang de plaques osseuses sur chaque flanc
+          for (let z = 0.27; z > -0.4; z -= 0.05) {
+            const [w, , yc] = profil(z);
+            (z > j1 ? avant : z > j2 ? arriere : bout).cone(0.008, 0.011, 4, '#d4cdba', { x: s * w * 0.97, y: yc + 0.004, z, rz: -s * PI / 2, sz: 1.5 });
+          }
+        }
+        // le rang de plaques du dos ; les quatre barbillons sous le rostre ; la bouche, dessous
+        for (let z = 0.3; z > -0.2; z -= 0.045) (z > j1 ? avant : arriere).cone(0.011, 0.016, 4, '#d4cdba', { y: dos(z) + 0.002, z, sz: 1.6 });
+        for (const dx of [-0.016, -0.0055, 0.0055, 0.016]) avant.baton([dx, -0.022, 0.405], [dx * 1.15, -0.056, 0.398], 0.0025, '#c8c0ae', 4);
+        avant.ovale(0.012, '#8a7e74', { y: -0.044, z: 0.35, sx: 1.6, sy: 0.4 }, 6);
+        // la dorsale et l'anale, tout au bout ; la queue, son lobe du haut plus long
+        nageoire(arriere, [0, dos(-0.245) - 0.006, -0.245], [[0, dos(-0.2), -0.2], [0, dos(-0.215) + 0.045, -0.215], [0, dos(-0.26) + 0.034, -0.26], [0, dos(-0.29) + 0.006, -0.29], [0, dos(-0.29) - 0.004, -0.29]], nag);
+        nageoire(arriere, [0, ventre(-0.25) + 0.006, -0.25], [[0, ventre(-0.22), -0.22], [0, ventre(-0.235) - 0.035, -0.235], [0, ventre(-0.275) - 0.028, -0.275], [0, ventre(-0.29), -0.29]], nag);
+        nageoire(bout, [0, 0.016, -0.41], [[0, 0.03, -0.398], [0, 0.06, -0.47], [0, 0.112, -0.6], [0, 0.096, -0.622], [0, 0.03, -0.54], [0, -0.03, -0.5], [0, -0.075, -0.49], [0, -0.062, -0.45], [0, -0.004, -0.408]], nag);
+      }
+      // (l'arrière tourne autour de sa jointure avec l'avant, la queue autour de la sienne avec l'arrière)
+      const g = new THREE.Group(), milieu = new THREE.Group(), queue = new THREE.Group();
+      const m0 = ctx.maillage(avant.fin(0, false), false, false), m1 = ctx.maillage(arriere.fin(0, false), false, false), m2 = ctx.maillage(bout.fin(0, false), false, false);
+      g.add(m0, milieu);
+      milieu.position.z = j1; m1.position.z = -j1; milieu.add(m1, queue);
+      queue.position.z = j2 - j1; m2.position.z = -j2; queue.add(m2);
+      g.scale.setScalar(1.8 * kk);
       objet.add(g);
-      const a = hasard(i, 2) * 2 * PI, r = 3 + 3 * hasard(i, 5);
-      liste.push({ g, queue: pivotQ, x: ETANG.x + Math.sin(a) * r, z: ETANG.z + Math.cos(a) * r, cap: hasard(i, 9) * 2 * PI, v: 0.3, cible: null, prof: 0.07 + 0.1 * hasard(i, 7), ph: i * 1.3 });
+      let x = ETANG.x, z = ETANG.z;
+      for (let e = 0; e < 40; e++) {
+        const a = hasard(i, 2 + e) * 2 * PI, r = 2 + 5 * hasard(i + e, 5);
+        x = ETANG.x + Math.sin(a) * r; z = ETANG.z + Math.cos(a) * r;
+        if (marge(x, z) > 0.5) break;
+      }
+      liste.push({ g, milieu, queue, k: kk, nez: nez * 1.8 * kk, x, z, cap: hasard(i, 9) * 2 * PI, cible: null, prof: esturgeon ? 0.4 : 0.26 + 0.1 * hasard(i, 7), ph: i * 1.3, th: i, taux: 0 });
     }
-    const dansEtang = (x, z) => Math.hypot(x - ETANG.x, z - ETANG.z) < rayonEtang(Math.atan2(x - ETANG.x, z - ETANG.z)) * 0.78 && Math.hypot(x - ILOT.x, z - ILOT.z) > ILOT.r + 0.6;
     return {
       objet,
       maj(dt, temps, c) {
         const j = c.joueur, loin = Math.hypot(j.x - ETANG.x, j.z - ETANG.z) > 55;
         objet.visible = !loin;
         if (loin) return [];
+        dt = Math.min(dt, 0.1);
+        // (la nuit, elles dorment au fond : lentes, un peu plus bas)
+        const dort = c.nuit;
         for (const k of liste) {
-          if (!k.cible || Math.hypot(k.x - k.cible[0], k.z - k.cible[1]) < 0.5) {
-            for (let e = 0; e < 8; e++) {
-              const a = hasard(temps + e, k.ph) * 2 * PI, r = 1 + 6.5 * hasard(k.ph, temps + e), cx = ETANG.x + Math.sin(a) * r, cz = ETANG.z + Math.cos(a) * r;
-              if (dansEtang(cx, cz)) { k.cible = [cx, cz]; break; }
-            }
+          if (!k.cible || Math.hypot(k.x - k.cible[0], k.z - k.cible[1]) < 1 || !voit(k.x, k.z, k.cible[0], k.cible[1])) k.cible = but(k, temps);
+          // la direction voulue : vers le but ; près d'un bord (la rive, l'îlot), on s'en écarte ; on s'écarte des autres
+          let vx = Math.sin(k.cap), vz = Math.cos(k.cap);
+          if (k.cible) { const d = Math.hypot(k.cible[0] - k.x, k.cible[1] - k.z); vx = (k.cible[0] - k.x) / d; vz = (k.cible[1] - k.z) / d; }
+          const m = marge(k.x, k.z);
+          if (m < 1.5) { const [gx, gz] = pente(k.x, k.z), gl = Math.hypot(gx, gz) || 1, f = 1.5 * (1.5 - Math.max(0, m)); vx += (gx / gl) * f; vz += (gz / gl) * f; }
+          for (const o of liste) {
+            const dx = k.x - o.x, dz = k.z - o.z, d = Math.hypot(dx, dz);
+            if (o !== k && d < 1.3 && d > 1e-3) { vx += (dx / d) * (1.3 - d) * 1.2; vz += (dz / d) * (1.3 - d) * 1.2; }
           }
-          if (!k.cible) continue;
-          const vise = Math.atan2(k.cible[0] - k.x, k.cible[1] - k.z);
-          let d = vise - k.cap;
-          d = Math.atan2(Math.sin(d), Math.cos(d));
-          k.cap += d * Math.min(1, dt * 1.2);
-          const nx = k.x + Math.sin(k.cap) * 0.35 * dt, nz = k.z + Math.cos(k.cap) * 0.35 * dt;
-          if (dansEtang(nx, nz)) { k.x = nx; k.z = nz; } else k.cible = null;
-          k.g.position.set(k.x, yE - k.prof + 0.01 * Math.sin(temps * 2 + k.ph), k.z);
-          k.g.rotation.set(0, k.cap + 0.08 * Math.sin(temps * 3 + k.ph), 0);
-          k.queue.rotation.y = Math.sin(temps * 4.5 + k.ph) * 0.35;
+          let ecart = Math.atan2(vx, vz) - k.cap;
+          ecart = Math.atan2(Math.sin(ecart), Math.cos(ecart));
+          let taux = Math.max(-1.4, Math.min(1.4, ecart * 1.8));
+          // avancer, si le milieu et le museau restent dans l'eau permise (ou s'en rapprochent) ; sinon, tourner sur place vers
+          // là où il y a le plus d'eau, et un autre but
+          const v = (0.3 + 0.08 * Math.sin(temps * 0.37 + k.ph)) * (1 - 0.8 * dort) * k.k, cap = k.cap + taux * dt;
+          const nx = k.x + Math.sin(cap) * v * dt, nz = k.z + Math.cos(cap) * v * dt;
+          const museau = (x, z, a) => marge(x + Math.sin(a) * k.nez, z + Math.cos(a) * k.nez);
+          const mn = marge(nx, nz), sn = museau(nx, nz, cap);
+          if ((mn > 0 || mn > m) && (sn > -0.45 || sn > museau(k.x, k.z, k.cap))) { k.x = nx; k.z = nz; k.cap = cap; }
+          else {
+            const [gx, gz] = pente(k.x, k.z);
+            let dd = Math.atan2(gx, gz) - k.cap;
+            dd = Math.atan2(Math.sin(dd), Math.cos(dd));
+            taux = dd >= 0 ? 1.8 : -1.8;
+            k.cap += taux * dt;
+            k.cible = null;
+          }
+          // nager : l'arrière et la queue ondulent (plus vite et plus fort en tournant) ; le corps se courbe dans le virage
+          k.taux += (taux - k.taux) * Math.min(1, dt * 4);
+          const vif = Math.min(1, Math.abs(k.taux)), f = (0.9 + 0.8 * vif) * (1 - 0.7 * dort), A = (0.2 + 0.12 * vif) * (1 - 0.6 * dort);
+          k.th += dt * f * 2 * PI;
+          k.g.position.set(k.x, ETANG.eau - k.prof - 0.15 * dort + 0.008 * Math.sin(temps * 1.3 + k.ph), k.z);
+          k.g.rotation.set(0, k.cap - A * 0.18 * Math.sin(k.th + 0.4), 0);
+          k.milieu.rotation.y = A * 0.55 * Math.sin(k.th) - k.taux * 0.12;
+          k.queue.rotation.y = A * 1.1 * Math.sin(k.th - 1.2) - k.taux * 0.1;
         }
         return [];
       },
@@ -3289,7 +3519,9 @@ export function construire(ctx) {
     },
     // les rais de soleil entre les cèdres de l'allée du sanctuaire et autour du marchand (balade.js, creerRais)
     rais: [[-23.5, -74], [-28.5, -79], [-23.5, -84], [MARCHAND.x - 1, MARCHAND.z + 1]].map(([x, z], i) => ({ x, z, haut: 10, r0: 0.35, r1: 1.1 + 0.3 * (i % 3), force: 0.075 })),
-    eauCalme: { boue: '#4f6e52', bord: '#4a5444', clarte: 0.45 },
+    // (l'étang : l'eau émeraude de la rivière, claire au bord, foncée au fond, où l'on voit les carpes ; 2026-10-26, « l'eau n'est
+    // pas de la même couleur que l'eau de la rivière et de la cascade » : elle était d'un vert gris de boue)
+    eauCalme: { clair: P.emeraude, profond: P.emeraudeFonce, clarte: 0.4 },
     aspectSol: (x, z, h) => aspectSol(P, x, z, h),
     // (le sol en cases de 25 cm le long du canal : dehors, il reste au ras du haut de ses murs ; avec celles d'un mètre, il
     // descendait vers le lit sur un mètre, un fossé le long de chaque mur)
@@ -3358,7 +3590,8 @@ function aspectSol(P, x, z, h) {
     return [bruit > 0.55 ? '#4e6a3c' : '#587540', M.sousBois];
   }
   // l'étang et son canal : le fond
-  if (Math.hypot(x - ETANG.x, z - ETANG.z) < rayonEtang(Math.atan2(x - ETANG.x, z - ETANG.z)) + 0.3 && h < -0.1) return ['#7a7a5c', M.roche];
+  // (sombre et vert vers le fond, comme le lit de la rivière : pâle, il grisait l'eau)
+  if (Math.hypot(x - ETANG.x, z - ETANG.z) < rayonEtang(Math.atan2(x - ETANG.x, z - ETANG.z)) + 0.3 && h < -0.1) return h > -0.55 - 0.2 * bruit ? ['#6e6c58', M.roche] : [bruit > 0.5 ? '#4a5444' : '#454e40', M.terre];
   // (le lit du canal, sous l'eau : une pierre sombre et mouillée ; pâle, l'eau verte paraissait grise)
   { const dc = surLaLigne(CANAL, x, z).d; if (dc < 0.75) return [dc < 0.55 ? '#55594c' : '#8a8676', M.pierre]; }
   // près des arbres, le sol de la forêt
