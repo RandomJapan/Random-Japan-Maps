@@ -18,6 +18,7 @@ import { creerMonde, interactionsBancs, lisse, hasard, bruitDoux, surLaLigne } f
 import { panneau, trepied, PAPIER_PANNEAU } from './decor.js';
 import { MATIERES as M } from './textures.js';
 import { secretTrouve, indiceVu } from './tresors.js';
+import { fabriquerCarpe, nager, onduler } from './carpes.js';
 
 const PI = Math.PI;
 
@@ -25,6 +26,9 @@ const PI = Math.PI;
 // les douves (内堀), au sud : une longue bande d'eau entre deux murs de pierre ; le pont de bois au milieu
 const DOUVES = { x0: -130, x1: 130, z0: 27, z1: 41, eau: -2.0, fond: -3.2 };
 const PONT = { x0: -2.6, x1: 2.6, z0: 25.2, z1: 42.8, y: 0.38 };
+// les piles du pont, dans l'eau (r 0,19 m), et les pierres qui affleurent près des murs (r 0,55 m) : les carpes les contournent
+const PILES = [29, 32.5, 36, 39.5].flatMap((z) => [-1.9, 0, 1.9].map((x) => [x, z]));
+const ROCHERS = [[-16, 28.2], [19, 39.8], [-44, 39.7], [36, 28.3]];
 // le mur d'enceinte, sur la berge nord des douves, et la grande porte (大手門) au bout du pont, dans son alignement
 const ENCEINTE_Z = 24.4;
 const OTEMON = { x: 0, z: ENCEINTE_Z, l: 8.4 };
@@ -414,17 +418,15 @@ export function construire(ctx) {
     bande(a, [D.x1, D.z1 - 0.03], [D.x0, D.z1 - 0.03], [D.x1, D.z1 - 1.28], [D.x0, D.z1 - 1.28], 0.02, D.fond - 0.5, [0, -1]);
     // le fond, sombre (on le devine sous l'eau), et quelques pierres qui affleurent près des murs (les aigrettes s'y posent)
     a.boite(D.x1 - D.x0, 0.1, D.z1 - D.z0 - 2, '#3e4a36', { x: (D.x0 + D.x1) / 2, y: D.fond + 0.02, z: (D.z0 + D.z1) / 2, trait: false });
-    for (const [x, z] of [[-16, 28.2], [19, 39.8], [-44, 39.7], [36, 28.3]]) a.rocher(x, D.eau + 0.05, z, 0.55, P.pierreFonce, { sy: 0.45 });
+    for (const [x, z] of ROCHERS) a.rocher(x, D.eau + 0.05, z, 0.55, P.pierreFonce, { sy: 0.45 });
     poser(a.fin(0, peinture), 0, 0, { y: 0, ombre: false });
   }
   {
     // le pont de bois (桜門橋) : les piles dans l'eau, les poutres, le tablier de planches en travers, les garde-corps et
     // leurs pommeaux de bronze (giboshi) aux bouts
     const a = atelier(), B = PONT, l = B.x1 - B.x0, y = B.y;
-    for (const z of [29, 32.5, 36, 39.5]) {
-      for (const x of [-1.9, 0, 1.9]) a.cylindre(0.17, 0.19, y - DOUVES.fond + 0.2, 8, '#5a4636', { x, y: (y + DOUVES.fond) / 2 - 0.12, z });
-      a.boite(l - 0.2, 0.26, 0.3, '#5a4636', { y: y - 0.32, z });
-    }
+    for (const [x, z] of PILES) a.cylindre(0.17, 0.19, y - DOUVES.fond + 0.2, 8, '#5a4636', { x, y: (y + DOUVES.fond) / 2 - 0.12, z });
+    for (const z of [29, 32.5, 36, 39.5]) a.boite(l - 0.2, 0.26, 0.3, '#5a4636', { y: y - 0.32, z });
     for (const x of [-1.5, 0, 1.5]) a.boite(0.26, 0.3, B.z1 - B.z0, '#6a5240', { x, y: y - 0.2, z: (B.z0 + B.z1) / 2 });
     const n = Math.round((B.z1 - B.z0) / 0.36);
     for (let k = 0; k < n; k++) a.boite(l, 0.08, (B.z1 - B.z0) / n - 0.02, k % 2 ? P.bois : P.bois2, { y: y - 0.04, z: B.z0 + ((k + 0.5) * (B.z1 - B.z0)) / n });
@@ -1983,36 +1985,76 @@ export function construire(ctx) {
     m.frustumCulled = false;
     return m;
   };
+  // (2026-10-26, « rajoute les carpes que tu viens de modéliser dans les douves du château » : c'étaient un œuf et un cône,
+  // comme à Takachiho ; maintenant les mêmes que dans l'étang de Takachiho (carpes.js) : un vrai corps, des nageoires, la
+  // queue fourchue, les robes des variétés, l'ondulation. Elles contournent les piles du pont et les pierres, et ouvrent une
+  // bouche ronde hors de l'eau pour happer la nourriture.)
   const carpes = (() => {
     const objet = new THREE.Group();
     objet.name = 'carpes';
-    // les robes : kōhaku (blanc et rouge), sanke (blanc, rouge, noir), shōwa (noir, rouge, blanc), ōgon (or), asagi (bleu
-    // gris, le ventre rouge), chagoi (brun), yamabuki (jaune)
-    const ROBES = [['#f4efe6', '#d8462a', null], ['#f4efe6', '#d8462a', '#2a2624'], ['#2a2624', '#d8462a', '#f4efe6'], ['#e8b84a', '#f2cf6a', null], ['#7f96a6', '#d8642a', null], ['#8a6a4a', '#a8865e', null], ['#f0c43a', '#f6dc6a', null]];
-    const yE = DOUVES.eau, ZONE = { x0: -24, x1: 24, z0: DOUVES.z0 + 1.1, z1: DOUVES.z1 - 1.1 }, liste = [];
+    const yE = DOUVES.eau;
+    // Où une carpe peut aller : à 1,5 m des murs (à leur pied, ils s'avancent de 85 cm sous l'eau : son museau peut aller
+    // 45 cm plus près, carpes.js, nager), sur 48 m de part et d'autre du pont ; à 70 cm d'une pile du pont, à 1 m du milieu
+    // d'une pierre ; marge : la distance à ce bord, positive dedans.
+    const ZONE = { x0: -24, x1: 24, z0: DOUVES.z0 + 1.5, z1: DOUVES.z1 - 1.5 };
+    const OBSTACLES = [...PILES.map(([x, z]) => [x, z, 0.7]), ...ROCHERS.map(([x, z]) => [x, z, 1.0])];
+    const marge = (x, z) => {
+      let m = Math.min(x - ZONE.x0, ZONE.x1 - x, z - ZONE.z0, ZONE.z1 - z);
+      for (const [ox, oz, r] of OBSTACLES) m = Math.min(m, Math.hypot(x - ox, z - oz) - r);
+      return m;
+    };
+    const voit = (x0, z0, x1, z1) => OBSTACLES.every(([ox, oz, r]) => surLaLigne([[x0, z0], [x1, z1]], ox, oz).d > r + 0.2);
+    // (un but sur trois près du pont, à 8 m au plus : les carpes des douves attendent là où les gens leur donnent à manger)
+    const but = (k, temps) => {
+      for (let e = 0; e < 16; e++) {
+        const pres = hasard(temps * 1.3 + e, k.ph * 2.1) < 0.35, x = pres ? 16 * hasard(temps * 3.1 + e, k.ph) - 8 : ZONE.x0 + (ZONE.x1 - ZONE.x0) * hasard(temps * 3.1 + e, k.ph), z = ZONE.z0 + (ZONE.z1 - ZONE.z0) * hasard(k.ph + e * 1.7, temps);
+        if (marge(x, z) > 0.5 && Math.hypot(x - k.x, z - k.z) > 2 && voit(k.x, k.z, x, z)) return [x, z];
+      }
+      return null;
+    };
+    // Deux carpes ne passent pas l'une dans l'autre (elles s'y croisaient en se bousculant pour la nourriture) : à moins de
+    // 50 cm d'axe à axe (du museau au bout de la queue) et 20 cm de profondeur, chacune s'écarte du corps de l'autre ; si elles
+    // se touchent presque (42 cm), celle qui passe après (l'indice le plus grand) glisse 30 cm dessous (ou 60, 90 : à l'étage
+    // où aucune de celles qu'elle touche n'est), comme les vraies carpes qui s'empilent devant la nourriture ; jamais à moins de 35 cm du fond.
+    const axe = (k) => [[k.x + Math.sin(k.cap) * 0.3 * k.l, k.z + Math.cos(k.cap) * 0.3 * k.l], [k.x - Math.sin(k.cap) * 0.28 * k.l, k.z - Math.cos(k.cap) * 0.28 * k.l]];
+    // (les deux points les plus proches de deux axes S et T, et leur distance : [d, sur S, sur T])
+    const surSeg = (P, [A, B]) => {
+      const dx = B[0] - A[0], dz = B[1] - A[1], t = Math.max(0, Math.min(1, ((P[0] - A[0]) * dx + (P[1] - A[1]) * dz) / (dx * dx + dz * dz)));
+      return [A[0] + t * dx, A[1] + t * dz];
+    };
+    const proches = (S, T) => {
+      let m = [9];
+      for (const [P, Q] of [[S[0], surSeg(S[0], T)], [S[1], surSeg(S[1], T)], [surSeg(T[0], S), T[0]], [surSeg(T[1], S), T[1]]]) {
+        const d = Math.hypot(P[0] - Q[0], P[1] - Q[1]);
+        if (d < m[0]) m = [d, P, Q];
+      }
+      return m;
+    };
+    const pousse = (k) => {
+      let px = 0, pz = 0;
+      for (const o of liste) {
+        if (o === k || Math.abs(o.yb - k.yb) > 0.2 || Math.hypot(o.x - k.x, o.z - k.z) > 1.6) continue;
+        const [d, P, Q] = proches(axe(k), axe(o));
+        if (d > 0.5) continue;
+        let ux = P[0] - Q[0], uz = P[1] - Q[1], l = Math.hypot(ux, uz);
+        if (l < 0.02) { ux = k.x - o.x; uz = k.z - o.z; l = Math.hypot(ux, uz) || 1; }
+        px += (ux / l) * (0.5 - d) * 3; pz += (uz / l) * (0.5 - d) * 3;
+      }
+      return [px, pz];
+    };
+    const liste = [];
     for (let i = 0; i < 11; i++) {
-      const [c1, c2, c3] = ROBES[i % ROBES.length], k = 0.95 + 0.25 * hasard(i, 3.1);
-      const robe = (x, y, z) => {
-        const t = bruitDoux(x * 9 + i * 3, z * 9 - i, 1);
-        return y < -0.035 && c1 === '#7f96a6' ? c2 : c3 && t > 0.72 ? c3 : t > 0.45 ? c2 : c1;
-      };
-      const corps = atelier()
-        .ovale(0.11, c1, { sx: 0.82, sy: 0.62, sz: 2.4, teinte: robe }, 12)
-        .ovale(0.075, c1, { z: 0.22, sx: 0.95, sy: 0.8, sz: 1.1, teinte: robe }, 8)
-        .boite(0.12, 0.004, 0.08, c1 === '#2a2624' ? '#d8462a' : c1, { x: 0.1, y: -0.04, z: 0.1, rz: -0.5, trait: false })
-        .boite(0.12, 0.004, 0.08, c1 === '#2a2624' ? '#d8462a' : c1, { x: -0.1, y: -0.04, z: 0.1, rz: 0.5, trait: false })
-        .boite(0.004, 0.07, 0.16, c1, { y: 0.07, z: -0.02, trait: false });
-      for (const s of [-1, 1]) corps.ovale(0.012, '#1e1a18', { x: s * 0.06, y: 0.02, z: 0.27, trait: false }, 5);
-      const queue = atelier().piece(new THREE.ConeGeometry(0.1, 0.2, 4), c1 === '#2a2624' ? '#2a2624' : c1, { z: -0.1, rx: -PI / 2, sx: 0.12, teinte: robe });
-      const g = new THREE.Group(), pivotQ = new THREE.Group();
-      g.add(ctx.maillage(corps.fin(0, false), false, false));
-      pivotQ.position.z = -0.25;
-      pivotQ.add(ctx.maillage(queue.fin(0, false), false, false));
-      g.add(pivotQ);
-      g.scale.setScalar(1.9 * k); // (plus grandes que nature, comme les autres bêtes : on les voit du pont)
-      objet.add(g);
-      const x = ZONE.x0 + (ZONE.x1 - ZONE.x0) * hasard(i * 1.7, 2), z = ZONE.z0 + (ZONE.z1 - ZONE.z0) * hasard(i * 2.3, 5);
-      liste.push({ g, queue: pivotQ, x, z, cap: hasard(i, 9) * 2 * PI, v: 0.3, cible: null, prof: 0.07 + 0.08 * hasard(i, 7), ph: i * 1.3, surface: 0 });
+      // (leurs robes dans l'ordre de carpes.js : kohaku, sanke, shōwa, ogon (« il y en a une toute dorée ! »), asagi, chagoi,
+      // tanchō, platine ; d'autres taches qu'à Takachiho)
+      const f = fabriquerCarpe(ctx, 16 + i, { taille: 1.9, bouche: true }); // (plus grandes que nature, comme les autres bêtes : on les voit du pont)
+      objet.add(f.g);
+      let x = 0, z = (ZONE.z0 + ZONE.z1) / 2;
+      for (let e = 0; e < 40; e++) {
+        x = ZONE.x0 + (ZONE.x1 - ZONE.x0) * hasard(i * 1.7, 2 + e); z = ZONE.z0 + (ZONE.z1 - ZONE.z0) * hasard(i * 2.3, 5 + e);
+        if (marge(x, z) > 0.5) break;
+      }
+      const prof = 0.28 + 0.1 * hasard(i, 7);
+      liste.push({ ...f, n: i, l: 1.9 * f.k, x, z, yb: yE - prof, sous: 0, etage: 0, cap: hasard(i, 9) * 2 * PI, v: 0.3, cible: null, prof, ph: i * 1.3, th: i, taux: 0, surface: 0, effort: 0, appat: false });
     }
     // les ronds dans l'eau, quand elles happent la nourriture
     const ronds = Array.from({ length: 8 }, () => {
@@ -2031,35 +2073,42 @@ export function construire(ctx) {
         const j = c.joueur, loin = Math.hypot(j.x, j.z - (DOUVES.z0 + DOUVES.z1) / 2) > 60;
         objet.visible = !loin;
         if (loin) return [];
+        dt = Math.min(dt, 0.1);
         if (appat) { appat.t += dt; if (appat.t > appat.duree) appat = null; }
         for (const k of liste) {
-          // elles nagent sans but, chacune vers un point qu'elle change de temps en temps ; à l'appât, elles accourent
-          const presDe = appat && Math.hypot(k.x - appat.x, k.z - appat.z) < 16;
-          if (presDe) k.cible = [appat.x + Math.sin(k.ph * 3) * 0.7, appat.z + Math.cos(k.ph * 2.3) * 0.6];
-          else if (!k.cible || Math.hypot(k.x - k.cible[0], k.z - k.cible[1]) < 0.6 || hasard(temps, k.ph) < dt * 0.05) {
-            k.cible = [ZONE.x0 + (ZONE.x1 - ZONE.x0) * hasard(temps * 0.37, k.ph), ZONE.z0 + (ZONE.z1 - ZONE.z0) * hasard(k.ph, temps * 0.41)];
-          }
-          const vise = Math.atan2(k.cible[0] - k.x, k.cible[1] - k.z), dv = presDe ? 1.4 : 0.35 + 0.1 * Math.sin(temps * 0.7 + k.ph);
-          let d = vise - k.cap;
-          d = Math.atan2(Math.sin(d), Math.cos(d));
-          k.cap += d * Math.min(1, dt * (presDe ? 3.0 : 1.2));
-          k.v += (dv - k.v) * Math.min(1, dt * 2);
-          const prox = Math.hypot(k.x - k.cible[0], k.z - k.cible[1]);
-          const avance = presDe && prox < 0.5 ? 0.15 : k.v;
-          k.x = Math.min(ZONE.x1, Math.max(ZONE.x0, k.x + Math.sin(k.cap) * avance * dt));
-          k.z = Math.min(ZONE.z1, Math.max(ZONE.z0, k.z + Math.cos(k.cap) * avance * dt));
+          // elles nagent d'un endroit à un autre qu'elles voient ; à l'appât, elles accourent (et se réveillent, la nuit)
+          const presDe = !!appat && Math.hypot(k.x - appat.x, k.z - appat.z) < 16, dort = presDe ? 0 : c.nuit;
+          // (droit sur la nourriture, d'où elles viennent ; chacune s'arrête le museau à 30, 60 ou 90 cm de l'appât, la tête
+          // vers lui : une rosace, les têtes au milieu, les queues autour, comme les vraies carpes au repas)
+          if (presDe) k.cible = [appat.x, appat.z];
+          else if (k.appat || !k.cible || Math.hypot(k.x - k.cible[0], k.z - k.cible[1]) < 1 || !voit(k.x, k.z, k.cible[0], k.cible[1])) k.cible = but(k, temps);
+          k.appat = presDe;
+          const prox = presDe ? Math.hypot(k.x - appat.x, k.z - appat.z) - k.nez - (0.3 + 0.3 * (k.n % 3)) : 9;
+          const dv = presDe ? (prox < 0 ? 0.03 : Math.min(1.8, 0.2 + 1.5 * prox)) : (0.3 + 0.08 * Math.sin(temps * 0.37 + k.ph)) * (1 - 0.8 * dort) * k.k;
+          k.v += (dv - k.v) * Math.min(1, dt * (presDe ? 3 : 2));
+          k.effort += ((presDe && prox > 0.5 ? 1 : 0) - k.effort) * Math.min(1, dt * 2);
+          const taux = nager(k, liste, dt, k.v, marge, presDe ? { ecart: 0.7, virage: 3, pousse } : { pousse });
+          const lacet = onduler(k, dt, taux, dort, k.effort);
           // près de l'appât, elles montent et ouvrent la bouche hors de l'eau, une à une ; des ronds dans l'eau
-          k.surface += ((presDe && prox < 1.6 ? 1 : 0) - k.surface) * Math.min(1, dt * 2.5);
-          const happe = k.surface > 0.5 && Math.sin(temps * 5 + k.ph * 4) > 0.82;
+          k.surface += ((presDe && prox < 1.0 ? 1 : 0) - k.surface) * Math.min(1, dt * 2.5);
+          const s = Math.sin(temps * 5 + k.ph * 4), ouvre = lisse(0.3, 0.95, s) * lisse(0.4, 0.8, k.surface), happe = k.surface > 0.5 && k.sous < 0.5 && s > 0.82;
           if (happe && (!k.happe || temps - k.happe > 0.6)) {
             k.happe = temps;
             const r = ronds[iRond++ % ronds.length];
-            r.t = 0; r.m.position.set(k.x + Math.sin(k.cap) * 0.3, yE + 0.012, k.z + Math.cos(k.cap) * 0.3);
+            r.t = 0; r.m.position.set(k.x + Math.sin(k.cap) * k.nez * 0.85, yE + 0.012, k.z + Math.cos(k.cap) * k.nez * 0.85);
           }
-          const y = yE - k.prof * (1 - k.surface) + (happe ? 0.04 : 0) + 0.01 * Math.sin(temps * 2 + k.ph);
-          k.g.position.set(k.x, y, k.z);
-          k.g.rotation.set(-0.35 * k.surface - (happe ? 0.25 : 0), k.cap + 0.08 * Math.sin(temps * 3 + k.ph), 0, 'YXZ');
-          k.queue.rotation.y = Math.sin(temps * (presDe ? 11 : 4.5) + k.ph) * (presDe ? 0.55 : 0.35);
+          k.bouche.visible = ouvre * Math.max(0, 1 - k.sous) > 0.05;
+          k.bouche.scale.setScalar(0.3 + 0.7 * ouvre * Math.max(0, 1 - k.sous));
+          // (la nuit, elles dorment au fond : lentes, un peu plus bas)
+          k.yb += (yE - (k.prof + 0.15 * dort) * (1 - k.surface) - k.yb) * Math.min(1, dt * 3);
+          // (sous celles d'avant qu'elle touche presque, à l'étage où aucune n'est)
+          const touche = liste.slice(0, liste.indexOf(k)).filter((o) => Math.hypot(o.x - k.x, o.z - k.z) < 1.3 && proches(axe(k), axe(o))[0] < 0.42);
+          k.etage = 0;
+          while (k.etage < 3 && touche.some((o) => Math.abs(o.yb - 0.3 * o.etage - (k.yb - 0.3 * k.etage)) < 0.2)) k.etage++;
+          k.sous += (k.etage - k.sous) * Math.min(1, dt * 8);
+          const leve = Math.max(0, 1 - k.sous);
+          k.g.position.set(k.x, Math.max(DOUVES.fond + 0.35, k.yb - 0.3 * k.sous) + 0.05 * ouvre * leve + 0.008 * Math.sin(temps * 1.3 + k.ph), k.z);
+          k.g.rotation.set((-0.35 * k.surface - 0.25 * ouvre) * leve, k.cap + lacet, 0, 'YXZ');
         }
         for (const r of ronds) {
           r.t += dt;
