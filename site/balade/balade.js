@@ -621,10 +621,23 @@ function terrain(lieu, mats, e, leve = 0, trou = null, carte = null) {
   const nx = Math.round((e.x1 - e.x0) / e.pas), nz = Math.round((e.z1 - e.z0) / e.pas);
   const pos = new Float32Array((nx + 1) * (nz + 1) * 3), col = new Float32Array(pos.length), motif = new Float32Array(pos.length / 3);
   const c = new THREE.Color();
+  // le bord de la grille fine suit les bords droits des grandes cases autour du trou (là où ils tombent pile sur lui) : sinon,
+  // sur une pente, une fente s'ouvrait entre les deux grilles, où l'on voyait le ciel (jusqu'à 26 cm à Kinkaku-ji, sur la
+  // colline : le propriétaire, le 2026-10-27, « des sortes de trous » entre les arbres)
+  const G = carte && lieu.etendue, cale = (v, v0) => G && Math.abs((((v - v0) / G.pas) % 1 + 1) % 1) < 1e-6;
+  const bordX = G && [cale(e.x0, G.x0), cale(e.x1, G.x0)], bordZ = G && [cale(e.z0, G.z0), cale(e.z1, G.z0)];
+  const corde = (x, z, lelongX) => {
+    const t = lelongX ? x : z, t0 = lelongX ? G.x0 : G.z0, a = t0 + Math.floor((t - t0) / G.pas + 1e-9) * G.pas, f = (t - a) / G.pas;
+    const ha = lelongX ? lieu.terrain(a, z) : lieu.terrain(x, a), hb = lelongX ? lieu.terrain(a + G.pas, z) : lieu.terrain(x, a + G.pas);
+    return ha + (hb - ha) * f;
+  };
   for (let j = 0, k = 0; j <= nz; j++) {
     for (let i = 0; i <= nx; i++, k += 3) {
-      const x = e.x0 + i * e.pas, z = e.z0 + j * e.pas, h = lieu.terrain(x, z);
-      pos[k] = x; pos[k + 1] = h + leve; pos[k + 2] = z;
+      const x = e.x0 + i * e.pas, z = e.z0 + j * e.pas;
+      let h = lieu.terrain(x, z) + leve;
+      if (G && ((j === 0 && bordZ[0]) || (j === nz && bordZ[1]))) h = corde(x, z, true);
+      else if (G && ((i === 0 && bordX[0]) || (i === nx && bordX[1]))) h = corde(x, z, false);
+      pos[k] = x; pos[k + 1] = h; pos[k + 2] = z;
       const sur = carte && Math.round((x - carte.x0) / carte.pas);
       const [teinte, m] = carte ? carte.lire(sur, Math.round((z - carte.z0) / carte.pas)) : lieu.aspectSol(x, z, h);
       c.set(teinte);

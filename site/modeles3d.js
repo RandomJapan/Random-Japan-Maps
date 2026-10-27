@@ -557,6 +557,44 @@ export function ateliers(THREE, repeindre = null, matieres = null, sortes = null
         return a.piece(g, c, { ...o, x: milieu.x, y: milieu.y, z: milieu.z });
       },
       /**
+       * Un tronc d'un seul tenant le long d'une ligne brisée de points [x, y, z] (un rayon par point) : à chaque coude,
+       * l'anneau est coupé en biais, à mi-angle (comme un tuyau à onglet), sans fond ni couvercle. Avant le 2026-10-27,
+       * des fûts bout à bout et une boule à chaque coude : la boule, à facettes, ne bouchait pas tout, et le coude
+       * s'ouvrait en œil sur son côté extérieur (le propriétaire : « des sortes de trous au milieu » des arbres).
+       */
+      tronc(points, rayons, c, cotes = 7, o = {}) {
+        const P = points.map((p) => new THREE.Vector3(...p)), n = P.length, anneaux = [], pos = [];
+        const dir = (i) => P[i + 1].clone().sub(P[i]).normalize();
+        let N = null;
+        for (let i = 0; i < n; i++) {
+          const d0 = dir(Math.max(0, i - 1)), d1 = dir(Math.min(n - 2, i)), t = d0.clone().add(d1).normalize();
+          // (le repère suit le tronc sans tourner sur lui-même : le précédent, ramené dans le plan de l'anneau)
+          if (!N) N = Math.abs(t.y) < 0.9 ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(1, 0, 0);
+          N = N.addScaledVector(t, -N.dot(t)).normalize();
+          const B = new THREE.Vector3().crossVectors(t, N);
+          // (au coude, l'anneau s'allonge vers l'extérieur du pli, de 1 / cos du demi-angle : les deux fûts s'y rejoignent)
+          const pli = d1.clone().sub(d0), cosDemi = Math.max(0.5, d0.dot(t));
+          pli.addScaledVector(t, -pli.dot(t));
+          const lp = pli.length();
+          if (lp > 1e-6) pli.multiplyScalar(1 / lp);
+          const anneau = [];
+          for (let k = 0; k < cotes; k++) {
+            const ang = (k / cotes) * 2 * PI, u = N.clone().multiplyScalar(Math.cos(ang)).addScaledVector(B, Math.sin(ang));
+            anneau.push(P[i].clone().addScaledVector(u, rayons[i] * (lp > 1e-6 ? 1 + (1 / cosDemi - 1) * u.dot(pli) ** 2 : 1)));
+          }
+          anneaux.push(anneau);
+        }
+        for (let i = 0; i + 1 < n; i++) {
+          for (let k = 0; k < cotes; k++) {
+            const A = anneaux[i][k], B = anneaux[i][(k + 1) % cotes], C = anneaux[i + 1][(k + 1) % cotes], D = anneaux[i + 1][k];
+            pos.push(A.x, A.y, A.z, B.x, B.y, B.z, C.x, C.y, C.z, A.x, A.y, A.z, C.x, C.y, C.z, D.x, D.y, D.z);
+          }
+        }
+        const g = new THREE.BufferGeometry();
+        g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+        return a.piece(g, c, o);
+      },
+      /**
        * Une touffe de feuillage : une boule bosselée de lobes doux (toujours les mêmes au même endroit), aplatie, son
        * dessous dans l'ombre et son dessus dans la lumière (fin() : volume). finesse 1 (80 triangles), 0 au loin (20).
        */
@@ -653,9 +691,8 @@ export function ateliers(THREE, repeindre = null, matieres = null, sortes = null
       pinNuages(x, z, s = 1, sens = 1, o = {}) {
         const y0 = o.y ?? 0, c = o.vert ?? C.pinVert, ct = o.tronc ?? C.brun;
         const P1 = [x, y0 - 0.05, z], P2 = [x + 0.05 * s * sens, y0 + 0.17 * s, z + 0.01 * s], P3 = [x + 0.01 * s * sens, y0 + 0.3 * s, z + 0.025 * s], P4 = [x - 0.03 * s * sens, y0 + 0.4 * s, z + 0.01 * s];
-        a.fut(P1, P2, 0.026 * s, 0.021 * s, ct, 7).fut(P2, P3, 0.021 * s, 0.016 * s, ct, 7).fut(P3, P4, 0.016 * s, 0.01 * s, ct, 6);
-        // (des boules aux coudes : le tronc ne se casse pas)
-        a.boule(0.021 * s, ct, { x: P2[0], y: P2[1], z: P2[2] }, 1).boule(0.016 * s, ct, { x: P3[0], y: P3[1], z: P3[2] }, 1);
+        // (d'un seul tenant : le tronc ne s'ouvre pas à ses coudes)
+        a.tronc([P1, P2, P3, P4], [0.026 * s, 0.021 * s, 0.016 * s, 0.01 * s], ct, 7);
         const plateaux = [[0.12, 0.21, 0.02, 0.085, P2], [-0.09, 0.27, -0.03, 0.075, P2], [0.06, 0.32, -0.07, 0.07, P3], [-0.06, 0.36, 0.06, 0.065, P3], [0.02, 0.43, 0, 0.07, P4], [0.1, 0.16, -0.06, 0.06, P2], [-0.03, 0.15, 0.08, 0.055, P2]];
         for (const [dx, dy, dz, r, de] of plateaux) {
           const cx = x + dx * s * sens, cy = y0 + dy * s, cz = z + dz * s;
