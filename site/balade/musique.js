@@ -240,6 +240,41 @@ const AIRS = {
     jour: { tempo: 84, lead: 'shakuhachi', arpege: 'koto', basse: 'pizzDoux', nappe: true, batterie: 'zen' },
     nuit: { tempo: 64, lead: 'boite', arpege: 'kotoDoux', basse: 'pizzDoux', nappe: true, batterie: null },
   },
+  // Fa majeur, la gamme yo (fa sol la do ré) : Beppu (2026-10-27), la ville des sources chaudes, ses fumées et ses démons ;
+  // un air de chanson populaire qui sautille, un peu malicieux, la flûte des fêtes, le shamisen, une basse qui rebondit
+  beppu: {
+    gamme: [5, 7, 9, 10, 0, 2, 4], // fa majeur (pour la seconde voix)
+    intro: ['F', 'F'],
+    A: {
+      accords: ['F', 'Dm', 'Bb', 'C', 'F', 'Dm', 'Bb C', 'F'],
+      melodie: [
+        [72, 2], [74, 2], [72, 2], [69, 2], [67, 4], [65, 4],
+        [67, 2], [69, 2], [72, 4], [74, 6], [72, 2],
+        [77, 4], [74, 2], [72, 2], [69, 4], [72, 4],
+        [74, 12], [null, 4],
+        [72, 2], [74, 2], [72, 2], [69, 2], [67, 4], [69, 4],
+        [72, 4], [77, 4], [74, 4], [72, 4],
+        [69, 4], [67, 2], [65, 2], [67, 4], [69, 4],
+        [65, 12], [null, 4],
+      ],
+      fin2: [[65, 8], [69, 4], [72, 4]],
+    },
+    B: {
+      accords: ['Bb', 'C', 'Dm', 'Am', 'Bb', 'C', 'Dm C', 'C'],
+      melodie: [
+        [77, 6], [79, 2], [81, 8],
+        [79, 4], [77, 4], [74, 8],
+        [72, 4], [74, 4], [77, 6], [74, 2],
+        [72, 12], [null, 4],
+        [74, 4], [77, 4], [79, 6], [81, 2],
+        [79, 6], [77, 2], [74, 8],
+        [72, 4], [74, 2], [72, 2], [69, 4], [67, 4],
+        [69, 8], [72, 4], [74, 4],
+      ],
+    },
+    jour: { tempo: 108, lead: 'fue', arpege: 'shamisen', basse: 'rebond', nappe: true, batterie: 'taiko' },
+    nuit: { tempo: 76, lead: 'boite', arpege: 'kotoDoux', basse: 'pizzDoux', nappe: true, batterie: null },
+  },
   // Ré majeur, la gamme yo (ré mi sol la si) : l'air de la danse des fêtes d'été, sautillant (112 battements : la
   // danse du voyageur est réglée dessus, personnages.js)
   odori: {

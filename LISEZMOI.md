@@ -359,6 +359,7 @@ Visiter un lieu en 3D avec un personnage, comme dans un jeu Pokémon : **Itsukus
 - La flèche ← en haut à gauche ramène à la carte, sur la fiche du lieu.
 - Pour un nouveau lieu, demande-le à Claude : chaque lieu est construit à la main. Il arrive d'abord en **mode développeur** : toi seul le vois, pour l'essayer. Quand il te plaît, dis à Claude de le mettre en ligne pour tout le monde.
 - **Le Pavillon d'or (Kinkaku-ji)**, essayé en mode développeur à partir du 26 octobre 2026, ouvert à tout le monde le 27 octobre. Son étang reflète vraiment le pavillon ; son secret : la nuit, le phénix a disparu du reflet… (une lueur appelle au belvédère, puis une autre mène à la source de la Voie lactée). Sa récompense : les ailes du phénix, qui s'ouvrent quand on court.
+- **Les Enfers de Beppu** (en essai, en mode développeur, depuis le 27 octobre 2026 : toi seul le vois). La rue de Kannawa et ses fumées, l'enfer de la mer (bleu), l'enfer des crânes de moines (la boue grise qui fait des bulles), l'enfer du chaudron et son grand démon rouge, l'étang blanc, et en haut du sentier le lac de sang (rouge) et le geyser sous son toit de pierre. Son secret : les trois pierres du moine Ippen, cachées un peu partout, à jeter chacune dans un enfer différent (on lit d'abord sa légende, à côté de sa statue dans la rue). Sa récompense : les cornes d'oni.
 
 ## Près de moi
 

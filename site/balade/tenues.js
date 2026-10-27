@@ -26,6 +26,7 @@ export const PIECES = [
   { id: 'nue', place: 'tete' },
   { id: 'bois', place: 'tete', lieu: 'itsukushima' },
   { id: 'heron', place: 'tete', lieu: 'himeji' },
+  { id: 'cornes', place: 'tete', lieu: 'beppu' },
   { id: 'kabuto', place: 'tete', achat: 'armure' },
   { id: 'aucune', place: 'yeux' },
   { id: 'etoiles', place: 'yeux', lieu: 'aogashima' },
@@ -127,6 +128,13 @@ const DESSINS = {
     <path d="M17 26 Q16 17 21 15 Q25 14 26 18 Q26 22 22 25 Z" fill="#ffffff" stroke="${ENCRE}" stroke-width="2" stroke-linejoin="round"/>
     <path d="M21 16.6 L7 14 L20.6 19.4 Z" fill="#f2c443" stroke="${ENCRE}" stroke-width="1.6" stroke-linejoin="round"/>
     <circle cx="22.6" cy="17.6" r="1.4" fill="${ENCRE}"/><path d="M23.6 15.6 Q28 14.6 30 17" fill="none" stroke="${ENCRE}" stroke-width="1.4" stroke-linecap="round"/>`,
+  // les cornes d'oni (Beppu) : un serre-tête en peau de tigre (jaune rayé de noir), deux cornes rouges, courbes, pointe claire
+  cornes: `<path d="M8 36 Q24 14 40 36" fill="none" stroke="${ENCRE}" stroke-width="7" stroke-linecap="round"/>
+    <path d="M8 36 Q24 14 40 36" fill="none" stroke="#e8a42a" stroke-width="4.4" stroke-linecap="round"/>
+    <path d="M13.5 28.5 l2.6 2 M19 24.2 l1.6 2.6 M27.4 24.2 l-1.6 2.6 M33 28.4 l-2.6 2" stroke="#2a2420" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M14.6 25.6 Q10 16 14.4 7 Q16.4 15 20.6 22.4 Z" fill="#d9482f" stroke="${ENCRE}" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M33.4 25.6 Q38 16 33.6 7 Q31.6 15 27.4 22.4 Z" fill="#d9482f" stroke="${ENCRE}" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M14.4 7 Q15 10.6 16 12.6 M33.6 7 Q33 10.6 32 12.6" stroke="#f2e6c8" stroke-width="2.2" stroke-linecap="round"/>`,
   aucune: `<circle cx="24" cy="24" r="16" fill="#ffdcbc" stroke="${ENCRE}" stroke-width="2.4"/>
     <ellipse cx="18" cy="23" rx="3" ry="4" fill="${ENCRE}"/><ellipse cx="30" cy="23" rx="3" ry="4" fill="${ENCRE}"/>
     <circle cx="19" cy="21.6" r="1.1" fill="#fff"/><circle cx="31" cy="21.6" r="1.1" fill="#fff"/>

@@ -191,6 +191,35 @@ const MOTIFS = {
     <ellipse cx="44" cy="96" rx="14" ry="5.5"/><ellipse cx="44" cy="85.5" rx="11" ry="4.5"/><ellipse cx="44" cy="76.5" rx="8" ry="3.6"/><ellipse cx="44" cy="69" rx="5" ry="2.8"/>
     <ellipse cx="75" cy="97" rx="12" ry="5"/><ellipse cx="75" cy="87.5" rx="9" ry="4"/><ellipse cx="75" cy="79.5" rx="6" ry="3.2"/>
     <ellipse cx="60" cy="100" rx="5" ry="3"/>`,
+  // Beppu (2026-10-27) : le grand bassin bleu de l'enfer de la mer, sa vapeur et le panier d'œufs ; la bulle de boue en crâne
+  // de moine et ses ronds ; le démon rouge sur son chaudron ; l'étang blanc sous son pin ; le lac de sang et sa vapeur
+  umi: `<path d="M30 46 Q22 34 30 24 Q36 16 30 6 M52 44 Q44 30 52 20 Q58 12 52 2 M74 46 Q66 34 74 24 Q80 16 74 6" fill="none" stroke-width="4" stroke-linecap="round"/>
+    <path d="M8 70 Q60 52 112 70 L106 92 Q60 108 14 92 Z"/>
+    <path d="M22 78 q8 -4 16 0 t16 0 t16 0 t16 0" class="vide" fill="none" stroke-width="2.4"/>
+    <path d="M88 26 L100 64 M100 26 L88 64" fill="none" stroke-width="3" stroke-linecap="round"/>
+    <path d="M94 58 L94 74" fill="none" stroke-width="1.6"/><path d="M86 72 L102 72 L100 84 L88 84 Z"/>
+    <ellipse cx="91" cy="72" rx="2.6" ry="3.2" class="vide"/><ellipse cx="97" cy="72" rx="2.6" ry="3.2" class="vide"/>`,
+  bozu: `<path d="M6 92 Q60 70 114 92 L110 108 L10 108 Z"/>
+    <path d="M30 86 Q30 52 60 50 Q90 52 90 86 Z"/><path d="M42 64 Q50 56 58 58" class="vide" fill="none" stroke-width="3" stroke-linecap="round"/>
+    <ellipse cx="60" cy="88" rx="44" ry="9" fill="none" stroke-width="2.4"/><ellipse cx="60" cy="90" rx="54" ry="12" fill="none" stroke-width="1.6"/>
+    <circle cx="22" cy="80" r="6"/><circle cx="98" cy="78" r="5"/><circle cx="104" cy="66" r="2.6" fill="none" stroke-width="1.6"/>
+    <path d="M40 40 Q34 30 40 20 M60 36 Q54 24 62 12 M80 40 Q74 30 80 20" fill="none" stroke-width="3" stroke-linecap="round"/>`,
+  kamado: `<path d="M44 18 L40 6 L48 14 Z M76 18 L80 6 L72 14 Z"/>
+    <circle cx="60" cy="30" r="14"/><circle cx="54" cy="28" r="3" class="vide"/><circle cx="66" cy="28" r="3" class="vide"/>
+    <path d="M52 36 Q60 42 68 36" class="vide" fill="none" stroke-width="2.4"/>
+    <path d="M42 46 Q60 40 78 46 L80 70 L40 70 Z"/><path d="M80 48 L96 26 L100 30 L86 52 Z"/>
+    <path d="M28 70 L92 70 Q100 72 98 84 Q94 98 60 100 Q26 98 22 84 Q20 72 28 70 Z"/>
+    <path d="M30 78 L90 78" class="vide" fill="none" stroke-width="2"/>
+    <rect x="34" y="100" width="52" height="8"/>`,
+  shiraike: `<path d="M24 54 Q20 40 34 34 Q42 22 56 28 Q66 18 78 28 Q92 26 92 40 Q102 48 92 56 Q60 66 24 54 Z"/>
+    <path d="M58 56 Q56 70 52 82" fill="none" stroke-width="5" stroke-linecap="round"/>
+    <path d="M6 88 Q60 70 114 88 L110 104 Q60 116 10 104 Z"/>
+    <path d="M26 94 Q60 84 94 94" class="vide" fill="none" stroke-width="3"/>
+    <path d="M20 66 Q16 58 22 52 M100 70 Q96 62 102 56" fill="none" stroke-width="2.4" stroke-linecap="round"/>`,
+  chinoike: `<path d="M26 46 Q18 32 26 22 Q32 14 26 4 M50 42 Q42 28 50 18 Q56 10 50 0 M74 46 Q66 32 74 22 Q80 14 74 4 M96 48 Q90 36 96 28" fill="none" stroke-width="4" stroke-linecap="round"/>
+    <path d="M6 66 Q60 50 114 66 L110 96 Q60 112 10 96 Z"/>
+    <circle cx="36" cy="78" r="4" class="vide"/><circle cx="64" cy="84" r="5" class="vide"/><circle cx="88" cy="76" r="3.4" class="vide"/>
+    <path d="M44 92 q6 -3 12 0 t12 0" class="vide" fill="none" stroke-width="2.2"/>`,
 };
 
 /** Un tampon en SVG : t = { id, motif, ja (nom japonais), encre, forme ('rond' | 'carre') }, lieuJa (le lieu en japonais). */

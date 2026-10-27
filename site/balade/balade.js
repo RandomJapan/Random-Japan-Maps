@@ -21,7 +21,7 @@
 //  donne un koban, la monnaie de Bunbuku, le marchand ambulant (tresors.js), qui vend des objets précieux : la danse des
 //  fêtes, la traînée sous les pas, les accessoires du compagnon, les feux d'artifice (feux.js), des tenues entières,
 //  l'appareil photo (photo.js), trois compagnons secrets et le calendrier magique (calendrier.js : les saisons).
-//  ?lieu=itsukushima|aogashima|gokayama|himeji|takachiho ; ?perso=garcon|fille ; ?compagnon=kon|pon|chapu ; ?langue=en|fr|ja ;
+//  ?lieu=itsukushima|aogashima|gokayama|himeji|takachiho|kinkakuji|beppu ; ?perso=garcon|fille ; ?compagnon=kon|pon|chapu ; ?langue=en|fr|ja ;
 //  ?photo=heros|perso : une image fixe (captures) ; ?demo : une partie jouée image par image (vidéos) ;
 //  ?ciel=parchemin : un essai du style (styles.js) ; ?flou=0 : sans le flou du lointain ; ?aa=0 : sans anticrénelage.
 // ================================================================
@@ -53,15 +53,17 @@ import * as gokayama from './gokayama.js';
 import * as himeji from './himeji.js';
 import * as takachiho from './takachiho.js';
 import * as kinkakuji from './kinkakuji.js';
+import * as beppu from './beppu.js';
 
 // chaque lieu : { infos (noms, tampons, textes : sans rien construire), construire(ctx) }
 // (EN_ESSAI : les lieux en cours, qu'on ne voit qu'en mode développeur, localStorage.modeDev = 'oui', celui de la carte ; le
 // propriétaire, 2026-10-26 : « à chaque nouveau lieu tu les mettra en mode développeur avant de le mettre en ligne à tous le
 // monde ». Pour un visiteur, rien n'en paraît : ni le menu « Aller à », ni le carnet, ni la garde-robe, et ?lieu= mène au lieu
 // par défaut. Pour le sortir : l'ôter de EN_ESSAI, et ôter la classe dev de son lien dans app.js, BALADES_ESSAI)
-// (Kinkaku-ji, en essai depuis le 2026-10-26, sorti le 2026-10-27 : « c'est bon tu peux le mettre en ligne pour tout le monde »)
-const EN_ESSAI = [];
-const LIEUX = Object.fromEntries(Object.entries({ itsukushima, aogashima, gokayama, himeji, takachiho, kinkakuji }).filter(([id]) => !EN_ESSAI.includes(id) || modeDev()));
+// (Kinkaku-ji, en essai depuis le 2026-10-26, sorti le 2026-10-27 : « c'est bon tu peux le mettre en ligne pour tout le monde » ;
+// Beppu, en essai depuis le 2026-10-27)
+const EN_ESSAI = ['beppu'];
+const LIEUX = Object.fromEntries(Object.entries({ itsukushima, aogashima, gokayama, himeji, takachiho, kinkakuji, beppu }).filter(([id]) => !EN_ESSAI.includes(id) || modeDev()));
 const params = new URLSearchParams(location.search);
 const PHOTO = params.get('photo');
 const DEMO = params.has('demo');
@@ -1287,9 +1289,13 @@ function creerEauxCalmes(lieu, lampes, ciel, miroir = null) {
   // garde (6e élément d'un bassin, facultatif) : (x, z) → une distance signée à la ligne où l'eau s'arrête net (négative
   // au-delà), interpolée d'un sommet à l'autre : une coupe droite (Takachiho, 2026-10-26 : l'étang s'arrête au seuil de son
   // canal ; avant, son eau débordait dans le canal par-dessus la sienne et s'y coupait en biais sur la grille de 50 cm)
-  const pos = [], bord = [], prof = [], garde = [], idx = [];
-  for (const [x0, x1, z0, z1, y, gardeFn] of lieu.eauxCalmes) {
+  // teintes (7e élément, facultatif ; 2026-10-27, les enfers de Beppu : le bleu de cobalt de l'enfer de la mer, le rouge du lac
+  // de sang, le blanc de l'étang blanc) : { clair, profond } d'un bassin, à la place de celles du lieu
+  const pos = [], bord = [], prof = [], garde = [], tClair = [], tProfond = [], idx = [];
+  const teinte = new THREE.Color();
+  for (const [x0, x1, z0, z1, y, gardeFn, teintes] of lieu.eauxCalmes) {
     const w = x1 - x0, d = z1 - z0, nx = couleurs ? Math.ceil(w / 0.5) : 1, nz = couleurs ? Math.ceil(d / 0.5) : 1, k = pos.length / 3;
+    const cc = teinte.set(teintes?.clair || E.clair || '#000000').toArray(), cp = teinte.set(teintes?.profond || E.profond || '#000000').toArray();
     for (let j = 0; j <= nz; j++) {
       for (let i = 0; i <= nx; i++) {
         const x = x0 + (w * i) / nx, z = z0 + (d * j) / nz;
@@ -1297,6 +1303,8 @@ function creerEauxCalmes(lieu, lampes, ciel, miroir = null) {
         bord.push(x - x0, z - z0, w, d);
         prof.push(couleurs ? Math.max(0, y - lieu.terrain(x, z)) : 1);
         garde.push(gardeFn ? gardeFn(x, z) : 1);
+        tClair.push(...cc);
+        tProfond.push(...cp);
       }
     }
     for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) { const a = k + j * (nx + 1) + i, b = a + nx + 1; idx.push(a, b, a + 1, a + 1, b, b + 1); }
@@ -1306,6 +1314,8 @@ function creerEauxCalmes(lieu, lampes, ciel, miroir = null) {
   g.setAttribute('bord', new THREE.Float32BufferAttribute(bord, 4));
   g.setAttribute('profondeur', new THREE.Float32BufferAttribute(prof, 1));
   g.setAttribute('garde', new THREE.Float32BufferAttribute(garde, 1));
+  g.setAttribute('teinteClair', new THREE.Float32BufferAttribute(tClair, 3));
+  g.setAttribute('teinteProfond', new THREE.Float32BufferAttribute(tProfond, 3));
   g.setIndex(idx);
   const mat = new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, fog: true,
@@ -1319,11 +1329,14 @@ function creerEauxCalmes(lieu, lampes, ciel, miroir = null) {
     vertexShader: `
       attribute vec4 bord;
       attribute float profondeur, garde;
-      varying vec3 vMonde;
+      attribute vec3 teinteClair, teinteProfond;
+      varying vec3 vMonde, vClair, vProfond;
       varying vec4 vBord;
       varying float vProf, vGarde;
       #include <fog_pars_vertex>
       void main() {
+        vClair = teinteClair;
+        vProfond = teinteProfond;
         vBord = bord;
         vProf = profondeur;
         vGarde = garde;
@@ -1342,7 +1355,7 @@ function creerEauxCalmes(lieu, lampes, ciel, miroir = null) {
         uniform vec2 miroirZone;
         uniform float miroirActif, miroirY;
       #endif
-      varying vec3 vMonde;
+      varying vec3 vMonde, vClair, vProfond;
       varying vec4 vBord;
       varying float vProf, vGarde;
       #include <fog_pars_fragment>
@@ -1351,8 +1364,8 @@ function creerEauxCalmes(lieu, lampes, ciel, miroir = null) {
       void main() {
         if (vGarde < 0.0) discard;
         #ifdef COULEURS
-          // (la couleur de la rivière : claire au bord, foncée au fond ; à peine marbrée)
-          vec3 c = mix(clair, profond, smoothstep(0.04, 0.75, vProf)) * (0.94 + 0.12 * bruitE(vMonde.xz * 0.35).x);
+          // (la couleur de la rivière : claire au bord, foncée au fond ; à peine marbrée ; celle du bassin, s'il a la sienne)
+          vec3 c = mix(vClair, vProfond, smoothstep(0.04, 0.75, vProf)) * (0.94 + 0.12 * bruitE(vMonde.xz * 0.35).x);
           float a = mix(0.4, 1.0 - clarte, smoothstep(0.0, 0.4, vProf));
         #else
           vec3 c = boue * (0.9 + 0.2 * bruitE(vMonde.xz * 0.35).x);
@@ -1863,7 +1876,8 @@ function creerVapeurs(lieu) {
         float r = length(c);
         if (r > 0.5) discard;
         vec3 v = mix(couleur, ombre, smoothstep(-0.1, 0.4, c.y));
-        gl_FragColor = vec4(v * mix(1.0, 0.35, nuit), vAlpha * 0.75 * (1.0 - smoothstep(0.15, 0.5, r)));
+        // (la nuit, un gris bleuté pâle : plus sombre, la vapeur des enfers de Beppu passait pour de la fumée, 2026-10-27)
+        gl_FragColor = vec4(v * mix(vec3(1.0), vec3(0.5, 0.54, 0.62), nuit), vAlpha * 0.75 * (1.0 - smoothstep(0.15, 0.5, r)));
         #include <colorspace_fragment>
       }`,
   });

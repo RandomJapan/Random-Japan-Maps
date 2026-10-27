@@ -427,6 +427,25 @@ export function creerHeros(ctx, sorte = 'garcon') {
       }
       return a;
     },
+    // les cornes d'oni (Beppu) : un serre-tête en peau de tigre (jaune rayé de noir), et, dessus, deux cornes rouges qui
+    // montent en s'écartant et se recourbent un peu vers l'avant, leur pointe ivoire
+    cornes() {
+      const a = atelier(), r = 0.335, inc = -0.3, o = [0, CY - 0.02, -0.03];
+      const sur = (th, ecart = 0) => {
+        const x = Math.cos(th) * (r + ecart), y = Math.sin(th) * (r + ecart);
+        return [o[0] + x, o[1] + y * Math.cos(inc), o[2] + y * Math.sin(inc)];
+      };
+      a.piece(new THREE.TorusGeometry(r, 0.024, 6, 26, PI), '#e8a42a', { x: o[0], y: o[1], z: o[2], rx: inc, teinte: (px, py) => (Math.floor(Math.atan2(py - o[1], px) * 7 + 50) % 2 ? '#e8a42a' : '#2a2420') });
+      for (const s of [-1, 1]) {
+        const B = sur(s > 0 ? 1.12 : PI - 1.12, 0.01);
+        // la corne : un tube qui s'affine, de la base (sur le serre-tête) à la pointe
+        const pts = [B, [B[0] + s * 0.03, B[1] + 0.07, B[2] + 0.005], [B[0] + s * 0.06, B[1] + 0.14, B[2] + 0.025], [B[0] + s * 0.07, B[1] + 0.2, B[2] + 0.06]];
+        a.tronc(pts, [0.05, 0.04, 0.027, 0.012], '#d9482f', 8);
+        a.cone(0.014, 0.05, 6, '#f2e6c8', { x: pts[3][0] + s * 0.004, y: pts[3][1] + 0.018, z: pts[3][2] + 0.012, ...vers(s * 0.2, 1, 0.5) });
+        a.boule(0.05, '#e8a42a', { x: B[0], y: B[1] - 0.005, z: B[2], sy: 0.6 }, 1);
+      }
+      return a;
+    },
     // les lunettes étoiles : deux étoiles dorées, des verres violets avec un reflet, le pont, les branches jusqu'aux oreilles
     etoiles() {
       const a = atelier();

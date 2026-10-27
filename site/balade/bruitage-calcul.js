@@ -794,6 +794,26 @@ function echo(x, sr) {
 }
 
 const OISEAUX = {
+  // (Beppu, 2026-10-27) le ronflement du démon (鬼の高いびき) : la vapeur qui sort des rochers par saccades, un souffle grave
+  // qui ronfle, deux fois
+  ronfle(sr, r) {
+    const c = composer(sr, r, 2.6);
+    for (const t0 of [0.05, 1.25]) {
+      c.bruit(t0, { type: 'bas', f: (t) => 160 + 60 * Math.sin(TAU * 26 * t), duree: 0.95, forme: (t) => ad(0.15, 0.4, 0.95)(t) * (0.6 + 0.4 * Math.abs(Math.sin(TAU * 13 * t))), gain: 1, grave: true })
+        .bruit(t0 + 0.05, { f: 900, q: 0.5, duree: 0.9, forme: ad(0.2, 0.35, 0.9), gain: 0.35 });
+    }
+    return cadrer([echo(c.b, sr)], sr, 0.25);
+  },
+  // le geyser de l'enfer de la tornade : un grondement, puis le jet qui rugit, tape le toit, retombe en pluie (dix secondes)
+  geyser(sr, r) {
+    const D = 10, c = composer(sr, r, D);
+    const tenu = (t) => lisse(0.1, 0.9, t) * (1 - lisse(7.5, 9.8, t));
+    c.bruit(0.0, { type: 'bas', f: 260, grave: true, duree: D, forme: tenu, gain: 1 })
+      .bruit(0.0, { f: (t) => 700 + 500 * lisse(0, 1, t), q: 0.45, duree: D, forme: (t) => tenu(t) * (0.8 + 0.2 * Math.sin(TAU * 1.3 * t)), gain: 0.8 })
+      .bruit(0.0, { type: 'haut', f: 2800, duree: D, forme: (t) => tenu(t) * 0.7, gain: 0.35 })
+      .grains(1100, { zones: [[1.0, 9.4, 1]], f: [1000, 6500], d: [0.0008, 0.003], g: [0.05, 0.22], q: 1.3 });
+    return cadrer([c.b, c.b.slice()], sr, 0.24);
+  },
   // le milan noir (tobi) : un long « piii » aigu, puis « hyorororo », qui ondule en descendant
   milan(sr, r) {
     const c = composer(sr, r, 2.6);
@@ -1024,6 +1044,25 @@ function plouf(sr) {
   return cadrer([c.b], sr, 0.22);
 }
 
+// ---------------------------------------------------------------- Beppu (2026-10-27)
+/** La grosse bulle de boue grise qui crève : un « blop » grave et mou, qui descend, quelques éclaboussures de boue. */
+function bulle(sr) {
+  const r = alea(graine('bulle')), c = composer(sr, r, 1.0);
+  c.ton(0.02, 0.22, (t) => 190 - 300 * t, ad(0.01, 0.05, 0.22))
+    .bruit(0.03, { type: 'bas', f: 420, attaque: 0.004, tau: 0.06, gain: 0.7, grave: true })
+    .bulles(5, { de: 0.12, a: 0.5, f: [150, 320], g: [0.2, 0.4] })
+    .grains(18, { zones: [[0.05, 0.4, 1]], f: [400, 1600], d: [0.002, 0.006], g: [0.05, 0.16], q: 1.2 });
+  return cadrer([c.b], sr, 0.22);
+}
+/** Le couvercle du four à vapeur qu'on soulève : un souffle de vapeur, « pschhh », qui s'éteint. */
+function pschitt(sr) {
+  const r = alea(graine('pschitt')), c = composer(sr, r, 1.6);
+  c.bruit(0.01, { type: 'haut', f: 2600, duree: 1.5, forme: ad(0.03, 0.5, 1.5), gain: 0.8 })
+    .bruit(0.01, { f: 1300, q: 0.6, duree: 1.5, forme: ad(0.05, 0.4, 1.5), gain: 0.35 })
+    .modes(0.0, [[620, 0.3, 0.05], [1450, 0.15, 0.02]], 0.6);
+  return cadrer([c.b], sr, 0.22);
+}
+
 // ---------------------------------------------------------------- Takachiho
 /** Un coup de rame : la pelle qui entre dans l'eau et la tire (un souffle d'eau qui descend), des bulles, le tolet qui cogne. */
 function rame(sr) {
@@ -1245,6 +1284,8 @@ export function fabriquer(quoi, sr) {
   if (sorte === 'pinceau') return pinceau(sr);
   if (sorte === 'tampon') return tampon(sr);
   if (sorte === 'waniguchi') return waniguchi(sr);
+  if (sorte === 'bulle') return bulle(sr);
+  if (sorte === 'pschitt') return pschitt(sr);
   if (sorte === 'feu') return FEUX[nom](sr, alea(graine(quoi)));
   throw new Error(`son inconnu : ${quoi}`);
 }

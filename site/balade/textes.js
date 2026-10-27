@@ -26,7 +26,7 @@ export const TEXTES = {
     titrePage: '3D walk', retour: 'Back to the map', carnet: 'Stamp book', menu: 'Menu', fermer: 'Close',
     aideOrdi: 'WASD or arrows: walk · Shift: run · E or Space: talk · drag: camera',
     aideTel: 'Joystick: walk · A: talk · slide: camera',
-    parler: 'Talk', lire: 'Read', tamponner: 'Stamp', regarder: 'Look', toucher: 'Touch', prier: 'Pray', caresser: 'Pet', asseoir: 'Sit', lever: 'Stand up', acheter: 'Buy', poser: 'Place', prendre: 'Take', creuser: 'Dig', soulever: 'Lift', essayer: 'Try', monter: 'Climb up', descendre: 'Climb down', dormir: 'Sleep', gouter: 'Taste', nourrir: 'Feed', ecouter: 'Listen', ramasser: 'Pick up', rendre: 'Give back', accoster: 'Dock', empiler: 'Stack', suspendre: 'Hang', tourner: 'Walk around', lancer: 'Throw', tirer: 'Draw',
+    parler: 'Talk', lire: 'Read', tamponner: 'Stamp', regarder: 'Look', toucher: 'Touch', prier: 'Pray', caresser: 'Pet', asseoir: 'Sit', lever: 'Stand up', acheter: 'Buy', poser: 'Place', prendre: 'Take', creuser: 'Dig', soulever: 'Lift', essayer: 'Try', monter: 'Climb up', descendre: 'Climb down', dormir: 'Sleep', gouter: 'Taste', nourrir: 'Feed', ecouter: 'Listen', ramasser: 'Pick up', rendre: 'Give back', accoster: 'Dock', empiler: 'Stack', suspendre: 'Hang', tourner: 'Walk around', lancer: 'Throw', tirer: 'Draw', attendre: 'Wait',
     oui: 'Yes', non: 'No', garcon: 'Boy', fille: 'Girl',
     tamponObtenu: (nom) => `You got the “${nom}” stamp!`,
     dejaTampon: 'You already have this stamp in your book.',
@@ -85,7 +85,7 @@ export const TEXTES = {
     tenue: {
       titre: 'Wardrobe', titreJa: 'きせかえ', tete: 'On your head', yeux: 'On your face', habit: 'Outfit', dos: 'On your back', cou: 'Around your neck', pas: 'Under your feet', compagnon: 'Your companion',
       noms: {
-        defautGarcon: 'Cap', defautFille: 'Straw hat', nue: 'No hat', bois: 'Deer antlers', heron: 'White heron headdress', kabuto: 'Samurai helmet', aucune: 'Nothing', etoiles: 'Star glasses', masque: 'Fox mask',
+        defautGarcon: 'Cap', defautFille: 'Straw hat', nue: 'No hat', bois: 'Deer antlers', heron: 'White heron headdress', cornes: 'Oni horns', kabuto: 'Samurai helmet', aucune: 'Nothing', etoiles: 'Star glasses', masque: 'Fox mask',
         sacGarcon: 'Backpack', sacFille: 'Backpack', mino: 'Straw cape (mino)', ailes: 'Phoenix wings', 'cou-rien': 'Nothing', magatama: 'Magatama necklace',
         habitGarcon: 'Red jacket', habitFille: 'Pink blouse', happi: 'Festival coat', yukata: 'Yukata', kimonoOr: 'Golden kimono', armure: 'Samurai armour',
         'trace-aucune': 'Nothing', 'trace-petales': 'Petals', 'trace-etoiles': 'Stars', 'trace-feuilles': 'Maple leaves',
@@ -93,7 +93,7 @@ export const TEXTES = {
       },
       descriptions: {
         defautGarcon: 'Your cap, with Mount Fuji on the front.', defautFille: 'Your straw hat, with its red ribbon and its flower.',
-        nue: 'Feel the wind in your hair!', bois: 'A headband with deer ears and antlers, like the deer of Miyajima.', heron: 'A little white heron perched on your head, with its long plumes: the White Heron of Himeji Castle!', aucune: 'Nothing on your face.',
+        nue: 'Feel the wind in your hair!', bois: 'A headband with deer ears and antlers, like the deer of Miyajima.', heron: 'A little white heron perched on your head, with its long plumes: the White Heron of Himeji Castle!', cornes: 'Two little red oni horns on a tiger-skin headband, like the demons of the hells of Beppu. Rawr!', aucune: 'Nothing on your face.',
         etoiles: 'Star-shaped sunglasses, for the starry sky of Aogashima.',
         kabuto: 'A samurai helmet with golden horns, to go with the armour.', masque: 'A white fox mask from the summer festivals, worn on the side of the head.',
         sacGarcon: 'Your yellow backpack, with your rolled-up sleeping mat.', sacFille: 'Your pink backpack, with its little red charm (omamori).',
@@ -116,9 +116,9 @@ export const TEXTES = {
       plusTard: ['You can put it on anytime: Menu → Wardrobe.'],
     },
     tresors: {
-      secrets: { corbeaux: 'The sacred crows', tresor: 'The treasure box', heike: 'The Heike fireflies', okiku: 'Okiku’s tenth plate', miroir: 'The mirror of the sun', phenix: 'The phoenix of the reflection' },
+      secrets: { corbeaux: 'The sacred crows', tresor: 'The treasure box', heike: 'The Heike fireflies', okiku: 'Okiku’s tenth plate', miroir: 'The mirror of the sun', phenix: 'The phoenix of the reflection', ippen: 'Ippen’s stones' },
       trouve: (lieu) => [`You found the secret of ${lieu}!`, 'You get a koban: an old gold coin from the Edo period.'],
-      marchandOu: { itsukushima: 'They say a tanuki merchant has set up under the pines, between the shrine and the hill. He loves koban…', aogashima: 'They say a tanuki merchant has set up deep in the forest, on the east side of the crater. He loves koban…', gokayama: 'They say a tanuki merchant has set up under the great cedars, near the shrine. He loves koban…', himeji: 'They say a tanuki merchant has set up under the cherry trees, on the west side of the big lawn. He loves koban…', takachiho: 'They say a tanuki merchant has set up in the shrine’s courtyard, at the edge of the forest, near the stairs down to the river. He loves koban…', kinkakuji: 'They say a tanuki merchant has set up under the maples on the hill, between the evening tea house and the tea stall. He loves koban…' },
+      marchandOu: { itsukushima: 'They say a tanuki merchant has set up under the pines, between the shrine and the hill. He loves koban…', aogashima: 'They say a tanuki merchant has set up deep in the forest, on the east side of the crater. He loves koban…', gokayama: 'They say a tanuki merchant has set up under the great cedars, near the shrine. He loves koban…', himeji: 'They say a tanuki merchant has set up under the cherry trees, on the west side of the big lawn. He loves koban…', takachiho: 'They say a tanuki merchant has set up in the shrine’s courtyard, at the edge of the forest, near the stairs down to the river. He loves koban…', kinkakuji: 'They say a tanuki merchant has set up under the maples on the hill, between the evening tea house and the tea stall. He loves koban…', beppu: 'They say a tanuki merchant has set up in the bamboo, along the path up to Shibaseki, west of the street. He loves koban…' },
       secretReste: ['Your stamp book trembles… There is still a secret here. The most attentive will find it!'],
       carnetSecret: 'There is still a secret here… The most attentive will find it.', carnetSecretTrouve: (nom) => `Secret found: ${nom}`, carnetKoban: (n) => `Koban: ${n}`,
       menuKoban: 'Koban', menuDanser: 'Dance', menuFeux: 'Fireworks', menuPhoto: 'Camera', menuSaison: 'Season',
@@ -165,7 +165,7 @@ export const TEXTES = {
     titrePage: 'Balade en 3D', retour: 'Retour à la carte', carnet: 'Carnet de tampons', menu: 'Menu', fermer: 'Fermer',
     aideOrdi: 'ZQSD ou flèches : marcher · Maj : courir · E ou Espace : parler · glisser : caméra',
     aideTel: 'Joystick : marcher · A : parler · glisser : caméra',
-    parler: 'Parler', lire: 'Lire', tamponner: 'Tamponner', regarder: 'Regarder', toucher: 'Toucher', prier: 'Prier', caresser: 'Caresser', asseoir: 'S’asseoir', lever: 'Se lever', acheter: 'Acheter', poser: 'Poser', prendre: 'Prendre', creuser: 'Creuser', soulever: 'Soulever', essayer: 'Essayer', monter: 'Monter', descendre: 'Descendre', dormir: 'Dormir', gouter: 'Goûter', nourrir: 'Nourrir', ecouter: 'Écouter', ramasser: 'Ramasser', rendre: 'Rendre', accoster: 'Accoster', empiler: 'Empiler', suspendre: 'Suspendre', tourner: 'Faire le tour', lancer: 'Lancer', tirer: 'Tirer',
+    parler: 'Parler', lire: 'Lire', tamponner: 'Tamponner', regarder: 'Regarder', toucher: 'Toucher', prier: 'Prier', caresser: 'Caresser', asseoir: 'S’asseoir', lever: 'Se lever', acheter: 'Acheter', poser: 'Poser', prendre: 'Prendre', creuser: 'Creuser', soulever: 'Soulever', essayer: 'Essayer', monter: 'Monter', descendre: 'Descendre', dormir: 'Dormir', gouter: 'Goûter', nourrir: 'Nourrir', ecouter: 'Écouter', ramasser: 'Ramasser', rendre: 'Rendre', accoster: 'Accoster', empiler: 'Empiler', suspendre: 'Suspendre', tourner: 'Faire le tour', lancer: 'Lancer', tirer: 'Tirer', attendre: 'Attendre',
     oui: 'Oui', non: 'Non', garcon: 'Garçon', fille: 'Fille',
     tamponObtenu: (nom) => `Tu obtiens le tampon « ${nom} » !`,
     dejaTampon: 'Tu as déjà ce tampon dans ton carnet.',
@@ -223,7 +223,7 @@ export const TEXTES = {
     tenue: {
       titre: 'Garde-robe', titreJa: 'きせかえ', tete: 'Sur la tête', yeux: 'Sur le visage', habit: 'Tenue', dos: 'Sur le dos', cou: 'Au cou', pas: 'Sous tes pas', compagnon: 'Ton compagnon',
       noms: {
-        defautGarcon: 'Casquette', defautFille: 'Chapeau de paille', nue: 'Tête nue', bois: 'Bois de daim', heron: 'Coiffe du héron blanc', kabuto: 'Casque de samouraï', aucune: 'Rien', etoiles: 'Lunettes étoiles', masque: 'Masque de renard',
+        defautGarcon: 'Casquette', defautFille: 'Chapeau de paille', nue: 'Tête nue', bois: 'Bois de daim', heron: 'Coiffe du héron blanc', cornes: 'Cornes d’oni', kabuto: 'Casque de samouraï', aucune: 'Rien', etoiles: 'Lunettes étoiles', masque: 'Masque de renard',
         sacGarcon: 'Sac à dos', sacFille: 'Sac à dos', mino: 'Cape de paille (mino)', ailes: 'Ailes du phénix', 'cou-rien': 'Rien', magatama: 'Collier de magatama',
         habitGarcon: 'Veste rouge', habitFille: 'Chemisier rose', happi: 'Veste de fête', yukata: 'Yukata', kimonoOr: 'Kimono d’or', armure: 'Armure de samouraï',
         'trace-aucune': 'Rien', 'trace-petales': 'Pétales', 'trace-etoiles': 'Étoiles', 'trace-feuilles': 'Feuilles d’érable',
@@ -231,7 +231,7 @@ export const TEXTES = {
       },
       descriptions: {
         defautGarcon: 'Ta casquette, avec le mont Fuji devant.', defautFille: 'Ton chapeau de paille, avec son ruban rouge et sa fleur.',
-        nue: 'Le vent dans les cheveux !', bois: 'Un serre-tête avec des oreilles et des bois de daim, comme les daims de Miyajima.', heron: 'Un petit héron blanc perché sur ta tête, avec ses longues plumes : le Héron blanc du château de Himeji !', aucune: 'Rien sur le visage.',
+        nue: 'Le vent dans les cheveux !', bois: 'Un serre-tête avec des oreilles et des bois de daim, comme les daims de Miyajima.', heron: 'Un petit héron blanc perché sur ta tête, avec ses longues plumes : le Héron blanc du château de Himeji !', cornes: 'Deux petites cornes d’oni rouges sur un serre-tête en peau de tigre, comme les démons des enfers de Beppu. Grrr !', aucune: 'Rien sur le visage.',
         etoiles: 'Des lunettes de soleil en étoiles, pour le ciel étoilé d’Aogashima.',
         kabuto: 'Le casque d’un samouraï, aux cornes dorées, pour aller avec l’armure.', masque: 'Un masque de renard blanc des fêtes d’été, porté sur le côté de la tête.',
         sacGarcon: 'Ton sac à dos jaune, et ton tapis de sol roulé.', sacFille: 'Ton sac à dos rose, et son petit porte-bonheur rouge (omamori).',
@@ -254,9 +254,9 @@ export const TEXTES = {
       plusTard: ['Tu pourras l’essayer quand tu veux : Menu → Garde-robe.'],
     },
     tresors: {
-      secrets: { corbeaux: 'Les corbeaux sacrés', tresor: 'La boîte au trésor', heike: 'Les lucioles des Heike', okiku: 'La dixième assiette d’Okiku', miroir: 'Le miroir du soleil', phenix: 'Le phénix du reflet' },
+      secrets: { corbeaux: 'Les corbeaux sacrés', tresor: 'La boîte au trésor', heike: 'Les lucioles des Heike', okiku: 'La dixième assiette d’Okiku', miroir: 'Le miroir du soleil', phenix: 'Le phénix du reflet', ippen: 'Les pierres d’Ippen' },
       trouve: (lieu) => [`Tu as trouvé le secret ${/^[aeiouyhâéèêîôû]/i.test(lieu) ? 'd’' : 'de '}${lieu} !`, 'Tu gagnes un koban : une vieille pièce d’or de l’époque d’Edo.'],
-      marchandOu: { itsukushima: 'Il paraît qu’un marchand tanuki s’est installé sous les pins, entre le sanctuaire et la colline. Il adore les koban…', aogashima: 'Il paraît qu’un marchand tanuki s’est installé au milieu de la forêt, à l’est du cratère. Il adore les koban…', gokayama: 'Il paraît qu’un marchand tanuki s’est installé sous les grands cèdres, près du sanctuaire. Il adore les koban…', himeji: 'Il paraît qu’un marchand tanuki s’est installé sous les cerisiers, à l’ouest de la grande pelouse. Il adore les koban…', takachiho: 'Il paraît qu’un marchand tanuki s’est installé dans la cour du sanctuaire, au bord de la forêt, près de l’escalier qui descend à la rivière. Il adore les koban…', kinkakuji: 'Il paraît qu’un marchand tanuki s’est installé sous les érables de la colline, entre le pavillon du thé du soir et le salon de thé. Il adore les koban…' },
+      marchandOu: { itsukushima: 'Il paraît qu’un marchand tanuki s’est installé sous les pins, entre le sanctuaire et la colline. Il adore les koban…', aogashima: 'Il paraît qu’un marchand tanuki s’est installé au milieu de la forêt, à l’est du cratère. Il adore les koban…', gokayama: 'Il paraît qu’un marchand tanuki s’est installé sous les grands cèdres, près du sanctuaire. Il adore les koban…', himeji: 'Il paraît qu’un marchand tanuki s’est installé sous les cerisiers, à l’ouest de la grande pelouse. Il adore les koban…', takachiho: 'Il paraît qu’un marchand tanuki s’est installé dans la cour du sanctuaire, au bord de la forêt, près de l’escalier qui descend à la rivière. Il adore les koban…', kinkakuji: 'Il paraît qu’un marchand tanuki s’est installé sous les érables de la colline, entre le pavillon du thé du soir et le salon de thé. Il adore les koban…', beppu: 'Il paraît qu’un marchand tanuki s’est installé dans le bambou, le long du sentier qui monte à Shibaseki, à l’ouest de la rue. Il adore les koban…' },
       secretReste: ['Ton carnet frémit… Il reste un secret ici. Les plus attentifs le trouveront !'],
       carnetSecret: 'Il reste un secret ici… Les plus attentifs le trouveront.', carnetSecretTrouve: (nom) => `Secret trouvé : ${nom}`, carnetKoban: (n) => `Koban : ${n}`,
       menuKoban: 'Koban', menuDanser: 'Danser', menuFeux: 'Feux d’artifice', menuPhoto: 'Appareil photo', menuSaison: 'Saison',
@@ -303,7 +303,7 @@ export const TEXTES = {
     titrePage: '3Dおさんぽ', retour: '地図にもどる', carnet: 'スタンプ帳', menu: 'メニュー', fermer: 'とじる',
     aideOrdi: 'WASD・矢印：あるく　Shift：はしる　E・スペース：はなす　ドラッグ：カメラ',
     aideTel: 'スティック：あるく　A：はなす　スライド：カメラ',
-    parler: 'はなす', lire: 'よむ', tamponner: 'おす', regarder: 'みる', toucher: 'さわる', prier: 'おまいり', caresser: 'なでる', asseoir: 'すわる', lever: 'たつ', acheter: 'かう', poser: 'おく', prendre: 'とる', creuser: 'ほる', soulever: 'もちあげる', essayer: 'やってみる', monter: 'のぼる', descendre: 'おりる', dormir: 'ねる', gouter: 'たべる', nourrir: 'えさを　あげる', ecouter: 'きく', ramasser: 'ひろう', rendre: 'かえす', accoster: 'もどる', empiler: 'つむ', suspendre: 'かける', tourner: 'まわる', lancer: 'なげる', tirer: 'ひく',
+    parler: 'はなす', lire: 'よむ', tamponner: 'おす', regarder: 'みる', toucher: 'さわる', prier: 'おまいり', caresser: 'なでる', asseoir: 'すわる', lever: 'たつ', acheter: 'かう', poser: 'おく', prendre: 'とる', creuser: 'ほる', soulever: 'もちあげる', essayer: 'やってみる', monter: 'のぼる', descendre: 'おりる', dormir: 'ねる', gouter: 'たべる', nourrir: 'えさを　あげる', ecouter: 'きく', ramasser: 'ひろう', rendre: 'かえす', accoster: 'もどる', empiler: 'つむ', suspendre: 'かける', tourner: 'まわる', lancer: 'なげる', tirer: 'ひく', attendre: 'まつ',
     oui: 'はい', non: 'いいえ', garcon: 'おとこのこ', fille: 'おんなのこ',
     tamponObtenu: (nom) => `「${nom}」のスタンプを　てにいれた！`,
     dejaTampon: 'このスタンプは　もう　もっている。',
@@ -361,7 +361,7 @@ export const TEXTES = {
     tenue: {
       titre: 'きせかえ', titreJa: '', tete: 'あたま', yeux: 'かお', habit: 'ふく', dos: 'せなか', cou: 'くび', pas: 'あしもと', compagnon: 'なかま',
       noms: {
-        defautGarcon: 'ぼうし', defautFille: 'むぎわらぼうし', nue: 'なし', bois: 'シカのツノ', heron: 'しらさぎの　ぼうし', kabuto: 'かぶと', aucune: 'なし', etoiles: 'ほしのメガネ', masque: 'キツネのおめん',
+        defautGarcon: 'ぼうし', defautFille: 'むぎわらぼうし', nue: 'なし', bois: 'シカのツノ', heron: 'しらさぎの　ぼうし', cornes: 'おにの　ツノ', kabuto: 'かぶと', aucune: 'なし', etoiles: 'ほしのメガネ', masque: 'キツネのおめん',
         sacGarcon: 'リュック', sacFille: 'リュック', mino: 'みの', ailes: '鳳凰の　つばさ', 'cou-rien': 'なし', magatama: 'まがたまの　くびかざり',
         habitGarcon: 'あかい　ジャケット', habitFille: 'ピンクの　ブラウス', happi: 'はっぴ', yukata: 'ゆかた', kimonoOr: '金の　きもの', armure: 'よろい',
         'trace-aucune': 'なし', 'trace-petales': 'はなびら', 'trace-etoiles': 'ほし', 'trace-feuilles': 'もみじ',
@@ -369,7 +369,7 @@ export const TEXTES = {
       },
       descriptions: {
         defautGarcon: 'いつもの　ぼうし。まえに　ふじさんの　マーク。', defautFille: 'いつもの　むぎわらぼうし。あかい　リボンと　はなつき。',
-        nue: 'かぜが　きもちいい！', bois: 'シカの　みみと　ツノの　カチューシャ。宮島の　シカみたい！', heron: 'ながい　はねの　白い　サギが　あたまに　ちょこん。姫路城の　「白鷺」だよ！', aucune: 'かおには　なにも　つけない。',
+        nue: 'かぜが　きもちいい！', bois: 'シカの　みみと　ツノの　カチューシャ。宮島の　シカみたい！', heron: 'ながい　はねの　白い　サギが　あたまに　ちょこん。姫路城の　「白鷺」だよ！', cornes: 'トラもようの　カチューシャに、赤い　おにの　ツノ　ふたつ。別府の　地獄の　鬼みたい。ガオー！', aucune: 'かおには　なにも　つけない。',
         etoiles: 'ほしの　かたちの　サングラス。青ヶ島の　ほしぞらに　ぴったり！',
         kabuto: '金の　つのが　ついた　さむらいの　かぶと。よろいと　いっしょに　どうぞ。', masque: '夏まつりの　白い　キツネの　おめん。あたまの　よこに　つけるよ。',
         sacGarcon: 'きいろい　リュックと、まいた　マット。', sacFille: 'ピンクの　リュックと、小さな　赤い　おまもり。',
@@ -392,7 +392,7 @@ export const TEXTES = {
       plusTard: ['メニューの　「きせかえ」で　いつでも　つけられるよ。'],
     },
     tresors: {
-      secrets: { corbeaux: '神鴉', tresor: 'たからの　はこ', heike: '平家ボタル', okiku: 'お菊の　十まいめの　お皿', miroir: 'お日さまの　かがみ', phenix: 'うつった　鳳凰' },
+      secrets: { corbeaux: '神鴉', tresor: 'たからの　はこ', heike: '平家ボタル', okiku: 'お菊の　十まいめの　お皿', miroir: 'お日さまの　かがみ', phenix: 'うつった　鳳凰', ippen: '一遍上人の　石' },
       trouve: (lieu) => [`${lieu}の　ひみつを　見つけた！`, '小判を　てに　いれた！　江戸時代の　古い　金貨だ。'],
       marchandOu: { itsukushima: '神社と　丘の　あいだ、松の　木の　下に　タヌキの　商人が　いるらしい。小判が　大すきだって……', aogashima: 'クレーターの　東の　森の　おくに　タヌキの　商人が　いるらしい。小判が　大すきだって……', gokayama: '神社の　そばの　大きな　スギの　下に　タヌキの　商人が　いるらしい。小判が　大すきだって……', himeji: '大きな　しばふの　西の　桜の　下に　タヌキの　商人が　いるらしい。小判が　大すきだって……', takachiho: '神社の　境内、森の　そばの　川へ　おりる　階段の　近くに　タヌキの　商人が　いるらしい。小判が　大すきだって……', kinkakuji: '丘の　上、夕佳亭と　お茶所の　あいだの　もみじの　下に　タヌキの　商人が　いるらしい。小判が　大すきだって……' },
       secretReste: ['スタンプ帳が　ふるえた……ここには　まだ　ひみつが　ある。よく　見る　人だけが　見つけられる！'],

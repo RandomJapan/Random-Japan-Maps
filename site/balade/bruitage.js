@@ -41,6 +41,8 @@ const V = {
   // Kinkaku-ji (2026-10-26) : les cigales de l'été (le jour, plus fort sous les arbres) ; la pièce lancée, la vasque, le
   // gravier ; le fouet du matcha, le pinceau, les sceaux ; le gong de la salle de Fudō
   semi: 0.004, piece: 0.07, bol: 0.09, tombe: 0.08, chasen: 0.08, pinceau: 0.07, tampon: 0.1, waniguchi: 0.09,
+  // (Beppu) la grosse bulle de boue, le four à vapeur ; le ronflement du démon et le geyser (oiseau())
+  bulle: 0.1, pschitt: 0.07, ronfle: 0.09, geyser: 0.1,
 };
 const lisse = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
 

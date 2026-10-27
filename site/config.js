@@ -133,6 +133,7 @@ export const TEXTES = {
     balade_himeji: 'The White Heron Castle: the maze of gates, Okiku’s well, the koi in the moat.',
     balade_takachiho: 'Row under Manai Falls, catch flowing noodles, watch the kagura at night.',
     balade_kinkakuji: 'The Golden Pavilion and its reflection in the pond, the Dragon Gate falls, a bowl of matcha.',
+    balade_beppu: 'Boiling hells in blue, red and white, a geyser under a stone roof, eggs cooked in the steam.',
     autreLien: 'More info',
     pageLieu: "This place's page",
     // Les grandes villes (villes.js)
@@ -608,6 +609,7 @@ export const TEXTES = {
     balade_himeji: 'Le château du Héron blanc : le labyrinthe des portes, le puits d’Okiku, les carpes des douves.',
     balade_takachiho: 'En barque sous la cascade Manai, les nouilles qui glissent dans le bambou, le kagura de la nuit.',
     balade_kinkakuji: 'Le Pavillon d’or et son reflet dans l’étang, la cascade de la Porte du Dragon, un bol de matcha.',
+    balade_beppu: 'Des enfers bleus, rouges et blancs qui bouillent, un geyser sous un toit de pierre, des œufs cuits à la vapeur.',
     autreLien: "Plus d'infos",
     pageLieu: 'La page de ce lieu',
     // Les grandes villes (villes.js)
@@ -1082,6 +1084,7 @@ export const TEXTES = {
     balade_himeji: '白鷺城。迷路のような門、お菊井戸、堀の鯉。',
     balade_takachiho: 'ボートで真名井の滝の下へ。流しそうめん、夜神楽。',
     balade_kinkakuji: '鏡湖池に映る金閣、龍門滝、一服の抹茶。',
+    balade_beppu: '青・赤・白に煮えたつ地獄、石の屋根の下の間欠泉、湯けむりで蒸した卵。',
     autreLien: '詳細',
     pageLieu: 'このスポットのページ',
     // Les grandes villes (villes.js)

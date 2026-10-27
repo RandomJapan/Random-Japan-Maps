@@ -71,6 +71,9 @@ const PALETTE = {
   orKinkaku: '#d9a52e', orKinkakuClair: '#e7b940', orKinkakuOmbre: '#a7772a', boisKinkaku: '#5f4733', boisKinkakuClair: '#79593f',
   laqueNoire: '#2f2a27', kokera: '#4b4139', kokeraClair: '#574c43', kokeraBord: '#3b332d',
   mousseJardin: '#6f8f3b', mousseJardinFonce: '#5b7a31', mousseJardinClair: '#87a248', sableJardin: '#d9cca9', sableJardinFonce: '#cbbc96',
+  // Beppu (2026-10-27) : le grand démon rouge du chaudron et sa peau de tigre ; la fonte du chaudron ; les pierres blanchies par
+  // les dépôts des sources ; le bois sombre et le crépi des vieilles maisons de Kannawa
+  oniRouge: '#d9482f', oniFonce: '#a83420', tigre: '#e8a42a', fonte: '#3e3a38', fonteClair: '#57514c', depot: '#d9d1bd', crepi: '#e9e0cc',
 };
 const PARCHEMIN = { cielHaut: '#ead9b4', horizon: '#f0ead2', nuage: '#fbf4e2' };
 
@@ -114,6 +117,10 @@ function matieres(P) {
   mettre(M.bois, 'boisKinkaku', 'boisKinkakuClair');
   mettre(M.laque, 'laqueNoire');
   mettre(M.chaume, 'kokera', 'kokeraClair', 'kokeraBord');
+  // (Beppu : le démon peint, qui brille comme une laque ; la fonte, la pierre ; le crépi)
+  mettre(M.laque, 'oniRouge', 'oniFonce', 'tigre');
+  mettre(M.pierre, 'fonte', 'fonteClair', 'depot');
+  mettre(M.enduit, 'crepi');
   return t;
 }
 
