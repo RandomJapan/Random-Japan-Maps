@@ -2204,7 +2204,8 @@ const BALADES = { 'itsukushima-jinja': 'itsukushima', aogashima: 'aogashima', go
  * propriétaire, 2026-10-26 : chaque nouveau lieu arrive d'abord en mode développeur, et sort quand il le dit (l'ôter d'ici, et
  * de EN_ESSAI dans balade/balade.js).
  */
-const BALADES_ESSAI = new Set(['kinkakuji']);
+// (Kinkaku-ji, en essai depuis le 2026-10-26, sorti le 2026-10-27)
+const BALADES_ESSAI = new Set([]);
 const lienBalade = (id) => `balade/?lieu=${id}&langue=${langue}`;
 
 /**

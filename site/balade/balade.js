@@ -59,7 +59,8 @@ import * as kinkakuji from './kinkakuji.js';
 // propriétaire, 2026-10-26 : « à chaque nouveau lieu tu les mettra en mode développeur avant de le mettre en ligne à tous le
 // monde ». Pour un visiteur, rien n'en paraît : ni le menu « Aller à », ni le carnet, ni la garde-robe, et ?lieu= mène au lieu
 // par défaut. Pour le sortir : l'ôter de EN_ESSAI, et ôter la classe dev de son lien dans app.js, BALADES_ESSAI)
-const EN_ESSAI = ['kinkakuji'];
+// (Kinkaku-ji, en essai depuis le 2026-10-26, sorti le 2026-10-27 : « c'est bon tu peux le mettre en ligne pour tout le monde »)
+const EN_ESSAI = [];
 const LIEUX = Object.fromEntries(Object.entries({ itsukushima, aogashima, gokayama, himeji, takachiho, kinkakuji }).filter(([id]) => !EN_ESSAI.includes(id) || modeDev()));
 const params = new URLSearchParams(location.search);
 const PHOTO = params.get('photo');

@@ -348,7 +348,7 @@ Un **lieu mystère par jour, le même pour tout le monde**, comme le jeu Wordle.
 
 ## La balade 3D (pour tout le monde depuis le 26 octobre 2026)
 
-Visiter un lieu en 3D avec un personnage, comme dans un jeu Pokémon : **Itsukushima**, **Aogashima**, **Gokayama**, le **château de Himeji** et les **gorges de Takachiho**. La fiche de ces lieux (et celle du sanctuaire d'Amanoiwato, pour Takachiho) a un bouton **« Visiter en 3D »**, sous « Voir sur TikTok » ; sur téléphone, il passe à la ligne sous les deux autres boutons.
+Visiter un lieu en 3D avec un personnage, comme dans un jeu Pokémon : **Itsukushima**, **Aogashima**, **Gokayama**, le **château de Himeji**, les **gorges de Takachiho** et le **Pavillon d'or (Kinkaku-ji)**. La fiche de ces lieux (et celle du sanctuaire d'Amanoiwato, pour Takachiho) a un bouton **« Visiter en 3D »**, sous « Voir sur TikTok » ; sur téléphone, il passe à la ligne sous les deux autres boutons.
 - La première fois, on choisit garçon ou fille ; à chaque visite, on choisit son compagnon parmi trois (Kon le renard blanc d'Inari, Pon le tanuki, Chapu la loutre), qui te suit et te souffle des indices.
 - Chaque lieu cache **un secret** qui rapporte un **koban** (une pièce d'or) : on les dépense chez **Bunbuku**, le vieux tanuki marchand (tenues, danse, feux d'artifice, compagnons secrets…). Les tampons font aussi gagner une pièce de tenue propre à chaque lieu.
 - Si l'appareil ne sait pas afficher la 3D (un très vieux téléphone), ou si la connexion coupe pendant le chargement, la balade le dit en une phrase, avec un bouton pour revenir à la carte.
@@ -358,7 +358,7 @@ Visiter un lieu en 3D avec un personnage, comme dans un jeu Pokémon : **Itsukus
 - Le style : d'abord en gros pixels ; le 22 octobre tu as demandé plus lisse, à la manière de Pokémon X et Y. L'image s'adapte toute seule si l'appareil peine (un peu moins fine, toujours fluide).
 - La flèche ← en haut à gauche ramène à la carte, sur la fiche du lieu.
 - Pour un nouveau lieu, demande-le à Claude : chaque lieu est construit à la main. Il arrive d'abord en **mode développeur** : toi seul le vois, pour l'essayer. Quand il te plaît, dis à Claude de le mettre en ligne pour tout le monde.
-- **En essai (mode développeur seulement) : le Pavillon d'or (Kinkaku-ji)**, depuis le 26 octobre 2026. Sur sa fiche, le bouton « Visiter en 3D » n'apparaît qu'en mode développeur ; dans la balade, le menu « Aller à » le propose aussi. Son étang reflète vraiment le pavillon ; son secret : la nuit, le phénix a disparu du reflet… Sa récompense : les ailes du phénix, qui s'ouvrent quand on court.
+- **Le Pavillon d'or (Kinkaku-ji)**, essayé en mode développeur à partir du 26 octobre 2026, ouvert à tout le monde le 27 octobre. Son étang reflète vraiment le pavillon ; son secret : la nuit, le phénix a disparu du reflet… (une lueur appelle au belvédère, puis une autre mène à la source de la Voie lactée). Sa récompense : les ailes du phénix, qui s'ouvrent quand on court.
 
 ## Près de moi
 
