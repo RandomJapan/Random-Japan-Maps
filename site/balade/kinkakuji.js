@@ -101,8 +101,10 @@ const PLACES = [
   { x: 63.83, z: -62.72, rx: 2.3, rz: 1.1, ry: -0.3 },
   // la cour de la salle de Fudō
   { x: 79.6, z: -57.2, rx: 6.4, rz: 3.4, ry: 0 },
-  // le coin de Bunbuku, sous les érables, entre le pavillon de thé et le salon
-  { x: 45.6, z: -63.4, rx: 2.2, rz: 1.6, ry: -0.2 },
+  // le coin de Bunbuku, sous les érables, entre le pavillon de thé et le salon ; il mord sur l'allée (avant le 2026-10-27, un
+  // ruban de 30 à 50 cm hors du cadre l'en séparait, sablé à l'œil : « je ne peux plus accéder à Bunbuku à cause d'un mur
+  // invisible »)
+  { x: 45.5, z: -63.8, rx: 2.4, rz: 2.1, ry: -0.2 },
   // les avancées de sable des deux bancs de l'allée de sortie (BANCS_SORTIE)
   { x: 89.9, z: 6.0, rx: 1.5, rz: 1.45, ry: 0 },
   { x: 90.5, z: 26.0, rx: 1.5, rz: 1.45, ry: 0 },
