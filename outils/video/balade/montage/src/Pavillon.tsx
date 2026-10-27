@@ -50,8 +50,9 @@ const BANDE: Bande = {
   ],
   durees: { d1a: 1.95, d1b: 1.32, d2: 2.05, d3: 1.65, d4: 1.44, d5: 0.99, d6: 1.4, d7: 2.0, d8a: 1.05, d8b: 2.46, d9: 1.46, d10a: 0.8, d10b: 1.05, d10c: 0.98 },
   sfx: [
-    // les cigales de l'été (le jour), puis la nuit
-    [0.0, "sfx-jeu/boucle-semi.wav", 0.5, 12.6], [12.5, "sfx-jeu/boucle-semi.wav", 0.5, sec(25) - 12.5],
+    // les cigales de l'été (le jour), puis la nuit ; un fond, loin sous la voix (le propriétaire : « les sons d'ambiance
+    // sont trop fort » ; à 0,5, elles couvraient presque la voix : la boucle est normalisée, 4 dB RMS sous le maximum)
+    [0.0, "sfx-jeu/boucle-semi.wav", 0.04, 12.6], [12.5, "sfx-jeu/boucle-semi.wav", 0.04, sec(25) - 12.5],
     [sec(2) - 0.05, "sfx/shimmer-sparkle-sweep.mp3", 0.9], [sec(2), "sfx-jeu/magie.wav", 0.7],
     [sec(6) - 0.14, "sfx/whoosh-fast.mp3", 0.9], [sec(6) + 0.35, "sfx/sparkle-touch.mp3", 0.7],
     [sec(9) - 0.14, "sfx/whoosh-fast.mp3", 0.9], [sec(10), "sfx/shimmer-sparkle-sweep.mp3", 0.6], [sec(9) + 1.04, "sfx-jeu/plouf.wav", 1.0],
