@@ -1835,27 +1835,31 @@ function creerRais(lieu) {
 /**
  * La vapeur (les fumerolles, les marmites, le sauna) : des bouffées blanches aux bords doux qui montent,
  * grossissent et s'effacent. lieu.vapeurs : [{ x, z, y (sinon
- * le sol), n (bouffées), haut (m), large (m), taille (m) }].
+ * le sol), n (bouffées), haut (m), large (m), taille (m), opacite (1 par défaut : 2026-10-27, Beppu, des fumées plus
+ * légères, en bouffées plus nombreuses et plus grandes, qui se fondent en panache au lieu de faire un chapelet de boules) }].
  */
 function creerVapeurs(lieu) {
-  const pos = [], prm = [];
+  const pos = [], prm = [], opa = [];
   for (const s of lieu.vapeurs || []) {
     const y = s.y ?? lieu.monde.hauteur(s.x, s.z);
     const n = s.n || 12;
     for (let i = 0; i < n; i++) {
       pos.push(s.x, y, s.z);
       prm.push(i / n + 0.37 * Math.sin(i * 12.9898 + s.x * 3.1), s.haut || 3, s.large || 0.6, s.taille || 1);
+      opa.push(s.opacite ?? 1);
     }
   }
   if (!pos.length) return null;
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   g.setAttribute('prm', new THREE.Float32BufferAttribute(prm, 4));
+  g.setAttribute('opa', new THREE.Float32BufferAttribute(opa, 1));
   const mat = new THREE.ShaderMaterial({
     transparent: true, depthWrite: false,
     uniforms: { temps: { value: 0 }, hauteurEcran: { value: 300 }, couleur: { value: new THREE.Color('#ffffff') }, ombre: { value: new THREE.Color('#cbd5dc') }, nuit: { value: 0 } },
     vertexShader: `
       attribute vec4 prm;
+      attribute float opa;
       uniform float temps, hauteurEcran;
       varying float vAlpha;
       void main() {
@@ -1865,7 +1869,7 @@ function creerVapeurs(lieu) {
         vec4 mv = viewMatrix * vec4(p, 1.0);
         gl_Position = projectionMatrix * mv;
         gl_PointSize = min(prm.w * mix(0.3, 1.4, sqrt(age)) * projectionMatrix[1][1] * hauteurEcran * 0.5 / max(-mv.z, 0.1), hauteurEcran * 0.3);
-        vAlpha = smoothstep(0.0, 0.12, age) * (1.0 - smoothstep(0.45, 1.0, age)) * 0.85 * smoothstep(2.0, 4.5, -mv.z);
+        vAlpha = smoothstep(0.0, 0.12, age) * (1.0 - smoothstep(0.45, 1.0, age)) * 0.85 * smoothstep(2.0, 4.5, -mv.z) * opa;
       }`,
     fragmentShader: `
       uniform vec3 couleur, ombre;

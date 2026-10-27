@@ -94,7 +94,7 @@ const CHEMINS = [
   { pts: [[-28, 1.6], [-27.6, 9], [-26.4, 14.6]], w: 1.6 },
   { pts: [[-26.4, 14.6], [-30, 15.0], [-36.6, 15.0], [-42.6, 18.6], [-44.8, 24.6], [-41.6, 31.0], [-33, 32.4], [-25.0, 30.8], [-22.4, 24], [-26.4, 14.6]], w: 1.4 },
   // le sentier de Shibaseki : de l'ouest de la rue, par le bois, jusqu'au plateau des deux enfers
-  { pts: [[-58.4, -3.4], [-61.4, -12], [-63.2, -24], [-64.6, -36], [-65.2, -48], [-63.8, -58], [-62.4, -66.4]], w: 1.6 },
+  { pts: [[-58.4, -3.4], [-61.4, -12], [-63.2, -24], [-64.6, -36], [-65.2, -48], [-63.8, -58], [-62.4, -66.4]], w: 1.6, foret: true },
   // le lac de sang : son belvédère au sud, la boutique ; puis l'enfer de la tornade
   { pts: [[-62.4, -66.4], [-66, -71.6], [-73, -72.4], [-79.6, -74.6]], w: 1.8 },
   { pts: [[-62.4, -66.4], [-57, -70.6], [-52, -73.4], [-45, -75.6], [-38, -77.4], [-31.6, -78.6]], w: 1.8 },
@@ -102,12 +102,13 @@ const CHEMINS = [
 // les places (où l'on s'arrête) : [x, z, rayons en x et en z, tour]
 const PLACES = [
   // l'arrêt de bus, la placette des bains de pieds, le devant du four à vapeur, le parvis du bain de vapeur (la statue d'Ippen)
-  { x: 66.6, z: 5.6, rx: 4.2, rz: 2.6, ry: 0 },
-  { x: 28.6, z: 7.6, rx: 4.4, rz: 3.4, ry: 0 },
-  { x: 44, z: 7.4, rx: 5.6, rz: 2.6, ry: 0 },
-  { x: 34.4, z: -5.8, rx: 4.6, rz: 3.0, ry: 0 },
+  // (rue : une place de la rue, entre elle et les maisons, sans clôture autour)
+  { x: 66.6, z: 5.6, rx: 4.2, rz: 2.6, ry: 0, rue: true },
+  { x: 28.6, z: 7.6, rx: 4.4, rz: 3.4, ry: 0, rue: true },
+  { x: 44, z: 7.4, rx: 5.6, rz: 2.6, ry: 0, rue: true },
+  { x: 34.4, z: -5.8, rx: 4.6, rz: 3.0, ry: 0, rue: true },
   // devant le ryokan
-  { x: 52, z: -4.8, rx: 3.4, rz: 2.8, ry: 0 },
+  { x: 52, z: -4.8, rx: 3.4, rz: 2.8, ry: 0, rue: true },
   // l'enfer de la mer : le belvédère sur le bassin bleu (on y cuit les œufs) ; devant le sanctuaire Inari, en haut ; le devant
   // de la boutique
   { x: -27.6, z: -20.4, rx: 6.2, rz: 2.4, ry: 0.12 },
@@ -117,8 +118,9 @@ const PLACES = [
   { x: 6.6, z: 10.4, rx: 3.8, rz: 2.0, ry: 0 },
   { x: 17.0, z: 18.0, rx: 1.8, rz: 2.2, ry: 0 },
   { x: 15.8, z: 34.4, rx: 2.6, rz: 1.6, ry: 0 },
-  // l'étang blanc : le banc au bord, côté nord
+  // l'étang blanc : le banc au bord, côté nord ; le coin du grand érable, au bout du jardin (la pierre d'Ippen à son pied)
   { x: -31.6, z: 15.6, rx: 3.6, rz: 1.5, ry: 0 },
+  { x: -38.6, z: 33.6, rx: 1.6, rz: 1.2, ry: 0.16 },
   // le bout du caillebotis de l'enfer de boue (le ronflement du démon)
   { x: 24.8, z: -42.4, rx: 2.4, rz: 2.0, ry: 0 },
   // le coin de Bunbuku, dans le bambou, à l'ouest du sentier ; il mord sur le sentier
@@ -147,8 +149,8 @@ const LAMPION = { x: MARCHAND.x - 0.4, z: MARCHAND.z - 1.1 };
 // les trois pierres d'Ippen (le secret) : [x, z, tour] — sous l'arbre du jardin de l'étang blanc, au pied du dernier torii du
 // sanctuaire Inari, entre les rochers du ronflement du démon
 const PIERRES = [
-  { id: 'p1', x: -41.6, z: 28.6, ry: 0.9 },
-  { id: 'p2', x: -50.2, z: -43.2, ry: -2.4 },
+  { id: 'p1', x: -38.6, z: 34.5, ry: 0.2 },
+  { id: 'p2', x: -48.93, z: -44.7, ry: -2.4 },
   { id: 'p3', x: 25.4, z: -44.2, ry: 2.6 },
 ];
 
@@ -159,6 +161,23 @@ const BATIS = [
   autour(BOUTIQUE_UMI, BOUTIQUE_UMI.l / 2 + 1.5, BOUTIQUE_UMI.p / 2 + 1.5), autour(BOUTIQUE_CHI, BOUTIQUE_CHI.l / 2 + 1.5, BOUTIQUE_CHI.p / 2 + 1.5),
   autour(ONI, 3.2), autour(ARRET, 3.4, 2), autour(TAKAIBIKI, 2.6), autour(MARCHAND, 2.2), [GEYSER.x - 7, GEYSER.x + 7, GEYSER.z - 6, GEYSER.z + 4],
 ];
+// les maisons de la rue (le milieu, les dimensions, le tour : 0 au nord de la rue, la façade vers elle ; π au sud) : leur
+// façade au bord du caniveau, sauf le bain de vapeur, le ryokan et le four, derrière leur placette (avant le 2026-10-27, trois à
+// huit mètres de terre battue entre la rue et les façades : une rue vide, deux fois trop large)
+const MAISONS_RUE = [
+  { x: 23.0, z: -7.84, ry: 0, l: 7.6, p: 6, noren: '#3f6a4a', enseigne: { texte: 'おみやげ', l: 2.2 }, lanternes: true, cheminee: [2.2, -1] },
+  { x: 44.7, z: -6.66, ry: 0, l: 4.2, p: 5.6, etages: 1, noren: '#7a4a2a', enseigne: { texte: '甘味処', l: 1.6 } },
+  { x: 64.6, z: -6.19, ry: 0, l: 8.4, p: 7, noren: '#7a3a2e', cheminee: [2.4, 0] },
+  { x: 75.0, z: -5.36, ry: 0, l: 7.0, p: 6.4, etages: 1, noren: '#4a4a5a' },
+  { x: 35.5, z: 9.08, ry: PI, l: 5.4, p: 6, noren: '#5a3a6a', enseigne: { texte: 'たまご', l: 1.8 } },
+  { x: 56.0, z: 10.73, ry: PI, l: 8.6, p: 7, noren: '#2f4a6a', cheminee: [-2.5, 1] },
+  { x: 66.0, z: 12.5, ry: PI, l: 7.2, p: 6.4, etages: 1, noren: '#6a4a2a' },
+  { x: 77.0, z: 11.51, ry: PI, l: 7.4, p: 6.4, enseigne: { texte: '地獄饅頭', l: 2.0 }, lanternes: true, cheminee: [1.6, 0.5] },
+];
+// la ville de Kannawa, tout autour des enfers : ses maisons serrées le long des ruelles
+const enVille = (x, z) => (x > 29 && z < -11 && x < 114) || (x > 21 && z > 15 && x < 114) || (x > -8 && x < 30 && z < -50) || (x > -16 && x < -9 && z > 8) || (x > 91 && x < 114 && z > -56 && z < 50) || (z > 41.5 && x > -50 && x < 114);
+// au bout de la rue, la route qui la croise (on ne la traverse pas : la barrière des piétons) ; ses maisons, de l'autre côté
+const ROUTE = { x0: 83.6, x1: 90.6 };
 
 // ---------------------------------------------------------------- La géométrie du plan
 /** Le point le plus proche des allées : la distance au bord de la plus proche (négative dedans), son chemin. */
@@ -259,6 +278,8 @@ function terrain(x, z) {
   let h = (relief(x, z) + (bruitDoux(x * 0.5, z * 0.5, 7) - 0.5) * 1.1) * (1 - f) + loin * f;
   if (f >= 1) return h;
   h = terrasses(x, z, h);
+  // la route au bout de la rue : plate (le relief sans ses bosses)
+  { const dr = Math.max(ROUTE.x0 - x, x - ROUTE.x1); if (dr < 1.6) { const ha = relief(x, z); h = ha + (h - ha) * lisse(0, 1.6, dr); } }
   // les allées et les places : le sol s'aplanit sous elles (à leur hauteur, qui suit le relief en douceur)
   const c = surChemins(x, z), dp = surPlaces(x, z), dc = Math.min(c.d, dp);
   if (dc < 1.6 && !(c.c?.escalier && c.d < dp)) { const ha = hauteurAllee(x, z) - 0.04; h = ha + (h - ha) * lisse(0, 1.6, dc); }
@@ -305,7 +326,7 @@ export const infos = {
 };
 
 /** La nuit : les lanternes, le papier des lampes et les fenêtres des ryokan s'allument. */
-export const sortesNuit = (P) => ({ [P.shoji]: 'lumiere', [P.shojiCadre]: 'treillis' });
+export const sortesNuit = (P) => ({ [P.shoji]: 'lumiere', [P.shojiCadre]: 'treillis', [P.vitreVille]: 'lumiere' });
 
 /** Un triangle A, B, C ajouté à pos (et sa couleur à cols), tourné vers n (retourné s'il regarde de l'autre côté). */
 function tri(pos, cols, A, B, C, c, n) {
@@ -327,7 +348,7 @@ export function construire(ctx) {
     for (let i = 1; i < ch.pts.length; i++) { L += Math.hypot(ch.pts[i][0] - ch.pts[i - 1][0], ch.pts[i][1] - ch.pts[i - 1][1]); cum.push(L); }
     MARCHES.push({ ligne: ch.pts.map(([x, z], i) => [x, z, y0 + ((y1 - y0) * cum[i]) / L]), demi: ch.w, y0, y1, L });
   }
-  const objets = [];
+  const objets = [], batis = BATIS.map((b) => b.slice());
   const monde = creerMonde({ terrain, cadre: dansLeCadre, profond: null, pente: null });
   const poser = (fin, x, z, o = {}) => objets.push({ fin, x, z, y: o.y ?? terrain(x, z), ry: o.ry || 0, ombre: o.ombre !== false, trait: o.trait !== false, dedans: o.dedans, avant: o.avant });
   const bancs = [], lumieres = [], animes = [], vapeurs = [], etiquettes = [];
@@ -404,7 +425,7 @@ export function construire(ctx) {
     for (let k = 0; k < n; k++) {
       const t = (k / n) * 2 * PI + 0.7, f = n > 1 ? 0.45 : 0, c = Math.cos(b.ry), s = Math.sin(b.ry);
       const u = Math.cos(t) * b.rx * f, v = Math.sin(t) * b.rz * f;
-      vapeurs.push({ x: b.x + u * c + v * s, z: b.z - u * s + v * c, y: b.eau + 0.05, n: Math.round(10 + 10 * b.vapeur), haut: 5 + 7 * b.vapeur, large: 1.2 + 1.8 * b.vapeur, taille: 1.8 + 2.6 * b.vapeur });
+      vapeurs.push({ x: b.x + u * c + v * s, z: b.z - u * s + v * c, y: b.eau + 0.05, n: Math.round(16 + 16 * b.vapeur), haut: 5 + 7 * b.vapeur, large: 1.4 + 1.8 * b.vapeur, taille: 2.6 + 3.2 * b.vapeur, opacite: 0.55 });
     }
   }
 
@@ -467,14 +488,60 @@ export function construire(ctx) {
       for (let lx = -(l - 0.6) / 2; lx <= (l - 0.6) / 2 + 0.01; lx += 0.5) a.boite(0.035, 0.6, 0.035, B, R(lx, yt + 0.33, p / 2 - 0.12, { trait: false }));
       yt += h2;
     }
-    // le grand toit : ses tuiles grises, et, dessous, le haut des murs qui monte dans son épaisseur (il ne flotte pas)
+    // les côtés et l'arrière (ce qu'on voit des ruelles, des enfers, entre deux maisons : avant le 2026-10-27, du crépi tout nu,
+    // des boîtes) : des poteaux de bois sombre, une fenêtre à barreaux au rez-de-chaussée (au milieu d'une travée), une fenêtre
+    // de papier à l'étage
+    for (const [lf, pf, rf] of [[l, p, PI], [p, l, PI / 2], [p, l, -PI / 2]]) {
+      const Rf = (u, yy, out, o2 = {}) => R(u * Math.cos(rf) + (pf / 2 + out) * Math.sin(rf), yy, -u * Math.sin(rf) + (pf / 2 + out) * Math.cos(rf), { ...o2, ry: rf + (o2.ry || 0) });
+      const np = Math.max(1, Math.round(lf / 1.9)), travee = (k) => -lf / 2 + ((k + 0.5) * lf) / np;
+      for (let k = 1; k < np; k++) a.boite(0.14, h1, 0.06, B, Rf(-lf / 2 + (k * lf) / np, y + 0.2 + h1 / 2, 0.02));
+      for (const k of lf > 5.5 && np > 1 ? [0, np - 1] : [Math.floor((np - 1) / 2)]) {
+        const u = travee(k);
+        a.boite(1.0, 0.8, 0.06, '#3a2c22', Rf(u, y + 0.2 + 1.55, 0.02));
+        for (let b = -0.36; b < 0.37; b += 0.12) a.boite(0.035, 0.74, 0.035, P.bois2, Rf(u + b, y + 0.2 + 1.55, 0.065, { trait: false }));
+      }
+      if (etages > 1) {
+        const out2 = rf === PI ? -0.1 : -0.2, u2 = rf === PI ? 0 : 0.1 * Math.sin(rf);
+        a.boite(1.0, 0.9, 0.05, P.shojiCadre, Rf(u2, yt + 1.25, out2 + 0.02))
+          .boite(0.88, 0.78, 0.04, P.shoji, Rf(u2, yt + 1.25, out2 + 0.045, { trait: false }));
+      }
+    }
+    // le grand toit : ses tuiles grises ; dessous, le haut des murs monte jusque sous lui (avant le 2026-10-27, un vide de 6 à
+    // 20 cm entre le haut des murs et le dessous du toit, qui monte vers le faîte), en trois morceaux par côté, chacun sous le
+    // pan le plus bas au-dessus de lui (aux coins, le pan d'à côté est plus bas) ; le milieu monte dans son épaisseur
+    {
+      const LT = (l + 1.3) / 2, PT = (p + 1.1) / 2, ml = etages > 1 ? (l - 0.4) / 2 : l / 2, mp = etages > 1 ? (p - 0.4) / 2 : p / 2, z0 = etages > 1 ? -0.1 : 0;
+      const pan = (d, demi) => 1.7 * Math.min(1, Math.max(0, d / (demi * 0.58))) ** 1.7;
+      const sous = (x, z) => Math.min(pan(PT - 0.1 - z, PT), pan(z + 0.1 + PT, PT), pan(LT - Math.abs(x), LT)) - 0.022 - 0.02 - 0.01;
+      // (un côté : de (xa, za) à (xb, zb), le long de x ou de z ; e : vers le dehors)
+      const bande = (xa, za, xb, zb, ex, ez) => {
+        const L = Math.hypot(xb - xa, zb - za), coupes = [0, Math.min(0.5, L / 3), L - Math.min(0.5, L / 3), L];
+        for (let k = 0; k < 3; k++) {
+          const f0 = coupes[k] / L, f1 = coupes[k + 1] / L, x0 = xa + (xb - xa) * f0, z0b = za + (zb - za) * f0, x1 = xa + (xb - xa) * f1, z1 = za + (zb - za) * f1;
+          const h = Math.max(0.02, Math.min(sous(x0, z0b), sous(x1, z1), sous((x0 + x1) / 2, (z0b + z1) / 2)));
+          const cx = (x0 + x1) / 2 - ex * 0.05, cz = (z0b + z1) / 2 - ez * 0.05, lg = coupes[k + 1] - coupes[k];
+          a.boite(ex ? 0.12 : lg, h + 0.1, ex ? lg : 0.12, P.crepi, R(cx, yt + (h - 0.1) / 2, cz, { trait: false }));
+        }
+      };
+      bande(-ml - 0.01, z0 + mp, ml + 0.01, z0 + mp, 0, 1);
+      bande(-ml - 0.01, z0 - mp, ml + 0.01, z0 - mp, 0, -1);
+      for (const u of [-1, 1]) bande(u * ml, z0 - mp + 0.12, u * ml, z0 + mp - 0.12, u, 0);
+    }
     a.boite(l * 0.72, 0.9, p * 0.62, P.crepi, R(0, yt + 0.4, -0.1));
     a.toitJapon(l + 1.3, p + 1.1, 1.7, 0.42, { ...R(0, yt - 0.02, -0.1), tuile: P.tuileShiro, tuile2: P.tuileShiroClaire, bord: '#4a4a4e', rangs: Math.round(l * 2) });
     if (o.cheminee) {
       // la cheminée de vapeur : un tuyau qui sort du toit, coudé au bout (la vapeur des sources de la maison)
       const [cx, cz] = o.cheminee, q = R(cx, 0, cz), y0 = yt + 0.6;
       a.cylindre(0.12, 0.12, 2.6, 8, '#8a8784', { x: q.x, y: y0 + 1.3, z: q.z }).cylindre(0.15, 0.15, 0.12, 8, '#6a6764', { x: q.x, y: y0 + 2.6, z: q.z });
-      vapeurs.push({ x: q.x, z: q.z, y: y0 + 2.6, n: 10, haut: 6, large: 0.9, taille: 1.7 });
+      vapeurs.push({ x: q.x, z: q.z, y: y0 + 2.6, n: 16, haut: 7, large: 1.2, taille: 2.6, opacite: 0.55 });
+    }
+    if (o.enseigne && o.lanternes) {
+      // deux lanternes rouges de part et d'autre de la porte, accrochées sous l'auvent (allumées la nuit)
+      for (const u of [-1, 1]) {
+        const q = R(u * (Math.min(1.8, l * 0.25) / 2 + 0.55), 0, p / 2 + 0.38);
+        a.chochin(q.x, y + 0.2 + h1 - 0.5, q.z, 6).baton([q.x, y + 0.2 + h1 - 0.25, q.z], [q.x, y + 0.2 + h1 + 0.1, q.z], 0.008, '#2a2420', 3);
+        lumieres.push({ x: q.x, y: y + 0.2 + h1 - 0.5, z: q.z, halo: 0.45, sol: y, r: 3.2 });
+      }
     }
     if (o.enseigne) {
       // l'enseigne de bois au-dessus de l'auvent (un texte peint)
@@ -482,8 +549,14 @@ export function construire(ctx) {
       a.boite(e.l ?? 2.4, 0.62, 0.08, '#4a3628', q);
       ecrire({ x, y, z, ry }, { texte: e.texte, x: 0, y: 0.2 + h1 + 0.5, z: p / 2 + 0.105, l: (e.l ?? 2.4) - 0.16, h: 0.5, fond: e.fond ?? '#efe6d2', encre: e.encre ?? '#2a2018' });
     }
+    {
+      // (son emprise : ni arbre, ni maison de la ville dedans)
+      const c0 = R(-l / 2 - 1, 0, -p / 2 - 1), c1 = R(l / 2 + 1, 0, p / 2 + 1);
+      batis.push([Math.min(c0.x, c1.x), Math.max(c0.x, c1.x), Math.min(c0.z, c1.z), Math.max(c0.z, c1.z)]);
+    }
     if (o.plein !== false) {
-      const c0 = R(-l / 2 - 0.25, 0, -p / 2 - 0.25), c1 = R(l / 2 + 0.25, 0, p / 2 + 0.25);
+      // (le socle de pierre dépasse de 15 cm : le bloc 42 cm au-delà des murs, le corps ne touche pas le socle)
+      const c0 = R(-l / 2 - 0.42, 0, -p / 2 - 0.42), c1 = R(l / 2 + 0.42, 0, p / 2 + 0.42);
       monde.surface(Math.min(c0.x, c1.x), Math.max(c0.x, c1.x), Math.min(c0.z, c1.z), Math.max(c0.z, c1.z), y + 0.2 + h1 + (etages > 1 ? h2 : 0), { plein: true });
       monde.bloc(Math.min(c0.x, c1.x), Math.max(c0.x, c1.x), Math.min(c0.z, c1.z), Math.max(c0.z, c1.z), y - 1, yt + 1.6);
     }
@@ -492,14 +565,8 @@ export function construire(ctx) {
   {
     // au nord de la rue (la façade vers le sud) ; au sud (vers le nord)
     const a = atelier();
-    maison(a, 23.0, -10.4, 0, { l: 7.6, p: 6, noren: '#3f6a4a', enseigne: { texte: 'おみやげ', l: 2.2 }, cheminee: [2.2, -1] });
     maison(a, RYOKAN.x, RYOKAN.z, 0, { l: RYOKAN.l, p: RYOKAN.p, noren: '#2f4a6a', h1: 3.1, h2: 2.6, enseigne: { texte: '湯の宿 かんなわ', l: 3.6, fond: '#2a2018', encre: '#f2e6c8' }, cheminee: [-3.6, -1.5] });
-    maison(a, 64.6, -11.6, 0, { l: 8.4, p: 7, noren: '#7a3a2e', cheminee: [2.4, 0] });
-    maison(a, 75.0, -11.0, 0, { l: 7.0, p: 6.4, etages: 1, noren: '#4a4a5a' });
-    maison(a, 36.0, 15.8, PI, { l: 6.4, p: 6, noren: '#5a3a6a', enseigne: { texte: 'たまご', l: 1.8 } });
-    maison(a, 56.0, 13.0, PI, { l: 8.6, p: 7, noren: '#2f4a6a', cheminee: [-2.5, 1] });
-    maison(a, 66.0, 15.4, PI, { l: 7.2, p: 6.4, etages: 1, noren: '#6a4a2a' });
-    maison(a, 77.0, 14.4, PI, { l: 7.4, p: 6.4, cheminee: [1.6, 0.5] });
+    for (const m of MAISONS_RUE) maison(a, m.x, m.z, m.ry, m);
     poser(a.fin(), 0, 0, { y: 0 });
   }
 
@@ -573,7 +640,7 @@ export function construire(ctx) {
         .cylindre(0.5, 0.5, 0.05, 14, '#8a8580', { x: q.x, y: y0 + 0.92, z: q.z })
         .cylindre(0.46, 0.48, 0.14, 14, P.bois, { x: q.x, y: y0 + 1.02, z: q.z })
         .boite(0.5, 0.06, 0.08, P.boisFonce, { x: q.x, y: y0 + 1.12, z: q.z, ry: PI });
-      vapeurs.push({ x: q.x, z: q.z, y: y0 + 1.1, n: 8, haut: 3.2, large: 0.5, taille: 0.9 });
+      vapeurs.push({ x: q.x, z: q.z, y: y0 + 1.1, n: 12, haut: 3.6, large: 0.7, taille: 1.6, opacite: 0.5 });
     }
     { const q0 = R(-4.15, 0, zf + 1.1), q1 = R(4.15, 0, zf + 1.1); monde.mur(q0.x, q0.z, q1.x, q1.z, 0.95); }
     for (const u of [-1, 1]) { const q = R(u * 4.6, 0, zf + 2.2); monde.cercle(q.x, q.z, 0.38); }
@@ -593,9 +660,13 @@ export function construire(ctx) {
     a.boite(4.2, 0.55, 1.5, P.pierre, R(0, y + 0.0, 0)).boite(3.7, 0.1, 1.0, '#7ab8b0', R(0, y + 0.16, 0, { trait: false }));
     for (const v of [-1, 1]) a.boite(4.6, 0.08, 0.42, P.bois, R(0, y + 0.44, v * 1.05)).boite(4.6, 0.4, 0.1, P.boisFonce, R(0, y + 0.22, v * 1.22));
     for (const u of [-1, 1]) for (const v of [-1, 1]) a.boite(0.14, 2.6, 0.14, P.boisNoir, R(u * 2.3, y + 1.3, v * 1.45));
-    a.toitJapon(5.6, 3.9, 0.9, 0.35, { ...R(0, y + 2.6, 0), tuile: P.tuileShiro, tuile2: P.tuileShiroClaire, bord: '#4a4a4e', rangs: 12 });
-    a.boite(4.7, 0.5, 3.0, P.boisNoir, R(0, y + 2.85, 0));
-    vapeurs.push({ x: A.x, z: A.z, y: y + 0.2, n: 6, haut: 1.6, large: 0.9, taille: 0.8 });
+    // (les poutres sur les poteaux, le toit posé dessus ; avant le 2026-10-27, une grosse planche noire qui traversait le toit
+    // sur ses bords)
+    for (const v of [-1, 1]) a.boite(4.8, 0.18, 0.16, P.boisNoir, R(0, y + 2.55, v * 1.45));
+    for (const u of [-1, 1]) a.boite(0.16, 0.2, 2.74, P.boisNoir, R(u * 2.3, y + 2.54, 0));
+    a.toitJapon(5.6, 3.9, 0.9, 0.35, { ...R(0, y + 2.62, 0), tuile: P.tuileShiro, tuile2: P.tuileShiroClaire, bord: '#4a4a4e', rangs: 12 });
+    a.boite(3.0, 0.3, 1.6, P.boisNoir, R(0, y + 2.75, 0));
+    vapeurs.push({ x: A.x, z: A.z, y: y + 0.2, n: 10, haut: 1.8, large: 1.0, taille: 1.4, opacite: 0.4 });
     for (const v of [-1, 1]) {
       bancs.push({ de: [A.x - 2.0, A.z + v * 1.05], a: [A.x + 2.0, A.z + v * 1.05], y: y + 0.48, cap: v > 0 ? PI : 0, vue: 0.4, ashiyu: true });
       monde.mur(A.x - 2.3, A.z + v * 1.1, A.x + 2.3, A.z + v * 1.1, 0.48);
@@ -635,8 +706,14 @@ export function construire(ctx) {
         const nx = -uz * cote * (CHEMINS[0].w + 0.25), nz = ux * cote * (CHEMINS[0].w + 0.25);
         for (let d = 0; d < l; d += 2) {
           const x = x0 + ux * (d + 1) + nx, z = z0 + uz * (d + 1) + nz, y = terrain(x, z);
-          // (bout à bout, une pierre sur deux un rien plus haute et plus étroite : leurs bouts se recouvrent sans scintiller)
-          const k = Math.round((s + d) / 2);
+          // (bout à bout, une pierre sur deux un rien plus haute et plus étroite : leurs bouts se recouvrent sans scintiller ;
+          // là où une allée entre dans un enfer, le caniveau passe sous une grille de fonte, au ras du sol)
+          const k = Math.round((s + d) / 2), entree = CHEMINS.some((ch) => !ch.rue && surLaLigne(ch.pts, x, z).d < ch.w + 0.6);
+          if (entree) {
+            a.boite(2.02, 0.1, 0.44 - (k % 2) * 0.02, '#4a4542', { x, y: y - 0.03 + (k % 2) * 0.006, z, ry: -Math.atan2(uz, ux), trait: false });
+            for (let b = -0.85; b < 0.9; b += 0.17) a.boite(0.05, 0.02, 0.4, '#2e2a28', { x: x + ux * b, y: y + 0.03, z: z + uz * b, ry: -Math.atan2(uz, ux), trait: false });
+            continue;
+          }
           a.boite(2.02, 0.12, 0.42 - (k % 2) * 0.02, '#8f887c', { x, y: y - 0.02 + (k % 2) * 0.006, z, ry: -Math.atan2(uz, ux), nuance: 0.07 });
           // une grille toutes les dix-huit mètres environ, la vapeur qui en sort ; (au coude de deux segments, le même numéro
           // revenait : deux lampadaires au même endroit)
@@ -644,10 +721,13 @@ export function construire(ctx) {
           faits.add(`${cote},${k}`);
           if (k % 9 === (cote > 0 ? 2 : 6)) {
             a.boite(0.6, 0.02, 0.36, '#3a3634', { x, y: y + 0.05, z, ry: -Math.atan2(uz, ux), trait: false });
-            vapeurs.push({ x, z, y: y + 0.05, n: 6, haut: 2.4, large: 0.5, taille: 0.9 });
+            vapeurs.push({ x, z, y: y + 0.05, n: 14, haut: 3.4, large: 0.8, taille: 1.8, opacite: 0.4 });
           }
-          // un lampadaire tous les seize mètres, d'un côté puis de l'autre
-          if (k % 8 === (cote > 0 ? 0 : 4) && !presDunBassin(x, z, 2)) {
+          // un lampadaire tous les seize mètres, d'un côté puis de l'autre ; jamais devant l'entrée d'un enfer (2026-10-27 : il y
+          // en avait un au milieu du passage, devant le portail de l'enfer de la mer, celui de l'enfer de boue, de l'étang blanc)
+          // (ni sous l'auvent d'une maison à étage : sa lanterne y entrait)
+          const auvent = MAISONS_RUE.some((m) => (m.etages ?? 2) > 1 && Math.abs(x - m.x) < m.l / 2 + 0.6 && Math.abs(z - (m.z + (m.ry ? -1 : 1) * m.p / 2)) < 2.2);
+          if (k % 8 === (cote > 0 ? 0 : 4) && !auvent && !presDunBassin(x, z, 2) && !CHEMINS.some((ch) => !ch.rue && surLaLigne(ch.pts, x, z).d < ch.w + 1.6)) {
             const lx = x + nx * 0.12, lz = z + nz * 0.12, ly = terrain(lx, lz);
             a.cylindre(0.07, 0.09, 3.3, 7, P.boisNoir, { x: lx, y: ly + 1.65, z: lz }).boite(0.32, 0.4, 0.32, P.shoji, { x: lx, y: ly + 3.45, z: lz })
               .boite(0.44, 0.06, 0.44, P.boisNoir, { x: lx, y: ly + 3.69, z: lz }).boite(0.4, 0.05, 0.4, P.boisNoir, { x: lx, y: ly + 3.2, z: lz });
@@ -668,7 +748,8 @@ export function construire(ctx) {
     enseigneEnfer(a, 17.6, -5.8, 0, '鬼石坊主地獄', { h: 3.6 });
     enseigneEnfer(a, 4.0, 5.2, PI, 'かまど地獄');
     enseigneEnfer(a, -25.0, 5.6, PI, '白池地獄');
-    enseigneEnfer(a, -59.6, -67.6, 0.75, '血の池地獄');
+    // (entre le sentier et l'allée du geyser, tournée vers le carrefour : avant le 2026-10-27, au milieu de l'allée)
+    enseigneEnfer(a, -59.2, -64.2, -2.17, '血の池地獄');
     enseigneEnfer(a, -30.0, -75.4, -1.9, '龍巻地獄');
     // le portail vermillon de l'enfer de la mer : deux piliers, la poutre, un petit toit de tuiles
     {
@@ -679,7 +760,8 @@ export function construire(ctx) {
       }
       a.boite(5.2, 0.32, 0.36, P.vermillon, { x, y: y + 3.1, z }).boite(4.6, 0.2, 0.26, P.vermillonFonce, { x, y: y + 2.55, z });
       a.toitJapon(6.2, 1.8, 0.75, 0.25, { x, y: y + 3.26, z, tuile: P.tuileShiro, tuile2: P.tuileShiroClaire, bord: '#4a4a4e', rangs: 14 });
-      a.boite(5.0, 0.4, 0.8, P.vermillonFonce, { x, y: y + 3.42, z });
+      // (sous le toit, sans le traverser à ses bouts)
+      a.boite(3.6, 0.3, 0.6, P.vermillonFonce, { x, y: y + 3.36, z });
       ecrire({ x, y, z, ry: 0 }, { texte: '海地獄', x: 0, y: 2.55, z: 0.135, l: 1.2, h: 0.18, fond: null, encre: '#f8f0dc' });
     }
     poser(a.fin(), 0, 0, { y: 0 });
@@ -701,8 +783,11 @@ export function construire(ctx) {
       a.boite(2 * es.demi + 0.3 + (k % 2) * 0.02, haut - bas, pas + 0.06, k % 2 ? P.pierre : P.pierreFonce, { x, y: (haut + bas) / 2, z, ry: ang, nuance: 0.07 });
     }
     monde.chemin(es.ligne, es.demi, { sol: 'pierre', droits: true });
-    // les torii rouges serrés au-dessus des marches (comme au sanctuaire Inari de l'enfer de la mer), le dernier en haut
-    for (let s = 0.7; s < es.L - 0.2; s += 1.35) {
+    // les torii rouges serrés au-dessus des marches (comme au sanctuaire Inari de l'enfer de la mer), le dernier en haut ; le
+    // premier là où l'escalier a quitté l'allée d'en bas (2026-10-27 : il était planté dedans, le compagnon dans son pilier)
+    let s0 = 0.7;
+    while (s0 < es.L * 0.5 && CHEMINS.some((ch) => !ch.escalier && surLaLigne(ch.pts, point(s0)[0], point(s0)[1]).d < ch.w + 1.45)) s0 += 0.1;
+    for (let s = s0; s < es.L - 0.2; s += 1.35) {
       const [x, z, ang] = point(s), y = es.y0 + ((es.y1 - es.y0) * s) / es.L, c = Math.cos(ang), sn = Math.sin(ang), d = es.demi + 0.22;
       for (const u of [-1, 1]) {
         a.cylindre(0.085, 0.095, 2.55, 8, P.vermillon, { x: x + c * u * d, y: y + 1.2, z: z - sn * u * d })
@@ -777,7 +862,7 @@ export function construire(ctx) {
     };
   })();
   animes.push(panier);
-  vapeurs.push({ x: panier.x, z: panier.z, y: BASSIN.umi.eau + 0.05, n: 8, haut: 2.5, large: 0.6, taille: 1.0 });
+  vapeurs.push({ x: panier.x, z: panier.z, y: BASSIN.umi.eau + 0.05, n: 12, haut: 2.8, large: 0.8, taille: 1.6, opacite: 0.5 });
   {
     // l'étang des nénuphars géants : leurs grandes feuilles rondes à bord relevé (rouge dessous), quelques fleurs blanches
     const a = atelier(), b = BASSIN.hasu;
@@ -797,40 +882,73 @@ export function construire(ctx) {
   }
 
   // ---------------------------------------------------------------- L'enfer des crânes de moines : ses caillebotis
-  const planches = [];
-  const librePlanche = (x, z, ang, dx, dz) => {
-    const c = Math.cos(ang), sn = Math.sin(ang);
-    const coins = [[0, 0], [dx, dz], [-dx, dz], [dx, -dz], [-dx, -dz]].map(([u, v]) => [x + u * c + v * sn, z - u * sn + v * c]);
-    return !planches.some((q) => coins.some(([px, pz]) => { const cc = Math.cos(q.ang), ss = Math.sin(q.ang), u = (px - q.x) * cc - (pz - q.z) * ss, v = (px - q.x) * ss + (pz - q.z) * cc; return Math.abs(u) < q.dx + 0.01 && Math.abs(v) < q.dz + 0.01; }));
+  // (2026-10-27, la revue : avant, une planche par pas, posée seulement où elle n'en chevauchait pas une autre, et de grands
+  // paliers carrés aux coudes et aux croisements, tournés au hasard du segment suivant : des plaques de travers partout. Le
+  // plancher est maintenant une bande continue dont les bords se coupent en onglet aux coudes ; les planches sont des bandes de
+  // couleur, séparées par un joint sombre, qui tournent doucement d'un onglet à l'autre. Un embranchement passe 6 mm sous
+  // le caillebotis qu'il rejoint.)
+  const H_BOIS = 0.14, EP_BOIS = 0.05, PLANCHES = [P.caillebotis, P.caillebotisClair, P.caillebotis, P.caillebotisFonce];
+  /** Les deux bords d'une ligne brisée à w mètres, coupés en onglet à chaque coude : { G, D } (gauche, droite). */
+  const bordsOnglet = (pts, w) => {
+    const G = [], D = [], n = pts.length;
+    const dir = (i) => { const [x0, z0] = pts[i], [x1, z1] = pts[i + 1], l = Math.hypot(x1 - x0, z1 - z0); return [(x1 - x0) / l, (z1 - z0) / l]; };
+    for (let i = 0; i < n; i++) {
+      const a0 = dir(Math.max(0, i - 1)), a1 = dir(Math.min(n - 2, i));
+      let tx = a0[0] + a1[0], tz = a0[1] + a1[1];
+      const tl = Math.hypot(tx, tz) || 1;
+      tx /= tl; tz /= tl;
+      const k = w / Math.max(0.55, tx * a1[0] + tz * a1[1]);
+      G.push([pts[i][0] - tz * k, pts[i][1] + tx * k]); D.push([pts[i][0] + tz * k, pts[i][1] - tx * k]);
+    }
+    return { G, D };
   };
   CHEMINS.forEach((ch) => {
     if (!ch.bois) return;
-    const a = morceau(ch.pts[0][0], ch.pts[0][1]), H = 0.14;
-    // les paliers (aux coudes, aux bouts qui rejoignent un autre caillebotis)
-    for (let i = 0; i < ch.pts.length; i++) {
-      const [x, z] = ch.pts[i], coude = i > 0 && i + 1 < ch.pts.length, croise = CHEMINS.some((o) => o !== ch && o.bois && surLaLigne(o.pts, x, z).d < 0.3);
-      if (!coude && !croise) continue;
-      const y = hauteurAllee(x, z) + H, d = ch.w + 0.1;
-      a.boite(2 * d, 0.06, 2 * d, '#93704e', { x, y: y - 0.022, z, ry: Math.atan2(...(i + 1 < ch.pts.length ? [ch.pts[i + 1][0] - x, ch.pts[i + 1][1] - z] : [x - ch.pts[i - 1][0], z - ch.pts[i - 1][1]])), nuance: 0.06 });
-      planches.push({ x, z, ang: 0, dx: d * 1.42, dz: d * 1.42 });
-    }
+    const a = morceau(ch.pts[0][0], ch.pts[0][1]), w = ch.w + 0.1;
+    // (un embranchement : un bout posé sur un autre caillebotis ; il passe dessous)
+    const branche = CHEMINS.some((o) => o !== ch && o.bois && [ch.pts[0], ch.pts[ch.pts.length - 1]].some(([x, z]) => surLaLigne(o.pts, x, z).d < 0.3));
+    const dy = branche ? -0.006 : 0, { G, D } = bordsOnglet(ch.pts, w), pos = [], cols = [];
+    const yA = (x, z) => hauteurAllee(x, z) + H_BOIS + dy;
+    const quad = (A, B, C, Dd, c, n) => { tri(pos, cols, A, B, C, c, n); tri(pos, cols, A, C, Dd, c, n); };
+    let numero = 0;
     for (let i = 0; i + 1 < ch.pts.length; i++) {
-      const [x0, z0] = ch.pts[i], [x1, z1] = ch.pts[i + 1], l = Math.hypot(x1 - x0, z1 - z0), ang = Math.atan2(x1 - x0, z1 - z0), n = Math.max(1, Math.round(l / 0.34));
-      for (let k = 0; k < n; k++) {
-        const f = (k + 0.5) / n, x = x0 + (x1 - x0) * f, z = z0 + (z1 - z0) * f, y = hauteurAllee(x, z) + H, dx = ch.w + 0.1 + (k % 2) * 0.01;
-        if (!librePlanche(x, z, ang, dx, 0.135)) continue;
-        a.boite(2 * dx, 0.05, 0.27, (k + i) % 3 ? '#9a7652' : '#8a6848', { x, y: y - 0.025, z, ry: ang, nuance: 0.08 });
-        planches.push({ x, z, ang, dx, dz: 0.135 });
-      }
-      // les longerons, et des piquets enfoncés dans le sol
-      const c = Math.cos(ang), sn = Math.sin(ang);
-      for (const u of [-1, 1]) {
-        const ox = c * u * (ch.w - 0.15), oz = -sn * u * (ch.w - 0.15);
-        a.baton([x0 + ox, hauteurAllee(x0, z0) + H - 0.1, z0 + oz], [x1 + ox, hauteurAllee(x1, z1) + H - 0.1, z1 + oz], 0.05, '#6a5038', 4);
-        for (let d = 0; d < l; d += 2.2) { const f = d / l, px = x0 + (x1 - x0) * f + ox, pz = z0 + (z1 - z0) * f + oz; a.boite(0.1, 0.5, 0.1, '#5a4430', { x: px, y: hauteurAllee(px, pz) - 0.12, z: pz }); }
+      const [x0, z0] = ch.pts[i], [x1, z1] = ch.pts[i + 1], l = Math.hypot(x1 - x0, z1 - z0);
+      // les planches (27 cm) et leurs joints (3 cm), d'un onglet à l'autre
+      const coupes = [0];
+      for (let t = 0.27; t < l - 0.12; t += 0.3) coupes.push(t, t + 0.03);
+      coupes.push(l);
+      const bord = (f, cote) => { const E = cote ? G : D; return [E[i][0] + (E[i + 1][0] - E[i][0]) * f, E[i][1] + (E[i + 1][1] - E[i][1]) * f]; };
+      for (let k = 0; k + 1 < coupes.length; k++) {
+        const fa = coupes[k] / l, fb = coupes[k + 1] / l, joint = k % 2 === 1;
+        const ga = bord(fa, 1), gb = bord(fb, 1), da = bord(fa, 0), db = bord(fb, 0);
+        const ya = yA(x0 + (x1 - x0) * fa, z0 + (z1 - z0) * fa), yb = yA(x0 + (x1 - x0) * fb, z0 + (z1 - z0) * fb);
+        const c = joint ? '#3e3226' : PLANCHES[numero++ % 4];
+        quad([da[0], ya, da[1]], [db[0], yb, db[1]], [gb[0], yb, gb[1]], [ga[0], ya, ga[1]], c, [0, 1, 0]);
+        // les chants, des deux côtés
+        for (const [p0, p1, sg] of [[ga, gb, 1], [da, db, -1]]) {
+          const nx = -(z1 - z0) / l * sg, nz = (x1 - x0) / l * sg;
+          quad([p0[0], ya - EP_BOIS, p0[1]], [p1[0], yb - EP_BOIS, p1[1]], [p1[0], yb, p1[1]], [p0[0], ya, p0[1]], P.caillebotisFonce, [nx, 0, nz]);
+        }
       }
     }
-    monde.chemin(ch.pts.map(([x, z]) => [x, z, hauteurAllee(x, z) + H]), ch.w, { sol: 'bois' });
+    // les deux bouts
+    for (const [i, sg] of [[0, -1], [ch.pts.length - 1, 1]]) {
+      const [x, z] = ch.pts[i], y = yA(x, z), j = i ? i - 1 : 1, nx = (ch.pts[i][0] - ch.pts[j][0]) * sg * (i ? 1 : -1), nz = (ch.pts[i][1] - ch.pts[j][1]) * sg * (i ? 1 : -1);
+      quad([G[i][0], y - EP_BOIS, G[i][1]], [D[i][0], y - EP_BOIS, D[i][1]], [D[i][0], y, D[i][1]], [G[i][0], y, G[i][1]], P.caillebotisFonce, [nx, 0, nz]);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    a.piece(geo, PLANCHES[0], { couleurs: cols, nuance: 0.06 });
+    // les longerons sous les bords, et les piquets enfoncés dans la boue tous les deux mètres
+    for (const E of [G, D]) {
+      const L2 = E.map(([x, z], i) => { const [cx, cz] = ch.pts[i], f = (w - 0.18) / w; return [cx + (x - cx) * f, cz + (z - cz) * f]; });
+      for (let i = 0; i + 1 < L2.length; i++) {
+        const [x0, z0] = L2[i], [x1, z1] = L2[i + 1], l = Math.hypot(x1 - x0, z1 - z0);
+        a.baton([x0, yA(x0, z0) - EP_BOIS - 0.05, z0], [x1, yA(x1, z1) - EP_BOIS - 0.05, z1], 0.05, P.plancheFonce, 4);
+        for (let d = 0.3; d < l - 0.2; d += 2.0) { const f = d / l, px = x0 + (x1 - x0) * f, pz = z0 + (z1 - z0) * f; a.boite(0.1, 0.5, 0.1, P.plancheFonce, { x: px, y: yA(px, pz) - EP_BOIS - 0.27, z: pz }); }
+      }
+    }
+    monde.chemin(ch.pts.map(([x, z]) => [x, z, hauteurAllee(x, z) + H_BOIS]), ch.w, { sol: 'bois', droits: true });
   });
 
   // ---------------------------------------------------------------- L'enfer des crânes de moines : le ronflement du démon
@@ -843,11 +961,14 @@ export function construire(ctx) {
     }
     a.rocher(TAKAIBIKI.x, y + 0.9, TAKAIBIKI.z - 0.6, 0.8, '#7f766a', { sy: 0.9 });
     a.cylindre(0.22, 0.3, 0.2, 8, '#3a3430', { x: TAKAIBIKI.x, y: y + 0.45, z: TAKAIBIKI.z + 0.4, trait: false });
-    ecrire({ x: TAKAIBIKI.x - 2.2, y, z: TAKAIBIKI.z + 1.6, ry: -0.5 }, { texte: '鬼の高いびき', x: 0, y: 0.75, z: 0.03, l: 0.9, h: 0.22, fond: '#efe6d2', encre: '#2a1e18', cadre: true });
-    a.boite(1.0, 0.3, 0.05, '#4a3628', { x: TAKAIBIKI.x - 2.2, y: y + 0.75, z: TAKAIBIKI.z + 1.6, ry: -0.5 }).boite(0.08, 0.8, 0.08, '#4a3628', { x: TAKAIBIKI.x - 2.2, y: y + 0.4, z: TAKAIBIKI.z + 1.57, ry: -0.5 });
+    // (son petit panneau, à côté des rochers, tourné vers le bout du caillebotis ; avant le 2026-10-27, au milieu du passage)
+    const PX = TAKAIBIKI.x + 1.5, PZ = TAKAIBIKI.z + 2.2, PR = -1.3;
+    ecrire({ x: PX, y, z: PZ, ry: PR }, { texte: '鬼の高いびき', x: 0, y: 0.75, z: 0.03, l: 0.9, h: 0.22, fond: '#efe6d2', encre: '#2a1e18', cadre: true });
+    a.boite(1.0, 0.3, 0.05, '#4a3628', { x: PX, y: y + 0.75, z: PZ, ry: PR }).boite(0.08, 0.8, 0.08, '#4a3628', { x: PX - Math.sin(PR) * 0.03, y: y + 0.4, z: PZ - Math.cos(PR) * 0.03, ry: PR });
     monde.cercle(TAKAIBIKI.x, TAKAIBIKI.z - 0.3, 1.7);
-    monde.cercle(TAKAIBIKI.x - 2.2, TAKAIBIKI.z + 1.6, 0.3);
-    vapeurs.push({ x: TAKAIBIKI.x, z: TAKAIBIKI.z + 0.4, y: y + 0.5, n: 6, haut: 2.5, large: 0.4, taille: 1.0 });
+    // (un mur le long de sa planche, le corps à 30 cm)
+    { const cx = Math.cos(PR) * 0.5, cz = -Math.sin(PR) * 0.5; monde.mur(PX - cx, PZ - cz, PX + cx, PZ + cz, 0.32); }
+    vapeurs.push({ x: TAKAIBIKI.x, z: TAKAIBIKI.z + 0.4, y: y + 0.5, n: 10, haut: 2.8, large: 0.6, taille: 1.6, opacite: 0.5 });
     poser(a.fin(), 0, 0, { y: 0 });
   }
   // (son ronflement : toutes les sept secondes environ, une bouffée et le bruit ; geyser.bouffees, plus bas)
@@ -934,8 +1055,8 @@ export function construire(ctx) {
     monde.bloc(ONI.x - 1.6, ONI.x + 1.6, ONI.z - 1.6, ONI.z + 1.6, y - 1, y + 2.3);
     ecrire({ x: ONI.x, y, z: ONI.z, ry: PI }, { texte: '二丁目', x: 1.25, y: 0.55, z: 1.62, l: 0.5, h: 0.2, fond: '#efe6d2', encre: '#2a1e18' });
     // (la vapeur du fourneau sort sur les côtés et derrière : devant, elle cachait le démon)
-    vapeurs.push({ x: ONI.x - 1.9, z: ONI.z + 0.4, y: y + 0.4, n: 7, haut: 3.2, large: 0.6, taille: 1.2 });
-    vapeurs.push({ x: ONI.x + 1.2, z: ONI.z + 1.4, y: y + 2.1, n: 5, haut: 2.6, large: 0.5, taille: 0.9 });
+    vapeurs.push({ x: ONI.x - 1.9, z: ONI.z + 0.4, y: y + 0.4, n: 11, haut: 3.4, large: 0.8, taille: 1.9, opacite: 0.55 });
+    vapeurs.push({ x: ONI.x + 1.2, z: ONI.z + 1.4, y: y + 2.1, n: 9, haut: 2.8, large: 0.7, taille: 1.5, opacite: 0.5 });
     poser(a.fin(), 0, 0, { y: 0 });
   }
   {
@@ -954,9 +1075,14 @@ export function construire(ctx) {
     a.boite(3.2, 0.5, 1.0, P.pierre, { x, y: y + 0.02, z }).boite(2.8, 0.1, 0.6, '#6ab8d0', { x, y: y + 0.19, z, trait: false });
     a.boite(3.4, 0.08, 0.36, P.bois, { x, y: y + 0.44, z: z - 0.72 }).boite(3.4, 0.4, 0.08, P.boisFonce, { x, y: y + 0.22, z: z - 0.86 });
     bancs.push({ de: [x - 1.4, z - 0.72], a: [x + 1.4, z - 0.72], y: y + 0.48, cap: 0, vue: 0.4, ashiyu: true });
+    // (son petit toit sur quatre poteaux, comme au bain de pieds de la rue)
+    for (const u of [-1, 1]) for (const v of [-1, 1]) { a.boite(0.12, 2.4, 0.12, P.boisNoir, { x: x + u * 1.75, y: y + 1.2, z: z - 0.25 + v * 0.95 }); monde.cercle(x + u * 1.75, z - 0.25 + v * 0.95, 0.3); }
+    for (const v of [-1, 1]) a.boite(3.66, 0.16, 0.14, P.boisNoir, { x, y: y + 2.36, z: z - 0.25 + v * 0.95 });
+    for (const u of [-1, 1]) a.boite(0.14, 0.18, 1.76, P.boisNoir, { x: x + u * 1.75, y: y + 2.35, z: z - 0.25 });
+    a.boite(2.4, 0.25, 1.2, P.boisNoir, { x, y: y + 2.55, z: z - 0.25 }).toitJapon(4.6, 3.0, 0.8, 0.35, { x, y: y + 2.42, z: z - 0.25, tuile: P.tuileShiro, tuile2: P.tuileShiroClaire, bord: '#4a4a4e', rangs: 10 });
     monde.mur(x - 1.7, z - 0.78, x + 1.7, z - 0.78, 0.48);
     monde.surface(x - 1.6, x + 1.6, z - 0.5, z + 0.5, y + 0.27, { plein: true });
-    vapeurs.push({ x, z, y: y + 0.2, n: 5, haut: 1.4, large: 0.7, taille: 0.7 });
+    vapeurs.push({ x, z, y: y + 0.2, n: 9, haut: 1.6, large: 0.9, taille: 1.3, opacite: 0.4 });
     poser(a.fin(), 0, 0, { y: 0 });
   }
 
@@ -969,7 +1095,11 @@ export function construire(ctx) {
       a.boite(2.4, 0.08, 0.42, P.bois, { x, y: y + 0.44, z }).boite(0.1, 0.44, 0.36, P.boisFonce, { x: x - 1.0, y: y + 0.2, z }).boite(0.1, 0.44, 0.36, P.boisFonce, { x: x + 1.0, y: y + 0.2, z });
       bancs.push({ de: [x - 1.0, z], a: [x + 1.0, z], y: y + 0.48, cap: 0, vue: 0.3 });
       monde.mur(x - 1.15, z, x + 1.15, z, 0.36);
-      for (const [lx, lz] of [[-23.8, 18.6], [-42.4, 28.2]]) lanterne(a, lx, lz);
+      // (hors de l'allée : avant le 2026-10-27, toutes deux étaient dedans, le compagnon passait au travers)
+      for (const [lx, lz] of [[-22.3, 17.95], [-45.1, 29.55]]) lanterne(a, lx, lz);
+      // le grand érable du bout du jardin, et à son pied, la pierre d'Ippen (PIERRES)
+      a.arbreTouffu(-38.3, 36.3, 7.5, ['#6aa846', '#5f9a3e', '#78b250'], { y: terrain(-38.3, 36.3), sorte: 'houppierErable', caduc: true, large: 1.3 });
+      monde.cercle(-38.3, 36.3, 0.45);
     }
     // la boutique du lac de sang (sa pommade rouge), son auvent
     maison(a, BOUTIQUE_CHI.x, BOUTIQUE_CHI.z, PI, { l: BOUTIQUE_CHI.l, p: BOUTIQUE_CHI.p, etages: 1, noren: '#a8281c' });
@@ -1016,7 +1146,7 @@ export function construire(ctx) {
   // environ (le vrai : toutes les trente à quarante minutes) ; la vapeur qui monte autour
   const geyser = creerGeyser(THREE, GEYSER);
   animes.push(geyser, ronflement);
-  vapeurs.push({ x: GEYSER.x, z: GEYSER.z + 0.8, y: GEYSER.y - 0.2, n: 10, haut: 3.5, large: 0.8, taille: 1.4 });
+  vapeurs.push({ x: GEYSER.x, z: GEYSER.z + 0.8, y: GEYSER.y - 0.2, n: 14, haut: 3.8, large: 1.0, taille: 2.2, opacite: 0.6 });
   // des bouffées qu'on fait naître (le guide de l'enfer du chaudron et son encens, qui fait doubler la vapeur ; le geyser)
   const bouffees = creerBouffees(THREE);
   animes.push(bouffees);
@@ -1034,11 +1164,9 @@ export function construire(ctx) {
   const libreArbre = (x, z, r) => {
     if (surChemins(x, z).d < r + 0.6 || surPlaces(x, z) < r + 0.6) return false;
     if (presDunBassin(x, z, r * 0.6 + 1.0)) return false;
-    for (const [x0, x1, z0, z1] of BATIS) if (x > x0 - r && x < x1 + r && z > z0 - r && z < z1 + r) return false;
+    for (const [x0, x1, z0, z1] of batis) if (x > x0 - r && x < x1 + r && z > z0 - r && z < z1 + r) return false;
     return true;
   };
-  // la ville de Kannawa, tout autour des enfers : ses toits, ses cheminées qui fument (ni arbre dense, ni forêt)
-  const enVille = (x, z) => (x > 29 && z < -17) || (x > 21 && z > 19) || (x > -8 && x < 30 && z < -50) || (x > -16 && x < -9 && z > 8);
   const VERTS = ['#4f7f3a', '#5a8a40', '#466f34'], VERTS_ERABLE = ['#6aa846', '#5f9a3e', '#78b250'], VERT_AZALEE = ['#4c7a38', '#5a8640'];
   /** Un bambou : une tige verte en nœuds, un peu penchée, ses touffes de feuilles en haut. */
   const bambou = (a, x, z, h) => {
@@ -1085,41 +1213,310 @@ export function construire(ctx) {
     poser(a.fin(), 0, 0, { y: 0 });
   }
   {
-    // les maisons de la ville, serrées, dans leur ruelle : un toit de tuiles grises, un mur de crépi ou de planches sombres,
-    // une cheminée de vapeur sur une maison sur trois (les fumées de Kannawa)
-    const PAS_V = 9.5;
-    for (let gx = -16; gx < 80; gx += PAS_V) for (let gz = -100; gz < 44; gz += PAS_V) {
-      const x = gx + (hasard(gx * 1.3, gz) - 0.5) * 3, z = gz + (hasard(gz, gx * 0.7) - 0.5) * 3;
-      if (!enVille(x, z) || !libreArbre(x, z, 4.5) || hasard(x, z * 1.7) > 0.85) continue;
-      const a = morceau(x, z), y = terrain(x, z), l = 5.5 + 2.5 * hasard(x, z), p = 5 + 2 * hasard(z, x), h = 2.6 + (hasard(x * 3, z) > 0.55 ? 2.4 : 0), ry = (Math.round(hasard(z * 2, x) * 4) * PI) / 2 + (hasard(x, z * 5) - 0.5) * 0.2;
-      const mur = hasard(x * 7, z) > 0.5 ? P.crepi : P.boisNoir;
-      a.boite(l, h + 1.2, p, mur, { x, y: y + h / 2 - 0.6, z, ry });
-      a.boite(l + 0.04, 0.5, p + 0.04, P.pierreFonce, { x, y: y - 0.1, z, ry });
-      a.toitJapon(l + 1.1, p + 1.1, 1.5, 0.4, { x, y: y + h - 0.02, z, ry, tuile: P.tuileShiro, tuile2: P.tuileShiroClaire, bord: '#4a4a4e', rangs: Math.round(l * 1.6) });
-      a.boite(l * 0.7, 0.8, p * 0.6, mur, { x, y: y + h + 0.35, z, ry });
-      if (hasard(x * 5, z * 3) > 0.62) {
-        const cx = x + Math.cos(ry) * l * 0.25, cz = z - Math.sin(ry) * l * 0.25;
-        a.cylindre(0.13, 0.13, 3, 8, '#8a8784', { x: cx, y: y + h + 1.2, z: cz });
-        vapeurs.push({ x: cx, z: cz, y: y + h + 2.7, n: 9, haut: 7, large: 1.0, taille: 2.0 });
+    // les maisons de la ville, serrées le long des ruelles (2026-10-27, la revue : avant, des boîtes de crépi sans porte ni
+    // fenêtre, tournées au hasard, sur de la pelouse) : un socle de pierre, les murs de crépi (blanc ou gris) aux poteaux de
+    // bois sombre, ou de planches ; une porte coulissante sous son petit auvent, des fenêtres de verre ou de papier (celles-là
+    // s'allument la nuit), un bandeau entre les deux étages ; le toit de tuiles grises ; un climatiseur, une cheminée de vapeur
+    // sur une maison sur trois. Loin des allées (on n'en voit que le dessus et une face), la façade seule.
+    const MURS = [P.crepi, P.crepiGris, P.crepi, P.planche, P.crepiGris, P.plancheFonce];
+    const maisonVille = (a, x, z, ry, l, p, etages, loin) => {
+      const y = solSous(x, z, ry, l, p), R = repere(x, z, ry), mur = MURS[Math.floor(hasard(x * 7, z) * MURS.length)], bois = mur === P.planche || mur === P.plancheFonce;
+      const h = etages * 2.7, g = hasard(x * 1.3 + 4, z * 0.7);
+      a.boite(l + 0.12, 1.0, p + 0.12, P.pierreFonce, R(0, y - 0.4, 0, { nuance: 0.08 }));
+      a.boite(l, h, p, mur, R(0, y + 0.1 + h / 2, 0));
+      if (!bois) for (const u of [-1, 1]) for (const v of [-1, 1]) a.boite(0.16, h, 0.16, P.boisNoir, R(u * (l / 2 - 0.05), y + 0.1 + h / 2, v * (p / 2 - 0.05)));
+      if (etages > 1) a.boite(l + 0.08, 0.16, p + 0.08, bois ? P.boisNoir : P.planche, R(0, y + 0.1 + 2.7, 0));
+      // une fenêtre sur une face (rf : son tour ; u le long, yb son bas) : le cadre, la vitre ou le papier, un montant
+      const fenetre = (lf, pf, rf, u, yb, w, hh) => {
+        const Rf = (uu, yy, out) => R(uu * Math.cos(rf) + (pf / 2 + out) * Math.sin(rf), yy, -uu * Math.sin(rf) + (pf / 2 + out) * Math.cos(rf), { ry: rf });
+        const papier = hasard(x + u * 3.1 + rf, z + yb) < 0.45;
+        a.boite(w, hh, 0.06, papier ? P.shojiCadre : '#4a4642', Rf(u, y + yb + hh / 2, 0.02))
+          .boite(w - 0.12, hh - 0.12, 0.02, papier ? P.shoji : '#9fb0b6', Rf(u, y + yb + hh / 2, 0.05, { trait: false }))
+          .boite(0.04, hh - 0.12, 0.02, papier ? P.shojiCadre : '#4a4642', Rf(u, y + yb + hh / 2, 0.07, { trait: false }));
+      };
+      const faces = loin ? [[l, p, 0]] : [[l, p, 0], [l, p, PI], [p, l, PI / 2], [p, l, -PI / 2]];
+      for (const [lf, pf, rf] of faces) {
+        const n = Math.max(1, Math.floor((lf - 0.8) / 2.4));
+        for (let e = 0; e < etages; e++) for (let k = 0; k < n; k++) {
+          const u = -((n - 1) * 2.4) / 2 + k * 2.4;
+          // (la porte, au rez-de-chaussée de la façade)
+          if (rf === 0 && e === 0 && k === Math.floor(n / 2)) continue;
+          fenetre(lf, pf, rf, u, 0.1 + e * 2.7 + 1.0, 1.1, 0.95);
+        }
       }
+      {
+        // la porte coulissante, son auvent
+        const n = Math.max(1, Math.floor((l - 0.8) / 2.4)), u = -((n - 1) * 2.4) / 2 + Math.floor(n / 2) * 2.4;
+        a.boite(1.4, 2.0, 0.06, '#5a4636', R(u, y + 1.1, p / 2 + 0.02)).boite(0.04, 1.9, 0.03, '#3a2c22', R(u, y + 1.1, p / 2 + 0.06, { trait: false }))
+          .boite(1.9, 0.06, 0.7, P.tuileShiro, R(u, y + 2.32, p / 2 + 0.33, { rx: 0.2, ordre: 'YXZ' }));
+      }
+      if (g < 0.35) a.boite(0.75, 0.55, 0.28, '#e6e4dc', R(l / 2 - 1.0, y + 0.45, -p / 2 - 0.16));
+      a.boite(l * 0.7, 0.8, p * 0.6, mur, R(0, y + 0.1 + h + 0.35, 0));
+      // (loin des allées, un toit moins fin : 4 rangs de tuiles par pan au lieu de 9)
+      a.toitJapon(l + 1.0, p + 1.0, 1.35, 0.42, { ...R(0, y + 0.1 + h - 0.02, 0), tuile: P.tuileShiro, tuile2: P.tuileShiroClaire, bord: '#4a4a4e', rangs: loin ? 4 : Math.round(l * 1.4) });
+      if (g > 0.66) {
+        const q = R(l * 0.25, 0, -p * 0.1);
+        a.cylindre(0.13, 0.13, 3, 8, '#8a8784', { x: q.x, y: y + h + 1.2, z: q.z });
+        vapeurs.push({ x: q.x, z: q.z, y: y + h + 2.7, n: 10, haut: 7, large: 1.0, taille: 2.2, opacite: 0.75 });
+      }
+    };
+    const PAS_V = 9;
+    for (let gx = -16; gx < 114; gx += PAS_V) for (let gz = -100; gz < 46; gz += PAS_V) {
+      const x = gx + (hasard(gx * 1.3, gz) - 0.5) * 1.2, z = gz + (hasard(gz, gx * 0.7) - 0.5) * 1.2;
+      if (!enVille(x, z) || !libreArbre(x, z, 4.2)) continue;
+      const t = hasard(x, z * 1.7);
+      // (un jardin, de temps en temps : un pin, un érable)
+      if (t > 0.9) { if (libreArbre(x, z, 2)) morceau(x, z).pinNuages(x, z, 5 + 3 * hasard(z, x), 1, { y: terrain(x, z) }); continue; }
+      const dc = Math.min(surChemins(x, z).d, surPlaces(x, z));
+      // (de l'autre côté de la route, au bout de la rue, les maisons lui font face)
+      const ry = x > 91 && x < 100.5 ? -PI / 2 : (Math.floor(hasard(z * 2, x) * 4) * PI) / 2, l = 6.0 + 1.4 * hasard(x, z), p = 5.2 + 1.3 * hasard(z, x);
+      maisonVille(morceau(x, z), x, z, ry, l, p, hasard(x * 3, z) > 0.5 ? 2 : 1, dc > 26);
+    }
+  }
+  // ---------------------------------------------------------------- Les clôtures : où l'on peut marcher, on le voit
+  // (2026-10-27, la revue : rien ne bordait les allées, ni la rue à travers les jardins des enfers ; on butait partout contre
+  // des murs invisibles, au milieu de la mousse.) Comme au Pavillon d'or : le long des allées, à 35 cm du bord où l'on marche,
+  // une clôture basse de bambou (四つ目垣) dans les jardins, des piquets et une corde le long du sentier du bois, une rambarde
+  // basse au bord des caillebotis ; la ligne suit le bord en onglet aux coudes, coupée là où commence une autre allée, une
+  // place, la rambarde d'un bassin, un bâtiment, l'escalier sous les torii. Le long de la rue, à travers les enfers : un muret
+  // de pierre et sa haie taillée, ouverts aux entrées des enfers ; entre les maisons de la rue, des palissades de planches.
+  {
+    const lampes = lumieres.slice();
+    // (un poteau par endroit : deux morceaux de clôture qui se suivent partagent leur bout, et y plantaient deux fois le même)
+    const plantes = new Set();
+    const planter = (x, z) => { const k = `${Math.round(x * 20)},${Math.round(z * 20)}`; if (plantes.has(k)) return false; plantes.add(k); return true; };
+    /** Les points d'une ligne brisée décalée de e mètres, en onglet aux coudes (sg : le côté, ±1). */
+    const decalee = (pts, e, sg) => {
+      const n = pts.length, dir = (i) => { const [x0, z0] = pts[i], [x1, z1] = pts[i + 1], l = Math.hypot(x1 - x0, z1 - z0); return [(x1 - x0) / l, (z1 - z0) / l]; };
+      return pts.map(([x, z], i) => {
+        const a0 = dir(Math.max(0, i - 1)), a1 = dir(Math.min(n - 2, i));
+        let tx = a0[0] + a1[0], tz = a0[1] + a1[1];
+        const tl = Math.hypot(tx, tz) || 1;
+        tx /= tl; tz /= tl;
+        const k = e / Math.max(0.5, tx * a1[0] + tz * a1[1]);
+        return [x - tz * k * sg, z + tx * k * sg];
+      });
+    };
+    /** Le long de la ligne bord, un point tous les pas mètres : les morceaux où ici(x, z) est vrai, faits par faire(a, ligne). */
+    const longer = (bord, ici, faire, pas = 0.9) => {
+      let ligne = [];
+      const fin = () => { if (ligne.length >= 2) faire(morceau(ligne[0][0], ligne[0][1]), ligne); ligne = []; };
+      const point = (x, z) => {
+        if (ici(x, z)) ligne.push([x, z]); else fin();
+        if (ligne.length > 14) { const der = ligne[ligne.length - 1]; fin(); ligne.push(der); }
+      };
+      for (let i = 0; i + 1 < bord.length; i++) {
+        const [x0, z0] = bord[i], [x1, z1] = bord[i + 1], l = Math.hypot(x1 - x0, z1 - z0);
+        for (let t = 0; t < l - pas * 0.3; t += pas) point(x0 + ((x1 - x0) * t) / l, z0 + ((z1 - z0) * t) / l);
+      }
+      point(...bord[bord.length - 1]);
+      fin();
+    };
+    /** La clôture basse de bambou (四つ目垣) : des pieux tous les 1,8 m, deux bambous couchés. */
+    const bambouBas = (a, pts) => {
+      for (let i = 0; i + 1 < pts.length; i++) {
+        const [x0, z0] = pts[i], [x1, z1] = pts[i + 1], l = Math.hypot(x1 - x0, z1 - z0), n = Math.max(1, Math.round(l / 1.8));
+        for (let k = 0; k <= n; k++) {
+          if (k === n && i + 2 < pts.length) continue;
+          const x = x0 + ((x1 - x0) * k) / n, z = z0 + ((z1 - z0) * k) / n;
+          if (planter(x, z)) a.cylindre(0.032, 0.036, 0.72, 5, '#a88a52', { x, y: terrain(x, z) + 0.26, z });
+        }
+        for (const hh of [0.28, 0.5]) a.baton([x0, terrain(x0, z0) + hh + i * 0.002, z0], [x1, terrain(x1, z1) + hh + i * 0.002, z1], 0.022, '#b89a62', 5, { trait: false });
+      }
+    };
+    /** Le long du sentier du bois : des piquets de bois et une corde qui pend entre eux. */
+    const corde = (a, pts) => {
+      for (let i = 0; i + 1 < pts.length; i++) {
+        const [x0, z0] = pts[i], [x1, z1] = pts[i + 1], y0 = terrain(x0, z0), y1 = terrain(x1, z1);
+        if (i === 0 && planter(x0, z0)) a.boite(0.09, 0.85, 0.09, P.plancheFonce, { x: x0, y: y0 + 0.3, z: z0 });
+        if (planter(x1, z1)) a.boite(0.09, 0.85, 0.09, P.plancheFonce, { x: x1, y: y1 + 0.3, z: z1 });
+        const xm = (x0 + x1) / 2, zm = (z0 + z1) / 2;
+        a.tube([[x0, y0 + 0.66, z0], [xm, (y0 + y1) / 2 + 0.55, zm], [x1, y1 + 0.66, z1]], 0.016, '#c8b48a', { cotes: 4, pas: 5 });
+      }
+    };
+    const pres = (x, z, e) => presDunBassin(x, z, e);
+    const lampeIci = (x, z, r) => lampes.some((q) => Math.hypot(q.x - x, q.z - z) < r && q.y - terrain(q.x, q.z) > 3);
+    const auBordDuJardin = (x, z) => surChemins(x, z).d > 0.25 && surPlaces(x, z) > 0.25 && !pres(x, z, 1.0) && surLaLigne(RUE, x, z).d > CHEMINS[0].w + 1.6
+      && !batis.some(([a0, a1, b0, b1]) => x > a0 + 0.4 && x < a1 - 0.4 && z > b0 + 0.4 && z < b1 - 0.4)
+      && !MARCHES.some((es) => surLaLigne(es.ligne, x, z).d < es.demi + 1.0)
+      && !(Math.abs(z - (GEYSER.z + 4.4)) < 1.4 && Math.abs(x - GEYSER.x) < 6);
+    for (const ch of CHEMINS) {
+      if (ch.rue || ch.escalier || ch.bois) continue;
+      for (const sg of [-1, 1]) longer(decalee(ch.pts, ch.w + 0.35, sg), auBordDuJardin, ch.foret ? corde : bambouBas, ch.foret ? 2.0 : 0.9);
+    }
+    for (const pl of PLACES) {
+      if (pl.rue) continue;
+      const k = 1 + 0.35 / Math.min(pl.rx, pl.rz), c = Math.cos(pl.ry), sn = Math.sin(pl.ry), n = Math.max(12, Math.round((2 * PI * Math.max(pl.rx, pl.rz) * k) / 0.9));
+      const bord = [];
+      for (let i = 0; i <= n; i++) { const t = (i / n) * 2 * PI, u = Math.cos(t) * pl.rx * k, v = Math.sin(t) * pl.rz * k; bord.push([pl.x + u * c + v * sn, pl.z - u * sn + v * c]); }
+      longer(bord, auBordDuJardin, bambouBas);
+    }
+    // la rambarde basse au bord des caillebotis (pas le long des rambardes des bassins, ni aux embranchements)
+    const rambarde = (a, pts) => {
+      for (let i = 0; i + 1 < pts.length; i++) {
+        const [x0, z0] = pts[i], [x1, z1] = pts[i + 1], y0 = hauteurAllee(x0, z0) + H_BOIS, y1 = hauteurAllee(x1, z1) + H_BOIS;
+        if (i === 0 && planter(x0, z0)) a.boite(0.08, 0.72, 0.08, P.plancheFonce, { x: x0, y: y0 + 0.26, z: z0 });
+        if (planter(x1, z1)) a.boite(0.08, 0.72, 0.08, P.plancheFonce, { x: x1, y: y1 + 0.26, z: z1 });
+        a.baton([x0, y0 + 0.58 + i * 0.002, z0], [x1, y1 + 0.58 + i * 0.002, z1], 0.03, P.planche, 4);
+        // (le corps s'arrête 30 cm avant la rambarde : le voyageur n'est qu'un point)
+        monde.mur(x0, z0, x1, z1, 0.3);
+      }
+    };
+    for (const ch of CHEMINS) {
+      if (!ch.bois) continue;
+      const autres = CHEMINS.filter((o) => o !== ch && !o.rue);
+      const ici = (x, z) => !autres.some((o) => surLaLigne(o.pts, x, z).d < o.w + 0.5) && surPlaces(x, z) > 0.4 && !pres(x, z, 0.75);
+      for (const sg of [-1, 1]) longer(decalee(ch.pts, ch.w + 0.06, sg), ici, rambarde, 1.8);
+    }
+    // le long de la rue, à travers les enfers (et jusqu'au bain de pieds) : le muret et sa haie ; ouverts aux entrées, aux
+    // places, aux portails et aux enseignes ; les lampadaires dans une trouée de la haie
+    const PORTAILS = [[-20.25, -6.8], [-15.75, -6.8], [-15.0, -6.8], [17.6, -5.8], [4.0, 5.2], [-25.0, 5.6]];
+    // (bout à bout, un morceau sur deux un rien plus épais et plus haut — compté sur tous les morceaux, pas dans chaque ligne :
+    // deux lignes qui se suivent repartaient du même côté, et leurs bouts se recouvraient dans le même plan)
+    let nMur = 0;
+    const murHaie = (a, pts) => {
+      for (let i = 0; i + 1 < pts.length; i++) {
+        const [x0, z0] = pts[i], [x1, z1] = pts[i + 1], l = Math.hypot(x1 - x0, z1 - z0), xm = (x0 + x1) / 2, zm = (z0 + z1) / 2, ry = Math.atan2(x1 - x0, z1 - z0) + PI / 2;
+        const y = Math.min(terrain(x0, z0), terrain(x1, z1), terrain(xm, zm)), j = nMur++ % 2;
+        a.boite(l + 0.02, 0.8 + j * 0.004, 0.46 + j * 0.012, j ? P.pierre : P.pierreFonce, { x: xm, y: y + 0.15, z: zm, ry, nuance: 0.07 })
+          .boite(l + 0.04, 0.12, 0.52 + j * 0.01, P.pierreFonce, { x: xm, y: y + 0.6 + j * 0.005, z: zm, ry });
+        a.boite(l + 0.02, 0.62 + j * 0.006, 0.44 + j * 0.01, '#4f7c3a', { x: xm, y: y + 0.97, z: zm, ry, nuance: 0.1 });
+      }
+    };
+    for (const sg of [-1, 1]) {
+      const ici = (x, z) => x < (sg > 0 ? 24 : 18.6) && !CHEMINS.some((ch) => !ch.rue && surLaLigne(ch.pts, x, z).d < ch.w + 0.6) && surPlaces(x, z) > 0.5
+        && !PORTAILS.some(([px, pz]) => Math.hypot(px - x, pz - z) < 1.0) && !lampeIci(x, z, 0.55) && !pres(x, z, 1.0);
+      longer(decalee(RUE, CHEMINS[0].w + 0.95, sg), ici, murHaie, 1.6);
+    }
+    // le bout ouest de la rue : le muret et sa haie font le tour (avant, la rue finissait en rond dans le sous-bois), ouverts au
+    // départ du sentier du bois
+    {
+      const [xe, ze] = RUE[RUE.length - 1], arc = [];
+      for (let t = 0; t <= 16; t++) { const an = -PI / 2 - (t / 16) * PI; arc.push([xe + Math.cos(an) * (CHEMINS[0].w + 0.95), ze + Math.sin(an) * (CHEMINS[0].w + 0.95)]); }
+      longer(arc, (x, z) => !CHEMINS.some((ch) => !ch.rue && surLaLigne(ch.pts, x, z).d < ch.w + 0.6) && !lampeIci(x, z, 0.55), murHaie, 1.6);
+    }
+    // entre les maisons de la rue : des palissades de planches (板塀) et leur chaperon de tuiles ; derrière le coin de la statue
+    // d'Ippen, un muret de pierre
+    let nPal = 0;
+    const palissade = (a, x0, z0, x1, z1) => {
+      const l = Math.hypot(x1 - x0, z1 - z0), ry = Math.atan2(x1 - x0, z1 - z0) + PI / 2, n = Math.max(1, Math.round(l / 1.8));
+      for (let k = 0; k < n; k++) {
+        const f0 = k / n, f1 = (k + 1) / n, xa = x0 + (x1 - x0) * f0, za = z0 + (z1 - z0) * f0, xb = x0 + (x1 - x0) * f1, zb = z0 + (z1 - z0) * f1, xm = (xa + xb) / 2, zm = (za + zb) / 2;
+        const y = Math.min(terrain(xa, za), terrain(xb, zb)), lk = l / n, j = nPal++ % 2;
+        a.boite(lk, 1.8 + j * 0.004, 0.05, P.planche, { x: xm, y: y + 0.85, z: zm, ry })
+          .boite(lk + 0.02, 0.07, 0.24 + j * 0.01, P.tuileShiro, { x: xm, y: y + 1.79 + j * 0.004, z: zm, ry })
+          .boite(lk + 0.01, 0.3, 0.12 + j * 0.01, P.pierreFonce, { x: xm, y: y - 0.02, z: zm, ry });
+        // (le poteau finit dans le chaperon, sous son dessus)
+        if (planter(xa, za)) a.boite(0.1, 1.83, 0.1, P.boisNoir, { x: xa, y: y + 0.865, z: za });
+        if (k === n - 1 && planter(x1, z1)) a.boite(0.1, 1.83, 0.1, P.boisNoir, { x: x1, y: y + 0.865, z: z1 });
+      }
+    };
+    {
+      // au bout de la rue (2026-10-27 : elle finissait sur un terrain vide, puis de hautes boîtes beiges) : la route qui la
+      // croise, ses lignes blanches, la bordure du trottoir d'en face ; la barrière blanche des piétons (on ne traverse pas)
+      const a = atelier(), xm = (ROUTE.x0 + ROUTE.x1) / 2;
+      for (let zl = -56; zl < 64; zl += 4) for (const xl of [ROUTE.x0 + 0.35, ROUTE.x1 - 0.35]) a.boite(0.15, 0.02, 4.0, '#eeeae0', { x: xl, y: relief(xl, zl) + 0.045, z: zl, trait: false });
+      for (let zl = -54; zl < 60; zl += 6) a.boite(0.14, 0.02, 3, '#eeeae0', { x: xm, y: relief(xm, zl) + 0.045, z: zl, trait: false });
+      for (let zl = -54; zl < 60; zl += 2) a.boite(0.3, 0.16 + (Math.round(zl / 2) % 2) * 0.004, 2.0, P.pierreFonce, { x: ROUTE.x1 + 0.15, y: terrain(ROUTE.x1 + 0.15, zl) + 0.02, z: zl });
+      const xg = 82.9;
+      for (let zg = -8.4; zg <= 12.01; zg += 1.7) a.cylindre(0.035, 0.035, 0.95, 6, '#f2f0ea', { x: xg, y: terrain(xg, zg) + 0.47, z: zg });
+      for (const hh of [0.5, 0.85]) a.baton([xg, terrain(xg, -8.4) + hh, -8.4], [xg, terrain(xg, 12) + hh, 12], 0.03, '#f2f0ea', 6);
+      monde.mur(xg, -8.4, xg, 12, 0.25);
+      // (entre l'enfer du chaudron, l'étang blanc et les maisons de la ville, derrière : des palissades)
+      palissade(a, 21.6, 16.0, 21.6, 40.6);
+      for (let x0 = -48; x0 < 21; x0 += 7.2) palissade(a, x0, 40.6, Math.min(21.6, x0 + 7.2), 40.6);
+      palissade(a, 59.0, -8.5, 60.4, -8.5);
+      palissade(a, 68.8, -2.65, 71.5, -2.2);
+      palissade(a, 49.5, 9.9, 51.7, 7.25);
+      palissade(a, 60.3, 7.25, 62.4, 9.3);
+      palissade(a, 69.6, 9.3, 73.3, 8.35);
+      // (le coin d'Ippen : le muret derrière la statue, du mur de la maison d'à côté au bain de vapeur)
+      for (let k = 0; k < 4; k++) a.boite(1.52, 1.1 + (k % 2) * 0.004, 0.5, k % 2 ? P.pierre : P.pierreFonce, { x: 27.6 + k * 1.52, y: terrain(27.6 + k * 1.52, -10.5) + 0.35, z: -10.5, nuance: 0.07 });
+      poser(a.fin(), 0, 0, { y: 0 });
     }
   }
   for (const a of morceaux.values()) poser(a.fin(), 0, 0, { y: 0 });
-  // la ville au loin : les toits de Beppu qui descendent vers la baie, et partout les fumées des sources (sans trait d'encre)
+  // la ville au loin : les toits de Beppu qui descendent vers la baie, et partout les fumées des sources (sans trait d'encre,
+  // sans ombre). (2026-10-27, la revue : avant, de hautes boîtes beiges coiffées d'un petit toit, des cartons.) Des maisons
+  // basses d'un ou deux étages sous un grand toit en croupe (gris, parfois bleu ou brun), leurs fenêtres en bandeau ; des
+  // immeubles et des hôtels de béton, leurs rangées de fenêtres (qui s'allument la nuit), plus nombreux et plus hauts vers la
+  // mer ; des bosquets (les parcs, les bois des temples). Une seule géométrie par carré de 80 m, faite de quads.
   {
-    const loins = new Map();
+    const secteurs = new Map(), arbres = new Map();
+    const secteur = (x, z) => { const k = `${Math.floor(x / 80)},${Math.floor(z / 80)}`; if (!secteurs.has(k)) secteurs.set(k, { pos: [], cols: [] }); return secteurs.get(k); };
+    const MURS_L = ['#ece4d4', '#e2d9c6', '#d8d0c0', '#cfc8ba', '#c2baab', '#e9e0cc', '#7a6a58', '#8f8272', '#efe8da'];
+    const BETONS = ['#d8d2c6', '#cfc9bc', '#e4e0d6', '#c4beb2', '#b9b4aa', '#d6cbb8', '#e8e4dc', '#c9c2b4'];
+    const TUILES_L = ['#5f6670', '#6a7079', '#575d66', '#727780', '#4f555e', '#5f6670', '#4e6878', '#7a5a48'];
+    const VITRES_L = ['#8e9aa1', P.vitreVille, '#9aa6ac', '#8e9aa1'];
     for (let gx = -40; gx < 330; gx += 9) for (let gz = -300; gz < 260; gz += 9) {
-      const x = gx + (hasard(gx, gz) - 0.5) * 6, z = gz + (hasard(gz, gx) - 0.5) * 6, d = Math.hypot(x + 6, z + 28);
-      if (d < 112 || x < 70 && d < 150 || terrain(x, z) < -28) continue;
-      if (hasard(x * 0.3, z * 0.7) > 0.7) continue;
-      const k = `${Math.floor(x / 80)},${Math.floor(z / 80)}`;
-      if (!loins.has(k)) loins.set(k, atelier());
-      const a = loins.get(k), y = terrain(x, z), l = 4 + 4 * hasard(x, z), p = 4 + 3 * hasard(z, x), h = 3 + 6 * hasard(x * 2, z) * (x > 160 ? 2 : 1), ry = (hasard(x, z * 2) - 0.5) * 0.4;
-      a.boite(l, h, p, hasard(x, z * 3) > 0.5 ? '#e8e2d4' : '#d4ccbc', { x, y: y + h / 2 - 0.5, z, ry, nuance: 0.1 });
-      a.toitJapon(l + 0.6, p + 0.6, 1.2, 0.4, { x, y: y + h - 0.5, z, ry, tuile: P.tuileShiro, tuile2: P.tuileShiroClaire, bord: '#4a4a4e', rangs: 4 });
-      if (hasard(x * 5, z * 3) > 0.86) vapeurs.push({ x, z, y: y + h + 0.5, n: 8, haut: 12, large: 2.5, taille: 5 });
+      const x = gx + (hasard(gx, gz) - 0.5) * 5, z = gz + (hasard(gz, gx) - 0.5) * 5, d = Math.hypot(x + 6, z + 28);
+      if (d < 112 || (x < 70 && d < 150) || terrain(x, z) < -28.5) continue;
+      if (hasard(x * 0.3, z * 0.7) > 0.88 || (x < 116 && enVille(x, z))) continue;
+      const g = hasard(x * 0.13 + 1, z * 0.17 - 2), y = terrain(x, z), ry = Math.round((hasard(x, z * 2) - 0.5) * 2) * 0.12 + (hasard(z, x * 3) - 0.5) * 0.1;
+      if (g < 0.07) {
+        // un bosquet
+        const k = `${Math.floor(x / 80)},${Math.floor(z / 80)}`;
+        if (!arbres.has(k)) arbres.set(k, atelier());
+        arbres.get(k).arbreTouffu(x, z, 8 + 5 * hasard(x, z), VERTS, { y, sorte: 'persistant', loin: true, large: 1.4 });
+        continue;
+      }
+      const S = secteur(x, z), c = Math.cos(ry), sn = Math.sin(ry);
+      const Q = (lx, yy, lz) => [x + lx * c + lz * sn, yy, z - lx * sn + lz * c];
+      const quad = (A, B, C, D, col, n) => { tri(S.pos, S.cols, A, B, C, col, n); tri(S.pos, S.cols, A, C, D, col, n); };
+      // une boîte posée (sans dessous), haute de h : ses quatre murs, son dessus ; des rangées de fenêtres (rangs : [[bas,
+      // haut], …]) tous les pasF mètres, larges de largF, 3 cm devant le mur, de la couleur coul(face, rang, k) (2026-10-27 : en
+      // bandeau continu, la nuit, chaque étage s'allumait d'un bloc, comme un néon)
+      const boite = (l, p, y0, h, mur, dessus, rangs, pasF, largF, coul) => {
+        const L2 = l / 2, P2 = p / 2;
+        const faces = [[[-L2, P2], [L2, P2], [0, 1]], [[L2, -P2], [-L2, -P2], [0, -1]], [[L2, P2], [L2, -P2], [1, 0]], [[-L2, -P2], [-L2, P2], [-1, 0]]];
+        faces.forEach(([[ax, az], [bx, bz], [nx, nz]], fi) => {
+          const n = [nx * c + nz * sn, 0, -nx * sn + nz * c];
+          quad(Q(ax, y0, az), Q(bx, y0, bz), Q(bx, y0 + h, bz), Q(ax, y0 + h, az), mur, n);
+          if (!rangs) return;
+          const len = Math.hypot(bx - ax, bz - az), ux = (bx - ax) / len, uz = (bz - az) / len, nf = Math.max(1, Math.floor((len - 0.8) / pasF)), ox = nx * 0.03, oz = nz * 0.03;
+          rangs.forEach(([yb, yh], ri) => {
+            for (let k = 0; k < nf; k++) {
+              const u = (len - nf * pasF) / 2 + (k + 0.5) * pasF, u0 = u - largF / 2, u1 = u + largF / 2, col = coul(fi, ri, k);
+              quad(Q(ax + ux * u0 + ox, y0 + yb, az + uz * u0 + oz), Q(ax + ux * u1 + ox, y0 + yb, az + uz * u1 + oz), Q(ax + ux * u1 + ox, y0 + yh, az + uz * u1 + oz), Q(ax + ux * u0 + ox, y0 + yh, az + uz * u0 + oz), col, n);
+            }
+          });
+        });
+        if (dessus) quad(Q(-L2, y0 + h, P2), Q(L2, y0 + h, P2), Q(L2, y0 + h, -P2), Q(-L2, y0 + h, -P2), dessus, [0, 1, 0]);
+      };
+      const y0 = y - 0.6;
+      const tour = x > 175 ? 0.3 : x > 150 ? 0.1 : 0;
+      if (g > 1 - tour) {
+        // un immeuble, un hôtel : des étages de 3 m, chacun sa rangée de fenêtres (un tiers allumées le soir)
+        const etages = 3 + Math.floor(hasard(x * 2, z) * (x > 175 ? 6 : 3)), l = 10 + 8 * hasard(z, x), p = 8 + 6 * hasard(x, z * 3), H = 1.5 + etages * 3;
+        const beton = BETONS[Math.floor(hasard(x, z * 5) * BETONS.length)], rangs = [];
+        for (let e = 0; e < etages; e++) rangs.push([1.5 + e * 3, 2.5 + e * 3]);
+        boite(l, p, y0, H, beton, '#a9a49a', rangs, 2.2, 1.5, (fi, ri, k) => (hasard(x + fi * 3.1 + k, z + ri * 1.7) < 0.35 ? P.vitreVille : '#8e9aa1'));
+        if (hasard(x + 4, z) < 0.5) boite(2.6, 2.4, y0 + H, 2.2, beton, '#a9a49a');
+        if (hasard(x * 5, z * 3) > 0.8) vapeurs.push({ x, z, y: y0 + H + 0.5, n: 10, haut: 14, large: 2.5, taille: 6, opacite: 0.7 });
+        continue;
+      }
+      // une maison basse, un ou deux étages : son mur et ses fenêtres (de papier, qui s'allument le soir, ou de verre sombre),
+      // son grand toit en croupe
+      const etages = hasard(x * 3, z) > 0.45 ? 2 : 1, l = 6 + 3 * hasard(x, z), p = 5.5 + 2.5 * hasard(z, x), H = 1.6 + etages * 2.7;
+      const mur = MURS_L[Math.floor(hasard(x * 7, z) * MURS_L.length)], allumee = hasard(x, z + 9) < 0.55, rangs = [];
+      for (let e = 0; e < etages; e++) rangs.push([1.4 + e * 2.7, 2.3 + e * 2.7]);
+      boite(l, p, y0, H, mur, null, rangs, 2.4, 1.2, (fi, ri, k) => (allumee && hasard(x + fi * 2.3 + k, z - ri) < 0.6 ? P.shoji : '#5f5a55'));
+      // le toit en croupe : le faîte le long du grand côté, débordant de 45 cm
+      const yt = y0 + H, ht = 1.5 + 0.5 * hasard(z * 3, x), tuile = TUILES_L[Math.floor(hasard(z, x * 5) * TUILES_L.length)];
+      const L2 = l / 2 + 0.45, P2 = p / 2 + 0.45, f = Math.max(0, L2 - P2);
+      const A = Q(-L2, yt, P2), B = Q(L2, yt, P2), C = Q(L2, yt, -P2), D = Q(-L2, yt, -P2), E = Q(-f, yt + ht, 0), F = Q(f, yt + ht, 0);
+      quad(A, B, F, E, tuile, [0, 1, 0]); quad(C, D, E, F, tuile, [0, 1, 0]);
+      tri(S.pos, S.cols, B, C, F, tuile, [0, 1, 0]); tri(S.pos, S.cols, D, A, E, tuile, [0, 1, 0]);
+      if (d < 260 && hasard(x * 5, z * 3) > 0.86) vapeurs.push({ x, z, y: yt + ht, n: 10, haut: 12, large: 2.2, taille: 5, opacite: 0.75 });
     }
-    for (const a of loins.values()) poser(a.fin(), 0, 0, { y: 0, trait: false, ombre: false });
+    for (const S of secteurs.values()) {
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(S.pos, 3));
+      const a = atelier();
+      a.piece(geo, '#e2d9c6', { couleurs: S.cols, nuance: 0.04, trait: false });
+      poser(a.fin(), 0, 0, { y: 0, trait: false, ombre: false });
+    }
+    for (const a of arbres.values()) poser(a.fin(), 0, 0, { y: 0, trait: false, ombre: false });
   }
 
   // la forêt au loin (le mont Tsurumi à l'ouest, les collines du nord) : moins fine, sans trait d'encre
@@ -1307,12 +1704,16 @@ export function construire(ctx) {
       // la vendeuse du lac de sang (le tampon) : la pommade faite de son argile rouge
       id: 'chiike', passant: 'chiike', verbe: 'parler',
       async action(jeu) {
+        // (la caméra du côté de l'allée, la vendeuse devant sa boutique : derrière le voyageur, elle butait contre la façade)
+        const y = terrain(-54, -68.6);
+        jeu.cadrer({ de: [-56.4, y + 2.0, -73.4], vers: [-54, y + 1.1, -68.4], champ: 42 });
         const r = await jeu.choisir(jeu.tx(jeu.aTampon('chinoike') ? 'chiikeEncore' : 'chiike'), [jeu.t('oui'), jeu.t('non')], 'chiike');
-        if (r !== 0) { await jeu.dire(jeu.tx('chiikeNon'), 'chiike'); return; }
+        if (r !== 0) { await jeu.dire(jeu.tx('chiikeNon'), 'chiike'); jeu.cadrer(null); return; }
         jeu.image(pommadeSVG(), 'pommade');
         jeu.son('papier');
         await jeu.dire(jeu.tx('pommade'), 'chiike');
         jeu.image(null);
+        jeu.cadrer(null);
         if (!jeu.aTampon('chinoike')) { await jeu.tampon('chinoike'); await comp(jeu, 'chinoikeCompagnon'); }
       },
     },
@@ -1465,7 +1866,7 @@ export function construire(ctx) {
     // les bêtes (betes.js) : deux chats qui se chauffent sur le sol tiède, des papillons (les asagimadara de l'enfer de la
     // tornade, en octobre), des libellules, des milans au-dessus de la ville
     betes: {
-      chats: [{ id: 'chatRoux', x: 50.6, z: 10.6, cap: -2.0, robe: 'roux', dort: true }, { id: 'chatPie', x: 25.0, z: 7.6, cap: 0.8, robe: 'pie' }],
+      chats: [{ id: 'chatRoux', x: 48.9, z: 7.4, cap: -2.0, robe: 'roux', dort: true }, { id: 'chatPie', x: 25.0, z: 7.6, cap: 0.8, robe: 'pie' }],
       papillons: [[-38, -80], [-30, -84], [-20, -46], [-36, 30]], libellules: [[-20, -40], [8, 24], [-30, 26]],
       milans: [{ x: 10, z: -20, r: 40, h: 46, sens: 1 }, { x: -50, z: -60, r: 26, h: 34, sens: -1 }],
     },
@@ -1475,7 +1876,7 @@ export function construire(ctx) {
       const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
       return MARCHES.some((es) => surLaLigne(es.ligne, cx, cz).d < es.demi + 3) || Math.hypot(cx - GEYSER.x, cz - GEYSER.z - 1) < 4;
     },
-    etendue: { x0: -720, x1: 720, z0: -720, z1: 720, pas: 4, fin: { x0: -92, x1: 80, z0: -100, z1: 44, pas: 1 } },
+    etendue: { x0: -720, x1: 720, z0: -720, z1: 720, pas: 4, fin: { x0: -92, x1: 100, z0: -100, z1: 44, pas: 1 } },
     eau: { x0: 200, x1: 1400, z0: -1400, z1: 1400, niveau: -30 },
     vent: { dir: [0.9, 0.3], force: 0.45 }, oiseaux: ['milan'], ambiances: ['insectes'],
     brume: [150, 1500],
@@ -1939,21 +2340,29 @@ function aspectSol(P, x, z, h) {
     if (b.sorte === 'boue') return [bruit > 0.5 ? '#8a847a' : '#7a756c', M.terre];
     return h > b.eau - 0.3 ? ['#d8d0bc', M.roche] : [b.id === 'chinoike' || b.id === 'akaike' ? '#8a3424' : b.sorte === 'nenuphars' ? '#3f4a36' : '#6a8a8a', M.terre];
   }
-  // autour des bassins des enfers : les dépôts blancs et jaunes des sources, des roches
-  if (sb.b && sb.d < 1.45 && sb.b.sorte !== 'nenuphars') return [bruit > 0.6 ? '#e4dcc4' : bruit > 0.3 ? P.depot : '#cbbf98', M.roche];
+  // autour des bassins des enfers : les dépôts des sources sur la roche, blancs et jaunes (une bande étroite : avant le
+  // 2026-10-27, une grande plage crème autour de chaque bassin)
+  if (sb.b && sb.d < 1.2 && sb.b.sorte !== 'nenuphars') return [bruit > 0.6 ? '#ddd4bd' : bruit > 0.3 ? P.depot : '#c4b892', M.roche];
   const c = surChemins(x, z), dp = surPlaces(x, z), dc = Math.min(c.d, dp);
   // la rue : des dalles de pierre grises, mouillées de vapeur ; les caillebotis de bois sur la boue
-  if (c.c?.rue && c.d < 0.1 + 0.2 * bruit) return [bruit > 0.5 ? '#b2ab9b' : '#a39c8c', M.dalles];
+  if (c.c?.rue && c.d < 0.08 + 0.1 * bruit) return [bruit > 0.5 ? '#b2ab9b' : '#a39c8c', M.dalles];
   if (c.c?.bois && c.d < 0.3) return [bruit > 0.5 ? '#7a7266' : '#6e665a', M.terre];
-  // les allées des enfers : du gravier clair ; les places : des dalles
-  if (dp < 0.05 + 0.25 * bruit && !c.c?.rue) return [bruit > 0.5 ? '#c8c0ae' : '#bab29e', M.dalles];
-  if (dc < 0.05 + 0.25 * bruit) return [bruit > 0.5 ? P.gravier : P.gravierFonce, M.sable];
+  // les places : des dalles ; les allées des enfers : du gravier gris (avant le 2026-10-27, le sable ratissé des jardins zen,
+  // ses vagues, d'un blanc crème, au bord tout déchiqueté) ; le sentier du bois : la terre battue
+  if (dp < 0.06 + 0.1 * bruit && !c.c?.rue) return [bruit > 0.5 ? '#c4bba8' : '#b8af9c', M.dalles];
+  if (dc < 0.06 + 0.1 * bruit) return c.c?.foret ? [bruit > 0.5 ? '#9c8a6c' : '#8f7d60', M.terre] : [bruit > 0.5 ? '#bdb6a6' : '#b1a999', M.terre];
   // la falaise derrière le geyser : de la roche grise
   if (z < GEYSER.z + 1.2 && Math.abs(x - GEYSER.x) < 15 && z > GEYSER.z - 12) return [bruit > 0.5 ? '#8a8174' : '#7a7266', M.roche];
+  // la ville au loin, vers la baie : le gris des rues et des toits
+  if (x > 60 && Math.hypot(x + 6, z + 28) > 100) return [bruit > 0.5 ? '#9a958c' : '#8f8a82', M.route];
   // le bois de Shibaseki, la forêt au loin : le sous-bois
   if ((x < -52 && z < -6 && z > -66) || Math.hypot(x + 6, z + 28) > 110) return [bruit > 0.6 ? '#4b6539' : '#557a3a', M.sousBois];
-  // les jardins des enfers : de la mousse et de l'herbe ; entre les maisons, la terre
-  if (z > -18 && z < 20 && x > 18) return [bruit > 0.5 ? '#9a8a70' : '#8a7c64', M.terre];
+  // la route au bout de la rue, la ville de Kannawa : le goudron
+  if (x > ROUTE.x0 && x < ROUTE.x1 && z > -100 && z < 100) return [bruit > 0.5 ? '#6f6c68' : '#6a6763', M.route];
+  if (enVille(x, z)) return [bruit > 0.5 ? '#8f8a82' : '#87827b', M.route];
+  // le long de la rue : un trottoir de pierre devant les maisons, la terre derrière
+  if (z > -18 && z < 20 && x > 18) return surLaLigne(RUE, x, z).d < 6.4 ? [bruit > 0.5 ? '#a8a191' : '#9f9888', M.dalles] : [bruit > 0.5 ? '#9a8a70' : '#8a7c64', M.terre];
+  // les jardins des enfers : de la mousse et de l'herbe
   return [bruit > 0.66 ? P.mousseJardinClair : bruit > 0.33 ? P.mousseJardin : P.mousseJardinFonce, M.mousse];
 }
 

@@ -74,6 +74,9 @@ const PALETTE = {
   // Beppu (2026-10-27) : le grand démon rouge du chaudron et sa peau de tigre ; la fonte du chaudron ; les pierres blanchies par
   // les dépôts des sources ; le bois sombre et le crépi des vieilles maisons de Kannawa
   oniRouge: '#d9482f', oniFonce: '#a83420', tigre: '#e8a42a', fonte: '#3e3a38', fonteClair: '#57514c', depot: '#d9d1bd', crepi: '#e9e0cc',
+  // (la revue du 2026-10-27 : les planches grises des caillebotis, usées par la vapeur ; le crépi gris, les planches des
+  // palissades de la ville)
+  caillebotis: '#8f7860', caillebotisClair: '#9d876b', caillebotisFonce: '#7c6750', crepiGris: '#d2cabb', planche: '#6e5a48', plancheFonce: '#5a4a3c',
 };
 const PARCHEMIN = { cielHaut: '#ead9b4', horizon: '#f0ead2', nuage: '#fbf4e2' };
 
@@ -120,7 +123,8 @@ function matieres(P) {
   // (Beppu : le démon peint, qui brille comme une laque ; la fonte, la pierre ; le crépi)
   mettre(M.laque, 'oniRouge', 'oniFonce', 'tigre');
   mettre(M.pierre, 'fonte', 'fonteClair', 'depot');
-  mettre(M.enduit, 'crepi');
+  mettre(M.enduit, 'crepi', 'crepiGris');
+  mettre(M.bois, 'caillebotis', 'caillebotisClair', 'caillebotisFonce', 'planche', 'plancheFonce');
   return t;
 }
 
