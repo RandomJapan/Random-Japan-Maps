@@ -58,8 +58,9 @@ import * as beppu from './beppu.js';
 // chaque lieu : { infos (noms, tampons, textes : sans rien construire), construire(ctx) }
 // (EN_ESSAI : les lieux en cours, qu'on ne voit qu'en mode développeur, localStorage.modeDev = 'oui', celui de la carte ; le
 // propriétaire, 2026-10-26 : « à chaque nouveau lieu tu les mettra en mode développeur avant de le mettre en ligne à tous le
-// monde ». Pour un visiteur, rien n'en paraît : ni le menu « Aller à », ni le carnet, ni la garde-robe, et ?lieu= mène au lieu
-// par défaut. Pour le sortir : l'ôter de EN_ESSAI, et ôter la classe dev de son lien dans app.js, BALADES_ESSAI)
+// monde ». Pour un visiteur, rien n'en paraît : ni le carnet, ni la garde-robe, ni le panneau des balades de la carte (où mène
+// le menu), et ?lieu= mène au lieu par défaut. Pour le sortir : l'ôter de EN_ESSAI, et ôter la classe dev de son lien dans
+// app.js, BALADES_ESSAI)
 // (Kinkaku-ji, en essai depuis le 2026-10-26, sorti le 2026-10-27 : « c'est bon tu peux le mettre en ligne pour tout le monde » ;
 // Beppu, en essai depuis le 2026-10-27)
 const EN_ESSAI = ['beppu'];
@@ -2270,6 +2271,11 @@ async function offrirRecompenses() {
   }
 }
 
+// Au bas du menu, « Toutes les balades 3D » mène au panneau des balades de la carte (../?balades, app.js), à la place de la
+// liste « Aller à » (2026-10-27, le propriétaire : « enlève ça dans le menu de la balade et rajoute juste un bouton qui
+// renvoie au menu balade 3D de la carte »), avec le cube des boutons « Visiter en 3D » de la carte (SVG.balade).
+const CUBE = '<svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3 4 7.5v9L12 21l8-4.5v-9Z"/><path d="M4 7.5 12 12l8-4.5M12 12v9"/></g></svg>';
+
 function ouvrirMenu() {
   if (etat.mode !== 'jeu' && etat.mode !== 'menu') return;
   const T = t('tresors');
@@ -2283,10 +2289,10 @@ function ouvrirMenu() {
     ${aAchete('calendrier') ? `<div class="menu-ligne"><span>${T.menuSaison}</span><div>${SAISONS.map((k) => `<button type="button" data-menusaison="${k}" class="${k === M.saison ? 'actif' : ''}">${T.saisons[k]}</button>`).join('')}</div></div>` : ''}
     ${choix('menuVoyageur', [['garcon', t('garcon')], ['fille', t('fille')]], sorte)}
     ${choix('menuCompagnon', compagnonsDispo().map((e) => [e, tcDe(e, 'nom')]), espece)}
-    ${choix('menuLieu', Object.entries(LIEUX).map(([id, { infos }]) => [id, nomDe(infos)]), M.lieu.id)}
     ${choix('menuSon', [['oui', t('sonOui')], ['non', t('sonNon')]], son.actif() ? 'oui' : 'non')}
     ${choix('menuMusique', [['oui', t('sonOui')], ['non', t('sonNon')]], M.musique.actif() ? 'oui' : 'non')}
     ${choix('menuLangue', [['en', 'EN'], ['fr', 'FR'], ['ja', '日本語']], langue)}
+    <a class="menu-balades" href="../?balades">${CUBE}${t('menuBalades')}</a>
     <a class="menu-carte" href="../#${M.lieu.carte}">${t('menuCarte')}</a>`;
   $('.fond-menu').hidden = false;
   etat.mode = 'menu';
@@ -2328,8 +2334,6 @@ $('.menu').addEventListener('click', (e) => {
       M.kon.sauter();
       setTimeout(() => M.bruitage.cri(espece, { pan: panDe(renard.x, renard.z) }), 250);
     }
-  } else if (d.menulieu) {
-    if (d.menulieu !== M.lieu.id) { location.search = `?lieu=${d.menulieu}`; return; }
   } else if (d.menuson) son.regler(d.menuson === 'oui');
   else if (d.menumusique) M.musique.regler(d.menumusique === 'oui');
   else if (d.menulangue) {

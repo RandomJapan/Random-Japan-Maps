@@ -2628,6 +2628,9 @@ async function demarrer() {
   brancherDev();
   const liensJeu = lireLiensJeu();
   const lienDefi = retirerParametres('defi').defi !== null;
+  // ?balades : « Toutes les balades 3D », dans le menu de la balade (2026-10-27), ouvre la carte sur leur panneau
+  const lienBalades = retirerParametres('balades').balades !== null;
+  if (lienBalades) $('aide').classList.add('cachee');
   majPointDefi();
   const lienVoyage = lireLienVoyage();
   appliquerLangue();
@@ -2662,6 +2665,7 @@ async function demarrer() {
         requestAnimationFrame(tourner);
       }, 600);
     }
+    if (lienBalades) ouvrirBalades(true);
     // Contours des préfectures (116 Ko) chargés en avance, sans gêner le démarrage : le dé s'ouvre tout de suite.
     setTimeout(() => preparerPrefectures().catch(() => {}), 3000);
     setTimeout(chargerLegendes, 1500);
