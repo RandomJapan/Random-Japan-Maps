@@ -39,6 +39,10 @@ export const PLANS: Plan[] = [
   { de: b(35), a: LONGUEUR, prise: "kk-feux", t: 6.3, entree: "fouet" },
 ];
 
+// Les bruitages un peu plus bas que dans les autres vidéos (le propriétaire : « baisse-les légèrement », après les
+// cigales) ; les cigales, déjà un fond, gardent leur volume.
+const DOUX = 0.6;
+
 // Chaque réplique (ou morceau de réplique, voix.py) tombe avec son texte à l'écran ; Son vérifie qu'elles ne se
 // superposent pas.
 const BANDE: Bande = {
@@ -49,7 +53,7 @@ const BANDE: Bande = {
     ["d10a", sec(35) + 0.3], ["d10b", 26.35], ["d10c", 27.65],
   ],
   durees: { d1a: 1.95, d1b: 1.32, d2: 2.05, d3: 1.65, d4: 1.44, d5: 0.99, d6: 1.4, d7: 2.0, d8a: 1.05, d8b: 2.46, d9: 1.46, d10a: 0.8, d10b: 1.05, d10c: 0.98 },
-  sfx: [
+  sfx: ([
     // les cigales de l'été (le jour), puis la nuit ; un fond, loin sous la voix (le propriétaire : « les sons d'ambiance
     // sont trop fort » ; à 0,5, elles couvraient presque la voix : la boucle est normalisée, 4 dB RMS sous le maximum)
     [0.0, "sfx-jeu/boucle-semi.wav", 0.04, 12.6], [12.5, "sfx-jeu/boucle-semi.wav", 0.04, sec(25) - 12.5],
@@ -65,7 +69,7 @@ const BANDE: Bande = {
     [sec(35) - 0.14, "sfx/whoosh-fast.mp3", 0.8], [sec(35) + 0.25, "sfx/bass-hit-short.mp3", 0.9], [sec(35) + 0.3, "sfx/pop.mp3", 0.8],
     // (les feux d'artifice de la prise, à 8,6, 9,0, 9,6 et 10,0 s)
     ...[8.6, 9.0, 9.6, 10.0].map((t, i): [number, string, number] => [sec(35) + t - 6.3, "sfx-jeu/feu-boum.wav", 0.35 - 0.04 * i]),
-  ],
+  ] as Bande["sfx"]).map(([a, nom, v, d]): Bande["sfx"][number] => (d === undefined ? [a, nom, v * DOUX] : [a, nom, v, d])),
 };
 
 const Textes: React.FC = () => (
