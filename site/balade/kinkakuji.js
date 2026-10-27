@@ -2437,6 +2437,18 @@ export function construire(ctx) {
     // sa lumière (lueurs.js, mobile) : elle suit la lueur qui vole, puis reste à la source ; ailleurs, rangée loin sous le sol
     const lampe = { x: S.x, y: S.eau + 0.35, z: S.z, halo: 0, sol: SOL_SOURCE, r: 2.4, c: '#ffc24a', mobile: true };
     lumieres.push(lampe);
+    // l'appel du belvédère (le 2026-10-27, le propriétaire : « une petite lueur à cet endroit qui attire l'utilisateur au
+    // belvédère pour observer le pavillon ») : la nuit, tant qu'on n'a pas vu le reflet sans phénix, une lueur flotte là où
+    // l'on regarde (l'interaction « kinkaku »), des étincelles en montent, une lumière chaude tombe sur le sable ; elle s'efface
+    // quand on arrive (la bulle « Regarder » apparaît alors). (Un mètre en avant de l'interaction, sur le sable : à sa place,
+    // contre la balustrade, elle se perdait dans le noir de l'étang.)
+    const B = { x: 28.5, z: 52.5 }, yB = terrain(B.x, B.z), NB = 10;
+    // (en pixels, comme la lueur qui vole : en mètres, de l'allée, ce n'était qu'un point)
+    const appel = new THREE.Group(), monteeB = points(NB, 8, '#ffd27a', false), auraB = points(1, 140, '#ff9a2e', false), haloB = points(1, 72, '#ffb52e', false), coeurB = points(1, 20, '#fff3c4', false);
+    appel.add(monteeB, auraB, haloB, coeurB);
+    objet.add(appel);
+    const lampeB = { x: B.x, y: yB + 1.0, z: B.z, halo: 0, sol: yB, r: 2.2, c: '#ffc24a', mobile: true };
+    lumieres.push(lampeB);
     // le chemin de la lueur : de l'eau, là où le belvédère voit le toit du reflet, en frôlant l'étang jusque devant le
     // pavillon, puis par-dessus le toit, et derrière, jusqu'à la source (le pavillon la cache du belvédère)
     const DE = new THREE.Vector3(27.4, 2.0, 49.6), REFLET = new THREE.Vector3(0, -12.0, 0);
@@ -2463,7 +2475,7 @@ export function construire(ctx) {
         });
       },
       maj(dt, temps, c) {
-        const nuit = c.nuit > 0.5, trouve = secretTrouve('phenix');
+        const nuit = c.nuit > 0.5, trouve = secretTrouve('phenix'), vu = indiceVu('phenix-reflet');
         // la lueur qui vole
         vol.visible = !!e;
         if (e) {
@@ -2493,7 +2505,22 @@ export function construire(ctx) {
           if (r.t > 1.1) { r.t = -1; r.m.visible = false; }
         }
         // la source qui luit : la nuit, après le belvédère, jusqu'au secret (et sa lumière, après le secret aussi)
-        const luit = nuit && !trouve && !e && indiceVu('phenix-reflet');
+        // l'appel du belvédère, avant
+        const appelle = nuit && !trouve && !e && !vu, db = Math.hypot(c.joueur.x - B.x, c.joueur.z - B.z);
+        appel.visible = appelle && db < 120;
+        lampeB.y = appelle ? yB + 1.0 : -500;
+        if (appel.visible) {
+          // (elle respire : plus forte, puis plus douce, toutes les 2,5 s)
+          const f = lisse(1.8, 3.4, db), yb = yB + 1.1 + 0.08 * Math.sin(temps * 1.6), r = 0.5 + 0.5 * Math.sin(temps * 2.5);
+          poser(auraB, 0, B.x, yb, B.z, f * (0.22 + 0.14 * r));
+          poser(haloB, 0, B.x, yb, B.z, f * (0.75 + 0.25 * r));
+          poser(coeurB, 0, B.x, yb, B.z, f);
+          for (let k = 0; k < NB; k++) {
+            const s = (temps / (2.4 + 0.5 * hasard(k, 3)) + hasard(k, 4)) % 1, a = k * 2.4 + temps * 0.5;
+            poser(monteeB, k, B.x + Math.cos(a) * 0.35, yB + 0.3 + s * 2.0, B.z + Math.sin(a) * 0.35, f * Math.sin(PI * s) ** 1.5);
+          }
+        }
+        const luit = nuit && !trouve && !e && vu;
         const dj = Math.hypot(c.joueur.x - S.x, c.joueur.z - S.z);
         lueur.visible = luit && dj < 110;
         if (!e) {
