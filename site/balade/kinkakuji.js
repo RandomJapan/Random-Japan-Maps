@@ -2345,14 +2345,15 @@ export function construire(ctx) {
     return {
       objet,
       /** Le phénix est-il là (la nuit, pas encore retrouvé, pas envolé) ? */
-      get la() { return envol < 0 && !secretTrouve('phenix'); },
+      get la() { return envol < 0 && !secretTrouve('phenix') && indiceVu('phenix-reflet'); },
       envoler() { envol = 0; },
       plume() { plumeT = 0; plumeOr.visible = true; },
       cacherPlume() { plumeT = -1; plumeOr.visible = false; },
       maj(dt, temps, c) {
         const nuit = c.nuit > 0.5, proche = Math.hypot(c.joueur.x - S.x, c.joueur.z - S.z) < 40;
         objet.visible = proche && (nuit || plumeT >= 0);
-        const la = nuit && !secretTrouve('phenix') && envol < 0;
+        // (il n'y boit qu'une fois son absence vue au belvédère : envolReflet)
+        const la = nuit && !secretTrouve('phenix') && envol < 0 && indiceVu('phenix-reflet');
         fantome.visible = la || (envol >= 0 && envol < 2.5);
         etoiles.visible = nuit;
         if (!objet.visible) return [];
@@ -2384,53 +2385,150 @@ export function construire(ctx) {
     };
   })();
   animes.push(source);
-  // L'indice (le 2026-10-27, le propriétaire : « quand tu ne connais pas la solution de l'easter egg, je trouve que c'est un
-  // peu compliqué de savoir que le phénix il est dans la source de la voie lactée… tu peux donner un indice plus clair ») :
-  // la nuit, tant qu'on ne l'a pas retrouvé, le phénix a semé de petites plumes d'or sur l'allée, de l'arrière du pavillon
-  // jusqu'à la source ; elles luisent, une lueur scintille au-dessus de chacune. Et une lumière dorée éclaire la source,
-  // chaque nuit (on la voit de l'allée). Les compagnons, le maître de thé et la plaque de la source le disent aussi (TEXTES).
-  const traine = (() => {
-    const CHEMIN = [[10.6, -4.2], [9.6, -10.6], [3, -14.8], [-6, -17.8], [-14, -19.8], [-20.6, -21.6], [-25.2, -23.2], [-22, -27.6], [-15, -29.6], [-8, -30.8], [SOURCE.x + 0.6, SOURCE.z + 2.2]];
-    const objet = new THREE.Group(), modele = ctx.maillage(plumePhenix(atelier(), 0.36, { sorte: 'lumiere' }).fin(0, false)), points = [];
-    let reste = 1.5;
-    for (let i = 0; i + 1 < CHEMIN.length; i++) {
-      const [x0, z0] = CHEMIN[i], [x1, z1] = CHEMIN[i + 1], l = Math.hypot(x1 - x0, z1 - z0), nx = -(z1 - z0) / l, nz = (x1 - x0) / l;
-      let d = reste;
-      for (; d < l; d += 3.6) {
-        const e = (hasard(i * 7, d) - 0.5) * 1.4, x = x0 + ((x1 - x0) * d) / l + nx * e, z = z0 + ((z1 - z0) * d) / l + nz * e, y = monde.hauteur(x, z, 9);
-        const m = modele.clone();
-        m.position.set(x, y + 0.06, z);
-        m.rotation.set(-PI / 2 + 0.08, hasard(d, i) * 2 * PI, 0, 'YXZ');
-        m.scale.setScalar(0.85);
-        objet.add(m);
-        points.push(x, y + 0.3, z);
-      }
-      reste = d - l;
-    }
-    const n = points.length / 3, g = new THREE.BufferGeometry(), teintes = new Float32Array(n * 3);
-    g.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
-    g.setAttribute('color', new THREE.BufferAttribute(teintes, 3));
-    // (une lueur douce, ronde, de 60 cm, au-dessus de chaque plume : on la voit de loin)
+  // L'indice, en deux temps (le 2026-10-27, le propriétaire : « faudrait faire en sorte que le joueur soit poussé à d'abord
+  // aller regarder via le point de vue juste à côté du lac, le pavillon d'or, voir qu'il n'y a pas le phénix, et ensuite
+  // qu'il aille voir la source voie lactée » ; avant, des plumes d'or semées sur l'allée de l'arrière du pavillon à la
+  // source, qui menaient on ne savait où selon le bout par lequel on arrivait) :
+  // - à la tombée de la nuit, le compagnon (et le maître de thé) envoient voir le reflet du pavillon au belvédère ;
+  // - au belvédère, une fois vu que le phénix manque au reflet, une lueur d'or quitte le reflet, file sur l'étang, passe
+  //   par-dessus le toit et disparaît derrière le pavillon (la caméra la suit) ; le compagnon nomme la source ;
+  // - dès lors, chaque nuit jusqu'au secret, la source luit : des étincelles d'or montent de son eau (on les voit de loin,
+  //   elles s'effacent quand on approche : au-dessus de la source, il n'y a rien) et une lumière dorée éclaire ses pierres.
+  // Le phénix ne boit à la source qu'une fois son absence vue au belvédère (source.la).
+  const envolReflet = (() => {
+    const objet = new THREE.Group(), vol = new THREE.Group(), lueur = new THREE.Group();
+    objet.add(vol, lueur);
+    // (une tache douce et ronde, pour toutes ces lueurs)
     const TX = 32, px = new Uint8Array(TX * TX * 4);
     for (let j = 0; j < TX; j++) for (let i = 0; i < TX; i++) { const r = Math.hypot(i - TX / 2 + 0.5, j - TX / 2 + 0.5) / (TX / 2), v = Math.min(1, Math.exp(-r * r * 4) * 0.85 + Math.max(0, 1 - r / 0.22) * 0.5) * (r < 1 ? 1 : 0); px.set([255, 255, 255, Math.round(v * 255)], (j * TX + i) * 4); }
-    const lueur = new THREE.DataTexture(px, TX, TX);
-    lueur.needsUpdate = true;
-    objet.add(new THREE.Points(g, new THREE.PointsMaterial({ size: 0.8, map: lueur, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })));
-    // (la lueur de la source : une lumière dorée sur ses pierres, sans halo, qui cacherait le reflet du phénix)
-    lumieres.push({ x: SOURCE.x, y: SOURCE.eau + 0.35, z: SOURCE.z, halo: 0, sol: SOL_SOURCE, r: 2.4 });
+    const tache = new THREE.DataTexture(px, TX, TX);
+    tache.needsUpdate = true;
+    // (attenue : sa taille en mètres ; sinon, en pixels, la même de près et de loin)
+    const points = (n, taille, couleur, attenue = true) => {
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3).setUsage(THREE.DynamicDrawUsage));
+      g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(n * 3), 3).setUsage(THREE.DynamicDrawUsage));
+      const m = new THREE.Points(g, new THREE.PointsMaterial({ size: taille, sizeAttenuation: attenue, vertexColors: true, color: couleur, map: tache, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+      m.frustumCulled = false;
+      return m;
+    };
+    const poser = (m, k, x, y, z, b) => {
+      m.geometry.attributes.position.setXYZ(k, x, y, z);
+      m.geometry.attributes.color.setXYZ(k, b, b, b);
+      m.geometry.attributes.position.needsUpdate = m.geometry.attributes.color.needsUpdate = true;
+    };
+    // la lueur qui vole : un grand halo pâle, un halo, son cœur, une traînée de comète ; de la même taille à l'écran de près
+    // et de loin (en pixels). (Au premier essai, en mètres, 1,4 m de halo : à 30–50 m du belvédère, une dizaine de pixels,
+    // on la voyait à peine ; la taille des points en mètres ne suit pas le champ de la caméra, et la sienne est étroite.)
+    const aura = points(1, 150, '#ff9a2e', false), halo = points(1, 64, '#ffb52e', false), coeur = points(1, 20, '#fff3c4', false);
+    const NT = 34, trainee = points(NT, 10, '#ffd27a', false);
+    vol.add(aura, halo, coeur, trainee);
+    // ses ronds sur l'étang, quand elle le frôle
+    const NR = 12, ronds = Array.from({ length: NR }, () => {
+      const r = new THREE.Mesh(new THREE.RingGeometry(0.12, 0.17, 24).rotateX(-PI / 2), new THREE.MeshBasicMaterial({ color: '#ffe3a0', transparent: true, opacity: 0, depthWrite: false }));
+      r.visible = false;
+      vol.add(r);
+      return { m: r, t: -1 };
+    });
+    // la source qui luit : des étincelles qui montent de l'eau, un halo, une étincelle de loin
+    const S = SOURCE, NE = 26, montee = points(NE, 0.2, '#ffd27a'), haloS = points(1, 3.0, '#ffb52e'), loinS = points(1, 6, '#ffe08a', false);
+    lueur.add(montee, haloS, loinS);
+    const graines = Array.from({ length: NE }, (_, k) => ({ x: (hasard(k, 7) - 0.5) * 1.6 * S.lx, z: (hasard(k, 8) - 0.5) * 1.6 * S.lz, p: 3.2 + 1.4 * hasard(k, 9), f: hasard(k, 10), h: 4.2 + 1.6 * hasard(k, 11) }));
+    // sa lumière (lueurs.js, mobile) : elle suit la lueur qui vole, puis reste à la source ; ailleurs, rangée loin sous le sol
+    const lampe = { x: S.x, y: S.eau + 0.35, z: S.z, halo: 0, sol: SOL_SOURCE, r: 2.4, c: '#ffc24a', mobile: true };
+    lumieres.push(lampe);
+    // le chemin de la lueur : de l'eau, là où le belvédère voit le toit du reflet, en frôlant l'étang jusque devant le
+    // pavillon, puis par-dessus le toit, et derrière, jusqu'à la source (le pavillon la cache du belvédère)
+    const DE = new THREE.Vector3(27.4, 2.0, 49.6), REFLET = new THREE.Vector3(0, -12.0, 0);
+    const P0 = DE.clone().lerp(REFLET, (DE.y - EAU - 0.04) / (DE.y - REFLET.y));
+    const courbe = new THREE.CatmullRomCurve3([
+      P0, new THREE.Vector3(14, EAU + 0.3, 25), new THREE.Vector3(6.5, EAU + 0.5, 11.5), new THREE.Vector3(5.5, 5.5, 11),
+      new THREE.Vector3(0.5, KK.faite + 2.4, 0), new THREE.Vector3(-3.5, 7, -10),
+    ], false, 'centripetal');
+    // (les temps : elle s'allume dans le reflet, file, disparaît derrière le pavillon ; la caméra y reste un instant. Au premier
+    // essai, elle allait jusqu'à la source, cachée par le pavillon : 2,5 s où l'on ne voyait plus rien)
+    const NAIT = 1.0, FILE = 5.2, RESTE = 0.7;
+    let e = null, iT = 0, derniere = -1, iR = 0, dernierRond = -1;
+    const traces = Array.from({ length: NT }, () => ({ x: 0, y: -100, z: 0, t: -10 }));
+    const ici = new THREE.Vector3(), vise = new THREE.Vector3(), PAVILLON = new THREE.Vector3(0, KK.h3, 0);
     return {
       objet,
+      /** La lueur quitte le reflet (le belvédère, la nuit) ; la caméra la suit de de ; se résout quand elle a disparu. */
+      partir(jeu, de) {
+        return new Promise((fin) => {
+          e = { t: 0, jeu, de, fin, champ: 13 };
+          vise.copy(REFLET);
+          traces.forEach((q) => { q.t = -10; });
+          jeu.son('magie');
+        });
+      },
       maj(dt, temps, c) {
-        objet.visible = c.nuit > 0.5 && !secretTrouve('phenix') && Math.hypot(c.joueur.x - 0, c.joueur.z + 18) < 70;
-        if (!objet.visible) return [];
-        // (chaque étincelle scintille à son rythme)
-        for (let k = 0; k < n; k++) { const b = 0.5 + 0.5 * Math.max(0, Math.sin(temps * (2.1 + (k % 5) * 0.37) + k * 1.7)) ** 3; teintes[k * 3] = b; teintes[k * 3 + 1] = 0.8 * b; teintes[k * 3 + 2] = 0.32 * b; }
-        g.attributes.color.needsUpdate = true;
+        const nuit = c.nuit > 0.5, trouve = secretTrouve('phenix');
+        // la lueur qui vole
+        vol.visible = !!e;
+        if (e) {
+          e.t += dt;
+          const a = Math.min(1, Math.max(0, (e.t - NAIT) / FILE)), u = a * a * (3 - 2 * a);
+          courbe.getPointAt(u, ici);
+          // (elle naît, petite, dans le reflet, et s'éteint en arrivant)
+          const b = Math.min(1, e.t / NAIT) * (1 - lisse(0.9, 1, a)) * (0.85 + 0.15 * Math.sin(temps * 9));
+          for (const [m, f] of [[aura, 0.3], [halo, 0.9], [coeur, 1]]) poser(m, 0, ici.x, ici.y, ici.z, b * f);
+          // la traînée (un point tous les 4 centièmes de seconde), les ronds sur l'eau quand elle la frôle
+          if (a > 0 && a < 1 && temps - derniere > 0.035) { derniere = temps; Object.assign(traces[iT], { x: ici.x + (hasard(iT, temps) - 0.5) * 0.3, y: ici.y + (hasard(temps, 3 * iT) - 0.5) * 0.3, z: ici.z + (hasard(temps, iT) - 0.5) * 0.3, t: temps }); iT = (iT + 1) % NT; }
+          traces.forEach((q, k) => { const v = Math.max(0, 1 - (temps - q.t) / 1.1); poser(trainee, k, q.x, q.y - (temps - q.t) * 0.4, q.z, v * v * 0.9); });
+          if (a > 0 && ici.y < EAU + 0.9 && temps - dernierRond > 0.09) { dernierRond = temps; Object.assign(ronds[iR], { t: 0 }); ronds[iR].m.position.set(ici.x, EAU + 0.012, ici.z); ronds[iR].m.visible = true; iR = (iR + 1) % NR; }
+          // la caméra : du toit du reflet, de tout près, elle s'ouvre et suit la lueur ; derrière le pavillon, elle reste sur lui
+          const voulu = ici.z > -1 ? ici : PAVILLON;
+          vise.lerp(voulu, Math.min(1, dt * (e.t < NAIT ? 1 : 4.5)));
+          e.champ += (e.t < NAIT ? 0 : (36 - e.champ) * Math.min(1, dt * 1.6));
+          e.jeu.cadrer({ de: e.de, vers: vise.toArray(), champ: e.champ });
+          lampe.x = ici.x; lampe.y = ici.y; lampe.z = ici.z;
+          if (e.t > NAIT + FILE + RESTE) { const fin = e.fin; e = null; traces.forEach((q) => { q.t = -10; }); fin(); }
+        }
+        for (const r of ronds) {
+          if (r.t < 0) continue;
+          r.t += dt;
+          r.m.scale.setScalar(1 + r.t * 3.2);
+          r.m.material.opacity = 0.7 * Math.max(0, 1 - r.t / 1.1);
+          if (r.t > 1.1) { r.t = -1; r.m.visible = false; }
+        }
+        // la source qui luit : la nuit, après le belvédère, jusqu'au secret (et sa lumière, après le secret aussi)
+        const luit = nuit && !trouve && !e && indiceVu('phenix-reflet');
+        const dj = Math.hypot(c.joueur.x - S.x, c.joueur.z - S.z);
+        lueur.visible = luit && dj < 110;
+        if (!e) {
+          const allumee = nuit && (luit || trouve);
+          lampe.x = S.x; lampe.y = allumee ? S.eau + 0.35 : -500; lampe.z = S.z;
+        }
+        if (lueur.visible) {
+          // (de près, plus rien au-dessus de la source : seulement l'eau, et ce qui s'y reflète)
+          const f = lisse(4.5, 9, dj);
+          graines.forEach((g, k) => {
+            const s = (temps / g.p + g.f) % 1;
+            poser(montee, k, S.x + g.x + 0.2 * Math.sin(temps * 0.9 + k), S.eau + 0.1 + s * g.h, S.z + g.z + 0.2 * Math.cos(temps * 0.7 + k), f * Math.sin(PI * s) ** 1.5 * (0.7 + 0.3 * Math.sin(temps * 5 + k * 2.3)));
+          });
+          poser(haloS, 0, S.x, S.eau + 1.4, S.z, f * (0.32 + 0.06 * Math.sin(temps * 1.7)));
+          poser(loinS, 0, S.x, S.eau + 2.0, S.z, f * 0.75);
+        }
         return [];
       },
     };
   })();
-  animes.push(traine);
+  animes.push(envolReflet);
+  // à la tombée de la nuit (le maître de thé, les feux d'artifice de Bunbuku…), tant qu'on n'a pas vu le reflet sans phénix :
+  // le compagnon propose d'aller le voir au belvédère (une fois par nuit ; dès qu'on est libre)
+  let nuitDite = false;
+  animes.push({
+    objet: new THREE.Group(),
+    maj(dt, temps, c) {
+      if (c.nuit < 0.1) nuitDite = false;
+      else if (c.nuit > 0.95 && !nuitDite) {
+        nuitDite = true;
+        if (!secretTrouve('phenix') && !indiceVu('phenix-reflet')) c.scene((jeu) => comp(jeu, 'nuitCompagnon'));
+      }
+      return [];
+    },
+  });
 
   // ---------------------------------------------------------------- Le plateau du thé (le tampon du salon de thé)
   // un plateau laqué : le bol de thé matcha mousseux, le petit gâteau et sa feuille d'or ; posé sur le banc, à côté du voyageur
@@ -2523,6 +2621,8 @@ export function construire(ctx) {
           await jeu.attendre(600);
           await jeu.dire([l3]);
           jeu.voirIndice('phenix-reflet');
+          // une lueur d'or quitte le reflet, file sur l'étang et disparaît derrière le pavillon ; le compagnon nomme la source
+          await envolReflet.partir(jeu, de);
           await comp(jeu, 'refletCompagnon');
         } else if (jeu.estNuit) {
           await jeu.attendre(600);
@@ -2564,7 +2664,8 @@ export function construire(ctx) {
       // la source de la Voie lactée : le jour, l'eau du thé de Yoshimitsu ; la nuit… le reflet d'un phénix (le secret)
       id: 'gingasen', x: SOURCE.x, z: SOURCE.z + 2.6, rayon: 2.2, haut: 1.0, verbe: 'regarder',
       async action(jeu) {
-        if (!jeu.estNuit || !source.la) { await jeu.dire(jeu.txn(secretTrouve('phenix') ? 'gingasenApres' : 'gingasen')); return; }
+        // (la nuit, avant d'avoir vu au belvédère que le phénix manque au reflet : des étoiles, et l'envie d'aller y voir)
+        if (!jeu.estNuit || !source.la) { await jeu.dire(secretTrouve('phenix') ? jeu.txn('gingasenApres') : jeu.estNuit ? jeu.tx('gingasenEtoiles') : jeu.tx('gingasen')); return; }
         jeu.cadrer({ de: [SOURCE.x + 0.3, SOURCE.eau + 2.3, SOURCE.z + 1.9], vers: [SOURCE.x, SOURCE.eau - 0.4, SOURCE.z - 0.2], champ: 55 });
         await jeu.attendre(900);
         await jeu.dire(jeu.tx('gingasenNuit'));
@@ -2895,7 +2996,8 @@ const TEXTES = {
     kinkakuNuit: ['La nuit, le pavillon dort au-dessus de l’étang noir… et son reflet brille dans l’eau, à l’envers.', '…Attends. Regarde bien le toit du reflet.', 'Le phénix d’or est sur le vrai toit… mais pas dans le reflet ! Il a disparu de l’eau !'],
     kinkakuNuitApres: ['La nuit, le pavillon et son reflet se font face. Sur les deux toits, le phénix veille.'],
     kinkakuCompagnon: { kon: ['« Que c’est beau… Deux pavillons d’or, un dans le ciel, un dans l’eau. »'], pon: ['« Pon ! Tout en or ! On en ferait combien de koban, à ton avis ? »'], chapu: ['« Chapu ! L’eau est toute dorée ! Je peux plonger dans le reflet ? »'], gao: ['« Gao ! Un trésor pareil, il faut le garder jour et nuit ! »'], fuwa: ['« Fuwaaa… Il brille comme ma perle, mais mille fois plus grand. »'], saya: ['« Les pins autour le regardent depuis des siècles… Ils en sont fiers. »'] },
-    refletCompagnon: { kon: ['« Le phénix du reflet est parti… Un reflet ne s’en va pas sans raison. Aurait-il soif ? »', '« Regarde : derrière le pavillon, des plumes d’or brillent sur le chemin. Suivons-les jusqu’à l’eau où il boit ! »'], pon: ['« Pon ?! Un reflet qui fait le mur ! Il est parti boire un coup, c’est sûr… »', '« Ces plumes d’or sur le chemin, derrière le pavillon… elles mènent sûrement à une source ! »'], chapu: ['« Chapu ! Un reflet qui nage tout seul ? Il cherche une eau plus pure… une source ! »', '« Il a semé des plumes d’or derrière le pavillon. Suivons-les ! »'], gao: ['« Gao ! On a volé le phénix ? Non… il est parti de lui-même. »', '« Il a laissé une piste : des plumes d’or, derrière le pavillon, vers les sources. Cherchons-le ! »'], fuwa: ['« Fuwa… Je le sens : il boit dans une eau très pure, pleine d’étoiles. »', '« Au bout des plumes d’or, derrière le pavillon… là où le shogun puisait l’eau de son thé. »'], saya: ['« Les arbres l’ont vu passer… vers les sources, derrière le pavillon. »', '« Ses plumes d’or brillent encore sur le chemin. Elles mènent à la source de la Voie lactée. »'] },
+    refletCompagnon: { kon: ['« Tu as vu ? Le phénix du reflet s’est envolé… Il a filé derrière le pavillon ! Aurait-il soif ? »', '« Derrière le pavillon, il y a la source de la Voie lactée, où le shogun puisait l’eau de son thé. Allons voir s’il y boit ! »'], pon: ['« Pon ?! Un reflet qui fait le mur ! Il est passé par-dessus le toit ! »', '« Derrière le pavillon, il y a la source de la Voie lactée… Il est parti boire un coup, c’est sûr. On y va ! »'], chapu: ['« Chapu ! Il a sauté hors de l’eau et il a filé derrière le pavillon ! »', '« Un reflet, ça cherche une eau très pure… La source de la Voie lactée, derrière le pavillon ! Vite ! »'], gao: ['« Gao ! On a volé le phénix ? Non… il est parti tout seul, derrière le pavillon. »', '« Par là, il y a la source de la Voie lactée. Allons-y, je monte la garde ! »'], fuwa: ['« Fuwa… Je le sens : il a soif d’une eau très pure, pleine d’étoiles. »', '« Derrière le pavillon, là où le shogun puisait l’eau de son thé : la source de la Voie lactée. »'], saya: ['« Les arbres l’ont vu passer… vers les sources, derrière le pavillon. »', '« Il est allé à la source de la Voie lactée. Allons-y : elle doit briller, cette nuit. »'] },
+    nuitCompagnon: { kon: ['« La nuit est tombée… Le pavillon doit être magnifique dans l’étang. Allons voir son reflet au belvédère, au bord de l’eau, là où on est arrivés ! »'], pon: ['« Pon ! Il fait tout noir ! Allons voir le pavillon dans l’étang, au belvédère d’où on est partis. La nuit, il paraît qu’il s’y passe des choses… »'], chapu: ['« Chapu ! L’étang est tout noir… Allons voir le reflet du pavillon, au belvédère, au bord de l’eau ! »'], gao: ['« Gao… La nuit, je monte la garde. Allons voir si le reflet du pavillon va bien : au belvédère, au bord de l’étang ! »'], fuwa: ['« Fuwa… La nuit, les reflets disent des secrets. Allons regarder l’étang depuis le belvédère, là où on est arrivés. »'], saya: ['« La nuit, les arbres chuchotent… Ils parlent du reflet du pavillon. Allons le voir au belvédère, au bord de l’étang. »'] },
     pavillon: ['Vu de près, le pavillon a trois étages, chacun dans un style différent.', 'En bas, le bois brut d’un palais de la cour (le style shinden). Au milieu, une maison de samouraï. En haut, une salle de temple zen, avec ses fenêtres en cloche.', 'Les deux étages du haut sont couverts de feuilles d’or : environ vingt kilos, en deux cent mille feuilles !'],
     kuzan: ['Devant le pavillon, dans l’eau : le rocher des « neuf montagnes et huit mers » (九山八海石).', 'Il représente le mont Meru, la montagne au centre du monde dans le bouddhisme. Yoshimitsu l’aurait fait venir de Chine.'],
     sosei: ['De derrière, on voit le côté nord du pavillon : ses murs de plâtre blanc entre les poteaux de bois sombre.', 'Et là, sur l’eau : le Sōsei (漱清), le petit pavillon où Yoshimitsu venait se rafraîchir au bord de l’étang.'],
@@ -2905,6 +3007,7 @@ const TEXTES = {
     shinun: ['Tu salues le petit sanctuaire Shin’un (榊雲), où l’on honore les dieux qui protègent le temple.'],
     gingasen: ['La source de la Voie lactée (銀河泉) : Yoshimitsu y faisait puiser l’eau de son thé.', 'L’eau est claire et profonde… La nuit, dit-on, les étoiles s’y reflètent comme une rivière de lumière, et un oiseau d’or vient y boire.'],
     gingasenNuit: ['La source de la Voie lactée, sous les étoiles…', 'Dans l’eau… le reflet d’un oiseau d’or ! Un phénix, penché sur l’eau, qui boit !', 'Pourtant, au-dessus de la source… il n’y a rien. Seulement son reflet.'],
+    gingasenEtoiles: ['La source de la Voie lactée, sous les étoiles…', 'Les étoiles se reflètent dans l’eau noire, comme une rivière de lumière. Tout est calme.', 'Cette nuit, le reflet du Pavillon d’or doit être beau, lui aussi… On le voit le mieux du belvédère, au bord de l’étang.'],
     gingasenApres: ['La source de la Voie lactée brille d’étoiles. Une petite lueur dorée flotte encore au fond de l’eau…'],
     phenixCompagnon: { kon: ['« Un phénix… On dit qu’il n’apparaît qu’aux époques de paix. Approche doucement. »'], pon: ['« Pon… Pour une fois, je n’ai même pas faim. C’est trop beau. »'], chapu: ['« Chapu… Je ne plonge pas. Promis. Je regarde juste. »'], gao: ['« Gao… Je monte la garde. Personne ne le dérangera. »'], fuwa: ['« Un oiseau du ciel qui boit l’eau des étoiles… Fuwa, comme dans les contes. »'], saya: ['« L’eau de cette source est très ancienne… Elle se souvient de Yoshimitsu. »'] },
     phenixMain: ['Le reflet du phénix lève la tête… et te regarde.', 'Tendre la main vers l’eau ?'],
@@ -2929,7 +3032,7 @@ const TEXTES = {
     sekkatei: ['Le Sekka-tei (夕佳亭), « le pavillon où le soir est beau » : un pavillon de thé construit pour l’empereur Go-Mizunoo.', 'Son nom vient du Pavillon d’or, qu’on voit d’ici briller au soleil couchant. Son pilier est taillé dans un tronc de nandina !'],
     chajinJour: ['Bienvenue au Sekka-tei. D’ici, au soleil couchant, le Pavillon d’or brille comme une lanterne.', 'Voulez-vous attendre le soir avec moi ?'],
     chajinNon: ['Prenez votre temps. Le soir viendra bien assez tôt.'],
-    chajinSoir: ['…Voilà le soir. Le pavillon a brillé de tous ses feux, puis la nuit est tombée.', 'La nuit, le jardin est plein de mystères. Allez voir le reflet du pavillon dans l’étang…'],
+    chajinSoir: ['…Voilà le soir. Le pavillon a brillé de tous ses feux, puis la nuit est tombée.', 'La nuit, le jardin est plein de mystères. Allez voir le reflet du pavillon depuis le belvédère, au bord de l’étang…'],
     chajinNuit: ['Une belle nuit… Voulez-vous que le matin revienne ?'],
     chajinReste: ['Restons encore un peu sous les étoiles.'],
     chajinMatin: ['Le soleil se lève sur le Pavillon d’or. Bonne promenade !'],
@@ -2996,7 +3099,8 @@ const TEXTES = {
     kinkakuNuit: ['At night, the pavilion sleeps above the dark pond… and its reflection glows in the water, upside down.', '…Wait. Look closely at the roof of the reflection.', 'The golden phoenix is on the real roof… but not in the reflection! It has vanished from the water!'],
     kinkakuNuitApres: ['At night, the pavilion and its reflection face each other. On both roofs, the phoenix keeps watch.'],
     kinkakuCompagnon: { kon: ['“How beautiful… Two golden pavilions, one in the sky, one in the water.”'], pon: ['“Pon! All gold! How many koban could you make out of it, you think?”'], chapu: ['“Chapu! The water is all golden! Can I dive into the reflection?”'], gao: ['“Gao! A treasure like that must be guarded day and night!”'], fuwa: ['“Fuwaaa… It shines like my pearl, but a thousand times bigger.”'], saya: ['“The pines around it have watched it for centuries… They’re proud of it.”'] },
-    refletCompagnon: { kon: ['“The phoenix of the reflection has gone… A reflection doesn’t leave without a reason. Could it be thirsty?”', '“Look: behind the pavilion, golden feathers are shining on the path. Let’s follow them to the water where it drinks!”'], pon: ['“Pon?! A reflection that sneaks out! It went for a drink, I’m sure…”', '“Those golden feathers on the path, behind the pavilion… they must lead to a spring!”'], chapu: ['“Chapu! A reflection swimming off on its own? It’s looking for purer water… a spring!”', '“It dropped golden feathers behind the pavilion. Let’s follow them!”'], gao: ['“Gao! Was the phoenix stolen? No… it left by itself.”', '“It left a trail: golden feathers, behind the pavilion, toward the springs. Let’s find it!”'], fuwa: ['“Fuwa… I can feel it: it’s drinking very pure water, full of stars.”', '“At the end of the golden feathers, behind the pavilion… where the shogun drew the water for his tea.”'], saya: ['“The trees saw it pass… toward the springs, behind the pavilion.”', '“Its golden feathers still shine on the path. They lead to the Milky Way spring.”'] },
+    refletCompagnon: { kon: ['“Did you see? The phoenix of the reflection flew off… It darted behind the pavilion! Could it be thirsty?”', '“Behind the pavilion is the Milky Way spring, where the shogun drew the water for his tea. Let’s see if it’s drinking there!”'], pon: ['“Pon?! A reflection that sneaks out! It flew right over the roof!”', '“Behind the pavilion is the Milky Way spring… It went for a drink, I’m sure. Let’s go!”'], chapu: ['“Chapu! It jumped out of the water and darted behind the pavilion!”', '“A reflection looks for very pure water… The Milky Way spring, behind the pavilion! Quick!”'], gao: ['“Gao! Was the phoenix stolen? No… it left by itself, behind the pavilion.”', '“That way is the Milky Way spring. Let’s go, I’ll stand guard!”'], fuwa: ['“Fuwa… I can feel it: it’s thirsty for very pure water, full of stars.”', '“Behind the pavilion, where the shogun drew the water for his tea: the Milky Way spring.”'], saya: ['“The trees saw it pass… toward the springs, behind the pavilion.”', '“It went to the Milky Way spring. Let’s go: it must be shining tonight.”'] },
+    nuitCompagnon: { kon: ['“Night has fallen… The pavilion must look wonderful in the pond. Let’s see its reflection from the lookout by the water, where we arrived!”'], pon: ['“Pon! It’s all dark! Let’s go see the pavilion in the pond, from the lookout where we started. They say things happen there at night…”'], chapu: ['“Chapu! The pond is all black… Let’s go see the pavilion’s reflection from the lookout, by the water!”'], gao: ['“Gao… At night, I stand guard. Let’s check on the pavilion’s reflection: from the lookout by the pond!”'], fuwa: ['“Fuwa… At night, reflections tell secrets. Let’s look at the pond from the lookout, where we arrived.”'], saya: ['“At night, the trees whisper… about the pavilion’s reflection. Let’s go see it from the lookout by the pond.”'] },
     pavillon: ['Up close, the pavilion has three floors, each in a different style.', 'At the bottom, the plain wood of a court palace (shinden style). In the middle, a samurai house. At the top, a Zen temple hall, with its bell-shaped windows.', 'The two upper floors are covered in gold leaf: about twenty kilos, in two hundred thousand leaves!'],
     kuzan: ['In front of the pavilion, in the water: the “Nine Mountains and Eight Seas” rock (九山八海石).', 'It stands for Mount Meru, the mountain at the centre of the world in Buddhism. Yoshimitsu is said to have brought it from China.'],
     sosei: ['From behind, you see the pavilion’s north side: white plaster walls between dark wooden posts.', 'And there, on the water: the Sōsei (漱清), the little pavilion where Yoshimitsu came to cool off by the pond.'],
@@ -3006,6 +3110,7 @@ const TEXTES = {
     shinun: ['You greet the little Shin’un shrine (榊雲), for the gods who protect the temple.'],
     gingasen: ['The Milky Way spring (銀河泉): Yoshimitsu had the water for his tea drawn here.', 'The water is clear and deep… At night, they say, the stars reflect in it like a river of light, and a golden bird comes to drink.'],
     gingasenNuit: ['The Milky Way spring, under the stars…', 'In the water… the reflection of a golden bird! A phoenix, leaning over the water, drinking!', 'And yet, above the spring… there is nothing. Only its reflection.'],
+    gingasenEtoiles: ['The Milky Way spring, under the stars…', 'The stars reflect in the black water like a river of light. All is calm.', 'Tonight the Golden Pavilion’s reflection must be beautiful too… It’s best seen from the lookout by the pond.'],
     gingasenApres: ['The Milky Way spring sparkles with stars. A little golden glow still floats at the bottom of the water…'],
     phenixCompagnon: { kon: ['“A phoenix… They say it only appears in times of peace. Approach gently.”'], pon: ['“Pon… For once, I’m not even hungry. It’s too beautiful.”'], chapu: ['“Chapu… I won’t dive. Promise. I’m just looking.”'], gao: ['“Gao… I’ll stand guard. Nobody will disturb it.”'], fuwa: ['“A bird of the sky drinking the water of the stars… Fuwa, just like in the tales.”'], saya: ['“This spring’s water is very old… It remembers Yoshimitsu.”'] },
     phenixMain: ['The phoenix’s reflection raises its head… and looks at you.', 'Reach out toward the water?'],
@@ -3030,7 +3135,7 @@ const TEXTES = {
     sekkatei: ['The Sekka-tei (夕佳亭), “the pavilion where evening is beautiful”: a tea house built for Emperor Go-Mizunoo.', 'Its name comes from the Golden Pavilion, which you see shining from here at sunset. Its pillar is carved from a nandina trunk!'],
     chajinJour: ['Welcome to the Sekka-tei. From here, at sunset, the Golden Pavilion shines like a lantern.', 'Would you like to wait for the evening with me?'],
     chajinNon: ['Take your time. Evening will come soon enough.'],
-    chajinSoir: ['…Here is the evening. The pavilion blazed with light, then night fell.', 'At night, the garden is full of mysteries. Go and look at the pavilion’s reflection in the pond…'],
+    chajinSoir: ['…Here is the evening. The pavilion blazed with light, then night fell.', 'At night, the garden is full of mysteries. Go and look at the pavilion’s reflection from the lookout by the pond…'],
     chajinNuit: ['A beautiful night… Shall I bring the morning back?'],
     chajinReste: ['Let’s stay under the stars a little longer.'],
     chajinMatin: ['The sun rises over the Golden Pavilion. Enjoy your walk!'],
@@ -3097,7 +3202,8 @@ const TEXTES = {
     kinkakuNuit: ['夜の　金閣が　まっくらな　いけの　上で　ねむって　いる……　さかさまの　すがたが　水に　うかんで　いる。', '……まって。うつった　屋根を　よく　見て。', '本物の　屋根には　金の　鳳凰が　いる……　でも、水の　中には　いない！　鳳凰が　消えちゃった！'],
     kinkakuNuitApres: ['夜、金閣と　その　すがたが　むかいあって　いる。どちらの　屋根にも　鳳凰が　いるよ。'],
     kinkakuCompagnon: { kon: ['「きれい……　空に　ひとつ、水に　ひとつ。金の　お堂が　ふたつ　ありますね。」'], pon: ['「ポン！　ぜんぶ　金！　小判が　何まい　できるかなあ？」'], chapu: ['「チャプ！　水が　金いろ！　うつった　金閣に　とびこんで　いい？」'], gao: ['「ガオ！　こんな　たからは　昼も　夜も　まもらなくちゃ！」'], fuwa: ['「ふわぁ……　ぼくの　しんじゅみたいに　かがやいてる。千倍　大きいけど。」'], saya: ['「まわりの　松が　何百年も　見まもって　きたんです……　みんな　じまんに　思ってる。」'] },
-    refletCompagnon: { kon: ['「水の　中の　鳳凰が　いなくなった……　わけが　あるはず。のどが　かわいたのかな？」', '「見て。金閣の　うらの　道に、金の　羽が　ひかって　いる。たどって　いこう！」'], pon: ['「ポン？！　うつった　すがたが　ぬけだした！　水を　のみに　いったんだ、きっと……」', '「金閣の　うらの　道の　金の　羽……　わき水へ　つづいて　いるはず！」'], chapu: ['「チャプ！　うつった　すがたが　ひとりで　およいで　いった？　もっと　きれいな　水……　わき水だ！」', '「金閣の　うらに　金の　羽を　おとして　いった。たどろう！」'], gao: ['「ガオ！　鳳凰が　ぬすまれた？　いや……　じぶんで　出て　いったんだ。」', '「金の　羽が　目じるしだ。金閣の　うらの、わき水の　ほうへ！　さがそう！」'], fuwa: ['「ふわ……　わかるよ。星で　いっぱいの、とても　きれいな　水を　のんで　いる。」', '「金の　羽の　さきに……　金閣の　うらの、将軍が　お茶の　水を　くんだ　ところ。」'], saya: ['「木たちが　見たって……　金閣の　うらの、わき水の　ほうへ　とんで　いったって。」', '「金の　羽が　まだ　道に　ひかって　いる。銀河泉へ　つづいて　いるよ。」'] },
+    refletCompagnon: { kon: ['「見た？　水に　うつった　鳳凰が　とんで　いった……　金閣の　うらへ！　のどが　かわいたのかな？」', '「金閣の　うらには　銀河泉が　あるよ。将軍が　お茶の　水を　くんだ　わき水。のみに　いったのか、見に　いこう！」'], pon: ['「ポン？！　うつった　すがたが　ぬけだした！　屋根を　とびこえて　いったよ！」', '「金閣の　うらには　銀河泉が　ある……　水を　のみに　いったんだ、きっと。いこう！」'], chapu: ['「チャプ！　水から　とびだして、金閣の　うらへ　いっちゃった！」', '「うつった　すがたは　きれいな　水が　すき……　金閣の　うらの　銀河泉だ！　いそごう！」'], gao: ['「ガオ！　鳳凰が　ぬすまれた？　いや……　じぶんで　金閣の　うらへ　とんで　いったんだ。」', '「あっちには　銀河泉が　ある。いこう、ぼくが　見はるから！」'], fuwa: ['「ふわ……　わかるよ。星で　いっぱいの、とても　きれいな　水が　のみたいんだ。」', '「金閣の　うらの、将軍が　お茶の　水を　くんだ　ところ……　銀河泉だよ。」'], saya: ['「木たちが　見たって……　金閣の　うらの、わき水の　ほうへ　とんで　いったって。」', '「銀河泉へ　いったんだ。いこう。今夜は　きっと　ひかって　いるよ。」'] },
+    nuitCompagnon: { kon: ['「夜に　なったね……　いけに　うつった　金閣は　きっと　きれいだよ。さいしょに　来た　いけの　ほとりの　見晴らし台から　見に　いこう！」'], pon: ['「ポン！　まっくらだ！　いけの　金閣を　見に　いこう。さいしょの　見晴らし台だよ。夜は　なにか　おこるって　うわさ……」'], chapu: ['「チャプ！　いけが　まっくろ……　いけの　ほとりの　見晴らし台から、水に　うつった　金閣を　見に　いこう！」'], gao: ['「ガオ……　夜は　ぼくが　見はり。水に　うつった　金閣も　ぶじか　見に　いこう。いけの　ほとりの　見晴らし台へ！」'], fuwa: ['「ふわ……　夜の　水は　ひみつを　おしえて　くれる。さいしょの　見晴らし台から　いけを　見よう。」'], saya: ['「夜の　木たちが　ささやいて　いる……　水に　うつった　金閣の　こと。いけの　ほとりの　見晴らし台へ　見に　いこう。」'] },
     pavillon: ['近くで　見ると、金閣は　三つの　かいに　わかれて　いて、それぞれ　つくりかたが　ちがうんだ。', 'いちばん　下は　お公家さんの　家の　つくり（寝殿造）。まん中は　武士の　家。いちばん　上は　禅の　お寺で、つりがねの　形の　まどが　あるよ。', '上の　ふたつの　かいは　金ぱくで　おおわれて　いる。ぜんぶで　やく　20キロ、20万まいの　金ぱく！'],
     kuzan: ['金閣の　前の　水の　中に　「九山八海石（くせんはっかいせき）」。', '仏教の　世界の　まん中に　ある　山、「須弥山（しゅみせん）」を　あらわして　いるんだ。義満が　中国から　とりよせたと　いわれて　いるよ。'],
     sosei: ['うらからは、金閣の　北がわが　見える。こい　木の　はしらの　あいだに、白い　しっくいの　かべ。', 'そして　水の　上に　「漱清（そうせい）」。義満が　いけの　そばで　すずんだ　小さな　あずまやだよ。'],
@@ -3107,6 +3213,7 @@ const TEXTES = {
     shinun: ['小さな　お社　「榊雲（しんうん）」に　あいさつした。お寺を　まもる　神さまが　まつられて　いるよ。'],
     gingasen: ['「銀河泉（ぎんがせん）」。義満が　お茶の　水を　くませた　わき水だよ。', '水は　すんで　いて　ふかい……　夜には　星が　うつって、光の　川みたいに　なるんだって。金の　鳥が　水を　のみに　くるとも　いうよ。'],
     gingasenNuit: ['星空の　下の　銀河泉……', '水の　中に……　金の　鳥が　うつって　いる！　鳳凰が　水に　くちばしを　つけて　のんで　いる！', 'でも、わき水の　上には……　なにも　いない。うつった　すがただけ。'],
+    gingasenEtoiles: ['星空の　下の　銀河泉……', 'くろい　水に　星が　うつって、光の　川みたい。しずかだね。', '今夜は　いけに　うつった　金閣も　きれいだろうな……　いけの　ほとりの　見晴らし台から　よく　見えるよ。'],
     gingasenApres: ['銀河泉に　星が　きらきら。水の　そこに　まだ　小さな　金の　光が　ゆれて　いる……'],
     phenixCompagnon: { kon: ['「鳳凰……　平和な　時代にだけ　あらわれると　いいます。そっと　近づいて。」'], pon: ['「ポン……　こんどばかりは　おなかも　すかない。きれいすぎて。」'], chapu: ['「チャプ……　とびこまないよ。やくそく。見てるだけ。」'], gao: ['「ガオ……　ぼくが　見はりを　する。だれにも　じゃまさせない。」'], fuwa: ['「空の　鳥が　星の　水を　のんでる……　ふわ、むかし話　みたい。」'], saya: ['「この　わき水は　とても　古いんです……　義満の　ことも　おぼえて　います。」'] },
     phenixMain: ['うつった　鳳凰が　顔を　あげて……　こっちを　見た。', '水に　手を　のばす？'],
@@ -3131,7 +3238,7 @@ const TEXTES = {
     sekkatei: ['「夕佳亭（せっかてい）」。「夕方が　うつくしい」という　意味の、後水尾天皇の　ための　茶室だよ。', 'ここから　夕日に　かがやく　金閣が　見えるから　この　名前。とこばしらは　南天の　木なんだ！'],
     chajinJour: ['夕佳亭へ　ようこそ。ここから　見る　夕日の　金閣は、ちょうちんのように　かがやきます。', 'わたしと　いっしょに　夕方を　まちますか？'],
     chajinNon: ['ごゆっくり。夕方は　すぐに　来ますよ。'],
-    chajinSoir: ['……夕方です。金閣が　まばゆく　かがやいて、やがて　夜に　なりました。', '夜の　庭は　ふしぎで　いっぱい。いけに　うつった　金閣を　見に　いって　ごらんなさい……'],
+    chajinSoir: ['……夕方です。金閣が　まばゆく　かがやいて、やがて　夜に　なりました。', '夜の　庭は　ふしぎで　いっぱい。いけの　ほとりの　見晴らし台から、水に　うつった　金閣を　見て　ごらんなさい……'],
     chajinNuit: ['よい　夜ですね……　朝に　もどしましょうか？'],
     chajinReste: ['もう　すこし　星の　下に　いましょう。'],
     chajinMatin: ['金閣に　朝日が　のぼります。よい　散歩を！'],
