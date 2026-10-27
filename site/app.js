@@ -1121,6 +1121,7 @@ function ouvrirMenuMobile(ouvrir) {
 const PANNEAUX = {
   'menu-categories': ['btn-categories', ouvrirMenu],
   'panneau-hasard': ['btn-hasard', ouvrirHasard],
+  'panneau-balades': ['btn-balades', ouvrirBalades],
   'panneau-legendes': ['btn-legendes', ouvrirLegendes],
   'panneau-favoris': ['btn-favoris', ouvrirFavoris],
   'panneau-visite': ['btn-visite', ouvrirVisite],
@@ -2204,6 +2205,69 @@ const BALADES = { 'itsukushima-jinja': 'itsukushima', aogashima: 'aogashima', go
  * de EN_ESSAI dans balade/balade.js).
  */
 const BALADES_ESSAI = new Set(['kinkakuji']);
+const lienBalade = (id) => `balade/?lieu=${id}&langue=${langue}`;
+
+/**
+ * Le panneau des balades 3D (2026-10-27, le propriétaire : « un onglet où il est renseigné tous les lieux avec ces
+ * balades pour éviter que l'utilisateur soit obligé de chercher ») : chaque lieu de la balade, du nord au sud, avec sa
+ * photo, son autre nom et sa préfecture, ce qu'on y fait (balade_<id> dans TEXTES), les tampons déjà pris (cinq par
+ * lieu, localStorage.baladeTampons de la balade), « Visiter en 3D » et « Sur la carte ». Un lieu en essai
+ * (BALADES_ESSAI) n'y est qu'en mode développeur, comme son bouton sur la fiche.
+ */
+function remplirBalades() {
+  const panneau = $('panneau-balades');
+  let tampons = {};
+  try { tampons = JSON.parse(localStorage.getItem('baladeTampons')) || {}; } catch { /* navigation privée */ }
+  // un lieu de la carte par balade (Takachiho en a deux : le premier de BALADES)
+  const parBalade = new Map();
+  for (const [idCarte, id] of Object.entries(BALADES)) {
+    const l = lieux.find((x) => x.id === idCarte);
+    if (l && !parBalade.has(id)) parBalade.set(id, l);
+  }
+  const liste = [...parBalade].sort(([, a], [, b]) => b.lat - a.lat);
+  const lignes = liste.map(([id, l]) => {
+    const nom = enLangue(l.nom);
+    const autre = langue === 'ja' ? (l.nom.en !== nom ? l.nom.en : '') : l.nom.ja;
+    const infos = [autre, l.prefecture && enLangue(PREFECTURES[l.prefecture])].filter(Boolean).join(' · ');
+    const phrase = TEXTES.en[`balade_${id}`] ? t(`balade_${id}`) : '';
+    const n = Math.min(5, tampons[id]?.length || 0);
+    const ronds = Array.from({ length: 5 }, (_, i) => `<i${i < n ? ' class="pris"' : ''}></i>`).join('');
+    return `<li class="balade${BALADES_ESSAI.has(id) ? ' dev' : ''}">
+        <img class="balade-photo" data-photo="${echapper(l.id)}" alt="" width="66" height="88" loading="lazy">
+        <div class="balade-textes">
+          <b>${echapper(nom)}</b>
+          ${infos ? `<small>${echapper(infos)}</small>` : ''}
+          ${phrase ? `<p>${echapper(phrase)}</p>` : ''}
+          <span class="balade-tampons" role="img" aria-label="${echapper(t('baladesTampons', n))}" title="${echapper(t('baladesTampons', n))}">${ronds}</span>
+        </div>
+        <div class="balade-actions">
+          <a class="balade-visiter" href="${lienBalade(id)}">${SVG.balade}<span>${echapper(t('visiter3d'))}</span></a>
+          <button type="button" data-lieu="${echapper(l.id)}">${SVG.route}<span>${echapper(t('baladesCarte'))}</span></button>
+        </div>
+      </li>`;
+  }).join('');
+  panneau.innerHTML = `<p class="hasard-titre">${echapper(t('baladesTitre'))}</p>
+    <p class="panneau-info">${echapper(t('baladesInfo'))}</p>
+    <ul class="liste-balades">${lignes}</ul>`;
+  for (const [, l] of liste) {
+    couverture(l).then((src) => {
+      const img = panneau.querySelector(`[data-photo="${CSS.escape(l.id)}"]`);
+      if (img && src) img.src = src;
+    });
+  }
+  // La préfecture de chaque lieu arrive avec les contours (une seule fois)
+  if (liste.some(([, l]) => !l.prefecture)) {
+    preparerPrefectures().then(() => { if (!panneau.hidden && liste.every(([, l]) => l.prefecture)) remplirBalades(); }).catch(() => {});
+  }
+}
+
+function ouvrirBalades(ouvrir) {
+  $('panneau-balades').hidden = !ouvrir;
+  $('btn-balades').setAttribute('aria-expanded', String(ouvrir));
+  if (!ouvrir) return;
+  fermerPanneaux('panneau-balades');
+  remplirBalades();
+}
 
 /**
  * Les boutons de la fiche (deux, pour tenir sur une ligne, plus « Visiter en 3D » ; partager est une icône sur la photo,
@@ -2218,7 +2282,7 @@ function remplirBoutons(l) {
   if (pres?.position()) boutons.push(`<button type="button" data-aller>${SVG.route}${echapper(t('yAller'))}</button>`);
   else boutons.push(`<a href="https://www.google.com/maps/dir/?api=1&destination=${l.lat},${l.lng}" target="_blank" rel="noopener">${SVG.route}${echapper(t('itineraire'))}</a>`);
   // la balade 3D (pour tous depuis le 2026-10-26)
-  if (BALADES[l.id]) boutons.push(`<a${BALADES_ESSAI.has(BALADES[l.id]) ? ' class="dev"' : ''} href="balade/?lieu=${BALADES[l.id]}&langue=${langue}">${SVG.balade}${echapper(t('visiter3d'))}</a>`);
+  if (BALADES[l.id]) boutons.push(`<a${BALADES_ESSAI.has(BALADES[l.id]) ? ' class="dev"' : ''} href="${lienBalade(BALADES[l.id])}">${SVG.balade}${echapper(t('visiter3d'))}</a>`);
   $('fiche-boutons').innerHTML = boutons.join('');
 }
 
@@ -2346,6 +2410,7 @@ function appliquerLangue() {
     if (l.nouveau) l.el.querySelector('.repere-nouveau').textContent = t('nouveau');
   }
   if (!$('panneau-saisons').hidden) remplirSaisons();
+  if (!$('panneau-balades').hidden) remplirBalades();
   majPastilleSaison();
   majBoutonDev();
   ongletPlongeon?.then((o) => o.majLangue());
@@ -2421,6 +2486,11 @@ function brancherBoutons() {
     if (!b) return;
     ouvrirMenuMobile(false);
     $(b.dataset.ouvre).click();
+  });
+  $('panneau-balades').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-lieu]');
+    const l = b && lieux.find((x) => x.id === b.dataset.lieu);
+    if (l) allerAuLieu(l);
   });
   // le bouton des favoris reste en haut sur téléphone, même sans favori (une fenêtre qui change de taille)
   matchMedia('(max-width: 720px)').addEventListener('change', majFavoris);

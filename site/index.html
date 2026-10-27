@@ -63,6 +63,11 @@
         <svg class="de" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.6" fill="currentColor"/></svg>
         <span data-t="hasard">Random</span>
       </button>
+      <!-- Les balades 3D : tous les lieux où l'on se promène en 3D (site/balade/), sans avoir à les chercher sur la carte -->
+      <button class="bouton-categories bouton-balades panneau" id="btn-balades" aria-expanded="false" aria-controls="panneau-balades" data-t-titre="baladesTitre">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3 4 7.5v9L12 21l8-4.5v-9Z"/><path d="M4 7.5 12 12l8-4.5M12 12v9"/></g></svg>
+        <span class="texte-bouton" data-t="balades">3D walks</span>
+      </button>
       <!-- Visite guidée (visite.js) -->
       <button class="bouton-categories bouton-visite panneau" id="btn-visite" aria-expanded="false" aria-controls="panneau-visite" data-t-titre="visiteTitre">
         <svg class="camera" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M3 7.5h11.5v9H3zM14.5 10.5l6-3v9l-6-3"/></svg>
@@ -115,6 +120,7 @@
         <span class="defi-point" id="defi-point" hidden></span>
       </button>
     </div>
+    <div class="menu panneau" id="panneau-balades" hidden></div>
     <div class="menu panneau" id="panneau-legendes" hidden></div>
     <div class="menu panneau halloween-panneau" id="panneau-halloween" hidden></div>
     <div class="menu panneau" id="panneau-favoris" hidden></div>
@@ -355,6 +361,10 @@
       <button type="button" data-ouvre="btn-categories">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 5h18v2H3zm3 6h12v2H6zm3 6h6v2H9z"/></svg>
         <span data-t="categories">Categories</span><span class="compteur" id="menu-compteur-categories"></span>
+      </button>
+      <button type="button" data-ouvre="btn-balades" class="rouge">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3 4 7.5v9L12 21l8-4.5v-9Z"/><path d="M4 7.5 12 12l8-4.5M12 12v9"/></g></svg>
+        <span data-t="balades">3D walks</span>
       </button>
       <button type="button" data-ouvre="btn-hasard" class="rouge">
         <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="8.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.6" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.6" fill="currentColor"/></svg>

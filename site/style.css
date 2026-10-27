@@ -1003,6 +1003,36 @@ body.en-jeu .ville, body.plongeon .ville, body.enregistre .ville, body.mode-film
 .btn-secondaire:hover { background: var(--papier-fonce); }
 .btn-secondaire svg { width: 19px; height: 19px; color: var(--rouge); }
 
+/* ---------- Les balades 3D (app.js, remplirBalades) : chaque lieu, sa photo, ses tampons, « Visiter en 3D » ---------- */
+.bouton-balades > svg { color: var(--rouge); }
+.liste-balades { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.balade {
+  display: grid; grid-template-columns: 66px minmax(0, 1fr); gap: 10px 12px; padding: 10px;
+  border: 1px solid rgba(138, 107, 69, .45); border-radius: var(--rayon); background: var(--papier-clair);
+}
+.balade-photo {
+  width: 66px; height: 88px; object-fit: cover; border-radius: 3px;
+  background: var(--papier-fonce); box-shadow: 0 0 0 1px rgba(60, 40, 20, .25), 0 2px 5px rgba(60, 40, 20, .25);
+}
+.balade-textes { min-width: 0; }
+.balade-textes b { display: block; font: 400 17px/1.2 var(--police-titre); text-wrap: balance; }
+.balade-textes small { display: block; margin-top: 2px; font-size: 12.5px; color: var(--sarcelle); }
+.balade-textes p { margin: 5px 0 0; font-size: 13px; line-height: 1.4; color: var(--encre-2); }
+/* les cinq tampons du lieu : un petit sceau rouge par tampon pris */
+.balade-tampons { display: flex; gap: 4px; margin-top: 7px; }
+.balade-tampons i { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid rgba(91, 67, 45, .45); }
+.balade-tampons i.pris { border-color: var(--rouge); background: var(--rouge); }
+.balade-actions { grid-column: 1 / -1; display: flex; gap: 7px; }
+.balade-actions a, .balade-actions button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 8px 12px; border-radius: var(--rayon);
+  border: 1px solid var(--trait); background: var(--papier-clair); color: var(--encre);
+  text-decoration: none; font: 500 13.5px var(--police); cursor: pointer; transition: background .2s, border-color .2s;
+}
+.balade-actions button:hover { border-color: var(--encre-2); background: var(--papier-fonce); }
+.balade-actions svg { width: 16px; height: 16px; flex: none; }
+.balade-actions .balade-visiter { flex: 1; background: var(--rouge); border-color: var(--rouge); color: var(--papier-clair); font-weight: 600; }
+.balade-actions .balade-visiter:hover { background: var(--rouge-survol); border-color: var(--rouge-survol); }
+
 /* ---------- Itinéraire des favoris sur la carte (itineraire.js) ---------- */
 /* Entre deux favoris : le trajet (temps · distance · grandes routes), sous un filet pointillé rouge */
 .liste-favoris .trajet {
