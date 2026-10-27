@@ -1005,6 +1005,7 @@ body.en-jeu .ville, body.plongeon .ville, body.enregistre .ville, body.mode-film
 
 /* ---------- Les balades 3D (app.js, remplirBalades) : chaque lieu, sa photo, ses tampons, « Visiter en 3D » ---------- */
 .bouton-balades > svg { color: var(--rouge); }
+.bouton-balades .texte-court { display: none; } /* « 3D », le raccourci du téléphone */
 .liste-balades { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .balade {
   display: grid; grid-template-columns: 66px minmax(0, 1fr); gap: 10px 12px; padding: 10px;
@@ -1683,6 +1684,14 @@ body.en-jeu .filtres, body.en-jeu .bandeau, body.en-jeu .aide { display: none; }
   /* l'heure seule, sans « au Japon » : elle laisse la place aux raccourcis du haut */
   .heure-textes > span { font-size: 0; }
   .heure-textes b { font-size: 16px; }
+  /* pendant Halloween, les trois raccourcis du haut (balades 3D, Halloween, favoris) se serrent */
+  body.halloween .filtres-boutons { gap: 6px; }
+  body.halloween :is(#btn-balades, #btn-halloween, #btn-favoris) { width: 40px; height: 40px; }
+}
+@media (max-width: 365px) {
+  body.halloween .filtres-boutons { gap: 5px; }
+  body.halloween :is(#btn-balades, #btn-halloween, #btn-favoris) { width: 36px; height: 36px; }
+  body.halloween :is(#btn-halloween, #btn-favoris) > svg { width: 20px; height: 20px; }
 }
 @media (max-width: 350px) {
   /* les plus petits téléphones : la barre du bas plus serrée, à l'écart des boutons de droite */
@@ -1737,10 +1746,17 @@ body.en-jeu .filtres, body.en-jeu .bandeau, body.en-jeu .aide { display: none; }
   .btn-musique:not(.joue) { display: none; }
   .filtres { top: var(--haut); left: auto; right: 12px; }
   .filtres-boutons { gap: 8px; max-width: none; }
-  .filtres-boutons > .bouton-categories:not(#btn-favoris, #btn-halloween) { display: none !important; }
-  #btn-favoris, #btn-halloween { position: relative; width: 46px; height: 46px; padding: 0; justify-content: center; }
+  .filtres-boutons > .bouton-categories:not(#btn-favoris, #btn-halloween, #btn-balades) { display: none !important; }
+  #btn-favoris, #btn-halloween, #btn-balades { position: relative; width: 46px; height: 46px; padding: 0; justify-content: center; }
   #btn-favoris > svg, #btn-halloween > svg { width: 22px; height: 22px; }
-  #btn-favoris .texte-bouton, #btn-halloween .texte-bouton { display: none; }
+  #btn-favoris .texte-bouton, #btn-halloween .texte-bouton, #btn-balades .texte-bouton { display: none; }
+  /* le raccourci des balades 3D (2026-10-27, demandé par le propriétaire) : « 3D » en toutes lettres, à gauche des
+     autres. Sous la rangée, il passerait sous les pastilles du milieu (itinéraire, mois : 270–320 px de large). */
+  #btn-balades > svg { display: none; }
+  #btn-balades .texte-court { display: inline; font-weight: 800; font-size: 16px; line-height: 1; letter-spacing: .02em; color: var(--rouge); }
+  /* pendant Halloween, trois raccourcis : l'heure laisse « au Japon », comme sur les petits écrans */
+  body.halloween .heure-textes > span { font-size: 0; }
+  body.halloween .heure-textes b { font-size: 16px; }
   #btn-favoris .compteur, #btn-halloween .compteur {
     position: absolute; top: -7px; right: -7px; min-width: 19px; padding: 2px 5px; box-sizing: border-box; border-radius: 10px;
     background: var(--rouge); color: var(--papier-clair); font-size: 11px; font-weight: 600; line-height: 1.3; text-align: center;
