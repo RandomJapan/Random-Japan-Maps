@@ -506,6 +506,57 @@ export function creerHeros(ctx, sorte = 'garcon') {
   };
   const pieces = {}, portees = {};
 
+  // ---- Les ailes du phénix (le Pavillon d'or, 2026-10-26 : la récompense de ses tampons, choisie par le propriétaire) : deux
+  // ailes d'or, comme celles du phénix du toit, attachées entre les omoplates (sur le dos, à la place du sac). Chacune : l'os,
+  // des couvertures arrondies, six plumes du bras qui retombent, sept longues rémiges en éventail au bout ; chaque plume d'or
+  // finit en orange puis en rouge, comme une flamme (sans ce bout de feu, des plumes toutes dorées ressemblaient à une cape de
+  // paille). Repliées au repos (le poignet haut derrière l'épaule, les plumes qui retombent le long du dos, comme des ailes
+  // d'ange), entrouvertes en marchant, grandes ouvertes et battantes en courant, déployées quand on saute, qu'on danse ou qu'on
+  // fait « Ouais ! ». Chaque aile pivote à sa racine (ordre 'YZX' : déployée dans son plan, puis rabattue vers l'arrière).
+  /** Une plume de base à pointe (une lame qui s'amincit), d'or, son bout orange (bout) puis rouge (pointe) si on les donne. */
+  const plumeAile = (a, base, pointe, w, t, c, bout = null, rouge = null) => {
+    const Y = new THREE.Vector3(...pointe).sub(new THREE.Vector3(...base)), l = Y.length();
+    Y.normalize();
+    const Z = new THREE.Vector3(0, 0, 1).addScaledVector(Y, -Y.z).normalize(), X = new THREE.Vector3().crossVectors(Y, Z);
+    const g = new THREE.BoxGeometry(w, l, t, 1, 3, 1), p = g.attributes.position;
+    for (let i = 0; i < p.count; i++) { const u = p.getY(i) / l + 0.5; p.setX(i, p.getX(i) * (1 - 0.6 * u * u)); }
+    g.applyMatrix4(new THREE.Matrix4().makeBasis(X, Y, Z));
+    g.translate((base[0] + pointe[0]) / 2, (base[1] + pointe[1]) / 2, (base[2] + pointe[2]) / 2);
+    const le = (x, y, z) => ((x - base[0]) * Y.x + (y - base[1]) * Y.y + (z - base[2]) * Y.z) / l;
+    a.piece(g, c, { nuance: 0.03, teinte: bout ? (x, y, z) => { const u = le(x, y, z); return u > 0.72 ? rouge : u > 0.45 ? bout : c; } : undefined });
+  };
+  const ailePhenix = (s) => {
+    const a = atelier(), O = '#e7b940', O2 = '#d9a52e', O3 = '#f4cf5c', F1 = '#f08a2c', F2 = '#e0482a';
+    a.baton([0, 0, 0], [s * 0.2, 0.06, 0], 0.024, O2, 6).baton([s * 0.2, 0.06, 0], [s * 0.36, 0.1, -0.012], 0.017, O2, 5);
+    // les rémiges : du dehors (un peu relevées) vers le bas, plus courtes vers l'intérieur ; une sur deux un rien en arrière
+    for (let k = 0; k < 7; k++) {
+      const base = [s * (0.36 - 0.022 * k), 0.1 - 0.008 * k, -0.012 - (k % 2) * 0.008], ang = 0.3 - k * 0.24, l = 0.46 - 0.026 * k;
+      plumeAile(a, base, [base[0] + s * Math.cos(ang) * l, base[1] + Math.sin(ang) * l, base[2] - 0.02], 0.085, 0.013, k % 2 ? O : O3, F1, F2);
+    }
+    // les plumes du bras, qui retombent (leur bout orange)
+    for (let k = 0; k < 6; k++) {
+      const base = [s * (0.05 + 0.04 * k), 0.012 + 0.008 * k, 0.004 + (k % 2) * 0.006], l = 0.24 + 0.012 * k;
+      plumeAile(a, base, [base[0] + s * 0.05, base[1] - l, base[2] - 0.01], 0.07, 0.012, k % 2 ? O2 : O, F1, F1);
+    }
+    // les couvertures : de petites plumes rondes sur l'os
+    for (let k = 0; k < 5; k++) a.ovale(0.045, O3, { x: s * (0.05 + 0.065 * k), y: 0.03 + 0.012 * k, z: 0.012, sy: 0.6, sz: 0.35, rz: s * 0.4 }, 8);
+    return a;
+  };
+  let ailes = null, ouverture = 0, phaseAile = 0;
+  const animerAiles = (dt, vitesse, fete) => {
+    if (!ailes || !ailes.objet.visible) return;
+    const court = vitesse > 4.4, voulu = fete || court ? 1 : vitesse > 0.4 ? 0.28 : 0, bat = fete ? 0.55 : court ? 1 : vitesse > 0.4 ? 0.25 : 0.06;
+    ouverture += (voulu - ouverture) * Math.min(1, dt * 5);
+    phaseAile += dt * 2 * PI * (0.35 + 2.2 * bat);
+    const f = Math.sin(phaseAile) * (0.04 + 0.42 * bat);
+    // (repliées : l'os relevé de 25° et rabattu presque contre le dos, les bouts sous le haut de la tête, sinon on dirait des
+    // cornes de face ; ouvertes : l'os un peu relevé, en travers)
+    ailes.cotes.forEach((g, i) => {
+      const s = i ? 1 : -1;
+      g.rotation.set(0, s * (1.25 - 1.11 * ouverture), s * (0.45 - 0.12 * ouverture + f), 'YZX');
+    });
+  };
+
   // ---- Les tenues entières (achetées au marchand, tresors.js) : chacune dit ce qu'elle remplace. haut : le buste (le
   // haut, et le bas aussi pour une robe) ; bras(s), jambes(s) : leurs morceaux (sinon ceux de tous les jours) ; garde :
   // ce qu'on garde de tous les jours ('bas', 'sac') ; long : une robe jusqu'aux chevilles (on marche à petits pas)
@@ -887,6 +938,18 @@ export function creerHeros(ctx, sorte = 'garcon') {
           pieces.mino.visible = true;
           dosPorte = pieces.mino;
         }
+        // les ailes du phénix (le Pavillon d'or) : deux pivots entre les omoplates
+        if (id === 'ailes') {
+          if (!ailes) {
+            const objet = new THREE.Group();
+            const cotes = [-1, 1].map((s) => { const g = new THREE.Group(); g.position.set(s * 0.07, 0.76, -0.15); g.add(maillage(ailePhenix(s).fin(0, false))); objet.add(g); return g; });
+            ailes = { objet, cotes };
+            corps.add(objet);
+            animerAiles(1, 0, false);
+          }
+          ailes.objet.visible = true;
+          dosPorte = ailes.objet;
+        }
         majSac();
         return;
       }
@@ -920,6 +983,7 @@ export function creerHeros(ctx, sorte = 'garcon') {
     },
     animer(dt, vitesse, temps) {
       cligner(dt);
+      animerAiles(dt, vitesse, danse || geste === 'saut' || geste === 'victoire');
       const marche = Math.min(1, vitesse / 3.2);
       phase += dt * (5 + vitesse * 1.9);
       const f = Math.floor((phase - PI / 2) / PI);
@@ -999,6 +1063,8 @@ export function creerHeros(ctx, sorte = 'garcon') {
  * grotte) ou 'tajikarao' (le dieu de la force, rouge, les yeux d'or), coiffure 'criniere' (sa grande crinière), instrument
  * 'suzu' (les grelots en grappe, dans la main droite, et le gohei de papier dans la gauche), pose 'kagura' (danser) ;
  * pose 'ramer' (assis dans une barque).
+ * Pour Kinkaku-ji (2026-10-26) : coiffure 'rase' (le crâne rasé d'un moine : pas un cheveu), pose 'drapeau' (la guide lève
+ * son petit drapeau) ou 'tailler' (le jardinier et ses cisailles), instrument 'pinceau' (écrire, assis).
  * Renvoie { objet, animer(dt, vitesse, temps), saluer(), asseoir(oui) }.
  */
 export function creerPersonnage(ctx, T) {
@@ -1160,6 +1226,15 @@ export function creerPersonnage(ctx, T) {
     }
     // les baguettes de la kokiriko : deux bâtons de bambou peints, un dans chaque main
     if (T.instrument === 'kokiriko') a.baton([0, -0.3, 0.02], [-s * 0.02, -0.34, 0.25], 0.011, '#d8c27a', 5, { trait: false }).boite(0.026, 0.026, 0.03, '#d8302c', { x: -s * 0.018, y: -0.337, z: 0.21, trait: false });
+    // (le Pavillon d'or, 2026-10-26) le petit drapeau de la guide, levé ; les longues cisailles du jardinier qui taille un pin ;
+    // le pinceau du moine des goshuin
+    // (le bâton et les lames prolongent le bras au-delà de la main : le bras levé, ils montent)
+    if (T.pose === 'drapeau' && s === -1) a.baton([0, -0.3, 0.02], [0, -1.22, 0.04], 0.009, '#3a3a40', 4).boite(0.006, 0.14, 0.22, '#e8702a', { y: -1.12, z: 0.15, trait: false }).boule(0.016, '#e8b941', { y: -1.24, z: 0.04, trait: false }, 0);
+    if (T.pose === 'tailler' && s === -1) {
+      for (const d of [-1, 1]) a.baton([d * 0.01, -0.3, 0.03], [d * 0.035, -0.78, 0.05], 0.01, '#a8b0b8', 4, { trait: false });
+      a.baton([0, -0.27, 0.03], [0, -0.36, 0.03], 0.018, '#7a5232', 5);
+    }
+    if (T.instrument === 'pinceau' && s === -1) a.baton([0, -0.3, 0.03], [0.01, -0.25, 0.2], 0.008, '#4a3020', 4, { trait: false }).cone(0.012, 0.04, 5, '#1c1714', { x: 0.01, y: -0.255, z: 0.215, rx: PI / 2, trait: false });
     // le balai de bambou (la main droite) : le long manche, la touffe de brindilles au bout
     if (T.pose === 'balai' && s === -1) {
       a.baton([0, -0.28, 0.02], [0.06, -0.92, 0.36], 0.014, '#b8955a', 5)
@@ -1255,7 +1330,7 @@ export function creerPersonnage(ctx, T) {
   if (T.coiffure === 'chauve') {
     // le crâne dégarni : une couronne de cheveux sur les côtés et derrière
     t.piece(new THREE.TorusGeometry(0.27, 0.065, 6, 18, PI * 1.25), C1, { y: 0.22, z: -0.02, rx: PI / 2, rz: PI * 0.125 });
-  } else {
+  } else if (T.coiffure !== 'rase') {
     // une calotte inclinée vers l'arrière (le front dégagé) et des mèches sur le front
     t.piece(new THREE.SphereGeometry(0.318, 18, 10, 0, 2 * PI, 0, PI * 0.56), C1, { y: 0.25, rx: -0.42 });
     for (const [x, rz, l] of [[-0.17, 0.5, 0.13], [-0.085, 0.24, 0.16], [0, 0, 0.15], [0.085, -0.26, 0.16], [0.17, -0.52, 0.13]]) {
@@ -1403,6 +1478,11 @@ export function creerPersonnage(ctx, T) {
           const k = coup(temps * (100 / 60) + decalage);
           bras[0].rotation.x = bras[1].rotation.x = -1.05;
           bras[0].rotation.z = -0.16 - 0.32 * (1 - k); bras[1].rotation.z = 0.16 + 0.32 * (1 - k);
+        } else if (I === 'pinceau') {
+          // écrire au pinceau, penché sur la feuille : la main droite trace, la gauche tient le cahier
+          bras[0].rotation.x = -0.95 + 0.07 * Math.sin(temps * 3.1 + decalage); bras[0].rotation.z = 0.12 + 0.1 * Math.sin(temps * 1.7 + decalage);
+          bras[1].rotation.x = -0.75; bras[1].rotation.z = -0.25;
+          corps.rotation.x = 0.16 + courbe;
         }
         return 0;
       }
@@ -1429,6 +1509,14 @@ export function creerPersonnage(ctx, T) {
         jambes[0].rotation.x = 0.25 * Math.max(0, d); jambes[1].rotation.x = 0.25 * Math.max(0, -d);
         corps.position.y = 0.03 * Math.abs(Math.sin(b)) + respire;
         tete.rotation.z = 0.08 * d;
+      } else if (T.pose === 'drapeau') {
+        // la guide lève son petit drapeau pour que son groupe la suive (le bras en V, à côté de la grosse tête), et l'agite un peu
+        bras[0].rotation.x = -2.2 - 0.1 * Math.sin(temps * 2.3 + decalage); bras[0].rotation.z = -0.75;
+      } else if (T.pose === 'tailler') {
+        // tailler un pin perché sur l'escabeau : les bras levés devant, les cisailles qui coupent par petits coups
+        const c = Math.max(0, Math.sin(temps * 5.5 + decalage));
+        bras[0].rotation.x = -1.95 - 0.12 * c; bras[1].rotation.x = -1.8; bras[0].rotation.z = 0.2; bras[1].rotation.z = -0.35;
+        corps.rotation.x = -0.05 + courbe; tete.rotation.x = -0.2;
       } else if (T.pose === 'balai') {
         // balayer : le balai va et vient de côté, le corps penché qui suit
         const u = temps * 1.6 + decalage, o = Math.sin(u);

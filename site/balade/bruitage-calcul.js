@@ -28,6 +28,11 @@
 //    creux), « jets » (les canons à eau qui s'ouvrent, l'eau qui jaillit et retombe en pluie), « papier » (l'eau de la cuve
 //    du papier qu'on balance), « cloche » (la cloche du sanctuaire qu'on agite), « claque » (un battement de mains) ;
 //    Himeji : « assiette » (une assiette de porcelaine posée sur une autre), « plouf » (la nourriture jetée aux carpes).
+//  - Takachiho : « boucle/cascade », « boucle/kajika » (les grenouilles de la rivière), « boucle/kagura » ; « rame », « coq »,
+//    « caillou », « roc » (la porte de la grotte), « slurp » (les nouilles).
+//  - Kinkaku-ji (2026-10-26) : « boucle/semi » (les cigales de l'été) ; « piece » (une pièce qu'on lance), « bol » (elle
+//    tombe dans la vasque), « tombe » (elle la manque), « chasen » (le fouet du matcha), « pinceau » et « tampon » (le
+//    carnet de sceaux), « waniguchi » (le gong de bronze qu'on frappe avec sa corde).
 //  Les pas et les oiseaux sortent à une force fixe (la plus forte valeur efficace sur 10 ms : 0,25 × la force
 //  du sol) ; les boucles, à une valeur efficace de 1 : bruitage.js règle les volumes.
 // ================================================================
@@ -740,6 +745,41 @@ const BOUCLES = {
     for (let i = 0; i < n; i++) { g[i] = fl.b[i] * 0.9 + pc.b[i] * 0.6 + gr.b[i] * 0.7; d[i] = fl.b[i] * 0.6 + pc.b[i] * 0.9 + gr.b[i] * 0.45; }
     return normaliser([boucler(echo(g, sr), sr, F), boucler(echo(d, sr), sr, F)]);
   },
+  // les cigales de l'été à Kyoto (Kinkaku-ji, 2026-10-26) : dans les arbres, le grésillement des aburazemi (« jiii… », comme
+  // l'huile qui frit), qui enfle et retombe ; et deux minminzemi, l'une à gauche, l'autre à droite, chacune sa phrase
+  // (« miin… min min min… miii »), une note qui bourdonne (les cymbales de son ventre, près de cent fois par seconde)
+  semi(sr, r) {
+    const L = 12, F = 0.6, T = L + F, n = Math.ceil(T * sr);
+    const jiii = [0, 1].map((k) => {
+      const lent = tremble(n, sr, r, 0.18), vite = tremble(n, sr, r, 40), x = blanc(n, r);
+      filtrer(x, sr, 'bande', 4300 + k * 250, 1.6);
+      filtrer(x, sr, 'bande', 4600, 0.9);
+      normaliser([x]);
+      for (let i = 0; i < n; i++) x[i] *= (0.55 + 0.45 * Math.tanh(lent[i] * 0.9)) * (0.6 + 0.4 * Math.tanh(vite[i]));
+      return x;
+    });
+    const bourdonne = (u) => (0.55 + 0.45 * Math.sin(TAU * 95 * u)) ** 2;
+    const minmin = [[1.2, 3350], [6.8, 3150]].map(([t0, f0]) => {
+      const c = composer(sr, r, T);
+      c.ton(t0, 0.9, (u) => f0 * (0.94 + 0.06 * Math.min(1, u / 0.3)), (u) => ad(0.12, 0.2, 0.9)(u) * bourdonne(u), 0.15);
+      let t = t0 + 1.0;
+      for (let j = 0; j < 7; j++) {
+        const d = 0.2 - j * 0.012;
+        c.ton(t, d, (u) => f0 * (0.9 + 0.1 * Math.min(1, u / (d * 0.5))), (u) => ad(0.03, d * 0.4, d)(u) * bourdonne(u), 0.15);
+        t += d + 0.06;
+      }
+      c.ton(t, 1.1, (u) => f0 * (1 - 0.08 * u), (u) => ad(0.05, 0.7, 1.1)(u) * bourdonne(u), 0.15);
+      return c.b;
+    });
+    const canaux = [0, 1].map((k) => {
+      const x = new Float32Array(n), a = minmin[k], b = minmin[1 - k];
+      for (let i = 0; i < n; i++) x[i] = jiii[k][i] * 0.5 + a[i] * 0.3 + b[i] * 0.1;
+      filtrer(x, sr, 'bas', 7500, 0.7);
+      filtrer(x, sr, 'haut', 1000, 0.7);
+      return boucler(x, sr, F);
+    });
+    return normaliser(canaux);
+  },
 };
 
 // ---------------------------------------------------------------- Les oiseaux
@@ -1032,6 +1072,118 @@ function slurp(sr) {
   return cadrer([c.b], sr, 0.22);
 }
 
+// ---------------------------------------------------------------- Kinkaku-ji
+/** Les dernières `duree` secondes de x s'éteignent en douceur (un son qui chante plus longtemps que sa place). */
+function eteindre(x, sr, duree) {
+  const m = Math.round(duree * sr);
+  for (let i = 0; i < m; i++) x[x.length - 1 - i] *= (i / m) ** 2;
+  return x;
+}
+/** Une pièce de 5 yens qu'on lance : le souffle du geste, le pouce qui la fait sauter (un « tic » de laiton qui tinte). */
+function piece(sr) {
+  const r = alea(graine('piece')), c = composer(sr, r, 0.6);
+  c.bruit(0.0, { f: (t) => 700 + 2200 * Math.min(1, t / 0.18), q: 0.9, attaque: 0.05, tau: 0.06, gain: 0.35 })
+    .modes(0.06, [[5230, 0.5, 0.09], [8410, 0.3, 0.06], [11900, 0.15, 0.035]])
+    .bruit(0.06, { type: 'haut', f: 5000, attaque: 0.0003, tau: 0.002, gain: 0.25 });
+  return cadrer([c.b], sr, 0.2);
+}
+/**
+ * La pièce tombe dans la vasque de pierre, sur les autres pièces : un « tching » de métal (et les pièces qu'elle cogne),
+ * deux rebonds, puis elle tournoie et se couche (des petits chocs de plus en plus serrés).
+ */
+function bol(sr) {
+  const r = alea(graine('bol')), c = composer(sr, r, 1.0);
+  const tinte = (t0, g) => c.modes(t0, [[3150 + r() * 400, 0.5 * g, 0.12], [5480 + r() * 500, 0.35 * g, 0.08], [8300 + r() * 700, 0.2 * g, 0.05], [11200, 0.1 * g, 0.03]])
+    .bruit(t0, { type: 'haut', f: 4000, attaque: 0.0003, tau: 0.003, gain: 0.3 * g });
+  tinte(0.01, 1);
+  for (let k = 0; k < 4; k++) tinte(0.014 + r() * 0.035, 0.25 + r() * 0.2);
+  tinte(0.16, 0.45);
+  tinte(0.26, 0.25);
+  for (let t = 0.34, d = 0.07; d > 0.008; t += d, d *= 0.8) c.modes(t, [[6200 + r() * 300, 0.14 * (d / 0.07) ** 0.4, 0.015], [9400, 0.06, 0.01]]);
+  c.bruit(0.01, { type: 'bas', f: 600, tau: 0.01, gain: 0.15 });
+  return cadrer([echo(c.b, sr)], sr, 0.22);
+}
+/** La pièce manque la vasque : un « tic » sur la pierre, deux petits rebonds, et elle roule dans le gravier. */
+function tombe(sr) {
+  const r = alea(graine('tombe')), c = composer(sr, r, 0.8);
+  const tic = (t0, g) => c.modes(t0, [[4100 + r() * 300, 0.45 * g, 0.035], [7300 + r() * 500, 0.25 * g, 0.02], [10800, 0.1 * g, 0.012]])
+    .bruit(t0, { type: 'haut', f: 2500, attaque: 0.0003, tau: 0.004, gain: 0.4 * g })
+    .bruit(t0, { type: 'bas', f: 400, attaque: 0.001, tau: 0.008, gain: 0.2 * g });
+  tic(0.01, 1);
+  tic(0.13, 0.45);
+  tic(0.21, 0.22);
+  c.grains(40, { zones: [[0.26, 0.6, 1]], f: [1500, 5000], d: [0.0008, 0.003], g: [0.04, 0.14], q: 1.6 });
+  return cadrer([echo(c.b, sr)], sr, 0.2);
+}
+/**
+ * Le fouet de bambou (chasen) qui bat le matcha dans son bol : des allers-retours rapides (onze par seconde) qui font
+ * mousser, plus lents et plus légers à la fin, puis le fouet qu'on pose contre le bol.
+ */
+function chasen(sr) {
+  const r = alea(graine('chasen')), c = composer(sr, r, 3.3);
+  const n = Math.ceil(2.95 * sr), x = blanc(n, r), h = blanc(n, r);
+  filtrer(x, sr, 'bande', 2300, 0.8);
+  filtrer(h, sr, 'haut', 5000, 0.7);
+  normaliser([x]);
+  normaliser([h]);
+  let ph = r() * TAU;
+  for (let i = 0; i < n; i++) {
+    const t = i / sr, fin = lisse(2.2, 2.6, t);
+    ph += (Math.PI * (11 - 5 * fin)) / sr;
+    x[i] = (x[i] * 0.8 + h[i] * 0.25) * (0.25 + 0.75 * Math.abs(Math.sin(ph)) ** 1.5) * lisse(0, 0.15, t) * (1 - 0.5 * fin) * (1 - lisse(2.75, 2.95, t));
+  }
+  c.mettre(x, 0.02)
+    .perles(900, { de: 0.1, a: 2.9, f: [1800, 6000], g: [0.02, 0.3], q: [4, 9], monte: 0.2 })
+    .modes(3.05, [[880, 0.4, 0.05], [2150, 0.2, 0.025], [3900, 0.1, 0.012]]);
+  return cadrer([c.b], sr, 0.2);
+}
+/**
+ * Le pinceau sur le papier du carnet de sceaux : des traits doux qui frottent (chacun monte, file et se lève), et au
+ * milieu, le pinceau qu'on retrempe dans l'encre (il touche la pierre).
+ */
+function pinceau(sr) {
+  const r = alea(graine('pinceau')), c = composer(sr, r, 4.3);
+  let t = 0.1;
+  for (let k = 0; k < 11 && t < 3.9; k++) {
+    const d = 0.12 + r() * 0.35, f0 = 2400 + r() * 1800, att = 0.015 + r() * 0.03;
+    c.bruit(t, { f: (u) => f0 * (1 + (0.25 * u) / d), q: 0.9, duree: d, forme: (u) => ad(att, d * 0.4, d)(u) * (0.85 + 0.15 * Math.sin(TAU * 13 * u)), gain: 0.35 + r() * 0.35 })
+      .grains(Math.round(d * 120), { zones: [[t, t + d, 1]], f: [3000, 8000], d: [0.0005, 0.0015], g: [0.03, 0.1], q: 1.4 });
+    t += d + 0.08 + r() * 0.25;
+    if (k === 5) {
+      c.modes(t + 0.05, [[1450, 0.12, 0.02], [3100, 0.05, 0.01]]);
+      t += 0.35;
+    }
+  }
+  return cadrer([c.b], sr, 0.18);
+}
+/** Les deux sceaux rouges qu'on presse sur la page : un « ton » sourd sur la table de bois, le papier, le sceau qu'on décolle. */
+function tampon(sr) {
+  const r = alea(graine('tampon')), c = composer(sr, r, 0.85);
+  for (const [t0, g] of [[0.01, 1], [0.45, 0.85]]) {
+    c.modes(t0, [[175 + r() * 20, 0.8 * g, 0.035], [470 + r() * 40, 0.4 * g, 0.018], [1150, 0.15 * g, 0.008]])
+      .bruit(t0, { type: 'bas', f: 380, attaque: 0.001, tau: 0.012, gain: 0.5 * g })
+      .bruit(t0, { f: 2600, q: 0.8, attaque: 0.0008, tau: 0.008, gain: 0.25 * g })
+      .bruit(t0 + 0.2, { f: (u) => 1200 + (2500 * u) / 0.05, q: 1.2, attaque: 0.01, tau: 0.015, gain: 0.12 * g });
+  }
+  return cadrer([c.b], sr, 0.22);
+}
+/**
+ * Le gong de bronze plat (waniguchi, « la gueule de crocodile ») de la salle de Fudō, qu'on frappe en balançant sa grosse
+ * corde : la corde qui part, puis « garan, garan », quatre coups de plus en plus faibles ; le bronze chante longtemps et bat
+ * un peu (deux notes presque pareilles).
+ */
+function waniguchi(sr) {
+  const r = alea(graine('waniguchi')), c = composer(sr, r, 4.4);
+  const bronze = [[468, 0.9, 1.1], [473, 0.5, 1.0], [1076, 0.6, 0.7], [1790, 0.45, 0.45], [2650, 0.3, 0.28], [3720, 0.18, 0.16], [5100, 0.1, 0.08]];
+  c.bruit(0.0, { f: 700, q: 0.6, duree: 0.25, forme: ad(0.06, 0.12, 0.25), gain: 0.12 });
+  for (const [t0, g] of [[0.12, 1], [0.5, 0.75], [0.86, 0.5], [1.18, 0.25]]) {
+    c.modes(t0, bronze.map(([f, a, tau]) => [f * (1 + (r() - 0.5) * 0.004), a * g, tau]))
+      .bruit(t0, { f: 2400, q: 0.8, attaque: 0.0005, tau: 0.01, gain: 0.35 * g })
+      .bruit(t0, { type: 'bas', f: 300, attaque: 0.001, tau: 0.02, gain: 0.2 * g });
+  }
+  return cadrer([eteindre(echo(c.b, sr), sr, 0.6)], sr, 0.22);
+}
+
 /** Les feux d'artifice : la fusée qui siffle en montant ; l'éclat grave et son écho sur les montagnes ; les mille éclats. */
 const FEUX = {
   depart(sr, r) {
@@ -1086,6 +1238,13 @@ export function fabriquer(quoi, sr) {
   if (sorte === 'caillou') return caillou(sr);
   if (sorte === 'roc') return roc(sr);
   if (sorte === 'slurp') return slurp(sr);
+  if (sorte === 'piece') return piece(sr);
+  if (sorte === 'bol') return bol(sr);
+  if (sorte === 'tombe') return tombe(sr);
+  if (sorte === 'chasen') return chasen(sr);
+  if (sorte === 'pinceau') return pinceau(sr);
+  if (sorte === 'tampon') return tampon(sr);
+  if (sorte === 'waniguchi') return waniguchi(sr);
   if (sorte === 'feu') return FEUX[nom](sr, alea(graine(quoi)));
   throw new Error(`son inconnu : ${quoi}`);
 }

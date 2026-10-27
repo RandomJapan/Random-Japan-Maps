@@ -149,6 +149,44 @@ const MOTIFS = {
     <path d="M30 68 Q60 82 90 68" fill="none" stroke-width="4.5"/>
     <path d="M44 74 l-2 10 M60 78 l0 11 M76 74 l2 10" fill="none" stroke-width="2.5" stroke-linecap="round"/>
     <path d="M12 106 L108 106" fill="none" stroke-width="3"/>`,
+  // le Pavillon d'or (2026-10-26) : le pavillon et son reflet à l'envers dans l'étang ; la cascade de la porte du Dragon et sa
+  // carpe qui saute ; la pièce qui tombe dans le bol devant la stèle ; le bol de thé, son fouet et le gâteau à la feuille d'or ;
+  // le goshuin, sa feuille, l'encre et le sceau
+  kinkaku: `<path d="M57 8 Q60 3 63 8 L66 6 Q64 11 61 12 L61 15 L59 15 L59 12 Q56 11 54 6 Z"/><rect x="56" y="15" width="8" height="5"/>
+    <path d="M32 31 Q60 17 88 31 L85 35 Q60 25 35 35 Z"/><rect x="43" y="35" width="34" height="12"/>
+    <path d="M49 46 V41 Q51 37.5 53 41 V46 Z M67 46 V41 Q69 37.5 71 41 V46 Z" class="vide"/><rect x="57" y="40" width="6" height="6" class="vide"/>
+    <path d="M20 52 Q60 38 100 52 L96 57 Q60 46 24 57 Z"/><rect x="31" y="57" width="58" height="12"/>
+    <path d="M33 60 H87" class="vide" fill="none" stroke-width="1.6"/>
+    <rect x="31" y="69" width="58" height="11"/><path d="M41 70 V79 M51 70 V79 M60 70 V79 M69 70 V79 M79 70 V79" class="vide" fill="none" stroke-width="1.8"/>
+    <rect x="12" y="81" width="96" height="3"/>
+    <path d="M31 88 H89 M31 92 H89" fill="none" stroke-width="2.4" stroke-dasharray="7 3"/>
+    <path d="M22 96 Q60 108 98 96 L94 93 Q60 103 26 93 Z" opacity="0.75"/>
+    <path d="M44 104 H76" fill="none" stroke-width="2.4" stroke-dasharray="5 3" opacity="0.75"/>
+    <path d="M34 108 Q60 117 86 108 L83 106 Q60 113 37 106 Z" opacity="0.6"/>`,
+  ryumon: `<path d="M6 104 L10 40 Q16 26 30 30 L40 36 L44 104 Z"/><path d="M114 104 L110 44 Q104 28 90 32 L80 38 L76 104 Z"/>
+    <path d="M44 34 Q60 28 76 34 L76 40 L44 40 Z"/>
+    <path d="M52 40 L52 76 M60 40 L60 80 M68 40 L68 76" fill="none" stroke-width="3" stroke-dasharray="9 4"/>
+    <path d="M58 92 Q50 74 56 60 Q62 50 70 54 Q66 60 68 66 L76 62 L72 72 Q72 84 64 94 Z"/>
+    <circle cx="66" cy="60" r="1.6" class="vide"/><path d="M60 72 L56 70 M62 80 L57 79" class="vide" fill="none" stroke-width="1.4"/>
+    <path d="M34 98 q6 -5 12 0 t12 0 t12 0 t12 0 t12 0" fill="none" stroke-width="3"/>
+    <circle cx="48" cy="86" r="2.4"/><circle cx="80" cy="84" r="2"/><circle cx="44" cy="80" r="1.6"/>`,
+  zeni: `<path d="M30 92 L30 40 Q30 16 60 16 Q90 16 90 40 L90 92 Z"/>
+    <circle cx="60" cy="40" r="11" class="vide"/><path d="M50 74 Q50 54 60 52 Q70 54 70 74 Z" class="vide"/><circle cx="60" cy="40" r="6"/>
+    <path d="M18 92 L102 92 L96 106 Q60 112 24 106 Z"/><ellipse cx="60" cy="92" rx="42" ry="5" class="vide"/>
+    <circle cx="96" cy="24" r="9"/><rect x="93" y="21" width="6" height="6" class="vide"/>
+    <path d="M86 36 L80 46 M100 38 L98 48 M92 40 L88 52" fill="none" stroke-width="2.2" stroke-linecap="round"/>`,
+  matcha: `<path d="M14 54 L66 54 Q66 92 40 96 Q14 92 14 54 Z"/><ellipse cx="40" cy="54" rx="26" ry="6"/>
+    <ellipse cx="40" cy="54" rx="21" ry="4" class="vide"/><path d="M28 54 q4 -2 8 0 t8 0 t8 0" class="vide" fill="none" stroke-width="1.6"/>
+    <rect x="30" y="96" width="20" height="5"/>
+    <path d="M86 20 L86 50" fill="none" stroke-width="5" stroke-linecap="round"/>
+    <path d="M76 52 Q86 46 96 52 L100 84 Q86 92 72 84 Z"/><path d="M78 56 L76 82 M84 56 L83 84 M90 56 L91 84 M96 56 L98 82" class="vide" fill="none" stroke-width="1.6"/>
+    <ellipse cx="88" cy="104" rx="18" ry="6"/><rect x="80" y="94" width="16" height="9" rx="3"/><rect x="85" y="95" width="6" height="5" class="vide"/>`,
+  goshuin: `<rect x="26" y="8" width="68" height="104" rx="3"/><rect x="31" y="13" width="58" height="94" class="vide"/>
+    <path d="M78 18 L76 34 M70 22 L80 24" fill="none" stroke-width="3" stroke-linecap="round"/>
+    <path d="M60 20 Q52 34 56 46 Q64 50 66 58 Q58 70 62 82 Q66 92 58 100" fill="none" stroke-width="6" stroke-linecap="round"/>
+    <path d="M48 30 L70 32 M50 62 L68 60" fill="none" stroke-width="4" stroke-linecap="round"/>
+    <rect x="42" y="66" width="34" height="34" fill="none" stroke-width="3"/><rect x="47" y="71" width="24" height="24" fill="none" stroke-width="1.6"/>
+    <path d="M40 22 L40 44 M36 52 L36 70" fill="none" stroke-width="2.6" stroke-linecap="round"/>`,
   ishi: `<path d="M8 104 Q10 32 60 24 Q110 32 112 104 L100 104 Q98 46 60 40 Q22 46 20 104 Z"/>
     <ellipse cx="44" cy="96" rx="14" ry="5.5"/><ellipse cx="44" cy="85.5" rx="11" ry="4.5"/><ellipse cx="44" cy="76.5" rx="8" ry="3.6"/><ellipse cx="44" cy="69" rx="5" ry="2.8"/>
     <ellipse cx="75" cy="97" rx="12" ry="5"/><ellipse cx="75" cy="87.5" rx="9" ry="4"/><ellipse cx="75" cy="79.5" rx="6" ry="3.2"/>

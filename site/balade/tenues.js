@@ -13,7 +13,8 @@ import { aAchete } from './tresors.js';
 
 // (le 2026-10-23, des pièces qu'on achète au marchand avec les koban des secrets, tresors.js : achat ; et trois places
 // de plus : la tenue entière, ce qu'on laisse sous ses pas, ce que porte le compagnon ; puis, avec Gokayama, ce qu'on
-// porte sur le dos : le sac, ou le mino, la cape de paille ; avec Takachiho, ce qu'on porte au cou : le collier de magatama)
+// porte sur le dos : le sac, ou le mino, la cape de paille ; avec Takachiho, ce qu'on porte au cou : le collier de magatama ;
+// avec Kinkaku-ji, sur le dos encore : les ailes du phénix, des plumes d'or qui s'ouvrent quand on court)
 export const PLACES = ['tete', 'yeux', 'habit', 'dos', 'cou', 'pas', 'compagnon'];
 /**
  * Les pièces, par place (une seule pièce par place à la fois) ; lieu : le lieu dont il faut tous les tampons ; achat :
@@ -36,6 +37,7 @@ export const PIECES = [
   { id: 'armure', place: 'habit', achat: 'armure' },
   { id: 'sac', place: 'dos' },
   { id: 'mino', place: 'dos', lieu: 'gokayama' },
+  { id: 'ailes', place: 'dos', lieu: 'kinkakuji' },
   { id: 'cou-rien', place: 'cou' },
   { id: 'magatama', place: 'cou', lieu: 'takachiho' },
   { id: 'trace-aucune', place: 'pas' },
@@ -189,6 +191,9 @@ const DESSINS = {
     ${[11, 15, 19, 23, 27, 31, 35, 38].map((x) => `<path d="M${x} 38 l1 5" stroke="#a8874a" stroke-width="1.6" stroke-linecap="round"/>`).join('')}
     ${[14, 18, 22, 26, 30, 34].map((x) => `<path d="M${x} 12 L${x - 2 + (x - 24) * 0.2} 36" stroke="#b8975a" stroke-width="1"/>`).join('')}
     <ellipse cx="24" cy="8.5" rx="8" ry="3" fill="#d9bd78" stroke="${ENCRE}" stroke-width="1.6"/>`,
+  // les ailes du phénix (le Pavillon d'or) : deux ailes d'or en éventail de longues plumes, dressées vers le haut
+  ailes: `${[-1, 1].map((s) => [0, 1, 2, 3, 4].map((k) => { const a = (s < 0 ? Math.PI : 0) + s * (0.35 + k * 0.28), l = 13 + k * 2.4; return `<path d="M${24 + s * 3} 30 L${(24 + s * 3 + Math.cos(a) * l * 0.55 - Math.sin(a) * 2.6).toFixed(1)} ${(30 - Math.sin(a) * l * 0.55 - Math.cos(a) * 2.6 * s).toFixed(1)} L${(24 + s * 3 + Math.cos(a) * l).toFixed(1)} ${(30 - Math.sin(a) * l).toFixed(1)} Z" fill="${k % 2 ? '#f4c845' : '#e2a92e'}" stroke="${ENCRE}" stroke-width="1.6" stroke-linejoin="round"/>`; }).join('')).join('')}
+    <ellipse cx="24" cy="32" rx="5" ry="7" fill="#f4c845" stroke="${ENCRE}" stroke-width="1.8"/>`,
   // au cou : rien (le haut d'un tee-shirt) ; le collier de magatama de Takachiho (le cordon, ses perles, le joyau de jade)
   'cou-rien': `<path d="M4 44 Q5 31 16 28 Q19 34 24 34 Q29 34 32 28 Q43 31 44 44 Z" fill="#f4f0e6" stroke="${ENCRE}" stroke-width="2.2" stroke-linejoin="round"/>
     <path d="M18 16 V28 Q24 33 30 28 V16" fill="#ffdcbc" stroke="${ENCRE}" stroke-width="2.2" stroke-linejoin="round"/>`,

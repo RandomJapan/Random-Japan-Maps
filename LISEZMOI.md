@@ -358,6 +358,7 @@ Visiter un lieu en 3D avec un personnage, comme dans un jeu Pokémon : **Itsukus
 - Le style : d'abord en gros pixels ; le 22 octobre tu as demandé plus lisse, à la manière de Pokémon X et Y. L'image s'adapte toute seule si l'appareil peine (un peu moins fine, toujours fluide).
 - La flèche ← en haut à gauche ramène à la carte, sur la fiche du lieu.
 - Pour un nouveau lieu, demande-le à Claude : chaque lieu est construit à la main. Il arrive d'abord en **mode développeur** : toi seul le vois, pour l'essayer. Quand il te plaît, dis à Claude de le mettre en ligne pour tout le monde.
+- **En essai (mode développeur seulement) : le Pavillon d'or (Kinkaku-ji)**, depuis le 26 octobre 2026. Sur sa fiche, le bouton « Visiter en 3D » n'apparaît qu'en mode développeur ; dans la balade, le menu « Aller à » le propose aussi. Son étang reflète vraiment le pavillon ; son secret : la nuit, le phénix a disparu du reflet… Sa récompense : les ailes du phénix, qui s'ouvrent quand on court.
 
 ## Près de moi
 

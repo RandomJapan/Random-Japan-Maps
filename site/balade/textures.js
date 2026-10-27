@@ -9,9 +9,10 @@
 // ================================================================
 
 /** Les matières (le numéro de leur couche). Le sol (aspectSol des lieux) et les objets (matiereDe). */
-export const MATIERES = { sable: 1, herbe: 2, estran: 3, dalles: 4, terre: 5, roche: 6, route: 7, sousBois: 8, bois: 9, tuiles: 10, pierre: 11, enduit: 12, feuillage: 13, laque: 14, tole: 15, chaume: 16 };
+// (le Pavillon d'or, 2026-10-26 : la feuille d'or, or ; la mousse des jardins de Kyoto, mousse)
+export const MATIERES = { sable: 1, herbe: 2, estran: 3, dalles: 4, terre: 5, roche: 6, route: 7, sousBois: 8, bois: 9, tuiles: 10, pierre: 11, enduit: 12, feuillage: 13, laque: 14, tole: 15, chaume: 16, or: 17, mousse: 18 };
 /** La taille d'une répétition de chaque couche, en mètres (la couche 0 ne change rien). */
-export const ECHELLES = [1, 1.3, 1.7, 2.6, 3, 2, 3.2, 2.2, 1.8, 1.3, 1, 1.6, 2.2, 1.1, 2, 1, 2.4];
+export const ECHELLES = [1, 1.3, 1.7, 2.6, 3, 2, 3.2, 2.2, 1.8, 1.3, 1, 1.6, 2.2, 1.1, 2, 1, 2.4, 1.09, 1.5];
 
 const N = 256; // texels par côté
 
@@ -342,6 +343,36 @@ const COUCHES = {
     }
     for (let i = 0; i < 14; i++) f.disque(h() * N, h() * N, 6 + h() * 14, (px, py, couv) => f.mul(px, py, [0.82, 0.8, 0.72], couv * (0.3 + g(px, py) * 0.4)));
     for (let i = 0; i < 8; i++) f.disque(h() * N, h() * N, 3 + h() * 7, (px, py, couv) => f.mul(px, py, [0.8, 1.02, 0.7], couv * 0.45));
+  },
+  // la feuille d'or (le Pavillon d'or, 2026-10-26) : les feuilles carrées de 10,9 cm posées sur la laque, chacune un rien plus
+  // claire ou plus foncée que sa voisine, leurs bords qui se chevauchent (un trait plus sombre, un liseré plus clair), le
+  // poli en longues traînées. La couche se répète tous les 1,09 m : dix feuilles par côté
+  or(f) {
+    const n = 10, L = N / n, h = f.hasard, g = f.grille(4);
+    const teintes = Array.from({ length: n * n }, () => 0.94 + h() * 0.11);
+    f.partout((x, y) => {
+      const i = Math.floor(x / L), j = Math.floor(y / L), u = x - i * L, v = y - j * L;
+      let k = teintes[j * n + i] * (1 + (g(x, y) - 0.5) * 0.05);
+      if (u < 1 || v < 1) k *= 0.86; else if (u < 2.2 || v < 2.2) k *= 1.06;
+      return k * (1 + 0.03 * Math.sin((x + y * 0.35) * 0.21));
+    });
+    semer(f, 90, 1.1);
+  },
+  // la mousse des jardins de Kyoto (le Pavillon d'or, 2026-10-26) : un velours de petites touffes en étoile, claires dessus,
+  // sombres entre elles, des plaques plus jaunes ou plus sombres ; quelques aiguilles de pin tombées, brunes, en V
+  mousse(f) {
+    marbrer(f, 0.09, 0.02, 4);
+    const h = f.hasard;
+    for (let i = 0; i < 1500; i++) {
+      const x = h() * N, y = h() * N, r = 1.1 + h() * 1.6, k = h() < 0.5 ? 0.82 : 1.12;
+      f.disque(x, y, r, (px, py, couv, dx, dy) => f.mul(px, py, k * (1.06 - 0.12 * (dx + dy) * 0.5), couv));
+    }
+    for (let i = 0; i < 9; i++) f.disque(h() * N, h() * N, 8 + h() * 16, (px, py, couv) => f.mul(px, py, h() < 0.5 ? [1.1, 1.08, 0.82] : [0.86, 0.9, 0.88], couv * 0.35));
+    const aiguille = lineaire('#9a6a3e');
+    for (let i = 0; i < 26; i++) {
+      const x = h() * N, y = h() * N, t = h() * 6.28, l = 5 + h() * 4;
+      for (const e of [-0.22, 0.22]) f.trait(x, y, x + Math.cos(t + e) * l, y + Math.sin(t + e) * l, 0.9, (px, py, couv) => f.poser(px, py, aiguille, couv * 0.8));
+    }
   },
 };
 

@@ -2197,7 +2197,13 @@ async function remplirFiche(l) {
  * Les lieux qu'on peut visiter dans la balade 3D (site/balade/) : id du lieu sur la carte → id du lieu de la
  * balade (?lieu=). À compléter quand la balade gagne un lieu.
  */
-const BALADES = { 'itsukushima-jinja': 'itsukushima', aogashima: 'aogashima', gokayama: 'gokayama', 'himeji-castle': 'himeji', 'takachiho-gorge': 'takachiho', 'amanoiwato-jinja': 'takachiho' };
+const BALADES = { 'itsukushima-jinja': 'itsukushima', aogashima: 'aogashima', gokayama: 'gokayama', 'himeji-castle': 'himeji', 'takachiho-gorge': 'takachiho', 'amanoiwato-jinja': 'takachiho', 'kinkaku-ji': 'kinkakuji' };
+/**
+ * Les lieux de la balade encore en essai : leur bouton « Visiter en 3D » n'existe qu'en mode développeur (la classe dev). Le
+ * propriétaire, 2026-10-26 : chaque nouveau lieu arrive d'abord en mode développeur, et sort quand il le dit (l'ôter d'ici, et
+ * de EN_ESSAI dans balade/balade.js).
+ */
+const BALADES_ESSAI = new Set(['kinkakuji']);
 
 /**
  * Les boutons de la fiche (deux, pour tenir sur une ligne, plus « Visiter en 3D » ; partager est une icône sur la photo,
@@ -2212,7 +2218,7 @@ function remplirBoutons(l) {
   if (pres?.position()) boutons.push(`<button type="button" data-aller>${SVG.route}${echapper(t('yAller'))}</button>`);
   else boutons.push(`<a href="https://www.google.com/maps/dir/?api=1&destination=${l.lat},${l.lng}" target="_blank" rel="noopener">${SVG.route}${echapper(t('itineraire'))}</a>`);
   // la balade 3D (pour tous depuis le 2026-10-26)
-  if (BALADES[l.id]) boutons.push(`<a href="balade/?lieu=${BALADES[l.id]}&langue=${langue}">${SVG.balade}${echapper(t('visiter3d'))}</a>`);
+  if (BALADES[l.id]) boutons.push(`<a${BALADES_ESSAI.has(BALADES[l.id]) ? ' class="dev"' : ''} href="balade/?lieu=${BALADES[l.id]}&langue=${langue}">${SVG.balade}${echapper(t('visiter3d'))}</a>`);
   $('fiche-boutons').innerHTML = boutons.join('');
 }
 

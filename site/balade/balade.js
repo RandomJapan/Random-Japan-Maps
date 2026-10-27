@@ -52,13 +52,21 @@ import * as aogashima from './aogashima.js';
 import * as gokayama from './gokayama.js';
 import * as himeji from './himeji.js';
 import * as takachiho from './takachiho.js';
+import * as kinkakuji from './kinkakuji.js';
 
 // chaque lieu : { infos (noms, tampons, textes : sans rien construire), construire(ctx) }
-const LIEUX = { itsukushima, aogashima, gokayama, himeji, takachiho };
+// (EN_ESSAI : les lieux en cours, qu'on ne voit qu'en mode développeur, localStorage.modeDev = 'oui', celui de la carte ; le
+// propriétaire, 2026-10-26 : « à chaque nouveau lieu tu les mettra en mode développeur avant de le mettre en ligne à tous le
+// monde ». Pour un visiteur, rien n'en paraît : ni le menu « Aller à », ni le carnet, ni la garde-robe, et ?lieu= mène au lieu
+// par défaut. Pour le sortir : l'ôter de EN_ESSAI, et ôter la classe dev de son lien dans app.js, BALADES_ESSAI)
+const EN_ESSAI = ['kinkakuji'];
+const LIEUX = Object.fromEntries(Object.entries({ itsukushima, aogashima, gokayama, himeji, takachiho, kinkakuji }).filter(([id]) => !EN_ESSAI.includes(id) || modeDev()));
 const params = new URLSearchParams(location.search);
 const PHOTO = params.get('photo');
 const DEMO = params.has('demo');
 const LIEU = LIEUX[params.get('lieu')] ? params.get('lieu') : 'itsukushima';
+/** Les pièces de tenue qu'on voit : sans celles des lieux en essai, pour un visiteur. */
+const PIECES_VUES = PIECES.filter((p) => !p.lieu || LIEUX[p.lieu]);
 const MARCHE = 3.4, COURSE = 6.6; // m/s
 // au-delà, un passant n'a plus son trait d'encre (un ou deux pixels à cette distance) : six appels de dessin de moins
 // chacun, ce qui compte quand on voit tout un village d'en haut (le belvédère de Gokayama)
@@ -183,7 +191,9 @@ function construire() {
   const eau = lieu.eau ? creerEau(lieu, P, mats.lampes, ciel, carteContactEau(decor, lieu)) : null;
   // l'eau qui coule (un ruisseau : lieu.courants, des rubans le long de son lit) ; l'eau calme (les rizières)
   const courants = (lieu.courants || []).map((g) => creerEauCourante(g, P, mats.lampes, lieu, ciel));
-  if (lieu.eauxCalmes?.length) courants.push(creerEauxCalmes(lieu, mats.lampes, ciel));
+  // (le miroir d'une eau calme : le vrai reflet du décor, lieu.miroir, le Pavillon d'or)
+  const miroir = lieu.miroir && lieu.eauxCalmes?.length ? creerMiroir(lieu.miroir) : null;
+  if (lieu.eauxCalmes?.length) courants.push(creerEauxCalmes(lieu, mats.lampes, ciel, miroir));
   // les cascades (Takachiho) : leur voile, leur écume, un arc-en-ciel (leurs uniformes : comme l'eau qui coule)
   for (const c of lieu.cascades || []) courants.push(...creerCascade(c, P, mats.lampes, lieu, ciel));
   for (const c of courants) groupe.add(c);
@@ -302,11 +312,19 @@ function construire() {
   // (la scène et son groupe ne bougent pas : sinon, leur matrice recalculée à chaque image forçait celles de tous les objets,
   // même du décor immobile)
   scene.matrixAutoUpdate = groupe.matrixAutoUpdate = false;
+  // ce qui n'est pas dans le reflet d'un miroir (creerMiroir) : le calque 1, que seule la vraie caméra voit. Les traits d'encre,
+  // l'herbe, l'eau elle-même, les traces et les éclaboussures, les rais de soleil, la vapeur, ce qui tombe du calendrier
+  if (miroir) {
+    camera.layers.enableAll();
+    const hors = (o) => o.traverse((q) => q.layers.set(1));
+    groupe.traverse((q) => { if (q.isMesh && (q.material === mats.trait || q.material === mats.traitPerso)) q.layers.set(1); });
+    for (const o of [touffes.groupe, ...courants, eau, effets.groupe, rais, vapeurs, chutes.groupe]) if (o) hors(o);
+  }
   // ce qui est à l'abri sous un toit : ni neige, ni feuilles mortes, ni flocons (styles.js, abrite)
   carteAbri(decor, lieu, mats.abri);
   M = {
     carte, effets, lueurs, betes, mouilleJoueur, mouilleKon, feuillage: densiteFeuillage(lieu), bruitage: creerBruitage({ oiseaux: lieu.oiseaux || [], ambiances: lieu.ambiances || [], betes: [...(lieu.betes?.chats?.length ? ['miaou', 'ronron'] : []), ...(lieu.betes?.chiens?.length ? ['ouaf'] : [])], extras: lieu.sons || [] }), musique: creerMusique(lieu.id), focale: 800,
-    marchand, feux, chutes, barque, sac: new Set(), trace: null, saison: 'ete', flash: { v: 0, c: new THREE.Color() }, hemiBase: { intensite: 0, couleur: new THREE.Color() },
+    marchand, feux, chutes, barque, miroir, sac: new Set(), trace: null, saison: 'ete', flash: { v: 0, c: new THREE.Color() }, hemiBase: { intensite: 0, couleur: new THREE.Color() },
     style, ctx, mats, lieu, groupe, decor, decorsDedans, traitsDecor, voyageurs, compagnons, kon: null, cadre: null, passants, daims, mouettes, eau, courants, ciel, soleil, hemi, etoiles, vapeurs, rais, touffes, finale: passeFinale(THREE, style, { echantillons: params.get('aa') === '0' ? 0 : 4, flou: params.get('flou') !== '0' }), cible: null, sauvage: null, nuit: { v: 0, cible: 0, fin: null } };
   choisirVoyageur(sorte || 'garcon');
   choisirCompagnon(espece || 'kon');
@@ -1160,7 +1178,95 @@ function creerEauCourante(geo, P, lampes, lieu, ciel) {
  * lieu, claire où elle est peu profonde, de plus en plus foncée et opaque vers le fond (selon le sol, lieu.terrain), mais
  * jamais plus que 1 − clarte (on voit les carpes) ; sans le reflet des talus (ses bords sont des pierres, sur la rive).
  */
-function creerEauxCalmes(lieu, lampes, ciel) {
+/**
+ * Le miroir de l'eau calme (le Pavillon d'or, 2026-10-26 : « le pavillon doré qui se reflète dans l'étang » ; jusque-là, l'eau
+ * ne reflétait que le ciel). La scène vue d'une caméra symétrique de la vraie sous le plan de l'eau (y = m.y), dessinée à
+ * demi-définition dans une image à part, et seulement par le rectangle de son image où l'eau se voit (le rectangle m projeté :
+ * elle ne dessine que ce qu'elle voit par là) ; sans les traits d'encre, l'herbe, l'eau elle-même ni les effets (le calque 1) ;
+ * rien de ce qui est sous l'eau (son plan proche est celui de l'eau : une projection oblique). L'eau calme la lit là où elle est
+ * à l'écran (miroirMat), troublée par ses rides. Les ombres ne se calculent qu'une fois par image (dessiner).
+ * m : { y, x0, x1, z0, z1 } ; renvoie { uniformes, calques (ceux que voit le miroir), rendre(rendu, scene, cam) → vrai s'il a
+ * dessiné }.
+ */
+function creerMiroir(m) {
+  const cible = new THREE.WebGLRenderTarget(1, 1, { depthBuffer: true, generateMipmaps: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter });
+  cible.texture.colorSpace = THREE.SRGBColorSpace;
+  const virtuelle = new THREE.PerspectiveCamera();
+  virtuelle.layers.set(0);
+  // (le calque 2 : ce qu'un lieu peut ôter du reflet, le phénix du Pavillon d'or la nuit : contexteAnime.refleter)
+  virtuelle.layers.enable(2);
+  const u = { miroirTex: { value: cible.texture }, miroirMat: { value: new THREE.Matrix4() }, miroirZone: { value: new THREE.Vector2(1, 1) }, miroirActif: { value: 0 }, miroirY: { value: m.y } };
+  const ECHELLE = tactile ? 0.4 : 0.5;
+  const taille = new THREE.Vector2(), v = new THREE.Vector3(), f = new THREE.Vector3(), h = new THREE.Vector3(), plan = new THREE.Vector4(), q = new THREE.Vector4();
+  const biais = new THREE.Matrix4().set(0.5, 0, 0, 0.5, 0, 0.5, 0, 0.5, 0, 0, 0.5, 0.5, 0, 0, 0, 1);
+  const coins = [[m.x0, m.z0], [m.x1, m.z0], [m.x1, m.z1], [m.x0, m.z1]];
+  return {
+    uniformes: u,
+    calques: virtuelle.layers,
+    /** net : la caméra est posée (un regard, de près) : le reflet deux fois plus fin, le temps de la scène. */
+    rendre(rendu, scene, cam, net = false) {
+      u.miroirActif.value = 0;
+      if (cam.position.y < m.y + 0.05) return false;
+      // la caméra symétrique : sa position, sa direction et son haut retournés par le plan de l'eau
+      cam.updateMatrixWorld();
+      virtuelle.position.set(cam.position.x, 2 * m.y - cam.position.y, cam.position.z);
+      f.set(0, 0, -1).transformDirection(cam.matrixWorld);
+      h.set(0, 1, 0).transformDirection(cam.matrixWorld);
+      virtuelle.up.set(h.x, -h.y, h.z);
+      virtuelle.lookAt(virtuelle.position.x + f.x, virtuelle.position.y - f.y, virtuelle.position.z + f.z);
+      virtuelle.fov = cam.fov; virtuelle.aspect = cam.aspect; virtuelle.near = cam.near; virtuelle.far = cam.far;
+      virtuelle.clearViewOffset();
+      virtuelle.updateMatrixWorld();
+      // le rectangle de son image où l'eau se voit : le rectangle de l'eau, coupé par son plan proche, projeté
+      const vue = coins.map(([x, z]) => v.set(x, m.y, z).applyMatrix4(virtuelle.matrixWorldInverse).clone());
+      const poly = [];
+      for (let i = 0; i < 4; i++) {
+        const A = vue[i], B = vue[(i + 1) % 4], la = A.z <= -cam.near, lb = B.z <= -cam.near;
+        if (la) poly.push(A);
+        if (la !== lb) { const t = (-cam.near - A.z) / (B.z - A.z); poly.push(A.clone().lerp(B, t)); }
+      }
+      if (poly.length < 3) return false;
+      let x0 = 1, x1 = -1, y0 = 1, y1 = -1;
+      for (const p of poly) {
+        p.applyMatrix4(virtuelle.projectionMatrix);
+        x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); y0 = Math.min(y0, p.y); y1 = Math.max(y1, p.y);
+      }
+      x0 = Math.max(-1, x0); x1 = Math.min(1, x1); y0 = Math.max(-1, y0); y1 = Math.min(1, y1);
+      rendu.getDrawingBufferSize(taille);
+      const W = taille.x, H = taille.y;
+      const px0 = Math.floor((x0 * 0.5 + 0.5) * W), px1 = Math.ceil((x1 * 0.5 + 0.5) * W);
+      const haut0 = Math.floor((0.5 - y1 * 0.5) * H), haut1 = Math.ceil((0.5 - y0 * 0.5) * H);
+      const sw = px1 - px0, sh = haut1 - haut0;
+      if (sw < 4 || sh < 4) return false;
+      const ech = net ? Math.min(1, ECHELLE * 2) : ECHELLE;
+      const tw = Math.max(1, Math.round(W * ech)), th = Math.max(1, Math.round(H * ech));
+      if (cible.width !== tw || cible.height !== th) cible.setSize(tw, th);
+      const vw = Math.min(tw, Math.ceil(sw * ech)), vh = Math.min(th, Math.ceil(sh * ech));
+      virtuelle.setViewOffset(W, H, px0, haut0, sw, sh);
+      virtuelle.updateProjectionMatrix();
+      // le plan proche, celui de l'eau (Lengyel, comme le Reflector de three.js)
+      const n = v.set(0, 1, 0).transformDirection(virtuelle.matrixWorldInverse), p0 = f.set(0, m.y, 0).applyMatrix4(virtuelle.matrixWorldInverse);
+      plan.set(n.x, n.y, n.z, -n.dot(p0));
+      const e = virtuelle.projectionMatrix.elements;
+      q.set((Math.sign(plan.x) + e[8]) / e[0], (Math.sign(plan.y) + e[9]) / e[5], -1, (1 + e[10]) / e[14]);
+      plan.multiplyScalar(2 / plan.dot(q));
+      e[2] = plan.x; e[6] = plan.y; e[10] = plan.z + 1 - 0.003; e[14] = plan.w;
+      virtuelle.projectionMatrixInverse.copy(virtuelle.projectionMatrix).invert();
+      cible.viewport.set(0, 0, vw, vh);
+      cible.scissor.set(0, 0, vw, vh);
+      cible.scissorTest = true;
+      rendu.setRenderTarget(cible);
+      rendu.render(scene, virtuelle);
+      rendu.setRenderTarget(null);
+      u.miroirMat.value.makeScale(vw / tw, vh / th, 1).multiply(biais).multiply(virtuelle.projectionMatrix).multiply(virtuelle.matrixWorldInverse);
+      u.miroirZone.value.set((vw - 0.5) / tw, (vh - 0.5) / th);
+      u.miroirActif.value = 1;
+      return true;
+    },
+  };
+}
+
+function creerEauxCalmes(lieu, lampes, ciel, miroir = null) {
   // bord : la position dans le bassin (m depuis un coin) et sa taille : le reflet sombre des talus le long des bords ;
   // profondeur : (avec clair et profond) la hauteur d'eau, une grille de 50 cm
   const E = lieu.eauCalme || {}, couleurs = !!(E.clair && E.profond);
@@ -1189,11 +1295,12 @@ function creerEauxCalmes(lieu, lampes, ciel) {
   g.setIndex(idx);
   const mat = new THREE.ShaderMaterial({
     transparent: true, depthWrite: false, fog: true,
-    defines: couleurs ? { COULEURS: 1 } : {},
+    defines: { ...(couleurs ? { COULEURS: 1 } : {}), ...(miroir ? { MIROIR: 1 } : {}) },
     uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
       boue: { value: new THREE.Color(E.boue || '#5f6a45') }, bordEau: { value: new THREE.Color(E.bord || '#334d24') },
       clair: { value: new THREE.Color(E.clair || '#000000') }, profond: { value: new THREE.Color(E.profond || '#000000') },
       clarte: { value: E.clarte ?? 0.2 }, temps: { value: 0 }, nuit: { value: 0 },
+      teinteReflet: { value: new THREE.Color(E.teinteReflet || '#ffffff') }, refletMin: { value: E.refletMin ?? 0.45 },
     }]),
     vertexShader: `
       attribute vec4 bord;
@@ -1213,8 +1320,14 @@ function creerEauxCalmes(lieu, lampes, ciel) {
         #include <fog_vertex>
       }`,
     fragmentShader: `
-      uniform vec3 boue, bordEau, clair, profond;
-      uniform float temps, nuit, clarte;
+      uniform vec3 boue, bordEau, clair, profond, teinteReflet;
+      uniform float temps, nuit, clarte, refletMin;
+      #ifdef MIROIR
+        uniform sampler2D miroirTex;
+        uniform mat4 miroirMat;
+        uniform vec2 miroirZone;
+        uniform float miroirActif, miroirY;
+      #endif
       varying vec3 vMonde;
       varying vec4 vBord;
       varying float vProf, vGarde;
@@ -1235,6 +1348,23 @@ function creerEauxCalmes(lieu, lampes, ciel) {
         c *= mix(vec3(1.0), vec3(0.22, 0.27, 0.45), nuit);
         vec3 n = normaleEau(vMonde.xz * 1.3, temps * 0.7, 0.12 * ridesEau(vMonde));
         float fres;
+        #ifdef MIROIR
+          // le vrai reflet (creerMiroir) : l'image de la caméra symétrique, là où ce point de l'eau y tombe, un peu déplacée
+          // par les rides ; un étang sombre reflète beaucoup, même vu d'en haut ; les éclats du soleil par-dessus
+          if (miroirActif > 0.5 && abs(vMonde.y - miroirY) < 0.02) {
+            vec4 q = miroirMat * vec4(vMonde, 1.0);
+            vec2 uv = clamp(q.xy / q.w + n.xz * 0.012, vec2(0.0), miroirZone);
+            vec3 c0 = c;
+            vec3 eclats = eclairerEau(c, vMonde, n, nuit, 0.0, fres) - c0;
+            float k = clamp(refletMin + (1.0 - refletMin) * fres, 0.0, 0.94);
+            c = mix(c0, texture2D(miroirTex, uv).rgb * teinteReflet, k) + eclats;
+            c += lampe * 1.2;
+            gl_FragColor = vec4(c, max(mix(a, 0.97, fres), k));
+            #include <colorspace_fragment>
+            #include <fog_fragment>
+            return;
+          }
+        #endif
         #ifdef COULEURS
           c = eclairerEau(c, vMonde, n, nuit, 0.55, fres);
         #else
@@ -1252,6 +1382,7 @@ function creerEauxCalmes(lieu, lampes, ciel) {
       }`,
   });
   Object.assign(mat.uniforms, lampes, uniformesEau(lieu, ciel));
+  if (miroir) Object.assign(mat.uniforms, miroir.uniformes);
   const m = new THREE.Mesh(g, mat);
   m.renderOrder = 1;
   return m;
@@ -2028,7 +2159,7 @@ function fermerGarderobe() {
 function majGarderobe(info = null) {
   const T = t('tenue'), tenue = lireTenue(sorte, totalTampons);
   const sections = PLACES.map((place) => {
-    const boutons = PIECES.filter((p) => p.place === place).map((p) => {
+    const boutons = PIECES_VUES.filter((p) => p.place === place).map((p) => {
       const ok = gagnee(p, totalTampons), porte = tenue[place] === p.id;
       return `<button type="button" class="piece${porte ? ' actif' : ''}${ok ? '' : ' verrou'}" data-piece="${p.id}" aria-pressed="${porte}">`
         + `${icone(p.id, sorte, 46)}<small>${nomPiece(p.id)}</small>${ok ? '' : CADENAS}</button>`;
@@ -2114,7 +2245,7 @@ function ouvrirMenu() {
   $('.menu').innerHTML = `
     <div class="menu-tete"><b>${t('menu')}</b><button type="button" class="fermer" aria-label="${t('fermer')}">×</button></div>
     <button type="button" class="menu-carnet">${t('carnet')} <small>${$('.carnet-n').textContent}</small></button>
-    <button type="button" class="menu-tenue">${t('tenue').titre} <small>${PIECES.filter((p) => p.lieu && gagnee(p, totalTampons)).length}/${PIECES.filter((p) => p.lieu).length}</small></button>
+    <button type="button" class="menu-tenue">${t('tenue').titre} <small>${PIECES_VUES.filter((p) => p.lieu && gagnee(p, totalTampons)).length}/${PIECES_VUES.filter((p) => p.lieu).length}</small></button>
     ${kobanTrouves() > 0 ? `<p class="menu-koban">${dessinKoban(22, 'menu')}<span>${T.menuKoban}</span><b>${koban()}</b></p>` : ''}
     ${['danse', 'feux', 'photo'].filter(aAchete).map((id) => `<button type="button" class="menu-action" data-action="${id}">${iconeArticle(id, 28)}<span>${T[{ danse: 'menuDanser', feux: 'menuFeux', photo: 'menuPhoto' }[id]]}</span></button>`).join('')}
     ${aAchete('calendrier') ? `<div class="menu-ligne"><span>${T.menuSaison}</span><div>${SAISONS.map((k) => `<button type="button" data-menusaison="${k}" class="${k === M.saison ? 'actif' : ''}">${T.saisons[k]}</button>`).join('')}</div></div>` : ''}
@@ -2566,7 +2697,12 @@ const jeu = {
 /** Les scènes que le lieu demande (la porte de bambous qui s'ouvre…) : jouées dès qu'on est libre. */
 const scenes = [];
 /** Ce que reçoit, à chaque image, ce que le lieu anime : le joueur, la nuit, une scène à jouer. */
-const contexteAnime = { joueur: etat, get nuit() { return M.nuit.v; }, get champ() { return camera.fov; }, get oeil() { return camera.position; }, scene: (fn) => scenes.push(fn) };
+// (refleter(calque, oui) : ce qui est sur ce calque se voit, ou non, dans le reflet de l'eau calme : le phénix du Pavillon
+// d'or, qui manque au reflet la nuit)
+const contexteAnime = {
+  joueur: etat, get nuit() { return M.nuit.v; }, get champ() { return camera.fov; }, get oeil() { return camera.position; }, scene: (fn) => scenes.push(fn),
+  refleter: (calque, oui) => { if (M.miroir) M.miroir.calques[oui ? 'enable' : 'disable'](calque); },
+};
 /** Une scène : le joueur s'arrête le temps d'un dialogue (fn(jeu)), puis repart. */
 async function jouerScene(fn) {
   etat.mode = 'dialogue';
@@ -3436,10 +3572,12 @@ function vivre(dt, temps, pasJoueur, pasKon) {
     const yy = Math.min(c.y0, Math.max(c.y1, etat.y)), v = 1 - lisse(3, 42, Math.hypot(c.x - x, c.z - z, yy - etat.y));
     if (v > cascade) { cascade = v; panCascade = panDe(c.x, c.z); }
   }
+  // (Kinkaku-ji) les cigales : le jour, l'été (le calendrier magique), plus fort sous les arbres
+  const semi = M.saison === 'ete' ? (1 - M.nuit.v) * (0.35 + 0.65 * feuilles) : 0;
   M.bruitage.ambiance({
     vent, feuilles, vagues: oreille.mer.vagues, panVagues: oreille.mer.pan, vapeur: Math.min(1, vapeur), panVapeur, nuit: M.nuit.v, oiseau, no,
     panNo: sc ? panDe(sc.x, sc.z) : 0, scene: sc?.son || 'no', eauSon: L.eau?.son || 'vagues', ruisseau, panRuisseau, grenouilles,
-    grenouilleSon: L.sonGrenouilles || 'grenouilles', cascade, panCascade,
+    grenouilleSon: L.sonGrenouilles || 'grenouilles', cascade, panCascade, semi,
   }, d);
   M.musique.maj(M.nuit.v, 1 - 0.8 * no);
 }
@@ -3671,8 +3809,22 @@ function dessiner(dt, temps) {
   // l'image : la scène lissée, puis la passe finale à l'écran (le lointain flou) ; ce qui est caché (les compagnons
   // qu'on n'a pas choisis, l'autre voyageur, les bêtes au loin…) ne recalcule pas ses matrices
   for (const c of M.groupe.children) c.matrixWorldAutoUpdate = c.visible && !c.userData.gele;
+  // le reflet de l'eau calme d'abord (creerMiroir), sans l'effacement en pointillés autour du joueur : la carte des ombres et
+  // les matrices s'y calculent, l'image les reprend telles quelles
+  let reflet = false;
+  if (M.miroir) {
+    const q = M.mats.coupe;
+    oeilCoupe.copy(q.oeil.value); cibleCoupe.copy(q.cible.value);
+    q.oeil.value.set(0, -1e4, 0); q.cible.value.set(0, -1e4, 0);
+    reflet = M.miroir.rendre(rendu, scene, camera, !!M.cadre);
+    q.oeil.value.copy(oeilCoupe); q.cible.value.copy(cibleCoupe);
+  }
+  if (reflet) { rendu.shadowMap.autoUpdate = false; scene.matrixWorldAutoUpdate = false; }
   M.finale.rendre(rendu, scene, camera);
+  rendu.shadowMap.autoUpdate = true;
+  scene.matrixWorldAutoUpdate = true;
 }
+const oeilCoupe = new THREE.Vector3(), cibleCoupe = new THREE.Vector3();
 
 let champBase = 48;
 function dimensionner() {

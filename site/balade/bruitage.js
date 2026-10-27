@@ -38,6 +38,9 @@ const V = {
   // Takachiho (2026-10-25) : la cascade de Manai, les grenouilles kajika de la rivière la nuit, le kagura (comme le nō) ;
   // les coups de rame, le coq, une pierre posée sur une autre, la porte de pierre qui roule, les nouilles aspirées
   cascade: 0.013, kajika: 0.0065, kagura: 0.0085, rame: 0.06, coq: 0.07, caillou: 0.11, roc: 0.15, slurp: 0.08,
+  // Kinkaku-ji (2026-10-26) : les cigales de l'été (le jour, plus fort sous les arbres) ; la pièce lancée, la vasque, le
+  // gravier ; le fouet du matcha, le pinceau, les sceaux ; le gong de la salle de Fudō
+  semi: 0.004, piece: 0.07, bol: 0.09, tombe: 0.08, chasen: 0.08, pinceau: 0.07, tampon: 0.1, waniguchi: 0.09,
 };
 const lisse = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
 
@@ -53,7 +56,7 @@ export function creerBruitage({ oiseaux = [], ambiances = [], betes = [], extras
   const tampons = new Map(); // « pas/herbe/2 » → AudioBuffer
   const boucles = {}; // nom → { g (volume), p (gauche-droite) }
   const derniers = {}; // sol → dernière variante jouée (jamais deux fois la même de suite)
-  const actuel = { vent: 0.3, feuilles: 0, vagues: 0, panVagues: 0, vapeur: 0, panVapeur: 0, nuit: 0, oiseau: null, no: 0, panNo: 0, eauSon: 'vagues', scene: 'no', ruisseau: 0, panRuisseau: 0, grenouilles: 0, grenouilleSon: 'grenouilles', cascade: 0, panCascade: 0 };
+  const actuel = { vent: 0.3, feuilles: 0, vagues: 0, panVagues: 0, vapeur: 0, panVapeur: 0, nuit: 0, oiseau: null, no: 0, panNo: 0, eauSon: 'vagues', scene: 'no', ruisseau: 0, panRuisseau: 0, grenouilles: 0, grenouilleSon: 'grenouilles', cascade: 0, panCascade: 0, semi: 0 };
   let prochainOiseau = 18 + Math.random() * 20;
 
   /** Au premier moment où le son joue : la sortie, puis la fabrication de tous les sons. */
@@ -134,6 +137,7 @@ export function creerBruitage({ oiseaux = [], ambiances = [], betes = [], extras
     viser('ruisseau', a.ruisseau * V.ruisseau, a.panRuisseau);
     viser(a.grenouilleSon, a.grenouilles * V[a.grenouilleSon]);
     viser('cascade', a.cascade * V.cascade, a.panCascade);
+    viser('semi', a.semi * V.semi);
   }
 
   /** Joue un son, en lançant la fabrication s'il le faut (au départ, avant le premier pas) : s'il n'est pas prêt, rien. */
@@ -199,7 +203,7 @@ export function creerBruitage({ oiseaux = [], ambiances = [], betes = [], extras
      * fumerolles), nuit (0 à 1), oiseau (celui qui chanterait ici : 'milan', 'uguisu' ou null), no et panNo (la
      * musique d'une scène, scene : 'no' ou 'kokiriko' : 0 loin, 1 tout près), eauSon (la boucle de l'eau : 'vagues'
      * ou 'riviere'), ruisseau et panRuisseau, grenouilles (0 à 1) et grenouilleSon (leur boucle : 'grenouilles', 'kajika'),
-     * cascade et panCascade (0 à 1). dt : secondes depuis l'appel précédent.
+     * cascade et panCascade (0 à 1), semi (les cigales : 0 à 1). dt : secondes depuis l'appel précédent.
      */
     ambiance(a, dt) {
       const pret = son.pret();

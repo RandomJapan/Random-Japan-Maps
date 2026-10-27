@@ -65,6 +65,12 @@ const PALETTE = {
   bronzeStatue: '#6e5e42', bronzeOmbre: '#5a4c36', patine: '#6a9a84', ecorce: '#8a7058', ecorceFonce: '#7a6250',
   // le champ de thé (le dessus des rangs, plus clair : les jeunes pousses)
   the: '#3f7d3a', theClair: '#5f9a4a', theFonce: '#356a32',
+  // le Pavillon d'or (2026-10-26) : la feuille d'or sur la laque (le dessous des avant-toits, plus sombre), le bois brut
+  // assombri du rez-de-chaussée, la laque noire des bords du dernier étage, le toit de bardeaux de cyprès (kokera), la mousse
+  // des jardins, le sable damé des allées
+  orKinkaku: '#d9a52e', orKinkakuClair: '#e7b940', orKinkakuOmbre: '#a7772a', boisKinkaku: '#5f4733', boisKinkakuClair: '#79593f',
+  laqueNoire: '#2f2a27', kokera: '#4b4139', kokeraClair: '#574c43', kokeraBord: '#3b332d',
+  mousseJardin: '#6f8f3b', mousseJardinFonce: '#5b7a31', mousseJardinClair: '#87a248', sableJardin: '#d9cca9', sableJardinFonce: '#cbbc96',
 };
 const PARCHEMIN = { cielHaut: '#ead9b4', horizon: '#f0ead2', nuage: '#fbf4e2' };
 
@@ -102,6 +108,12 @@ function matieres(P) {
   mettre(M.laque, 'bronzeStatue', 'bronzeOmbre', 'patine');
   mettre(M.chaume, 'ecorce', 'ecorceFonce');
   mettre(M.feuillage, 'the', 'theClair', 'theFonce');
+  // (le Pavillon d'or : la feuille d'or, qui brille comme un métal, REFLETS_DECOR ; les bardeaux de cyprès, des fibres en rangs
+  // comme le chaume ; la laque noire)
+  mettre(M.or, 'orKinkaku', 'orKinkakuClair', 'orKinkakuOmbre');
+  mettre(M.bois, 'boisKinkaku', 'boisKinkakuClair');
+  mettre(M.laque, 'laqueNoire');
+  mettre(M.chaume, 'kokera', 'kokeraClair', 'kokeraBord');
   return t;
 }
 
@@ -366,6 +378,28 @@ const REFLETS_DECOR = `#include <aomap_fragment>
     if (brille > 0.0) {
       float sp = pow(max(dot(geometryNormal, normalize(Ls + geometryViewDir)), 0.0), m == ${MATIERES.tuiles}.0 ? 20.0 : 56.0);
       totalEmissiveRadiance += Lc * brille * 0.2 * smoothstep(0.4, 0.62, sp);
+    }
+    // la feuille d'or (le Pavillon d'or, 2026-10-26) : un métal renvoie surtout ce qui l'entoure. Le ciel, clair et doré, quand
+    // sa face, vue d'ici, renvoie vers le haut ; la terre et les arbres, brun-or sombre, vers le bas ; en aplats adoucis, comme
+    // un dessin animé. Chaque feuille de 10,9 cm penche un rien (de près, elles scintillent l'une après l'autre) ; l'éclat net
+    // du soleil (de la lune, la nuit)
+    if (m == ${MATIERES.or}.0) {
+      vec3 haut = normalize((viewMatrix * vec4(0.0, 1.0, 0.0, 0.0)).xyz);
+      vec3 nm = abs(vCoupeN);
+      vec2 q = nm.y > max(nm.x, nm.z) ? vCoupe.xz : nm.x > nm.z ? vCoupe.zy : vCoupe.xy;
+      vec2 f = floor(q / 0.109);
+      float h1 = fract(sin(dot(f, vec2(12.9898, 78.233))) * 43758.5453), h2 = fract(h1 * 17.17 + 0.31);
+      vec3 N = normalize(geometryNormal + mat3(viewMatrix) * (vec3(h1, h2, fract(h1 + h2)) - 0.5) * 0.08);
+      float ciel = dot(reflect(-geometryViewDir, N), haut);
+      float e = 0.45 * smoothstep(-0.45, -0.2, ciel) + 0.55 * smoothstep(0.1, 0.36, ciel);
+      vec3 c = diffuseColor.rgb;
+      // (le métal renvoie peu de lumière diffuse : la face qui reflète la terre s'assombrit, celle qui reflète le ciel s'éclaire)
+      float sombre = mix(0.52, 1.0, e);
+      reflectedLight.directDiffuse *= sombre;
+      reflectedLight.indirectDiffuse *= sombre;
+      totalEmissiveRadiance += c * vec3(0.3, 0.26, 0.15) * e * e * Lc;
+      float sp = pow(max(dot(N, normalize(Ls + geometryViewDir)), 0.0), 70.0);
+      totalEmissiveRadiance += Lc * vec3(1.0, 0.93, 0.7) * smoothstep(0.3, 0.55, sp) * 0.5;
     }
     float k = floor(vSaison.x + 0.5);
     if (k > 20.5) k -= 20.0;

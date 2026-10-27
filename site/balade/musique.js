@@ -9,7 +9,9 @@
 //  - Himeji (2026-10-25) : un air de château, noble et un peu mélancolique, sur la gamme in (mi fa la si do), la flûte
 //    traversière des fêtes (fue), le koto et le taiko ;
 //  - Takachiho (2026-10-25) : un air de gorge et de mythe, qui se balance comme une barque (des rythmes pointés), sur la
-//    gamme ritsu (sol la do ré mi), la flûte du kagura, le koto, le taiko et les grelots (suzu) que secouent les danseurs.
+//    gamme ritsu (sol la do ré mi), la flûte du kagura, le koto, le taiko et les grelots (suzu) que secouent les danseurs ;
+//  - le Pavillon d'or (2026-10-26) : un air de jardin zen, doré et calme, sur la pentatonique de mi bémol majeur, la flûte des
+//    moines zen (shakuhachi), le koto, le bois du temple (mokugyo) et le bol de prière (rin).
 //  La nuit, le même air plus lent, en boîte à musique. Une introduction, puis la boucle (A, A', B).
 //  Pour danser (la danse achetée au marchand, 2026-10-23), un troisième air, celui d'une fête d'été (bon-odori) : la
 //  flûte de fête (shinobue), le shamisen, le grand tambour et la clochette de cuivre (atarigane) ; fete(oui).
@@ -203,6 +205,41 @@ const AIRS = {
     jour: { tempo: 92, lead: 'fue', arpege: 'koto', basse: 'pizz', nappe: true, batterie: 'kagura' },
     nuit: { tempo: 68, lead: 'boite', arpege: 'kotoDoux', basse: 'pizzDoux', nappe: true, batterie: null },
   },
+  // Mi bémol majeur, une mélodie sur la pentatonique majeure (mi♭ fa sol si♭ do) : le Pavillon d'or (2026-10-26), doré et
+  // calme, un jardin zen ; la flûte des moines zen (shakuhachi), le koto, le bois du temple (mokugyo) et le bol de prière (rin)
+  kinkakuji: {
+    gamme: [3, 5, 7, 8, 10, 0, 2], // mi bémol majeur (pour la seconde voix)
+    intro: ['Eb', 'Eb'],
+    A: {
+      accords: ['Eb', 'Cm', 'Ab', 'Bb', 'Eb', 'Gm', 'Ab Bb', 'Eb'],
+      melodie: [
+        [70, 4], [72, 2], [70, 2], [67, 8],
+        [65, 4], [67, 4], [72, 6], [70, 2],
+        [72, 4], [75, 4], [77, 4], [75, 4],
+        [70, 12], [null, 4],
+        [70, 4], [72, 2], [75, 2], [77, 6], [75, 2],
+        [79, 4], [77, 4], [75, 4], [70, 4],
+        [72, 4], [70, 2], [67, 2], [65, 4], [67, 4],
+        [63, 12], [null, 4],
+      ],
+      fin2: [[63, 8], [67, 4], [70, 4]],
+    },
+    B: {
+      accords: ['Ab', 'Bb', 'Gm', 'Cm', 'Ab', 'Bb', 'Gm Cm', 'Bb'],
+      melodie: [
+        [75, 6], [77, 2], [79, 8],
+        [77, 4], [75, 4], [70, 8],
+        [79, 4], [82, 4], [79, 6], [77, 2],
+        [75, 12], [null, 4],
+        [72, 4], [75, 4], [77, 6], [79, 2],
+        [77, 6], [75, 2], [70, 8],
+        [67, 4], [70, 4], [72, 4], [75, 4],
+        [77, 8], [75, 4], [72, 4],
+      ],
+    },
+    jour: { tempo: 84, lead: 'shakuhachi', arpege: 'koto', basse: 'pizzDoux', nappe: true, batterie: 'zen' },
+    nuit: { tempo: 64, lead: 'boite', arpege: 'kotoDoux', basse: 'pizzDoux', nappe: true, batterie: null },
+  },
   // Ré majeur, la gamme yo (ré mi sol la si) : l'air de la danse des fêtes d'été, sautillant (112 battements : la
   // danse du voyageur est réglée dessus, personnages.js)
   odori: {
@@ -318,6 +355,11 @@ export function partition(lieu, moment) {
         e.push({ b: t0, i: 'taiko', v: 0.85 }, { b: t0 + 2.5, i: 'taiko', v: 0.45 });
         for (const o of [1, 3]) e.push({ b: t0 + o, i: 'suzu', v: 1 });
         for (const o of [1.5, 3.5]) e.push({ b: t0 + o, i: 'bois', v: 0.4 });
+      } else if (arr.batterie === 'zen') {
+        // le temple zen (le Pavillon d'or) : le bois du temple (mokugyo) sur le premier et le troisième temps, doux ; le bol de
+        // prière (rin) une mesure sur deux
+        e.push({ b: t0, i: 'bois', v: 0.32 }, { b: t0 + 2, i: 'bois', v: 0.2 });
+        if (k % 2 === 0) e.push({ b: t0, i: 'kane', v: 0.55 });
       } else if (arr.batterie === 'legere') {
         e.push({ b: t0, i: 'grosse', v: 1 }, { b: t0 + 1.5, i: 'grosse', v: 0.5 }, { b: t0 + 2, i: 'grosse', v: 0.9 });
         e.push({ b: t0 + 1, i: 'caisse', v: 1 }, { b: t0 + 3, i: 'caisse', v: 1 });
@@ -334,7 +376,7 @@ export function partition(lieu, moment) {
   A2.push(...air.A.fin2);
   const intro = evts(air.intro, null, 0, false);
   // un petit appel de percussion à la fin de l'introduction
-  if (arr.batterie) intro.push({ b: air.intro.length * 4 - 1, i: arr.batterie === 'legere' ? 'grosse' : 'taiko', v: 0.7 }, { b: air.intro.length * 4 - 0.5, i: arr.batterie === 'legere' ? 'grosse' : 'taiko', v: 0.8 });
+  if (arr.batterie) { const appel = arr.batterie === 'legere' ? 'grosse' : arr.batterie === 'zen' ? 'kane' : 'taiko'; intro.push({ b: air.intro.length * 4 - 1, i: appel, v: 0.7 }, { b: air.intro.length * 4 - 0.5, i: appel, v: 0.8 }); }
   const boucle = [...evts(air.A.accords, air.A.melodie, 0, false), ...evts(air.A.accords, A2, nA, true), ...evts(air.B.accords, air.B.melodie, 2 * nA, false)];
   const tri = (l) => l.sort((p, q) => p.b - q.b);
   return { tempo: arr.tempo, intro: tri(intro), boucle: tri(boucle), tempsIntro: air.intro.length * 4, tempsBoucle: 2 * nA + nB };
