@@ -1,8 +1,8 @@
 """Les bruitages de la balade 3D, en fichiers WAV pour ses vidéos : ceux de son.js (les petites notes des consoles :
 le tampon, la récompense, le koban, l'achat, la magie, le daim sauvage…), joués hors temps réel (OfflineAudioContext),
 et ceux de bruitage-calcul.js (fabriqués échantillon par échantillon : les cris des compagnons, le nuage, la rame,
-le coq, le grondement de la grotte, les feux d'artifice…). Rien d'enregistré, aucun droit. Dans
-videos/balade/public/sfx-jeu/<nom>.wav (48 kHz).
+le coq, le grondement de la grotte, les feux d'artifice, la pièce dans le bol, le fouet du thé, les cigales…). Rien
+d'enregistré, aucun droit. Dans videos/balade/public/sfx-jeu/<nom>.wav (48 kHz).
 
     python outils/video/balade/sons.py [--port 8123]
 
@@ -22,7 +22,12 @@ NOTES = ['bip', 'choix', 'tampon', 'pression', 'cadeau', 'sauvage', 'koban', 'ac
 # bruitage-calcul.js
 CALCULES = ['pouf', 'cri/kon', 'cri/pon', 'cri/chapu', 'cri/gao', 'cri/fuwa', 'cri/saya', 'tambour', 'rame', 'coq', 'roc', 'slurp',
             'caillou', 'assiette', 'plouf', 'pelle', 'boite', 'feu/depart', 'feu/boum', 'feu/crepite', 'oiseau/corbeau',
-            'oiseau/mouette', 'cloche', 'claque', 'ebrouer', 'pas/sable/0', 'pas/sable/1', 'pas/herbe/0', 'pas/herbe/1']
+            'oiseau/mouette', 'cloche', 'claque', 'ebrouer', 'pas/sable/0', 'pas/sable/1', 'pas/herbe/0', 'pas/herbe/1',
+            # (Kinkaku-ji : la pièce lancée, le bol où elle tinte, le fouet du thé, le pinceau, les sceaux, le gong, les cigales)
+            'piece', 'bol', 'chasen', 'pinceau', 'tampon', 'waniguchi', 'papier', 'boucle/semi']
+# (deux sons du même nom : le « tampon » de bruitage-calcul.js, les deux sceaux du goshuin, devient sceaux.wav ; celui de
+# son.js, la petite note du carnet, reste tampon.wav)
+RENOMMER = {'tampon': 'sceaux'}
 
 WAV = """(canaux, sr) => {
   const n = canaux[0].length, nc = canaux.length, data = new DataView(new ArrayBuffer(44 + n * 2 * nc));
@@ -37,7 +42,7 @@ WAV = """(canaux, sr) => {
   return btoa(s);
 }"""
 
-RENDRE = """async ([noms, calcules]) => {
+RENDRE = """async ([noms, calcules, renommer]) => {
   const wav = %s;
   const sr = 48000, off = new OfflineAudioContext(2, sr * 2 * noms.length, sr);
   // son.js crée son contexte au premier son : ce sera celui-ci, dont on fait avancer le temps soi-même (un son toutes
@@ -61,7 +66,7 @@ RENDRE = """async ([noms, calcules]) => {
   const { fabriquer } = await import('/balade/bruitage-calcul.js');
   for (const quoi of calcules) {
     const c = fabriquer(quoi, sr);
-    sortie[quoi] = wav(Array.isArray(c) ? c : [c], sr);
+    sortie[renommer[quoi] || quoi] = wav(Array.isArray(c) ? c : [c], sr);
   }
   return sortie;
 }""" % WAV
@@ -74,7 +79,7 @@ def main():
         p = nav.new_page()
         p.on('pageerror', lambda e: print('erreur page :', e))
         p.goto(f'http://localhost:{PORT}/balade/textes.js')
-        sons = p.evaluate(RENDRE, [NOTES, CALCULES])
+        sons = p.evaluate(RENDRE, [NOTES, CALCULES, RENOMMER])
         for nom, donnees in sons.items():
             f = SORTIE / (nom.replace('/', '-') + '.wav')
             f.write_bytes(base64.b64decode(donnees))

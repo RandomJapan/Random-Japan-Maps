@@ -19,13 +19,20 @@ ICI = Path(__file__).resolve().parent
 RACINE = ICI.parents[2]
 PUBLIC = RACINE / 'videos' / 'balade' / 'public'
 VIDEOS_LIEUX = Path(r'D:\Montage\Vidéo lieux random japon')
-# le lieu : (fichier du propriétaire, début (s), durée (s)) : choisis sur des planches à une image par seconde
+# le lieu : (fichier du propriétaire, début (s), durée (s)[, vitesse : moins de 1, ralenti]) : choisis sur des planches à
+# une image par seconde
 REELS = {
     'itsukushima': ('Itsukushima Shrine.mp4', 44.9, 3.2),  # le grand torii depuis la plage, à marée basse
     'aogashima': ('Aogashima.mp4', 38.25, 2.6),  # le belvédère rond de la crête, Maruyama dans le cratère
     'gokayama': ('Gokayama.mp4', 13.6, 2.6),  # le village et ses toits de chaume, les montagnes enneigées
     'himeji': ('Himeji Castle.mp4', 44.5, 2.4),  # le grand donjon, de face
     'takachiho': ('Takachiho gorge.mp4', 12.0, 2.2),  # la cascade de Manai vue de l'eau, les barques
+    # le Pavillon d'or (vidéo 4) : le pavillon et son reflet à travers les pins, la cascade de la Porte du Dragon, le
+    # goshuin dans la main (chaque passage tient dans un seul plan de la vidéo du propriétaire)
+    # (des plans courts : un peu ralentis, ils tiennent jusqu'au bout du volet, panoramique éclair compris)
+    'kinkakuji': ('Kinkaku-ji.mp4', 12.45, 1.2, 0.6),
+    'kk-cascade': ('Kinkaku-ji.mp4', 20.5, 1.25, 0.85),
+    'kk-goshuin': ('Kinkaku-ji.mp4', 29.5, 1.3, 0.85),
 }
 SFX = {
     'promo30': ['whoosh-fast', 'swoosh-quick', 'air-whoosh-powerful', 'zoom-air-fast', 'transition-snap', 'impact-deep-whoosh',
@@ -42,11 +49,12 @@ def ffmpeg():
 def main():
     (PUBLIC / 'reels').mkdir(parents=True, exist_ok=True)
     couleurs = ['-color_range', 'tv', '-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709']
-    for lieu, (fichier, debut, duree) in REELS.items():
+    for lieu, (fichier, debut, duree, *vitesse) in REELS.items():
         f = PUBLIC / 'reels' / f'{lieu}.mp4'
         if not f.exists():
+            lent = f'setpts=PTS/{vitesse[0]},' if vitesse else ''
             subprocess.run([ffmpeg(), '-hide_banner', '-loglevel', 'error', '-y', '-ss', str(debut), '-t', str(duree), '-i', str(VIDEOS_LIEUX / fichier),
-                            '-an', '-vf', 'scale=1080:1920,fps=60,format=yuv420p', '-c:v', 'libx264', '-preset', 'slow', '-crf', '15', '-g', '15',
+                            '-an', '-vf', f'{lent}scale=1080:1920,fps=60,format=yuv420p', '-c:v', 'libx264', '-preset', 'slow', '-crf', '15', '-g', '15',
                             *couleurs, '-movflags', '+faststart', str(f)], check=True)
     (PUBLIC / 'sfx').mkdir(exist_ok=True)
     for dossier, noms in SFX.items():

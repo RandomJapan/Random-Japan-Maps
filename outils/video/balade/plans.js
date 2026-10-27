@@ -453,6 +453,139 @@
       preparer(o) { o.placer(30, -8, 40, 2, { compagnon: true }); },
       quand: [[0.2, (o) => o.B.commencerDanse()]],
     },
+
+    // ================================================================ Vidéo 4 : le Pavillon d'or (Kinkaku-ji)
+    // le pavillon et son reflet, du belvédère de la carte postale (le plan qui répond à la vidéo du propriétaire)
+    'kk-reflet': {
+      duree: 6,
+      preparer(o) { o.placer(29.7, 53.4, 0, 0, { compagnon: false }); o.compagnon(30.6, 53.9, 0.6); },
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [28.0, 2.2, 50.4], [0, 0.2, 0], 44], [6, [26.9, 1.9, 49.0], [0, 0.4, 0], 39]], t));
+      },
+    },
+    // l'étang-miroir de tout près : la caméra glisse au ras de l'eau, le pavillon et son reflet entiers
+    'kk-miroir': {
+      duree: 5,
+      preparer(o) { o.placer(29.7, 53.4, 0, 0, { compagnon: false }); o.compagnon(30.6, 53.9, 0.6); },
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [30.5, -0.2, 21.5], [0, 2.2, 0], 50], [5, [26.4, -0.28, 17.0], [0, 2.8, 0], 47]], t));
+      },
+    },
+    // la cascade de la Porte du Dragon : la carpe de la mare saute vers la chute, deux fois
+    'kk-ryumon': {
+      duree: 6.5,
+      preparer(o) { o.placer(21.2, -45.2, 25.6, -46.2); },
+      quand: [[0.9, (o) => o.M().lieu.animes.find((a) => a.sauter).sauter()], [4.2, (o) => o.M().lieu.animes.find((a) => a.sauter).sauter()]],
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [17.4, 1.7, -42.6], [15.6, 1.1, -47.6], 46], [6.5, [17.0, 1.5, -43.4], [15.6, 1.2, -47.6], 44]], t));
+      },
+    },
+    // la pièce dans le bol des statues : le cercle doré va et vient ; on lance quand il est sur le bol (une fois qu'on l'a vu
+    // passer un peu), la pièce tinte dedans, le tampon
+    'kk-zeni': {
+      duree: 16,
+      preparer(o) { const i = o.inter('zeni'); o.placer(i.x, i.z, 25.0, -42.05); },
+      quand: [[0.3, (o) => o.agir('zeni')]],
+      chaque(t, dt, o) {
+        o.lire(t, { delai: 0.8, choix: 0 });
+        const lancer = o.M().lieu.animes.find((a) => typeof a.lancer === 'function'), anneau = lancer.objet.children[0];
+        if (!anneau.visible) { o.vu = null; return; }
+        if (o.vu === null || o.vu === undefined) o.vu = t;
+        // (la caméra du jeu, haut derrière l'épaule : en hauteur d'écran, une caméra de profil ne tenait pas le voyageur et le
+        // bol ensemble ; le bol : BOL de kinkakuji.js)
+        if (!o.lance && t - o.vu > 1.6 && Math.hypot(anneau.position.x - 25.0, anneau.position.z + 42.05) < 0.1) { o.lance = true; o.appuyer(); }
+      },
+    },
+    // le salon de thé : assis sur le banc rouge sous l'ombrelle, le matcha et le gâteau à la feuille d'or ; la caméra en face
+    'kk-matcha': {
+      duree: 14,
+      // (sur la place du salon de thé, face à la dame)
+      preparer(o) { const c = o.passant('chaya').etat; o.placer(51.6, -66.2, c.x, c.z); },
+      quand: [[0.3, (o) => o.agir('chaya')]],
+      chaque(t, dt, o) {
+        o.lire(t, { delai: 1.0, choix: 0 });
+        const pl = o.M().lieu.animes.find((a) => typeof a.poser === 'function' && typeof a.ranger === 'function');
+        if (pl && pl.objet.visible) {
+          const e = o.e, c = e.cap, p = pl.objet.position;
+          o.cadre([e.x + Math.sin(c) * 2.7 - Math.cos(c) * 1.0, e.y + 0.95, e.z + Math.cos(c) * 2.7 + Math.sin(c) * 1.0], [e.x * 0.4 + p.x * 0.6, e.y + 0.75, e.z * 0.4 + p.z * 0.6], 54);
+        } else if (o.M().cadre?.prise) o.cadre(null);
+      },
+    },
+    // le bureau des goshuin : le moine écrit au pinceau le nom du pavillon, puis les sceaux rouges
+    'kk-goshuin': {
+      duree: 14,
+      // (devant sa fenêtre : la petite place de kinkakuji.js)
+      preparer(o) { const i = o.passant('shuin').etat; o.placer(63.85, -62.8, i.x, i.z); },
+      quand: [[0.3, (o) => o.agir('shuin')]],
+      chaque(t, dt, o) {
+        o.lire(t, { delai: 1.0, choix: 0 });
+        // (l'écriture au pinceau est une animation SVG, que ralenti.js ne ralentit pas : au tournage, elle était finie en
+        // 0,3 s ; on la mène nous-mêmes, au temps de la prise)
+        const svg = document.querySelector('.feuille svg');
+        if (svg && svg !== o.svg) { o.svg = svg; o.svgT0 = t; svg.pauseAnimations(); }
+        if (svg) svg.setCurrentTime(Math.max(0, t - o.svgT0));
+      },
+    },
+    // le cinquième tampon (le pavillon et son reflet, du belvédère) : la récompense, les ailes du phénix, essayées de face
+    'kk-ailes': {
+      duree: 30,
+      preparer(o) { const i = o.inter('kinkaku'); o.placer(i.x, i.z, 0, 0); },
+      quand: [[0.3, (o) => o.agir('kinkaku')]],
+      chaque(t, dt, o) { o.lire(t, { delai: 0.7 }); },
+    },
+    // en courant le long de la rive est, vers le pavillon : les ailes grandes ouvertes, vues de dos (de côté, ouvertes en
+    // travers, on ne les voyait que par la tranche) ; la promeneuse en kimono et le touriste, sur cette allée, sont écartés
+    'kk-course': {
+      duree: 6,
+      preparer(o) { o.placer(44.8, 24, 44.6, 20, { compagnon: false }); o.compagnon(45.4, 25.6, PI); o.etape = 0; o.capCam = o.e.cap; },
+      debut(o) { o.tenir('KeyW', 'ShiftLeft'); },
+      chaque(t, dt, o) {
+        for (const [id, x] of [['kimono', 60], ['touriste', 62]]) { const k = o.passant(id); if (k) { k.etat.x = x; k.etat.z = 30; } }
+        const L = [[44.6, 20], [41.4, 12.2], [34.4, 5.6], [25.6, 0.6], [16.4, -1.8], [10.6, -4.2]];
+        if (o.etape < L.length - 1 && Math.hypot(o.e.x - L[o.etape][0], o.e.z - L[o.etape][1]) < 2.4) o.etape++;
+        o.viser(...L[o.etape], 0.12);
+        // (derrière, un peu à gauche, côté étang, et au-dessus ; le cap de la caméra suit celui du coureur en douceur)
+        const e = o.e;
+        o.capCam += (((e.cap - o.capCam + PI) % (2 * PI) + 2 * PI) % (2 * PI) - PI) * Math.min(1, dt * 3);
+        const c = o.capCam, fx = Math.sin(c), fz = Math.cos(c), rx = -Math.cos(c), rz = Math.sin(c);
+        o.cadre([e.x - fx * 3.3 - rx * 0.6, e.y + 1.75, e.z - fz * 3.3 - rz * 0.6], [e.x + fx * 6, e.y + 1.0, e.z + fz * 6], 52);
+      },
+    },
+    // la nuit, au belvédère : le pavillon et son reflet, le toit du reflet sans le phénix, le vrai toit avec ; une lueur d'or
+    // quitte le reflet, file sur l'étang et passe par-dessus le toit
+    'kk-nuit': {
+      duree: 26,
+      async preparer(o) {
+        const i = o.inter('kinkaku');
+        o.placer(i.x, i.z, 0, 0);
+        await o.nuitTout(true);
+        // (à la tombée de la nuit, le compagnon propose d'aller voir le reflet : on le laisse dire, avant de tourner)
+        for (let k = 0; k < 40; k++) { await o.attendre(150); if (o.dialogue()) o.appuyer(); }
+        // Les cadrages du jeu (jeu.cadrer) : sur un écran en hauteur, le jeu ouvre leur champ pour voir autant de large qu'en
+        // largeur (×3 sur sa tangente), et le pavillon y était tout petit. Pour la vidéo, deux fois moins ouverts ; le
+        // premier, le pavillon et tout son reflet, resserré sur eux
+        const jeu = o.jeu, cadrer = jeu.cadrer.bind(jeu), rad = PI / 180;
+        jeu.cadrer = (c) => {
+          if (!c || !c.champ) return cadrer(c);
+          const k = Math.max(1, 1.68 / (innerWidth / innerHeight)), vers = [...c.vers];
+          let voulu = 2 * Math.atan(Math.tan((c.champ * rad) / 2) * 1.5) / rad;
+          if (c.champ === 42 && vers[1] === -4) { voulu = 31; vers[1] = -0.6; }
+          return cadrer({ ...c, vers, champ: 2 * Math.atan(Math.tan((voulu * rad) / 2) / k) / rad });
+        };
+      },
+      quand: [[0.3, (o) => o.agir('kinkaku')]],
+      chaque(t, dt, o) { o.lire(t, { delai: 1.1 }); },
+    },
+    // le feu d'artifice derrière le pavillon, qui se reflète dans l'étang (le secret déjà trouvé : le phénix est dans le reflet)
+    'kk-feux': {
+      duree: 12,
+      async preparer(o) { o.placer(29.7, 53.4, 0, 0, { compagnon: false }); o.compagnon(30.6, 53.9, 0.6); await o.nuitTout(true); },
+      quand: [[0.2, (o) => o.B.lancerFeux()]],
+      chaque(t, dt, o) {
+        o.lire(t, { delai: 0.5 });
+        o.cadre(...o.chemin([[0, [27.6, 2.1, 50.0], [4, 4.6, -5.6], 52], [12, [27.0, 1.9, 49.2], [4, 5.4, -5.6], 50]], t));
+      },
+    },
   };
 
   // ---------------------------------------------------------------- le déroulé

@@ -1,7 +1,7 @@
-"""Fabrique les trois vidéos de la balade 3D finies (30 s, 9:16, 60 images/s), depuis le montage Remotion (montage/) :
+"""Fabrique les vidéos de la balade 3D finies (30 à 32 s, 9:16, 60 images/s), depuis le montage Remotion (montage/) :
 chacune avec la musique (un air du jeu) et sans (la voix et les bruitages restent : pour y mettre un son TikTok), dans
 videos/balade/.
-    python outils/video/balade/finir.py                    # les trois
+    python outils/video/balade/finir.py                    # toutes
     python outils/video/balade/finir.py BaladeTakachiho    # une seule
     python outils/video/balade/finir.py BaladeTour avec    # une seule, seulement avec la musique
 
@@ -19,7 +19,8 @@ from pathlib import Path
 ICI = Path(__file__).resolve().parent
 MONTAGE = ICI / 'montage'
 SORTIE = ICI.parents[2] / 'videos' / 'balade'
-NOMS = {'BaladeTour': 'balade-3d-les-5-lieux', 'BaladeTakachiho': 'balade-3d-takachiho', 'BaladeSecrets': 'balade-3d-secrets'}
+NOMS = {'BaladeTour': 'balade-3d-les-5-lieux', 'BaladeTakachiho': 'balade-3d-takachiho', 'BaladeSecrets': 'balade-3d-secrets',
+        'BaladeKinkakuji': 'balade-3d-kinkakuji'}
 
 
 def ffmpeg():
@@ -32,9 +33,10 @@ def rendre(compo, bgm, f):
     props.write_text(json.dumps({'bgm': bgm}), encoding='utf-8')
     npx = shutil.which('npx') or 'npx'
     # 4 onglets à la fois et un cache vidéo plafonné (le flou de mouvement calcule 8 images par image dans les
-    # panoramiques éclair ; avec les réglages par défaut, le rendu de la vidéo « tunnel » manquait de mémoire)
+    # panoramiques éclair ; avec les réglages par défaut, le rendu de la vidéo « tunnel » manquait de mémoire) ; une image
+    # peut attendre 2 min (28 s par défaut : le rendu du Pavillon d'or s'est arrêté en attendant une image d'une prise)
     subprocess.run([npx, 'remotion', 'render', compo, str(f), '--codec=h264', '--crf=12', '--log=error', f'--props={props}',
-                    '--concurrency=4', '--offthreadvideo-cache-size-in-bytes=2000000000'],
+                    '--concurrency=4', '--offthreadvideo-cache-size-in-bytes=2000000000', '--timeout=120000'],
                    cwd=MONTAGE, check=True, shell=sys.platform == 'win32')
 
 

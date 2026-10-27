@@ -71,6 +71,18 @@ PRISES = {
     'trio6': {'lieu': 'itsukushima', 'compagnon': None, 'stockage': TOUT_ACHETE, 'garder': [[1.5, 9.8]]},
     'saisons': {'lieu': 'himeji', 'ui': 'rien'},
     'danse': {'lieu': 'itsukushima', 'ui': 'rien', 'stockage': TOUT_ACHETE},
+    # Vidéo 4 : le Pavillon d'or (les textes du jeu cachés : ceux du montage disent ce que dit la voix)
+    'kk-reflet': {'lieu': 'kinkakuji', 'ui': 'rien'},
+    'kk-miroir': {'lieu': 'kinkakuji', 'ui': 'rien'},
+    'kk-ryumon': {'lieu': 'kinkakuji', 'ui': 'rien'},
+    'kk-zeni': {'lieu': 'kinkakuji', 'ui': 'rien', 'garder': [[3.5, 15.5]]},
+    'kk-matcha': {'lieu': 'kinkakuji', 'ui': 'rien', 'garder': [[3, 14]]},
+    'kk-goshuin': {'lieu': 'kinkakuji', 'ui': 'rien', 'garder': [[3, 14]]},
+    'kk-ailes': {'lieu': 'kinkakuji', 'ui': 'rien', 'garder': [[10, 24.5]], 'stockage': {'baladeTampons': {'kinkakuji': ['ryumon', 'zeni', 'matcha', 'goshuin']}}},
+    'kk-course': {'lieu': 'kinkakuji', 'ui': 'rien', 'stockage': {'baladeTampons': {'kinkakuji': ['kinkaku', 'ryumon', 'zeni', 'matcha', 'goshuin']},
+                                                                 'baladeTenue': {'fille': {'dos': 'ailes'}}, 'baladeTenuesVues': ['ailes']}},
+    'kk-nuit': {'lieu': 'kinkakuji', 'ui': 'rien', 'garder': [[0.5, 18.5]]},
+    'kk-feux': {'lieu': 'kinkakuji', 'ui': 'rien', 'garder': [[1, 12]], 'stockage': {'baladeAchats': ['feux'], 'baladeSecrets': {'trouves': ['phenix'], 'indices': ['phenix-reflet']}}},
 }
 DEFAUT = {'perso': 'fille', 'compagnon': 'kon', 'stockage': {}, 'ui': 'dialogue'}
 
