@@ -14,8 +14,8 @@
 //  Son secret : les pierres d'Ippen. Trois pierres écrites (南無阿弥陀仏), cachées un peu partout ; chacune jetée dans un enfer
 //  différent (le propriétaire : « il faut que les 3 pierres soit caché un peu partout dans la balade et que chacune de ces
 //  pierres doit être lancé dans un enfer différent »). Une lueur et une étoile au-dessus de chacune, de jour comme de nuit ;
-//  au-dessus de la dernière, une colonne de lumière qu'on voit de partout ; la légende (le panneau de la statue) se lit si
-//  l'on veut (2026-10-27 : « le troisième, je sais pas où c'est… c'est pas très grave si la personne elle le lit pas »).
+//  à la deuxième ramassée, on dit où est la dernière ; la légende (le panneau de la statue) se lit si l'on veut (2026-10-27 :
+//  « le troisième, je sais pas où c'est… c'est pas très grave si la personne elle le lit pas »).
 //  Sa récompense : les cornes d'oni (tenues.js).
 //  Repère : x vers l'est, z vers le sud, y vers le haut, en mètres ; la ville descend vers l'est, vers la baie de Beppu ;
 //  Shibaseki, au nord-ouest, 5 m plus haut. ctx : { THREE, atelier, P (palette), peinture, perso, maillage }.
@@ -156,11 +156,12 @@ const BOUTIQUE_CHI = { x: -53.6, z: -64.8, l: 8, p: 5 };
 // Bunbuku le marchand, dans le bambou ; son lampion
 const MARCHAND = { x: -68.8, z: -40.6, cap: PI / 2 + 0.2 };
 const LAMPION = { x: MARCHAND.x - 0.4, z: MARCHAND.z - 1.1 };
-// les trois pierres d'Ippen (le secret) : [x, z, tour] — sous l'arbre du jardin de l'étang blanc, au pied du dernier torii du
-// sanctuaire Inari, entre les rochers du ronflement du démon
+// les trois pierres d'Ippen (le secret) : [x, z, tour] — sous l'arbre du jardin de l'étang blanc, sur la place du petit
+// sanctuaire Inari (devant son renard à la clé, entre lui et la clôture : 2026-10-28, le propriétaire, un cadre rouge sur une
+// capture ; elle était au pied du dernier torii, au bord de la place), entre les rochers du ronflement du démon
 const PIERRES = [
   { id: 'p1', x: -38.6, z: 34.5, ry: 0.2 },
-  { id: 'p2', x: -48.93, z: -44.7, ry: -2.4 },
+  { id: 'p2', x: -54.0, z: -44.85, ry: 0.5 },
   { id: 'p3', x: 25.4, z: -44.2, ry: 2.6 },
 ];
 // les enfers où l'on jette une pierre : d'où on la jette, et où elle tombe (au milieu de l'eau, ou de la boue). Les pierres
@@ -1483,17 +1484,13 @@ export function construire(ctx) {
     return { e, x: L.x + (dx / l) * 1.4, z: L.z + (dz / l) * 1.4, y: monde.hauteur(L.x, L.z) + 1.1 };
   });
   const pierres = creerPierres(THREE, PIERRES.map((p) => ({ ...p, y: terrain(p.x, p.z) })), lampeIppen, appels);
-  // la colonne de la dernière pierre, montrée depuis où l'on est (14 m au-dessus, 9 m en arrière : au loin, au-dessus des
-  // arbres et des toits ; elle sort du sol pendant qu'on la regarde), et l'on dit où est la pierre. À la deuxième pierre
-  // ramassée ; ou, si on arrive avec deux pierres ramassées une autre fois, une fois, dès qu'on est libre (creerPierres)
-  pierres.montrer = async (jeu, x, z) => {
+  // où est la dernière pierre : on le dit à la deuxième pierre ramassée ; ou, si on arrive avec deux pierres ramassées une
+  // autre fois, une fois, dès qu'on est libre (creerPierres). (Jusqu'au 2026-10-28, une colonne de lumière dorée montait
+  // d'elle, et la caméra la montrait de haut : le propriétaire, « enlève la colonne de lumière ».)
+  pierres.montrer = async (jeu) => {
     const d = PIERRES.find((q) => !indiceVu(`ippen-${q.id}`));
     if (!d || secretTrouve('ippen')) return;
-    const dx = d.x - x, dz = d.z - z, l = Math.hypot(dx, dz) || 1;
-    jeu.cadrer({ de: [x - (dx / l) * 9, terrain(x, z) + 14, z - (dz / l) * 9], vers: [d.x, terrain(d.x, d.z) + 9, d.z], champ: 50 });
-    await jeu.attendre(1600);
     await jeu.dire(jeu.tx('derniere')(jeu.tx('lieuxPierres')[d.id]));
-    jeu.cadrer(null);
   };
   animes.push(pierres);
   for (const p of PIERRES) monde.cercle(p.x, p.z, 0.3);
@@ -2344,9 +2341,8 @@ export function construire(ctx) {
       },
     },
     // les trois pierres d'Ippen : les ramasser. Devant la première, sans la légende, le compagnon dit ce que c'est et ce qu'on
-    // en fait. À la deuxième, la caméra se tourne, de haut, vers la dernière, où monte une colonne de lumière dorée, et l'on
-    // dit où elle est (2026-10-27, le propriétaire, deux pierres jetées : « le troisième, je sais pas où c'est… peut-être
-    // réduire la difficulté pour le troisième »)
+    // en fait. À la deuxième, on dit où est la dernière (2026-10-27, le propriétaire, deux pierres jetées : « le troisième,
+    // je sais pas où c'est… peut-être réduire la difficulté pour le troisième »)
     ...PIERRES.map((p) => ({
       id: `pierre-${p.id}`, x: p.x, z: p.z, rayon: 1.7, haut: 0.7, verbe: 'ramasser', si: () => !indiceVu(`ippen-${p.id}`) && !secretTrouve('ippen'),
       async action(jeu) {
@@ -2363,7 +2359,7 @@ export function construire(ctx) {
         await jeu.dire(jeu.tx('pierreRamassee')(n));
         await comp(jeu, indiceVu('ippen') ? 'pierreCompagnon' : 'pierreInconnueCompagnon');
         jeu.voirIndice('ippen');
-        if (n === 2) await pierres.montrer(jeu, p.x, p.z);
+        if (n === 2) await pierres.montrer(jeu);
       },
     })),
     // les jeter, chacune dans un enfer différent (sans la légende aussi : il suffit d'avoir une pierre en main)
@@ -2763,58 +2759,10 @@ function etoileDouce(THREE) {
   return t;
 }
 /**
- * La colonne de lumière dorée au-dessus de la dernière pierre d'Ippen (comme les rais de lumière de balade.js, creerRais) :
- * un cylindre ouvert de 34 m, un peu plus large en haut, plus clair au milieu qu'à ses bords vus de biais, effacé vers le
- * haut, des stries qui montent ; montee (de 0 à 1) : elle sort du sol. Le jour, un peu couvrante (son or se voit sur le ciel
- * clair) ; la nuit, une lumière qui s'ajoute. Effacée tout près de l'œil (quand on ramasse la pierre). Sans brume : on la
- * voit de partout.
- */
-function colonneDoree(THREE) {
-  const H = 34, geo = new THREE.CylinderGeometry(2.0, 0.9, H, 20, 1, true).translate(0, H / 2, 0);
-  const m = new THREE.Mesh(geo, new THREE.ShaderMaterial({
-    // (sa face de devant seulement : avec celle de derrière, leurs stries qui montent en sens contraire faisaient un treillis)
-    transparent: true, depthWrite: false,
-    blending: THREE.CustomBlending, blendSrc: THREE.OneFactor, blendDst: THREE.OneMinusSrcAlphaFactor,
-    uniforms: { temps: { value: 0 }, nuit: { value: 0 }, montee: { value: 0 } },
-    vertexShader: `
-      varying vec2 vUv;
-      varying float vFace;
-      varying float vLoin;
-      void main() {
-        vUv = uv;
-        vec4 mv = modelViewMatrix * vec4(position, 1.0);
-        vFace = abs(dot(normalize(normalMatrix * normal), normalize(-mv.xyz)));
-        vLoin = -mv.z;
-        gl_Position = projectionMatrix * mv;
-      }`,
-    fragmentShader: `
-      uniform float temps, nuit, montee;
-      varying vec2 vUv;
-      varying float vFace;
-      varying float vLoin;
-      void main() {
-        float h = vUv.y;
-        float a = smoothstep(0.0, 0.015, h) * (1.0 - smoothstep(0.45, 1.0, h)) * vFace;
-        // des stries qui montent en tournant un peu ; la colonne qui respire
-        a *= 0.82 + 0.18 * sin(h * 70.0 - temps * 3.0 + vUv.x * 25.13);
-        a *= 0.88 + 0.12 * sin(temps * 1.7);
-        // (rien au-dessus de montee : elle sort du sol ; effacée tout près de l'œil)
-        a *= 1.0 - smoothstep(montee - 0.04, montee, h);
-        a *= smoothstep(2.5, 8.0, vLoin);
-        vec3 c = mix(vec3(1.0, 0.7, 0.22), vec3(1.0, 0.93, 0.65), clamp(a * 1.3, 0.0, 1.0));
-        gl_FragColor = vec4(c * a * mix(1.3, 1.5, nuit), min(1.0, a * (1.0 - nuit)));
-      }`,
-  }));
-  m.renderOrder = 2;
-  m.visible = false;
-  return m;
-}
-/**
  * Les trois pierres d'Ippen (le secret) : de petites pierres plates dressées, la prière écrite à l'encre de haut en bas.
  * Au-dessus de celles qu'on n'a pas ramassées, de jour comme de nuit, la légende lue ou non : un halo doré qui respire et
- * une étoile qui scintille, d'une taille fixe à l'écran (vus jusqu'à 70 m). Quand il n'en reste qu'une, une colonne de
- * lumière dorée monte d'elle vers le ciel, des étincelles dedans : on la voit de partout. Une pierre en main, une lueur au-dessus
- * de chaque enfer où l'on peut la jeter (appels : [{ e, x, y, z }]).
+ * une étoile qui scintille, d'une taille fixe à l'écran (vus jusqu'à 70 m). Une pierre en main, une lueur au-dessus de chaque
+ * enfer où l'on peut la jeter (appels : [{ e, x, y, z }]).
  * ramasser(id) ; lancer(de, vers) : la pierre vole jusqu'à l'eau (se résout quand elle y tombe) ; calmer(p, boue) : des ronds,
  * et la prière en rond qui s'allume sur l'eau, puis s'efface ; koban(de, vers) : un koban qui monte de l'eau et vient au bord.
  */
@@ -2834,19 +2782,16 @@ function creerPierres(THREE, liste, lampe, appels) {
     return { ...p, g };
   });
   // les lueurs, des points d'une taille fixe à l'écran (vus de loin ; deux fois plus de pixels sur les écrans denses) : un
-  // halo et une étoile par pierre, une lueur par enfer où jeter, les étincelles de la colonne. (Jusqu'au 2026-10-27, une seule
-  // lueur, une fois la légende lue, de 36 pixels, à 0,6 de jour : à 8 m on la voyait à peine, à 15 m plus du tout.)
-  const NP = liste.length, NA = appels.length, NE = 16, px = Math.min(globalThis.devicePixelRatio || 1, 2);
+  // halo et une étoile par pierre, une lueur par enfer où jeter. (Jusqu'au 2026-10-27, une seule lueur, une fois la légende
+  // lue, de 36 pixels, à 0,6 de jour : à 8 m on la voyait à peine, à 15 m plus du tout.)
+  const NP = liste.length, NA = appels.length, px = Math.min(globalThis.devicePixelRatio || 1, 2);
   const tache = tacheDouce(THREE, 0.35);
   tache.magFilter = tache.minFilter = THREE.LinearFilter;
-  const lueur = nuee(THREE, NP + NA + NE, { tache, additif: true }), etoile = nuee(THREE, NP, { tache: etoileDouce(THREE), additif: true });
+  const lueur = nuee(THREE, NP + NA, { tache, additif: true }), etoile = nuee(THREE, NP, { tache: etoileDouce(THREE), additif: true });
   for (const n of [lueur, etoile]) { n.m.material.sizeAttenuation = false; objet.add(n.m); }
-  const colonne = colonneDoree(THREE);
-  objet.add(colonne);
-  const etincelles = Array.from({ length: NE }, (_, k) => ({ a: hasard(k, 31) * 2 * PI, r: 0.15 + 0.4 * hasard(k, 32), v: 1.6 + 1.4 * hasard(k, 33), t: hasard(k, 34) * 8 }));
   // l'état du secret (dans le stockage du navigateur), relu toutes les 0,4 s : les pierres ramassées, les enfers où l'on en a
   // jeté une, celles qu'on a en main, la dernière qui reste
-  let relu = -1, s = null, montee = 0;
+  let relu = -1, s = null;
   const relire = (temps) => {
     if (s && temps - relu < 0.4 && temps >= relu) return s;
     relu = temps;
@@ -2886,8 +2831,8 @@ function creerPierres(THREE, liste, lampe, appels) {
   let jet = null, calme = null, monte = null;
   const api = {
     objet,
-    // montrer(jeu, x, z) : la scène qui montre la colonne (donnée par le lieu) ; vue : déjà montrée (ou une pierre ramassée,
-    // qui la montre elle-même) : sinon, la colonne là en arrivant, on la montre une fois, dès qu'on est libre
+    // montrer(jeu) : la scène qui dit où est la dernière pierre (donnée par le lieu) ; vue : déjà dite (ou une pierre ramassée,
+    // qui la dit elle-même) : sinon, en arrivant avec deux pierres ramassées, on la dit une fois, dès qu'on est libre
     montrer: null, vue: false,
     // (après une pierre ramassée ou jetée, l'état est relu à l'image suivante)
     ramasser(id) { const p = pierres.find((q) => q.id === id); if (p) p.g.visible = false; s = null; },
@@ -2903,7 +2848,7 @@ function creerPierres(THREE, liste, lampe, appels) {
     },
     maj(dt, temps, c) {
       const S = relire(temps), j = c.joueur, D = S.derniere;
-      if (D && !api.vue && api.montrer && c.scene) { api.vue = true; c.scene((jeu) => api.montrer(jeu, j.x, j.z)); }
+      if (D && !api.vue && api.montrer && c.scene) { api.vue = true; c.scene((jeu) => api.montrer(jeu)); }
       // (la lampe, quand rien d'autre ne l'occupe : sur la dernière pierre, sinon rangée)
       if (!jet && !calme && !monte) { if (D) allumer(D.x, D.y + 1.3, D.z, 1); else if (lampe.y > -400) allumer(0, 0, 0, 0); }
       pierres.forEach((p, k) => {
@@ -2922,22 +2867,6 @@ function creerPierres(THREE, liste, lampe, appels) {
         if (S.fini || S.main < 1 || S.jete[k] || d > 60) { lueur.ranger(i); return; }
         const b = (0.75 + 0.25 * Math.sin(temps * 2.6 + k)) * lisse(1.5, 4, d);
         lueur.poser(i, q.x, q.y + 0.08 * Math.sin(temps * 1.7 + k), q.z, 44 * px, b, b * 0.85, b * 0.5, 1);
-      });
-      // la colonne de la dernière pierre : elle sort du sol en 2 s, puis respire ; des étincelles y montent en tournant
-      montee = D ? Math.min(1, montee + dt / 2) : 0;
-      colonne.visible = !!D;
-      if (D) {
-        const u = colonne.material.uniforms;
-        colonne.position.set(D.x, D.y, D.z);
-        u.temps.value = temps; u.nuit.value = c.nuit; u.montee.value = montee;
-      }
-      etincelles.forEach((e, k) => {
-        const i = NP + NA + k;
-        e.t += dt;
-        const f = (e.t % (12 / e.v)) / (12 / e.v), h = 0.3 + f * 12;
-        if (!D || h > montee * 34) { lueur.ranger(i); return; }
-        const b = Math.sin(PI * f) * 0.9;
-        lueur.poser(i, D.x + Math.cos(e.a + f * 3) * e.r, D.y + h, D.z + Math.sin(e.a + f * 3) * e.r, 9 * px, b, b * 0.85, b * 0.5, 1);
       });
       lueur.fin();
       etoile.fin();
@@ -3142,8 +3071,8 @@ const TEXTES = {
     pierreRamassee: (n) => [`Tu ramasses la pierre. (${n} sur 3)`],
     pierreCompagnon: { kon: ['« Une pierre d’Ippen ! Il faut la jeter dans un enfer où il n’y en a pas encore. »'], pon: ['« Pon ! Elle est lourde comme un gâteau de riz. Vite, un enfer ! »'], chapu: ['« Chapu ! Dans quel enfer on la lance ? Un nouveau à chaque fois ! »'], gao: ['« Gao ! Je la garde bien. Choisis un enfer où on n’en a pas encore jeté. »'], fuwa: ['« Fuwa… Elle est tiède, comme si elle avait hâte de retrouver l’eau. »'], saya: ['« Cette pierre est vieille… Elle a attendu longtemps qu’on la trouve. »'] },
     pierreInconnueCompagnon: { kon: ['« Une pierre du moine Ippen, celui de la statue, dans la rue ! Il calmait les enfers en y jetant ses pierres. Il en reste trois : jetons chacune dans un enfer différent ! »'], pon: ['« Pon ! C’est une pierre du moine Ippen ! Il les jetait dans les enfers pour les calmer. Il en reste trois : une par enfer, jamais deux dans le même ! »'], chapu: ['« Chapu ! Une prière écrite… une pierre du moine Ippen ! Jetons-la dans un enfer, plouf ! Chaque pierre dans un enfer différent ! »'], gao: ['« Gao ! Une pierre sacrée du moine Ippen : elle calme les enfers. Il y en a trois. Une dans chaque enfer, pas deux dans le même ! »'], fuwa: ['« Fuwa… Elle murmure la prière du moine Ippen. Il calmait les enfers avec ses pierres… Jetons-la dans un enfer, et les deux autres ailleurs. »'], saya: ['« Elle vient du moine Ippen… Il jetait ses pierres dans les enfers pour les apaiser. Trois pierres, trois enfers différents. Le panneau près de sa statue raconte son histoire. »'] },
-    derniere: (lieu) => ['Regarde, au loin : une colonne de lumière dorée monte vers le ciel…', `La dernière pierre est là-bas, ${lieu}.`],
-    lieuxPierres: { p1: 'au bout du jardin de l’étang blanc, sous le grand érable', p2: 'en haut des torii rouges, au petit sanctuaire Inari de l’enfer de la mer', p3: 'au fond de l’enfer des crânes de moines, entre les rochers où ronfle le démon' },
+    derniere: (lieu) => [`La dernière pierre d’Ippen est ${lieu}.`],
+    lieuxPierres: { p1: 'au bout du jardin de l’étang blanc, sous le grand érable', p2: 'en haut des torii rouges, devant le petit sanctuaire Inari de l’enfer de la mer', p3: 'au fond de l’enfer des crânes de moines, entre les rochers où ronfle le démon' },
     lancer: (nom) => [`Jeter une pierre d’Ippen dans ${nom} ?`],
     nomsEnfers: { umi: 'l’enfer de la mer', bozu: 'l’enfer des crânes de moines', kamado: 'l’enfer du chaudron', shiraike: 'l’enfer de l’étang blanc', chinoike: 'l’enfer du lac de sang' },
     pierreJetee: (n) => ['Plouf ! La pierre s’enfonce… La prière s’allume sur l’eau, en rond, et l’enfer se calme un instant.', n === 1 ? 'Une pierre jetée. Plus que deux, dans deux autres enfers.' : 'Deux pierres jetées. Plus qu’une, dans un enfer où il n’y en a pas encore.'],
@@ -3163,7 +3092,7 @@ const TEXTES = {
     yukataNuit: ['La nuit, avec les lanternes et la vapeur, la rue a l’air d’un rêve.'],
     yukata2Nuit: ['Un dernier bain, et au lit !'],
     tamago: ['Je cuis les œufs dans le panier, là, dans l’eau bleue. Cinq minutes, et ils sont parfaits.'],
-    touriste: ['Wow, il y a de la vapeur partout ! Même les caniveaux fument, dans cette ville !', 'Au fait, j’ai vu une drôle de pierre écrite au pied des torii rouges, là-haut, au sanctuaire.'],
+    touriste: ['Wow, il y a de la vapeur partout ! Même les caniveaux fument, dans cette ville !', 'Au fait, j’ai vu une drôle de pierre écrite tout en haut des torii rouges : devant le petit sanctuaire, à côté d’un renard de pierre.'],
     inari: ['Je viens remercier Inari chaque semaine. Il garde l’enfer de la mer depuis toujours.'],
     ouvrier: ['Je ratisse la boue sèche des caillebotis. Elle éclabousse quand les bulles crèvent !', 'Au bout, le démon ronfle dans ses rochers. Entre les pierres, il y en a une qui n’est pas comme les autres : elle est écrite.'],
     amie: ['On fait la photo avec le démon rouge ! Il a vraiment une tête rigolote.'],
@@ -3250,8 +3179,8 @@ const TEXTES = {
     pierreRamassee: (n) => [`You pick up the stone. (${n} of 3)`],
     pierreCompagnon: { kon: ['“One of Ippen’s stones! It must go into a hell that has none yet.”'], pon: ['“Pon! It’s as heavy as a rice cake. Quick, a hell!”'], chapu: ['“Chapu! Which hell do we throw it in? A new one each time!”'], gao: ['“Gao! I’ll keep it safe. Pick a hell where we haven’t thrown one yet.”'], fuwa: ['“Fuwa… It’s warm, as if it couldn’t wait to find the water again.”'], saya: ['“This stone is old… It waited a long time to be found.”'] },
     pierreInconnueCompagnon: { kon: ['“One of the monk Ippen’s stones, the monk of the statue in the street! He calmed the hells by throwing his stones into them. Three are left: let’s throw each one into a different hell!”'], pon: ['“Pon! It’s one of the monk Ippen’s stones! He threw them into the hells to calm them down. Three are left: one per hell, never two in the same one!”'], chapu: ['“Chapu! A written prayer… one of the monk Ippen’s stones! Let’s throw it into a hell, plop! Each stone into a different hell!”'], gao: ['“Gao! A sacred stone of the monk Ippen: it calms the hells. There are three. One in each hell, never two in the same one!”'], fuwa: ['“Fuwa… It whispers the monk Ippen’s prayer. He calmed the hells with his stones… Let’s throw it into a hell, and the other two somewhere else.”'], saya: ['“It comes from the monk Ippen… He threw his stones into the hells to soothe them. Three stones, three different hells. The sign by his statue tells his story.”'] },
-    derniere: (lieu) => ['Look, far away: a column of golden light is rising into the sky…', `The last stone is over there, ${lieu}.`],
-    lieuxPierres: { p1: 'at the end of the White Pond garden, under the big maple', p2: 'at the top of the red torii, by the little Inari shrine of Sea Hell', p3: 'at the far end of the Monk’s Head Hell, among the rocks where the demon snores' },
+    derniere: (lieu) => [`The last of Ippen’s stones is ${lieu}.`],
+    lieuxPierres: { p1: 'at the end of the White Pond garden, under the big maple', p2: 'at the top of the red torii, in front of the little Inari shrine of Sea Hell', p3: 'at the far end of the Monk’s Head Hell, among the rocks where the demon snores' },
     lancer: (nom) => [`Throw one of Ippen’s stones into ${nom}?`],
     nomsEnfers: { umi: 'Sea Hell', bozu: 'the Monk’s Head Hell', kamado: 'the Cooking Pot Hell', shiraike: 'White Pond Hell', chinoike: 'Blood Pond Hell' },
     pierreJetee: (n) => ['Plop! The stone sinks… The prayer lights up on the water in a ring, and the hell calms down for a moment.', n === 1 ? 'One stone thrown. Two to go, in two other hells.' : 'Two stones thrown. One to go, in a hell that has none yet.'],
@@ -3271,7 +3200,7 @@ const TEXTES = {
     yukataNuit: ['At night, with the lanterns and the steam, the street looks like a dream.'],
     yukata2Nuit: ['One last bath, then bed!'],
     tamago: ['I cook the eggs in the basket, there, in the blue water. Five minutes, and they’re perfect.'],
-    touriste: ['Wow, there’s steam everywhere! Even the gutters are steaming in this town!', 'By the way, I saw a strange stone with writing on it at the foot of the red torii, up at the shrine.'],
+    touriste: ['Wow, there’s steam everywhere! Even the gutters are steaming in this town!', 'By the way, I saw a strange stone with writing on it at the very top of the red torii: in front of the little shrine, next to a stone fox.'],
     inari: ['I come to thank Inari every week. He has always watched over Sea Hell.'],
     ouvrier: ['I rake the dried mud off the boardwalks. It splatters when the bubbles burst!', 'At the end, the demon snores in his rocks. Among the stones, there’s one unlike the others: it has writing on it.'],
     amie: ['We’re taking a photo with the red demon! He really has a funny face.'],
@@ -3358,8 +3287,8 @@ const TEXTES = {
     pierreRamassee: (n) => [`石を　ひろった。（3つの　うち　${n}つめ）`],
     pierreCompagnon: { kon: ['「上人の　石だ！　まだ　石の　はいって　いない　地獄に　なげよう。」'], pon: ['「ポン！　おもちみたいに　おもい。はやく、地獄へ！」'], chapu: ['「チャプ！　どの　地獄に　なげる？　まいかい　ちがう　ところ！」'], gao: ['「ガオ！　ちゃんと　まもる。まだ　なげて　いない　地獄を　えらんで。」'], fuwa: ['「ふわ……　あったかい。はやく　お湯に　もどりたいみたい。」'], saya: ['「この　石は　ふるい……　ながい　あいだ、見つけて　もらうのを　まって　いたんだ。」'] },
     pierreInconnueCompagnon: { kon: ['「一遍上人の　石だ！　みちに　ぞうが　ある　おぼうさん。石を　地獄に　なげて、地獄を　しずめたんだ。のこりは　三つ。ひとつずつ　ちがう　地獄に　なげよう！」'], pon: ['「ポン！　一遍上人の　石だ！　地獄に　なげて　しずめたんだって。のこりは　三つ。地獄　ひとつに　ひとつ、おなじ　ところに　ふたつは　だめ！」'], chapu: ['「チャプ！　かいて　ある　おいのり……　一遍上人の　石だ！　地獄に　なげよう、ポチャン！　石　ひとつずつ、ちがう　地獄へ！」'], gao: ['「ガオ！　一遍上人の　せいなる　石。地獄を　しずめる。ぜんぶで　三つ。地獄　ひとつに　ひとつ、おなじ　ところに　ふたつは　だめ！」'], fuwa: ['「ふわ……　一遍上人の　おいのりを　ささやいて　いる。上人は　石で　地獄を　しずめたの……　これを　地獄に　なげて、のこりの　ふたつは　べつの　地獄へ。」'], saya: ['「一遍上人の　石……　地獄に　なげて、しずめたんだ。石　三つ、ちがう　地獄　三つ。上人の　ぞうの　そばの　かんばんに　おはなしが　かいて　あるよ。」'] },
-    derniere: (lieu) => ['見て、とおくに　金色の　ひかりの　はしらが　空へ　のぼって　いく……', `さいごの　石は　あそこ、${lieu}に　ある。`],
-    lieuxPierres: { p1: '白池地獄の　にわの　おく、大きな　もみじの　下', p2: '海地獄の　赤い　鳥居を　のぼった　ところ、お稲荷さんの　ほこらの　そば', p3: '鬼石坊主地獄の　おく、鬼が　いびきを　かく　岩の　あいだ' },
+    derniere: (lieu) => [`さいごの　石は　${lieu}に　ある。`],
+    lieuxPierres: { p1: '白池地獄の　にわの　おく、大きな　もみじの　下', p2: '海地獄の　赤い　鳥居を　のぼった　ところ、お稲荷さんの　ほこらの　まえ', p3: '鬼石坊主地獄の　おく、鬼が　いびきを　かく　岩の　あいだ' },
     lancer: (nom) => [`${nom}に　上人の　石を　なげる？`],
     nomsEnfers: { umi: '海地獄', bozu: '鬼石坊主地獄', kamado: 'かまど地獄', shiraike: '白池地獄', chinoike: '血の池地獄' },
     pierreJetee: (n) => ['ポチャン！　石が　しずむと……　水の　上に　おいのりが　わに　なって　ひかり、地獄が　しばらく　しずまった。', n === 1 ? '石を　ひとつ　なげた。あと　ふたつ、べつの　地獄へ。' : '石を　ふたつ　なげた。あと　ひとつ、まだ　石の　ない　地獄へ。'],
@@ -3379,7 +3308,7 @@ const TEXTES = {
     yukataNuit: ['夜は、ちょうちんと　ゆげで、みちが　ゆめみたい。'],
     yukata2Nuit: ['さいごの　おふろに　はいって、ねよう！'],
     tamago: ['あの　青い　お湯の　かごで　たまごを　ゆでて　いるの。5ふんで　ちょうど　いい　ぐあい。'],
-    touriste: ['わあ、どこも　ゆげだらけ！　この　まちは　みぞまで　ゆげが　でて　いる！', 'そうそう、上の　おやしろの　赤い　とりいの　下で、じの　かいて　ある　ふしぎな　石を　見たよ。'],
+    touriste: ['わあ、どこも　ゆげだらけ！　この　まちは　みぞまで　ゆげが　でて　いる！', 'そうそう、赤い　とりいを　のぼった　上の　おやしろの　まえ、石の　きつねの　そばで、じの　かいて　ある　ふしぎな　石を　見たよ。'],
     inari: ['まいしゅう　おいなりさんに　おれいを　いいに　くるの。ずっと　海地獄を　まもって　くださって　いるのよ。'],
     ouvrier: ['木の　みちの　かわいた　どろを　はいて　いるんだ。あわが　はじけると　とびちるからね！', 'おくの　岩で、鬼が　いびきを　かいて　いる。その　石の　なかに、ひとつだけ　ちがうのが　ある。じが　かいて　あるんだ。'],
     amie: ['赤鬼と　しゃしんを　とるの！　ほんとうに　おもしろい　かお。'],
