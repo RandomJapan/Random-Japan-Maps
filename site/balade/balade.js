@@ -241,7 +241,7 @@ function construire() {
     sansOmbreRecue(perso.objet);
     const etatP = creerPassant(p);
     // (etage : le plancher où il se tient, un étage où l'on monte : sans, on cherche le sol)
-    etatP.y = p.assis != null ? p.assis - ASSIS : lieu.monde.hauteur(p.x, p.z, p.etage);
+    etatP.y = p.assis != null ? p.assis - etatP.hanche : lieu.monde.hauteur(p.x, p.z, p.etage);
     if (p.assis != null) perso.asseoir(true);
     const traits = [];
     perso.objet.traverse((q) => { if (q.material === mats.traitPerso) traits.push(q); });
@@ -2504,7 +2504,10 @@ async function agir() {
   etat.mode = 'dialogue';
   touches.clear();
   etat.vx = etat.vz = 0;
-  etat.cap = Math.atan2(c.x - etat.x, c.z - etat.z);
+  // (vers : ce qu'on regarde, quand ce n'est pas l'endroit d'où l'on agit — un bassin vu de son belvédère ; 2026-10-28, à
+  // Beppu : « des fois il est dos au truc que je regarde »)
+  const [vx, vz] = c.vers || [c.x, c.z];
+  etat.cap = Math.atan2(vx - etat.x, vz - etat.z);
   if (c.p) c.p.etat.parle = true;
   try {
     await c.action(jeu);

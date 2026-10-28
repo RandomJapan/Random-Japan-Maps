@@ -252,17 +252,18 @@ export function interactionsBancs(bancs) {
 /**
  * Un passant qui va d'un point à l'autre de sa ronde (et s'y arrête un moment), ou reste sur place ; il
  * s'arrête et se tourne vers le joueur quand on lui parle. assis : le dessus du banc où il est assis (il n'en
- * bouge pas, sa racine ASSIS plus bas). Renvoie l'état à faire avancer chaque image.
+ * bouge pas, sa racine ASSIS × sa taille plus bas : 2026-10-28, la grand-mère et l'enfant du bain de pieds de Beppu,
+ * petits, s'enfonçaient dans leur banc de 5 et 11 cm). Renvoie l'état à faire avancer chaque image.
  */
-export function creerPassant({ x, z, cap = 0, ronde = null, vitesse = 1.1, attente = [2, 6], assis = null }) {
-  return { x, z, y: assis ?? 0, cap, ronde, vitesse, attente, etape: 0, pause: 1 + Math.random() * 2, v: 0, parle: false, assis };
+export function creerPassant({ x, z, cap = 0, ronde = null, vitesse = 1.1, attente = [2, 6], assis = null, tenue = null }) {
+  return { x, z, y: assis ?? 0, cap, ronde, vitesse, attente, etape: 0, pause: 1 + Math.random() * 2, v: 0, parle: false, assis, hanche: ASSIS * (tenue?.taille || 1) };
 }
 /** Assis, la racine d'un personnage est à cette hauteur sous le dessus du siège (personnages.js : asseoir). */
 export const ASSIS = 0.38;
 
 /** Fait avancer un passant de dt secondes dans le monde ; joueur : { x, z } (pour lui faire face). */
 export function avancerPassant(p, dt, monde, joueur, autres) {
-  if (p.assis != null) { p.y = p.assis - ASSIS; return; }
+  if (p.assis != null) { p.y = p.assis - p.hanche; return; }
   let voulu = 0;
   if (p.parle) {
     p.cap = tourner(p.cap, Math.atan2(joueur.x - p.x, joueur.z - p.z), dt * 6);
