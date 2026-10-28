@@ -2023,17 +2023,19 @@ addEventListener('contextmenu', (e) => { if (e.target === toile) e.preventDefaul
 document.addEventListener('visibilitychange', () => { if (document.hidden) touches.clear(); });
 const appuye = (...codes) => codes.some((c) => touches.has(c));
 
-// la caméra : on la fait tourner en glissant (souris ou doigt hors du joystick) ; un appui sans glisser parle
+// la caméra : on la fait tourner en glissant (souris ou doigt hors du joystick) ; un appui sans glisser parle.
+// Le dernier doigt posé la prend (avant le 2026-10-28, le premier la gardait : dans le navigateur de TikTok, un doigt
+// levé sans pointerup la gardait pour toujours, et la caméra ne suivait plus le joueur)
 let glisse = null;
-toile.addEventListener('pointerdown', (e) => {
+toile.addEventListener('pointerdown', poserSurToile);
+function poserSurToile(e) {
   son.reveiller();
   if (dialogue.ouvert()) { dialogue.appuyer(); return; }
   if (appuis) { appuis(); return; }
   if (etat.mode === 'danse') { arreterDanse(); return; }
-  if (glisse) return;
   glisse = { id: e.pointerId, x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY };
   try { toile.setPointerCapture(e.pointerId); } catch { /* un pointeur déjà levé */ }
-});
+}
 toile.addEventListener('pointermove', (e) => {
   if (!glisse || e.pointerId !== glisse.id) return;
   if (etat.mode === 'tenue') {
@@ -2056,6 +2058,13 @@ toile.addEventListener('wheel', (e) => { cam.distance = Math.min(14, Math.max(et
 const manette = $('.joystick');
 const bouton = manette.querySelector('span');
 manette.addEventListener('pointerdown', (e) => {
+  // un doigt posé loin du joystick mais envoyé ici par la capture d'un doigt perdu (TikTok, voir lacherTout) : la caméra
+  const r = manette.getBoundingClientRect();
+  if (Math.hypot(e.clientX - r.left - r.width / 2, e.clientY - r.top - r.height / 2) > r.width * 0.75) {
+    try { manette.releasePointerCapture(e.pointerId); } catch { /* pas capturé */ }
+    poserSurToile(e);
+    return;
+  }
   son.reveiller();
   if (etat.mode === 'danse') arreterDanse();
   joy.id = e.pointerId;
@@ -2085,8 +2094,18 @@ $('.bouton-a').addEventListener('pointerdown', (e) => {
 $('.bulle-action').addEventListener('pointerdown', (e) => { e.preventDefault(); if (etat.mode === 'jeu') agir(); });
 // Le navigateur de TikTok (Android, 2026-10-27 ; le propriétaire : « quand je mets le joystick vers le haut, ça avance
 // tout seul ») : le doigt levé n'y arrive pas toujours en pointerup ou pointercancel, et le joystick restait poussé.
+// Filmé le 2026-10-28 avec l'essai des doigts : le doigt suivant reprend alors le même pointeur, « posé de nouveau »
+// (un 2e pointerdown sans pointerup), souvent loin du joystick ; capturé par le joystick, il le poussait. Un pointeur
+// reposé : l'ancien doigt est parti, on lâche ce qu'il tenait avant que le nouveau ne choisisse (joystick ou caméra).
 // On écoute aussi la perte du pointeur et les événements tactiles : plus aucun doigt sur le joystick, ou plus aucun
 // doigt sur l'écran, et l'on lâche. Ailleurs, ils arrivent après pointerup et ne changent rien.
+addEventListener('pointerdown', (e) => {
+  if (e.pointerId === joy.id) {
+    lacherJoy(e);
+    try { manette.releasePointerCapture(e.pointerId); } catch { /* pas capturé */ }
+  }
+  if (glisse && e.pointerId === glisse.id) glisse = null;
+}, { capture: true });
 const lacherTout = () => {
   if (joy.id !== null) lacherJoy({ pointerId: joy.id });
   if (glisse) lacher({ pointerId: glisse.id });

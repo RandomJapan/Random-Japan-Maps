@@ -586,6 +586,42 @@ sources?.querySelector('.maplibregl-ctrl-attrib-button')?.addEventListener('clic
   location.reload();
 });
 try { if (localStorage.getItem('essaiTactile')) import('./essai-tactile.js'); } catch { /* navigation privée */ }
+// Le navigateur de TikTok (Android) perd des doigts levés (filmé par le propriétaire le 2026-10-28 avec l'essai des
+// doigts : « quand j'essaye de zoomer, ça fait un peu n'importe quoi ») : le doigt suivant reprend le numéro du doigt
+// perdu, et le navigateur le dit « posé de nouveau », ailleurs. MapLibre, qui suit les doigts par leur numéro, croyait
+// qu'un doigt avait bondi à travers l'écran : la carte tournait d'un demi-tour et zoomait d'un coup. Pour un doigt
+// reposé sans s'être levé, on dit d'abord à MapLibre qu'il s'est levé (touchend), puis qu'un nouveau s'est posé
+// (touchstart). Ailleurs, un doigt ne se pose jamais deux fois.
+const doigtsPoses = new Set();
+const reposes = new WeakMap(); // un touchstart → ses doigts reposés sans s'être levés
+let relance = false; // pendant que l'on envoie nos propres événements à MapLibre
+addEventListener('touchstart', (e) => {
+  if (relance) return;
+  const doublons = [...e.changedTouches].filter((t) => doigtsPoses.has(t.identifier));
+  if (doublons.length) reposes.set(e, doublons);
+  noterDoigts(e);
+}, { capture: true, passive: true });
+for (const type of ['touchend', 'touchcancel']) addEventListener(type, (e) => { if (!relance) noterDoigts(e); }, { capture: true, passive: true });
+function noterDoigts(e) {
+  doigtsPoses.clear();
+  for (const t of e.touches) doigtsPoses.add(t.identifier);
+}
+map.getContainer().addEventListener('touchstart', (e) => {
+  const doublons = reposes.get(e);
+  if (!doublons) return;
+  e.stopImmediatePropagation();
+  const ids = new Set(doublons.map((t) => t.identifier));
+  const tous = [...e.touches];
+  const relancer = (type, touches) => e.target.dispatchEvent(new TouchEvent(type, {
+    bubbles: true, cancelable: true, touches, changedTouches: doublons,
+    targetTouches: touches.filter((t) => t.target === e.target),
+  }));
+  relance = true;
+  try {
+    relancer('touchend', tous.filter((t) => !ids.has(t.identifier)));
+    relancer('touchstart', tous);
+  } finally { relance = false; }
+}, { capture: true });
 
 // ---------------------------------------------------------------- Décor de vieille carte
 // Papier vieilli (grain, taches, bords brunis) : glissé juste après l'image de la carte, donc
