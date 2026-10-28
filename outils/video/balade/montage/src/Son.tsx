@@ -15,7 +15,8 @@ const borne = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 
 export type Bande = {
   musique: { fichier: string; debut: number; volume: number }; // debut : la seconde de l'air à l'image 0
-  voix: [string, number][]; // [fichier de voix/court, début (s)]
+  // [fichier de voix/court, début (s), volume (1 sinon : pour une réplique générée plus bas que les autres)]
+  voix: [string, number, number?][];
   // [début (s), fichier (sfx/… ou sfx-jeu/…, avec l'extension), volume, durée (s) : pour une ambiance, qui s'efface au bout]
   sfx: [number, string, number, number?][];
   durees: Record<string, number>; // la durée de chaque réplique (s)
@@ -47,8 +48,8 @@ export const Son: React.FC<{ bande: Bande; bgm: boolean }> = ({ bande, bgm }) =>
         <Audio src={staticFile(`musique/${m.fichier}`)} trimBefore={Math.max(0, s(m.debut) + AVANCE)}
           volume={(f) => m.volume * (1 - BAISSE_SOUS_VOIX * sousVoix(f)) * interpolate(f, [0, 3, duree - s(1.4), duree], [0, 1, 1, 0], borne)} />
       ) : null}
-      {bande.voix.map(([nom, a]) => (
-        <Sequence key={nom} from={Math.max(0, s(a) - AVANCE)} layout="none"><Audio src={staticFile(`voix/court/${nom}.wav`)} volume={VOLUME_VOIX} /></Sequence>
+      {bande.voix.map(([nom, a, v]) => (
+        <Sequence key={nom} from={Math.max(0, s(a) - AVANCE)} layout="none"><Audio src={staticFile(`voix/court/${nom}.wav`)} volume={VOLUME_VOIX * (v ?? 1)} /></Sequence>
       ))}
       {bande.sfx.map(([a, nom, v, d], i) => (
         <Sequence key={i} from={Math.max(0, s(a) - AVANCE)} durationInFrames={s(d ?? 3.4)} layout="none">

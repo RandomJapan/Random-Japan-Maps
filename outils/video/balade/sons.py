@@ -1,8 +1,8 @@
 """Les bruitages de la balade 3D, en fichiers WAV pour ses vidéos : ceux de son.js (les petites notes des consoles :
 le tampon, la récompense, le koban, l'achat, la magie, le daim sauvage…), joués hors temps réel (OfflineAudioContext),
 et ceux de bruitage-calcul.js (fabriqués échantillon par échantillon : les cris des compagnons, le nuage, la rame,
-le coq, le grondement de la grotte, les feux d'artifice, la pièce dans le bol, le fouet du thé, les cigales…). Rien
-d'enregistré, aucun droit. Dans videos/balade/public/sfx-jeu/<nom>.wav (48 kHz).
+le coq, le grondement de la grotte, les feux d'artifice, la pièce dans le bol, le fouet du thé, les cigales, la boue et le
+geyser de Beppu…). Rien d'enregistré, aucun droit. Dans videos/balade/public/sfx-jeu/<nom>.wav (48 kHz).
 
     python outils/video/balade/sons.py [--port 8123]
 
@@ -24,7 +24,9 @@ CALCULES = ['pouf', 'cri/kon', 'cri/pon', 'cri/chapu', 'cri/gao', 'cri/fuwa', 'c
             'caillou', 'assiette', 'plouf', 'pelle', 'boite', 'feu/depart', 'feu/boum', 'feu/crepite', 'oiseau/corbeau',
             'oiseau/mouette', 'cloche', 'claque', 'ebrouer', 'pas/sable/0', 'pas/sable/1', 'pas/herbe/0', 'pas/herbe/1',
             # (Kinkaku-ji : la pièce lancée, le bol où elle tinte, le fouet du thé, le pinceau, les sceaux, le gong, les cigales)
-            'piece', 'bol', 'chasen', 'pinceau', 'tampon', 'waniguchi', 'papier', 'boucle/semi']
+            'piece', 'bol', 'chasen', 'pinceau', 'tampon', 'waniguchi', 'papier', 'boucle/semi',
+            # (Beppu : la grosse bulle de boue, le four à vapeur, le ronflement du démon, le geyser, les fumerolles)
+            'bulle', 'pschitt', 'oiseau/ronfle', 'oiseau/geyser', 'boucle/vapeur']
 # (deux sons du même nom : le « tampon » de bruitage-calcul.js, les deux sceaux du goshuin, devient sceaux.wav ; celui de
 # son.js, la petite note du carnet, reste tampon.wav)
 RENOMMER = {'tampon': 'sceaux'}

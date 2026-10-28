@@ -36,6 +36,7 @@ BROUILLON = '--brouillon' in sys.argv
 # les tampons, les cartes ; tout : aussi le titre et les boutons du haut).
 # les cinq secrets trouvés (cinq koban) ; tout ce que vend le marchand, déjà acheté
 SECRETS = {'trouves': ['corbeaux', 'tresor', 'heike', 'okiku', 'miroir'], 'indices': []}
+IPPEN_FINI = {'baladeSecrets': {'trouves': ['ippen'], 'indices': []}}
 TOUT_ACHETE = {'baladeAchats': ['danse', 'traces', 'accessoires', 'feux', 'masque', 'happi', 'yukata', 'photo', 'gao', 'fuwa', 'saya', 'calendrier', 'kimonoOr', 'armure'],
                'baladeSecrets': SECRETS, 'baladeMarchandVu': 'oui'}
 PRISES = {
@@ -83,6 +84,23 @@ PRISES = {
                                                                  'baladeTenue': {'fille': {'dos': 'ailes'}}, 'baladeTenuesVues': ['ailes']}},
     'kk-nuit': {'lieu': 'kinkakuji', 'ui': 'rien', 'garder': [[0.5, 18.5]]},
     'kk-feux': {'lieu': 'kinkakuji', 'ui': 'rien', 'garder': [[1, 12]], 'stockage': {'baladeAchats': ['feux'], 'baladeSecrets': {'trouves': ['phenix'], 'indices': ['phenix-reflet']}}},
+    # Vidéo 5 : les Enfers de Beppu (les textes du jeu cachés, comme pour le Pavillon d'or ; le secret d'Ippen noté trouvé, sauf
+    # dans les deux plans qui le montrent : les lueurs des trois pierres, vues de loin, auraient dit où elles sont)
+    'bp-umi': {'lieu': 'beppu', 'ui': 'rien', 'stockage': IPPEN_FINI},
+    'bp-rue': {'lieu': 'beppu', 'ui': 'rien', 'stockage': IPPEN_FINI},
+    'bp-oeufs': {'lieu': 'beppu', 'ui': 'rien', 'stockage': IPPEN_FINI},
+    'bp-bulle': {'lieu': 'beppu', 'ui': 'rien', 'stockage': IPPEN_FINI},
+    'bp-ronfle': {'lieu': 'beppu', 'ui': 'rien', 'stockage': IPPEN_FINI},
+    'bp-oni': {'lieu': 'beppu', 'ui': 'rien', 'stockage': IPPEN_FINI},
+    'bp-shiraike': {'lieu': 'beppu', 'ui': 'rien', 'stockage': IPPEN_FINI},
+    'bp-chinoike': {'lieu': 'beppu', 'ui': 'rien', 'stockage': IPPEN_FINI},
+    'bp-geyser': {'lieu': 'beppu', 'ui': 'rien', 'stockage': IPPEN_FINI},
+    'bp-tampon': {'lieu': 'beppu', 'ui': 'rien', 'garder': [[6, 8.5], [11.5, 13.5]], 'stockage': {**IPPEN_FINI, 'baladeTampons': {'beppu': ['umi', 'bozu', 'kamado', 'chinoike']}}},
+    'bp-cornes': {'lieu': 'beppu', 'ui': 'rien', 'stockage': {**IPPEN_FINI, 'baladeTampons': {'beppu': ['umi', 'bozu', 'kamado', 'shiraike', 'chinoike']},
+                                                               'baladeTenue': {'fille': {'tete': 'cornes'}}, 'baladeTenuesVues': ['cornes']}},
+    'bp-pierre': {'lieu': 'beppu', 'ui': 'rien'},
+    'bp-lancer': {'lieu': 'beppu', 'ui': 'rien', 'garder': [[1.5, 7.5]], 'stockage': {'baladeSecrets': {'trouves': [], 'indices': ['ippen', 'ippen-p1']}}},
+    'bp-nuit': {'lieu': 'beppu', 'ui': 'rien', 'stockage': IPPEN_FINI},
 }
 DEFAUT = {'perso': 'fille', 'compagnon': 'kon', 'stockage': {}, 'ui': 'dialogue'}
 

@@ -33,6 +33,11 @@ REELS = {
     'kinkakuji': ('Kinkaku-ji.mp4', 12.45, 1.2, 0.6),
     'kk-cascade': ('Kinkaku-ji.mp4', 20.5, 1.25, 0.85),
     'kk-goshuin': ('Kinkaku-ji.mp4', 29.5, 1.3, 0.85),
+    # les Enfers de Beppu (vidéo 5) : l'eau turquoise qui fume, la boue grise qui bout en cercles, le lac de sang sous ses
+    # fumées (pas les plans du début, où le titre « Beppu Onsen » du propriétaire est incrusté)
+    'beppu': ('Hells of Beppu.mp4', 34.3, 1.5, 0.8),
+    'bp-boue': ('Hells of Beppu.mp4', 9.3, 1.5),
+    'bp-sang': ('Hells of Beppu.mp4', 18.8, 1.5),
 }
 SFX = {
     'promo30': ['whoosh-fast', 'swoosh-quick', 'air-whoosh-powerful', 'zoom-air-fast', 'transition-snap', 'impact-deep-whoosh',

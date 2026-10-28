@@ -586,6 +586,137 @@
         o.cadre(...o.chemin([[0, [27.6, 2.1, 50.0], [4, 4.6, -5.6], 52], [12, [27.0, 1.9, 49.2], [4, 5.4, -5.6], 50]], t));
       },
     },
+
+    // ================================================================ Vidéo 5 : les Enfers de Beppu (2026-10-28)
+    // (les objets de beppu.js, trouvés par leurs méthodes : le panier d'œufs (lever), la boue (grosse), le ronflement du
+    // démon (ronfler), le geyser (jaillir))
+    // l'enfer de la mer : le grand bassin bleu de cobalt et ses fumées, du belvédère (le plan qui répond à la vidéo du propriétaire)
+    'bp-umi': {
+      duree: 7,
+      preparer(o) { o.placer(-29.4, -20.6, -34, -29.5, { compagnon: false }); o.compagnon(-28.4, -20.2, PI + 0.4); },
+      chaque(t, dt, o) {
+        // (de haut : plus bas, ses fumées cachaient la moitié de l'image)
+        o.cadre(...o.chemin([[0, [-13.6, 13.4, -23.0], [-36, 1.5, -30], 46], [7, [-15.4, 12.6, -24.2], [-36, 1.5, -30], 44]], t));
+      },
+    },
+    // la rue de Kannawa qui fume : le voyageur la remonte, la vapeur sort des grilles des caniveaux et des toits
+    'bp-rue': {
+      duree: 6,
+      preparer(o) { o.placer(50, 2.0, 10, 0, { tangage: 0.1, distance: 6.0 }); },
+      debut(o) { o.tenir('KeyW'); },
+      chaque(t, dt, o) { o.viser(10, 0, 0.05); },
+    },
+    // les œufs cuits dans l'eau bleue : la dame remonte le panier au bout de sa corde (le voyageur, plus loin sur le belvédère, ne
+    // le cache plus : derrière lui, au premier brouillon, on ne voyait que son chapeau)
+    'bp-oeufs': {
+      duree: 5,
+      preparer(o) { o.placer(-21.4, -19.6, -28.27, -24.98); },
+      quand: [[0.3, (o) => o.M().lieu.animes.find((a) => typeof a.lever === 'function').lever(true)]],
+      chaque(t, dt, o) {
+        // (d'au-dessus de la rambarde : on voit les œufs dans le panier, et derrière, les torii du petit sanctuaire Inari)
+        o.cadre(...o.chemin([[0, [-25.0, 4.5, -21.5], [-28.3, 2.3, -25.0], 42], [5, [-25.4, 4.4, -21.9], [-28.3, 2.6, -25.0], 38]], t));
+      },
+    },
+    // l'enfer des crânes de moines : une grosse bulle de boue grise gonfle comme un crâne rasé, et crève (au ras de la boue)
+    'bp-bulle': {
+      duree: 5,
+      preparer(o) { o.placer(14.8, -24.0, 9.4, -25.6); },
+      quand: [[0.2, (o) => o.M().lieu.animes.find((a) => typeof a.grosse === 'function').grosse({ eau: 0.35 }, 9.4, -25.6)]],
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [11.9, 1.05, -24.5], [9.4, 0.6, -25.6], 40], [5, [11.5, 0.95, -24.7], [9.4, 0.6, -25.6], 38]], t));
+      },
+    },
+    // le ronflement du démon (鬼の高いびき) : la vapeur sort des rochers par saccades
+    'bp-ronfle': {
+      duree: 4,
+      preparer(o) { o.placer(24.0, -41.6, 26.8, -45.4, { compagnon: false }); o.compagnon(23.2, -42.4, -2.5); },
+      quand: [[0.4, (o) => o.M().lieu.animes.find((a) => a.ronfler).ronfler()]],
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [24.4, 1.7, -41.0], [26.8, 1.8, -45.4], 48], [4, [24.8, 1.6, -41.6], [26.8, 2.0, -45.4], 46]], t));
+      },
+    },
+    // le grand démon rouge sur son chaudron, vu d'en bas ; le voyageur devant lui
+    'bp-oni': {
+      duree: 5,
+      // (à droite du démon, à mi-chemin : au milieu, de dos, il cachait son chaudron)
+      preparer(o) { o.placer(6.4, 11.6, 6.6, 14.0); },
+      chaque(t, dt, o) {
+        // (les deux amis qui le regardent, juste devant la caméra au premier brouillon, écartés)
+        for (const [id, x] of [['amie', -8], ['ami', -10]]) { const k = o.passant(id); if (k) { k.etat.x = x; k.etat.z = 1; } }
+        o.cadre(...o.chemin([[0, [8.8, 1.2, 6.6], [6.6, 3.6, 14], 52], [5, [8.2, 1.15, 7.6], [6.6, 3.8, 14], 50]], t));
+      },
+    },
+    // l'enfer de l'étang blanc : l'eau blanche comme du lait, ses fumées
+    'bp-shiraike': {
+      duree: 5,
+      preparer(o) { o.placer(-30.6, 15.4, -33, 23.5, { compagnon: false }); o.compagnon(-31.8, 15.2, 0.3); },
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [-21.6, 11.2, 11.6], [-34, 1.5, 25], 46], [5, [-23.0, 10.6, 11.4], [-34, 1.5, 25], 44]], t));
+      },
+    },
+    // l'enfer du lac de sang, au-dessus de son belvédère
+    'bp-chinoike': {
+      duree: 5,
+      preparer(o) { o.placer(-58.0, -70.0, -70, -82.5); },
+      chaque(t, dt, o) {
+        // (à mi-hauteur : assez haut pour voir le lac entier par-dessus ses fumées, assez bas pour répondre au plan du propriétaire)
+        o.cadre(...o.chemin([[0, [-61.4, 12.6, -68.4], [-71, 6.1, -84], 46], [5, [-62.8, 12.2, -68.2], [-71, 6.1, -84], 44]], t));
+      },
+    },
+    // l'enfer de la tornade : le geyser jaillit jusqu'à son toit de pierre ; le voyageur et son compagnon devant la corde
+    'bp-geyser': {
+      duree: 7,
+      preparer(o) { o.placer(-35.4, -82.6, -36, -91.5); },
+      quand: [[0.3, (o) => o.M().lieu.animes.find((a) => a.jaillir).jaillir()]],
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [-33.4, 9.4, -77.0], [-36, 10.0, -91.5], 52], [7, [-33.8, 9.0, -78.2], [-36, 10.4, -91.5], 50]], t));
+      },
+    },
+    // le cinquième tampon (l'étang blanc), et la récompense : les cornes d'oni
+    'bp-tampon': {
+      duree: 30,
+      preparer(o) { o.placer(-27.6, 16.4, -33, 23.5); },
+      quand: [[0.3, (o) => o.agir('shiraike')]],
+      chaque(t, dt, o) { o.lire(t, { delai: 0.7 }); },
+    },
+    // les cornes d'oni sur la tête du voyageur, devant le grand démon rouge : deux oni
+    'bp-cornes': {
+      duree: 5,
+      preparer(o) { o.placer(6.6, 11.2, 6.6, 6.0); },
+      quand: [[0.6, (o) => o.jeu.saluer()]],
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [6.9, 1.55, 7.0], [6.6, 2.9, 13.0], 48], [5, [6.8, 1.5, 7.6], [6.6, 2.8, 13.0], 46]], t));
+      },
+    },
+    // une pierre d'Ippen, sa lueur et son étoile : sur la place du petit sanctuaire Inari, devant le renard (le voyageur reste en
+    // bas des marches : la lueur s'efface quand on est tout près). La nuit : de jour, la lueur se voyait à peine
+    'bp-pierre': {
+      duree: 5,
+      async preparer(o) { o.placer(-44.0, -35.6, -51.6, -45.2); await o.nuitTout(true); },
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [-52.2, 5.8, -41.6], [-54.0, 5.0, -44.85], 44], [5, [-52.7, 5.5, -42.4], [-54.0, 5.0, -44.85], 40]], t));
+      },
+    },
+    // une pierre en main, jetée dans l'enfer de la mer : elle vole, l'eau se calme, la prière s'allume en rond sur l'eau (la nuit,
+    // comme la pierre : la prière d'or sur l'eau sombre)
+    'bp-lancer': {
+      duree: 12,
+      async preparer(o) { o.placer(-37.6, -20.2, -36.4, -26.6); await o.nuitTout(true); },
+      quand: [[0.3, (o) => o.agir('lancer-umi')]],
+      chaque(t, dt, o) {
+        o.lire(t, { delai: 0.6, choix: 0 });
+        // (de haut et un peu à gauche : la prière s'allume sur l'eau à côté du voyageur, pas derrière son chapeau)
+        o.cadre(...o.chemin([[0, [-39.6, 7.4, -14.8], [-36.6, 1.6, -26.0], 48], [12, [-39.4, 7.0, -15.6], [-36.5, 1.6, -26.2], 44]], t));
+      },
+    },
+    // la nuit dans la rue : les lanternes, les fenêtres allumées, la vapeur (la fin)
+    'bp-nuit': {
+      duree: 7,
+      async preparer(o) { o.placer(30, 0.6, 10, 0, { compagnon: true }); await o.nuitTout(true); },
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [44, 4.2, 5.0], [16, 1.4, -1.0], 50], [7, [40, 4.0, 4.4], [14, 1.6, -1.0], 48]], t));
+      },
+    },
   };
 
   // ---------------------------------------------------------------- le déroulé
