@@ -593,10 +593,18 @@
     // l'enfer de la mer : le grand bassin bleu de cobalt et ses fumées, du belvédère (le plan qui répond à la vidéo du propriétaire)
     'bp-umi': {
       duree: 7,
-      preparer(o) { o.placer(-29.4, -20.6, -34, -29.5, { compagnon: false }); o.compagnon(-28.4, -20.2, PI + 0.4); },
+      preparer(o) {
+        o.placer(-29.4, -20.6, -34, -29.5, { compagnon: false }); o.compagnon(-28.4, -20.2, PI + 0.4);
+        // (pour ce plan, les fumées du bassin à 30 % : de haut, elles faisaient un grand voile blanc en haut de l'image, le
+        // propriétaire le 2026-10-28 : « il y a un halo blanc en haut qui ne rend pas bien »)
+        const a = o.M().vapeurs.geometry.attributes, p = a.position.array;
+        for (let i = 0; i < a.opa.count; i++) if (((p[3 * i] + 34) / 11) ** 2 + ((p[3 * i + 2] + 29.5) / 8) ** 2 < 1) a.opa.array[i] *= 0.3;
+        a.opa.needsUpdate = true;
+      },
       chaque(t, dt, o) {
-        // (de haut : plus bas, ses fumées cachaient la moitié de l'image)
-        o.cadre(...o.chemin([[0, [-13.6, 13.4, -23.0], [-36, 1.5, -30], 46], [7, [-15.4, 12.6, -24.2], [-36, 1.5, -30], 44]], t));
+        // (de haut, du nord-est : l'eau en bas, et au-dessus, les torii rouges du sanctuaire Inari qui montent dans les arbres,
+        // juste sous la légende ; plus bas, ses fumées cachaient la moitié de l'image)
+        o.cadre(...o.chemin([[0, [-16, 17, -16], [-39, 3, -36], 46], [7, [-17.4, 16.2, -17.4], [-39, 3, -36], 44]], t));
       },
     },
     // la rue de Kannawa qui fume : le voyageur la remonte, la vapeur sort des grilles des caniveaux et des toits
