@@ -62,8 +62,8 @@ import * as beppu from './beppu.js';
 // le menu), et ?lieu= mène au lieu par défaut. Pour le sortir : l'ôter de EN_ESSAI, et ôter la classe dev de son lien dans
 // app.js, BALADES_ESSAI)
 // (Kinkaku-ji, en essai depuis le 2026-10-26, sorti le 2026-10-27 : « c'est bon tu peux le mettre en ligne pour tout le monde » ;
-// Beppu, en essai depuis le 2026-10-27)
-const EN_ESSAI = ['beppu'];
+// Beppu, en essai depuis le 2026-10-27, sorti le 2026-10-28 : « tu peux mettre en ligne pour tout le monde »)
+const EN_ESSAI = [];
 const LIEUX = Object.fromEntries(Object.entries({ itsukushima, aogashima, gokayama, himeji, takachiho, kinkakuji, beppu }).filter(([id]) => !EN_ESSAI.includes(id) || modeDev()));
 const params = new URLSearchParams(location.search);
 const PHOTO = params.get('photo');
