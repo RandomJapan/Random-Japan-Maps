@@ -2083,6 +2083,26 @@ $('.bouton-a').addEventListener('pointerdown', (e) => {
   else if (etat.mode === 'jeu') agir();
 });
 $('.bulle-action').addEventListener('pointerdown', (e) => { e.preventDefault(); if (etat.mode === 'jeu') agir(); });
+// Le navigateur de TikTok (Android, 2026-10-27 ; le propriétaire : « quand je mets le joystick vers le haut, ça avance
+// tout seul ») : le doigt levé n'y arrive pas toujours en pointerup ou pointercancel, et le joystick restait poussé.
+// On écoute aussi la perte du pointeur et les événements tactiles : plus aucun doigt sur le joystick, ou plus aucun
+// doigt sur l'écran, et l'on lâche. Ailleurs, ils arrivent après pointerup et ne changent rien.
+const lacherTout = () => {
+  if (joy.id !== null) lacherJoy({ pointerId: joy.id });
+  if (glisse) lacher({ pointerId: glisse.id });
+};
+manette.addEventListener('lostpointercapture', lacherJoy);
+toile.addEventListener('lostpointercapture', lacher);
+for (const type of ['touchend', 'touchcancel']) {
+  manette.addEventListener(type, (e) => {
+    if (joy.id !== null && ![...e.touches].some((t) => manette.contains(t.target))) lacherJoy({ pointerId: joy.id });
+  }, { passive: true });
+  addEventListener(type, (e) => { if (!e.touches.length) lacherTout(); }, { capture: true, passive: true });
+}
+addEventListener('blur', lacherTout);
+document.addEventListener('visibilitychange', () => { if (document.hidden) lacherTout(); });
+// l'essai des doigts, allumé depuis la carte (cinq appuis sur le « i » des sources : ../essai-tactile.js)
+try { if (localStorage.getItem('essaiTactile')) import('../essai-tactile.js'); } catch { /* navigation privée */ }
 
 // le carnet, le menu
 $('.btn-carnet').addEventListener('click', () => ouvrirCarnet());

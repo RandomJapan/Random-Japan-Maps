@@ -572,6 +572,20 @@ new MutationObserver(() => {
 }).observe(document.body, { attributes: true, attributeFilter: ['class'] });
 map.on('error', (e) => console.warn('Carte :', e.error?.message || e));
 window.carte = map; // pratique pour inspecter la carte depuis la console du navigateur
+// L'essai des doigts (essai-tactile.js, 2026-10-28) : cinq appuis rapides sur le « i » des sources l'allument ou
+// l'éteignent. Pour le navigateur de TikTok, où l'on ne peut pas taper d'adresse ; la balade le reprend (localStorage).
+let appuisSources = [];
+sources?.querySelector('.maplibregl-ctrl-attrib-button')?.addEventListener('click', () => {
+  const t = performance.now();
+  appuisSources = appuisSources.filter((a) => t - a < 3000).concat(t);
+  if (appuisSources.length < 5) return;
+  try {
+    if (localStorage.getItem('essaiTactile')) localStorage.removeItem('essaiTactile');
+    else localStorage.setItem('essaiTactile', '1');
+  } catch { return; }
+  location.reload();
+});
+try { if (localStorage.getItem('essaiTactile')) import('./essai-tactile.js'); } catch { /* navigation privée */ }
 
 // ---------------------------------------------------------------- Décor de vieille carte
 // Papier vieilli (grain, taches, bords brunis) : glissé juste après l'image de la carte, donc
