@@ -618,6 +618,30 @@ body.plongeon .vol-grues, body.en-jeu .vol-grues { display: none; }
 }
 .aide.cachee { opacity: 0; }
 
+/* Ouvert depuis TikTok ou Instagram (app.js, montrerConseilNavigateur) : le conseil d'ouvrir la carte dans le vrai
+   navigateur, une flèche vers le menu ⋯ de leur barre, juste au-dessus de la page, à droite. Par-dessus toute la
+   rangée du haut (logo, heure, raccourcis) : la flèche ne doit pas tomber sur un bouton de la carte. */
+.conseil-navigateur {
+  position: fixed; z-index: 15; top: var(--haut); left: 12px; right: 12px; max-width: 420px; margin-left: auto;
+  padding: 12px 14px 14px; animation: conseil-arrive .35s var(--ease);
+}
+.conseil-navigateur[hidden] { display: none; }
+@keyframes conseil-arrive { from { opacity: 0; transform: translateY(-8px); } }
+.conseil-fleche {
+  position: absolute; right: 8px; top: -9px; width: 34px; height: 30px; color: var(--rouge);
+  animation: conseil-montre 1s ease-in-out infinite alternate;
+}
+@keyframes conseil-montre { to { transform: translate(3px, -4px); } }
+@media (prefers-reduced-motion: reduce) { .conseil-navigateur, .conseil-fleche { animation: none; } }
+.conseil-navigateur-sur { margin: 0 40px 2px 0; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--rouge); }
+.conseil-navigateur-titre { margin: 0 0 4px; font: 400 19px/1.25 var(--police-titre); color: var(--encre); }
+.conseil-navigateur-texte { margin: 0 0 12px; font-size: 14px; line-height: 1.5; color: var(--encre-2); }
+.conseil-icone {
+  display: inline-block; min-width: 28px; padding: 0 5px; border: 1px solid var(--trait); border-radius: 10px;
+  background: var(--papier-clair); color: var(--encre); font-weight: 700; line-height: 18px; text-align: center;
+}
+.conseil-navigateur .btn-secondaire { padding: 9px; }
+
 /* ---------- Repères : blasons ronds cerclés d'encre, petits points quand on voit tout le Japon ---------- */
 /* --t : la taille des repères selon le zoom (app.js la change par une règle à part, qui ne touche que les repères).
    De près, chaque repère flotte au-dessus du modèle 3D de son lieu : couche3d.js le décale (setOffset). */

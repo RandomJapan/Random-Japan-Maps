@@ -988,6 +988,35 @@ for (const ev of ['mousedown', 'touchstart', 'wheel']) {
   map.getCanvasContainer().addEventListener(ev, arreterRotation, { passive: true });
 }
 
+/* Le propriétaire (2026-10-28) : « quand on ouvre dans le navigateur TikTok ou dans le navigateur Instagram, une petite
+   pop-up […] pour une meilleure fluidité, ouvrir dans le navigateur en haut à droite ». La plupart des visiteurs
+   arrivent par le lien de sa bio TikTok, et ces navigateurs intégrés sont moins fluides (et perdent des doigts levés,
+   voir plus bas). Sur téléphone seulement, une fois par ouverture (sessionStorage) : « Continuer ici » le ferme. */
+const NAVIGATEUR_INTEGRE = (() => {
+  const ua = navigator.userAgent;
+  if (!/Android|iPhone|iPad|iPod/i.test(ua)) return null;
+  const app = /Bytedance|musical_ly|trill_|TikTok/i.test(ua) ? 'tiktok' : /Instagram/i.test(ua) ? 'instagram' : null;
+  // le menu de leur barre : ⋮ dans Instagram sous Android, ⋯ ailleurs
+  return app && { app, menu: app === 'instagram' && /Android/i.test(ua) ? '⋮' : '⋯' };
+})();
+function majConseilNavigateur() {
+  const menu = document.createElement('b');
+  menu.className = 'conseil-icone';
+  menu.textContent = NAVIGATEUR_INTEGRE.menu;
+  const [avant, apres] = t('navigateurTexte', '\0').split('\0');
+  $('conseil-navigateur-texte').replaceChildren(avant, menu, apres);
+}
+function montrerConseilNavigateur() {
+  if (!NAVIGATEUR_INTEGRE || !estTelephone()) return;
+  try { if (sessionStorage.getItem('conseilNavigateur')) return; } catch { /* pas grave */ }
+  majConseilNavigateur();
+  $('conseil-navigateur').hidden = false;
+}
+$('conseil-navigateur-rester').addEventListener('click', () => {
+  $('conseil-navigateur').hidden = true;
+  try { sessionStorage.setItem('conseilNavigateur', '1'); } catch { /* pas grave */ }
+});
+
 // ---------------------------------------------------------------- Épingles
 let lieux = [];
 let categories = [];
@@ -2452,6 +2481,7 @@ function appliquerLangue() {
     m.el.textContent = enLangue(m.nom);
   }
   $('aide').textContent = t(estTelephone() ? 'aideTel' : 'aide');
+  if (!$('conseil-navigateur').hidden) majConseilNavigateur();
   if ($('choix-region').options.length) construireHasard();
   for (const b of document.querySelectorAll('[data-langue]')) {
     b.setAttribute('aria-pressed', String(b.dataset.langue === langue));
@@ -2707,6 +2737,7 @@ async function demarrer() {
     // une fois effacé, l'écran de chargement sort de la page : son logo animé aurait tourné pour rien à chaque image
     setTimeout(() => { $('chargement').style.display = 'none'; }, 900);
     setTimeout(replierSources, 5000);
+    setTimeout(montrerConseilNavigateur, 1200);
     if (location.hash.length > 1) ouvrirDepuisAdresse();
     else if (rotation) {
       setTimeout(() => {

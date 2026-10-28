@@ -443,6 +443,16 @@
 
   <p class="aide" id="aide"></p>
 
+  <!-- Ouvert depuis TikTok ou Instagram, sur téléphone : ouvrir plutôt la carte dans le vrai navigateur, par le menu
+       de leur barre, en haut à droite (app.js, montrerConseilNavigateur) -->
+  <div class="conseil-navigateur panneau" id="conseil-navigateur" role="region" aria-labelledby="conseil-navigateur-titre" hidden>
+    <svg class="conseil-fleche" viewBox="0 0 34 30" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d="M4 27C13 25 23 19 28.5 5M21 9.5l7.5-4.5 2.5 8.5"/></svg>
+    <p class="conseil-navigateur-sur" data-t="navigateurSur"></p>
+    <p class="conseil-navigateur-titre" id="conseil-navigateur-titre" data-t="navigateurTitre"></p>
+    <p class="conseil-navigateur-texte" id="conseil-navigateur-texte"></p>
+    <button type="button" class="btn-secondaire" id="conseil-navigateur-rester" data-t="navigateurRester"></button>
+  </div>
+
   <!-- Un voyage reçu par un lien …/?voyage= : sa route est sur la carte ; le garder dans ses favoris ou lancer la visite (app.js) -->
   <div class="voyage-recu panneau" id="voyage-recu" role="region" aria-labelledby="voyage-recu-titre" hidden>
     <button type="button" class="voyage-recu-fermer" id="voyage-recu-fermer" data-t-titre="fermer" data-t-aria="fermer"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M7 7l10 10M17 7 7 17"/></svg></button>

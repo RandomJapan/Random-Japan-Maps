@@ -108,6 +108,8 @@ Sur téléphone, la carte prend presque tout l'écran (tu as choisi l'interface 
 
 La langue se met toute seule dans celle du téléphone (français, anglais ou japonais ; anglais pour les autres langues), tant que le visiteur n'en a pas choisi une autre dans le menu. Sur ordinateur, rien n'a changé.
 
+Quand on ouvre la carte depuis TikTok ou Instagram (le lien de ta bio), elle s'ouvre dans leur navigateur à eux, moins fluide. Une petite fenêtre en haut le dit (« Pour une meilleure fluidité, ouvre la carte dans ton navigateur : touche ⋯ en haut à droite, puis « Ouvrir dans le navigateur » »), avec une flèche vers ce menu. « Continuer ici » la ferme ; elle revient à chaque nouvelle ouverture depuis l'appli. Dans Chrome ou Safari, elle n'apparaît jamais.
+
 ## Les modèles 3D
 
 Quand on zoome sur la carte, chaque lieu montre un petit modèle 3D posé sur le relief, avec son repère juste au-dessus :
