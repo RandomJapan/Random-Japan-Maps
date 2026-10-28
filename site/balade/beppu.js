@@ -261,16 +261,18 @@ function plusProche(pts, x, z) {
   }
   return m;
 }
-/** Dans une place (une ellipse, ou un rectangle : rect, ses demi-côtés lx, lz) : la distance à son bord en mètres, négative dedans. */
+/** La distance de x, z au bord de la place p (une ellipse, ou un rectangle : rect, ses demi-côtés lx, lz), négative dedans. */
+function aLaPlace(p, x, z) {
+  const c = Math.cos(p.ry), s = Math.sin(p.ry), u = (x - p.x) * c - (z - p.z) * s, v = (x - p.x) * s + (z - p.z) * c;
+  // (d'une ellipse, la distance à son bord au premier ordre : (q − 1) / |∇q| ; avant, (q − 1) × le petit rayon, trop loin
+  // au bout du grand axe — la clôture d'un long belvédère, à 35 cm de son bord sur les côtés, en était à 1,1 m aux bouts)
+  const q = Math.hypot(u / (p.rx || 1), v / (p.rz || 1));
+  return p.rect ? Math.max(Math.abs(u) - p.lx, Math.abs(v) - p.lz) : q < 1e-6 ? -Math.min(p.rx, p.rz) : ((q - 1) * q) / Math.hypot(u / (p.rx * p.rx), v / (p.rz * p.rz));
+}
+/** Dans les places : la distance au bord de la plus proche, en mètres, négative dedans. */
 function surPlaces(x, z) {
   let mieux = Infinity;
-  for (const p of PLACES) {
-    const c = Math.cos(p.ry), s = Math.sin(p.ry), u = (x - p.x) * c - (z - p.z) * s, v = (x - p.x) * s + (z - p.z) * c;
-    // (d'une ellipse, la distance à son bord au premier ordre : (q − 1) / |∇q| ; avant, (q − 1) × le petit rayon, trop loin
-    // au bout du grand axe — la clôture d'un long belvédère, à 35 cm de son bord sur les côtés, en était à 1,1 m aux bouts)
-    const q = Math.hypot(u / (p.rx || 1), v / (p.rz || 1));
-    mieux = Math.min(mieux, p.rect ? Math.max(Math.abs(u) - p.lx, Math.abs(v) - p.lz) : q < 1e-6 ? -Math.min(p.rx, p.rz) : ((q - 1) * q) / Math.hypot(u / (p.rx * p.rx), v / (p.rz * p.rz)));
-  }
+  for (const p of PLACES) mieux = Math.min(mieux, aLaPlace(p, x, z));
   return mieux;
 }
 /** Où est x, z dans le bassin b : 1 à son bord (qui ondule un peu), 0 au milieu. */
@@ -368,7 +370,7 @@ function terrain(x, z) {
 
 /**
  * Peut-on être en x, z ? Sur les allées et les places jusqu'à leur clôture (le voyageur, un point, s'arrête à 25 cm de ses
- * piquets, qui sont à 35 cm du bord), dans la rue et ses abords (ecartRue), pas dans les bassins (leur rambarde : 30 cm avant) ;
+ * piquets, qui sont à 35 cm du bord), dans la rue et ses abords (ecartRue), pas dans les bassins (leur clôture : 30 cm avant) ;
  * sur un caillebotis, toujours (sa rambarde arrête).
  */
 function dansLeCadre(x, z) {
@@ -448,25 +450,6 @@ export function construire(ctx) {
     if (!morceaux.has(k)) morceaux.set(k, atelier());
     return morceaux.get(k);
   };
-  /** Une clôture basse (des pieux de bois et deux lisses) le long des points [[x, z], …], posée sur le sol. */
-  const cloture = (a, pts, o = {}) => {
-    const { haut = 0.95, c = '#6a5440', pas = 1.5 } = o;
-    for (let i = 0; i + 1 < pts.length; i++) {
-      const [x0, z0] = pts[i], [x1, z1] = pts[i + 1], l = Math.hypot(x1 - x0, z1 - z0), n = Math.max(1, Math.round(l / pas));
-      // (le dernier piquet : celui du segment suivant ; d'une clôture qui fait le tour, c'est le premier : deux fois le même
-      // piquet scintillait)
-      const fermee = Math.hypot(pts[0][0] - pts[pts.length - 1][0], pts[0][1] - pts[pts.length - 1][1]) < 0.01;
-      for (let k = 0; k <= n; k++) {
-        if (k === n && (i + 2 < pts.length || fermee)) continue;
-        const x = x0 + ((x1 - x0) * k) / n, z = z0 + ((z1 - z0) * k) / n, y = terrain(x, z);
-        a.boite(0.09, haut + 0.25, 0.09, c, { x, y: y + (haut - 0.25) / 2, z });
-      }
-      // (chaque lisse un peu plus haute que la précédente, et un peu plus courte que son segment, ses bouts dans les piquets :
-      // bout à bout, presque alignées, elles se recouvraient aux coins et scintillaient)
-      const e = Math.min(0.03, l * 0.2) / l, ax = x0 + (x1 - x0) * e, az = z0 + (z1 - z0) * e, bx = x1 - (x1 - x0) * e, bz = z1 - (z1 - z0) * e;
-      for (const [hh, r] of [[haut - 0.06, 0.035], [haut * 0.52, 0.028]]) a.baton([ax, terrain(ax, az) + hh + i * 0.002, az], [bx, terrain(bx, bz) + hh + i * 0.002, bz], r, c, 5);
-    }
-  };
 
   // ---------------------------------------------------------------- Les bassins des enfers : l'eau, la boue, la vapeur
   // l'eau (le moteur, eaux calmes : chaque bassin sa couleur, claire au bord, profonde au milieu ; elle s'arrête net à sa rive)
@@ -477,42 +460,15 @@ export function construire(ctx) {
   // la boue (son propre dessin : grise, épaisse, ses bulles qui gonflent et crèvent en laissant des ronds)
   const boue = creerBoue(THREE, BASSINS.filter((b) => b.sorte === 'boue'));
   animes.push(boue);
-  // les rives : des pierres volcaniques, blanchies par les dépôts des sources, tout autour ; une margelle basse de pierre ; une
-  // rambarde de bois au-delà (dans le cadre, on s'arrête avant : dansLeCadre) ; pas sur un caillebotis qui longe le bassin
-  // (2026-10-27 : elle le traversait ; sa propre rambarde le borde). (2026-10-28, la troisième liste du propriétaire : « je
-  // comprends pas pourquoi tu as mis double barrière. T'as mis la barrière de l'enfer plus la barrière du ponton », et
-  // « pareil pour l'enfer bleu » — la rambarde du bassin à un mètre derrière celle d'un caillebotis, ou derrière la clôture de
-  // bambou d'une allée, d'un belvédère.) Elle n'est plus que là où l'on vient jusqu'à elle : un point de son tour, à 50 cm du
-  // bord, est gardé si 37 cm plus loin on marche (sur le sol : un caillebotis a sa rambarde, qui arrête avant) ; ailleurs,
-  // la clôture de l'allée fait la barrière, et les pierres de la rive suffisent.
-  const surCaillebotis = (x, z) => CHEMINS.some((ch) => ch.bois && surLaLigne(ch.pts, x, z).d < ch.w + 0.3);
-  const auBordOnVient = (x, z) => { const c = surChemins(x, z); return dansLeCadre(x, z) && !(c.c?.bois && c.d < 0.2); };
+  // les rives : des pierres volcaniques, blanchies par les dépôts des sources, tout autour (posées avec les clôtures, plus bas :
+  // une pierre ne prend pas la place d'un pieu) ; là où l'on vient jusqu'à l'eau, la clôture de bambou des allées
+  const rochersRive = [];
   for (const b of BASSINS) {
-    const a = morceau(b.x, b.z), tour = 2 * PI * Math.max(b.rx, b.rz), n = Math.max(10, Math.round(tour / 0.9));
+    const tour = 2 * PI * Math.max(b.rx, b.rz), n = Math.max(10, Math.round(tour / 0.9));
     for (let k = 0; k < n; k++) {
       const t = (k / n) * 2 * PI + hasard(k, b.x) * 0.3, [x, z] = surLeTour(b, t, 0.05 + 0.25 * hasard(b.z, k)), r = 0.22 + 0.28 * hasard(k, b.z);
       const blanc = b.sorte === 'nenuphars' ? 0.2 : 0.55;
-      a.rocher(x, b.eau + 0.18 + r * 0.25, z, r, hasard(x, z) < blanc ? '#cfc7b4' : '#8f8578', { sy: 0.55 });
-    }
-    // la rambarde (pas autour des nénuphars : des pierres basses suffisent, l'eau n'y bout pas) : un point tous les 25 cm, gardé
-    // là où l'on vient (et deux de plus à chaque bout : elle rejoint la clôture de l'allée) ; un poteau tous les six points
-    if (b.sorte === 'nenuphars') continue;
-    const nf = Math.max(40, Math.round(tour / 0.25)), tour0 = [], vient = [];
-    for (let k = 0; k < nf; k++) {
-      const t = (k / nf) * 2 * PI;
-      tour0.push(surLeTour(b, t, 0.5));
-      vient.push(!surCaillebotis(...tour0[k]) && auBordOnVient(...surLeTour(b, t, 0.87)));
-    }
-    const ok = vient.map((v, k) => v || ([-2, -1, 1, 2].some((d) => vient[(k + d + nf) % nf]) && !surCaillebotis(...tour0[k])));
-    const o = { haut: 0.85, c: '#6e5844', pas: 1.4 };
-    const tracer = (run) => { if (run.length > 1) cloture(a, run.filter((_, j) => j % 6 === 0 || j === run.length - 1), o); };
-    if (ok.every(Boolean)) tracer([...tour0, tour0[0]]);
-    else {
-      // (en partant d'un point coupé : aucun morceau ne fait le tour par le point de départ)
-      const k0 = ok.indexOf(false);
-      let run = [];
-      for (let j = 1; j <= nf; j++) { const k = (k0 + j) % nf; if (ok[k]) run.push(tour0[k]); else { tracer(run); run = []; } }
-      tracer(run);
+      rochersRive.push({ b, x, z, r, c: hasard(x, z) < blanc ? '#cfc7b4' : '#8f8578' });
     }
   }
   // la vapeur : des bouffées sur chaque bassin, à proportion de sa taille et de sa force
@@ -937,6 +893,8 @@ export function construire(ctx) {
       for (const u of [-1, 1]) {
         a.cylindre(0.17, 0.19, 3.4, 10, P.vermillon, { x: x + u * 2.25, y: y + 1.7, z }).cylindre(0.26, 0.28, 0.3, 10, P.pierreFonce, { x: x + u * 2.25, y: y + 0.12, z });
         monde.cercle(x + u * 2.25, z, 0.42);
+        // (la clôture de l'allée s'arrête contre lui : 2026-10-28, ses bambous traversaient le pied des deux piliers)
+        emprises.push({ x: x + u * 2.25, z, r: 0.3 });
       }
       a.boite(5.2, 0.32, 0.36, P.vermillon, { x, y: y + 3.1, z }).boite(4.6, 0.2, 0.26, P.vermillonFonce, { x, y: y + 2.55, z });
       a.toitJapon(6.2, 1.8, 0.75, 0.25, { x, y: y + 3.26, z, tuile: P.tuileShiro, tuile2: P.tuileShiroClaire, bord: '#4a4a4e', rangs: 14 });
@@ -1049,14 +1007,31 @@ export function construire(ctx) {
       a.baton(P3(0, hc + 0.01, zc), P3(0, 1.17, zc), 0.01, P.noir, 4).boule(0.07, '#d8b04a', { ...R(0, y + 1.1, zc) }, 1);
       a.tube([P3(0, 1.04, zc), P3(0, 0.82, zc + 0.02), P3(0, 0.62, zc + 0.05)], 0.022, '#c8402c', { cotes: 6, pas: 10, teinte: (px, py) => (Math.floor(py * 18) % 2 ? '#c8402c' : '#f4efe6') });
     }
-    // le tronc des offrandes, posé devant le socle : ses lattes en biais, « 賽銭 » devant
+    // le tronc des offrandes (賽銭箱), posé devant le socle (2026-10-28, la quatrième liste du propriétaire : « devant le petit
+    // sanctuaire refais l'autel qui est mal fait » — six lattes en biais sortaient de son dessus en éventail) : sur deux
+    // traverses, une caisse de bois, ses quatre montants, son cadre sombre, des coins de fer noir ; dans le cadre, sur le noir de
+    // la fente, cinq barreaux en dos d'âne (des prismes, l'arête en haut : les pièces glissent entre eux) ; « 賽銭 » doré devant
     {
-      const yb = sol(0, 1.5);
-      a.boite(0.8, 0.45, 0.42, P.bois, R(0, yb + 0.175, 1.5));
-      for (let k = 0; k < 6; k++) a.boite(0.74, 0.025, 0.04, P.boisFonce, R(0, yb + 0.41, 1.36 + k * 0.056, { rx: 0.55 }));
-      const q = R(0, 0, 1.5);
-      ecrire({ x: q.x, y: yb, z: q.z, ry }, { texte: '賽銭', x: 0, y: 0.2, z: 0.213, l: 0.42, h: 0.2, fond: null, encre: '#f6ecd2' });
-      monde.cercle(q.x, q.z, 0.68);
+      const yb = sol(0, 1.5), Zb = 1.5, L = 0.74, Pr = 0.4, FER = '#2e2a2c';
+      const B = (lx, h, lz, c, x, y, z, o) => a.boite(lx, h, lz, c, R(x, yb + y, Zb + z, o));
+      for (const v of [-1, 1]) B(L + 0.04, 0.06, 0.06, P.boisNoir, 0, 0.02, v * 0.14);
+      B(L, 0.32, Pr, P.boisFonce, 0, 0.21, 0, { nuance: 0.05 });
+      for (const u of [-1, 1]) for (const v of [-1, 1]) {
+        B(0.05, 0.325, 0.05, P.boisNoir, (u * L) / 2, 0.2125, (v * Pr) / 2);
+        B(0.065, 0.065, 0.065, FER, (u * L) / 2, 0.08, (v * Pr) / 2, { trait: false });
+        B(0.07, 0.08, 0.07, FER, (u * L) / 2, 0.405, v * (Pr / 2 - 0.02), { trait: false });
+      }
+      // le cadre du dessus : devant et derrière d'un bout à l'autre, les côtés entre eux, 5 mm plus bas
+      for (const v of [-1, 1]) B(L + 0.06, 0.07, 0.05, P.boisNoir, 0, 0.405, v * (Pr / 2 - 0.015));
+      for (const u of [-1, 1]) B(0.05, 0.065, Pr - 0.08, P.boisNoir, u * (L / 2 - 0.015), 0.4025, 0);
+      // la fente, noire, et ses barreaux (un prisme couché le long de la caisse, une arête en haut)
+      B(L - 0.08, 0.02, Pr - 0.08, '#1e1612', 0, 0.38, 0, { trait: false });
+      for (let k = -2; k <= 2; k++) a.cylindre(0.026, 0.026, L - 0.09, 3, P.bois, R(0, yb + 0.404, Zb + k * 0.064, { rz: PI / 2, rx: -PI / 2, ordre: 'YXZ', trait: false }));
+      const q = R(0, 0, Zb);
+      ecrire({ x: q.x, y: yb, z: q.z, ry }, { texte: '賽銭', x: 0, y: 0.215, z: Pr / 2 + 0.004, l: 0.4, h: 0.19, fond: null, encre: '#f3cf6a' });
+      // (des murs à 27 cm de ses bords : le voyageur n'est qu'un point)
+      const C = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([u, v]) => R(u * (L / 2 + 0.03), 0, Zb + v * (Pr / 2 + 0.01)));
+      for (let k = 0; k < 4; k++) monde.mur(C[k].x, C[k].z, C[(k + 1) % 4].x, C[(k + 1) % 4].z, 0.27);
     }
     // les deux renards (狐), assis sur leur piédestal, tournés l'un vers l'autre
     for (const u of [-1, 1]) {
@@ -1096,7 +1071,7 @@ export function construire(ctx) {
   // corde, le panier qui trempe dans l'eau bleue (on le remonte pour le tampon)
   const panier = (() => {
     const b = BASSIN.umi, c = Math.cos(b.ry), s = Math.sin(b.ry), u = (TAMAGO.x - b.x) * c - (TAMAGO.z - b.z) * s, v = (TAMAGO.x - b.x) * s + (TAMAGO.z - b.z) * c;
-    // (ses deux pieds sur la rive, entre les pierres et la rambarde, de part et d'autre : 2026-10-27, la deuxième liste — plantés
+    // (ses deux pieds sur la rive, entre les pierres et la clôture, de part et d'autre : 2026-10-27, la deuxième liste — plantés
     // derrière la rambarde, les bambous la traversaient)
     const t = Math.atan2(v / b.rz, u / b.rx), [bx, bz] = surLeTour(b, t, -1.4);
     const a = atelier();
@@ -1360,7 +1335,7 @@ export function construire(ctx) {
       monde.mur(R(-0.38, 0, 0).x, R(-0.38, 0, 0).z, R(0.38, 0, 0).x, R(0.38, 0, 0).z, 0.27);
     };
     // (le long du rond de l'allée, le point le plus proche du bassin d'où un panneau, 2,05 m vers lui, reste à 85 cm au moins de
-    // son bord — sa rambarde est à 50 cm ; le bassin du milieu, loin de l'allée : au bord du bassin, du côté de l'allée)
+    // son bord — sa clôture est à 50 cm ; le bassin du milieu, loin de l'allée : au bord du bassin, du côté de l'allée)
     const longAnneau = [];
     for (let i = 0; i + 1 < anneau.pts.length; i++) {
       const [x0, z0] = anneau.pts[i], [x1, z1] = anneau.pts[i + 1], l = Math.hypot(x1 - x0, z1 - z0);
@@ -1501,7 +1476,7 @@ export function construire(ctx) {
   // ---------------------------------------------------------------- Les pierres d'Ippen (le secret)
   const lampeIppen = { x: BASSIN.umi.x, y: BASSIN.umi.eau + 0.6, z: BASSIN.umi.z, halo: 0, sol: BASSIN.umi.eau, r: 3.2, c: '#ffd27a', mobile: true };
   lumieres.push(lampeIppen);
-  // (et, quand on a une pierre en main, au-dessus de la rambarde de chaque enfer où l'on peut la jeter, 1,4 m plus loin que
+  // (et, quand on a une pierre en main, au-dessus de la clôture de chaque enfer où l'on peut la jeter, 1,4 m plus loin que
   // l'endroit d'où on la jette, vers l'eau : une lueur qui dit où aller)
   const appels = ENFERS.map((e) => {
     const L = LANCERS[e], dx = L.vers[0] - L.x, dz = L.vers[1] - L.z, l = Math.hypot(dx, dz);
@@ -1661,7 +1636,7 @@ export function construire(ctx) {
   // sa haie taillée, ouverts aux entrées des enfers ; entre les maisons de la rue, des palissades de planches.
   // (2026-10-27, la deuxième liste : « repousse les murs invisibles jusqu'au mur physique ». Chaque clôture va jusqu'au bout :
   // ses morceaux s'arrêtent, au décimètre près, contre ce qui prend le relais — la clôture d'une autre allée ou d'une place, la
-  // rambarde d'un bassin, la haie de la rue, le socle d'une maison, d'une statue, d'une enseigne (emprises) — et non plus jusqu'à
+  // clôture d'un bassin, la haie de la rue, le socle d'une maison, d'une statue, d'une enseigne (emprises) — et non plus jusqu'à
   // un pas avant ; on marche jusqu'à elles, et dans la rue jusqu'aux haies, aux façades, aux palissades : dansLeCadre.)
   {
     // (un poteau par endroit : deux morceaux de clôture qui se suivent partagent leur bout, et y plantaient deux fois le même)
@@ -1689,17 +1664,18 @@ export function construire(ctx) {
       });
     };
     /**
-     * Le long de la ligne bord, les morceaux où ici(x, z) est vrai, trouvés à 10 cm près, faits par faire(a, ligne) : chaque
-     * ligne a ses deux bouts, les coins du bord et un point tous les pas mètres (jamais à moins de 35 cm du suivant). Avant, un
-     * point tous les pas mètres : un morceau finissait jusqu'à un pas avant ce qui le coupait, et l'on butait sur rien.
+     * Le long de la ligne bord, les morceaux où ici(x, z, ux, uz) est vrai (ux, uz : le sens de la ligne), trouvés à 10 cm
+     * près : chaque morceau a ses deux bouts, les coins du bord et un point tous les pas mètres (jamais à moins de 35 cm du
+     * suivant). Avant, un point tous les pas mètres : un morceau finissait jusqu'à un pas avant ce qui le coupait, et l'on
+     * butait sur rien.
      */
-    const longer = (bord, ici, faire, pas = 0.9) => {
-      const pts = [];
+    const lignes = (bord, ici, pas = 0.9) => {
+      const pts = [], res = [];
       for (let i = 0; i + 1 < bord.length; i++) {
         const [x0, z0] = bord[i], [x1, z1] = bord[i + 1], l = Math.hypot(x1 - x0, z1 - z0), n = Math.max(1, Math.ceil(l / 0.1));
-        for (let k = 0; k < n; k++) pts.push([x0 + ((x1 - x0) * k) / n, z0 + ((z1 - z0) * k) / n, k === 0]);
+        for (let k = 0; k < n; k++) pts.push([x0 + ((x1 - x0) * k) / n, z0 + ((z1 - z0) * k) / n, k === 0, (x1 - x0) / (l || 1), (z1 - z0) / (l || 1)]);
       }
-      pts.push([...bord[bord.length - 1], true]);
+      pts.push([...bord[bord.length - 1], true, ...pts[pts.length - 1].slice(3)]);
       let run = [];
       const fin = () => {
         if (run.length >= 2) {
@@ -1713,12 +1689,47 @@ export function construire(ctx) {
             ligne.push(run[j]);
             acc = 0;
           }
-          for (let s = 0; s + 1 < ligne.length; s += 14) { const l = ligne.slice(s, s + 15).map(([x, z]) => [x, z]); faire(morceau(l[0][0], l[0][1]), l); }
+          res.push(ligne.map(([x, z]) => [x, z]));
         }
         run = [];
       };
-      for (const p of pts) { if (ici(p[0], p[1])) run.push(p); else fin(); }
+      for (const p of pts) { if (ici(p[0], p[1], p[3], p[4])) run.push(p); else fin(); }
       fin();
+      return res;
+    };
+    /** Une ligne faite par faire(a, points), par morceaux de 15 points au plus (chacun dans le décor de son premier point). */
+    const tracer = (ligne, faire) => { for (let s = 0; s + 1 < ligne.length; s += 14) { const l = ligne.slice(s, s + 15); faire(morceau(l[0][0], l[0][1]), l); } };
+    const longer = (bord, ici, faire, pas = 0.9) => { for (const l of lignes(bord, ici, pas)) tracer(l, faire); };
+    const longueur = (l) => l.reduce((s, p, i) => (i ? s + Math.hypot(p[0] - l[i - 1][0], p[1] - l[i - 1][1]) : 0), 0);
+    /**
+     * Des lignes rangées dans une grille de 2 m : longe(x, z, ux, uz, e) dit si le point x, z, allant dans le sens ux, uz, longe
+     * l'un de leurs segments (dans son sens, à côté de lui, à moins de e mètres).
+     */
+    const grille = () => {
+      const g = new Map();
+      return {
+        mettre(ligne) {
+          for (let i = 0; i + 1 < ligne.length; i++) {
+            const [x0, z0] = ligne[i], [x1, z1] = ligne[i + 1], l = Math.hypot(x1 - x0, z1 - z0);
+            if (l < 0.01) continue;
+            const s = [x0, z0, (x1 - x0) / l, (z1 - z0) / l, l];
+            for (let a = Math.floor((Math.min(x0, x1) - 0.5) / 2); a <= Math.floor((Math.max(x0, x1) + 0.5) / 2); a++) {
+              for (let b = Math.floor((Math.min(z0, z1) - 0.5) / 2); b <= Math.floor((Math.max(z0, z1) + 0.5) / 2); b++) {
+                const k = `${a},${b}`;
+                if (!g.has(k)) g.set(k, []);
+                g.get(k).push(s);
+              }
+            }
+          }
+        },
+        longe(x, z, ux, uz, e) {
+          return (g.get(`${Math.floor(x / 2)},${Math.floor(z / 2)}`) || []).some(([x0, z0, vx, vz, l]) => {
+            if (Math.abs(vx * ux + vz * uz) < 0.7) return false;
+            const t = (x - x0) * vx + (z - z0) * vz;
+            return t > -0.05 && t < l + 0.05 && Math.abs((x - x0) * vz - (z - z0) * vx) < e;
+          });
+        },
+      };
     };
     /** La clôture basse de bambou (四つ目垣) : des pieux tous les 1,8 m, deux bambous couchés. */
     const bambouBas = (a, pts) => {
@@ -1743,16 +1754,95 @@ export function construire(ctx) {
       }
     };
     const pres = (x, z, e) => presDunBassin(x, z, e);
+    // les rambardes des caillebotis : leurs lignes d'abord (elles sont dessinées plus bas), pour que les clôtures de bambou ne
+    // les doublent pas. Elles vont partout où, 40 cm au-delà, on ne marche pas (2026-10-28, la troisième liste : « quand on
+    // arrive sur le ponton […] il y a un endroit sans barrière. On a l'impression qu'on peut y accéder, mais non » — elle
+    // s'arrêtait à 2,1 m de l'allée qui y mène, et l'on butait sur rien) ; pas sur un autre caillebotis : elle tourne au coin,
+    // contre la rambarde de celui d'à côté.
+    const lignesRambardes = [];
+    for (const ch of CHEMINS) {
+      if (!ch.bois) continue;
+      const autres = CHEMINS.filter((o) => o !== ch && o.bois);
+      const ici = (x, z) => {
+        if (autres.some((o) => surLaLigne(o.pts, x, z).d < o.w + 0.16)) return false;
+        const q = plusProche(ch.pts, x, z), l = q.d || 1;
+        return !dansLeCadre(x + ((x - q.x) / l) * 0.4, z + ((z - q.z) / l) * 0.4);
+      };
+      for (const sg of [-1, 1]) lignesRambardes.push(...lignes(decalee(ch.pts, ch.w + 0.16, sg), ici, 1.8));
+    }
+    // les bassins : là où l'on vient jusqu'à leur bord, la même clôture de bambou que les allées, sur leur tour, à 50 cm de
+    // l'eau (2026-10-28, la quatrième liste du propriétaire : « modifie autour de l'enfer bleu pour que toutes les barrières
+    // soient les mêmes » — au belvédère du bassin bleu et à son bout ouest, au coin du guide et au sixième bassin du chaudron,
+    // une rambarde de bois sombre entre deux clôtures de bambou, qui la doublaient à ses bouts). Un point du tour, tous les
+    // 25 cm, est gardé si 37 cm plus loin on marche, sur le sol (la troisième liste : « je comprends pas pourquoi tu as mis
+    // double barrière » — la rambarde des bassins était aussi derrière celles des caillebotis et les clôtures des allées) ;
+    // pas autour des nénuphars (des pierres basses suffisent, l'eau n'y bout pas).
+    const surCaillebotis = (x, z) => CHEMINS.some((ch) => ch.bois && surLaLigne(ch.pts, x, z).d < ch.w + 0.3);
+    const auBordOnVient = (x, z) => { const c = surChemins(x, z); return dansLeCadre(x, z) && !(c.c?.bois && c.d < 0.2); };
+    const arcs = [];
+    for (const b of BASSINS) {
+      if (b.sorte === 'nenuphars') continue;
+      const nf = Math.max(40, Math.round((2 * PI * Math.max(b.rx, b.rz)) / 0.25)), tour = [], vient = [];
+      for (let k = 0; k < nf; k++) {
+        const t = (k / nf) * 2 * PI;
+        tour.push(surLeTour(b, t, 0.5));
+        vient.push(!surCaillebotis(...tour[k]) && auBordOnVient(...surLeTour(b, t, 0.87)));
+      }
+      if (vient.every(Boolean)) { arcs.push({ ks: [...tour.keys(), 0], tour, ferme: true }); continue; }
+      // (en partant d'un point coupé : aucun arc ne fait le tour par le point de départ)
+      const k0 = vient.indexOf(false);
+      let ks = [];
+      for (let j = 1; j <= nf; j++) {
+        const k = (k0 + j) % nf;
+        if (vient[k]) ks.push(k);
+        else { if (ks.length > 1) arcs.push({ ks, tour }); ks = []; }
+      }
+      if (ks.length > 1) arcs.push({ ks, tour });
+    }
+    // les barrières déjà là, rambardes des caillebotis et clôtures des bassins : une clôture de bambou qui les longe, dans leur
+    // sens, à moins de 60 et 45 cm, ne les double pas (2026-10-28, la quatrième liste : « il y a encore certains endroits où tu
+    // as laissé des bouts de barrières qui n'ont pas besoin d'être là » — 1,8 m de bambou le long de la rambarde du bout du
+    // caillebotis de l'enfer de boue, 40 cm dans le coin de deux caillebotis, 80 cm à côté du début du caillebotis qui part de
+    // la rue, sur la rive des bassins aux bouts de leur rambarde…)
+    const rambardesLa = grille(), bassinsLa = grille();
+    for (const l of lignesRambardes) rambardesLa.mettre(l);
+    for (const { ks, tour } of arcs) bassinsLa.mettre(ks.map((k) => tour[k]));
     // (le ronflement du démon, le geyser : leurs rochers arrêtent)
     const BATIS_CLOTURE = [[GEYSER.x - 7, GEYSER.x + 7, GEYSER.z - 6, GEYSER.z + 4]];
-    const auBordDuJardin = (x, z) => surChemins(x, z).d > 0.33 && surPlaces(x, z) > 0.33 && !pres(x, z, 0.62) && surLaLigne(RUE, x, z).d > HAIE + 0.27
+    // (à 33 cm au moins du bord des allées ; d'un caillebotis, le long de sa ligne, pas autour de ses bouts — au bout de celui
+    // de l'enfer de boue, dans sa place, la clôture de la place s'arrêtait en rond autour de lui, et il en restait 30 cm entre
+    // ce rond et les rochers du démon)
+    const horsDesAllees = (x, z) => CHEMINS.every((ch) => {
+      if (x < ch.x0 - 4 || x > ch.x1 + 4 || z < ch.z0 - 4 || z > ch.z1 + 4) return true;
+      if (!ch.bois) return surLaLigne(ch.pts, x, z).d - ch.w > 0.33;
+      const e = ch.w + 0.33;
+      for (let i = 0; i + 1 < ch.pts.length; i++) {
+        const [x0, z0] = ch.pts[i], [x1, z1] = ch.pts[i + 1], dx = x1 - x0, dz = z1 - z0, l = Math.hypot(dx, dz), t = ((x - x0) * dx + (z - z0) * dz) / l;
+        if ((t >= 0 && t <= l && Math.abs((x - x0) * dz - (z - z0) * dx) / l < e) || (i > 0 && Math.hypot(x - x0, z - z0) < e)) return false;
+      }
+      return true;
+    });
+    // (la clôture d'une place ne s'arrête pas contre sa propre place : entre deux de ses points, à 90 cm l'un de l'autre, elle
+    // passe en corde, jusqu'à 8 cm plus près d'elle au bout d'une petite place, et s'y coupait — au coin du grand érable de
+    // l'étang blanc, en trois morceaux : 2026-10-28, la quatrième liste)
+    const auBordDuJardin = (x, z, sauf = null) => horsDesAllees(x, z) && PLACES.every((p) => p === sauf || aLaPlace(p, x, z) > 0.33) && !pres(x, z, 0.62) && surLaLigne(RUE, x, z).d > HAIE + 0.27
       && !emprises.some((e) => dansEmprise(e, x, z, 0.1))
       && !BATIS_CLOTURE.some(([a0, a1, b0, b1]) => x > a0 + 0.4 && x < a1 - 0.4 && z > b0 + 0.4 && z < b1 - 0.4)
       && !MARCHES.some((es) => surLaLigne(es.ligne, x, z).d < es.demi + 0.6)
       && !(Math.abs(z - (GEYSER.z + 4.4)) < 0.45 && Math.abs(x - GEYSER.x) < 5.3);
+    // les clôtures du jardin : celles des allées, puis des places, puis des bouts des allées, chacune pas le long des
+    // précédentes, à moins de 30 cm (le rond du bout d'une allée, 5 cm au-delà de sa clôture, la suivait sur 50 cm, et leurs
+    // bambous l'un dans l'autre scintillaient : onze bouts d'allées, 2026-10-28, la quatrième liste) ; dessinées après le tri
+    // ci-dessous
+    const jardin = [], dansLeJardin = grille();
+    const iciJardin = (sauf = null) => (x, z, ux, uz) => auBordDuJardin(x, z, sauf) && !rambardesLa.longe(x, z, ux, uz, 0.6) && !bassinsLa.longe(x, z, ux, uz, 0.45)
+      && !dansLeJardin.longe(x, z, ux, uz, 0.3);
+    // (un morceau de moins de 30 cm n'est pas une clôture : deux pieux côte à côte — 11 cm entre le muret de la rue et un pilier
+    // du portail de l'enfer de la mer ; ses voisins se rejoignent plus bas)
+    const ajouter = (ls, faire) => { ls = ls.filter((l) => longueur(l) >= 0.3); for (const l of ls) jardin.push({ l, faire }); for (const l of ls) dansLeJardin.mettre(l); };
     for (const ch of CHEMINS) {
       if (ch.rue || ch.escalier || ch.bois) continue;
-      for (const sg of [-1, 1]) longer(decalee(ch.pts, ch.w + 0.35, sg), auBordDuJardin, ch.foret ? corde : bambouBas, ch.foret ? 2.0 : 0.9);
+      ajouter([-1, 1].flatMap((sg) => lignes(decalee(ch.pts, ch.w + 0.35, sg), iciJardin(), ch.foret ? 2.0 : 0.9)), ch.foret ? corde : bambouBas);
     }
     for (const pl of PLACES) {
       if (pl.rue) continue;
@@ -1768,7 +1858,7 @@ export function construire(ctx) {
           bord.push([pl.x + u * c + v * sn, pl.z - u * sn + v * c]);
         }
       }
-      longer(bord, auBordDuJardin, bambouBas);
+      ajouter(lignes(bord, iciJardin(pl)), bambouBas);
     }
     // les bouts des allées : un rond de clôture autour de chaque bout, là où rien d'autre ne le borde — au bout d'une allée qui
     // finit dans le jardin, il la ferme ; là où deux allées se suivent, il borde le dehors du coude (2026-10-27, la deuxième
@@ -1778,14 +1868,23 @@ export function construire(ctx) {
       for (const [x0, z0] of [ch.pts[0], ch.pts[ch.pts.length - 1]]) {
         const r = ch.w + 0.4, n = Math.max(12, Math.round((2 * PI * r) / 0.4)), rond = [];
         for (let i = 0; i <= n; i++) { const t = (i / n) * 2 * PI; rond.push([x0 + Math.cos(t) * r, z0 + Math.sin(t) * r]); }
-        longer(rond, (x, z) => auBordDuJardin(x, z), ch.foret ? corde : bambouBas, ch.foret ? 2.0 : 0.9);
+        ajouter(lignes(rond, iciJardin(), ch.foret ? 2.0 : 0.9), ch.foret ? corde : bambouBas);
       }
     }
+    const touche = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]) < 0.15;
+    // (deux bouts de clôtures, ou de rambardes, à moins de 35 cm l'un de l'autre se rejoignent, sur le même pieu : il y en
+    // avait deux côte à côte, à 16 cm, au coin de la place du démon, et dans les coins de deux caillebotis)
+    const rejoindreBouts = (ls) => {
+      const fins = ls.flatMap((l, i) => [[l[0], i], [l[l.length - 1], i]]);
+      for (let i = 0; i < fins.length; i++) for (let j = i + 1; j < fins.length; j++) {
+        const [a, ia] = fins[i], [b, ib] = fins[j], d = Math.hypot(a[0] - b[0], a[1] - b[1]);
+        if (ia !== ib && d > 1e-6 && d < 0.35) { b[0] = a[0]; b[1] = a[1]; }
+      }
+    };
+    rejoindreBouts(jardin.map((g) => g.l));
+    rejoindreBouts(lignesRambardes);
     // la rambarde basse au bord des caillebotis, 6 cm au-delà du plancher (2026-10-27, la deuxième liste : ses piquets
-    // traversaient son bord) ; le long d'un bassin aussi (c'est la sienne qui s'arrête), pas aux embranchements : elle tourne au
-    // coin, contre celle du caillebotis d'à côté. Elle va partout où, 40 cm au-delà, on ne marche pas (2026-10-28, la troisième
-    // liste : « quand on arrive sur le ponton […] il y a un endroit sans barrière. On a l'impression qu'on peut y accéder, mais
-    // non » — elle s'arrêtait à 2,1 m de l'allée qui y mène, et l'on butait sur rien)
+    // traversaient son bord) ; tracée avant les clôtures du jardin : là où l'une rejoint l'autre, c'est son poteau qui est planté
     const rambarde = (a, pts) => {
       for (let i = 0; i + 1 < pts.length; i++) {
         const [x0, z0] = pts[i], [x1, z1] = pts[i + 1], y0 = hauteurAllee(x0, z0) + H_BOIS, y1 = hauteurAllee(x1, z1) + H_BOIS;
@@ -1796,15 +1895,54 @@ export function construire(ctx) {
         monde.mur(x0, z0, x1, z1, 0.3);
       }
     };
-    for (const ch of CHEMINS) {
-      if (!ch.bois) continue;
-      const autres = CHEMINS.filter((o) => o !== ch && o.bois);
-      const ici = (x, z) => {
-        if (autres.some((o) => surLaLigne(o.pts, x, z).d < o.w + 0.16)) return false;
-        const q = plusProche(ch.pts, x, z), l = q.d || 1;
-        return !dansLeCadre(x + ((x - q.x) / l) * 0.4, z + ((z - q.z) / l) * 0.4);
-      };
-      for (const sg of [-1, 1]) longer(decalee(ch.pts, ch.w + 0.16, sg), ici, rambarde, 1.8);
+    for (const l of lignesRambardes) tracer(l, rambarde);
+    // (un bout libre de clôture à moins de 35 cm du bout d'une rambarde, ou à moins de 75 cm au-delà de lui, va jusqu'à son
+    // poteau : à l'entrée des caillebotis, la clôture de l'allée tourne jusqu'au premier poteau de la rambarde ; plus loin à
+    // côté d'elle, il y reste)
+    const finsRambardes = lignesRambardes.flatMap((l) => [[l[0], l[1]], [l[l.length - 1], l[l.length - 2]]]), finsJardin = jardin.flatMap((g) => [g.l[0], g.l[g.l.length - 1]]);
+    const rejoindre = (p) => {
+      if (finsJardin.filter((q) => touche(p, q)).length > 1) return null;
+      let m = null, dm = 0.75;
+      for (const [q, v] of finsRambardes) {
+        const d = Math.hypot(q[0] - p[0], q[1] - p[1]), l = Math.hypot(q[0] - v[0], q[1] - v[1]) || 1;
+        if (d < dm && (d < 0.35 || ((p[0] - q[0]) * (q[0] - v[0]) + (p[1] - q[1]) * (q[1] - v[1])) / l > -0.05)) { dm = d; m = q; }
+      }
+      return m;
+    };
+    for (const g of jardin) {
+      const [a, b] = [rejoindre(g.l[0]), rejoindre(g.l[g.l.length - 1])];
+      if (a) g.l.unshift(a);
+      if (b) g.l.push(b);
+    }
+    for (const { l, faire } of jardin) tracer(l, faire);
+    // les clôtures des bassins : chaque bout rejoint le bout de clôture le plus proche, à 1,1 m au plus (elle s'arrêtait 50 cm
+    // au-delà, le long de lui) ; sinon, elle va 50 cm plus loin sur le tour
+    const bouts = jardin.filter((g) => g.faire === bambouBas).flatMap((g) => [g.l[0], g.l[g.l.length - 1]]);
+    for (const { ks, tour, ferme } of arcs) {
+      const pts = ks.filter((_, j) => j % 6 === 0 || j === ks.length - 1).map((k) => tour[k]);
+      if (!ferme) {
+        for (const sens of [-1, 1]) {
+          const k = sens < 0 ? ks[0] : ks[ks.length - 1], [x, z] = tour[k];
+          let m = null, dm = 1.1;
+          for (const q of bouts) { const d = Math.hypot(q[0] - x, q[1] - z); if (d < dm) { dm = d; m = q; } }
+          if (!m) { const k2 = (k + 2 * sens + tour.length) % tour.length; if (!surCaillebotis(...tour[k2])) m = tour[k2]; }
+          if (!m) continue;
+          // (le point du bout, s'il en est à moins de 35 cm, cède sa place)
+          if (Math.hypot(m[0] - x, m[1] - z) < 0.35 && pts.length > 2) { if (sens < 0) pts[0] = m; else pts[pts.length - 1] = m; }
+          else if (sens < 0) pts.unshift(m);
+          else pts.push(m);
+        }
+      }
+      tracer(pts, bambouBas);
+    }
+    // les pierres des rives, pas sur un pieu (2026-10-28, la quatrième liste : un pieu de la clôture du belvédère du bassin bleu
+    // traversait une pierre ; avant, neuf pieux de la rambarde des bassins ; une pierre s'étend jusqu'à 1,22 fois son rayon) :
+    // plus petites, ou pas là
+    for (const { b, x, z, r, c } of rochersRive) {
+      let rr = r;
+      const i = Math.round(x * 5), j = Math.round(z * 5);
+      for (let u = i - 4; u <= i + 4; u++) for (let v = j - 4; v <= j + 4; v++) for (const [px, pz] of plantes.get(`${u},${v}`) || []) rr = Math.min(rr, (Math.hypot(px - x, pz - z) - 0.05) / 1.22);
+      if (rr >= 0.15) morceau(b.x, b.z).rocher(x, b.eau + 0.18 + rr * 0.25, z, rr, c, { sy: 0.55 });
     }
     // le long de la rue, à travers les enfers (et jusqu'au bain de pieds) : le muret et sa haie, à HAIE du milieu de la rue ;
     // ouverts aux entrées (jusqu'à la clôture de l'allée qui entre) ; les enseignes
