@@ -21,7 +21,7 @@
 //  donne un koban, la monnaie de Bunbuku, le marchand ambulant (tresors.js), qui vend des objets précieux : la danse des
 //  fêtes, la traînée sous les pas, les accessoires du compagnon, les feux d'artifice (feux.js), des tenues entières,
 //  l'appareil photo (photo.js), trois compagnons secrets et le calendrier magique (calendrier.js : les saisons).
-//  ?lieu=itsukushima|aogashima|gokayama|himeji|takachiho|kinkakuji|beppu ; ?perso=garcon|fille ; ?compagnon=kon|pon|chapu ; ?langue=en|fr|ja ;
+//  ?lieu=itsukushima|aogashima|gokayama|himeji|takachiho|kinkakuji|beppu|motonosumi ; ?perso=garcon|fille ; ?compagnon=kon|pon|chapu ; ?langue=en|fr|ja ;
 //  ?photo=heros|perso : une image fixe (captures) ; ?demo : une partie jouée image par image (vidéos) ;
 //  ?ciel=parchemin : un essai du style (styles.js) ; ?flou=0 : sans le flou du lointain ; ?aa=0 : sans anticrénelage.
 // ================================================================
@@ -54,6 +54,7 @@ import * as himeji from './himeji.js';
 import * as takachiho from './takachiho.js';
 import * as kinkakuji from './kinkakuji.js';
 import * as beppu from './beppu.js';
+import * as motonosumi from './motonosumi.js';
 
 // chaque lieu : { infos (noms, tampons, textes : sans rien construire), construire(ctx) }
 // (EN_ESSAI : les lieux en cours, qu'on ne voit qu'en mode développeur, localStorage.modeDev = 'oui', celui de la carte ; le
@@ -62,9 +63,10 @@ import * as beppu from './beppu.js';
 // le menu), et ?lieu= mène au lieu par défaut. Pour le sortir : l'ôter de EN_ESSAI, et ôter la classe dev de son lien dans
 // app.js, BALADES_ESSAI)
 // (Kinkaku-ji, en essai depuis le 2026-10-26, sorti le 2026-10-27 : « c'est bon tu peux le mettre en ligne pour tout le monde » ;
-// Beppu, en essai depuis le 2026-10-27, sorti le 2026-10-28 : « tu peux mettre en ligne pour tout le monde »)
-const EN_ESSAI = [];
-const LIEUX = Object.fromEntries(Object.entries({ itsukushima, aogashima, gokayama, himeji, takachiho, kinkakuji, beppu }).filter(([id]) => !EN_ESSAI.includes(id) || modeDev()));
+// Beppu, en essai depuis le 2026-10-27, sorti le 2026-10-28 : « tu peux mettre en ligne pour tout le monde » ; Motonosumi, en
+// essai depuis le 2026-10-28)
+const EN_ESSAI = ['motonosumi'];
+const LIEUX = Object.fromEntries(Object.entries({ itsukushima, aogashima, gokayama, himeji, takachiho, kinkakuji, beppu, motonosumi }).filter(([id]) => !EN_ESSAI.includes(id) || modeDev()));
 const params = new URLSearchParams(location.search);
 const PHOTO = params.get('photo');
 const DEMO = params.has('demo');
@@ -2724,6 +2726,8 @@ const jeu = {
   son: (nom) => { if (nom === 'magie') son.magie(); else M.bruitage.jouerSon(nom); },
   /** Des mottes de terre jetées en (x, y, z), qui retombent à la hauteur sol. */
   terre: (x, y, z, sol, n) => M.effets.terre(x, y, z, sol, n),
+  /** Un petit nuage « pouf » en x, y, z (taille s), et son bruit (2026-10-28 : le renard blanc de Motonosumi). */
+  nuage: (x, y, z, s = 1) => { M.effets.nuage(x, y, z, s); M.bruitage.pouf({ pan: panDe(x, z) }); },
   /** Une feuille de papier sur l'écran (une carte, une photo : du SVG), ou null : on la range. */
   image: (html, classe) => montrerFeuille(html, classe),
   /** La caméra descend et lève les yeux vers le ciel (oui : les étoiles), ou reprend sa place. */
@@ -2780,6 +2784,8 @@ const scenes = [];
 const contexteAnime = {
   joueur: etat, get nuit() { return M.nuit.v; }, get champ() { return camera.fov; }, get oeil() { return camera.position; }, scene: (fn) => scenes.push(fn),
   refleter: (calque, oui) => { if (M.miroir) M.miroir.calques[oui ? 'enable' : 'disable'](calque); },
+  // (2026-10-28, Motonosumi : le compteur des torii écrit en bas de l'écran, dans la langue du joueur, sans arrêter la marche)
+  aide: (texte) => jeu.aide(texte), tx: (cle) => tx(cle),
 };
 /** Une scène : le joueur s'arrête le temps d'un dialogue (fn(jeu)), puis repart. */
 async function jouerScene(fn) {

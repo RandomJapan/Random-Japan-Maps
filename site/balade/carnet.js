@@ -220,6 +220,33 @@ const MOTIFS = {
     <path d="M6 66 Q60 50 114 66 L110 96 Q60 112 10 96 Z"/>
     <circle cx="36" cy="78" r="4" class="vide"/><circle cx="64" cy="84" r="5" class="vide"/><circle cx="88" cy="76" r="3.4" class="vide"/>
     <path d="M44 92 q6 -3 12 0 t12 0" class="vide" fill="none" stroke-width="2.2"/>`,
+  // Motonosumi (2026-10-28) : les torii qui serpentent sur la pente jusqu'aux rochers et à la mer ; le grand torii et son tronc
+  // tout en haut, une pièce qui vole ; le tunnel des torii, en enfilade ; le souffle du dragon entre deux rochers ; le renard
+  // d'Inari et le tofu frit
+  toriiPente: `<path d="M104 12 L118 12 M106.5 12 L106.5 24 M115.5 12 L115.5 24 M105 16.5 L117 16.5" fill="none" stroke-width="3" stroke-linecap="round"/>
+    <path d="M100 28 Q80 34 74 40 Q90 47 92 54 Q64 62 48 72 Q36 80 30 88" fill="none" stroke-width="9" stroke-dasharray="2.6 2.2"/>
+    <path d="M6 96 Q16 82 30 88 Q40 84 50 96 Z"/><path d="M60 104 q7 -4 14 0 t14 0 t14 0 t14 0" fill="none" stroke-width="3"/>
+    <path d="M4 108 q7 -4 14 0 t14 0 t14 0 t14 0 t14 0 t14 0 t14 0 t14 0" fill="none" stroke-width="2.6"/>`,
+  saisen: `<path d="M12 30 Q60 20 108 30 L107 37 Q60 28 13 37 Z"/><rect x="22" y="46" width="76" height="6"/>
+    <rect x="30" y="37" width="8" height="72"/><rect x="82" y="37" width="8" height="72"/>
+    <rect x="48" y="38" width="24" height="15" rx="1.6"/><rect x="52" y="41" width="16" height="3.4" class="vide"/>
+    <circle cx="60" cy="80" r="6"/><circle cx="60" cy="80" r="2.4" class="vide"/>
+    <path d="M52 92 L56 87 M68 92 L64 87 M60 96 L60 89" fill="none" stroke-width="2.4" stroke-linecap="round"/>`,
+  toriiTunnel: `<path d="M10 20 L110 20 L107 29 L13 29 Z"/><rect x="21" y="29" width="9" height="84"/><rect x="90" y="29" width="9" height="84"/>
+    <path d="M27 38 L93 38 L91 44 L29 44 Z"/><rect x="35" y="44" width="6" height="58"/><rect x="79" y="44" width="6" height="58"/>
+    <path d="M39 51 L81 51 L80 55 L40 55 Z"/><rect x="45" y="55" width="4.4" height="40"/><rect x="70.6" y="55" width="4.4" height="40"/>
+    <path d="M48 61 L72 61 L71.4 63.6 L48.6 63.6 Z"/><rect x="51.5" y="63.6" width="3" height="27"/><rect x="65.5" y="63.6" width="3" height="27"/>
+    <path d="M30 112 L90 112 M36 104 L84 104 M42 97 L78 97" fill="none" stroke-width="2.2"/>`,
+  shiofuki: `<path d="M50 100 Q47 62 54 38 Q60 24 66 38 Q73 62 70 100 Z"/>
+    <path d="M36 44 Q46 18 60 22 Q74 18 86 42" fill="none" stroke-width="3.4" stroke-linecap="round"/>
+    <circle cx="34" cy="54" r="3"/><circle cx="88" cy="52" r="3.4"/><circle cx="44" cy="30" r="2.4"/><circle cx="78" cy="28" r="2.6"/><circle cx="60" cy="12" r="3"/>
+    <path d="M4 108 L18 80 L38 86 L48 108 Z M72 108 L84 82 L102 78 L116 108 Z"/>
+    <path d="M56 50 Q60 44 64 50" class="vide" fill="none" stroke-width="2.4"/>`,
+  aburaage: `<path d="M30 46 L34 12 L52 36 L68 36 L86 12 L90 46 Q92 70 60 92 Q28 70 30 46 Z"/>
+    <path d="M37 20 L40 36 L48 38 Z M83 20 L80 36 L72 38 Z" class="vide"/>
+    <path d="M40 54 L54 58 L42 62 Z M80 54 L66 58 L78 62 Z" class="vide"/><ellipse cx="60" cy="80" rx="5" ry="3.6" class="vide"/>
+    <rect x="36" y="96" width="48" height="16" rx="3" transform="rotate(-5 60 104)"/>
+    <path d="M44 102 L48 102 M56 106 L60 106 M68 101 L72 101 M50 109 L54 109" class="vide" fill="none" stroke-width="2"/>`,
 };
 
 /** Un tampon en SVG : t = { id, motif, ja (nom japonais), encre, forme ('rond' | 'carre') }, lieuJa (le lieu en japonais). */

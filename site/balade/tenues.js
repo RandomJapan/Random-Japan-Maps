@@ -27,6 +27,7 @@ export const PIECES = [
   { id: 'bois', place: 'tete', lieu: 'itsukushima' },
   { id: 'heron', place: 'tete', lieu: 'himeji' },
   { id: 'cornes', place: 'tete', lieu: 'beppu' },
+  { id: 'renard', place: 'tete', lieu: 'motonosumi' },
   { id: 'kabuto', place: 'tete', achat: 'armure' },
   { id: 'aucune', place: 'yeux' },
   { id: 'etoiles', place: 'yeux', lieu: 'aogashima' },
@@ -135,6 +136,15 @@ const DESSINS = {
     <path d="M14.6 25.6 Q10 16 14.4 7 Q16.4 15 20.6 22.4 Z" fill="#d9482f" stroke="${ENCRE}" stroke-width="2" stroke-linejoin="round"/>
     <path d="M33.4 25.6 Q38 16 33.6 7 Q31.6 15 27.4 22.4 Z" fill="#d9482f" stroke="${ENCRE}" stroke-width="2" stroke-linejoin="round"/>
     <path d="M14.4 7 Q15 10.6 16 12.6 M33.6 7 Q33 10.6 32 12.6" stroke="#f2e6c8" stroke-width="2.2" stroke-linecap="round"/>`,
+  // les oreilles et la queue de renard (Motonosumi) : un serre-tête blanc, deux oreilles pointues blanches, rouges dedans ;
+  // derrière, la queue blanche touffue au bout doré, relevée
+  renard: `<path d="M30 40 Q44 38 45 27 Q46 16 39 11 Q42 20 37 27 Q33 33 25 34 Z" fill="#fbf8f0" stroke="${ENCRE}" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M39 11 Q43 14 44.4 19.5 Q41 19 39.6 16 Z" fill="#e8b941" stroke="${ENCRE}" stroke-width="1.6" stroke-linejoin="round"/>
+    <path d="M6 36 Q22 16 38 34" fill="none" stroke="${ENCRE}" stroke-width="6.4" stroke-linecap="round"/>
+    <path d="M6 36 Q22 16 38 34" fill="none" stroke="#fbf8f0" stroke-width="3.8" stroke-linecap="round"/>
+    <path d="M10.4 27.6 L8.6 9.4 L20 22.6 Z" fill="#fbf8f0" stroke="${ENCRE}" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M25.2 21.8 L32.4 6.8 L33.6 25.4 Z" fill="#fbf8f0" stroke="${ENCRE}" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M11.6 24.4 L10.6 14 L17.2 21.6 Z M27.6 21.6 L31.6 12.4 L31.8 23 Z" fill="#e0533e"/>`,
   aucune: `<circle cx="24" cy="24" r="16" fill="#ffdcbc" stroke="${ENCRE}" stroke-width="2.4"/>
     <ellipse cx="18" cy="23" rx="3" ry="4" fill="${ENCRE}"/><ellipse cx="30" cy="23" rx="3" ry="4" fill="${ENCRE}"/>
     <circle cx="19" cy="21.6" r="1.1" fill="#fff"/><circle cx="31" cy="21.6" r="1.1" fill="#fff"/>

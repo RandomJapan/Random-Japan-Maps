@@ -33,6 +33,8 @@
 //  - Kinkaku-ji (2026-10-26) : « boucle/semi » (les cigales de l'été) ; « piece » (une pièce qu'on lance), « bol » (elle
 //    tombe dans la vasque), « tombe » (elle la manque), « chasen » (le fouet du matcha), « pinceau » et « tampon » (le
 //    carnet de sceaux), « waniguchi » (le gong de bronze qu'on frappe avec sa corde).
+//  - Motonosumi (2026-10-28) : « oiseau/shiofuki » (le souffle du dragon : la vague qui frappe la grotte, la mer qui jaillit
+//    et retombe en pluie) ; « saisen » (une pièce qui tombe dans le tronc de bois, sur les autres pièces).
 //  Les pas et les oiseaux sortent à une force fixe (la plus forte valeur efficace sur 10 ms : 0,25 × la force
 //  du sol) ; les boucles, à une valeur efficace de 1 : bruitage.js règle les volumes.
 // ================================================================
@@ -814,6 +816,16 @@ const OISEAUX = {
       .grains(1100, { zones: [[1.0, 9.4, 1]], f: [1000, 6500], d: [0.0008, 0.003], g: [0.05, 0.22], q: 1.3 });
     return cadrer([c.b, c.b.slice()], sr, 0.24);
   },
+  // le souffle du palais du dragon (Motonosumi) : la vague frappe le fond de la grotte (un coup sourd), la mer jaillit en
+  // rugissant (un souffle qui monte), l'écume siffle, puis la pluie des embruns retombe sur les rochers (quatre secondes et demie)
+  shiofuki(sr, r) {
+    const D = 4.6, c = composer(sr, r, D);
+    c.bruit(0.0, { type: 'bas', f: 140, grave: true, duree: 0.7, forme: ad(0.01, 0.5, 0.7), gain: 1.1 })
+      .bruit(0.08, { f: (t) => 500 + 1000 * lisse(0, 0.7, t), q: 0.5, duree: 2.4, forme: ad(0.06, 1.6, 2.4), gain: 0.85 })
+      .bruit(0.12, { type: 'haut', f: 2600, duree: 3.2, forme: ad(0.12, 2.2, 3.2), gain: 0.42 })
+      .grains(900, { zones: [[0.9, 4.3, 1]], f: [900, 6000], d: [0.0008, 0.003], g: [0.04, 0.18], q: 1.2 });
+    return cadrer([c.b, c.b.slice()], sr, 0.24);
+  },
   // le milan noir (tobi) : un long « piii » aigu, puis « hyorororo », qui ondule en descendant
   milan(sr, r) {
     const c = composer(sr, r, 2.6);
@@ -1118,6 +1130,14 @@ function eteindre(x, sr, duree) {
   for (let i = 0; i < m; i++) x[x.length - 1 - i] *= (i / m) ** 2;
   return x;
 }
+/** La pièce tombe dans le tronc des offrandes (Motonosumi) : un « toc » de bois creux, puis elle tinte sur les autres pièces. */
+function saisen(sr) {
+  const r = alea(graine('saisen')), c = composer(sr, r, 0.9);
+  c.modes(0.0, [[380, 0.6, 0.09], [760, 0.3, 0.05], [1250, 0.15, 0.03]])
+    .bruit(0.0, { type: 'bas', f: 1800, attaque: 0.001, tau: 0.02, gain: 0.4 });
+  for (const [t0, g] of [[0.06, 0.6], [0.14, 0.35], [0.2, 0.2]]) c.modes(t0, [[4300 + r() * 500, 0.4 * g, 0.07], [7100 + r() * 600, 0.25 * g, 0.05]]);
+  return cadrer([echo(c.b, sr)], sr, 0.2);
+}
 /** Une pièce de 5 yens qu'on lance : le souffle du geste, le pouce qui la fait sauter (un « tic » de laiton qui tinte). */
 function piece(sr) {
   const r = alea(graine('piece')), c = composer(sr, r, 0.6);
@@ -1278,6 +1298,7 @@ export function fabriquer(quoi, sr) {
   if (sorte === 'roc') return roc(sr);
   if (sorte === 'slurp') return slurp(sr);
   if (sorte === 'piece') return piece(sr);
+  if (sorte === 'saisen') return saisen(sr);
   if (sorte === 'bol') return bol(sr);
   if (sorte === 'tombe') return tombe(sr);
   if (sorte === 'chasen') return chasen(sr);

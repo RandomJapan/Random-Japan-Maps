@@ -275,6 +275,41 @@ const AIRS = {
     jour: { tempo: 108, lead: 'fue', arpege: 'shamisen', basse: 'rebond', nappe: true, batterie: 'taiko' },
     nuit: { tempo: 76, lead: 'boite', arpege: 'kotoDoux', basse: 'pizzDoux', nappe: true, batterie: null },
   },
+  // La majeur, sa pentatonique (la si do# mi fa#) : Motonosumi (2026-10-28), le cap au-dessus de la mer, le vent dans les
+  // torii ; un air large et lumineux, la flûte, les arpèges du koto, une basse pincée, des percussions légères comme la houle
+  motonosumi: {
+    gamme: [9, 11, 1, 2, 4, 6, 8], // la majeur (pour la seconde voix)
+    intro: ['A', 'A'],
+    A: {
+      accords: ['A', 'F#m', 'D', 'E', 'A', 'C#m', 'D E', 'A'],
+      melodie: [
+        [76, 4], [73, 2], [71, 2], [69, 8],
+        [66, 4], [69, 4], [73, 6], [71, 2],
+        [78, 4], [76, 2], [73, 2], [71, 4], [73, 4],
+        [71, 12], [null, 4],
+        [76, 4], [78, 2], [76, 2], [73, 4], [76, 4],
+        [73, 6], [71, 2], [73, 4], [76, 4],
+        [78, 4], [76, 4], [73, 4], [71, 4],
+        [69, 12], [null, 4],
+      ],
+      fin2: [[69, 8], [73, 4], [76, 4]],
+    },
+    B: {
+      accords: ['D', 'E', 'C#m', 'F#m', 'D', 'E', 'Bm E', 'E'],
+      melodie: [
+        [81, 6], [78, 2], [76, 8],
+        [78, 4], [76, 4], [71, 8],
+        [73, 4], [76, 4], [78, 6], [76, 2],
+        [73, 12], [null, 4],
+        [78, 4], [81, 4], [83, 6], [81, 2],
+        [81, 6], [78, 2], [76, 8],
+        [71, 4], [73, 4], [76, 4], [78, 4],
+        [76, 8], [73, 4], [71, 4],
+      ],
+    },
+    jour: { tempo: 100, lead: 'flute', arpege: 'koto', basse: 'pizz', nappe: true, batterie: 'legere' },
+    nuit: { tempo: 72, lead: 'boite', arpege: 'kotoDoux', basse: 'pizzDoux', nappe: true, batterie: null },
+  },
   // Ré majeur, la gamme yo (ré mi sol la si) : l'air de la danse des fêtes d'été, sautillant (112 battements : la
   // danse du voyageur est réglée dessus, personnages.js)
   odori: {

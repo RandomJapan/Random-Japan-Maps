@@ -446,6 +446,27 @@ export function creerHeros(ctx, sorte = 'garcon') {
       }
       return a;
     },
+    // les oreilles de renard blanc (Motonosumi : le renard du rêve qui fit naître le sanctuaire) : un serre-tête blanc, deux
+    // grandes oreilles pointues qui se dressent en s'écartant, rouges dedans (comme les renards d'Inari) ; la queue, elle, est
+    // sur le corps (queueRenard)
+    renard() {
+      const a = atelier(), r = 0.335, inc = -0.3, o = [0, CY - 0.02, -0.03], B = '#fbf8f0';
+      const sur = (th, ecart = 0) => {
+        const x = Math.cos(th) * (r + ecart), y = Math.sin(th) * (r + ecart);
+        return [o[0] + x, o[1] + y * Math.cos(inc), o[2] + y * Math.sin(inc)];
+      };
+      a.piece(new THREE.TorusGeometry(r, 0.022, 6, 26, PI), B, { x: o[0], y: o[1], z: o[2], rx: inc });
+      // (une oreille : une feuille pointue épaisse de 3 cm ; devant, 2 mm en avant de sa face, son creux rouge)
+      const feuille = (l, h, y0 = 0) => { const f = new THREE.Shape(); f.moveTo(-l, y0); f.quadraticCurveTo(-l * 0.8, h * 0.5, 0, h); f.quadraticCurveTo(l * 0.8, h * 0.5, l, y0); f.lineTo(-l, y0); return f; };
+      const gO = new THREE.ExtrudeGeometry(feuille(0.078, 0.25), { depth: 0.03, bevelEnabled: false }).translate(0, 0, -0.015);
+      const gD = new THREE.ExtrudeGeometry(feuille(0.046, 0.2, 0.03), { depth: 0.004, bevelEnabled: false }).translate(0, 0, 0.016);
+      for (const s of [-1, 1]) {
+        const [ex, ey, ez] = sur(s > 0 ? 0.95 : PI - 0.95, 0.01), dir = vers(s * 0.4, 1, -0.1);
+        a.piece(gO.clone(), B, { x: ex, y: ey - 0.02, z: ez, ...dir }).piece(gD.clone(), '#e0533e', { x: ex, y: ey - 0.02, z: ez, ...dir, trait: false })
+          .boule(0.042, B, { x: ex, y: ey, z: ez, sy: 0.6 }, 1);
+      }
+      return a;
+    },
     // les lunettes étoiles : deux étoiles dorées, des verres violets avec un reflet, le pont, les branches jusqu'aux oreilles
     etoiles() {
       const a = atelier();
@@ -574,6 +595,27 @@ export function creerHeros(ctx, sorte = 'garcon') {
       const s = i ? 1 : -1;
       g.rotation.set(0, s * (1.25 - 1.11 * ouverture), s * (0.45 - 0.12 * ouverture + f), 'YZX');
     });
+  };
+  // la queue de renard (Motonosumi : elle vient avec les oreilles, la pièce de tête « renard ») : des touffes blanches le long
+  // d'une courbe qui part du bas du dos, s'écarte en arrière et remonte, le bout doré ; son pivot, à la base, balance en
+  // marchant (la phase s'ajoute à chaque image : jamais le temps multiplié par ce qui varie)
+  let queue = null, phaseQueue = 0;
+  const queueRenard = () => {
+    const a = atelier(), Q = [[0, 0, 0], [0.02, -0.06, -0.15], [0.06, 0.03, -0.31], [0.07, 0.21, -0.39], [0.04, 0.38, -0.36]];
+    for (let k = 0; k < 11; k++) {
+      const f = k / 10, i = Math.min(3, Math.floor(f * 4)), g = f * 4 - i, q = Q[i].map((v, c) => v + (Q[i + 1][c] - v) * g), r = 0.085 + 0.045 * Math.sin(f * PI) - 0.035 * f;
+      a.ovale(r, k > 8 ? '#e8b941' : '#fbf8f0', { x: q[0], y: q[1], z: q[2], sy: 1.2 }, 10);
+    }
+    const g = new THREE.Group();
+    g.position.set(0, 0.45, -0.14);
+    g.add(maillage(a.fin(0, false)));
+    return g;
+  };
+  const animerQueue = (dt, vitesse) => {
+    if (!queue || !queue.visible) return;
+    const allure = Math.min(1, vitesse / 4);
+    phaseQueue += dt * (1.5 + 2.5 * allure);
+    queue.rotation.set(-0.15 * allure, Math.sin(phaseQueue) * (0.12 + 0.22 * allure), Math.sin(phaseQueue * 0.5) * 0.05, 'YXZ');
   };
 
   // ---- Les tenues entières (achetées au marchand, tresors.js) : chacune dit ce qu'elle remplace. haut : le buste (le
@@ -983,6 +1025,8 @@ export function creerHeros(ctx, sorte = 'garcon') {
       if (place === 'tete') {
         coiffe.visible = id === 'defaut';
         if (dessus) dessus.visible = id !== 'defaut' && id !== 'kabuto' && id !== 'heron';
+        if (id === 'renard' && !queue) { queue = queueRenard(); corps.add(queue); }
+        if (queue) queue.visible = id === 'renard';
       }
       if (portees[place]) portees[place].visible = false;
       portees[place] = null;
@@ -1003,6 +1047,7 @@ export function creerHeros(ctx, sorte = 'garcon') {
     animer(dt, vitesse, temps) {
       cligner(dt);
       animerAiles(dt, vitesse, danse || geste === 'saut' || geste === 'victoire');
+      animerQueue(dt, vitesse);
       const marche = Math.min(1, vitesse / 3.2);
       phase += dt * (5 + vitesse * 1.9);
       const f = Math.floor((phase - PI / 2) / PI);
