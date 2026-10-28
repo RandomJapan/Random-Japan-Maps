@@ -3,8 +3,8 @@
 // éclat à chaque fois), se lève, attend, et frappe : à T0, la vitre se fend en toile d'araignée (des fissures droites
 // depuis l'impact, des anneaux entre elles), un éclair, la secousse, le fracas et la musique ; puis les morceaux de la
 // vitre, découpés le long de ces fissures, volent vers l'écran et découvrent la carte en 3D, déjà en mouvement dessous.
-// Le marteau est une découpe (fond vert enlevé) qu'on fait tourner autour du poignet : plus grand quand il est levé (plus
-// près de l'objectif), flou de bougé pendant la frappe (plusieurs poses dans l'image), son ombre sur le verre.
+// Le marteau est une découpe (fond vert enlevé, gant teint en noir) qu'on bouge en 3D, le bras entrant par le bord droit :
+// plus grand et flou quand il est levé (près de l'objectif), flou de bougé pendant la frappe, son ombre sur le verre.
 import React from "react";
 import { AbsoluteFill, Img, staticFile, useCurrentFrame } from "remotion";
 import { entre, expoEntree, expoSortie, FPS, hasard, s, T0 } from "./theme";
@@ -82,35 +82,68 @@ const POUSSIERE = [...Array(80)].map(() => ({ a: R() * 6.28, v: 500 + R() * 1500
 const chemin = (pts: Pt[]) => pts.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" ");
 
 // ---------------------------------------------------------------- le marteau
-/** La découpe (768 × 1376) : le centre de la panne (le bout rond qui frappe) et le poignet, autour duquel il tourne. */
-const PANNE: Pt = [193, 515], POIGNET: Pt = [540, 1150];
-const K_IMPACT = 0.6;
-/** Où est le poignet dans la vidéo : la panne tombe pile sur l'impact quand le marteau n'est pas tourné. */
-const V: Pt = [P[0] + (POIGNET[0] - PANNE[0]) * K_IMPACT, P[1] + (POIGNET[1] - PANNE[1]) * K_IMPACT];
-type Pose = { th: number; k: number; dx: number; dy: number };
-/** k : la taille relative à celle de l'impact (plus grand = plus près de l'objectif). */
-const pose = (th: number, k: number, dx = 0, dy = 0): Pose => ({ th, k: k * K_IMPACT, dx, dy });
+// Le propriétaire (« le début avec le marteau, tu peux faire ça mieux ? ») : la première version tournait une découpe à plat
+// autour du poignet, la main gantée flottait au milieu de la vitre, sans bras. Maintenant le gant touche le bord droit de
+// la vidéo (le bras vient de là, comme filmé par celui qui tape), et la découpe bouge en 3D : penchée (la main plus haute
+// que la panne), elle se lève autour du coude, hors de l'image, vers l'objectif (plus grande, raccourcie, floue de près),
+// puis s'abat. Son ombre est la même découpe, aplatie sur le verre selon la lumière.
+/** La découpe (768 × 1376) : le centre de la panne (le bout rond qui frappe), et le coude, hors de la découpe, autour
+ * duquel le bras se lève. Le gant touche ses bords bas et droit : posés hors de la vidéo, il n'a pas de bout. */
+const PANNE: Pt = [193, 515], COUDE: Pt = [840, 1450];
+const TH0 = -22, K0 = 0.78;
+
+type M4 = number[]; // une matrice 4 × 4 rangée par colonnes, comme matrix3d()
+const mul = (a: M4, m: M4): M4 => [...Array(16)].map((_, i) => {
+  const c = Math.floor(i / 4), r = i % 4;
+  return a[r] * m[c * 4] + a[4 + r] * m[c * 4 + 1] + a[8 + r] * m[c * 4 + 2] + a[12 + r] * m[c * 4 + 3];
+});
+const dep = (x: number, y: number, z = 0): M4 => [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, x, y, z, 1];
+const point = (m: M4, x: number, y: number): number[] => [m[0] * x + m[4] * y + m[12], m[1] * x + m[5] * y + m[13], m[2] * x + m[6] * y + m[14]];
+/** Tourne de deg autour de l'axe (ux, uy, 0) (dans le plan du verre) qui passe par o ; uz = 1 : autour de la verticale. */
+const autour = (o: number[], ux: number, uy: number, deg: number, uz = 0): M4 => {
+  const a = (deg * Math.PI) / 180, c = Math.cos(a), s = Math.sin(a), t = 1 - c;
+  const R: M4 = uz
+    ? [c, s, 0, 0, -s, c, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
+    : [c + t * ux * ux, t * ux * uy, -s * uy, 0, t * ux * uy, c + t * uy * uy, s * ux, 0, s * uy, -s * ux, c, 0, 0, 0, 0, 1];
+  return mul(dep(o[0], o[1], o[2] ?? 0), mul(R, dep(-o[0], -o[1], -(o[2] ?? 0))));
+};
+const REPOS = mul(dep(P[0], P[1]), mul(autour([0, 0, 0], 0, 0, TH0, 1), mul([K0, 0, 0, 0, 0, K0, 0, 0, 0, 0, K0, 0, 0, 0, 0, 1], dep(-PANNE[0], -PANNE[1]))));
+
+/** l : le bras levé autour du coude (degrés, la panne vers l'objectif) ; p : la découpe penchée autour de la panne (la main
+ * plus haute) ; r : tournée à plat autour du coude ; dx, dy : déplacée à plat. */
+type Pose = { l: number; p: number; r: number; dx: number; dy: number };
+const pose = (l: number, p = 9, r = 0, dx = 0, dy = 0): Pose => ({ l, p, r, dx, dy });
+function matrice(q: Pose): M4 {
+  const coude0 = point(REPOS, COUDE[0], COUDE[1]);
+  const m0 = mul(dep(q.dx, q.dy), mul(autour(coude0, 0, 0, q.r, 1), REPOS));
+  const h = point(m0, PANNE[0], PANNE[1]), e = point(m0, COUDE[0], COUDE[1]);
+  const n = Math.hypot(e[0] - h[0], e[1] - h[1]), ex = (e[0] - h[0]) / n, ey = (e[1] - h[1]) / n;
+  const m1 = mul(autour(h, ey, -ex, q.p), m0); // le côté de la main monte
+  return mul(autour(point(m1, COUDE[0], COUDE[1]), -ey, ex, q.l), m1); // le côté de la panne monte
+}
 const lisse = (u: number) => u * u * (3 - 2 * u);
-const accel = (u: number) => Math.pow(u, 2.3);
+const accel = (u: number) => Math.pow(u, 2.6);
+const frappe = (u: number) => Math.pow(u, 3.4); // (les deux dernières images font plus de la moitié du chemin)
 const frein = (u: number) => 1 - Math.pow(1 - u, 2.3);
 const lin = (u: number) => u;
-const POSE_IMPACT = pose(0, 1);
+const POSE_IMPACT = pose(0);
 /** [seconde, pose, la courbe pour y arriver] */
 const CLES: [number, Pose, (u: number) => number][] = [
-  [0, pose(10, 1.07), lin],
-  [0.36, pose(11.5, 1.09), lisse],
+  [0, pose(6, 9, 1), lin],
+  [0.32, pose(9, 9, 2.5), lisse],
   [0.45, POSE_IMPACT, accel], // premier tapotement
-  [0.62, pose(8, 1.06), frein],
-  [0.86, pose(9.5, 1.07), lisse],
+  [0.6, pose(6, 9, 1), frein],
+  [0.83, pose(9.5, 9, 2.5), lisse],
   [0.95, POSE_IMPACT, accel], // deuxième
-  [1.14, pose(11, 1.09), frein],
-  [1.24, pose(12, 1.09), lisse],
-  [1.7, pose(30, 1.5, 30, 40), lisse], // il se lève (vers l'objectif : plus grand)
-  [1.97, pose(31.5, 1.52, 32, 44), lisse], // il attend
-  [T0, POSE_IMPACT, accel], // il frappe
-  [T0 + 0.1, pose(5, 1.02), frein],
-  [T0 + 0.14, pose(5, 1.02), lin],
-  [T0 + 0.36, pose(24, 1.31, 640, 820), accel], // il s'en va
+  [1.12, pose(6, 9, 1), frein],
+  [1.26, pose(6, 9, 1), lisse],
+  [1.72, pose(32, 6, 4, -60, -180), lisse], // il se lève : vers l'objectif (1,8 fois plus grand), la main sort à droite
+  [1.98, pose(33, 6, 4.5, -62, -186), lisse], // il attend
+  [2.07, pose(35, 6, 5, -64, -194), lisse], // le dernier élan
+  [T0, POSE_IMPACT, frappe], // il frappe
+  [T0 + 0.05, pose(2.5, 9, 1), frein], // il rebondit
+  [T0 + 0.08, pose(2, 9, 1), lin],
+  [T0 + 0.24, pose(30, 6, 8, 460, 140), lisse], // il s'en va, pendant que les morceaux s'envolent
 ];
 function poseA(t: number): Pose {
   if (t <= CLES[0][0]) return CLES[0][1];
@@ -118,34 +151,41 @@ function poseA(t: number): Pose {
     const [t1, p1, courbe] = CLES[i], [t0, p0] = CLES[i - 1];
     if (t <= t1) {
       const u = courbe((t - t0) / (t1 - t0));
-      return { th: p0.th + (p1.th - p0.th) * u, k: p0.k + (p1.k - p0.k) * u, dx: p0.dx + (p1.dx - p0.dx) * u, dy: p0.dy + (p1.dy - p0.dy) * u };
+      const m = (a: number, z: number) => a + (z - a) * u;
+      return { l: m(p0.l, p1.l), p: m(p0.p, p1.p), r: m(p0.r, p1.r), dx: m(p0.dx, p1.dx), dy: m(p0.dy, p1.dy) };
     }
   }
   return CLES[CLES.length - 1][1];
 }
-const styleMarteau = (p: Pose): React.CSSProperties => ({
-  position: "absolute", left: V[0] - POIGNET[0], top: V[1] - POIGNET[1], width: 768, height: 1376,
-  transformOrigin: `${POIGNET[0]}px ${POIGNET[1]}px`,
-  transform: `translate(${p.dx.toFixed(2)}px, ${p.dy.toFixed(2)}px) rotate(${p.th.toFixed(3)}deg) scale(${p.k.toFixed(4)})`,
+const css = (m: M4) => `matrix3d(${m.map((v) => +v.toFixed(5)).join(",")})`;
+/** L'ombre : la découpe aplatie sur le verre, poussée vers le bas à droite d'autant qu'elle est haute (la lumière vient
+ * d'en haut à gauche). */
+const OMBRE: M4 = [1, 0, 0, 0, 0, 1, 0, 0, 0.3, 0.42, 0.01, 0, 0, 0, 0, 1]; // (0,01 et non 0 : une matrice qu'on ne peut
+// pas inverser, le navigateur ne dessine rien)
+const styleMarteau = (m: M4): React.CSSProperties => ({
+  position: "absolute", left: 0, top: 0, width: 768, height: 1376, transformOrigin: "0 0", transform: css(m),
 });
 
 const Marteau: React.FC<{ f: number }> = ({ f }) => {
   const t = f / FPS;
-  const p = poseA(t);
-  // le flou de bougé : plusieurs poses dans la durée de l'image, chacune d'un poids égal (opacité 1, 1/2, 1/3…)
-  const avant = poseA(t - 1 / FPS);
-  const vitesse = Math.abs(p.th - avant.th) + Math.abs(p.dx - avant.dx) / 20;
-  const n = vitesse > 1.2 ? 10 : 1;
-  const poses = [...Array(n)].map((_, j) => poseA(t - (j / n) * (1 / FPS)));
-  const h = Math.max(0, (p.k / K_IMPACT - 1) / 0.4) + 0.06; // la hauteur au-dessus du verre (l'ombre s'en écarte)
+  const m = matrice(poseA(t));
+  // le flou de bougé : plusieurs poses dans la durée de l'image, chacune d'un poids égal
+  const h = point(m, PANNE[0], PANNE[1]), h1 = point(matrice(poseA(t - 1 / FPS)), PANNE[0], PANNE[1]);
+  const vitesse = Math.hypot(h[0] - h1[0], h[1] - h1[1], h[2] - h1[2]);
+  const n = vitesse > 40 ? 16 : vitesse > 8 ? 8 : 1;
+  const poses = [...Array(n)].map((_, j) => matrice(poseA(t - (j / n) * (1 / FPS))));
+  // la panne près de l'objectif sort de la netteté (le téléphone fait le point sur la vitre)
+  const flou = Math.max(0, h[2] - 140) / 80;
   return (
     <>
       <Img src={staticFile("img/marteau.png")} style={{
-        ...styleMarteau({ ...p, dx: p.dx + 22 + 120 * h, dy: p.dy + 30 + 170 * h }),
-        filter: `brightness(0) blur(${(6 + 16 * h).toFixed(1)}px)`, opacity: 0.36 - 0.12 * Math.min(1, h),
+        ...styleMarteau(mul(OMBRE, m)),
+        filter: `brightness(0) blur(${(5 + h[2] / 22).toFixed(1)}px)`, opacity: Math.max(0.12, 0.4 - h[2] / 1400),
       }} />
       {poses.map((q, j) => (
-        <Img key={j} src={staticFile("img/marteau.png")} style={{ ...styleMarteau(q), opacity: 1 / (n - j) }} />
+        <Img key={j} src={staticFile("img/marteau.png")} style={{
+          ...styleMarteau(q), opacity: 1 / (n - j), filter: flou > 0.3 ? `blur(${flou.toFixed(2)}px)` : undefined,
+        }} />
       ))}
     </>
   );

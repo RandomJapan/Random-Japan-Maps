@@ -4,7 +4,7 @@ montage Remotion (outils/video/eclat/montage).
 
 - L'accroche : la photo de la carte imprimée sous une vitre, sur une couverture de déménagement bleue, et le marteau tenu
   par une main gantée, sur fond vert (deux images Flora, « Nano Banana 2.1 », dans sources/) ; la photo est agrandie à
-  1080 px de large, le marteau détouré (le vert enlevé, ses reflets sur les bords aussi).
+  1080 px de large, le marteau détouré (le vert enlevé, ses reflets sur les bords aussi) et son gant teint en noir.
 - Les prises de la carte déjà tournées pour les vidéos d'avant (promo30 : la plongée, la mer, les quatre saisons ;
   tunnel : les épingles, Aogashima, les filtres ; la balade : le jeu) et les vrais lieux du propriétaire (balade/reels).
 - Les captures de l'interface du téléphone (promo30, ×4) réduites à 1620 × 2880 : la fiche de Himeji et de Kinkaku-ji,
@@ -17,7 +17,7 @@ import wave
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageFilter
+from PIL import Image, ImageDraw, ImageFilter
 
 ICI = Path(__file__).resolve().parent
 RACINE = ICI.parents[2]
@@ -52,12 +52,38 @@ def photo():
 
 
 def marteau():
-    im = np.asarray(Image.open(SOURCES / 'marteau.png').convert('RGB')).astype(np.float32)
+    """Le marteau détouré, et son gant de ménage orange fluo teint en gant de vitrier noir (l'orange faisait découpé,
+    comme dessiné) : le gant est l'orange très saturé, avec ses bords (teintés de vert, plus jaunes) et ses plis sombres,
+    mais pas le bois du manche, moins saturé et protégé à part."""
+    src = Image.open(SOURCES / 'marteau.png').convert('RGB')
+    im = np.asarray(src).astype(np.float32)
     r, g, b = im[..., 0], im[..., 1], im[..., 2]
     cle = g - np.maximum(r, b)  # fort sur le vert pur du fond
     a = 1 - np.clip((cle - 40) / 70, 0, 1)
-    g = np.minimum(g, np.maximum(r, b) * 1.02 + 6)  # le vert renvoyé sur les bords
-    Image.fromarray(np.dstack([r, g, b, a * 255]).clip(0, 255).astype(np.uint8)).save(PUBLIC / 'img' / 'marteau.png')
+    hsv = np.asarray(src.convert('HSV')).astype(np.float32) / 255
+    h, s, v = hsv[..., 0] * 360, hsv[..., 1], hsv[..., 2]
+    masque = lambda m, f: np.asarray(Image.fromarray((m * 255).astype(np.uint8)).filter(f)).astype(np.float32) / 255
+    y, x = np.mgrid[:im.shape[0], :im.shape[1]]
+    (x0, y0), (x1, y1) = (350, 560), (490, 1230)  # l'axe du manche
+    u = np.clip(((x - x0) * (x1 - x0) + (y - y0) * (y1 - y0)) / ((x1 - x0) ** 2 + (y1 - y0) ** 2), 0, 1)
+    manche = np.hypot(x - x0 - u * (x1 - x0), y - y0 - u * (y1 - y0)) < 48
+    # (sur le manche, seulement l'orange clair des doigts qui l'entourent : son ombre, d'un orange sombre, reste du bois ;
+    # sous les doigts, le bois que le gant éclaire en orange est dessiné à part)
+    bois = Image.new('L', src.size)
+    ImageDraw.Draw(bois).polygon([(440, 1130), (452, 1236), (526, 1232), (530, 1210), (520, 1165), (498, 1113), (487, 1088),
+                                  (470, 1100), (445, 1126)], fill=255)
+    bois = np.asarray(bois) > 0
+    coeur = masque((s > 0.62) & (h > 4) & (h < 27) & (~manche | (v > 0.55)) & ~bois, ImageFilter.MedianFilter(5)) > 0.5
+    pres = masque(coeur, ImageFilter.MaxFilter(15)) > 0.5
+    bord = masque(coeur, ImageFilter.MaxFilter(7)) > 0.5  # (le bord sombre des doigts posés sur le manche)
+    gant = masque((coeur | (pres & ~manche & (h < 45) & ((s > 0.7) | (v < 0.3))) | (bord & (s > 0.62) & (h < 30))) & ~bois,
+                  ImageFilter.GaussianBlur(1.0))[..., None]
+    lum = np.clip((0.299 * r + 0.587 * g + 0.114 * b) / 255 / 0.55, 0, 1.6)[..., None]  # 1 : l'orange moyen du gant
+    noir = np.array([46, 48, 54.]) * (0.35 + 0.75 * lum ** 1.3) + 128 * np.clip(lum - 1.05, 0, 1)  # (les reflets)
+    im = im * (1 - gant) + noir * gant
+    im[..., 1] = np.minimum(im[..., 1], (im[..., 0] + im[..., 2]) / 2 + 4)  # le vert renvoyé sur les bords
+    a = masque(masque(a, ImageFilter.MinFilter(3)), ImageFilter.GaussianBlur(0.7))  # le bord rentré d'un pixel, adouci
+    Image.fromarray(np.dstack([im, a[..., None] * 255]).clip(0, 255).astype(np.uint8)).save(PUBLIC / 'img' / 'marteau.png')
 
 
 def tink(nom, force, graine):
