@@ -155,7 +155,10 @@ export function gererReperes(map, { points: avecPoints = true } = {}) {
         toile.preparer(s); // (ses images, d'avance)
       }
       suivis.set(repere, s);
-      if (fluides) repere.setSubpixelPositioning(true);
+      if (fluides) {
+        repere.setSubpixelPositioning(true);
+        el.style.willChange = 'auto';
+      }
       appliquer(repere, s);
       if (s.dessine) toile.sale();
     },
@@ -164,6 +167,11 @@ export function gererReperes(map, { points: avecPoints = true } = {}) {
      * moveend à chaque image), et MapLibre arrondit alors la place de chaque repère au pixel : les points des lieux
      * sautaient d'un pixel, chacun à son tour, et scintillaient (vu par le propriétaire, 2026-10-22). oui : placés à
      * la fraction de pixel près ; non : de nouveau arrondis, nets au repos (setLngLat les replace aussitôt).
+     * Puis les pins des villes ont tremblé (le propriétaire, 2026-10-29) : un repère de MapLibre est un calque à part
+     * (will-change: transform), dessiné une fois puis glissé, et glissé d'une fraction de pixel il est rééchantillonné,
+     * flou à mi-pixel (−50 % de contraste) et net au pixel rond ; en tournant lentement, chaque pin pulsait. Pendant la
+     * rotation, sans calque à part (will-change: auto), le navigateur le redessine à sa place exacte (−24 %, et plus
+     * de double flou) ; le même nombre d'images par seconde (villes_cout.py, CPU ÷4 et ÷3).
      */
     fluide(oui) {
       if (oui === fluides) return;
@@ -171,6 +179,7 @@ export function gererReperes(map, { points: avecPoints = true } = {}) {
       toile?.fluide(oui);
       for (const repere of suivis.keys()) {
         repere.setSubpixelPositioning(oui);
+        repere.getElement().style.willChange = oui ? 'auto' : '';
         if (!oui) repere.setLngLat(repere.getLngLat());
       }
       toile?.sale();
