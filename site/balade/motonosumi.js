@@ -199,6 +199,10 @@ const BUTTES = [
 // la crique du souffle du dragon : d'où jaillit la mer ; d'où on la regarde (au bord est du plateau)
 const SOUFFLE = { x: 23.3, z: -40.2 };
 const BELVEDERE = { x: 16.2, z: -39.6 };
+// le pêcheur : 1,2 m au-delà du bord du plateau (85 cm derrière la corde : on lui parle à moins de 1,8 m, depuis le bord), au
+// bord de la crique, tourné vers la mer (sa ligne entre dans l'eau 8,4 m devant lui ; 2026-10-29 : au bord nord du plateau, sa
+// ligne tombait sur la butte de roche)
+const PECHEUR = { x: 17.4, z: -44.57, cap: 1.97 };
 // son panneau (国の天然記念物), au bord du plateau, tourné vers lui (l'ouest : son texte regarde vers −z dans son repère)
 const PANNEAU_SOUFFLE = { x: 14.0, z: -45.6, ry: PI / 2 + 0.35 };
 // des récifs plats au large, où la mer brise : [x, z, rx, rz, tour, hauteur au-dessus de l'eau]
@@ -217,6 +221,15 @@ const dansHaut = (x, z, m = 0) => dansRect(PARVIS, x, z, m) || dansRect(PARKING,
 const versHaut = (x, z) => Math.min(versRect(PARVIS, x, z), versRect(PARKING, x, z), versRect(PALIER, x, z), versRect(BALCON, x, z));
 /** La distance à la terrasse bâtie (le parvis, le parking, le palier : pas le balcon, sur ses poteaux au-dessus de la pente). */
 const versTerrasse = (x, z) => Math.min(versRect(PARVIS, x, z), versRect(PARKING, x, z), versRect(PALIER, x, z));
+/**
+ * La montée du parvis au parking (0 → 1 : +0,4 m) : une rampe de 2 m dans l'allée de la haie (|x| < 3,4) et au-delà du parvis,
+ * à l'est (x > 16, le long de la rampe blanche) ; ailleurs, une marche de 30 cm cachée sous la haie et son muret (2026-10-29 :
+ * la rampe faisait 2 m sur toute la largeur, et les lignes des places flottaient jusqu'à 37 cm au-dessus du sol).
+ */
+function montParking(x, z) {
+  const r = Math.max(1 - lisse(2.8, 3.6, Math.abs(x)), lisse(15.4, 16.4, x));
+  return r * lisse(PARVIS.z1, PARVIS.z1 + 2, z) + (1 - r) * lisse(PARVIS.z1, PARVIS.z1 + 0.3, z);
+}
 /** La distance de x, z au bord d'une place en ellipse (négative dedans ; au premier ordre). */
 function aLaPlace(p, x, z) {
   const c = Math.cos(p.ry || 0), s = Math.sin(p.ry || 0), u = (x - p.x) * c - (z - p.z) * s, v = (x - p.x) * s + (z - p.z) * c;
@@ -237,15 +250,17 @@ const bosse = (x, z, cx, cz, r, h) => { const d = Math.hypot(x - cx, z - cz) / r
 function collines(x, z) {
   const loin = lisse(70, 160, Math.hypot(x, z - 10));
   if (loin <= 0) return 0;
+  // (2026-10-29 : les deux collines du cap d'en face reculées vers l'intérieur : elles étaient coupées en deux par la côte, en
+  // falaises de 45 m, et leurs éoliennes au bord du vide)
   return loin * (bosse(x, z, 0, 280, 240, 70) + bosse(x, z, -230, 230, 210, 55) + bosse(x, z, 250, 210, 230, 62) + bosse(x, z, 110, 80, 95, 24)
-    + bosse(x, z, -130, 70, 90, 16) + bosse(x, z, 300, -175, 115, 46) + bosse(x, z, 365, -285, 100, 40) + bosse(x, z, 200, -40, 120, 26)
+    + bosse(x, z, -130, 70, 90, 16) + bosse(x, z, 345, -160, 120, 46) + bosse(x, z, 420, -280, 110, 44) + bosse(x, z, 200, -40, 120, 26)
     + bosse(x, z, -330, 120, 200, 42) + bosse(x, z, -540, 200, 230, 52) + (bruitDoux(x * 0.03, z * 0.03, 3) - 0.5) * 10);
 }
 /** La terre avant la côte : le parvis et le parking, la pente du cap (réglée sur le chemin), le plateau de roche, ses buttes. */
 function terre(x, z) {
   let h = penteZ(z);
   // au sud du parvis : le parking, puis le talus derrière son mur et la colline
-  if (z > PARVIS.z1) h = Y_PARVIS + (Y_PARKING - Y_PARVIS) * lisse(PARVIS.z1, PARVIS.z1 + 2, z) + 1.9 * lisse(PARKING.z1 + 0.3, PARKING.z1 + 1.2, z) + 6 * lisse(PARKING.z1 + 1.5, PARKING.z1 + 24, z);
+  if (z > PARVIS.z1) h = Y_PARVIS + (Y_PARKING - Y_PARVIS) * montParking(x, z) + 1.9 * lisse(PARKING.z1 + 0.3, PARKING.z1 + 1.2, z) + 6 * lisse(PARKING.z1 + 1.5, PARKING.z1 + 24, z);
   // les flancs du cap : plus bas vers la falaise, à l'ouest et à l'est
   h -= lisse(-22, -44, x) * Math.min(5, Math.max(0, h - 7)) * 0.45 + lisse(36, 56, x) * Math.min(5, Math.max(0, h - 7)) * 0.4;
   // la butte verte dans l'épingle à cheveux du chemin (des buissons dessus)
@@ -304,7 +319,7 @@ function terrain(x, z) {
   // le haut : le parvis, le parking, le palier, le balcon (sous lui, le sol est plus bas : il est sur des poteaux), plats
   const dh = Math.min(versRect(PARVIS, x, z), versRect(PARKING, x, z), versRect(PALIER, x, z));
   if (dh < 1.6) {
-    const yh = dansRect(PARKING, x, z, 1.6) && z > PARVIS.z1 ? Y_PARVIS + (Y_PARKING - Y_PARVIS) * lisse(PARVIS.z1, PARVIS.z1 + 2, z) : versRect(PALIER, x, z) < 0.01 ? Y_HAUT : Y_PARVIS;
+    const yh = dansRect(PARKING, x, z, 1.6) && z > PARVIS.z1 ? Y_PARVIS + (Y_PARKING - Y_PARVIS) * montParking(x, z) : versRect(PALIER, x, z) < 0.01 ? Y_HAUT : Y_PARVIS;
     if (dh < 0.3) h = yh - 0.03;
     else if (h > yh) h = yh + (h - yh) * lisse(0.3, 1.6, dh);
   }
@@ -365,9 +380,12 @@ export function construire(ctx) {
     etiquettes.push({ ...e, x: o.x + e.x * c + e.z * sn, y: o.y + e.y, z: o.z - e.x * sn + e.z * c, ry: (o.ry || 0) + (e.ry || 0) });
   };
   /** Un repère tourné : la pose (x, y, z, ry) d'une pièce donnée dans le repère d'un objet posé en x0, z0, tourné de ry0. */
+  // (l'ordre YXZ : rx et rz penchent la pièce dans son propre repère, puis elle tourne avec lui ; en XYZ, le défaut, rx
+  // penchait autour de l'axe x du monde : les auvents des boutiques de travers, le toit du sanctuaire, le museau des
+  // renards de pierre, 2026-10-29)
   const repere = (x0, z0, ry0) => {
     const c = Math.cos(ry0), s = Math.sin(ry0);
-    return (lx, y, lz, o = {}) => ({ ...o, x: x0 + lx * c + lz * s, y, z: z0 - lx * s + lz * c, ry: ry0 + (o.ry || 0) });
+    return (lx, y, lz, o = {}) => ({ ordre: 'YXZ', ...o, x: x0 + lx * c + lz * s, y, z: z0 - lx * s + lz * c, ry: ry0 + (o.ry || 0) });
   };
   /** Une lanterne de pierre (tōrō) d'environ 1,7 m en x, z, allumée la nuit. */
   const lanterne = (a, x, z, y = terrain(x, z)) => {
@@ -608,45 +626,104 @@ export function construire(ctx) {
   // ---------------------------------------------------------------- Le parvis : le sanctuaire, les renards, le bureau
   {
     const a = atelier();
-    // la petite maison de pierre (石祠) dans sa clôture rouge (玉垣), sous un auvent gris-bleu sur quatre poteaux rouges,
-    // tournée vers l'est (le parvis) ; devant, le tronc des offrandes et la petite table des offrandes
+    // la petite maison de pierre (石祠) dans sa clôture rouge (玉垣) aux planches pointues, sous son abri (覆屋) : quatre poteaux
+    // rouges, un toit à deux pans de tôle gris-bleu, comme au vrai ; tournée vers l'est (le parvis). Dedans, sur le gravier
+    // blanc : la maison de pierre sur son socle, son toit de pierre aux coins relevés, ses portes ; devant elle, la table des
+    // offrandes (le saké, le riz, les branches de sakaki, deux petits renards de céramique), la cloche et sa corde rouge et
+    // blanche, la corde sacrée et ses papiers. Devant la porte de la clôture, le tronc des offrandes et sa grille (2026-10-29,
+    // refait : « le petit sanctuaire en haut » ; c'était un toit plat de travers sur une boîte)
     const ryH = PI / 2, R = repere(HONDEN.x, HONDEN.z, ryH), y = Y_PARVIS;
-    // la clôture : des planches rouges serrées, un chapeau ; la porte ouverte devant (+z dans son repère)
-    const LX = 1.7, LZ = 1.5;
-    const cloture = (lx0, lz0, lx1, lz1) => {
-      const l = Math.hypot(lx1 - lx0, lz1 - lz0), n = Math.round(l / 0.16), ang = Math.atan2(lx1 - lx0, lz1 - lz0);
-      for (let k = 0; k <= n; k++) {
-        const f = k / n;
-        a.boite(0.09, 1.05, 0.03, k % 2 ? ROUGE : ROUGE_F, R(lx0 + (lx1 - lx0) * f, y + 0.52, lz0 + (lz1 - lz0) * f, { ry: ang + PI / 2 }));
+    const LX = 1.7, LZ = 1.5, NOIR_T = '#2e2a2c';
+    // le gravier blanc du dedans
+    a.boite(2 * LX - 0.1, 0.02, 2 * LZ - 0.1, P.gravier, R(0, y + 0.01, 0, { trait: false }));
+    // la clôture : des planches rouges à la pointe triangulaire, deux traverses dehors ; des poteaux plus gros aux coins, leur
+    // chapeau noir ; la porte (deux poteaux hauts, leur linteau)
+    const cloture = (lx0, lz0, lx1, lz1, nx, nz) => {
+      const l = Math.hypot(lx1 - lx0, lz1 - lz0), n = Math.max(2, Math.round(l / 0.13)), ang = Math.atan2(lx1 - lx0, lz1 - lz0);
+      for (let k = 1; k < n; k++) {
+        const f = k / n, px = lx0 + (lx1 - lx0) * f, pz = lz0 + (lz1 - lz0) * f;
+        a.boite(0.085, 0.95, 0.028, k % 2 ? ROUGE : ROUGE_F, R(px, y + 0.475, pz, { ry: ang + PI / 2 })).pignon(0.028, 0.07, 0.085, k % 2 ? ROUGE : ROUGE_F, R(px, y + 0.95, pz, { ry: ang + PI }));
       }
-      for (const hb of [0.25, 0.92]) a.boite(0.05, 0.07, l, ROUGE_F, R((lx0 + lx1) / 2, y + hb, (lz0 + lz1) / 2, { ry: ang, trait: false }));
-      a.boite(0.12, 0.05, l + 0.12, ROUGE, R((lx0 + lx1) / 2, y + 1.08, (lz0 + lz1) / 2, { ry: ang }));
+      for (const hb of [0.22, 0.76]) a.boite(0.045, 0.07, l - 0.1, ROUGE_F, R((lx0 + lx1) / 2 + nx * 0.037, y + hb, (lz0 + lz1) / 2 + nz * 0.037, { ry: ang }));
     };
-    cloture(-LX, -LZ, LX, -LZ); cloture(-LX, -LZ, -LX, LZ); cloture(LX, -LZ, LX, LZ); cloture(-LX, LZ, -0.55, LZ); cloture(0.55, LZ, LX, LZ);
-    for (const u of [-1, 1]) a.boite(0.14, 1.4, 0.14, ROUGE, R(u * 0.62, y + 0.7, LZ));
-    // l'auvent : quatre poteaux, un toit plat incliné (tôle gris-bleu), son rebord
-    for (const [u, v] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) a.cylindre(0.06, 0.06, 2.36, 8, ROUGE, R(u * (LX - 0.15), y + 1.18, v * (LZ - 0.15)));
-    a.piece(new THREE.BoxGeometry(2 * LX + 0.7, 0.06, 2 * LZ + 0.8), '#4e5a66', { ...R(0, y + 2.42, 0, { rx: 0.08 }), nuance: 0.03 })
-      .boite(2 * LX + 0.72, 0.12, 0.05, '#3a4450', R(0, y + 2.32, LZ + 0.41, { trait: false }));
-    // la maison de pierre : le socle en deux assises, le corps, la porte sombre, le toit de pierre, la boule du sommet
-    a.boite(1.2, 0.3, 1.0, P.pierreFonce, R(0, y + 0.15, -0.3, { nuance: 0.08 })).boite(0.95, 0.22, 0.8, P.pierre, R(0, y + 0.41, -0.3, { nuance: 0.08 }))
-      .boite(0.62, 0.62, 0.52, '#b8b1a2', R(0, y + 0.83, -0.3, { nuance: 0.07 })).boite(0.3, 0.36, 0.02, '#3a3430', R(0, y + 0.83, -0.035, { trait: false }))
-      .pignon(1.0, 0.34, 0.86, '#9a9384', R(0, y + 1.15, -0.3)).boule(0.07, '#9a9384', R(0, y + 1.52, -0.3), 1);
-    // devant : la petite table des offrandes (du saké, du riz, deux petits renards blancs de céramique), le tronc
-    a.boite(0.7, 0.05, 0.36, P.bois, R(0, y + 0.62, 0.55)).boite(0.6, 0.58, 0.04, P.boisFonce, R(0, y + 0.3, 0.42));
-    for (const u of [-1, 1]) {
-      a.cylindre(0.03, 0.035, 0.12, 8, '#f4f0e6', R(u * 0.24, y + 0.71, 0.55)).ovale(0.045, '#f6f3ea', R(u * 0.1, y + 0.7, 0.6, { sy: 1.4 }), 8)
-        .cone(0.012, 0.04, 4, '#f6f3ea', R(u * 0.1 + 0.015, y + 0.78, 0.6)).cone(0.012, 0.04, 4, '#f6f3ea', R(u * 0.1 - 0.015, y + 0.78, 0.6));
+    cloture(-LX, -LZ, LX, -LZ, 0, -1); cloture(-LX, -LZ, -LX, LZ, -1, 0); cloture(LX, -LZ, LX, LZ, 1, 0); cloture(-LX, LZ, -0.69, LZ, 0, 1); cloture(0.69, LZ, LX, LZ, 0, 1);
+    for (const [u, v] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+      a.boite(0.12, 1.12, 0.12, ROUGE, R(u * LX, y + 0.56, v * LZ)).cone(0.1, 0.09, 4, NOIR_T, R(u * LX, y + 1.165, v * LZ, { ry: PI / 4 }));
     }
-    a.boite(0.62, 0.36, 0.36, P.boisFonce, R(0, y + 0.2, LZ + 0.75, { nuance: 0.05 })).boite(0.66, 0.05, 0.4, P.boisNoir, R(0, y + 0.4, LZ + 0.75));
-    for (let k = -2; k <= 2; k++) a.boite(0.52, 0.025, 0.025, P.bois, R(0, y + 0.43, LZ + 0.75 + k * 0.06, { trait: false }));
-    { const q = R(0, 0, LZ + 0.75); ecrire({ x: q.x, y, z: q.z, ry: ryH }, { texte: '賽銭', x: 0, y: 0.22, z: 0.184, l: 0.34, h: 0.15, fond: null, encre: '#f3cf6a' }); }
+    for (const u of [-1, 1]) a.boite(0.14, 1.55, 0.14, ROUGE, R(u * 0.62, y + 0.775, LZ)).cone(0.11, 0.09, 4, NOIR_T, R(u * 0.62, y + 1.595, LZ, { ry: PI / 4 }));
+    a.boite(1.62, 0.09, 0.13, ROUGE, R(0, y + 1.42, LZ)).boite(1.66, 0.025, 0.15, NOIR_T, R(0, y + 1.4775, LZ));
+    // l'abri : quatre poteaux ronds, leurs traverses en haut, le toit à deux pans (le faîte le long de la façade), la tôle à
+    // joints debout, les planches rouges des pignons, le faîtage
+    const PX = LX - 0.3, PZ = LZ - 0.32, HP = 2.15, RHr = 0.5, EVr = 0.42, ang = Math.atan2(RHr, PZ), co = Math.cos(ang), si = Math.sin(ang);
+    const TOLE = '#46505c', TOLE2 = '#56606c';
+    for (const [u, v] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) a.cylindre(0.065, 0.07, HP, 10, ROUGE, R(u * PX, y + HP / 2, v * PZ));
+    for (const v of [-1, 1]) a.boite(2 * PX + 0.2, 0.12, 0.09, ROUGE, R(0, y + HP - 0.08, v * PZ));
+    for (const u of [-1, 1]) a.boite(0.09, 0.12, 2 * PZ + 0.2, ROUGE_F, R(u * PX, y + HP - 0.1, 0));
+    {
+      const larg = 2 * PX + 0.7, Lp = (PZ + EVr) / co, ybt = (z) => y + HP + 0.02 + RHr * (1 - Math.abs(z) / PZ);
+      for (const sens of [1, -1]) {
+        const zc = (sens * (PZ + EVr)) / 2, yc = ybt(zc) + 0.035 / co, q = { rx: sens * ang };
+        a.boite(larg, 0.07, Lp, TOLE, R(0, yc, zc, { ...q, nuance: 0.03 }));
+        const dy = 0.05 * co, dz = sens * 0.05 * si;
+        for (let x = -larg / 2 + 0.1; x < larg / 2 - 0.05; x += 0.2) a.boite(0.025, 0.03, Lp - 0.02, TOLE2, R(x, yc + dy, zc + dz, { ...q, trait: false }));
+        for (const u of [-1, 1]) a.boite(0.04, 0.16, Lp + 0.05, ROUGE, R(u * (larg / 2 + 0.02), yc - 0.03, zc, q));
+        const ze = sens * (PZ + EVr);
+        a.boite(larg + 0.02, 0.12, 0.035, ROUGE_F, R(0, ybt(ze) + 0.02, ze + sens * 0.025));
+      }
+      a.boite(larg + 0.04, 0.1, 0.16, NOIR_T, R(0, y + HP + 0.02 + RHr + 0.08 / co, 0));
+      // les pignons, de bois rouge sous le toit
+      for (const u of [-1, 1]) a.pignon(0.04, RHr - 0.02, 2 * PZ, ROUGE_F, R(u * PX, y + HP + 0.02, 0, { trait: false }));
+    }
+    // la maison de pierre : le socle en deux assises, le corps, le cadre et les deux portes, le toit de pierre aux coins
+    // relevés, le joyau du sommet
+    const PIERRE_CL = '#b8b1a2', PIERRE_TOIT = '#9a9384';
+    a.boite(1.3, 0.26, 1.1, P.pierreFonce, R(0, y + 0.13, -0.35, { nuance: 0.07 })).boite(1.04, 0.2, 0.86, P.pierre, R(0, y + 0.36, -0.35, { nuance: 0.07 }))
+      .boite(0.7, 0.68, 0.6, PIERRE_CL, R(0, y + 0.8, -0.35, { nuance: 0.06 }))
+      .boite(0.46, 0.5, 0.02, '#8a8476', R(0, y + 0.8, -0.04, { trait: false })).boite(0.4, 0.44, 0.02, '#3a3430', R(0, y + 0.8, -0.03, { trait: false }))
+      .boite(0.012, 0.44, 0.015, '#8a8476', R(0, y + 0.8, -0.02, { trait: false }));
+    for (const u of [-1, 1]) a.boule(0.018, P.or, R(u * 0.05, y + 0.8, -0.015, { trait: false }), 0);
+    a.toitJapon(1.12, 1.0, 0.3, 0.2, { ...R(0, y + 1.14, -0.35), tuile: PIERRE_TOIT, tuile2: '#a39d8f', bord: '#8a8476', rangs: 6, releve: 0.06, epaisseur: 0.05 })
+      .boite(0.74, 0.06, 0.64, PIERRE_TOIT, R(0, y + 1.17, -0.35, { trait: false }))
+      .boule(0.08, PIERRE_TOIT, R(0, y + 1.5, -0.35), 1).cone(0.035, 0.08, 8, PIERRE_TOIT, R(0, y + 1.6, -0.35));
+    // la table des offrandes : le saké (deux bouteilles blanches), le riz, deux petits renards blancs ; le sakaki dans ses vases
+    a.boite(0.74, 0.04, 0.36, P.bois, R(0, y + 0.6, 0.38)).boite(0.04, 0.58, 0.32, P.bois, R(-0.33, y + 0.29, 0.38)).boite(0.04, 0.58, 0.32, P.bois, R(0.33, y + 0.29, 0.38));
+    for (const u of [-1, 1]) {
+      a.cylindre(0.038, 0.045, 0.14, 8, '#f4f0e6', R(u * 0.18, y + 0.69, 0.3)).cylindre(0.017, 0.022, 0.06, 6, '#f4f0e6', R(u * 0.18, y + 0.79, 0.3));
+      a.ovale(0.045, '#f6f3ea', R(u * 0.06, y + 0.66, 0.34, { sy: 1.4 }), 8).cone(0.012, 0.04, 4, '#f6f3ea', R(u * 0.06 + 0.015, y + 0.74, 0.34)).cone(0.012, 0.04, 4, '#f6f3ea', R(u * 0.06 - 0.015, y + 0.74, 0.34));
+      a.cylindre(0.035, 0.03, 0.12, 8, '#f4f0e6', R(u * 0.31, y + 0.68, 0.3)).houppe(0.1, '#3f6a34', { ...R(u * 0.31, y + 0.83, 0.3), sy: 1.3, sorte: 'persistant' }, 0);
+    }
+    a.cylindre(0.065, 0.05, 0.03, 10, '#f4f0e6', R(0, y + 0.635, 0.47, { trait: false })).ovale(0.042, '#fbf8ee', R(0, y + 0.655, 0.47, { sy: 0.6, trait: false }), 6);
+    // la cloche (鈴) sous la traverse de devant, sa corde rouge et blanche ; la corde sacrée (注連縄) et ses papiers (紙垂)
+    {
+      const zb = PZ, zc = PZ + 0.13;
+      // (la cloche devant la traverse, à son crochet ; la corde rouge à bandes blanches)
+      const h0 = R(0, y + HP - 0.13, PZ + 0.05), h1 = R(0, y + HP - 0.16, zc);
+      a.baton([h0.x, h0.y, h0.z], [h1.x, h1.y, h1.z], 0.008, '#3a3a40', 4, { trait: false });
+      a.boule(0.1, P.or, R(0, y + HP - 0.26, zc), 1).boite(0.12, 0.012, 0.012, '#5a4020', R(0, y + HP - 0.32, zc + 0.09, { trait: false }));
+      const c0 = R(0, y + HP - 0.36, zc), c1 = R(0, y + 0.85, zc);
+      a.baton([c0.x, c0.y, c0.z], [c1.x, c1.y, c1.z], 0.03, '#c8302c', 6);
+      for (let yb = y + 0.95; yb < y + HP - 0.45; yb += 0.16) a.cylindre(0.034, 0.034, 0.04, 6, '#f4f0e6', R(0, yb, zc, { trait: false }));
+      const T3 = (lx, ly) => { const p = R(lx, ly, zb + 0.06); return [p.x, p.y, p.z]; };
+      a.tube([T3(-PX + 0.05, y + HP - 0.16), T3(-PX * 0.5, y + HP - 0.24), T3(0, y + HP - 0.27), T3(PX * 0.5, y + HP - 0.24), T3(PX - 0.05, y + HP - 0.16)], 0.045, '#d8c48a', { cotes: 7, pas: 18 });
+      for (const lx of [-PX * 0.62, -PX * 0.2, PX * 0.2, PX * 0.62]) {
+        for (let k = 0; k < 3; k++) a.boite(0.06, 0.08, 0.006, '#fbfaf4', R(lx + (k % 2 ? 0.025 : -0.025), y + HP - 0.33 - k * 0.07, zb + 0.09, { rz: k % 2 ? -0.3 : 0.3, trait: false }));
+      }
+    }
+    // le tronc des offrandes (賽銭箱), devant la porte : la caisse sombre, le cadre, la grille de lattes en V par où tombent
+    // les pièces, le mot 賽銭
+    {
+      const zt = LZ + 0.75;
+      a.boite(0.66, 0.38, 0.4, P.boisFonce, R(0, y + 0.19, zt, { nuance: 0.05 })).boite(0.72, 0.05, 0.46, P.boisNoir, R(0, y + 0.405, zt));
+      for (let k = -2; k <= 2; k++) a.pignon(0.58, 0.05, 0.06, P.bois, R(0, y + 0.44, zt + k * 0.075, { rx: PI, trait: false }));
+      const q = R(0, 0, zt);
+      ecrire({ x: q.x, y, z: q.z, ry: ryH }, { texte: '賽銭', x: 0, y: 0.2, z: 0.204, l: 0.34, h: 0.15, fond: null, encre: '#f3cf6a' });
+    }
     // (des murs le long de la clôture, 27 cm au-delà ; le tronc)
     {
       const C = [[-LX - 0.27, -LZ - 0.27], [LX + 0.27, -LZ - 0.27], [LX + 0.27, LZ + 0.27], [-LX - 0.27, LZ + 0.27]].map(([u, v]) => R(u, 0, v));
       for (let k = 0; k < 4; k++) monde.mur(C[k].x, C[k].z, C[(k + 1) % 4].x, C[(k + 1) % 4].z, 0.05);
       const t = R(0, 0, LZ + 0.75);
-      murRect(repere(t.x, t.z, ryH), 0.33, 0.2);
+      murRect(repere(t.x, t.z, ryH), 0.36, 0.23);
     }
     // les deux renards de pierre, assis sur leur piédestal de part et d'autre de l'allée, tournés l'un vers l'autre ; le
     // bavoir rouge ; l'un la clé du grenier à riz dans la gueule, l'autre le joyau
@@ -694,6 +771,21 @@ export function construire(ctx) {
     }
     a.boite(1.9, 0.08, 1.7, BETON, R(0, y - 0.02, 0));
     a.boite(0.42, 0.42, 0.36, '#b8b1a2', R(0, y + 0.55, -0.1)).pignon(0.66, 0.22, 0.58, '#9a9384', R(0, y + 0.76, -0.1));
+    // (2026-10-29) son petit abri, comme celui du grand : quatre poteaux rouges, un toit à deux pans de tôle gris-bleu
+    {
+      const PX = LX - 0.16, PZ = LZ - 0.16, HP = 1.55, RHr = 0.3, EVr = 0.28, ang = Math.atan2(RHr, PZ), co = Math.cos(ang), si = Math.sin(ang), larg = 2 * PX + 0.4, Lp = (PZ + EVr) / co;
+      for (const [u, v] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) a.cylindre(0.045, 0.05, HP, 8, ROUGE, R(u * PX, y + HP / 2, v * PZ));
+      for (const v of [-1, 1]) a.boite(2 * PX + 0.14, 0.09, 0.07, ROUGE, R(0, y + HP - 0.06, v * PZ));
+      const ybt = (z) => y + HP + 0.015 + RHr * (1 - Math.abs(z) / PZ);
+      for (const sens of [1, -1]) {
+        const zc = (sens * (PZ + EVr)) / 2, yc = ybt(zc) + 0.03 / co, q = { rx: sens * ang };
+        a.boite(larg, 0.06, Lp, '#46505c', R(0, yc, zc, { ...q, nuance: 0.03 }));
+        for (let x = -larg / 2 + 0.09; x < larg / 2 - 0.05; x += 0.18) a.boite(0.022, 0.025, Lp - 0.02, '#56606c', R(x, yc + 0.04 * co, zc + sens * 0.04 * si, { ...q, trait: false }));
+        for (const u of [-1, 1]) a.boite(0.035, 0.12, Lp + 0.04, ROUGE, R(u * (larg / 2 + 0.017), yc - 0.02, zc, q));
+      }
+      a.boite(larg + 0.03, 0.08, 0.12, '#2e2a2c', R(0, y + HP + 0.015 + RHr + 0.07 / co, 0));
+      for (const u of [-1, 1]) a.pignon(0.035, RHr - 0.015, 2 * PZ, ROUGE_F, R(u * PX, y + HP + 0.015, 0, { trait: false }));
+    }
     // le torii rouge devant
     const tz = LZ + 0.9;
     for (const u of [-1, 1]) a.cylindre(0.055, 0.06, 2.0, 8, ROUGE, R(u * 0.62, y + 1.0, tz)).cylindre(0.075, 0.075, 0.14, 8, P.noir, R(u * 0.62, y + 0.07, tz));
@@ -797,23 +889,20 @@ export function construire(ctx) {
   // ---------------------------------------------------------------- Le parking, la boutique, le café, l'arrêt de bus
   {
     const a = atelier(), y = Y_PARKING;
-    // les lignes blanches des places
-    for (let k = 0; k < 7; k++) a.boite(0.1, 0.01, 4.6, '#f4f2ea', { x: -9.6 + k * 2.6, y: y + 0.035, z: 43.4, trait: false });
-    for (let k = 0; k < 6; k++) a.boite(0.1, 0.01, 4.6, '#f4f2ea', { x: 4.0 + k * 2.6, y: y + 0.035, z: 33.4, trait: false });
-    a.boite(14.2, 0.01, 0.1, '#f4f2ea', { x: 11.0, y: y + 0.035, z: 31.0, trait: false });
+    // les lignes blanches des places, peintes sur le sol plat du parking (7 mm au-dessus : elles flottaient à 3,5 cm, et jusqu'à
+    // 37 cm là où le sol montait du parvis ; la rangée du nord s'arrête avant la rampe de l'est)
+    for (let k = 0; k < 7; k++) a.boite(0.1, 0.01, 4.6, '#f4f2ea', { x: -9.6 + k * 2.6, y: y + 0.012, z: 43.4, trait: false });
+    for (let k = 0; k < 5; k++) a.boite(0.1, 0.01, 4.6, '#f4f2ea', { x: 4.0 + k * 2.6, y: y + 0.012, z: 33.4, trait: false });
+    a.boite(10.5, 0.01, 0.1, '#f4f2ea', { x: 9.2, y: y + 0.012, z: 31.0, trait: false });
     // le mur de soutènement au sud (béton, l'herbe du talus dessus)
     a.boite(PARKING.x1 - PARKING.x0 + 0.6, 2.4, 0.4, BETON, { x: (PARKING.x0 + PARKING.x1) / 2, y: y + 0.6, z: PARKING.z1 + 0.4, nuance: 0.06 });
     monde.mur(PARKING.x0 - 0.3, PARKING.z1 + 0.3, PARKING.x1 + 0.3, PARKING.z1 + 0.3, 0.3);
-    // des voitures garées, un car de tourisme
-    const voiture = (x, z, ry, c, l = 3.6, w = 1.6) => {
-      const R = repere(x, z, ry);
-      a.boite(w, 0.62, l, c, R(0, y + 0.55, 0, { nuance: 0.03 })).boite(w - 0.12, 0.55, l * 0.55, c, R(0, y + 1.12, -l * 0.05))
-        .boite(w - 0.1, 0.42, l * 0.52, '#2e3a46', R(0, y + 1.12, -l * 0.05, { sx: 1.002, trait: false }));
-      for (const [u, v] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) a.cylindre(0.3, 0.3, 0.2, 10, '#26262a', R(u * (w / 2 - 0.05), y + 0.3, v * (l / 2 - 0.65), { rz: PI / 2 }));
-      const C = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([u, v]) => R(u * (w / 2 + 0.27), 0, v * (l / 2 + 0.27)));
-      for (let k = 0; k < 4; k++) monde.mur(C[k].x, C[k].z, C[(k + 1) % 4].x, C[(k + 1) % 4].z, 0.05);
-    };
-    voiture(-8.3, 43.4, 0, '#f2f2ee'); voiture(-0.5, 43.4, 0.02, '#c8452e'); voiture(7.9, 33.4, PI, '#3a5a8a'); voiture(13.1, 33.4, PI - 0.03, '#9aa0a6', 4.2, 1.7);
+    // des voitures garées (2026-10-29 : refaites, c'étaient deux boîtes et quatre roues), un car de tourisme
+    for (const [x, z, ry, c, sorte] of [[-8.3, 43.4, PI, '#a9d3b6', 'kei'], [-3.1, 43.4, 0.02, '#f1f1ec', 'berline'], [2.1, 43.4, PI - 0.03, '#b6babd', 'mono'],
+      [7.9, 33.4, PI, '#34558a', 'berline'], [13.1, 33.4, 0.03, '#e2d3b0', 'kei']]) {
+      voiture(THREE, a, repere(x, z, ry), y, c, sorte);
+      murRect(repere(x, z, ry), MODELES_VOITURE[sorte].W / 2, MODELES_VOITURE[sorte].L / 2);
+    }
     {
       // le car de tourisme, l'avant vers l'est (la route) : la caisse blanche et sa bande verte, le toit arrondi, la rangée de
       // vitres entre leurs montants, le grand pare-brise, le panneau de destination, les phares, la porte, les rétroviseurs ;
@@ -833,7 +922,8 @@ export function construire(ctx) {
         .boite(0.34, 0.14, 0.02, '#f6e8b0', R(-0.85, y + 0.98, L / 2 + 0.01, { trait: false })).boite(0.34, 0.14, 0.02, '#f6e8b0', R(0.85, y + 0.98, L / 2 + 0.01, { trait: false }))
         .boite(W + 0.06, 0.28, 0.14, '#3a3a40', R(0, y + 0.55, L / 2 + 0.04)).boite(0.012, 1.85, 0.9, VITRE, R(W / 2 + 0.008, y + 1.45, L / 2 - 0.75, { trait: false }));
       ecrire({ ...R(0, y, L / 2 + 0.016), ry: PI / 2 }, { texte: '元乃隅神社', x: 0, y: 2.78, z: 0, l: 1.2, h: 0.16, fond: null, encre: '#ffb04a' });
-      for (const u of [-1, 1]) a.baton([...Object.values(R(u * (W / 2 - 0.05), y + 2.4, L / 2 - 0.1)).slice(0, 3)], [...Object.values(R(u * (W / 2 + 0.3), y + 2.3, L / 2 + 0.25)).slice(0, 3)], 0.025, '#2a2a30', 5);
+      // (les points par leurs noms : R donne aussi ordre, ry)
+      for (const u of [-1, 1]) { const q0 = R(u * (W / 2 - 0.05), y + 2.4, L / 2 - 0.1), q1 = R(u * (W / 2 + 0.3), y + 2.3, L / 2 + 0.25); a.baton([q0.x, q0.y, q0.z], [q1.x, q1.y, q1.z], 0.025, '#2a2a30', 5); }
       for (const [u, v] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
         a.boite(0.04, 0.6, 1.25, '#2a2a30', R(u * (W / 2 + 0.002), y + 0.62, v * (L / 2 - 1.8), { trait: false }))
           .cylindre(0.48, 0.48, 0.3, 14, '#26262a', R(u * (W / 2 - 0.12), y + 0.48, v * (L / 2 - 1.8), { rz: PI / 2 })).cylindre(0.24, 0.24, 0.31, 10, '#9aa0a6', R(u * (W / 2 - 0.12), y + 0.48, v * (L / 2 - 1.8), { rz: PI / 2, trait: false }));
@@ -870,61 +960,199 @@ export function construire(ctx) {
     }
     poser(a.fin(), 0, 0, { y: 0 });
   }
-  // la boutique (元乃隅売店) et le café (漁火庵) : deux maisons basses au toit de tuiles, leur devanture ouverte vers le parking
+  // la boutique (元乃隅売店) et le café (漁火庵) : deux maisons basses au toit à deux pans de tuiles rouges de Sekishū (les
+  // tuiles de la région, sur la côte de la mer du Japon), leur façade vers le parking (2026-10-29, refaites, « les boutiques
+  // en haut » : les auvents penchaient de travers en longues barres noires, l'enseigne flottait devant le toit, le dedans
+  // était une boîte noire). La façade : trois travées entre des poteaux sombres ; au nord, un mur (les distributeurs devant)
+  // ou une fenêtre à barreaux de bois (le café) ; au milieu, le comptoir, la vendeuse derrière ; au sud, la porte vitrée
+  // (le noren du café devant). Dedans, éclairé : des étagères de souvenirs, ou les tables et la machine à glaces du café.
   {
-    const maisonBoutique = (B, enseigne, noren, cafe) => {
-      // (le socle 5 cm plus large que les murs de chaque côté : leurs faces dans le même plan scintillaient)
-      const a = atelier(), R = repere(B.x, B.z, PI / 2), y = Y_PARKING;
-      a.boite(B.p + 0.1, 0.3, B.l + 0.1, P.pierreFonce, R(0, y - 0.1, 0));
-      // les murs (enduit et bois), la devanture (+z dans son repère, l'est) ouverte sur toute la largeur
-      a.boite(B.p - 0.3, 2.9, 0.16, '#efe9dc', R(0, y + 1.45, -B.l / 2 + 0.08, { nuance: 0.03 }));
-      for (const u of [-1, 1]) a.boite(0.16, 2.9, B.l - 0.2, '#efe9dc', R(u * (B.p / 2 - 0.15), y + 1.45, 0, { nuance: 0.03 }));
-      a.boite(B.p - 0.3, 0.8, 0.12, P.boisFonce, R(0, y + 2.55, B.l / 2 - 0.1));
-      for (const u of [-1, 1]) a.boite(0.18, 2.9, 0.18, P.boisFonce, R(u * (B.p / 2 - 0.15), y + 1.45, B.l / 2 - 0.1));
-      a.boite(B.p - 0.3, 2.2, B.l - 0.3, '#3a3430', R(0, y + 1.1, -0.1, { trait: false, sx: 0.999 }));
-      a.toitJapon(B.p + 1.6, B.l + 1.4, 1.2, 0.3, { ...R(0, y + 2.95, 0.2), tuile: P.tuileShiro, tuile2: P.tuileShiroClaire, bord: '#4a4a4e', rangs: 14 });
-      // l'auvent de la devanture
-      a.piece(new THREE.BoxGeometry(B.p - 0.2, 0.06, 1.3), '#5a5a62', { ...R(0, y + 2.42, B.l / 2 + 0.55, { rx: 0.18 }) });
-      // l'enseigne sur le bord du toit, les noren
-      a.boite(3.6, 0.6, 0.08, P.bois, R(0, y + 3.15, B.l / 2 + 0.25));
-      { const q = R(0, 0, B.l / 2 + 0.3); ecrire({ x: q.x, y, z: q.z, ry: PI / 2 }, { texte: enseigne, x: 0, y: 3.15, z: 0.01, l: 3.2, h: 0.46, fond: null, encre: '#2a2420' }); }
-      for (let k = 0; k < 4; k++) a.boite(0.62, 0.7, 0.02, noren, R(-0.96 + k * 0.64, y + 1.98, B.l / 2 + 0.02, { trait: false }));
-      { const q = R(0, 0, B.l / 2 + 0.035); ecrire({ x: q.x, y, z: q.z, ry: PI / 2 }, { texte: cafe ? '漁火' : 'おみやげ', x: 0, y: 1.98, z: 0, l: 1.2, h: 0.3, fond: null, encre: '#f4efe2' }); }
-      // dedans : des étagères de souvenirs (boîtes de couleur), ou les tables du café ; le comptoir devant
-      if (!cafe) {
-        for (let r = 0; r < 3; r++) for (let k = 0; k < 6; k++) a.boite(0.42, 0.26, 0.3, ['#c8402c', '#f2c443', '#3a6aa8', '#f4efe2', '#5a8a4a', '#e88a3a'][(k + r) % 6], R(-1.4 + k * 0.56, y + 0.55 + r * 0.55, -B.l / 2 + 0.8, { trait: false }));
-        a.boite(B.p - 0.6, 0.5, 0.5, P.bois, R(0, y + 0.85, -B.l / 2 + 0.8));
-      } else {
-        for (const k of [-1, 1]) { a.cylindre(0.4, 0.4, 0.05, 14, P.bois, R(k * 1.2, y + 0.75, -0.4, { trait: false })).cylindre(0.05, 0.05, 0.72, 6, P.boisFonce, R(k * 1.2, y + 0.38, -0.4)); }
+    const TUILE = '#a24c34', TUILE2 = '#b35a40', TUILE_F = '#7e3a28', PLATRE = '#f1ece0', KOSHI = '#5b4537', VITRE = '#a9bcc4', ALU = '#5d6166';
+    const HW = 2.95, RH = 1.45, EV = 0.6, VG = 0.35, EP = 0.1;
+    const SOUVENIRS = ['#c8402c', '#f2c443', '#3a6aa8', '#f4efe2', '#5a8a4a', '#e88a3a', '#d86a8a', '#7a5a9a', '#a8d4e8'];
+    /**
+     * La maison, dans le repère R (la façade vers +z) : W de large (x), D de profondeur (z), le sol du parking en y ; o : sol (du
+     * dedans), enseigne (texte, fond, encre), cafe ; renvoie F (le plancher) et les x des travées.
+     */
+    const maison = (a, R, W, D, y, o) => {
+      const F = y + 0.04, xin = W / 2 - 0.19;
+      // le socle (5 cm plus large que les murs de chaque côté), le sol du dedans
+      a.boite(W + 0.1, 0.3, D + 0.1, P.pierreFonce, R(0, y - 0.11, 0, { nuance: 0.05 }));
+      a.boite(W - 0.32, 0.02, D - 0.32, o.sol, R(0, F + 0.01, 0, { trait: false }));
+      // les murs : l'enduit blanc, les planches sombres du bas (腰板) dehors ; le plafond de bois clair
+      a.boite(W - 0.32, HW, 0.16, PLATRE, R(0, F + HW / 2, -D / 2 + 0.08, { nuance: 0.03 }));
+      a.boite(W - 0.3, 0.9, 0.02, KOSHI, R(0, F + 0.45, -D / 2 - 0.01, { nuance: 0.05 }));
+      for (const u of [-1, 1]) {
+        a.boite(0.16, HW, D, PLATRE, R(u * (W / 2 - 0.08), F + HW / 2, 0, { nuance: 0.03 }));
+        a.boite(0.02, 0.9, D - 0.3, KOSHI, R(u * (W / 2 + 0.01), F + 0.45, 0, { nuance: 0.05 }));
       }
-      a.boite(B.p - 1.6, 0.92, 0.55, P.bois, R(0, y + 0.46, B.l / 2 + 0.05, { nuance: 0.05 })).boite(B.p - 1.5, 0.05, 0.62, P.boisFonce, R(0, y + 0.94, B.l / 2 + 0.05));
-      // (la maison : un bloc plein jusqu'au comptoir, 27 cm au-delà)
-      monde.surface(B.x - B.l / 2 - 0.27 - 0.6, B.x + B.l / 2 + 0.6, B.z - B.p / 2 - 0.27, B.z + B.p / 2 + 0.27, y + 3.4, { plein: true });
-      monde.bloc(B.x - B.l / 2, B.x + B.l / 2, B.z - B.p / 2, B.z + B.p / 2, y - 1, y + 4);
-      lumieres.push({ ...R(0, y + 2.2, B.l / 2 + 0.7), halo: 0.3, sol: y, r: 3.2, c: '#ffd9a0' });
-      return a;
+      a.boite(W - 0.32, 0.05, D - 0.32, '#d9c4a0', R(0, F + HW - 0.025, 0, { trait: false }));
+      // les poteaux des coins (1 cm devant les planches), ceux de la façade, la poutre des ouvertures (1 cm devant eux), la frise
+      for (const [u, v] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) a.boite(0.22, HW + 0.02, 0.22, P.boisFonce, R(u * (W / 2 - 0.08), F + HW / 2, v * (D / 2 - 0.08)));
+      for (const u of [-1, 1]) a.boite(0.18, HW, 0.18, P.boisFonce, R(u * 1.25, F + HW / 2, D / 2 - 0.09));
+      a.boite(W - 0.2, 0.2, 0.2, P.boisFonce, R(0, F + 2.05, D / 2 - 0.09));
+      a.boite(W - 0.36, HW - 2.15, 0.14, PLATRE, R(0, F + (2.15 + HW) / 2, D / 2 - 0.1));
+      // l'enseigne (看板), posée sur la poutre et la frise, sous l'avant-toit
+      a.boite(3.4, 0.42, 0.05, o.enseigne.fond, R(0, F + 2.4, D / 2 + 0.04, { nuance: 0.04 }));
+      { const q = R(0, 0, D / 2 + 0.066); ecrire({ x: q.x, y: F, z: q.z, ry: R(0, 0, 0).ry }, { texte: o.enseigne.texte, x: 0, y: 2.4, z: 0, l: 3.0, h: 0.32, fond: null, encre: o.enseigne.encre }); }
+      // le milieu : le comptoir (72 cm : la vendeuse se voit derrière), son plateau qui avance de 18 cm
+      a.boite(2.3, 0.72, 0.36, P.bois, R(0, F + 0.36, D / 2 - 0.18, { nuance: 0.05 })).boite(2.4, 0.05, 0.56, P.boisFonce, R(0, F + 0.745, D / 2 - 0.1));
+      // le sud : la porte vitrée (deux vantaux), son cadre d'aluminium 1 cm devant les vitres
+      {
+        const x0 = -xin, x1 = -1.34, xm = (x0 + x1) / 2, l = x1 - x0, zv = D / 2 - 0.13;
+        a.boite(l + 0.02, 1.92, 0.02, VITRE, R(xm, F + 0.96, zv, { trait: false }));
+        for (const yb of [0.03, 1.92]) a.boite(l + 0.02, 0.06, 0.05, ALU, R(xm, F + yb, zv + 0.01, { trait: false }));
+        for (const xs of [x0 + 0.03, xm, x1 - 0.03]) a.boite(0.05, 1.92, 0.05, ALU, R(xs, F + 0.975, zv + 0.01, { trait: false }));
+        for (const xs of [xm - l / 4, xm + l / 4]) a.boite(0.02, 0.22, 0.02, '#c9ccce', R(xs + (xs < xm ? l / 4 - 0.1 : -l / 4 + 0.1), F + 0.98, zv + 0.045, { trait: false }));
+        if (o.cafe) {
+          // le noren du café : trois pans de toile sur leur tringle, sous la poutre
+          const t0 = R(x0 + 0.05, 0, D / 2 + 0.05), t1 = R(x1 - 0.05, 0, D / 2 + 0.05);
+          a.baton([t0.x, F + 1.93, t0.z], [t1.x, F + 1.93, t1.z], 0.015, P.boisFonce, 5);
+          for (let k = 0; k < 3; k++) a.boite(l / 3 - 0.03, 0.72, 0.012, '#2e3a5a', R(x0 + (k + 0.5) * (l / 3), F + 1.56, D / 2 + 0.05, { trait: false }));
+          const q = R(xm, 0, D / 2 + 0.058);
+          ecrire({ x: q.x, y: F, z: q.z, ry: R(0, 0, 0).ry }, { texte: '漁火', x: 0, y: 1.6, z: 0, l: l * 0.55, h: 0.3, fond: null, encre: '#f4efe2' });
+        }
+      }
+      // le nord : un mur plein (les distributeurs devant), ou la fenêtre à barreaux de bois du café
+      {
+        const x0 = 1.34, x1 = xin, xm = (x0 + x1) / 2, l = x1 - x0;
+        if (!o.cafe) {
+          a.boite(l + 0.02, 1.95, 0.14, PLATRE, R(xm, F + 0.975, D / 2 - 0.1, { nuance: 0.03 })).boite(l + 0.02, 0.9, 0.02, KOSHI, R(xm, F + 0.45, D / 2 - 0.02, { nuance: 0.05 }));
+        } else {
+          a.boite(l + 0.02, 0.9, 0.14, PLATRE, R(xm, F + 0.45, D / 2 - 0.1)).boite(l + 0.02, 0.9, 0.02, KOSHI, R(xm, F + 0.45, D / 2 - 0.02, { nuance: 0.05 }));
+          a.boite(l + 0.02, 1.02, 0.02, VITRE, R(xm, F + 1.44, D / 2 - 0.13, { trait: false })).boite(l + 0.02, 0.06, 0.08, P.boisFonce, R(xm, F + 0.93, D / 2 - 0.08));
+          for (let k = 0, n = Math.round(l / 0.075); k <= n; k++) a.boite(0.025, 1.0, 0.03, P.boisFonce, R(x0 + (k / n) * l, F + 1.44, D / 2 - 0.1, { trait: false }));
+        }
+      }
+      // le toit à deux pans : le faîte le long de la façade, 75 cm d'avant-toit devant et derrière, 35 cm sur les pignons ; les
+      // tuiles (des rangs en relief qui descendent la pente), le faîtage arrondi et ses tuiles de bout, les planches des bords,
+      // les chevrons sous l'avant-toit de la façade, les pignons d'enduit
+      const ang = Math.atan2(RH, D / 2), co = Math.cos(ang), si = Math.sin(ang), Lp = (D / 2 + EV) / co, larg = W + 2 * VG;
+      const yb = (z) => F + HW + RH * (1 - Math.abs(z) / (D / 2));
+      for (const sens of [1, -1]) {
+        const zc = (sens * (D / 2 + EV)) / 2, yc = yb(zc) + EP / (2 * co), q = { rx: sens * ang };
+        a.boite(larg, EP, Lp, TUILE, R(0, yc, zc, { ...q, nuance: 0.04 }));
+        // (les rangs : sur le dessus du pan, 2 cm de relief)
+        const dy = (EP / 2 + 0.02) * co, dz = sens * (EP / 2 + 0.02) * si;
+        for (let x = -larg / 2 + 0.16; x < larg / 2 - 0.1; x += 0.3) a.boite(0.1, 0.05, Lp - 0.04, TUILE2, R(x, yc + dy, zc + dz, { ...q, trait: false }));
+        // la planche du bord de l'avant-toit (鼻隠し), devant le bout du pan
+        const ze = sens * (D / 2 + EV), ye = yb(ze);
+        a.boite(larg + 0.04, 0.17, 0.04, P.boisFonce, R(0, ye + 0.04, ze + sens * (0.02 + EP * si * 0.5)));
+        // les planches des pignons (破風), le long des deux bords du pan
+        for (const u of [-1, 1]) a.boite(0.05, 0.2, Lp + 0.06, P.boisFonce, R(u * (larg / 2 + 0.025), yc - 0.03, zc, q));
+        // les chevrons sous l'avant-toit de la façade
+        if (sens > 0) for (let x = -W / 2 + 0.1; x <= W / 2 - 0.1; x += 0.45) {
+          const zr = D / 2 + EV / 2 - 0.05;
+          a.boite(0.06, 0.08, EV + 0.2, P.bois, R(x, yb(zr) - 0.04 / co, zr, { ...q, trait: false }));
+        }
+      }
+      a.boite(larg + 0.06, 0.2, 0.34, TUILE_F, R(0, F + HW + RH + EP / co + 0.04, 0)).cylindre(0.12, 0.12, larg + 0.06, 10, TUILE2, R(0, F + HW + RH + EP / co + 0.16, 0, { rz: PI / 2 }));
+      for (const u of [-1, 1]) {
+        a.boite(0.1, 0.36, 0.38, TUILE_F, R(u * (larg / 2 + 0.01), F + HW + RH + EP / co + 0.12, 0));
+        a.pignon(0.16, RH - 0.03, D - 0.04, PLATRE, R(u * (W / 2 - 0.08), F + HW, 0));
+      }
+      // dedans : la lumière des deux tubes du plafond (la nuit, ils s'allument)
+      for (const u of [-1, 1]) a.boite(0.09, 0.035, 2.6, '#fff8ea', R(u * 1.0, F + HW - 0.07, -0.3, { sorte: 'lumiere', trait: false }));
+      return { F, xin };
     };
-    const ab = maisonBoutique(BOUTIQUE, '元乃隅売店', '#3f5a7a', false);
-    // devant la boutique : la grande glace en plastique (le panneau des glaces), deux distributeurs, une bannière
-    {
-      const x = BOUTIQUE.x + BOUTIQUE.l / 2 + 0.55, z = BOUTIQUE.z - 2.9, y = Y_PARKING;
-      ab.cylindre(0.18, 0.04, 0.9, 12, '#d8a05a', { x, y: y + 1.0, z }).boule(0.26, '#f4efe2', { x, y: y + 1.6, z, sy: 1.1 }, 1).cone(0.2, 0.42, 12, '#f4efe2', { x, y: y + 1.96, z, ry: 0.4 })
-        .cylindre(0.1, 0.12, 0.55, 8, '#8a8f94', { x, y: y + 0.27, z });
-      monde.cercle(x, z, 0.45);
-      for (const k of [0, 1]) {
-        const xd = BOUTIQUE.x + BOUTIQUE.l / 2 + 0.15, zd = BOUTIQUE.z + 2.5 + k * 1.05;
-        ab.boite(0.8, 1.8, 0.9, k ? '#c8402c' : '#3a6aa8', { x: xd + 0.35, y: y + 0.9, z: zd, nuance: 0.03 })
-          .boite(0.02, 1.0, 0.7, '#f2f6f8', { x: xd + 0.76, y: y + 1.15, z: zd, trait: false });
-        lumieres.push({ x: xd + 0.9, y: y + 1.2, z: zd, halo: 0.2, sol: y, r: 1.6, c: '#e8f4ff' });
+    /** Un distributeur de boissons (自動販売機), dans le repère R, sa face vers +z : la vitrine éclairée et ses bouteilles, les
+     *  boutons, la fente des pièces, la trappe. */
+    const distributeur = (a, R, lx, lz, F, c) => {
+      a.boite(0.95, 1.83, 0.72, c, R(lx, F + 0.915, lz, { nuance: 0.03 }));
+      const zf = lz + 0.36;
+      a.boite(0.8, 0.82, 0.02, '#eef3f5', R(lx - 0.05, F + 1.32, zf + 0.008, { sorte: 'lumiere', trait: false }));
+      const BOISSONS = ['#c8302c', '#3a8a4a', '#e88a2a', '#2f6ab0', '#8a5a2a', '#f4f0e6'];
+      for (let r = 0; r < 3; r++) for (let k = 0; k < 6; k++) {
+        a.boite(0.075, 0.15, 0.02, BOISSONS[(k + r * 2) % 6], R(lx - 0.39 + k * 0.125 + 0.03, F + 1.06 + r * 0.25, zf + 0.022, { trait: false }))
+          .boite(0.05, 0.022, 0.012, '#3a7ad0', R(lx - 0.39 + k * 0.125 + 0.03, F + 0.97 + r * 0.25, zf + 0.024, { trait: false }));
       }
-      murRect(repere(BOUTIQUE.x + BOUTIQUE.l / 2 + 0.5, BOUTIQUE.z + 3.025, 0), 0.4, 0.98);
-      ab.baton([x + 0.9, y, z + 1.2], [x + 0.9, y + 2.6, z + 1.2], 0.022, P.boisFonce, 5).boite(0.36, 1.5, 0.012, '#e8b941', { x: x + 0.9, y: y + 1.75, z: z + 1.4, ry: PI / 2 });
-      ecrire({ x: x + 0.9, y, z: z + 1.4, ry: PI / 2 }, { texte: 'ソフトクリーム', vertical: true, x: 0.007, y: 1.75, z: 0, l: 0.26, h: 1.36, fond: null, encre: '#c8402c' });
-      monde.cercle(x + 0.9, z + 1.3, 0.46);
+      a.boite(0.16, 0.42, 0.02, '#3a3a40', R(lx + 0.36, F + 0.98, zf + 0.008, { trait: false })).boite(0.66, 0.16, 0.02, '#26262a', R(lx - 0.08, F + 0.28, zf + 0.008, { trait: false }));
+      lumieres.push({ ...R(lx, F + 1.3, zf + 0.4), halo: 0.2, sol: F, r: 1.6, c: '#e8f4ff' });
+    };
+    const ab = atelier(), ac = atelier(), y = Y_PARKING;
+    // la boutique : l'enseigne de bois clair ; dedans, les étagères de souvenirs le long des murs, la table du milieu, la caisse
+    {
+      const B = BOUTIQUE, W = B.p, D = B.l, R = repere(B.x, B.z, PI / 2);
+      const { F, xin } = maison(ab, R, W, D, y, { sol: '#cfc6b4', enseigne: { texte: '元乃隅売店', fond: '#dcbf92', encre: '#2a2420' } });
+      const etagere = (x0, x1, z0, sens) => {
+        // (une rangée d'étagères contre un mur : les montants, quatre planches, les boîtes de souvenirs de toutes les couleurs)
+        const zm = z0 + sens * 0.2;
+        for (const x of [x0, x1]) ab.boite(0.04, 1.9, 0.4, P.bois, R(x, F + 0.95, zm, { trait: false }));
+        for (let r = 0; r < 4; r++) {
+          const yr = F + 0.3 + r * 0.45;
+          ab.boite(x1 - x0, 0.03, 0.4, P.bois, R((x0 + x1) / 2, yr, zm, { trait: false }));
+          for (let x = x0 + 0.17, k = 0; x < x1 - 0.12; x += 0.28, k++) {
+            const h = 0.12 + 0.14 * hasard(k + r * 7, x0), c = SOUVENIRS[Math.floor(hasard(r, k + x0) * SOUVENIRS.length)];
+            ab.boite(0.22, h, 0.26, c, R(x, yr + 0.015 + h / 2, zm, { trait: false }));
+          }
+        }
+      };
+      etagere(-W / 2 + 0.45, W / 2 - 0.45, -D / 2 + 0.16, 1);
+      // la table du milieu et ses boîtes de manjū, la caisse sur le comptoir
+      ab.boite(1.6, 0.75, 1.0, P.bois, R(0, F + 0.375, -0.6, { trait: false }));
+      for (let k = 0; k < 8; k++) ab.boite(0.3, 0.1 + 0.05 * (k % 3), 0.22, SOUVENIRS[(k * 3) % SOUVENIRS.length], R(-0.6 + (k % 4) * 0.4, F + 0.8 + 0.03 * (k % 3), -0.85 + Math.floor(k / 4) * 0.5, { trait: false }));
+      ab.boite(0.36, 0.22, 0.32, '#3a3a40', R(-0.75, F + 0.88, D / 2 - 0.3)).boite(0.3, 0.1, 0.02, '#8fd0a0', R(-0.75, F + 0.94, D / 2 - 0.135, { trait: false }));
+      // au nord, devant le mur plein : deux distributeurs, un rouge et un bleu (leur dos 5 cm devant le mur)
+      for (const [k, c] of [[0, '#c8302c'], [1, '#2f6ab0']]) distributeur(ab, R, xin - 0.52 - k * 1.0, D / 2 + 0.41, F, c);
+      { const q1 = R(xin - 0.52, 0, D / 2 + 0.41), q2 = R(xin - 1.52, 0, D / 2 + 0.41); murRect(repere((q1.x + q2.x) / 2, (q1.z + q2.z) / 2, PI / 2), 0.98, 0.36); }
+      // le drapeau おみやげ au coin nord de la façade
+      {
+        const q = R(W / 2 + 0.25, 0, D / 2 + 0.55);
+        ab.baton([q.x, y, q.z], [q.x, y + 2.7, q.z], 0.022, P.boisFonce, 5).baton([q.x, y + 2.62, q.z], [q.x, y + 2.62, q.z + 0.4], 0.012, P.boisFonce, 4)
+          .boite(0.012, 1.5, 0.38, '#c8402c', { x: q.x, y: y + 1.85, z: q.z + 0.2, trait: false });
+        ecrire({ x: q.x + 0.007, y, z: q.z + 0.2, ry: PI / 2 }, { texte: 'おみやげ', vertical: true, x: 0, y: 1.85, z: 0, l: 0.28, h: 1.3, fond: null, encre: '#fff4e8' });
+        monde.cercle(q.x, q.z + 0.1, 0.42);
+      }
+      // la lumière du dedans, par le comptoir ; la nuit, une flaque devant
+      lumieres.push({ ...R(0, F + 2.2, D / 2 + 0.7), halo: 0.3, sol: y, r: 3.2, c: '#ffe2b0' });
+      // (la maison : un bloc plein, 27 cm au-delà des murs, 42 devant (le plateau du comptoir avance de 18 cm))
+      monde.surface(B.x - D / 2 - 0.6, B.x + D / 2 + 0.42, B.z - W / 2 - 0.27, B.z + W / 2 + 0.27, y + 3.4, { plein: true });
+      monde.bloc(B.x - D / 2, B.x + D / 2, B.z - W / 2, B.z + W / 2, y - 1, y + 4.6);
+    }
+    // le café : l'enseigne sombre aux lettres claires ; dedans, deux tables et leurs tabourets, le comptoir du fond et la machine
+    // à glaces, le tableau du menu ; dehors, le banc rouge sous son ombrelle, la grande glace en plastique, le drapeau
+    {
+      const B = CAFE, W = B.p, D = B.l, R = repere(B.x, B.z, PI / 2);
+      const { F, xin } = maison(ac, R, W, D, y, { sol: '#b9a68a', cafe: true, enseigne: { texte: '漁火庵', fond: '#4a3424', encre: '#f2e2c0' } });
+      for (const [x, z] of [[-1.3, -0.4], [1.3, -0.9]]) {
+        ac.cylindre(0.42, 0.42, 0.04, 14, P.bois, R(x, F + 0.74, z, { trait: false })).cylindre(0.05, 0.06, 0.72, 6, P.boisFonce, R(x, F + 0.37, z, { trait: false }));
+        for (const u of [-1, 1]) ac.cylindre(0.17, 0.17, 0.04, 10, '#c8402c', R(x + u * 0.62, F + 0.45, z, { trait: false })).cylindre(0.03, 0.03, 0.43, 5, P.boisFonce, R(x + u * 0.62, F + 0.215, z, { trait: false }));
+      }
+      ac.boite(W - 0.6, 0.95, 0.5, P.bois, R(0, F + 0.475, -D / 2 + 0.45, { trait: false })).boite(0.42, 0.62, 0.5, '#c9ccce', R(-1.2, F + 1.26, -D / 2 + 0.45, { trait: false }))
+        .cylindre(0.03, 0.02, 0.14, 6, '#9aa0a6', R(-1.32, F + 1.18, -D / 2 + 0.72, { trait: false })).cylindre(0.03, 0.02, 0.14, 6, '#9aa0a6', R(-1.08, F + 1.18, -D / 2 + 0.72, { trait: false }));
+      ac.boite(1.6, 0.8, 0.03, '#2f4a3a', R(0.9, F + 1.75, -D / 2 + 0.175, { trait: false }));
+      { const q = R(0.9, 0, -D / 2 + 0.192); ecrire({ x: q.x, y: F, z: q.z, ry: R(0, 0, 0).ry }, { texte: 'メニュー', x: 0, y: 1.92, z: 0, l: 1.2, h: 0.24, fond: null, encre: '#f4efe2' }); }
+      // le lampion rouge à l'entrée
+      { const q = R(-xin + 0.12, 0, D / 2 + 0.3); ac.chochin(q.x, F + 2.3, q.z, 4.5); lumieres.push({ x: q.x, y: F + 2.3, z: q.z, halo: 0.34, sol: y, r: 2.2, c: '#ff9a6a' }); }
+      lumieres.push({ ...R(0, F + 2.2, D / 2 + 0.7), halo: 0.3, sol: y, r: 3.2, c: '#ffe2b0' });
+      // dehors, devant la fenêtre : le banc rouge (縁台, le feutre rouge dessus), l'ombrelle rouge (野点傘) derrière
+      {
+        const q0 = R(xin - 0.15, 0, D / 2 + 1.05), q1 = R(1.45, 0, D / 2 + 1.05), xm = (q0.x + q1.x) / 2, zm = (q0.z + q1.z) / 2, lb = Math.hypot(q1.x - q0.x, q1.z - q0.z);
+        ac.boite(0.62, 0.06, lb, P.bois, { x: xm, y: y + 0.42, z: zm }).boite(0.64, 0.025, lb + 0.02, '#c8302c', { x: xm, y: y + 0.462, z: zm, trait: false });
+        for (const f of [-1, 1]) ac.boite(0.5, 0.4, 0.06, P.boisFonce, { x: xm, y: y + 0.2, z: zm + f * (lb / 2 - 0.15) });
+        bancs.push({ de: [xm, zm - lb / 2 + 0.2], a: [xm, zm + lb / 2 - 0.2], y: y + 0.475, cap: PI / 2 });
+        murRect(repere(xm, zm, 0), 0.31, lb / 2);
+        const xp = xm - 0.62, zp = zm;
+        ac.baton([xp, y, zp], [xp, y + 2.32, zp], 0.025, '#3a2a20', 6).cone(1.0, 0.3, 18, '#c8302c', { x: xp, y: y + 2.18, z: zp, nuance: 0.03 });
+        monde.cercle(xp, zp, 0.3);
+      }
+      // la grande glace en plastique (le panneau des glaces) au coin nord, et le drapeau ソフトクリーム
+      {
+        const q = R(xin + 0.05, 0, D / 2 + 0.5), x = q.x, z = q.z;
+        ac.cylindre(0.18, 0.04, 0.9, 12, '#d8a05a', { x, y: y + 1.0, z }).boule(0.26, '#f4efe2', { x, y: y + 1.6, z, sy: 1.1 }, 1).cone(0.2, 0.42, 12, '#f4efe2', { x, y: y + 1.96, z, ry: 0.4 })
+          .cylindre(0.1, 0.12, 0.55, 8, '#8a8f94', { x, y: y + 0.27, z });
+        monde.cercle(x, z, 0.45);
+        const qn = R(-xin - 0.1, 0, D / 2 + 0.55);
+        ac.baton([qn.x, y, qn.z], [qn.x, y + 2.7, qn.z], 0.022, P.boisFonce, 5).baton([qn.x, y + 2.62, qn.z], [qn.x, y + 2.62, qn.z - 0.4], 0.012, P.boisFonce, 4)
+          .boite(0.012, 1.5, 0.38, '#e8b941', { x: qn.x, y: y + 1.85, z: qn.z - 0.2, trait: false });
+        ecrire({ x: qn.x + 0.007, y, z: qn.z - 0.2, ry: PI / 2 }, { texte: 'ソフトクリーム', vertical: true, x: 0, y: 1.85, z: 0, l: 0.26, h: 1.36, fond: null, encre: '#c8402c' });
+        monde.cercle(qn.x, qn.z - 0.1, 0.42);
+      }
+      monde.surface(B.x - D / 2 - 0.6, B.x + D / 2 + 0.42, B.z - W / 2 - 0.27, B.z + W / 2 + 0.27, y + 3.4, { plein: true });
+      monde.bloc(B.x - D / 2, B.x + D / 2, B.z - W / 2, B.z + W / 2, y - 1, y + 4.6);
     }
     poser(ab.fin(), 0, 0, { y: 0 });
-    const ac = maisonBoutique(CAFE, '漁火庵', '#7a3a2e', true);
-    // entre la boutique et le café : une palissade de planches
+    // entre la boutique et le café : une palissade de planches, sous les deux toits
     {
       const z = (BOUTIQUE.z + BOUTIQUE.p / 2 + CAFE.z - CAFE.p / 2) / 2, x0 = BOUTIQUE.x - BOUTIQUE.l / 2, x1 = BOUTIQUE.x + BOUTIQUE.l / 2 - 0.2;
       ac.boite(x1 - x0, 1.8, 0.08, P.boisFonce, { x: (x0 + x1) / 2, y: Y_PARKING + 0.9, z, nuance: 0.05 });
@@ -1080,26 +1308,29 @@ export function construire(ctx) {
   }
   {
     // le belvédère du souffle du dragon : la pierre gravée « 龍宮の潮吹 » et son panneau, tournés vers le plateau
-    // (une pierre levée brute, sa face polie tournée vers le plateau, où le nom est gravé en blanc)
-    const a = atelier(), x = BELVEDERE.x - 1.2, z = BELVEDERE.z + 2.6, y = terrain(x, z), ry = -0.9, R = repere(x, z, ry);
-    rocher(a, x, y + 0.55, z, 0.42, 0.95, 0.26, ry, 2);
-    a.boite(0.42, 1.08, 0.04, '#6e6a68', R(0, y + 0.78, -0.21, { trait: false, nuance: 0.03 }));
-    ecrire({ x, y, z, ry }, { texte: '龍宮の潮吹', vertical: true, x: 0, y: 0.78, z: -0.232, ry: PI, l: 0.24, h: 0.96, fond: null, encre: '#f4efe2' });
-    murRect(R, 0.36, 0.2, 0.22);
+    // (2026-10-29, refaite : « la pierre / panneau » ; un rocher bosselé traversait sa plaque, et elle flottait) : une grosse
+    // pierre naturelle aux formes douces, enfoncée de 15 cm dans le sol (au plus bas du sol sous elle), sa face avant taillée
+    // plate et polie ; dessus, la plaque sombre où le nom est gravé en blanc, 1 cm devant la face
+    // (sa face écrite tournée vers le plateau, à l'ouest : elle regardait la mer)
+    const a = atelier(), x = BELVEDERE.x - 1.2, z = BELVEDERE.z + 2.6, ry = 1.37, R = repere(x, z, ry);
+    const SX = 0.62, SY = 0.82, SZ = 0.34, ZF = 0.21;
+    let y = Infinity;
+    for (let k = 0; k < 8; k++) y = Math.min(y, terrain(x + Math.cos(k * PI / 4) * SX * 0.8, z + Math.sin(k * PI / 4) * SX * 0.8), terrain(x, z));
+    const forme = (px, py, pz) => {
+      const b = 1 + 0.07 * Math.sin(3 * px + 1.7 * py) + 0.05 * Math.sin(5 * py - 2.3 * pz + 1) + 0.04 * Math.sin(4 * pz + 2.9 * px);
+      // (la face avant (−z) taillée plate ; le dessous plat, dans le sol)
+      return [px * SX * b, Math.max(-SY * 0.92, py * SY * b), Math.max(-ZF, pz * SZ * b)];
+    };
+    a.piece(new THREE.IcosahedronGeometry(1, 2), '#a39d90', { ...R(0, y + SY * 0.92 - 0.15, 0), deformer: forme, nuance: 0.05 });
+    a.boite(0.38, 1.0, 0.02, '#4a4846', R(0, y + SY * 0.92 - 0.15 + 0.05, -ZF - 0.002, { trait: false }));
+    ecrire({ x, y, z, ry }, { texte: '龍宮の潮吹', vertical: true, x: 0, y: SY * 0.92 - 0.15 + 0.05, z: -ZF - 0.013, ry: PI, l: 0.24, h: 0.88, fond: null, encre: '#f4efe2' });
+    murRect(R, SX - 0.02, SZ - 0.04, 0.22);
     poser(a.fin(), 0, 0, { y: 0 });
     const { x: xp, z: zp, ry: ryp } = PANNEAU_SOUFFLE, yp = terrain(xp, zp), b = panneau(atelier(), P, { ecrit: true });
     poser(b.fin(), xp, zp, { y: yp, ry: ryp });
     ecrire({ x: xp, y: yp, z: zp, ry: ryp }, { ...PAPIER_PANNEAU, texte: '龍宮の潮吹（国の天然記念物）', fond: '#fff8e8', encre: '#2a2420', lignes: 2 });
     const cx = Math.cos(ryp) * 0.6, cz = -Math.sin(ryp) * 0.6;
     monde.mur(xp - cx, zp - cz, xp + cx, zp + cz, 0.5);
-  }
-  // le pied du chemin : la canne et la ligne du pêcheur au-dessus de la mer
-  {
-    // (de ses mains, au-dessus de la corde : devant lui, un rond où l'on ne se met pas, sous la canne)
-    const a = atelier(), x = -1.15, z = -54.7, y = terrain(x, z);
-    a.baton([x, y + 1.1, z], [x - 0.45, y + 3.5, z - 1.9], 0.018, '#3a3a40', 5).baton([x - 0.45, y + 3.5, z - 1.9], [x - 0.55, -0.1, z - 6.0], 0.003, '#e8e8e8', 3, { trait: false });
-    monde.cercle(x - 0.1, z - 0.2, 0.42);
-    poser(a.fin(), 0, 0, { y: 0 });
   }
 
   // ---------------------------------------------------------------- La côte : le pied des falaises, les rochers dans l'eau
@@ -1131,6 +1362,40 @@ export function construire(ctx) {
     geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
     a.piece(geo, '#5a4e56', { couleurs: cols, nuance: 0.06 });
     poser(a.fin(), 0, 0, { y: 0, trait: false });
+    // la paroi des falaises (2026-10-29 : « le fond est un peu mal fait / flou » : le relief en grille peignait les falaises en
+    // longues traînées verticales) : une paroi de roche à facettes, posée 30 à 55 cm devant la pente de la falaise, du fond de
+    // l'eau jusque sous le bord du haut, en strates mauves et grises ; tous les 2 m près du lieu, 3,6 m au loin
+    for (const [i0, i1, pas, ombre] of [[6, 34, 2.0, true], [34, 41, 3.6, false]]) {
+      const ap = atelier(), pp = [], cp = [];
+      const RANGS = [-1.3, -0.2, 0.8, 1.6, 2.3, 2.9];
+      const strate = (y, x, z) => (y < 0.7 ? '#4a4048' : ['#7d6b77', '#6e5e68', '#8a7882', '#74646e'][Math.floor((y + 1.6 * bruitDoux(x * 0.07, z * 0.07, 2)) / 1.6) % 4]);
+      let avant = null;
+      for (let i = i0; i < i1; i++) {
+        const [xa, za] = COTE[i], [xb, zb] = COTE[i + 1], l = Math.hypot(xb - xa, zb - za), n = Math.max(1, Math.round(l / pas));
+        let nx = (zb - za) / l, nz = -(xb - xa) / l;
+        if (cote((xa + xb) / 2 + nx * 2, (za + zb) / 2 + nz * 2) > 0) { nx = -nx; nz = -nz; }
+        for (let k = 0; k < n; k++) {
+          const f = k / n, px = xa + (xb - xa) * f, pz = za + (zb - za) * f;
+          const col = RANGS.map((d, r) => {
+            const sx = px - nx * d, sz = pz - nz * d, haut = r === RANGS.length - 1, e = haut ? 0.08 : 0.32 + 0.1 * hasard(px * 3.1 + r, pz * 1.7);
+            return [sx + nx * e, terrain(sx, sz) - (haut ? 0.06 : (hasard(r * 7.3 + px, pz) - 0.5) * 0.14), sz + nz * e];
+          });
+          if (avant && Math.hypot(col[0][0] - avant[0][0], col[0][2] - avant[0][2]) < pas * 2.5) {
+            for (let r = 0; r + 1 < RANGS.length; r++) {
+              // (une couleur par case, de la strate de sa hauteur : des bandes, pas une mosaïque de triangles)
+              const A = avant[r], B = col[r], C = col[r + 1], D = avant[r + 1], h = [nx, 0.35, nz], c = strate((A[1] + B[1] + C[1] + D[1]) / 4, px, pz);
+              tri(pp, cp, A, B, C, c, h);
+              tri(pp, cp, A, C, D, c, h);
+            }
+          }
+          avant = col;
+        }
+      }
+      const gp = new THREE.BufferGeometry();
+      gp.setAttribute('position', new THREE.Float32BufferAttribute(pp, 3));
+      ap.piece(gp, '#7d6b77', { couleurs: cp, nuance: 0.05 });
+      poser(ap.fin(), 0, 0, { y: 0, trait: false, ombre });
+    }
     for (let i = 0; i < 90; i++) {
       const k = 8 + (i % 25), [xa, za] = COTE[k], [xb, zb] = COTE[k + 1], f = hasard(i, 21), l = Math.hypot(xb - xa, zb - za) || 1;
       let nx = (zb - za) / l, nz = -(xb - xa) / l;
@@ -1148,12 +1413,28 @@ export function construire(ctx) {
 
   // ---------------------------------------------------------------- Au loin : la forêt, les éoliennes, l'île, les bateaux
   {
-    // la forêt des collines (des touffes simples, sans trait, par morceaux de 120 m)
-    for (let i = 0; i < 1400; i++) {
-      const x = -700 + 1400 * hasard(i, 31), z = -420 + 1140 * hasard(32, i), d = cote(x, z);
-      if (d < 6 || Math.hypot(x, z - 10) < 75 || (z < 60 && Math.abs(x) < 70)) continue;
-      const y = terrain(x, z), h = 7 + 6 * hasard(i, 33), a = morceau(x, z, 120);
-      a.houppe(h * 0.45, ['#3f6a34', '#4a7a3c', '#36602e'][i % 3], { x, y: y + h * 0.45, z, sorte: 'persistant' }, 0);
+    // la forêt des collines, sans trait, par morceaux de 120 m (2026-10-29 : « les arbres ressemblent à des blocs » : c'étaient
+    // des boules à vingt faces, une à une, certaines flottant au-dessus des crêtes) : des bouquets de houppiers bosselés de
+    // verts différents, posés au plus bas du sol sous eux ; près (moins de 200 m du sanctuaire), trois houppiers à 80 faces ;
+    // plus loin, deux à 20 faces ; au-delà de 420 m, un sur deux, seul (la brume les couvre déjà : le chargement)
+    const VERTS = ['#3f6a34', '#4a7a3c', '#36602e', '#557f3f', '#2f5a2a'];
+    for (let i = 0; i < 2000; i++) {
+      const x = -700 + 1400 * hasard(i, 31), z = -420 + 1140 * hasard(32, i), dc = Math.hypot(x, z - 10);
+      if (dc < 62 || (z < 60 && Math.abs(x) < 70) || (dc > 420 && hasard(i, 34) < 0.5) || cote(x, z) < 8) continue;
+      const pres = dc < 200, n = pres ? 3 : dc < 420 ? 2 : 1, r = (pres ? 2.3 : 3.2) + 1.6 * hasard(i, 33), a = morceau(x, z, 120), fin = pres ? 1 : 0;
+      let y = terrain(x, z);
+      for (let k = 0; k < (n > 1 ? 4 : 2); k++) y = Math.min(y, terrain(x + Math.cos(k * PI / 2) * r * 0.85, z + Math.sin(k * PI / 2) * r * 0.85));
+      for (let k = 0; k < n; k++) {
+        const t = hasard(i, 40 + k) * 2 * PI, e = k ? r * 0.8 : 0, rk = r * (k ? 0.68 + 0.2 * hasard(k, i) : 1);
+        a.houppe(rk, VERTS[(i + k) % 5], { x: x + Math.cos(t) * e, y: y + rk * (k ? 0.45 : 0.62), z: z + Math.sin(t) * e, sy: 0.86, sorte: 'persistant' }, fin);
+      }
+    }
+    // la colline derrière le parking : des feuillus sur sa pente, des pins noirs penchés par le vent au bord du cap
+    for (let i = 0; i < 60; i++) {
+      const x = -55 + 120 * hasard(i, 51), z = 50 + 40 * hasard(52, i), dc = Math.hypot(x, z - 10);
+      if (dc < 44 || dc > 66 || cote(x, z) < 8) continue;
+      const h = 5.5 + 3 * hasard(i, 53), a = morceau(x, z, 60);
+      a.arbreTouffu(x, z, h, [VERTS[i % 5], VERTS[(i + 2) % 5]], { y: terrain(x, z), graine: i, loin: true, sorte: 'persistant' });
     }
     // l'île d'Ōmi, au loin, au nord-est
     {
@@ -1162,27 +1443,35 @@ export function construire(ctx) {
       poser(a.fin(), 0, 0, { y: 0, ombre: false, trait: false });
     }
   }
-  // les éoliennes sur la crête du cap d'en face : le mât, la nacelle, trois pales qui tournent (un anime)
+  // les éoliennes sur les sommets du cap d'en face, en ligne sur la crête (2026-10-29 : « placées bizarrement » : leur pied était
+  // au bord des falaises, au niveau de la mer ; refaites : le socle, le mât qui s'affine, la nacelle arrondie, le moyeu et son
+  // nez, trois pales effilées et vrillées, le nez face au vent du nord, comme le vent du lieu)
   const eoliennes = (() => {
     const objet = new THREE.Group(), rotors = [];
     const mat = (c) => ctx.maillage(c.fin(0, false));
-    for (const [x, z] of [[312, -205], [342, -258], [372, -305]]) {
-      const y = terrain(x, z) - 1, H = 62;
-      const a = atelier();
-      a.fut([x, y, z], [x, y + H, z], 2.0, 1.2, '#eef0ee', 10).boite(3, 3, 8, '#eef0ee', { x, y: y + H + 1, z: z + 1.5 });
+    const face = Math.atan2(-0.35, -0.94), fx = Math.sin(face), fz = Math.cos(face), BLANC_E = '#eef0ee';
+    for (const [x, z] of [[345, -160], [386, -222], [421, -281]]) {
+      const y = terrain(x, z) - 0.4, H = 62, a = atelier();
+      a.cylindre(3.2, 3.4, 0.8, 16, BETON, { x, y: y + 0.3, z }).fut([x, y + 0.6, z], [x, y + H, z], 2.0, 1.1, BLANC_E, 12)
+        .ovale(1.7, BLANC_E, { x: x + fx * 1.2, y: y + H + 1.3, z: z + fz * 1.2, sx: 1.0, sy: 0.95, sz: 3.1, ry: face }, 14);
       objet.add(mat(a));
       const g = new THREE.Group();
+      // le moyeu et son nez (dans le rotor : ils tournent avec lui)
+      g.add(mat(atelier().cylindre(1.25, 1.25, 1.4, 14, BLANC_E, { z: 0, rx: PI / 2 }).cone(1.25, 2.2, 14, BLANC_E, { z: 1.8, rx: PI / 2 })));
       for (let k = 0; k < 3; k++) {
-        const pale = mat(atelier().boite(1.6, 30, 0.4, '#f4f6f4', { y: 15 }));
+        // (une pale : 29 m, 1,9 m de large au pied, 35 cm au bout, un peu vrillée)
+        const pale = mat(atelier().piece(new THREE.BoxGeometry(1, 1, 1, 1, 8, 1).translate(0, 0.5, 0), '#f4f6f4', {
+          deformer: (px, py, pz) => { const l = 1.9 - 1.55 * py ** 0.8, w = 0.42 - 0.3 * py, v = 0.3 * py; return [px * l * Math.cos(v) - pz * w * Math.sin(v), 1.0 + py * 29, px * l * Math.sin(v) + pz * w * Math.cos(v)]; },
+        }));
         pale.rotation.z = (k * 2 * PI) / 3;
         g.add(pale);
       }
-      g.position.set(x, y + H + 1, z - 2.6);
-      g.rotation.y = 0.5;
+      g.position.set(x + fx * 7.0, y + H + 1.3, z + fz * 7.0);
+      g.rotation.y = face;
       objet.add(g);
       rotors.push({ g, v: 0.9 + 0.2 * hasard(x, z) });
     }
-    return { objet, maj(dt) { for (const r of rotors) r.g.children.forEach((p) => { p.rotation.z += dt * r.v; }); return []; } };
+    return { objet, maj(dt) { for (const r of rotors) r.g.children.forEach((p, i) => { if (i) p.rotation.z += dt * r.v; }); return []; } };
   })();
   animes.push(eoliennes);
   // les bateaux de pêche au large : de petits bateaux blancs qui tournent lentement ; la nuit, les lampes des pêcheurs de
@@ -1395,9 +1684,9 @@ export function construire(ctx) {
   const PEAU = P.peau, NOIR = '#2a2226';
   const passants = [
     // la vendeuse de la boutique, devant son comptoir (des glaces, et du tofu frit pour les renards)
-    { id: 'vendeuse', x: BOUTIQUE.x + BOUTIQUE.l / 2 + 0.95, z: BOUTIQUE.z - 0.4, cap: PI / 2, tenue: { taille: 0.94, peau: '#f0c8a6', cheveux: '#3a2a22', coiffure: 'chignon', chapeau: { sorte: 'foulard', c: '#3f5a7a' }, haut: '#f4efe2', manches: 'longues', tablier: '#3f5a7a', bas: { sorte: 'pantalon', c: '#3a3a44' }, chaussures: '#3a3236', semelle: '#3a3236', yeux: 'plisses' }, quand: 'jour' },
+    { id: 'vendeuse', x: BOUTIQUE.x + BOUTIQUE.l / 2 - 0.65, z: BOUTIQUE.z, cap: PI / 2, tenue: { taille: 0.94, peau: '#f0c8a6', cheveux: '#3a2a22', coiffure: 'chignon', chapeau: { sorte: 'foulard', c: '#3f5a7a' }, haut: '#f4efe2', manches: 'longues', tablier: '#3f5a7a', bas: { sorte: 'pantalon', c: '#3a3a44' }, chaussures: '#3a3236', semelle: '#3a3236', yeux: 'plisses' }, quand: 'jour' },
     // le patron du café (il fait venir le soir, et rend le matin)
-    { id: 'cafe', x: CAFE.x + CAFE.l / 2 + 0.95, z: CAFE.z + 0.6, cap: PI / 2, tenue: { taille: 1.04, peau: '#e8bf98', cheveux: '#3a3a3a', coiffure: 'court', chapeau: { sorte: 'bandeau', c: '#7a3a2e' }, haut: '#2f2f36', manches: 'longues', tablier: '#7a3a2e', bas: { sorte: 'pantalon', c: '#2a2a30' }, chaussures: '#2a2a30', semelle: '#2a2a30', yeux: 'plisses' } },
+    { id: 'cafe', x: CAFE.x + CAFE.l / 2 - 0.65, z: CAFE.z, cap: PI / 2, tenue: { taille: 1.04, peau: '#e8bf98', cheveux: '#3a3a3a', coiffure: 'court', chapeau: { sorte: 'bandeau', c: '#7a3a2e' }, haut: '#2f2f36', manches: 'longues', tablier: '#7a3a2e', bas: { sorte: 'pantalon', c: '#2a2a30' }, chaussures: '#2a2a30', semelle: '#2a2a30', yeux: 'plisses' } },
     // la miko du bureau des porte-bonheur, derrière son comptoir
     { id: 'miko', x: BUREAU.x - BUREAU.l / 2 - 0.42, z: BUREAU.z, cap: -PI / 2, tenue: { taille: 0.95, peau: '#f4d6c0', cheveux: NOIR, coiffure: 'queue', haut: '#f8f6f0', manches: 'kimono', col: '#f8f6f0', bas: { sorte: 'hakama', c: '#c8282c' }, chaussures: '#f4f0e6', semelle: '#c8a868' }, quand: 'jour' },
     // le gardien du sanctuaire, qui balaie le parvis
@@ -1409,8 +1698,9 @@ export function construire(ctx) {
     // deux touristes qui essaient de lancer leurs pièces dans le tronc, au pied du grand torii
     { id: 'touriste', x: -3.0, z: 16.6, cap: PI - 0.25, tenue: { taille: 0.95, peau: '#f2c9a8', cheveux: '#3a2a22', coiffure: 'queue', chapeau: { sorte: 'soleil', c: '#f4efe2' }, haut: '#f59aa6', manches: 'courtes', bas: { sorte: 'jupe', c: '#2f3a5a' }, chaussures: '#f4f0e6', semelle: '#3a3236', appareil: true }, quand: 'jour' },
     { id: 'touriste2', x: 3.1, z: 16.8, cap: PI + 0.25, tenue: { taille: 1.06, peau: PEAU, cheveux: NOIR, coiffure: 'court', haut: '#3a6a5a', manches: 'courtes', bas: { sorte: 'pantalon', c: '#3a3a44' }, chaussures: P.blanc, semelle: '#3a3236' }, quand: 'jour' },
-    // le pêcheur, au bord du plateau (sa canne au-dessus de la mer) : il reste la nuit
-    { id: 'pecheur', x: -1.2, z: -54.3, cap: PI, tenue: { taille: 1.0, peau: '#d8a880', cheveux: '#5a5650', coiffure: 'court', chapeau: { sorte: 'casquette', c: '#3a5a7a', c2: '#3a5a7a' }, haut: '#5a6a5a', manches: 'longues', bas: { sorte: 'pantalon', c: '#3a3f4a' }, chaussures: '#2a2a30', semelle: '#2a2a30', yeux: 'plisses' } },
+    // le pêcheur, au-delà de la corde au bord de la crique du souffle, sa ligne dans la mer : il reste la nuit ; il ne se tourne
+    // pas pour parler (fixe)
+    { id: 'pecheur', x: PECHEUR.x, z: PECHEUR.z, cap: PECHEUR.cap, fixe: true, tenue: { pose: 'peche', ligne: { loin: 8.4, bas: terrain(PECHEUR.x, PECHEUR.z) + 0.15 }, taille: 1.0, peau: '#d8a880', cheveux: '#5a5650', coiffure: 'court', chapeau: { sorte: 'casquette', c: '#3a5a7a', c2: '#3a5a7a' }, haut: '#5a6a5a', manches: 'longues', bas: { sorte: 'pantalon', c: '#3a3f4a' }, chaussures: '#2a2a30', semelle: '#2a2a30', yeux: 'plisses' } },
     // une petite fille qui compte les torii, au pied du chemin
     { id: 'enfant', x: -7.6, z: -33.8, cap: 0.6, tenue: { taille: 0.7, peau: PEAU, cheveux: NOIR, coiffure: 'queue', chapeau: { sorte: 'ecolier', c: '#f2c443' }, haut: '#e8583e', manches: 'courtes', bas: { sorte: 'jupe', c: '#3d5a8f' }, chaussures: P.blanc, semelle: '#3a3236' }, quand: 'jour' },
     // une grand-mère qui prie devant le sanctuaire
@@ -1636,7 +1926,7 @@ export function construire(ctx) {
     },
     // les bêtes (betes.js) : le chat de la boutique, des libellules rouges, des papillons sur la pente, les milans du cap
     betes: {
-      chats: [{ id: 'chatTigre', x: BOUTIQUE.x + BOUTIQUE.l / 2 + 0.8, z: BOUTIQUE.z + 4.6, cap: 1.4, robe: 'roux', dort: true }],
+      chats: [{ id: 'chatTigre', x: BOUTIQUE.x + BOUTIQUE.l / 2 + 1.3, z: BOUTIQUE.z + 3.95, cap: 1.4, robe: 'roux', dort: true }],
       papillons: [[12, 2], [-18, -8], [26, -14], [-8, 22]], libellules: [[6, 24], [-4, -40], [14, 30]],
       milans: [{ x: 0, z: -30, r: 46, h: 48, sens: 1 }, { x: 40, z: -80, r: 30, h: 36, sens: -1 }],
     },
@@ -1651,6 +1941,8 @@ export function construire(ctx) {
     centreRive: [0, -40],
     vent: { dir: [0.35, 0.94], force: 1.0 }, oiseaux: ['milan', 'mouette'], ambiances: ['vagues', 'insectes'],
     brume: [180, 1700],
+    // (le lointain flou plus loin que le style, 90–260 m : les falaises de la côte, à 50–150 m, restent nettes ; 2026-10-29)
+    flou: [170, 480],
     soleil: [-0.35, 0.74, 0.58],
     depart,
     photos: {
@@ -1857,6 +2149,85 @@ function creerSouffle(THREE, S, bouffees) {
   };
 }
 
+// ---------------------------------------------------------------- Les voitures du parking
+// (2026-10-29, la liste du propriétaire : « refaire les voitures » : c'étaient deux boîtes et quatre roues) L longueur, W
+// largeur, rw rayon des roues, ab demi-empattement, cap capot (de l'avant au pied du pare-brise), ar coffre (de l'arrière au
+// pied de la lunette), yb hauteur de la ceinture de caisse (le bas des vitres), yt du toit, pare et lun l'avancée du
+// pare-brise et de la lunette arrière, montants : où sont les montants des vitres de côté (0 : à l'avant de la verrière, 1 à
+// l'arrière), plaque : jaune pour les kei (軽自動車), blanche pour les autres
+const MODELES_VOITURE = {
+  kei: { L: 3.39, W: 1.47, rw: 0.27, ab: 1.12, cap: 0.5, ar: 0.12, yb: 0.92, yt: 1.7, pare: 0.5, lun: 0.14, montants: [0.42], plaque: '#f2d23a' },
+  berline: { L: 4.3, W: 1.72, rw: 0.3, ab: 1.36, cap: 1.05, ar: 0.6, yb: 0.84, yt: 1.42, pare: 0.66, lun: 0.52, montants: [0.47], plaque: '#f4f4ee' },
+  mono: { L: 4.65, W: 1.78, rw: 0.31, ab: 1.45, cap: 0.78, ar: 0.12, yb: 0.98, yt: 1.82, pare: 0.62, lun: 0.12, montants: [0.33, 0.68], plaque: '#f4f4ee' },
+};
+/**
+ * Une voiture garée, dans le repère R (l'avant vers +z), ses roues sur le sol en y : la caisse, un profil de côté aux coins
+ * arrondis extrudé sur la largeur (les passages de roues découpés dedans, les bords biseautés) ; la verrière (vitres,
+ * pare-brise, lunette), plus étroite, posée sur la ceinture ; le toit, les montants ; les phares, la calandre, les feux, les
+ * plaques, les rétroviseurs, les poignées ; les roues et leurs jantes.
+ */
+function voiture(THREE, a, R, y, c, sorte) {
+  const V = MODELES_VOITURE[sorte], { L, W, rw, ab, cap, ar, yb, yt, pare, lun } = V, zf = L / 2 - 0.04, zr = -L / 2 + 0.04, g = 0.22;
+  const VITRE = '#2b3640', SOMBRE = '#2a2c30';
+  // la caisse : du milieu du bas vers l'avant (la roue avant), le nez, le capot, la ceinture, le coffre, l'arrière, la roue
+  // arrière (le contour se referme seul : un point du début répété à la fin donnait des sommets NaN au biseau)
+  // (rc : l'arrondi des coins du bas, plus petit que le porte-à-faux : sur le kei, le contour revenait en arrière et ses faces se
+  // recouvraient)
+  // (le passage de roue : un demi-cercle posé sur le bas de caisse, sans bout droit : de courts côtés droits pliaient le biseau)
+  const k = new THREE.Shape(), ra = rw + 0.12, rc = Math.min(0.16, (zf - ab - ra) * 0.5);
+  const roue = (zc) => { k.lineTo(zc - ra, g); k.absarc(zc, g, ra, PI, 0, true); };
+  k.moveTo(0, g);
+  roue(ab);
+  k.lineTo(zf - rc, g);
+  k.quadraticCurveTo(zf, g, zf, g + rc);
+  k.lineTo(zf, yb - 0.2);
+  k.quadraticCurveTo(zf, yb - 0.06, zf - 0.2, yb - 0.04);
+  k.lineTo(zf - cap, yb);
+  k.lineTo(zr + ar, yb);
+  k.quadraticCurveTo(zr, yb, zr, yb - 0.18);
+  k.lineTo(zr, g + rc);
+  k.quadraticCurveTo(zr, g, zr + rc, g);
+  roue(-ab);
+  const extruder = (forme, large, biseau) => new THREE.ExtrudeGeometry(forme, { depth: large - 2 * biseau, bevelEnabled: true, bevelThickness: biseau, bevelSize: biseau * 0.8, bevelSegments: 2, curveSegments: 6 })
+    .translate(0, 0, -(large - 2 * biseau) / 2).rotateY(-PI / 2);
+  a.piece(extruder(k, W, 0.05), c, R(0, y, 0, { nuance: 0.02 }));
+  // la verrière : du pied du pare-brise au pied de la lunette, 12 cm en retrait de chaque côté (l'épaule de la caisse)
+  const zA = zf - cap, zT = zA - pare, zC = zr + ar, zL = zC + lun, v = new THREE.Shape();
+  v.moveTo(zA, yb - 0.03);
+  v.lineTo(zT + 0.05, yt - 0.05);
+  v.quadraticCurveTo(zT, yt, zT - 0.12, yt);
+  v.lineTo(zL + 0.12, yt);
+  v.quadraticCurveTo(zL, yt, zL - 0.04, yt - 0.05);
+  v.lineTo(zC, yb - 0.03);
+  a.piece(extruder(v, W - 0.24, 0.03), VITRE, R(0, y, 0, { trait: false }));
+  // le toit, peint, sur le haut de la verrière ; les montants entre les vitres de côté (1 cm devant les vitres)
+  a.boite(W - 0.2, 0.06, zT - zL - 0.12, c, R(0, y + yt + 0.012, (zT + zL) / 2));
+  for (const f of V.montants) {
+    const zm = zT - 0.12 - (zT - zL - 0.24) * f;
+    for (const u of [-1, 1]) a.boite(0.04, yt - yb + 0.02, 0.1, c, R(u * ((W - 0.24) / 2 + 0.01), y + (yt + yb) / 2, zm, { trait: false }));
+  }
+  // l'avant : les phares, la calandre, la plaque ; l'arrière : les feux, la plaque
+  for (const u of [-1, 1]) {
+    a.boite(0.3, 0.1, 0.03, '#eef2f2', R(u * (W / 2 - 0.25), y + yb - 0.27, zf + 0.04 + 0.004, { trait: false }))
+      .boite(0.26, 0.11, 0.03, '#c8302a', R(u * (W / 2 - 0.2), y + yb - 0.27, zr - 0.04 - 0.004, { trait: false }));
+  }
+  a.boite(Math.min(0.62, W - 0.95), 0.12, 0.02, SOMBRE, R(0, y + yb - 0.29, zf + 0.04 + 0.002, { trait: false }));
+  for (const [zp, sens] of [[zf, 1], [zr, -1]]) {
+    a.boite(0.33, 0.165, 0.014, V.plaque, R(0, y + g + 0.26, zp + sens * (0.04 + 0.006), { trait: false }))
+      .boite(0.2, 0.03, 0.006, sorte === 'kei' ? '#2a2a2a' : '#2f6a4a', R(0, y + g + 0.28, zp + sens * (0.04 + 0.015), { trait: false }));
+  }
+  // les rétroviseurs, les poignées des portes
+  for (const u of [-1, 1]) {
+    a.boite(0.07, 0.1, 0.15, c, R(u * (W / 2 + 0.03), y + yb + 0.06, zA - 0.12));
+    for (const zp of [zA - 0.5, zA - 0.5 - (zA - zC) * 0.42]) if (zp > zC + 0.2) a.boite(0.012, 0.03, 0.12, SOMBRE, R(u * (W / 2 + 0.006), y + yb - 0.11, zp, { trait: false }));
+  }
+  // les roues : le pneu, la jante, le moyeu (1 cm plus larges l'un que l'autre : pas de faces dans le même plan)
+  for (const [u, w] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+    const q = R(u * (W / 2 - 0.13), y + rw, w * ab, { rz: PI / 2 });
+    a.cylindre(rw, rw, 0.21, 14, '#232326', q).cylindre(rw * 0.62, rw * 0.62, 0.23, 10, '#b9bdc1', { ...q, trait: false }).cylindre(rw * 0.2, rw * 0.2, 0.25, 8, '#7e8388', { ...q, trait: false });
+  }
+}
+
 // ---------------------------------------------------------------- Les points doux (le jet, les halos, la flamme)
 /** Une tache ronde et douce, blanche (un DataTexture de 32 × 32) ; dur : la part du cœur plein. */
 function tacheDouce(THREE, dur = 0.22) {
@@ -2057,7 +2428,7 @@ const TEXTES = {
     videaste: ['Salut ! Moi, c’est @random_japan_place. Je filme les torii qui descendent vers la mer pour mon TikTok.', 'Tu veux voir ma vidéo ?'],
     touriste: ['J’ai déjà lancé dix pièces… Aucune n’est entrée ! Ce tronc est vraiment trop haut.'],
     touriste2: ['Ma femme va y arriver, j’en suis sûr. Au pire, on rachète des pièces !'],
-    pecheur: ['Quand le vent du nord souffle, la mer jaillit entre les rochers, là-bas, à l’est : le souffle du dragon.', 'Et le soir, les bateaux qui pêchent le calmar allument de grosses lampes. Toute la mer brille.'],
+    pecheur: ['Quand le vent du nord souffle, la mer jaillit entre les rochers, juste là, dans la crique : le souffle du dragon.', 'Et le soir, les bateaux qui pêchent le calmar allument de grosses lampes. Toute la mer brille.'],
     pecheurNuit: ['Regarde les lumières, au large : ce sont les lampes des pêcheurs de calmar, les « isaribi ».', 'Tout à l’heure, j’ai vu une petite flamme bleue danser au-dessus des torii… Un renard, sûrement.'],
     enfant: ['Je compte les torii ! Un, deux, trois… Hier soir, j’en ai compté 124. Maman dit que je me suis trompée.'],
     obaa: ['Je viens remercier Inari chaque mois. Mon mari était pêcheur ; Inari le gardait en mer.'],
@@ -2138,7 +2509,7 @@ const TEXTES = {
     videaste: ['Hi! I’m @random_japan_place. I’m filming the torii running down to the sea for my TikTok.', 'Want to see my video?'],
     touriste: ['I’ve already thrown ten coins… Not one went in! That box is way too high.'],
     touriste2: ['My wife will make it, I’m sure. Worst case, we get more coins!'],
-    pecheur: ['When the north wind blows, the sea bursts out between the rocks over there, to the east: the dragon’s breath.', 'And in the evening, the squid boats light big lamps. The whole sea shines.'],
+    pecheur: ['When the north wind blows, the sea bursts out between the rocks, right there in the cove: the dragon’s breath.', 'And in the evening, the squid boats light big lamps. The whole sea shines.'],
     pecheurNuit: ['Look at the lights out at sea: those are the squid fishers’ lamps, the “isaribi”.', 'A while ago, I saw a little blue flame dancing above the torii… A fox, surely.'],
     enfant: ['I’m counting the torii! One, two, three… Last night I counted 124. Mum says I made a mistake.'],
     obaa: ['I come to thank Inari every month. My husband was a fisherman; Inari kept him safe at sea.'],
@@ -2219,7 +2590,7 @@ const TEXTES = {
     videaste: ['やあ！　ぼくは　@random_japan_place。うみへ　くだる　鳥居を　TikTokで　とって　いるんだ。', 'ぼくの　どうが、見る？'],
     touriste: ['もう　10かい　なげたのに……ひとつも　はいらない！　この　はこ、たかすぎる。'],
     touriste2: ['つまは　きっと　いれるよ。だめなら　また　おかねを　くずせば　いい！'],
-    pecheur: ['きたかぜが　ふくと、ひがしの　いわの　あいだから　うみが　ふきあがる。龍宮の潮吹だ。', 'それに　ゆうがた、イカつりの　ふねが　大きな　ランプを　つける。うみ　ぜんぶが　ひかるよ。'],
+    pecheur: ['きたかぜが　ふくと、すぐ　そこの　入り江の　いわの　あいだから　うみが　ふきあがる。龍宮の潮吹だ。', 'それに　ゆうがた、イカつりの　ふねが　大きな　ランプを　つける。うみ　ぜんぶが　ひかるよ。'],
     pecheurNuit: ['おきの　あかりを　見て。イカを　とる　ふねの　「いさりび」だ。', 'さっき、鳥居の　上で　ちいさな　青い　ひが　おどって　いた……きっと　キツネだな。'],
     enfant: ['鳥居を　かぞえてるの！　いち、に、さん……きのうの　よる、124こ　あったよ。ママは　まちがいだって　いうけど。'],
     obaa: ['まいつき　おいなりさんに　おれいに　くるの。だんなさんは　りょうしでね、うみで　まもって　もらったのよ。'],

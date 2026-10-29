@@ -258,8 +258,22 @@ function construire() {
     // couche : 0 debout, 1 couché (la nuit) ; chacun se couche à sa vitesse
     return { ...d, b, couche: 0, vitesseCouche: 0.3 + 0.35 * ((i * 0.618) % 1) };
   });
-  // les mouettes (Itsukushima) : des personnages aussi (pas d'ombre reçue)
-  const mouettes = lieu.mouettes ? creerMouettes(ctxPerso, { ...lieu.mouettes, terrain: lieu.terrain, niveau: lieu.eau?.niveau || 0 }) : null;
+  // les mouettes (Itsukushima) : des personnages aussi (pas d'ombre reçue) ; un goéland posé sur la terre monte sur le décor
+  // s'il entre dedans (2026-10-29, Motonosumi : une mouette dans un rocher) : le dessus du décor sous lui, entre 40 cm plus
+  // bas et 1,2 m plus haut que sa place
+  const surLeDecor = (() => {
+    groupe.updateMatrixWorld(true);
+    const r = new THREE.Raycaster(), bas = new THREE.Vector3(0, -1, 0), niveau = lieu.eau?.niveau || 0;
+    return (q) => {
+      const y0 = q.y ?? lieu.terrain(q.x, q.z);
+      if (q.y === undefined && y0 <= niveau - 0.12) return q;
+      r.set(new THREE.Vector3(q.x, y0 + 1.2, q.z), bas);
+      r.far = 1.6;
+      const h = r.intersectObjects(decor, false)[0];
+      return h && h.point.y > y0 + 0.01 ? { ...q, y: h.point.y } : q;
+    };
+  })();
+  const mouettes = lieu.mouettes ? creerMouettes(ctxPerso, { ...lieu.mouettes, poses: (lieu.mouettes.poses || []).map(surLeDecor), terrain: lieu.terrain, niveau: lieu.eau?.niveau || 0 }) : null;
   if (mouettes) { groupe.add(mouettes.groupe); sansOmbreRecue(mouettes.groupe); }
   // les bêtes (Aogashima)
   const betes = lieu.betes ? creerBetes(ctx, { monde: lieu.monde, ...lieu.betes }) : null;
@@ -332,6 +346,9 @@ function construire() {
     carte, effets, lueurs, betes, mouilleJoueur, mouilleKon, feuillage: densiteFeuillage(lieu), bruitage: creerBruitage({ oiseaux: lieu.oiseaux || [], ambiances: lieu.ambiances || [], betes: [...(lieu.betes?.chats?.length ? ['miaou', 'ronron'] : []), ...(lieu.betes?.chiens?.length ? ['ouaf'] : [])], extras: lieu.sons || [] }), musique: creerMusique(lieu.id), focale: 800,
     marchand, feux, chutes, barque, miroir, sac: new Set(), trace: null, saison: 'ete', flash: { v: 0, c: new THREE.Color() }, hemiBase: { intensite: 0, couleur: new THREE.Color() },
     style, ctx, mats, lieu, groupe, decor, decorsDedans, traitsDecor, voyageurs, compagnons, kon: null, cadre: null, passants, daims, mouettes, eau, courants, ciel, soleil, hemi, etoiles, vapeurs, rais, touffes, finale: passeFinale(THREE, style, { echantillons: params.get('aa') === '0' ? 0 : 4, flou: params.get('flou') !== '0' }), cible: null, sauvage: null, nuit: { v: 0, cible: 0, fin: null } };
+  // (lieu.flou : [début, fin] du lointain flou, en mètres ; 2026-10-29, Motonosumi : « le fond est un peu flou », ses falaises
+  // à 50–150 m)
+  if (lieu.flou) M.finale.reglerFlou(...lieu.flou);
   choisirVoyageur(sorte || 'garcon');
   choisirCompagnon(espece || 'kon');
   for (const s of ['garcon', 'fille']) habiller(s);

@@ -1129,8 +1129,14 @@ export function creerHeros(ctx, sorte = 'garcon') {
  * pose 'ramer' (assis dans une barque).
  * Pour Kinkaku-ji (2026-10-26) : coiffure 'rase' (le crâne rasé d'un moine : pas un cheveu), pose 'drapeau' (la guide lève
  * son petit drapeau) ou 'tailler' (le jardinier et ses cisailles), instrument 'pinceau' (écrire, assis).
+ * Pour Motonosumi (2026-10-29) : pose 'peche' (la canne tenue à deux mains, immobile) ; ligne { loin, bas } : où sa ligne
+ * entre dans l'eau, en mètres depuis ses pieds (loin devant lui, bas plus bas) ; le passant ne se tourne pas en parlant
+ * (fixe, monde.js) : sa ligne reste dans l'eau.
  * Renvoie { objet, animer(dt, vitesse, temps), saluer(), asseoir(oui) }.
  */
+// (la pose 'peche' : le bras droit levé de PECHE_BRAS, sans bouger ; la canne monte de PECHE_ANGLE au-dessus de l'horizontale ;
+// sa longueur depuis la main ; la ligne est calculée pour cette pose)
+const PECHE_BRAS = -0.95, PECHE_ANGLE = 0.55, PECHE_CANNE = 3.3;
 export function creerPersonnage(ctx, T) {
   const { THREE, atelier, P, maillage } = ctx;
   const PI = Math.PI;
@@ -1299,6 +1305,24 @@ export function creerPersonnage(ctx, T) {
       a.baton([0, -0.27, 0.03], [0, -0.36, 0.03], 0.018, '#7a5232', 5);
     }
     if (T.instrument === 'pinceau' && s === -1) a.baton([0, -0.3, 0.03], [0.01, -0.25, 0.2], 0.008, '#4a3020', 4, { trait: false }).cone(0.012, 0.04, 5, '#1c1714', { x: 0.01, y: -0.255, z: 0.215, rx: PI / 2, trait: false });
+    // la canne à pêche (la main droite, la gauche dessous) : la poignée de liège, le scion, le moulinet sous la canne ; la
+    // ligne, de la pointe jusqu'à l'eau visée (T.ligne), droite (2026-10-29, Motonosumi : sa canne lui sortait de la tête, et
+    // la ligne tombait sur les rochers)
+    if (T.pose === 'peche' && s === -1) {
+      const ca = Math.cos(PECHE_BRAS), sa = Math.sin(PECHE_BRAS), k = T.taille || 1;
+      // (du corps au bras, tourné de PECHE_BRAS autour de x, et retour)
+      const versBras = ([x, y, z]) => [x, y * ca + z * sa, -y * sa + z * ca], versCorps = ([x, y, z]) => [x, y * ca - z * sa, y * sa + z * ca];
+      const d = versBras([0, Math.sin(PECHE_ANGLE), Math.cos(PECHE_ANGLE)]), h = [0, -0.3, 0.03], pt = (f) => h.map((v, i) => v + d[i] * f);
+      a.baton(pt(-0.3), pt(0.22), 0.022, '#c8a070', 5).baton(pt(0.22), pt(PECHE_CANNE), 0.011, '#2a2a30', 5, { trait: false });
+      const sous = versBras([0, -Math.cos(PECHE_ANGLE), Math.sin(PECHE_ANGLE)]), m = pt(0.12).map((v, i) => v + sous[i] * 0.07);
+      a.cylindre(0.045, 0.045, 0.05, 10, '#9aa0a6', { x: m[0], y: m[1], z: m[2], rz: PI / 2, trait: false });
+      if (T.ligne) {
+        // (la pointe dans le corps : l'épaule, plus la pointe tournée ; le point d'eau, à la même distance de côté que l'épaule)
+        const p = versCorps(pt(PECHE_CANNE)), pointe = [s * 0.205 + p[0], 0.75 + p[1], p[2]], eau = [s * 0.205, -T.ligne.bas / k, T.ligne.loin / k];
+        const v = versBras(eau.map((c, i) => c - pointe[i])), b = pt(PECHE_CANNE);
+        a.baton(b, b.map((c, i) => c + v[i]), 0.004, '#eef0ee', 3, { trait: false });
+      }
+    }
     // le balai de bambou (la main droite) : le long manche, la touffe de brindilles au bout
     if (T.pose === 'balai' && s === -1) {
       a.baton([0, -0.28, 0.02], [0.06, -0.92, 0.36], 0.014, '#b8955a', 5)
@@ -1581,6 +1605,14 @@ export function creerPersonnage(ctx, T) {
         const c = Math.max(0, Math.sin(temps * 5.5 + decalage));
         bras[0].rotation.x = -1.95 - 0.12 * c; bras[1].rotation.x = -1.8; bras[0].rotation.z = 0.2; bras[1].rotation.z = -0.35;
         corps.rotation.x = -0.05 + courbe; tete.rotation.x = -0.2;
+      } else if (T.pose === 'peche') {
+        // pêcher : la canne tenue à deux mains, immobile (sa ligne est dans l'eau) ; il regarde au bout de sa ligne, la tête qui
+        // bouge un peu ; un salut ne fait que hocher la tête
+        bras[0].rotation.x = PECHE_BRAS; bras[0].rotation.z = 0;
+        bras[1].rotation.x = -0.62; bras[1].rotation.z = -0.34;
+        corps.rotation.x = 0; corps.rotation.y = 0;
+        tete.rotation.x = 0.14 + Math.sin(temps * 0.6 + decalage) * 0.03 + courbe * 0.4;
+        tete.rotation.y = Math.sin(temps * 0.23 + decalage) * 0.15;
       } else if (T.pose === 'balai') {
         // balayer : le balai va et vient de côté, le corps penché qui suit
         const u = temps * 1.6 + decalage, o = Math.sin(u);

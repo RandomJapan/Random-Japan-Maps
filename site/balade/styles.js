@@ -120,6 +120,8 @@ function matieres(P) {
   mettre(M.bois, 'boisKinkaku', 'boisKinkakuClair');
   mettre(M.laque, 'laqueNoire');
   mettre(M.chaume, 'kokera', 'kokeraClair', 'kokeraBord');
+  // (Motonosumi : les tuiles rouges de Sekishū, celles de la côte de la mer du Japon, sur les toits des boutiques)
+  mettre(M.tuiles, '#a24c34', '#b35a40', '#7e3a28');
   // (Beppu : le démon peint, qui brille comme une laque ; la fonte, la pierre ; le crépi)
   mettre(M.laque, 'oniRouge', 'oniFonce', 'tigre');
   mettre(M.pierre, 'fonte', 'fonteClair', 'depot');
@@ -1091,6 +1093,8 @@ export function passeFinale(THREE, style, { echantillons = 4, flou = true } = {}
   // (la nuit, la lueur passe deux fois par le flou : plus large, plus douce)
   let valleeBase = 0, lueurNuit = 0;
   return {
+    /** Le lointain flou commence à d mètres et l'est tout à fait à f (un lieu aux grandes vues dégagées : plus loin que le style). */
+    reglerFlou(d, f) { debut.value = d; fin.value = f; },
     /** La taille de l'écran, en pixels réels. */
     dimensionner(l, h) {
       image.setSize(l, h);
