@@ -1117,7 +1117,7 @@ export function construire(ctx) {
     // un yamabushi (山伏), l'ascète des montagnes, en blanc, son bâton : il fait le tour des sanctuaires de la péninsule
     { id: 'yamabushi', x: TO.x + 1.9, z: TO.z + 1.3, cap: -2.2, tenue: { taille: 1.04, peau: '#d8a880', cheveux: NOIR, coiffure: 'court', haut: '#f2efe6', manches: 'kimono', col: '#f2efe6', bas: { sorte: 'hakama', c: '#e8e4d8' }, chaussures: '#c8a868', semelle: '#8a6a3a', canne: true } },
     // le moine du pavillon (住職), devant sa façade : il fait venir le soir, et rend le matin
-    { id: 'moine', x: DO.x + 1.4, z: DO_AVANT + 1.75, cap: PI - 0.2, tenue: { taille: 1.0, peau: '#e8bf98', cheveux: '#3a3a3a', coiffure: 'chauve', haut: '#2f2d33', manches: 'kimono', col: '#f4f0e6', tablier: '#8a6a3a', bas: { sorte: 'hakama', c: '#2f2d33' }, chaussures: '#f4f0e6', semelle: '#c8a868', yeux: 'plisses' } },
+    { id: 'moine', x: DO.x + 1.4, z: DO_AVANT + 1.75, cap: PI - 0.2, tenue: { taille: 1.0, peau: '#e8bf98', cheveux: '#3a3a3a', coiffure: 'rase', haut: '#2f2d33', manches: 'kimono', col: '#f4f0e6', tablier: '#8a6a3a', bas: { sorte: 'hakama', c: '#2f2d33' }, chaussures: '#f4f0e6', semelle: '#c8a868', yeux: 'plisses' } },
     // le bûcheron, au bord de la terrasse, au-dessus de sa coupe de bois
     { id: 'bucheron', x: 12.4, z: -22.0, cap: PI / 2 + 0.6, tenue: { taille: 1.04, peau: '#d8a880', cheveux: '#3a3a3a', coiffure: 'court', chapeau: { sorte: 'bandeau', c: '#f4f0e6' }, haut: '#5a6a4a', manches: 'longues', bas: { sorte: 'pantalon', c: '#3a3f4a' }, chaussures: '#2a2a30', semelle: '#2a2a30' }, quand: 'jour' },
     // la photographe, au belvédère, qui attend que la mer de nuages se lève
