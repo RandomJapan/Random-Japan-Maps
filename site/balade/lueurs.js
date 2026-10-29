@@ -56,7 +56,9 @@ export function creerLueurs(THREE, lumieres, lampes) {
         void main() {
           float r = length(gl_PointCoord - 0.5) * 2.0;
           if (r > 1.0) discard;
-          float a = exp(-r * r * 4.0) * 0.8 + (1.0 - smoothstep(0.0, 0.3, r)) * 0.45;
+          // (il s'éteint tout à fait au bord du disque : la queue de la courbe, 1,5 % au bord, devenait à l'écran (en sRGB)
+          // un disque gris au bord net, de près ; 2026-10-29, Motonosumi)
+          float a = (exp(-r * r * 4.0) * 0.8 + (1.0 - smoothstep(0.0, 0.3, r)) * 0.45) * (1.0 - smoothstep(0.65, 1.0, r));
           gl_FragColor = vec4(vTeinte * a * nuit * vLoin, 1.0);
         }`,
       transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,

@@ -333,6 +333,28 @@ function terrain(x, z) {
   return h;
 }
 
+// le sol tel que le jeu le dessine (balade.js, terrain) : une grille de 4 m, de 1 m autour du jeu (3 cm plus haut), ses
+// cases du bord du plateau et du chemin en 25 cm (solDetaille) ; deux triangles par case, la diagonale de (x1, z0) à (x0, z1)
+const ETENDUE = { x0: -720, x1: 720, z0: -720, z1: 720, pas: 4, fin: { x0: -64, x1: 60, z0: -84, z1: 64, pas: 1 } };
+const solDetaille = (x0, z0, x1, z1) => {
+  const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+  return surLigne(cx, cz).d < DEMI + 1.6 || (dansPoly(ROC_PTS, cx, cz) && auBordPoly(ROC_PTS, cx, cz) < 1.2);
+};
+const hGrille = new Map();
+const hNoeud = (x, z) => { const k = (x + 1024) * 4096 + (z + 1024); let h = hGrille.get(k); if (h === undefined) hGrille.set(k, (h = terrain(x, z))); return h; };
+/** La hauteur du sol dessiné en x, z, et la pente de sa facette là. */
+function solDessine(x, z) {
+  const F = ETENDUE.fin, fine = x >= F.x0 && x < F.x1 && z >= F.z0 && z < F.z1, g = fine ? F : ETENDUE, p = g.pas, leve = fine ? 0.03 : 0;
+  const x0 = g.x0 + Math.floor((x - g.x0) / p) * p, z0 = g.z0 + Math.floor((z - g.z0) / p) * p;
+  if (fine && solDetaille(x0, z0, x0 + p, z0 + p)) {
+    const h = terrain(x, z), d = 0.25;
+    return { h: h + leve, pente: Math.hypot(terrain(x + d, z) - h, terrain(x, z + d) - h) / d };
+  }
+  const fu = (x - x0) / p, fv = (z - z0) / p, ha = hNoeud(x0, z0), hb = hNoeud(x0 + p, z0), hd = hNoeud(x0, z0 + p), hf = hNoeud(x0 + p, z0 + p);
+  return fu + fv <= 1 ? { h: ha + (hb - ha) * fu + (hd - ha) * fv + leve, pente: Math.hypot(hb - ha, hd - ha) / p }
+    : { h: hf + (hd - hf) * (1 - fu) + (hb - hf) * (1 - fv) + leve, pente: Math.hypot(hf - hd, hf - hb) / p };
+}
+
 /**
  * Peut-on être en x, z ? Sur le parvis et le parking, le palier, le balcon, le coin de Bunbuku ; entre les piliers des torii ;
  * sur le plateau de roche. Leurs bords ont tous ce qui arrête (les rampes blanches, la haie, les buissons, la corde, les
@@ -1056,18 +1078,20 @@ export function construire(ctx) {
       return { F, xin };
     };
     /** Un distributeur de boissons (自動販売機), dans le repère R, sa face vers +z : la vitrine éclairée et ses bouteilles, les
-     *  boutons, la fente des pièces, la trappe. */
+     *  boutons, la fente des pièces, la trappe. (2026-10-29, « les distributeurs scintillent » : la plaque des pièces
+     *  chevauchait le bas de la vitrine, dans le même plan ; elle est maintenant 3 cm à côté.) La nuit, sa lumière tombe sur
+     *  le sol devant, sans halo (une boule blanche flottait devant lui). */
     const distributeur = (a, R, lx, lz, F, c) => {
       a.boite(0.95, 1.83, 0.72, c, R(lx, F + 0.915, lz, { nuance: 0.03 }));
       const zf = lz + 0.36;
-      a.boite(0.8, 0.82, 0.02, '#eef3f5', R(lx - 0.05, F + 1.32, zf + 0.008, { sorte: 'lumiere', trait: false }));
+      a.boite(0.72, 0.82, 0.02, '#eef3f5', R(lx - 0.085, F + 1.32, zf + 0.008, { sorte: 'lumiere', trait: false }));
       const BOISSONS = ['#c8302c', '#3a8a4a', '#e88a2a', '#2f6ab0', '#8a5a2a', '#f4f0e6'];
       for (let r = 0; r < 3; r++) for (let k = 0; k < 6; k++) {
-        a.boite(0.075, 0.15, 0.02, BOISSONS[(k + r * 2) % 6], R(lx - 0.39 + k * 0.125 + 0.03, F + 1.06 + r * 0.25, zf + 0.022, { trait: false }))
-          .boite(0.05, 0.022, 0.012, '#3a7ad0', R(lx - 0.39 + k * 0.125 + 0.03, F + 0.97 + r * 0.25, zf + 0.024, { trait: false }));
+        a.boite(0.075, 0.15, 0.02, BOISSONS[(k + r * 2) % 6], R(lx - 0.37 + k * 0.115, F + 1.06 + r * 0.25, zf + 0.022, { trait: false }))
+          .boite(0.05, 0.022, 0.012, '#3a7ad0', R(lx - 0.37 + k * 0.115, F + 0.97 + r * 0.25, zf + 0.024, { trait: false }));
       }
-      a.boite(0.16, 0.42, 0.02, '#3a3a40', R(lx + 0.36, F + 0.98, zf + 0.008, { trait: false })).boite(0.66, 0.16, 0.02, '#26262a', R(lx - 0.08, F + 0.28, zf + 0.008, { trait: false }));
-      lumieres.push({ ...R(lx, F + 1.3, zf + 0.4), halo: 0.2, sol: F, r: 1.6, c: '#e8f4ff' });
+      a.boite(0.14, 0.42, 0.02, '#3a3a40', R(lx + 0.375, F + 0.98, zf + 0.008, { trait: false })).boite(0.66, 0.16, 0.02, '#26262a', R(lx - 0.08, F + 0.28, zf + 0.008, { trait: false }));
+      lumieres.push({ ...R(lx, F + 1.3, zf + 0.4), halo: 0, sol: F, r: 1.6, c: '#e8f4ff' });
     };
     const ab = atelier(), ac = atelier(), y = Y_PARKING;
     // la boutique : l'enseigne de bois clair ; dedans, les étagères de souvenirs le long des murs, la table du milieu, la caisse
@@ -1103,8 +1127,8 @@ export function construire(ctx) {
         ecrire({ x: q.x + 0.007, y, z: q.z + 0.2, ry: PI / 2 }, { texte: 'おみやげ', vertical: true, x: 0, y: 1.85, z: 0, l: 0.28, h: 1.3, fond: null, encre: '#fff4e8' });
         monde.cercle(q.x, q.z + 0.1, 0.42);
       }
-      // la lumière du dedans, par le comptoir ; la nuit, une flaque devant
-      lumieres.push({ ...R(0, F + 2.2, D / 2 + 0.7), halo: 0.3, sol: y, r: 3.2, c: '#ffe2b0' });
+      // la lumière du dedans, par le comptoir ; la nuit, une flaque devant (sans halo : il flottait en boule sous l'avant-toit)
+      lumieres.push({ ...R(0, F + 2.2, D / 2 + 0.7), halo: 0, sol: y, r: 3.2, c: '#ffe2b0' });
       // (la maison : un bloc plein, 27 cm au-delà des murs, 42 devant (le plateau du comptoir avance de 18 cm))
       monde.surface(B.x - D / 2 - 0.6, B.x + D / 2 + 0.42, B.z - W / 2 - 0.27, B.z + W / 2 + 0.27, y + 3.4, { plein: true });
       monde.bloc(B.x - D / 2, B.x + D / 2, B.z - W / 2, B.z + W / 2, y - 1, y + 4.6);
@@ -1124,7 +1148,7 @@ export function construire(ctx) {
       { const q = R(0.9, 0, -D / 2 + 0.192); ecrire({ x: q.x, y: F, z: q.z, ry: R(0, 0, 0).ry }, { texte: 'メニュー', x: 0, y: 1.92, z: 0, l: 1.2, h: 0.24, fond: null, encre: '#f4efe2' }); }
       // le lampion rouge à l'entrée
       { const q = R(-xin + 0.12, 0, D / 2 + 0.3); ac.chochin(q.x, F + 2.3, q.z, 4.5); lumieres.push({ x: q.x, y: F + 2.3, z: q.z, halo: 0.34, sol: y, r: 2.2, c: '#ff9a6a' }); }
-      lumieres.push({ ...R(0, F + 2.2, D / 2 + 0.7), halo: 0.3, sol: y, r: 3.2, c: '#ffe2b0' });
+      lumieres.push({ ...R(0, F + 2.2, D / 2 + 0.7), halo: 0, sol: y, r: 3.2, c: '#ffe2b0' });
       // dehors, devant la fenêtre : le banc rouge (縁台, le feutre rouge dessus), l'ombrelle rouge (野点傘) derrière
       {
         const q0 = R(xin - 0.15, 0, D / 2 + 1.05), q1 = R(1.45, 0, D / 2 + 1.05), xm = (q0.x + q1.x) / 2, zm = (q0.z + q1.z) / 2, lb = Math.hypot(q1.x - q0.x, q1.z - q0.z);
@@ -1363,32 +1387,80 @@ export function construire(ctx) {
     a.piece(geo, '#5a4e56', { couleurs: cols, nuance: 0.06 });
     poser(a.fin(), 0, 0, { y: 0, trait: false });
     // la paroi des falaises (2026-10-29 : « le fond est un peu mal fait / flou » : le relief en grille peignait les falaises en
-    // longues traînées verticales) : une paroi de roche à facettes, posée 30 à 55 cm devant la pente de la falaise, du fond de
-    // l'eau jusque sous le bord du haut, en strates mauves et grises ; tous les 2 m près du lieu, 3,6 m au loin
+    // longues traînées verticales) : une paroi de roche à facettes, du fond de l'eau jusque sous le bord du haut, en strates
+    // mauves et grises ; tous les 2 m près du lieu, 3,6 m au loin. Chaque point avance vers la mer jusqu'à se tenir devant le
+    // sol dessiné, d'une marge qui grandit avec la distance (la deuxième liste : « les falaises scintillent » : posée 30 à
+    // 55 cm devant la courbe du relief, elle était percée par les facettes de 4 m du sol qui la coupent, ou à quelques
+    // centimètres d'elles, et les deux se battaient à l'écran)
     for (const [i0, i1, pas, ombre] of [[6, 34, 2.0, true], [34, 41, 3.6, false]]) {
       const ap = atelier(), pp = [], cp = [];
       const RANGS = [-1.3, -0.2, 0.8, 1.6, 2.3, 2.9];
       const strate = (y, x, z) => (y < 0.7 ? '#4a4048' : ['#7d6b77', '#6e5e68', '#8a7882', '#74646e'][Math.floor((y + 1.6 * bruitDoux(x * 0.07, z * 0.07, 2)) / 1.6) % 4]);
-      let avant = null;
+      // (l'écart d'un point au plan de la facette du sol sous lui : positif devant, négatif si le sol passe devant)
+      const devant = (x, y, z) => { const q = solDessine(x, z); return (y - q.h) / Math.sqrt(1 + q.pente * q.pente); };
+      // les colonnes, du fond de l'eau au haut de la falaise
+      const colonnes = [];
       for (let i = i0; i < i1; i++) {
         const [xa, za] = COTE[i], [xb, zb] = COTE[i + 1], l = Math.hypot(xb - xa, zb - za), n = Math.max(1, Math.round(l / pas));
-        let nx = (zb - za) / l, nz = -(xb - xa) / l;
+        const tx = (xb - xa) / l, tz = (zb - za) / l;
+        let nx = tz, nz = -tx;
         if (cote((xa + xb) / 2 + nx * 2, (za + zb) / 2 + nz * 2) > 0) { nx = -nx; nz = -nz; }
         for (let k = 0; k < n; k++) {
-          const f = k / n, px = xa + (xb - xa) * f, pz = za + (zb - za) * f;
+          const f = k / n, px = xa + (xb - xa) * f, pz = za + (zb - za) * f, marge = 0.12 + 0.0012 * Math.hypot(px, pz + 20);
           const col = RANGS.map((d, r) => {
-            const sx = px - nx * d, sz = pz - nz * d, haut = r === RANGS.length - 1, e = haut ? 0.08 : 0.32 + 0.1 * hasard(px * 3.1 + r, pz * 1.7);
-            return [sx + nx * e, terrain(sx, sz) - (haut ? 0.06 : (hasard(r * 7.3 + px, pz) - 0.5) * 0.14), sz + nz * e];
-          });
-          if (avant && Math.hypot(col[0][0] - avant[0][0], col[0][2] - avant[0][2]) < pas * 2.5) {
-            for (let r = 0; r + 1 < RANGS.length; r++) {
-              // (une couleur par case, de la strate de sa hauteur : des bandes, pas une mosaïque de triangles)
-              const A = avant[r], B = col[r], C = col[r + 1], D = avant[r + 1], h = [nx, 0.35, nz], c = strate((A[1] + B[1] + C[1] + D[1]) / 4, px, pz);
-              tri(pp, cp, A, B, C, c, h);
-              tri(pp, cp, A, C, D, c, h);
+            const sx = px - nx * d, sz = pz - nz * d, haut = r === RANGS.length - 1;
+            const y = haut ? Math.min(terrain(sx, sz), solDessine(sx, sz).h) - 0.1 : terrain(sx, sz) - (hasard(r * 7.3 + px, pz) - 0.5) * 0.14;
+            // (devant le sol ici et à mi-chemin des colonnes voisines, à la même hauteur)
+            let e = haut ? 0.08 : 0.32 + 0.1 * hasard(px * 3.1 + r, pz * 1.7);
+            for (let essai = 0; essai < 10 && e < 4; essai++) {
+              const ex = sx + nx * e, ez = sz + nz * e, pire = Math.min(devant(ex, y, ez), devant(ex - tx * pas * 0.5, y, ez - tz * pas * 0.5), devant(ex + tx * pas * 0.5, y, ez + tz * pas * 0.5));
+              if (pire >= marge) break;
+              e += marge - pire + 0.05;
             }
+            return [sx + nx * e, y, sz + nz * e];
+          });
+          const prec = colonnes[colonnes.length - 1];
+          // (reliée à la précédente si leurs points de la côte sont voisins : les points avancés, eux, peuvent s'écarter)
+          colonnes.push({ col, nx, nz, px, pz, marge, lie: !!prec && Math.hypot(px - prec.px, pz - prec.pz) < pas * 2.5 });
+        }
+      }
+      // puis chaque case, ses deux triangles (A, B, C) et (A, C, D) : le milieu de leurs bords et leur centre, au-dessus de
+      // l'eau, devant le sol ; sinon ses coins avancent encore (au plus 1,5 m de plus)
+      const POIDS = [[0.5, 0.5, 0, 0], [0, 0.5, 0.5, 0], [0, 0, 0.5, 0.5], [0.5, 0, 0, 0.5], [0.5, 0, 0.5, 0], [1 / 3, 1 / 3, 1 / 3, 0], [1 / 3, 0, 1 / 3, 1 / 3]];
+      const pousse = new Map();
+      for (let tour = 0; tour < 3; tour++) {
+        const besoin = new Map();
+        for (let c = 1; c < colonnes.length; c++) {
+          const P0 = colonnes[c - 1], Q = colonnes[c];
+          if (!Q.lie) continue;
+          for (let r = 0; r + 1 < RANGS.length; r++) {
+            const coins = [P0.col[r], Q.col[r], Q.col[r + 1], P0.col[r + 1]], m = Math.max(P0.marge, Q.marge);
+            let pire = Infinity;
+            for (const w of POIDS) {
+              const x = w[0] * coins[0][0] + w[1] * coins[1][0] + w[2] * coins[2][0] + w[3] * coins[3][0], y = w[0] * coins[0][1] + w[1] * coins[1][1] + w[2] * coins[2][1] + w[3] * coins[3][1];
+              const z = w[0] * coins[0][2] + w[1] * coins[1][2] + w[2] * coins[2][2] + w[3] * coins[3][2];
+              if (y > -0.3) pire = Math.min(pire, devant(x, y, z));
+            }
+            if (pire >= m) continue;
+            coins.forEach((V, q) => besoin.set(V, [Math.max(besoin.get(V)?.[0] || 0, m - pire + 0.05), q < 1 || q > 2 ? P0 : Q]));
           }
-          avant = col;
+        }
+        if (!besoin.size) break;
+        for (const [V, [de, S]] of besoin) {
+          const d = Math.min(de, 1.5 - (pousse.get(V) || 0));
+          if (d <= 0) continue;
+          V[0] += S.nx * d; V[2] += S.nz * d;
+          pousse.set(V, (pousse.get(V) || 0) + d);
+        }
+      }
+      for (let c = 1; c < colonnes.length; c++) {
+        const P0 = colonnes[c - 1], Q = colonnes[c];
+        if (!Q.lie) continue;
+        for (let r = 0; r + 1 < RANGS.length; r++) {
+          // (une couleur par case, de la strate de sa hauteur : des bandes, pas une mosaïque de triangles)
+          const A = P0.col[r], B = Q.col[r], C = Q.col[r + 1], D = P0.col[r + 1], h = [Q.nx, 0.35, Q.nz], c2 = strate((A[1] + B[1] + C[1] + D[1]) / 4, Q.px, Q.pz);
+          tri(pp, cp, A, B, C, c2, h);
+          tri(pp, cp, A, C, D, c2, h);
         }
       }
       const gp = new THREE.BufferGeometry();
@@ -1932,11 +2004,8 @@ export function construire(ctx) {
     },
     aspectSol: (x, z, h) => aspectSol(P, x, z, h),
     // (le sol en cases de 25 cm le long du chemin des torii et au bord des falaises du plateau)
-    solDetaille: (x0, z0, x1, z1) => {
-      const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
-      return surLigne(cx, cz).d < DEMI + 1.6 || (dansPoly(ROC_PTS, cx, cz) && auBordPoly(ROC_PTS, cx, cz) < 1.2);
-    },
-    etendue: { x0: -720, x1: 720, z0: -720, z1: 720, pas: 4, fin: { x0: -64, x1: 60, z0: -84, z1: 64, pas: 1 } },
+    solDetaille,
+    etendue: ETENDUE,
     eau: { x0: -1400, x1: 1400, z0: -1400, z1: 140, niveau: 0, clair: '#5fc4c0', profond: '#1f5c9e' },
     centreRive: [0, -40],
     vent: { dir: [0.35, 0.94], force: 1.0 }, oiseaux: ['milan', 'mouette'], ambiances: ['vagues', 'insectes'],
