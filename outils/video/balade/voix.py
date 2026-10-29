@@ -1,4 +1,4 @@
-"""La voix off des vidéos de la balade 3D, générée le 2026-10-26 (le 2026-10-27 pour la vidéo du Pavillon d'or, le 2026-10-28 pour Beppu) avec Flora (le connecteur du propriétaire) :
+"""La voix off des vidéos de la balade 3D, générée le 2026-10-26 (le 2026-10-27 pour la vidéo du Pavillon d'or, le 2026-10-28 pour Beppu, le 2026-10-29 pour Motonosumi) avec Flora (le connecteur du propriétaire) :
 ElevenLabs v4, voix « Sarah » (celle de la promo de 30 s et de la vidéo « tunnel »), en anglais, stabilité 0,45
 (environ 0,05 $ la réplique). Ce script les retélécharge dans videos/balade/public/voix (pas dans git) et resserre
 chacune dans voix/court/<nom>.wav : silences du début et de la fin coupés, pauses ramenées à 0,2 s, un peu accélérée
@@ -65,6 +65,13 @@ VOIX = {
     # trop pour un plan de trois temps (1,67 s à 108 battements) ; dans une énumération, la voix va plus vite)
     'f1': ('m17c9nwwms3hn2m7mekrjk67gd8h42c6', 'Boil eggs in a blue hell, watch the mud bubble, hear an oni snore, meet the big red demon,', 1.2, 28),
     'f2': ('m17anx8gekgjcs3fdbyz6as1z98h5vgm', 'see a milky white pond, a pond of blood... and a geyser under a stone roof!', 1.2, 28),
+    # vidéo 6 : le sanctuaire Motonosumi (2026-10-29 ; la liste d'une traite, comme pour Beppu)
+    'g1': ('m17ey88746sm685958frz85v9h8h7j7t', 'I rebuilt Motonosumi Shrine... in my video game!', 1.0, 29),
+    'g2': ('m17erc274jqw18mwv04ba1f44h8h6a7r', 'Walk down a hundred and twenty-three red torii, toss a coin into the box on top of the gate, watch the sea burst from the rocks, and feed tofu to the stone foxes!', 1.15, 29),
+    'g3': ('m170y0g1wefzk6g32c35hzqk418h7zg0', 'Get all five stamps... and earn fox ears and a tail!', 1.0, 29),
+    'g4': ('m17d0jrbjn78exj0q9sbgdzwvn8h736w', "But some nights... there's one torii too many.", 1.0, 29),
+    'g5': ('m1769ntkj9wkgtmgk519za8gy18h6g75', 'Can you find it?', 1.0, 29),
+    'g6': ('m17adrb51satm9b7cnc756a65n8h64h1', 'Motonosumi, in 3D. Link in bio.', 1.0, 29),
 }
 # Les répliques coupées à leurs pauses (secondes dans voix/court/<nom>.wav, mesurées le 2026-10-26) : chaque morceau
 # se place avec son texte à l'écran. Sans ça, une réplique entière débordait sur la suivante (elles se superposaient)
@@ -86,6 +93,12 @@ COUPES = {
     'f2': {'f2a': (0, 1.53), 'f2b': (1.80, 3.00), 'f2c': (3.28, None)},  # see a milky white pond, / a pond of blood... / and a geyser under a stone roof!
     'e10': {'e10a': (0, 1.56), 'e10b': (1.68, None)},  # Get all five stamps... / and earn the oni horns!
     'e14': {'e14a': (0, 0.62), 'e14b': (0.74, 1.86), 'e14c': (2.02, None)},  # Beppu, / in 3D. / Link in bio.
+    # (Motonosumi, 2026-10-29)
+    'g1': {'g1a': (0, 2.05), 'g1b': (2.17, None)},  # I rebuilt Motonosumi Shrine... / in my video game!
+    'g2': {'g2a': (0, 2.50), 'g2b': (2.62, 4.90), 'g2c': (5.00, 7.03), 'g2d': (7.18, None)},  # Walk down a hundred and twenty-three red torii, / toss a coin into the box on top of the gate, / watch the sea burst from the rocks, / and feed tofu to the stone foxes!
+    'g3': {'g3a': (0, 1.66), 'g3b': (1.76, None)},  # Get all five stamps... / and earn fox ears and a tail!
+    'g4': {'g4a': (0, 1.38), 'g4b': (1.47, None)},  # But some nights... / there's one torii too many.
+    'g6': {'g6a': (0, 0.90), 'g6b': (1.02, 2.10), 'g6c': (2.20, None)},  # Motonosumi, / in 3D. / Link in bio.
 }
 
 

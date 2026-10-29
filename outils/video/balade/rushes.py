@@ -101,6 +101,17 @@ PRISES = {
     'bp-pierre': {'lieu': 'beppu', 'ui': 'rien'},
     'bp-lancer': {'lieu': 'beppu', 'ui': 'rien', 'garder': [[1.5, 7.5]], 'stockage': {'baladeSecrets': {'trouves': [], 'indices': ['ippen', 'ippen-p1']}}},
     'bp-nuit': {'lieu': 'beppu', 'ui': 'rien', 'stockage': IPPEN_FINI},
+    # Vidéo 6 : le sanctuaire Motonosumi (les textes du jeu cachés ; le secret pas trouvé : la nuit, le 124e torii est là)
+    'mt-vue': {'lieu': 'motonosumi', 'ui': 'rien'},
+    'mt-tunnel': {'lieu': 'motonosumi', 'ui': 'rien'},
+    'mt-piece': {'lieu': 'motonosumi', 'ui': 'rien', 'stockage': {'baladeTampons': {'motonosumi': ['saisen']}}},
+    'mt-souffle': {'lieu': 'motonosumi', 'ui': 'rien'},
+    'mt-kitsune': {'lieu': 'motonosumi', 'ui': 'rien', 'garder': [[0, 5.5], [8, 12.5]], 'stockage': {'baladeTampons': {'motonosumi': ['vue', 'saisen', 'torii', 'shiofuki']}}},
+    'mt-renard': {'lieu': 'motonosumi', 'ui': 'rien', 'stockage': {'baladeTampons': {'motonosumi': ['vue', 'saisen', 'torii', 'shiofuki', 'kitsune']},
+                                                               'baladeTenue': {'fille': {'tete': 'renard'}}, 'baladeTenuesVues': ['renard']}},
+    'mt-nuit': {'lieu': 'motonosumi', 'ui': 'rien'},
+    'mt-124': {'lieu': 'motonosumi', 'ui': 'rien'},
+    'mt-fin': {'lieu': 'motonosumi', 'ui': 'rien'},
 }
 DEFAUT = {'perso': 'fille', 'compagnon': 'kon', 'stockage': {}, 'ui': 'dialogue'}
 

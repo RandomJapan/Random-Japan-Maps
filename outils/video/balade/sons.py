@@ -26,7 +26,9 @@ CALCULES = ['pouf', 'cri/kon', 'cri/pon', 'cri/chapu', 'cri/gao', 'cri/fuwa', 'c
             # (Kinkaku-ji : la pièce lancée, le bol où elle tinte, le fouet du thé, le pinceau, les sceaux, le gong, les cigales)
             'piece', 'bol', 'chasen', 'pinceau', 'tampon', 'waniguchi', 'papier', 'boucle/semi',
             # (Beppu : la grosse bulle de boue, le four à vapeur, le ronflement du démon, le geyser, les fumerolles)
-            'bulle', 'pschitt', 'oiseau/ronfle', 'oiseau/geyser', 'boucle/vapeur']
+            'bulle', 'pschitt', 'oiseau/ronfle', 'oiseau/geyser', 'boucle/vapeur',
+            # (Motonosumi : la pièce qui tombe dans le tronc, celle qui le manque, le souffle du dragon, les vagues)
+            'saisen', 'tombe', 'oiseau/shiofuki', 'boucle/vagues']
 # (deux sons du même nom : le « tampon » de bruitage-calcul.js, les deux sceaux du goshuin, devient sceaux.wav ; celui de
 # son.js, la petite note du carnet, reste tampon.wav)
 RENOMMER = {'tampon': 'sceaux'}

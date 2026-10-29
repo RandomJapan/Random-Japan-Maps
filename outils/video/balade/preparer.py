@@ -38,6 +38,12 @@ REELS = {
     'beppu': ('Hells of Beppu.mp4', 34.3, 1.5, 0.8),
     'bp-boue': ('Hells of Beppu.mp4', 9.3, 1.5),
     'bp-sang': ('Hells of Beppu.mp4', 18.8, 1.5),
+    # le sanctuaire Motonosumi (vidéo 6) : les torii qui serpentent jusqu'à la mer, la descente dans le tunnel de torii, le grand
+    # torii et son tronc des offrandes, la mer qui jaillit (pas les plans du début, où le titre « Motonosumi Shrine » est incrusté)
+    'motonosumi': ('Motonosumi Shrine.mp4', 6.45, 1.5, 0.75),
+    'mt-tunnel': ('Motonosumi Shrine.mp4', 24.15, 1.6),
+    'mt-otorii': ('Motonosumi Shrine.mp4', 11.45, 1.5),
+    'mt-souffle': ('Motonosumi Shrine.mp4', 27.9, 1.5),
 }
 SFX = {
     'promo30': ['whoosh-fast', 'swoosh-quick', 'air-whoosh-powerful', 'zoom-air-fast', 'transition-snap', 'impact-deep-whoosh',

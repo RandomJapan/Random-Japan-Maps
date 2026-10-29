@@ -20,7 +20,8 @@ ICI = Path(__file__).resolve().parent
 MONTAGE = ICI / 'montage'
 SORTIE = ICI.parents[2] / 'videos' / 'balade'
 NOMS = {'BaladeTour': 'balade-3d-les-5-lieux', 'BaladeTakachiho': 'balade-3d-takachiho', 'BaladeSecrets': 'balade-3d-secrets',
-        'BaladeKinkakuji': 'balade-3d-kinkakuji', 'BaladeBeppu': 'balade-3d-beppu'}
+        'BaladeKinkakuji': 'balade-3d-kinkakuji', 'BaladeBeppu': 'balade-3d-beppu',
+        'BaladeMotonosumi': 'balade-3d-motonosumi'}
 
 
 def ffmpeg():

@@ -725,6 +725,120 @@
         o.cadre(...o.chemin([[0, [44, 4.2, 5.0], [16, 1.4, -1.0], 50], [7, [40, 4.0, 4.4], [14, 1.6, -1.0], 48]], t));
       },
     },
+
+    // ================================================================ Vidéo 6 : le sanctuaire Motonosumi (2026-10-29)
+    // (les objets de motonosumi.js, trouvés par leurs méthodes : le souffle du dragon (jaillir), le tronc des offrandes (lancer :
+    // son cercle doré est le premier enfant de son objet), le tofu des renards (poser, briller))
+    // les 123 torii rouges qui serpentent sur la pente jusqu'à la mer, du balcon des photos (le plan qui répond à la vidéo du
+    // propriétaire) ; le voyageur et son compagnon au bord du balcon
+    'mt-vue': {
+      duree: 7,
+      preparer(o) { o.placer(-8.2, 11.4, 6, -20, { compagnon: false }); o.compagnon(-9.4, 11.6, 2.6); },
+      chaque(t, dt, o) {
+        // (au premier brouillon, plus à droite : la deuxième branche du chemin en bande au milieu, de l'herbe partout)
+        o.cadre(...o.chemin([[0, [-7.5, 31, 13.5], [28, 17, -9], 44], [7, [-6.8, 30.6, 12.6], [28, 17, -9], 42]], t));
+      },
+    },
+    // la descente dans le tunnel de torii : le voyageur descend les marches vers le plateau et la mer, la caméra derrière lui,
+    // sous les linteaux (le bas du chemin, après la place du 124e torii, vide le jour)
+    'mt-tunnel': {
+      duree: 6,
+      preparer(o) { o.placer(8.66, -16.95, 6.88, -17.87, { compagnon: false }); o.compagnon(9.6, -16.5, -2.0); o.cap = e.cap; },
+      debut(o) {
+        o.jeu.marcher([[o.e.x, o.e.z], [6.88, -17.87], [5.13, -18.84], [3.42, -19.87], [1.74, -20.96], [0.1, -22.09], [-1.51, -23.28], [-3.07, -24.53],
+          [-4.58, -25.84], [-6.03, -27.22], [-7.38, -28.7], [-8.68, -30.22]], 2.6);
+      },
+      chaque(t, dt, o) {
+        // (le cap lissé : la caméra ne tremble pas à chaque pas)
+        o.cap += (((e.cap - o.cap + PI) % (2 * PI) + 2 * PI) % (2 * PI) - PI) * Math.min(1, dt * 4);
+        const sx = Math.sin(o.cap), sz = Math.cos(o.cap);
+        o.cadre([e.x - sx * 2.6, e.y + 1.75, e.z - sz * 2.6], [e.x + sx * 5, e.y + 0.1, e.z + sz * 5], 62);
+      },
+    },
+    // la pièce lancée dans le tronc des offrandes, tout en haut du grand torii : A quand le cercle doré est sur le tronc (le
+    // tampon déjà eu : pas de tampon ici)
+    'mt-piece': {
+      duree: 7,
+      preparer(o) { o.placer(0, 12.15, 0, 14.6, { compagnon: false }); o.compagnon(-2.2, 10.6, 0.4); o.lance = false; o.vu = null; },
+      quand: [[0.2, (o) => o.agir('saisen')]],
+      chaque(t, dt, o) {
+        o.lire(t, { delai: 0.3, choix: 0 });
+        const anneau = o.M().lieu.animes.find((a) => a.lancer && a.jouer).objet.children[0];
+        if (anneau.visible && !o.lance) {
+          if (o.vu === null) o.vu = t;
+          // (le tronc est à 30,72 m ; la pièce y entre si le cercle est à moins de 20 cm de 30,84 m)
+          if (t - o.vu > 1.0 && Math.abs(anneau.position.y - 30.84) < 0.05) { o.lance = true; o.appuyer(); }
+        }
+        // (de derrière, à quatre mètres du chemin des torii : le voyageur en bas, le tronc au tiers de l'image, sous la légende, la
+        // pièce qui monte ; aux premiers brouillons, un touriste au milieu, le voyageur coupé au bord, le tronc tout en haut sous
+        // la légende ; dans le chemin, ses linteaux cachaient tout)
+        for (const id of ['touriste', 'touriste2']) { const k = o.passant(id); if (k) { k.etat.x = 12; k.etat.z = 28; } }
+        o.cadre(...o.chemin([[0, [4.0, 27.0, 9.0], [-0.2, 29.0, 13.3], 63], [7, [3.9, 27.0, 9.3], [-0.2, 29.1, 13.3], 61]], t));
+      },
+    },
+    // le souffle du dragon (龍宮の潮吹) : la mer jaillit de la crique, au pied de la falaise ; vu de la mer (de près, l'écume
+    // couvrait le haut de l'image)
+    'mt-souffle': {
+      duree: 6,
+      preparer(o) { o.placer(16.2, -39.6, 23.3, -40.2); },
+      quand: [[0.2, (o) => o.M().lieu.animes.find((a) => a.jaillir && a.actif).jaillir(true)]],
+      chaque(t, dt, o) {
+        // (visé plus haut qu'au premier brouillon : au plus fort, l'écume montait jusqu'au bord de l'image, sous la légende)
+        o.cadre(...o.chemin([[0, [36, 12, -60], [22, 11, -39], 48], [6, [34.6, 11.6, -58.4], [22, 11, -39], 46]], t));
+      },
+    },
+    // le tofu frit offert aux renards de pierre du sanctuaire : leurs yeux brillent ; puis le cinquième tampon et la carte de la
+    // récompense (les quatre autres déjà eus)
+    'mt-kitsune': {
+      duree: 30,
+      preparer(o) { o.jeu.donner('aburaage'); o.placer(-6.2, 23.0, -10.2, 23.0); o.compagnon(-6.2, 22.1, -PI / 2); o.libre = false; },
+      quand: [[0.3, (o) => o.agir('offrande')]],
+      chaque(t, dt, o) {
+        // (les deux pages de l'offrande passées vite : les yeux des renards brillent dans le plan ; ensuite, au rythme du jeu)
+        if (t < 2.6) { if (o.dialogue()) o.taper(t, 0.25); } else o.lire(t, { delai: 0.7 });
+        // (pendant l'offrande : de derrière et d'en haut, le voyageur entre les deux renards de pierre, qui regardent la caméra, le
+        // plat au-dessus de son chapeau ; la caméra du jeu, de biais, montrait surtout un palmier ; de côté, un renard cachait tout.
+        // Le compagnon assis à côté du voyageur : devant la caméra, il cachait tout. Ensuite, la caméra du jeu)
+        if (t < 3) o.cadre(...o.chemin([[0, [-0.6, 30.6, 23.0], [-8.0, 26.6, 23.0], 58], [3, [-1.2, 30.3, 23.0], [-8.0, 26.6, 23.0], 56]], t));
+        else if (!o.libre) { o.libre = true; o.cadre(null); }
+      },
+    },
+    // les oreilles et la queue de renard : le voyageur traverse le parvis vers le grand torii, vu de trois quarts dos (la queue se
+    // balance quand il marche)
+    'mt-renard': {
+      duree: 5,
+      preparer(o) { o.placer(3.2, 22.4, 0, 15.2, { compagnon: false }); o.compagnon(9.5, 27.5, -0.6); },
+      debut(o) { o.tenir('KeyW'); },
+      chaque(t, dt, o) {
+        o.viser(0, 15.2, 0.2);
+        o.cadre([e.x + 1.9, e.y + 1.45, e.z + 2.9], [e.x - 0.4, e.y + 0.75, e.z - 1.6], 46);
+      },
+    },
+    // la nuit : les torii vus du balcon, sous la lune ; au loin, une petite flamme bleue (le secret, montré sans être résolu)
+    'mt-nuit': {
+      duree: 7,
+      async preparer(o) { o.placer(-8.2, 11.4, 6, -20, { compagnon: false }); o.compagnon(-9.4, 11.6, 2.6); await o.nuitTout(true); },
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [-2, 19, -36], [12, 15, -14], 44], [7, [-1.4, 18.6, -34.8], [12, 15, -14], 42]], t));
+      },
+    },
+    // le 124e torii : plus pâle que les autres, une flamme bleue qui danse au-dessus de lui ; vu du bas de la pente
+    'mt-124': {
+      duree: 7,
+      async preparer(o) { o.placer(-3.07, -24.53, -1.51, -23.28, { compagnon: false }); o.compagnon(-3.8, -25.4, 0.8); await o.nuitTout(true); },
+      chaque(t, dt, o) {
+        // (d'en bas de la pente, sa flamme sur le ciel étoilé ; d'en haut, au premier brouillon, elle se perdait dans l'herbe)
+        o.cadre(...o.chemin([[0, [13.35, 13.8, -20.2], [9.35, 15.6, -16.6], 50], [7, [13.0, 13.9, -19.9], [9.35, 15.6, -16.6], 46]], t));
+      },
+    },
+    // la fin : du plateau de roche, le chemin des torii rouges qui monte vers le ciel, le jour
+    'mt-fin': {
+      duree: 7,
+      preparer(o) { o.placer(-8.2, 11.4, 6, -20, { compagnon: false }); o.compagnon(-9.4, 11.6, 2.6); },
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [-13, 10.5, -37], [8, 18, -14], 50], [7, [-12.4, 10.6, -36.0], [8, 18.4, -14], 48]], t));
+      },
+    },
   };
 
   // ---------------------------------------------------------------- le déroulé
