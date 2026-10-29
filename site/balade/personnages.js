@@ -1383,8 +1383,9 @@ export function creerPersonnage(ctx, T) {
     const ry = Math.asin(lx / R), rx = -Math.asin(ly / (R * Math.cos(ry))), z = Math.sqrt(R * R - lx * lx - ly * ly) + ecart;
     return { x: lx, y: CY + ly, z, rx, ry };
   };
+  const machoire = (x, y, z) => (y < 0 ? [x * (1 + 0.14 * (y / R)), y * 1.03, z * (1 + 0.05 * (y / R))] : [x, y, z]);
   const t = atelier()
-    .ovale(R, T.peau, { y: CY, sx: 1.04, deformer: (x, y, z) => (y < 0 ? [x * (1 + 0.14 * (y / R)), y * 1.03, z * (1 + 0.05 * (y / R))] : [x, y, z]) }, 18)
+    .ovale(R, T.peau, { y: CY, sx: 1.04, deformer: machoire }, 18)
     .ovale(0.05, T.peau, { x: -0.3, y: 0.22, sz: 0.6 }, 8)
     .ovale(0.05, T.peau, { x: 0.3, y: 0.22, sz: 0.6 }, 8);
   const SOURCILS = T.coiffure === 'chauve' || /^#[cdef]/i.test(T.cheveux || '') ? '#8a7f74' : T.cheveux;
@@ -1456,8 +1457,15 @@ export function creerPersonnage(ctx, T) {
   }
   const C1 = T.cheveux;
   if (T.coiffure === 'chauve') {
-    // le crâne dégarni : une couronne de cheveux sur les côtés et derrière
-    t.piece(new THREE.TorusGeometry(0.27, 0.065, 6, 18, PI * 1.25), C1, { y: 0.22, z: -0.02, rx: PI / 2, rz: PI * 0.125 });
+    // le crâne dégarni : une couronne de cheveux derrière et sur les côtés, d'une tempe à l'autre, au-dessus des oreilles
+    // (un peu plus bas derrière, vers la nuque), ses deux bouts arrondis ; le front et le visage dégagés. (Avant le
+    // 2026-10-29, l'arc tournait du mauvais côté : la couronne passait devant le visage, à la hauteur des yeux — « la
+    // calvitie au milieu des yeux » — et s'ouvrait derrière.)
+    const ARC = PI * 1.2, PENTE = 0.2, RC = 0.27, Y0 = CY + 0.05, zb = -RC * Math.cos(ARC / 2);
+    t.piece(new THREE.TorusGeometry(RC, 0.065, 8, 18, ARC), C1, { y: Y0, rx: PI / 2 - PENTE, rz: -PI / 2 - ARC / 2 });
+    for (const s of [-1, 1]) t.ovale(0.065, C1, { x: s * RC * Math.sin(ARC / 2), y: Y0 + zb * Math.sin(PENTE), z: zb * Math.cos(PENTE) }, 10);
+    // sous elle, derrière les oreilles, les cheveux descendent jusqu'à la nuque (seule, de dos, on aurait dit un bandeau)
+    t.piece(new THREE.SphereGeometry(R * 1.027, 10, 5, PI * 1.11, PI * 0.78, PI * 0.5, PI * 0.28), C1, { y: CY, sx: 1.04, deformer: machoire });
   } else if (T.coiffure !== 'rase') {
     // une calotte inclinée vers l'arrière (le front dégagé) et des mèches sur le front
     t.piece(new THREE.SphereGeometry(0.318, 18, 10, 0, 2 * PI, 0, PI * 0.56), C1, { y: 0.25, rx: -0.42 });
