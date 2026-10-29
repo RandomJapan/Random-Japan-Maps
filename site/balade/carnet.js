@@ -242,6 +242,32 @@ const MOTIFS = {
     <circle cx="34" cy="54" r="3"/><circle cx="88" cy="52" r="3.4"/><circle cx="44" cy="30" r="2.4"/><circle cx="78" cy="28" r="2.6"/><circle cx="60" cy="12" r="3"/>
     <path d="M4 108 L18 80 L38 86 L48 108 Z M72 108 L84 82 L102 78 L116 108 Z"/>
     <path d="M56 50 Q60 44 64 50" class="vide" fill="none" stroke-width="2.4"/>`,
+  // les Trente Bouddhas (2026-10-29) : la mer de nuages et les pointes des cèdres ; la sandale de paille des Nio ; la cloche
+  // du temple et son tronc ; un bouddha assis dans son halo, sa bougie ; l'écho : quelqu'un qui appelle, la falaise qui répond
+  unkai: `<path d="M28 54 L37 28 L46 54 Z M53 48 L64 16 L75 48 Z M80 56 L89 34 L98 56 Z"/><circle cx="100" cy="18" r="7"/>
+    <path d="M6 60 Q18 50 30 60 Q42 50 54 60 Q66 50 78 60 Q90 50 102 60 Q110 54 114 60 L114 72 L6 72 Z"/>
+    <path d="M10 84 Q24 76 38 84 Q52 76 66 84 Q80 76 94 84 Q104 78 112 84" fill="none" stroke-width="3.6" stroke-linecap="round"/>
+    <path d="M22 100 Q36 92 50 100 Q64 92 78 100 Q90 94 100 100" fill="none" stroke-width="3.2" stroke-linecap="round"/>`,
+  waraji: `<path d="M60 10 Q84 12 86 46 Q88 84 72 104 Q60 114 48 104 Q32 84 34 46 Q36 12 60 10 Z"/>
+    <path d="M44 28 H76 M41 42 H79 M41 56 H79 M43 70 H77 M47 84 H73 M52 96 H68" class="vide" fill="none" stroke-width="2.6"/>
+    <path d="M60 18 V100" class="vide" fill="none" stroke-width="2"/>
+    <path d="M35 38 Q20 42 24 58 M85 38 Q100 42 96 58 M60 12 Q60 2 52 4" fill="none" stroke-width="3.4" stroke-linecap="round"/>`,
+  kane: `<path d="M54 14 Q54 4 60 4 Q66 4 66 14" fill="none" stroke-width="4"/>
+    <path d="M40 22 Q40 14 48 14 L72 14 Q80 14 80 22 L84 92 Q86 98 92 100 L28 100 Q34 98 36 92 Z"/>
+    <rect x="38" y="56" width="45" height="3" class="vide"/><rect x="58" y="16" width="3" height="40" class="vide"/>
+    ${[44, 51, 68, 75].map((x) => [26, 34, 42].map((y) => `<circle cx="${x}" cy="${y}" r="1.9" class="vide"/>`).join('')).join('')}
+    <circle cx="60" cy="78" r="6" class="vide"/><circle cx="60" cy="78" r="2.4"/>
+    <rect x="92" y="74" width="26" height="9" rx="4"/><path d="M98 74 V52 M112 74 V52" fill="none" stroke-width="2.4"/>`,
+  hotoke: `<circle cx="58" cy="40" r="27" fill="none" stroke-width="4"/><circle cx="58" cy="39" r="11"/><circle cx="58" cy="26" r="5"/>
+    <path d="M42 60 Q58 50 74 60 L78 86 L38 86 Z"/><path d="M22 90 Q58 78 94 90 Q90 100 58 100 Q26 100 22 90 Z"/>
+    <path d="M28 104 Q38 96 48 104 Q58 96 68 104 Q78 96 88 104 L88 112 L28 112 Z"/>
+    <path d="M52 70 Q58 66 64 70" class="vide" fill="none" stroke-width="2.2"/>
+    <path d="M106 94 Q100 84 106 74 Q112 84 106 94 Z"/><rect x="102" y="96" width="8" height="16"/>`,
+  yamabiko: `<path d="M84 8 L116 8 L116 116 L76 116 Q86 96 80 80 Q92 64 84 48 Q94 30 84 8 Z"/>
+    <circle cx="20" cy="62" r="7"/><path d="M13 72 L27 72 L30 102 L10 102 Z"/>
+    <path d="M36 52 Q44 64 36 76 M46 46 Q56 64 46 82 M56 40 Q68 64 56 88" fill="none" stroke-width="3.4" stroke-linecap="round"/>
+    <path d="M72 50 Q65 64 72 78" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="3 4"/>
+    <path d="M90 30 Q96 36 92 44 M94 70 Q100 76 96 84" class="vide" fill="none" stroke-width="2"/>`,
   aburaage: `<path d="M30 46 L34 12 L52 36 L68 36 L86 12 L90 46 Q92 70 60 92 Q28 70 30 46 Z"/>
     <path d="M37 20 L40 36 L48 38 Z M83 20 L80 36 L72 38 Z" class="vide"/>
     <path d="M40 54 L54 58 L42 62 Z M80 54 L66 58 L78 62 Z" class="vide"/><ellipse cx="60" cy="80" rx="5" ry="3.6" class="vide"/>

@@ -142,6 +142,45 @@ export function collierMagatama(THREE, a, { bas = 0.735, avant = 0.014, rayon = 
   return a;
 }
 
+/**
+ * L'étole du yamabushi (結袈裟) et sa conque (法螺貝) : la récompense des Trente Bouddhas (2026-10-29). Une bande blanche
+ * passée derrière la nuque qui descend en deux bandes sur la poitrine, six pompons de laine (梵天), trois sur chacune, et
+ * une conque pendue devant, à la taille, sa housse bleue. Les mêmes mesures que le collier de magatama (le buste).
+ */
+export function etoleYamabushi(THREE, a, { avant = 0.014, rayon = (y) => 0.15 + 0.022 * Math.min(1, Math.max(0, (0.8 - y) / 0.25)), aplati = 0.9 } = {}) {
+  const PI = Math.PI, BANDE = '#f4f1e8', POMPON = '#fbf9f2', POMPON2 = '#ece6d6', CORDON = '#8a6a3a';
+  // (2026-10-29 : d'abord une bande en U autour du cou et de petits pompons sans trait : sur la fille, un collier de perles
+  // grises qu'on ne voyait pas ; maintenant deux bandes qui descendent sur la poitrine, comme le vrai yuigesa, de gros pompons
+  // cernés d'encre, et la conque devant, à la taille)
+  const buste = (x, y) => { const r = rayon(y); return aplati * r * Math.sqrt(Math.max(0, 1 - (x / r) ** 2)); };
+  const devant = (x, y, e = 0) => [x, y, buste(x, y) + avant + e];
+  // la bande : du bas de la poitrine, à droite, jusqu'à l'épaule, autour de la nuque, puis à gauche jusqu'en bas
+  const pts = [];
+  for (let k = 0; k <= 5; k++) pts.push(devant(0.074, 0.6 + k * 0.05));
+  for (let k = 1; k < 12; k++) { const t = PI / 2 - (k / 12) * PI; pts.push([Math.sin(t) * 0.1, 0.86, Math.cos(t) * -0.08]); }
+  for (let k = 5; k >= 0; k--) pts.push(devant(-0.074, 0.6 + k * 0.05));
+  a.tube(pts, 0.013, BANDE, { cotes: 6, pas: 64, trait: false });
+  // les six pompons (梵天), trois sur chaque bande, de plus en plus gros vers le bas, bosselés comme de la laine
+  [0.8, 0.71, 0.62].forEach((y, k) => {
+    for (const s of [-1, 1]) {
+      const [x, yy, z] = devant(s * 0.074, y, 0.022 + k * 0.004);
+      a.piece(new THREE.IcosahedronGeometry(0.03 + k * 0.004, 1), (k + (s > 0 ? 1 : 0)) % 2 ? POMPON2 : POMPON, {
+        x, y: yy, z,
+        deformer: (px, py, pz) => { const q = 1 + 0.1 * Math.sin(px * 210 + pz * 160) * Math.cos(py * 190); return [px * q, py * q, pz * q * 0.85]; },
+      });
+    }
+  });
+  // la conque (法螺貝), pendue devant, à droite de la taille, à un cordon tressé passé à la bande ; sa housse bleue
+  const [xb, yb, zb] = devant(0.074, 0.6, 0.01), xh = 0.12, yh = 0.47, zh = zb + 0.05;
+  a.tube([[xb, yb, zb], [xb + 0.02, yb - 0.06, zb + 0.03], [xh, yh + 0.11, zh]], 0.005, CORDON, { cotes: 4, pas: 12, trait: false });
+  const coquille = [];
+  for (let k = 0; k <= 12; k++) { const u = k / 12; coquille.push(new THREE.Vector2(0.004 + 0.05 * Math.sin(u * PI * 0.62) * (1 + 0.12 * Math.sin(u * 24)), u * 0.17)); }
+  a.piece(new THREE.LatheGeometry(coquille, 12), '#f2e6cf', { x: xh, y: yh, z: zh, rz: 0.45, rx: -0.25, teinte: (px, py) => (Math.floor((py - yh) * 110 + px * 40) % 2 ? '#f2e6cf' : '#d9b07e') })
+    .cylindre(0.042, 0.042, 0.03, 12, '#3a5a8a', { x: xh + 0.016, y: yh + 0.035, z: zh, rz: 0.45, rx: -0.25 })
+    .ovale(0.022, '#f6d8c8', { x: xh - 0.03, y: yh + 0.12, z: zh + 0.014, sz: 0.6, trait: false }, 6);
+  return a;
+}
+
 export function creerHeros(ctx, sorte = 'garcon') {
   const { THREE, atelier, P, maillage } = ctx;
   const PI = Math.PI, fille = sorte === 'fille', PEAU = P.peau, H = fille ? P.cheveuxFille : P.cheveux;
@@ -804,9 +843,10 @@ export function creerHeros(ctx, sorte = 'garcon') {
   const majCollier = () => {
     for (const m of Object.values(colliers)) m.visible = false;
     if (!auCou) return;
-    const k = BUSTES[habitCourant] ? habitCourant : 'habit-defaut';
-    if (!colliers[k]) { colliers[k] = maillage(collierMagatama(THREE, atelier(), BUSTES[k]).fin(0, false)); corps.add(colliers[k]); }
-    colliers[k].visible = true;
+    // (au cou : le collier de magatama, ou l'étole et la conque du yamabushi, à la mesure du buste de la tenue)
+    const k = BUSTES[habitCourant] ? habitCourant : 'habit-defaut', cle = `${auCou}:${k}`;
+    if (!colliers[cle]) { colliers[cle] = maillage((auCou === 'yamabushi' ? etoleYamabushi : collierMagatama)(THREE, atelier(), BUSTES[k]).fin(0, false)); corps.add(colliers[cle]); }
+    colliers[cle].visible = true;
   };
   // le sac à dos : la tenue le garde ou non (garde : 'sac'), et le mino le cache (sur le dos, à sa place)
   let sacGarde = true, dosPorte = null;
@@ -1014,9 +1054,9 @@ export function creerHeros(ctx, sorte = 'garcon') {
         majSac();
         return;
       }
-      // au cou : rien ('cou-rien'), ou le collier de magatama (Takachiho)
+      // au cou : rien ('cou-rien'), le collier de magatama (Takachiho), l'étole et la conque du yamabushi (les Trente Bouddhas)
       if (place === 'cou') {
-        auCou = id === 'magatama';
+        auCou = id === 'magatama' || id === 'yamabushi' ? id : false;
         majCollier();
         majFoulard();
         return;

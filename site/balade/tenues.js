@@ -42,6 +42,7 @@ export const PIECES = [
   { id: 'ailes', place: 'dos', lieu: 'kinkakuji' },
   { id: 'cou-rien', place: 'cou' },
   { id: 'magatama', place: 'cou', lieu: 'takachiho' },
+  { id: 'yamabushi', place: 'cou', lieu: 'sanjubutsu' },
   { id: 'trace-aucune', place: 'pas' },
   { id: 'trace-petales', place: 'pas', achat: 'traces' },
   { id: 'trace-etoiles', place: 'pas', achat: 'traces' },
@@ -219,6 +220,11 @@ const DESSINS = {
     ${[[11.2, 19], [15.4, 25.6], [32.6, 25.6], [36.8, 19]].map(([x, y], k) => `<circle cx="${x}" cy="${y}" r="2.7" fill="${k % 3 ? '#e8f2ee' : '#d8642a'}" stroke="${ENCRE}" stroke-width="1.3"/>`).join('')}
     <path d="M26 29 A6.5 6.5 0 1 1 26 42 Q21.5 42 20 46.5 Q14 40 19.6 33.6 A6.5 6.5 0 0 1 26 29 Z" fill="#3f9a64" stroke="${ENCRE}" stroke-width="2.1" stroke-linejoin="round"/>
     <path d="M23 32.5 Q26 31 29 33" fill="none" stroke="#9fe0b4" stroke-width="1.6" stroke-linecap="round"/><circle cx="26.5" cy="35" r="1.6" fill="${ENCRE}"/>`,
+  // l'étole du yamabushi (les Trente Bouddhas) : la bande sur les épaules, ses six pompons, la conque pendue à son cordon
+  yamabushi: `${trait('M10 8 Q12 26 24 30 Q36 26 38 8', '#e8e4d8', 3)}
+    ${[[12.2, 16], [15.6, 23.4], [20.6, 28.4], [27.4, 28.4], [32.4, 23.4], [35.8, 16]].map(([x, y], k) => `<circle cx="${x}" cy="${y}" r="3.4" fill="${k % 2 ? '#f6f2e8' : '#e8e2d2'}" stroke="${ENCRE}" stroke-width="1.4"/>`).join('')}
+    <path d="M30 31 Q41 30 42 38 Q42 45 34 45 Q27 44 28 37 Q28 33 30 31 Z" fill="#f2e6cf" stroke="${ENCRE}" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M31 35 Q35 33 38 36 M30 39 Q34 37 39 40" fill="none" stroke="#c98a52" stroke-width="1.6" stroke-linecap="round"/>`,
   // sous tes pas : rien ; des pétales ; des étoiles ; des feuilles d'érable
   'trace-aucune': `<path d="M8 32 Q10 24 18 24 L28 26 Q36 27 36 32 Q36 37 28 37 H12 Q8 37 8 32 Z" fill="#ffffff" stroke="${ENCRE}" stroke-width="2"/>
     <path d="M8 34.5 H36" stroke="#d8452e" stroke-width="2.4"/>`,

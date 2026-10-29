@@ -21,7 +21,7 @@
 //  donne un koban, la monnaie de Bunbuku, le marchand ambulant (tresors.js), qui vend des objets précieux : la danse des
 //  fêtes, la traînée sous les pas, les accessoires du compagnon, les feux d'artifice (feux.js), des tenues entières,
 //  l'appareil photo (photo.js), trois compagnons secrets et le calendrier magique (calendrier.js : les saisons).
-//  ?lieu=itsukushima|aogashima|gokayama|himeji|takachiho|kinkakuji|beppu|motonosumi ; ?perso=garcon|fille ; ?compagnon=kon|pon|chapu ; ?langue=en|fr|ja ;
+//  ?lieu=itsukushima|aogashima|gokayama|himeji|takachiho|kinkakuji|beppu|motonosumi|sanjubutsu ; ?perso=garcon|fille ; ?compagnon=kon|pon|chapu ; ?langue=en|fr|ja ;
 //  ?photo=heros|perso : une image fixe (captures) ; ?demo : une partie jouée image par image (vidéos) ;
 //  ?ciel=parchemin : un essai du style (styles.js) ; ?flou=0 : sans le flou du lointain ; ?aa=0 : sans anticrénelage.
 // ================================================================
@@ -55,6 +55,7 @@ import * as takachiho from './takachiho.js';
 import * as kinkakuji from './kinkakuji.js';
 import * as beppu from './beppu.js';
 import * as motonosumi from './motonosumi.js';
+import * as sanjubutsu from './sanjubutsu.js';
 
 // chaque lieu : { infos (noms, tampons, textes : sans rien construire), construire(ctx) }
 // (EN_ESSAI : les lieux en cours, qu'on ne voit qu'en mode développeur, localStorage.modeDev = 'oui', celui de la carte ; le
@@ -64,9 +65,10 @@ import * as motonosumi from './motonosumi.js';
 // app.js, BALADES_ESSAI)
 // (Kinkaku-ji, en essai depuis le 2026-10-26, sorti le 2026-10-27 : « c'est bon tu peux le mettre en ligne pour tout le monde » ;
 // Beppu, en essai depuis le 2026-10-27, sorti le 2026-10-28 : « tu peux mettre en ligne pour tout le monde » ; Motonosumi, en
-// essai depuis le 2026-10-28, sorti le 2026-10-29 : « met en ligne Motonosumi pour tout le monde »)
-const EN_ESSAI = [];
-const LIEUX = Object.fromEntries(Object.entries({ itsukushima, aogashima, gokayama, himeji, takachiho, kinkakuji, beppu, motonosumi }).filter(([id]) => !EN_ESSAI.includes(id) || modeDev()));
+// essai depuis le 2026-10-28, sorti le 2026-10-29 : « met en ligne Motonosumi pour tout le monde » ; les Trente Bouddhas, en
+// essai depuis le 2026-10-29)
+const EN_ESSAI = ['sanjubutsu'];
+const LIEUX = Object.fromEntries(Object.entries({ itsukushima, aogashima, gokayama, himeji, takachiho, kinkakuji, beppu, motonosumi, sanjubutsu }).filter(([id]) => !EN_ESSAI.includes(id) || modeDev()));
 const params = new URLSearchParams(location.search);
 const PHOTO = params.get('photo');
 const DEMO = params.has('demo');
@@ -212,12 +214,17 @@ function construire() {
   const rais = creerRais(lieu);
   if (rais) groupe.add(rais);
   const brume = lieu.brume || [70, 1500];
-  scene.fog = new THREE.Fog(P.horizon, ...brume);
-  mats.brume.couleur.value.set(P.horizon);
+  // (lieu.jour : la lumière et les couleurs du ciel d'un lieu à lui, le jour ; 2026-10-29, les Trente Bouddhas : une forêt
+  // de cèdres dans la brume, plus sombre et plus fraîche que le soleil des autres lieux ; la nuit part d'elles)
+  const jour = { lumiere: { ...style.lumiere, ...lieu.jour?.lumiere }, cielHaut: lieu.jour?.cielHaut ?? P.cielHaut, horizon: lieu.jour?.horizon ?? P.horizon };
+  scene.fog = new THREE.Fog(jour.horizon, ...brume);
+  mats.brume.couleur.value.set(jour.horizon);
   [mats.brume.debut.value, mats.brume.fin.value] = brume;
+  ciel.material.uniforms.haut.value.set(jour.cielHaut);
+  ciel.material.uniforms.horizon.value.set(jour.horizon);
 
   // la lumière : le ciel (bleuté) et le sol éclairent les ombres ; le soleil porte les ombres autour du joueur
-  const L = style.lumiere;
+  const L = jour.lumiere;
   const hemi = new THREE.HemisphereLight(L.ciel, L.sol, L.ambiance);
   groupe.add(hemi);
   const soleil = new THREE.DirectionalLight(L.soleil, L.force);
@@ -345,7 +352,7 @@ function construire() {
   M = {
     carte, effets, lueurs, betes, mouilleJoueur, mouilleKon, feuillage: densiteFeuillage(lieu), bruitage: creerBruitage({ oiseaux: lieu.oiseaux || [], ambiances: lieu.ambiances || [], betes: [...(lieu.betes?.chats?.length ? ['miaou', 'ronron'] : []), ...(lieu.betes?.chiens?.length ? ['ouaf'] : [])], extras: lieu.sons || [] }), musique: creerMusique(lieu.id), focale: 800,
     marchand, feux, chutes, barque, miroir, sac: new Set(), trace: null, saison: 'ete', flash: { v: 0, c: new THREE.Color() }, hemiBase: { intensite: 0, couleur: new THREE.Color() },
-    style, ctx, mats, lieu, groupe, decor, decorsDedans, traitsDecor, voyageurs, compagnons, kon: null, cadre: null, passants, daims, mouettes, eau, courants, ciel, soleil, hemi, etoiles, vapeurs, rais, touffes, finale: passeFinale(THREE, style, { echantillons: params.get('aa') === '0' ? 0 : 4, flou: params.get('flou') !== '0' }), cible: null, sauvage: null, nuit: { v: 0, cible: 0, fin: null } };
+    style, jour, ctx, mats, lieu, groupe, decor, decorsDedans, traitsDecor, voyageurs, compagnons, kon: null, cadre: null, passants, daims, mouettes, eau, courants, ciel, soleil, hemi, etoiles, vapeurs, rais, touffes, finale: passeFinale(THREE, style, { echantillons: params.get('aa') === '0' ? 0 : 4, flou: params.get('flou') !== '0' }), cible: null, sauvage: null, nuit: { v: 0, cible: 0, fin: null } };
   // (lieu.flou : [début, fin] du lointain flou, en mètres ; 2026-10-29, Motonosumi : « le fond est un peu flou », ses falaises
   // à 50–150 m)
   if (lieu.flou) M.finale.reglerFlou(...lieu.flou);
@@ -1917,7 +1924,7 @@ function creerVapeurs(lieu) {
 const NUIT = { ciel: '#3c4c8c', sol: '#2a2838', ambiance: 0.75, lune: '#9fb2ff', force: 0.45, haut: '#0b1130', horizon: '#223061' };
 const couleursNuit = { a: new THREE.Color(), b: new THREE.Color() };
 function appliquerNuit(v) {
-  const L = M.style.lumiere, P = M.style.palette, { a, b } = couleursNuit;
+  const L = M.jour.lumiere, P = M.jour, { a, b } = couleursNuit;
   const melange = (cible, jour, nuit) => cible.copy(a.set(jour)).lerp(b.set(nuit), v);
   M.hemi.intensity = L.ambiance + (NUIT.ambiance - L.ambiance) * v;
   melange(M.hemi.color, L.ciel, NUIT.ciel);

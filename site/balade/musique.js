@@ -310,6 +310,42 @@ const AIRS = {
     jour: { tempo: 100, lead: 'flute', arpege: 'koto', basse: 'pizz', nappe: true, batterie: 'legere' },
     nuit: { tempo: 72, lead: 'boite', arpege: 'kotoDoux', basse: 'pizzDoux', nappe: true, batterie: null },
   },
+  // Ré mineur, une mélodie lente qui ose le mi bémol (la couleur de la gamme in, 都節) : les Trente Bouddhas (2026-10-29),
+  // la brume, les cèdres et les gardiens de pierre ; mystérieux sans faire peur. Le jour, la flûte shakuhachi sur le koto, à
+  // 76 battements ; la nuit, la boîte à musique, à 58
+  sanjubutsu: {
+    gamme: [2, 4, 5, 7, 9, 10, 0], // ré mineur (pour la seconde voix)
+    intro: ['Dm', 'Dm'],
+    A: {
+      accords: ['Dm', 'Bb', 'Gm', 'A', 'Dm', 'Bb', 'Gm A', 'Dm'],
+      melodie: [
+        [69, 8], [74, 4], [72, 4],
+        [69, 6], [67, 2], [65, 8],
+        [67, 4], [70, 4], [69, 4], [67, 4],
+        [69, 12], [null, 4],
+        [74, 6], [75, 2], [74, 4], [69, 4],
+        [72, 4], [70, 4], [69, 4], [67, 4],
+        [65, 6], [64, 2], [67, 4], [69, 4],
+        [62, 12], [null, 4],
+      ],
+      fin2: [[62, 8], [65, 4], [69, 4]],
+    },
+    B: {
+      accords: ['Bb', 'C', 'Am', 'Dm', 'Eb', 'Bb', 'Gm A', 'A'],
+      melodie: [
+        [74, 6], [72, 2], [70, 8],
+        [72, 4], [76, 4], [74, 4], [72, 4],
+        [69, 8], [72, 4], [76, 4],
+        [74, 12], [null, 4],
+        [75, 6], [74, 2], [70, 8],
+        [74, 4], [72, 4], [70, 4], [69, 4],
+        [67, 4], [70, 4], [69, 4], [73, 4],
+        [69, 12], [null, 4],
+      ],
+    },
+    jour: { tempo: 76, lead: 'shakuhachi', arpege: 'koto', basse: 'pizzDoux', nappe: true, batterie: 'zen' },
+    nuit: { tempo: 58, lead: 'boite', arpege: 'kotoDoux', basse: 'pizzDoux', nappe: true, batterie: null },
+  },
   // Ré majeur, la gamme yo (ré mi sol la si) : l'air de la danse des fêtes d'été, sautillant (112 battements : la
   // danse du voyageur est réglée dessus, personnages.js)
   odori: {

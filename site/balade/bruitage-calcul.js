@@ -1026,6 +1026,18 @@ function cloche(sr) {
   }
   return cadrer([echo(c.b, sr)], sr, 0.22);
 }
+/**
+ * La grande cloche de bronze d'un temple (梵鐘), frappée par son tronc de bois (2026-10-29, les Trente Bouddhas) : le choc
+ * sourd du bois, puis le bourdon grave qui ondule (deux notes très proches qui battent : « gōōn… wōōn… »), ses partiels
+ * aigus qui s'éteignent les premiers ; près de neuf secondes.
+ */
+function kane(sr) {
+  const r = alea(graine('kane')), c = composer(sr, r, 9), f = 98;
+  c.bruit(0.005, { type: 'bas', f: 260, attaque: 0.002, tau: 0.05, gain: 0.9 })
+    .bruit(0.005, { f: 900, q: 0.6, attaque: 0.001, tau: 0.02, gain: 0.25 })
+    .modes(0.01, [[f, 0.7, 5.5], [f * 1.012, 0.55, 5.0], [f * 2.0, 0.45, 3.6], [f * 2.41, 0.4, 3.0], [f * 2.98, 0.3, 2.2], [f * 4.07, 0.22, 1.6], [f * 5.36, 0.15, 1.1], [f * 6.8, 0.09, 0.7], [f * 8.4, 0.05, 0.45]]);
+  return cadrer([echo(c.b, sr)], sr, 0.3);
+}
 /** Un battement de mains (au sanctuaire). */
 function claque(sr) {
   const r = alea(graine('claque')), c = composer(sr, r, 0.35);
@@ -1290,6 +1302,7 @@ export function fabriquer(quoi, sr) {
   if (sorte === 'papier') return papier(sr);
   if (sorte === 'cloche') return cloche(sr);
   if (sorte === 'claque') return claque(sr);
+  if (sorte === 'kane') return kane(sr);
   if (sorte === 'assiette') return assiette(sr);
   if (sorte === 'plouf') return plouf(sr);
   if (sorte === 'rame') return rame(sr);
