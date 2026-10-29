@@ -505,14 +505,14 @@ export function construire(ctx) {
       .boite(0.38, 0.72, 0.38, '#e8e4dc', { x: -4.3, y: 0.36, z: 3.75 })
       .cylindre(0.09, 0.09, 0.02, 12, '#2a2a2e', { x: -4.3, y: 0.725, z: 3.75, trait: false });
     ecrire(poseS, { fond: '#ffffff', dessin: canettes, lumineux: true, x: -3.6, y: 1.3, z: 4.245, l: 0.84, h: 0.8 });
-    // la lampe de la porte (allumée la nuit) ; la nuit, le distributeur éclaire devant lui, d'une lumière blanche
-    // (à droite de la porte, sous l'enseigne)
+    // la lampe de la porte (allumée la nuit) ; la nuit, le distributeur éclaire devant lui, d'une lumière blanche, sans halo
+    // (une boule blanche flottait devant lui ; 2026-10-29, après ceux de Motonosumi) (à droite de la porte, sous l'enseigne)
     a.boite(0.16, 0.22, 0.12, '#fff1c8', { x: p1 + 1.0, y: y0 + 2.2, z: 3.56, sorte: 'lumiere' })
       .boite(0.22, 0.04, 0.17, '#3a3a3a', { x: p1 + 1.0, y: y0 + 2.33, z: 3.575 });
     {
       const [lx, lz] = versSauna(p1 + 1.0, 3.8), [dx, dz] = versSauna(-3.6, 4.55);
       lumieres.push({ x: lx, y: yS + y0 + 2.18, z: lz, halo: 0.4, sol: terrain(lx, lz), r: 2.3 },
-        { x: dx, y: yS + 1.25, z: dz, halo: 0.5, sol: terrain(dx, dz), r: 1.8, c: '#dcefff' });
+        { x: dx, y: yS + 1.25, z: dz, halo: 0, sol: terrain(dx, dz), r: 1.8, c: '#dcefff' });
     }
     ecrire(poseS, { texte: 'あきかん', fond: '#e8e4dc', encre: '#3a6a3a', x: -4.3, y: 0.52, z: 3.945, l: 0.32, h: 0.13 });
     poser(a.fin(0, peinture), SAUNA.x, SAUNA.z, { ry: PI / 2, y: yS });

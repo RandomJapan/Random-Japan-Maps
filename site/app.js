@@ -2284,8 +2284,8 @@ const BALADES = { 'itsukushima-jinja': 'itsukushima', aogashima: 'aogashima', go
  * de EN_ESSAI dans balade/balade.js).
  */
 // (Kinkaku-ji, en essai depuis le 2026-10-26, sorti le 2026-10-27 ; Beppu, en essai depuis le 2026-10-27, sorti le 2026-10-28 ;
-// Motonosumi, en essai depuis le 2026-10-28)
-const BALADES_ESSAI = new Set(['motonosumi']);
+// Motonosumi, en essai depuis le 2026-10-28, sorti le 2026-10-29)
+const BALADES_ESSAI = new Set([]);
 const lienBalade = (id) => `balade/?lieu=${id}&langue=${langue}`;
 
 /**

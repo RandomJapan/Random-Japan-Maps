@@ -64,8 +64,8 @@ import * as motonosumi from './motonosumi.js';
 // app.js, BALADES_ESSAI)
 // (Kinkaku-ji, en essai depuis le 2026-10-26, sorti le 2026-10-27 : « c'est bon tu peux le mettre en ligne pour tout le monde » ;
 // Beppu, en essai depuis le 2026-10-27, sorti le 2026-10-28 : « tu peux mettre en ligne pour tout le monde » ; Motonosumi, en
-// essai depuis le 2026-10-28)
-const EN_ESSAI = ['motonosumi'];
+// essai depuis le 2026-10-28, sorti le 2026-10-29 : « met en ligne Motonosumi pour tout le monde »)
+const EN_ESSAI = [];
 const LIEUX = Object.fromEntries(Object.entries({ itsukushima, aogashima, gokayama, himeji, takachiho, kinkakuji, beppu, motonosumi }).filter(([id]) => !EN_ESSAI.includes(id) || modeDev()));
 const params = new URLSearchParams(location.search);
 const PHOTO = params.get('photo');
