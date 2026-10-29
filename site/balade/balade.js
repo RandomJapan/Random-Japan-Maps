@@ -43,7 +43,7 @@ import { creerMusique } from './musique.js';
 import { creerEffets } from './effets.js';
 import { creerLueurs } from './lueurs.js';
 import { PIECES, PLACES, piece, recompense as recompenseDu, gagnee, lireTenue, ecrireTenue, nouvelles, marquerVue, icone } from './tenues.js';
-import { SECRETS, ARTICLES, article, secretTrouve, trouverSecret, indiceVu, voirIndice, aAchete, acheter, koban, kobanTrouves, modeDev, kobanDev, remettreDev, dessinKoban, iconeArticle } from './tresors.js';
+import { SECRETS, SECRETS_EN_PLUS, ARTICLES, article, secretTrouve, trouverSecret, indiceVu, voirIndice, aAchete, acheter, koban, kobanTrouves, modeDev, kobanDev, remettreDev, dessinKoban, iconeArticle } from './tresors.js';
 import { creerFeux } from './feux.js';
 import { creerChutes, SAISONS } from './calendrier.js';
 import { creerPhoto } from './photo.js';
@@ -1980,6 +1980,8 @@ const carnet = creerCarnet({ fond: $('.fond-carnet'), page: $('.carnet') }, {
     let h = '';
     if (id && secretTrouve(id)) h = `<p class="carnet-secret trouve">${dessinKoban(30, `c-${id}`)}<span>${T.carnetSecretTrouve(T.secrets[id])}</span></p>`;
     else if (id && complet) h = `<p class="carnet-secret"><span class="point">？</span><span>${T.carnetSecret}</span></p>`;
+    // (un secret en plus, une fois trouvé : la grotte de l'ermite des Trente Bouddhas)
+    for (const e of SECRETS_EN_PLUS[L.id] || []) if (secretTrouve(e)) h += `<p class="carnet-secret trouve">${dessinKoban(30, `c-${e}`)}<span>${T.carnetSecretTrouve(T.secrets[e])}</span></p>`;
     if (kobanTrouves() > 0) h += `<p class="carnet-koban">${dessinKoban(22, 'c-total')}<span>${T.carnetKoban(koban())}</span></p>`;
     return h;
   },
@@ -3592,6 +3594,14 @@ function vivre(dt, temps, pasJoueur, pasKon) {
     // (la loutre qui nage flotte : sous elle, l'eau, jusqu'au fond)
     const o = mouille[qui], s = sousLesPieds(p.x, p.z, qui === 'kon' && renard.nage ? L.terrain(p.x, p.z) : p.y);
     mouiller(o, s.eau, dt, haut, qui === 'joueur' && etat.vitesse > MARCHE * 1.2);
+    // (2026-10-29, les Trente Bouddhas) sous une cascade (lieu.douches [{ x, z, r }]) : trempé de la tête aux pieds, et
+    // l'eau qui rebondit sur la tête et les épaules
+    for (const d of L.douches || []) {
+      if (Math.hypot(p.x - d.x, p.z - d.z) > d.r) continue;
+      Object.assign(o, { v: 1, hors: 0, ligne: haut });
+      o.douche = (o.douche || 0) - dt;
+      if (o.douche <= 0) { o.douche = 0.05; E.eclabousser(p.x + (Math.random() - 0.5) * rayon * 2, p.y + haut, p.z + (Math.random() - 0.5) * rayon * 2, 2, { sol: s.h, force: 0.5 }); }
+    }
     if (s.eau > 0.03) {
       // dans l'eau : des ronds autour des jambes (souvent en marchant, de temps en temps à l'arrêt)
       o.rond -= dt;

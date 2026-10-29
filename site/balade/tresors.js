@@ -13,6 +13,9 @@
 
 /** Le secret de chaque lieu. */
 export const SECRETS = { itsukushima: 'corbeaux', aogashima: 'tresor', gokayama: 'heike', himeji: 'okiku', takachiho: 'miroir', kinkakuji: 'phenix', beppu: 'ippen', motonosumi: 'torii124', sanjubutsu: 'oni' };
+/** Les secrets en plus d'un lieu, un koban chacun ; le carnet ne les montre qu'une fois trouvés (2026-10-29 : la grotte de l'ermite
+ * des Trente Bouddhas, derrière la cascade). */
+export const SECRETS_EN_PLUS = { sanjubutsu: ['iwaya'] };
 /**
  * Ce que vend Bunbuku, du moins cher au plus cher. sorte : 'objet' (on s'en sert depuis le menu), 'tenue' (dans la
  * garde-robe), 'compagnon' (un nouveau compagnon). pieces : les pièces de tenue qu'il débloque (tenues.js).

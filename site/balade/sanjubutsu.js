@@ -12,8 +12,10 @@
 //  chaque jour du mois (三十日秘仏, déjà dans le Butsuzō-zui de 1690). Les gardiens, bouddhistes, gardent ici un torii
 //  shintō. Le TikTok du propriétaire : un long escalier de pierre moussu tout droit entre des cèdres immenses, le torii
 //  de pierre et ses deux Nio en haut de quelques marches, un long pavillon de bois sous une falaise en surplomb, la brume.
-//  Son secret : l'oni à la torche, qui descend de la montagne quand on sonne la cloche la nuit. Sa récompense : la conque
-//  et l'étole à pompons du yamabushi (tenues.js). Les distances sont un peu resserrées.
+//  Son secret : l'oni à la torche, qui descend de la montagne quand on sonne la cloche la nuit ; et un lieu secret (le
+//  2026-10-29, demandé par le propriétaire) : la grotte d'un ermite derrière la cascade, qui s'ouvre quand on reste sous la
+//  chute (le takigyō des yamabushi). Sa récompense : la conque et l'étole à pompons du yamabushi (tenues.js). Les distances
+//  sont un peu resserrées.
 //  Repère : x vers l'est, z vers le sud, y vers le haut, en mètres ; la vallée monte vers le nord : la ferme et le bout de
 //  la route en bas (0,4 m), les Nio à 4,9 m, l'escalier jusqu'à la terrasse du pavillon (21 m), la falaise au nord.
 //  ctx : { THREE, atelier, P (palette), peinture, perso, maillage }.
@@ -21,7 +23,7 @@
 import { creerMonde, interactionsBancs, lisse, hasard, bruitDoux, surLaLigne } from './monde.js';
 import { panneau, PAPIER_PANNEAU } from './decor.js';
 import { MATIERES as M } from './textures.js';
-import { secretTrouve } from './tresors.js';
+import { secretTrouve, indiceVu } from './tresors.js';
 
 const PI = Math.PI;
 
@@ -112,6 +114,54 @@ const zParoi = (x) => Z_PAROI + 0.35 * Math.sin(x * 0.37) + 0.2 * Math.sin(x * 0
 /** Jusqu'où va la falaise vers l'est et l'ouest : 1 entre x −24 et 13, 0 au-delà de −31 et 19. */
 const largeurFalaise = (x) => lisse(-31, -24, x) * (1 - lisse(13, 19, x));
 
+// ---------------------------------------------------------------- La grotte de l'ermite (行者の岩屋), derrière la cascade
+// (2026-10-29, le propriétaire : « Tu peux rajouter un lieu secret qui se découvre via une petite action cachée » ; de mes
+// propositions, il a choisi la grotte d'un ermite cachée derrière la cascade, qui s'ouvre quand on reste sous la chute, comme
+// les ermites qui méditaient sous l'eau glacée : le takigyō, 滝行.) Des pierres de gué (飛び石) traversent le bassin jusqu'à
+// une pierre plate sous la chute ; derrière l'eau, une dalle de roche ferme la bouche. Dedans, une salle bosselée, plus large
+// que sa bouche, qui s'abaisse vers le fond : l'autel taillé dans la roche, un petit coffre laqué ouvert sur un bouddha doré
+// (秘仏, un bouddha caché), des bougies qui brûlent sans personne, la natte de l'ermite, un bol de pierre sous les gouttes.
+/** Son axe (x), son sol ; sa bouche (demi-largeur, hauteur au-dessus du sol) ; la salle (demi-largeur, hauteur, profondeur). */
+const GROTTE = { x: TAKI.x, sol: Y_T - 0.02, demi: 1.2, haut: 2.5, large: 2.3, voute: 3.2, prof: 5.8 };
+/** Le devant de la falaise (sans ses bosses) sur l'axe de la grotte ; la salle commence 1 m derrière (la lèvre : la paroi va
+ * de biais, 50 cm de plus à l'ouest de la bouche qu'à l'est, et elle a ses bosses). */
+const Z_GROTTE = zParoi(GROTTE.x) + 0.75, Z_SALLE = Z_GROTTE - 1.0;
+/** L'autel taillé dans la roche, au fond de la salle : la profondeur de son devant. */
+const AUTEL_S = 4.5;
+/**
+ * La pierre plate sous la chute (où l'on reste, 滝行) : son milieu, son rayon, son dessus. Son bord arrière est sur la ligne
+ * z −34,75 des cases de 25 cm du sol dessiné, où commence le sol de la grotte : la case d'avant, qui descend vers le bassin, est
+ * sous elle (au bord, on marchait au-dessus de cette pente : « on flotte » de 20 cm).
+ */
+const TAKIGYO = { x: GROTTE.x, z: -34.21, r: 0.55, y: Y_T - 0.04 };
+/** Les pierres de gué, du bord sud du bassin (sur la terrasse) jusqu'à elle : [x, z, le dessus]. */
+const GUE = [[GROTTE.x, TAKI.z + 3.65, Y_T - 0.03], [GROTTE.x, TAKI.z + 2.55, Y_T - 0.05], [GROTTE.x, TAKI.z + 1.78, Y_T - 0.07],
+  [GROTTE.x, TAKI.z + 1.01, Y_T - 0.05], [GROTTE.x, TAKI.z + 0.24, Y_T - 0.07], [GROTTE.x, TAKI.z - 0.53, Y_T - 0.05], [TAKIGYO.x, TAKIGYO.z, TAKIGYO.y]];
+/** Le contour de la bouche, de u 0 (le pied est) à 1 (le pied ouest) par le haut : [x, y] ; ses pieds 35 cm sous le sol. */
+function archeGrotte(u) {
+  const t = u * PI, ax = GROTTE.demi * (1 + 0.05 * Math.sin(t * 4.3 + 0.6));
+  const ay = (GROTTE.haut + 0.35) * (1 + 0.05 * Math.sin(t * 3.1 + 1.1)) * (1 - 0.06 * Math.cos(t));
+  return [GROTTE.x + Math.cos(t) * ax, GROTTE.sol - 0.35 + Math.sin(t) ** 0.62 * ay];
+}
+/** La salle à la profondeur s (0 : là où finit la lèvre) : combien le contour de la bouche s'y élargit (fx) et monte (fy). */
+function salleGrotte(s) {
+  if (s <= 0) return { fx: 1, fy: 1 };
+  const ouvre = lisse(0, 1.8, s), fin = s > 3.6 ? Math.sqrt(Math.max(0, 1 - ((s - 3.6) / (GROTTE.prof - 3.6)) ** 2)) : 1;
+  return { fx: (1 + (GROTTE.large / GROTTE.demi - 1) * ouvre) * fin, fy: (1 + ((GROTTE.voute + 0.35) / (GROTTE.haut + 0.35) - 1) * ouvre) * fin };
+}
+/** La demi-largeur de la grotte à la profondeur s, à hy au-dessus de son sol (0 : la voûte est plus basse). */
+function demiGrotte(s, hy) {
+  const { fx, fy } = salleGrotte(s), v = (hy + 0.35) / ((GROTTE.haut + 0.35) * 0.94 * fy);
+  return v >= 1 || fx <= 0 ? 0 : GROTTE.demi * 0.95 * fx * Math.cos(Math.asin(v ** (1 / 0.62)));
+}
+/** Le sol de la grotte (creusé dans la montagne, à plat) : de derrière la pierre du takigyō au fond, un peu plus large qu'elle. */
+const solGrotte = (x, z) => z < -34.74 && Z_SALLE - z < GROTTE.prof + 0.6 && Math.abs(x - GROTTE.x) < demiGrotte(Math.max(0, Z_SALLE - z - 0.5), 0) / 0.95 + 0.7;
+/** Dans la grotte, là où l'on marche : à 30 cm de ses parois à hauteur de tête, et de l'autel ; depuis la pierre du takigyō. */
+const dansGrotte = (x, z) => { const s = Z_SALLE - z; return s > -1.75 && s < AUTEL_S - 0.28 && Math.abs(x - GROTTE.x) < demiGrotte(s, 1.6) - 0.3; };
+/** Est-elle ouverte ? (la dalle a glissé : tresors.js garde l'indice « iwaya » ; construire le lit à la fin — le décor, construit
+ * avant, ne dépend pas de lui : la forêt est plus fine près de là où l'on marche — ; la scène le change) */
+let grotteOuverte = false;
+
 // ---------------------------------------------------------------- Le relief
 /** Une bosse douce de hauteur h et de rayon r autour de cx, cz. */
 const bosse = (x, z, cx, cz, r, h) => { const d = Math.hypot(x - cx, z - cz) / r; return d < 1 ? h * (0.5 + 0.5 * Math.cos(d * PI)) : 0; };
@@ -190,6 +240,8 @@ function terrain(x, z) {
   }
   // le bassin de la cascade
   { const d = Math.hypot(x - TAKI.x, z - TAKI.z); if (d < TAKI.r + 0.6) h = Math.min(h, TAKI.eau - 0.7 + (Y_T - 0.03 - TAKI.eau + 0.7) * lisse(TAKI.r - 0.6, TAKI.r + 0.6, d)); }
+  // la grotte de l'ermite, derrière la cascade : son sol, à plat, creusé dans la montagne (sa voûte, dessinée à part, le couvre)
+  if (solGrotte(x, z)) h = GROTTE.sol;
   // le lit du ruisseau : creusé de 60 cm ; le chemin et la route passent au-dessus à niveau (la dalle de pierre ; sous la
   // route, une buse)
   { const r = surLaLigne(RUISSEAU, x, z); if (r.d < 1.8) h -= 0.62 * (1 - lisse(0.5, 1.8, r.d)) * lisse(0.3, 1.5, versRect(TERRASSE, x, z)); }
@@ -251,8 +303,10 @@ function solDessine(x, z) {
 /**
  * Peut-on être en x, z ? Sur la route (jusqu'à sa barrière), dans la cour de la ferme, sur le chemin de terre et la dalle
  * du ruisseau, sur les marches des Nio et leur palier, sur le grand escalier (entre ses bordures), dans l'allée et la
- * clairière de Bunbuku, sur la terrasse (hors du bassin) et le belvédère. Leurs bords ont tous ce qui arrête (le sous-bois
- * de la lisière, les bordures, les murets, les rondins, la falaise, les rochers du bassin) : le voyageur s'arrête 27 cm avant.
+ * clairière de Bunbuku, sur la terrasse (hors du bassin) et le belvédère ; sur les pierres de gué du bassin et la pierre
+ * sous la chute ; dans la grotte de l'ermite, une fois ouverte. Leurs bords ont tous ce qui arrête (le sous-bois de la
+ * lisière, les bordures, les murets, les rondins, la falaise, les rochers du bassin, les parois de la grotte) : le
+ * voyageur s'arrête 27 cm avant ; au bord d'une pierre de gué, l'eau du bassin.
  */
 function dansLeCadre(x, z) {
   const r = surRoute(x, z);
@@ -264,6 +318,10 @@ function dansLeCadre(x, z) {
   if (surLaLigne(ALLEE, x, z).d < 0.9 || aLaPlace(RECOIN, x, z) < 0) return true;
   // (la paroi de la falaise avance de 75 cm devant son pied, ses bosses de 30 cm de plus ; les rochers du bassin, jusqu'à
   // 85 cm au-delà de son bord : le corps du voyageur, 24 cm, s'arrête juste avant)
+  // (les pierres de gué jusque sous la cascade, la pierre où l'on reste sous la chute ; une fois la dalle ouverte, la grotte)
+  if (surLaLigne(GUE, x, z).d < 0.17 && z > TAKIGYO.z) return true;
+  if (Math.hypot(x - TAKIGYO.x, z - TAKIGYO.z) < 0.32 && z > TAKIGYO.z - 0.2) return true;
+  if (grotteOuverte && dansGrotte(x, z)) return true;
   if (dansRect(TERRASSE, x, z) && z > zParoi(x) + 1.35) return Math.hypot(x - TAKI.x, z - TAKI.z) > TAKI.r + 1.1 && (x > -1.2 || z < TERRASSE.z1 - 0.32);
   return dansRect(BELVEDERE, x, z);
 }
@@ -294,6 +352,7 @@ function tri(pos, A, B, C, n) {
 
 export function construire(ctx) {
   const { THREE, atelier, P } = ctx;
+  grotteOuverte = false;
   const objets = [], bancs = [], lumieres = [], animes = [], etiquettes = [], vapeurs = [], cascades = [];
   const monde = creerMonde({ terrain, cadre: dansLeCadre, profond: null, pente: null });
   const poser = (fin, x, z, o = {}) => objets.push({ fin, x, z, y: o.y ?? terrain(x, z), ry: o.ry || 0, ombre: o.ombre !== false, trait: o.trait !== false, dedans: o.dedans, avant: o.avant });
@@ -582,6 +641,12 @@ export function construire(ctx) {
   // du pavillon, elle avance en surplomb, comme dans le TikTok ; ses bords se perdent dans la pente. Moussue sur ses
   // replats, tachée de lichen, sombre et mouillée près de la cascade.
   const hautFalaise = (x) => terre(x, zParoi(x) - 5.2);
+  // (les longueurs parcourues le long d'une ligne de points [x, y], de 0 à 1 ; le point à la fraction u de sa longueur ; le
+  // contour de la bouche de la grotte, NA points également espacés : la paroi, sa lèvre, la salle et la dalle le partagent)
+  const fractions = (pts) => { const L = [0]; for (let i = 1; i < pts.length; i++) L.push(L[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1])); return L.map((l) => l / L[L.length - 1]); };
+  const surLigne = (pts, us, u) => { let i = 1; while (i < pts.length - 1 && us[i] < u) i++; const f = (u - us[i - 1]) / (us[i] - us[i - 1] || 1); return [pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * f, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * f]; };
+  const NA = 46, uA = Array.from({ length: NA }, (_, j) => j / (NA - 1));
+  const arche = (() => { const dense = Array.from({ length: 401 }, (_, i) => archeGrotte(i / 400)), uD = fractions(dense); return uA.map((u) => surLigne(dense, uD, u)); })();
   const surplomb = (x, y) => {
     const fx = lisse(DO.x - DO.l / 2 - 2.4, DO.x - DO.l / 2 + 0.2, x) * (1 - lisse(DO.x + DO.l / 2 - 0.2, DO.x + DO.l / 2 + 2.4, x));
     const u = (y - (Y_T + 4.9)) / 4.4;
@@ -604,22 +669,92 @@ export function construire(ctx) {
       ys.push(sommet);
       colonnes.push({ x, pts: ys.map((y, j) => [x, y, j === ys.length - 1 ? zParoi(x) - 5.2 : zFace(x, y)]) });
     }
+    // un triangle de la paroi, tourné vers la terrasse ; sa couleur (la mousse sur ce qui regarde vers le haut, les replats ;
+    // dessous le surplomb, sombre ; près de la cascade, mouillé ; ailleurs des gris proches les uns des autres : en couleurs
+    // franches, la paroi faisait une mosaïque de triangles)
+    const ajouter = (A, B, C) => {
+      tri(pos, A, B, C, [0, 0, 1]);
+      const p = pos.slice(-9), cy = (p[1] + p[4] + p[7]) / 3, cx = (p[0] + p[3] + p[6]) / 3;
+      const ux = p[3] - p[0], uy = p[4] - p[1], uz = p[5] - p[2], vx = p[6] - p[0], vy = p[7] - p[1], vz = p[8] - p[2];
+      const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx, ny1 = ny / (Math.hypot(nx, ny, nz) || 1);
+      const n = bruitDoux(cx * 0.45, cy * 0.45, 1), dessous = ny1 < -0.35;
+      const mouille = Math.abs(cx - TAKI.x) < 1.6 ? 1 : 0;
+      cols.push(mouille ? (n > 0.5 ? '#3f4a40' : '#454f42') : dessous ? (n > 0.5 ? '#4b4b42' : '#514f46') : ny1 > 0.42 ? (n > 0.5 ? MOUSSE : MOUSSE_F) : n > 0.66 ? '#68725a' : n < 0.3 ? '#6c695e' : '#646157');
+    };
     // (deux colonnes voisines n'ont pas le même nombre de points : on les relie par leur hauteur relative)
-    for (let c = 0; c < colonnes.length - 1; c++) {
-      const A = colonnes[c].pts, B = colonnes[c + 1].pts;
+    const relier = (A, B) => {
       let i = 0, j = 0;
       while (i < A.length - 1 || j < B.length - 1) {
         const ta = i < A.length - 1 ? (i + 1) / (A.length - 1) : 2, tb = j < B.length - 1 ? (j + 1) / (B.length - 1) : 2;
-        if (ta <= tb) { tri(pos, A[i], B[j], A[i + 1], [0, 0, 1]); i++; } else { tri(pos, A[i], B[j], B[j + 1], [0, 0, 1]); j++; }
-        const p = pos.slice(-9), cy = (p[1] + p[4] + p[7]) / 3, cx = (p[0] + p[3] + p[6]) / 3;
-        // (la mousse sur ce qui regarde vers le haut, les replats ; dessous le surplomb, sombre ; près de la cascade, mouillé ;
-        // ailleurs des gris proches les uns des autres : en couleurs franches, la paroi faisait une mosaïque de triangles)
-        const ux = p[3] - p[0], uy = p[4] - p[1], uz = p[5] - p[2], vx = p[6] - p[0], vy = p[7] - p[1], vz = p[8] - p[2];
-        const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx, ny1 = ny / (Math.hypot(nx, ny, nz) || 1);
-        const n = bruitDoux(cx * 0.45, cy * 0.45, 1), dessous = ny1 < -0.35;
-        const mouille = Math.abs(cx - TAKI.x) < 1.6 ? 1 : 0;
-        cols.push(mouille ? (n > 0.5 ? '#3f4a40' : '#454f42') : dessous ? (n > 0.5 ? '#4b4b42' : '#514f46') : ny1 > 0.42 ? (n > 0.5 ? MOUSSE : MOUSSE_F) : n > 0.66 ? '#68725a' : n < 0.3 ? '#6c695e' : '#646157');
+        if (ta <= tb) { ajouter(A[i], B[j], A[i + 1]); i++; } else { ajouter(A[i], B[j], B[j + 1]); j++; }
       }
+    };
+    // (entre les colonnes XG0 et XG1, la paroi est refaite sous la rangée I, 2 m au-dessus de la bouche de la grotte)
+    const XG0 = -17, XG1 = -12, I = 5;
+    for (let c = 0; c < colonnes.length - 1; c++) {
+      const A = colonnes[c].pts, B = colonnes[c + 1].pts;
+      if (colonnes[c].x > XG0 - 0.5 && colonnes[c + 1].x < XG1 + 0.5) relier(A.slice(I), B.slice(I));
+      else relier(A, B);
+    }
+    // ---- la bouche de la grotte de l'ermite : la paroi en anneaux, de son contour jusqu'au bord de ce morceau (la colonne est,
+    // XG1, de bas en haut ; la rangée I ; la colonne ouest, XG0, de haut en bas) ; le dernier anneau rejoint les points mêmes
+    // des colonnes (des triangles en fermeture éclair, comme entre deux colonnes) : ni fente ni sommet en trop sur leurs bords
+    const sec = colonnes.filter((c) => c.x > XG0 - 0.5 && c.x < XG1 + 0.5);
+    const bord = [...sec[sec.length - 1].pts.slice(0, I + 1)];
+    for (let c = sec.length - 2; c >= 1; c--) bord.push(sec[c].pts[I]);
+    for (let i = I; i >= 0; i--) bord.push(sec[0].pts[i]);
+    const uB = fractions(bord);
+    const NR = 6, anneaux = [];
+    for (let k = 0; k < NR; k++) {
+      const f = (k / NR) ** 1.25;
+      anneaux.push(uA.map((u, j) => { const [ax, ay] = arche[j], [bx, by] = surLigne(bord, uB, u), x = ax + (bx - ax) * f, y = ay + (by - ay) * f; return [x, y, zFace(x, y)]; }));
+    }
+    for (let k = 0; k < NR - 1; k++) for (let j = 0; j < NA - 1; j++) {
+      const A = anneaux[k][j], B = anneaux[k][j + 1], C = anneaux[k + 1][j + 1], D = anneaux[k + 1][j];
+      ajouter(A, B, C);
+      ajouter(A, C, D);
+    }
+    {
+      const R = anneaux[NR - 1];
+      let i = 0, j = 0;
+      while (i < bord.length - 1 || j < NA - 1) {
+        const ub = i < bord.length - 1 ? uB[i + 1] : 2, ua = j < NA - 1 ? uA[j + 1] : 2;
+        if (ub <= ua) { ajouter(bord[i], R[j], bord[i + 1]); i++; } else { ajouter(bord[i], R[j], R[j + 1]); j++; }
+      }
+    }
+    // ---- dedans : la lèvre (du contour sur la paroi jusqu'au début de la salle, Z_SALLE), puis la salle, de section en section :
+    // le contour de la bouche élargi et rehaussé (salleGrotte), bosselé vers le dedans ou le dehors, qui se referme au fond. Des
+    // tons de roche de plus en plus sombres vers le fond, mouillés près de la bouche et à leur pied ; tournés vers le dedans
+    const TONS_GROTTE = ['#4f5047', '#494a41', '#43443c', '#3e3e37', '#393933', '#35352f', '#31312c', '#2d2d29'];
+    const ajouterDedans = (A, B, C, vers) => {
+      const m = [(A[0] + B[0] + C[0]) / 3, (A[1] + B[1] + C[1]) / 3, (A[2] + B[2] + C[2]) / 3], s = Z_SALLE - m[2];
+      tri(pos, A, B, C, [vers[0] - m[0], vers[1] - m[1], vers[2] - m[2]]);
+      const b = bruitDoux(m[0] * 0.8 + 3.1, m[2] * 0.8 + m[1] * 0.6, 1);
+      cols.push(m[1] < GROTTE.sol + 0.25 ? '#3d3c36' : s < 0.35 ? (b > 0.5 ? '#3f4a40' : '#454f42')
+        : TONS_GROTTE[Math.max(0, Math.min(TONS_GROTTE.length - 1, Math.round((s / GROTTE.prof) * (TONS_GROTTE.length - 1) + (b - 0.5) * 3)))]);
+    };
+    const NS = 18, sections = [];
+    for (let i = 0; i <= NS; i++) {
+      const s = (GROTTE.prof * i) / NS, { fx, fy } = salleGrotte(s), z0 = Z_SALLE - s;
+      sections.push(uA.map((u, j) => {
+        const [ax, ay] = arche[j], x = GROTTE.x + (ax - GROTTE.x) * fx, y = GROTTE.sol - 0.35 + (ay - GROTTE.sol + 0.35) * fy;
+        // (ses bosses : pas à la lèvre, et de moins en moins vers le fond, où tout se rejoint)
+        const b = (0.26 * (bruitDoux(x * 0.8 + 3, z0 * 0.8 + y * 0.6, 1) - 0.5) + 0.1 * (bruitDoux(x * 2.1, z0 * 2.1 - y, 1) - 0.5)) * lisse(0, 0.7, s) * Math.min(1, fx);
+        const dx = GROTTE.x - x, dy = GROTTE.sol + 0.9 - y, dl = Math.hypot(dx, dy) || 1;
+        return [x + (dx / dl) * b, y + (dy / dl) * b, z0];
+      }));
+    }
+    for (let j = 0; j < NA - 1; j++) {
+      const A = anneaux[0][j], B = anneaux[0][j + 1], C = sections[0][j + 1], D = sections[0][j], vers = [GROTTE.x, GROTTE.sol + 1.0, (A[2] + C[2]) / 2];
+      ajouterDedans(A, B, C, vers);
+      ajouterDedans(A, C, D, vers);
+    }
+    for (let i = 0; i < NS; i++) for (let j = 0; j < NA - 1; j++) {
+      const A = sections[i][j], B = sections[i][j + 1], C = sections[i + 1][j + 1], D = sections[i + 1][j];
+      const vers = [GROTTE.x, GROTTE.sol + 1.0, Z_SALLE - Math.min((GROTTE.prof * (i + 0.5)) / NS, GROTTE.prof - 1.8)];
+      ajouterDedans(A, B, C, vers);
+      // (la dernière section est un point : un triangle par case)
+      if (i < NS - 1) ajouterDedans(A, C, D, vers);
     }
     const a = atelier(), g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
@@ -654,7 +789,8 @@ export function construire(ctx) {
     // les rochers du bord du bassin (ils l'arrêtent), plus gros vers la falaise
     for (let k = 0; k < 22; k++) {
       const t = (k / 22) * 2 * PI, r = TAKI.r + 0.25, xr = x + Math.sin(t) * r, zr = TAKI.z + Math.cos(t) * r;
-      if (zr < zl + 0.2) continue;
+      // (au sud, la première pierre de gué prend sa place)
+      if (zr < zl + 0.2 || k === 0) continue;
       const s = 0.32 + 0.18 * hasard(k, 5) + (Math.cos(t) < 0 ? 0.15 : 0);
       rocher(a, xr, Y_T - 0.08, zr, s, s * 0.75, s * 0.9, t);
     }
@@ -668,6 +804,264 @@ export function construire(ctx) {
     poser(a.fin(), 0, 0, { y: 0 });
   }
   const eauxCalmes = [[TAKI.x - TAKI.r - 0.4, TAKI.x + TAKI.r + 0.4, TAKI.z - TAKI.r - 0.4, TAKI.z + TAKI.r + 0.4, TAKI.eau]];
+
+  // ---------------------------------------------------------------- La grotte de l'ermite (行者の岩屋) : le gué, la dalle, dedans
+  // (ouverte si l'on a déjà vu glisser sa dalle : tresors.js garde l'indice « iwaya »)
+  const ouverteAuDepart = indiceVu('iwaya');
+  /** Le z à la profondeur s de la salle ; le bol de pierre sous les gouttes ; le plateau d'offrandes (三方) et son koban. */
+  const zS = (s) => Z_SALLE - s;
+  const BOL = { x: GROTTE.x + 1.5, z: zS(1.7) }, SANBO = { x: GROTTE.x + 0.55, y: GROTTE.sol + 0.72 + 0.125, z: zS(AUTEL_S + 0.2) };
+  const FLAMMES = [];
+  {
+    const a = atelier(), X = GROTTE.x, sol = GROTTE.sol;
+    // les pierres de gué (飛び石) : plates, à plusieurs pans, presque jointives, posées sur le fond du bassin ; la dernière, plus
+    // grande, sous la chute : on s'y tient sous l'eau (滝行)
+    GUE.slice(1).forEach(([x, z, y], k) => {
+      const der = k === GUE.length - 2, r = der ? TAKIGYO.r : 0.4 + 0.05 * hasard(k, 3.3), bas = TAKI.eau - 0.8;
+      a.piece(new THREE.CylinderGeometry(r, r * 1.1, y - bas, 9, 1), PIERRE_F, {
+        x, y: (y + bas) / 2, z, ry: hasard(k, 2.9) * 3, nuance: 0.06,
+        deformer: (px, py, pz) => { const t = Math.atan2(pz, px), q = 1 + 0.08 * Math.sin(t * 3 + k * 1.7) + 0.04 * Math.sin(t * 7 + k); return [px * q, py, pz * q]; },
+        teinte: (wx, wy, wz) => (wy > y - 0.03 ? (der ? '#55574f' : bruitDoux(wx * 3 + k, wz * 3, 1) > 0.66 ? MOUSSE_F : '#5f6159') : '#474a43'),
+      });
+    });
+    monde.chemin(GUE, 0.17, { sol: 'pierre', droits: true });
+    monde.anneau(TAKIGYO.x, TAKIGYO.z, 0, TAKIGYO.r - 0.03, TAKIGYO.y, { sol: 'pierre' });
+    // au pied de la bouche, deux rochers à moitié dans l'eau, de part et d'autre de la pierre
+    for (const sg of [-1, 1]) rocher(a, X + sg * 0.98, TAKI.eau - 0.14, Z_GROTTE + 0.22, 0.36, 0.3, 0.32, sg);
+    // la corde sacrée (注連縄) tendue devant la chute d'une paroi à l'autre, ses papiers blancs : ici, on prie sous l'eau
+    {
+      const y = sol + 3.15, A = [X + 1.8, y, zFace(X + 1.8, y) + 0.04], B = [X - 1.8, y + 0.08, zFace(X - 1.8, y + 0.08) + 0.04];
+      const pts = [A, [X, sol + 2.8, Z_GROTTE + 0.9], B], courbe = new THREE.CatmullRomCurve3(pts.map((p) => new THREE.Vector3(...p)));
+      a.shimenawa(pts, 0.06, [0.24, 0.41, 0.59, 0.76].map((t) => { const q = courbe.getPoint(t); return [q.x, q.y - 0.07, q.z]; }));
+    }
+    // ---- dedans (un objet à part, dessiné seulement la caméra près de la cascade ou dans la grotte : d'ailleurs, on n'en voit
+    // rien, et il coûtait 27 000 triangles par image). L'autel : un banc de roche contre le fond, son dessus à plat
+    const b = atelier();
+    const yA = sol + 0.72;
+    b.piece(new THREE.BoxGeometry(1.7, 1.08, 1.0, 6, 3, 3), '#4c4a42', {
+      x: X, y: sol + 0.18, z: zS(AUTEL_S + 0.5), nuance: 0.06,
+      deformer: (px, py, pz) => (py > 0.53 ? [px, py, pz] : [px * (1 + 0.05 * Math.sin(py * 9 + pz * 7)), py, pz + 0.04 * Math.sin(px * 6 + py * 5)]),
+      teinte: (wx, wy) => (wy > yA - 0.02 ? '#57544b' : bruitDoux(wx * 2.3, wy * 2.3, 1) > 0.6 ? '#46443d' : '#4c4a42'),
+    });
+    // le petit coffre laqué (厨子) ouvert : ses deux portes, son petit toit noir au bord doré, le rouge du dedans ; le bouddha
+    // doré (秘仏, le bouddha caché) sur son lotus
+    {
+      const z = zS(AUTEL_S + 0.55), L = 0.46, H = 0.62, Pp = 0.38, NOIR = '#201a17', OR = '#d9b24a', zb = z - Pp / 2;
+      b.boite(L + 0.02, 0.04, Pp + 0.02, NOIR, { x: X, y: yA + 0.02, z }).boite(L + 0.02, 0.04, Pp + 0.02, NOIR, { x: X, y: yA + H - 0.02, z })
+        .boite(0.035, H - 0.08, Pp, NOIR, { x: X - L / 2 + 0.0175, y: yA + H / 2, z }).boite(0.035, H - 0.08, Pp, NOIR, { x: X + L / 2 - 0.0175, y: yA + H / 2, z })
+        .boite(L - 0.07, H - 0.08, 0.03, NOIR, { x: X, y: yA + H / 2, z: zb + 0.015 }).boite(L - 0.09, H - 0.12, 0.01, '#6e1e18', { x: X, y: yA + H / 2, z: zb + 0.035 })
+        .toitJapon(0.64, 0.54, 0.12, 0.3, { x: X, y: yA + H, z, tuile: NOIR, tuile2: '#2a2420', bord: OR, avant: OR, releve: 0.03, rangs: 6 });
+      // (les portes, tournées sur leurs gonds de 110° vers le dehors)
+      for (const sg of [-1, 1]) {
+        const ang = sg < 0 ? -1.92 : -1.22, dx = Math.cos(ang) * 0.115, dz = -Math.sin(ang) * 0.115;
+        b.boite(0.23, H - 0.07, 0.016, NOIR, { x: X + sg * (L / 2) + dx, y: yA + H / 2, z: z + Pp / 2 + dz, ry: ang })
+          .boite(0.17, 0.012, 0.02, OR, { x: X + sg * (L / 2) + dx, y: yA + H / 2, z: z + Pp / 2 + dz, ry: ang });
+      }
+      const ORS = (wx, wy, wz) => (bruitDoux(wx * 9, wy * 9 + wz * 7, 1) > 0.55 ? '#e3be58' : '#c99e3c');
+      bouddha(THREE, b, X, yA + 0.04, z + 0.02, 0, 15, { PIERRE: '#d9b24a', PIERRE_F: '#b58c2e', LICHEN: '#e3be58', MOUSSE: '#c99e3c', tachee: () => ORS }, 0.5);
+    }
+    // les bougies sur l'autel, le brûle-parfum (香炉) et ses bâtons d'encens, le plateau d'offrandes (三方) du koban
+    for (const lx of [-0.52, -0.31, 0.31]) {
+      const z = zS(AUTEL_S + 0.13);
+      b.cylindre(0.035, 0.04, 0.02, 8, '#9a7a3a', { x: X + lx, y: yA + 0.01, z }).cylindre(0.02, 0.02, 0.14, 6, '#f4efe2', { x: X + lx, y: yA + 0.09, z });
+      FLAMMES.push([X + lx, yA + 0.19, z]);
+    }
+    {
+      const z = zS(AUTEL_S + 0.16);
+      b.cylindre(0.075, 0.05, 0.06, 10, '#5a4a32', { x: X, y: yA + 0.05, z });
+      for (const k of [0, 1, 2]) b.cylindre(0.012, 0.012, 0.03, 4, '#5a4a32', { x: X + Math.cos(k * 2.1) * 0.05, y: yA + 0.015, z: z + Math.sin(k * 2.1) * 0.05 });
+      for (const k of [-1, 0, 1]) b.cylindre(0.004, 0.004, 0.16, 3, '#7a3a2a', { x: X + k * 0.02, y: yA + 0.16, z: z + k * 0.01, rz: k * 0.08, trait: false });
+      b.boite(0.15, 0.1, 0.15, '#d8c39a', { x: SANBO.x, y: yA + 0.05, z: SANBO.z }).boite(0.21, 0.025, 0.21, '#e2cfa8', { x: SANBO.x, y: yA + 0.1125, z: SANBO.z });
+    }
+    // deux chandeliers de fer (燭台) au pied de l'autel, leurs grosses bougies : ils éclairent la grotte, le jour aussi
+    for (const sg of [-1, 1]) {
+      const x = X + sg * 0.98, z = zS(AUTEL_S - 0.35);
+      for (const k of [0, 1, 2]) { const t = k * 2.1 + 0.4; b.baton([x, sol + 0.03, z], [x + Math.cos(t) * 0.14, sol + 0.0, z + Math.sin(t) * 0.14], 0.012, '#2a2622', 4); }
+      b.cylindre(0.012, 0.012, 0.95, 5, '#2a2622', { x, y: sol + 0.5, z }).cylindre(0.075, 0.05, 0.03, 10, '#2a2622', { x, y: sol + 0.98, z })
+        .cylindre(0.03, 0.032, 0.13, 7, '#f4efe2', { x, y: sol + 1.06, z });
+      FLAMMES.push([x, sol + 1.16, z]);
+      lumieres.push({ x, y: sol + 1.16, z, halo: 0.14, sol, r: 3.0, c: '#ffb35a', jour: true });
+      monde.cercle(x, z, 0.3);
+    }
+    // le coin de l'ermite, à l'ouest : sa natte de paille (茣蓙), son petit pupitre (経机) et un sutra ouvert, sa conque (法螺貝),
+    // son bâton (金剛杖) contre la paroi
+    {
+      const xm = X - 1.28, zm = zS(2.0);
+      b.boite(0.86, 0.03, 1.7, '#b9a571', { x: xm, y: sol + 0.045, z: zm, teinte: (wx, wy, wz) => (Math.floor((wz - zm) * 22 + 40) % 2 ? '#b9a571' : '#a8955f') });
+      const xp = X - 1.75, zp = zS(1.45);
+      b.boite(0.28, 0.025, 0.5, '#3a2a20', { x: xp, y: sol + 0.28, z: zp });
+      for (const [u, v] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) b.boite(0.03, 0.25, 0.03, '#3a2a20', { x: xp + u * 0.11, y: sol + 0.15, z: zp + v * 0.21 });
+      b.boite(0.2, 0.01, 0.3, '#efe8d6', { x: xp, y: sol + 0.298, z: zp, ry: 0.08, trait: false }).boite(0.004, 0.012, 0.28, '#a89a7a', { x: xp, y: sol + 0.3, z: zp, ry: 0.08, trait: false });
+      monde.cercle(xp, zp, 0.42);
+      // (la conque : un cône clair à bandes brunes, couché, son ouverture évasée)
+      const xc = X - 1.0, zc = zS(2.4);
+      b.cone(0.075, 0.24, 9, '#e8dcc0', { x: xc, y: sol + 0.13, z: zc, rz: PI / 2 - 0.15, ry: 0.6, teinte: (wx, wy, wz) => (Math.floor(Math.hypot(wx - xc, wz - zc) * 40) % 2 ? '#e8dcc0' : '#9a6a44') })
+        .ovale(0.065, '#f0e2c8', { x: xc - Math.cos(0.6) * 0.12, y: sol + 0.13, z: zc + Math.sin(0.6) * 0.12, sx: 0.5, sy: 1.1, sz: 0.9, ry: 0.6 }, 8);
+      const xb = X - 2.05, zbt = zS(2.75);
+      b.baton([xb, sol, zbt], [xb - 0.25, sol + 1.48, zbt + 0.05], 0.018, '#c8b48a', 8);
+    }
+    // le bol de pierre sous les gouttes, à l'est, l'eau dedans
+    {
+      const prof = [[0, 0], [0.3, 0], [0.345, 0.2], [0.34, 0.4], [0.325, 0.43], [0.285, 0.42], [0.27, 0.2], [0.2, 0.13], [0, 0.12]].map(([r, y]) => new THREE.Vector2(r, y));
+      b.piece(new THREE.LatheGeometry(prof, 14), '#5a5a52', { x: BOL.x, y: sol, z: BOL.z, teinte: tachee(31, 0.3) })
+        .cylindre(0.276, 0.276, 0.01, 14, '#3a4f58', { x: BOL.x, y: sol + 0.36, z: BOL.z, trait: false });
+      monde.cercle(BOL.x, BOL.z, 0.62);
+    }
+    // une rangée de petits bouddhas taillés, sur un rebord de la paroi est
+    {
+      const hy = 0.9, s0 = 2.8, s1 = 3.9, xw = (s) => X + demiGrotte(s, hy) / 0.95;
+      b.piece(new THREE.BoxGeometry(0.55, 0.1, s1 - s0 + 0.5, 1, 1, 4), '#4f4d45', { x: xw((s0 + s1) / 2) + 0.025, y: sol + hy - 0.05, z: zS((s0 + s1) / 2), nuance: 0.06 });
+      for (let k = 0; k < 5; k++) {
+        const s = s0 + ((s1 - s0) * k) / 4;
+        bouddha(THREE, b, xw(s) - 0.15, sol + hy, zS(s), -PI / 2, k + 3, { PIERRE, PIERRE_F, LICHEN, MOUSSE, tachee }, 0.36);
+      }
+    }
+    // des petits tas de pierres, au pied des parois (des vœux)
+    for (let k = 0; k < 6; k++) {
+      const s = 0.9 + k * 0.62, sg = k % 2 ? 1 : -1, x = X + sg * (demiGrotte(s, 0.2) / 0.95 - 0.2);
+      if ((sg < 0 && s > 1.0 && s < 2.9) || (sg > 0 && Math.abs(s - 1.7) < 0.7)) continue;
+      let yy = sol + 0.03;
+      for (let e = 0; e < 3; e++) {
+        const r = (0.12 - e * 0.025) * (0.85 + 0.3 * hasard(k, e));
+        b.piece(new THREE.IcosahedronGeometry(r, 0), ['#6a6460', '#7a7470', '#5a5450'][(k + e) % 3], { x, y: yy + r * 0.45, z: zS(s), sy: 0.5, ry: hasard(k * 3 + e, 2) * 3, trait: false, nuance: 0.08 });
+        yy += r * 0.8;
+      }
+    }
+    poser(a.fin(), 0, 0, { y: 0 });
+    poser(b.fin(), 0, 0, { y: 0, dedans: [X - 8, X + 8, Z_SALLE - GROTTE.prof - 1, TAKI.z + 9] });
+    // la caméra : dans la grotte, elle reste sous la voûte et hors de la roche autour
+    const zFond = zS(GROTTE.prof);
+    monde.toit(X - 2.45, X + 2.45, zFond - 0.3, Z_GROTTE + 0.15, sol + 2.25, sol + 8);
+    monde.bloc(X - 6, X - 2.35, zFond - 1, Z_GROTTE - 0.45, sol - 2, sol + 8);
+    monde.bloc(X + 2.35, X + 6, zFond - 1, Z_GROTTE - 0.45, sol - 2, sol + 8);
+    monde.bloc(X - 6, X + 6, zFond - 4, zS(AUTEL_S + 0.55), sol - 2, sol + 8);
+    monde.bloc(X - 2.35, X - 1.32, zS(0.8), Z_GROTTE - 0.45, sol - 2, sol + 8);
+    monde.bloc(X + 1.32, X + 2.35, zS(0.8), Z_GROTTE - 0.45, sol - 2, sol + 8);
+    // (devant la bouche, la chute et sa brume : quand on est dedans, la caméra s'arrête dans la bouche au lieu de reculer
+    // dehors, derrière l'eau ; sur la pierre ou sur la terrasse, elle n'y prend pas garde : monde.js, visee)
+    monde.bloc(X - 1.7, X + 1.7, Z_GROTTE - 0.2, Z_GROTTE + 1.0, sol - 1.5, sol + 30);
+  }
+  // ---- la dalle de roche qui ferme la grotte : la bosse de la paroi devant, 10 cm de plus que la bouche tout autour, son bas sous
+  // le sol ; la scène l'ouvre (ouvrir) : elle tremble, recule de 42 cm, puis glisse vers l'est dans la roche, où on ne la voit plus
+  const dalle = (() => {
+    const X = GROTTE.x, Cy = GROTTE.sol + 1.0, pos = [], cols = [];
+    const avant = (x, y) => Math.min(zFace(x, y), Z_GROTTE + 0.03) + 0.025;
+    const boucle = arche.map(([x, y]) => { const dx = x - X, dy = y - Cy, l = Math.hypot(dx, dy) || 1; return [x + (dx / l) * 0.1, Math.max(GROTTE.sol - 0.05, y + (dy / l) * 0.1)]; });
+    const [xo] = boucle[boucle.length - 1], [xe] = boucle[0];
+    for (let k = 1; k < 6; k++) boucle.push([xo + ((xe - xo) * k) / 6, GROTTE.sol - 0.05]);
+    const F = boucle.map(([x, y]) => [x, y, avant(x, y)]), Bk = F.map(([x, y, z]) => [x, y, z - 0.35]);
+    const Mi = boucle.map(([x, y]) => { const mx = X + (x - X) * 0.55, my = Cy + (y - Cy) * 0.55; return [mx, my, avant(mx, my)]; });
+    const O = [X, Cy, avant(X, Cy)], OB = [X, Cy, O[2] - 0.35];
+    const ton = (p) => { const b = bruitDoux(p[0] * 1.7 + 4, p[1] * 1.7, 1); return b > 0.72 ? MOUSSE_F : b > 0.45 ? '#454f42' : '#3f4a40'; };
+    const n = boucle.length;
+    for (let i = 0; i < n; i++) {
+      const j = (i + 1) % n, dehors = [boucle[i][0] - X, boucle[i][1] - Cy, 0];
+      tri(pos, O, Mi[i], Mi[j], [0, 0, 1]); cols.push(ton(Mi[i]));
+      tri(pos, Mi[i], F[i], F[j], [0, 0, 1]); cols.push(ton(F[i]));
+      tri(pos, Mi[i], F[j], Mi[j], [0, 0, 1]); cols.push(ton(Mi[j]));
+      tri(pos, OB, Bk[j], Bk[i], [0, 0, -1]); cols.push('#34372f');
+      tri(pos, F[i], F[j], Bk[j], dehors); tri(pos, F[i], Bk[j], Bk[i], dehors); cols.push('#3c4139', '#3c4139');
+    }
+    const a = atelier(), g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    a.piece(g, '#454f42', { couleurs: cols, nuance: 0.05 });
+    const objet = new THREE.Group();
+    objet.add(ctx.maillage(a.fin(0, true)));
+    objet.visible = !ouverteAuDepart;
+    let t = -1;
+    return {
+      objet,
+      ouvrir() { t = 0; },
+      maj(dt) {
+        if (t < 0) return [];
+        t += dt;
+        objet.position.set((t < 0.35 ? 0.012 * Math.sin(t * 95) : 0) + 2.8 * lisse(0.95, 2.35, t), 0, -0.42 * lisse(0.25, 0.95, t));
+        if (t > 2.6) { t = -1; objet.visible = false; }
+        return [];
+      },
+    };
+  })();
+  animes.push(dalle);
+  // ---- dedans, ce qui bouge : les flammes des bougies, le koban qui tourne doucement sur son plateau (tant qu'on ne l'a pas pris),
+  // une goutte qui tombe de la voûte dans le bol toutes les 2,6 s (« plic »)
+  const dedansGrotte = (() => {
+    const objet = new THREE.Group();
+    const mat = new THREE.PointsMaterial({ color: '#ffb860', size: 0.085, map: flammeDouce(THREE), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false });
+    const flammes = new THREE.Points(new THREE.BufferGeometry().setAttribute('position', new THREE.BufferAttribute(new Float32Array(FLAMMES.flat()), 3)), mat);
+    flammes.renderOrder = 3;
+    const koban = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.011, 18), new THREE.MeshBasicMaterial({ color: '#f3cf6a' }));
+    koban.scale.set(1, 1, 1.5);
+    koban.rotation.x = PI / 2;
+    koban.position.set(SANBO.x, SANBO.y + 0.075, SANBO.z);
+    const goutte = new THREE.Mesh(new THREE.SphereGeometry(0.016, 6, 4), new THREE.MeshBasicMaterial({ color: '#d6e6ee' }));
+    const y0 = GROTTE.sol + 2.45, y1 = GROTTE.sol + 0.37;
+    objet.add(flammes, koban, goutte);
+    objet.visible = ouverteAuDepart;
+    let lu = -1, trouve = true, tg = 0;
+    return {
+      objet,
+      prendreKoban() { koban.visible = false; trouve = true; },
+      maj(dt, temps) {
+        objet.visible = grotteOuverte;
+        if (!grotteOuverte) return [];
+        if (temps - lu > 0.5) { lu = temps; trouve = secretTrouve('iwaya'); }
+        koban.visible = !trouve;
+        if (!trouve) koban.rotation.z += dt * 1.6;
+        mat.size = 0.085 * (1 + 0.1 * Math.sin(temps * 17.3) * Math.sin(temps * 6.1 + 1));
+        const avant = tg;
+        tg = (tg + dt) % 2.6;
+        const f = tg / 0.62;
+        goutte.visible = f < 1;
+        if (f < 1) goutte.position.set(BOL.x, y0 - (y0 - y1) * f * f, BOL.z);
+        return avant < 0.62 && tg >= 0.62 ? [{ x: BOL.x, y: y1, z: BOL.z, nom: 'goutte', fort: 0.7 }] : [];
+      },
+    };
+  })();
+  animes.push(dedansGrotte);
+  // ---- sous la cascade : y rester (le takigyō) ouvre la grotte. Le compte commence sur la pierre ; à 1 s et à 2,5 s, une ligne en
+  // bas de l'écran (sans arrêter le jeu) ; à 4,3 s, la scène. Reparti trop tôt, le compagnon le dit une fois (un indice).
+  const ouvrirGrotte = async (jeu) => {
+    const T = jeu.tx('takiFin');
+    jeu.aide(null);
+    await jeu.dire([T[0]]);
+    // la roche tremble : le voyageur recule d'une pierre ; la caméra, de face et de côté, un peu bas (derrière lui sous la chute, on
+    // ne voyait que son chapeau, l'eau et la brume) ; la dalle glisse pendant qu'on lit
+    jeu.placer(TAKIGYO.x, TAKIGYO.z + 0.8, PI);
+    jeu.cadrer({ de: [GROTTE.x - 1.7, GROTTE.sol + 1.0, Z_GROTTE + 3.4], vers: [GROTTE.x + 0.2, GROTTE.sol + 1.25, Z_GROTTE - 0.3], champ: 60 });
+    jeu.son('roc');
+    dalle.ouvrir();
+    const glisse = jeu.attendre(2900);
+    await jeu.dire([T[1]]);
+    await glisse;
+    grotteOuverte = true;
+    jeu.voirIndice('iwaya');
+    await jeu.dire(jeu.tx('grotte'));
+    await comp(jeu, 'grotteCompagnon');
+    jeu.cadrer(null);
+  };
+  animes.push((() => {
+    const SEUIL = 4.3;
+    let t = 0, ditTot = false;
+    return {
+      objet: new THREE.Group(),
+      maj(dt, temps, c) {
+        const j = c.joueur, dessous = j.mode === 'jeu' && Math.hypot(j.x - TAKIGYO.x, j.z - TAKIGYO.z) < 0.45 && j.y > TAKIGYO.y - 0.3;
+        if (!dessous) {
+          if (t > 1.0 && !grotteOuverte) c.aide(null);
+          if (!grotteOuverte && !ditTot && t > 0.8 && t < SEUIL) { ditTot = true; c.scene((jeu) => comp(jeu, 'takiTot')); }
+          t = 0;
+          return [];
+        }
+        const avant = t;
+        t += dt;
+        if (grotteOuverte) return [];
+        if (avant < 1.0 && t >= 1.0) c.aide(c.tx('takiFroid'));
+        if (avant < 2.5 && t >= 2.5) c.aide(c.tx('takiTenir'));
+        if (avant < SEUIL && t >= SEUIL) c.scene(ouvrirGrotte);
+        return [];
+      },
+    };
+  })());
 
   // ---------------------------------------------------------------- Les barrières de rondins (丸太柵) : une seule sorte
   // Là où le sol tombe : le bord sud de la terrasse à l'est de l'escalier, le belvédère ; et en travers de la route, en bas.
@@ -1318,12 +1712,32 @@ export function construire(ctx) {
       },
     },
     { id: 'videaste', passant: 'videaste', verbe: 'parler', async action(jeu) { await jeu.dire(jeu.tx('videaste'), 'videaste'); await jeu.video(); } },
-    parler('enfant'), parler('randonneur'), parler('yamabushi'), parler('bucheron'), parler('photographe'),
+    parler('enfant'), parler('randonneur'), parler('bucheron'), parler('photographe'),
+    // (le yamabushi parle de l'ermite qui méditait sous la cascade ; une fois la grotte ouverte, il le sait)
+    { id: 'yamabushi', passant: 'yamabushi', verbe: 'parler', action: (jeu) => jeu.dire(jeu.txn(!jeu.estNuit && jeu.indiceVu('iwaya') ? 'yamabushiApres' : 'yamabushi'), 'yamabushi') },
     { id: 'torii', x: TORII.x, z: TORII.z - 1.4, rayon: 1.6, haut: 2.4, verbe: 'regarder', vers: [TORII.x, TORII.z], action: (jeu) => jeu.dire(jeu.txn('torii')) },
     { id: 'escalier', x: ESC.x, z: ESC.z0 - 0.4, rayon: 1.2, haut: 1.4, verbe: 'regarder', vers: [ESC.x, ESC.z1], action: (jeu) => jeu.dire(jeu.txn('escalier')) },
     { id: 'to', x: TO.x + 1.6, z: TO.z + 0.9, rayon: 1.8, haut: 1.6, verbe: 'regarder', vers: [TO.x, TO.z], action: (jeu) => jeu.dire(jeu.tx('to')) },
     { id: 'shinboku', x: SHINBOKU.x + 2.1, z: SHINBOKU.z - 1.3, rayon: 1.8, haut: 1.6, verbe: 'regarder', vers: [SHINBOKU.x, SHINBOKU.z], action: (jeu) => jeu.dire(jeu.txn('shinboku')) },
     { id: 'cascade', x: TAKI.x + 2.6, z: TAKI.z + 1.9, rayon: 1.8, haut: 1.6, verbe: 'regarder', vers: [TAKI.x, TAKI.z - 1.2], action: (jeu) => jeu.dire(jeu.txn('cascade')) },
+    // la grotte de l'ermite, une fois sa dalle ouverte : l'autel et son bouddha caché (la première fois, le koban sur le plateau
+    // d'offrandes), le coin de l'ermite, le bol sous les gouttes, les petits bouddhas taillés
+    {
+      id: 'iwaya-autel', x: GROTTE.x, z: zS(AUTEL_S - 0.6), rayon: 1.3, haut: 1.3, verbe: 'regarder', vers: [GROTTE.x, zS(AUTEL_S + 0.55)], si: () => grotteOuverte,
+      async action(jeu) {
+        await jeu.dire(jeu.txn('iwayaAutel'));
+        if (jeu.secretTrouve('iwaya')) return;
+        await jeu.dire(jeu.tx('kobanIwaya'));
+        jeu.geste('offrir');
+        await jeu.attendre(600);
+        dedansGrotte.prendreKoban();
+        jeu.geste(null);
+        await jeu.trouverSecret('iwaya');
+      },
+    },
+    { id: 'iwaya-ermite', x: GROTTE.x - 0.7, z: zS(2.0), rayon: 1.3, haut: 1.0, verbe: 'regarder', vers: [GROTTE.x - 1.4, zS(2.0)], si: () => grotteOuverte, action: (jeu) => jeu.dire(jeu.tx('iwayaErmite')) },
+    { id: 'iwaya-bol', x: BOL.x - 0.85, z: BOL.z, rayon: 1.2, haut: 1.0, verbe: 'regarder', vers: [BOL.x, BOL.z], si: () => grotteOuverte, action: (jeu) => jeu.dire(jeu.tx('iwayaBol')) },
+    { id: 'iwaya-bouddhas', x: GROTTE.x + 0.75, z: zS(3.35), rayon: 1.3, haut: 1.4, verbe: 'regarder', vers: [GROTTE.x + 2.0, zS(3.35)], si: () => grotteOuverte, action: (jeu) => jeu.dire(jeu.tx('iwayaBouddhas')) },
     { id: 'magaibutsu', x: NICHES[0].x + 1.0, z: zFace(NICHES[0].x, NICHES[0].y) + 2.0, rayon: 1.8, haut: 1.6, verbe: 'regarder', vers: [NICHES[0].x + 0.95, Z_PAROI], action: (jeu) => jeu.dire(jeu.txn('magaibutsu')) },
     { id: 'masque', x: DO.x - DO.l / 2 + 4 * (DO.l / 8) + 0.5, z: DO_AVANT + 1.1, rayon: 1.2, haut: 1.8, verbe: 'regarder', vers: [DO.x - DO.l / 2 + 4 * (DO.l / 8), DO_AVANT - 0.25], action: (jeu) => jeu.dire(jeu.txn('masque')) },
     { id: 'jizo', x: RECOIN.x + 1.1, z: RECOIN.z - 0.3, rayon: 1.4, haut: 1.0, verbe: 'prier', vers: [RECOIN.x + 1.9, RECOIN.z - 1.0], async action(jeu) { jeu.geste('prier'); await jeu.attendre(2400); jeu.geste(null); await jeu.dire(jeu.txn('jizo')); } },
@@ -1340,11 +1754,14 @@ export function construire(ctx) {
   // les morceaux du décor : près, avec leur trait et leur ombre ; au loin (les forêts des collines), sans
   for (const [k, a] of morceaux) poser(a.fin(), 0, 0, { y: 0, ...(Number(k.split(':')[0]) >= 100 ? { trait: false, ombre: false } : {}) });
 
+  grotteOuverte = ouverteAuDepart;
   return {
     ...infos, textes: TEXTES,
     objets, monde, terrain, etiquettes, passants, daims: [], interactions, actionDaim: null, vapeurs, bancs, lumieres, actionBete, animes,
     // (le secret, tresors.js ; le marchand ; les sons à fabriquer en plus ; les feux d'artifice, au-dessus de la vallée, au sud)
-    secret: 'oni', marchand: MARCHAND, sons: ['claque', 'papier', 'kane', 'pouf'],
+    secret: 'oni', marchand: MARCHAND, sons: ['claque', 'papier', 'kane', 'pouf', 'roc', 'oiseau/goutte'],
+    // (sous la cascade, on est trempé : balade.js)
+    douches: [{ x: TAKIGYO.x, z: TAKIGYO.z - 0.05, r: 0.5 }],
     // les bêtes (betes.js) : le chat de la ferme, des papillons près de la ferme, des milans au-dessus de la vallée
     betes: {
       chats: [{ id: 'chatFerme', x: MAISON.x + MAISON.lx / 2 + 1.2, z: MAISON.z - 2.4, cap: 1.2, robe: 'roux', dort: true }],
@@ -1671,6 +2088,8 @@ function aspectSol(P, x, z, h) {
   // la terrasse : le gravier ; le belvédère : la roche
   if (dansRect(BELVEDERE, x, z, 0.1)) return [bruit > 0.5 ? '#7a7666' : '#6e6a5c', M.roche];
   if (dansRect(TERRASSE, x, z, 0.05)) return [b2 > 0.66 ? '#5f6e48' : bruit > 0.6 ? '#7e7b70' : bruit > 0.3 ? '#757267' : '#6e6b60', b2 > 0.66 ? M.mousse : M.terre];
+  // la grotte de l'ermite : la roche, sombre et mouillée
+  if (solGrotte(x, z)) return [bruit > 0.55 ? '#47443c' : '#3f3c35', M.terre];
   // au pied de la falaise et sous l'escalier : la mousse
   if (z < zParoi(x) + 2 || (Math.abs(x - ESC.x) < ESC.demi + 1.2 && z < ESC.z0 && z > ESC.z1)) return [bruit > 0.5 ? '#557a3c' : '#4a6e34', M.mousse];
   // au loin, la forêt sombre ; le sous-bois : les aiguilles rousses des cèdres, des plaques de mousse et de plantes basses
@@ -1748,7 +2167,7 @@ const TEXTES = {
     videaste: ['Salut ! Je filme les gardiens Nio dans la brume pour mon TikTok, @random_japan_place. Regarde !'],
     enfant: ['Tu as vu les traces de pieds géants, là, dans la boue ? Elles vont du ruisseau jusqu’à la montagne !', 'Mamie dit que c’est un oni gentil. Moi, je crois qu’il vient la nuit, quand quelqu’un l’appelle…'],
     randonneur: ['On fait le chemin des crêtes de Kunisaki, le 峯道ロングトレイル : plus de cent kilomètres de sentiers entre les temples de la péninsule.', 'Les moines d’autrefois le parcouraient en entier, de temple en temple. Nous, on prend notre temps !'],
-    yamabushi: ['Je suis un yamabushi : je prie en marchant dans les montagnes. Ici, depuis plus de mille ans, on mêle les dieux des montagnes et les bouddhas.', 'Tu vois la conque à ma ceinture ? On la souffle pour s’appeler d’une montagne à l’autre. Peut-être qu’un jour, tu en auras une…'],
+    yamabushi: ['Je suis un yamabushi : je prie en marchant dans les montagnes. Ici, depuis plus de mille ans, on mêle les dieux des montagnes et les bouddhas.', 'Tu vois la conque à ma ceinture ? On la souffle pour s’appeler d’une montagne à l’autre. Peut-être qu’un jour, tu en auras une…', 'Autrefois, un ermite méditait sous la cascade du bassin, des heures entières, l’eau glacée sur la tête. On raconte qu’un jour, la montagne lui a ouvert sa porte… Il faut tenir bon, sous l’eau.'],
     yamabushiNuit: ['La nuit, la montagne parle plus fort. Écoute… on entend les cèdres craquer.'],
     bucheron: ['Ces cèdres, c’est mon grand-père qui les a plantés, il y a soixante ans. Celle-là, en dessous, je l’ai coupée l’an dernier : on replante de jeunes cèdres.', 'Grâce à la coupe, on voit la vallée depuis le belvédère. Les matins de brume, c’est une mer de nuages !'],
     photographe: ['Chut… J’attends que la mer de nuages soit parfaite. Ça fait trois heures que je suis là.', 'Le meilleur moment, c’est quand seules les pointes des cèdres dépassent. Va voir au bord du belvédère !'],
@@ -1759,8 +2178,21 @@ const TEXTES = {
     to: ['Un stupa de pierre de Kunisaki (国東塔) : un socle, un lotus, un corps tout rond, un petit toit et une flèche d’anneaux.', 'On n’en trouve presque que dans la péninsule. On y gardait des sutras, ou le souvenir de quelqu’un.'],
     shinboku: ['Le grand cèdre sacré (神木) : plus de cinq cents ans, peut-être. Une corde de paille entoure son tronc : un dieu y habite.'],
     shinbokuNuit: ['Le vieux cèdre se perd dans le noir. On n’en voit que le pied, et sa corde blanche.'],
-    cascade: ['Un mince filet d’eau tombe du haut de la falaise dans un petit bassin. Fudō Myōō (不動明王), le gardien au sabre, le regarde tomber.', 'Les yamabushi viennent prier sous les cascades, même en hiver.'],
+    cascade: ['Un mince filet d’eau tombe du haut de la falaise dans un petit bassin. Fudō Myōō (不動明王), le gardien au sabre, le regarde tomber.', 'Des pierres plates traversent le bassin jusque sous la chute. Les yamabushi viennent s’y tenir sous l’eau glacée, même en hiver : le takigyō (滝行).'],
     cascadeNuit: ['On ne voit plus la cascade, on l’entend seulement. Elle ne s’arrête jamais.'],
+    yamabushiApres: ['Tu as trouvé la grotte de l’ermite ?! Alors la montagne t’a accepté. Garde-le pour toi, hein… c’est un secret de la montagne.'],
+    takiFroid: 'Brrr… L’eau glacée tombe sur ta tête et tes épaules !',
+    takiTenir: 'Tiens bon, les yeux fermés… comme les ermites de la montagne.',
+    takiTot: { kon: ['« Brrr ! Les ermites de la montagne, eux, restaient bien plus longtemps sous l’eau… »'], pon: ['« Pon ! C’est glacé ! Les yamabushi restent longtemps dessous, eux… Moi, je préfère le bain chaud. »'], chapu: ['« Chapu ! Déjà fini ? Les ermites, eux, restaient longtemps sous la cascade ! »'], gao: ['« Gao… Un gardien ne bouge pas. Les ermites non plus : ils restaient sous l’eau sans bouger. »'], fuwa: ['« Fuwa… L’eau aime ceux qui restent. Les ermites le savaient. »'], saya: ['« La montagne n’a pas eu le temps de te voir… Les ermites restaient plus longtemps. »'] },
+    takiFin: ['Tu restes sous l’eau glacée, sans bouger, les yeux fermés. Le grondement de la cascade remplit tout…', 'Et soudain, derrière l’eau, la roche se met à trembler !'],
+    grotte: ['La dalle de roche a glissé toute seule. Derrière la cascade, il y avait une grotte !', 'Tout au fond, des bougies brillent… Pourtant, il n’y a personne.'],
+    grotteCompagnon: { kon: ['« La montagne t’a ouvert sa porte… Le yamabushi disait vrai. »'], pon: ['« Pon ?! Une porte secrète ! Il y a peut-être des gâteaux, dedans ? »'], chapu: ['« Chapuuu ! Une grotte derrière l’eau ! On y va, on y va ! »'], gao: ['« Gao… Des bougies allumées, et personne. Je passe devant. »'], fuwa: ['« Fuwa… La cascade gardait ce secret depuis si longtemps. »'], saya: ['« Ça sent la pierre mouillée et la cire… Quelqu’un veille sur cet endroit. »'] },
+    iwayaAutel: ['Dans un petit coffre de bois laqué aux portes ouvertes, un bouddha doré brille à la lueur des bougies.', 'C’est un hibutsu (秘仏), un « bouddha caché » : on ne le montre presque jamais. Certains ne sont ouverts qu’une fois tous les trente-trois ans.', 'Les bougies sont neuves… Qui les a allumées ?'],
+    iwayaAutelNuit: ['La nuit, la grotte n’a que ses bougies. Le bouddha doré semble flotter dans le noir.', 'C’est un hibutsu (秘仏), un « bouddha caché » : on ne le montre presque jamais. Certains ne sont ouverts qu’une fois tous les trente-trois ans.'],
+    kobanIwaya: ['Sur le petit plateau d’offrandes (三方), à côté du coffre, une vieille pièce d’or…', 'On dirait qu’elle t’attendait.'],
+    iwayaErmite: ['Une natte de paille usée, un petit pupitre avec un sutra ouvert, une conque, un bâton de pèlerin contre la paroi.', 'Un ermite a vécu ici. Chaque jour, il allait méditer sous la cascade, l’hiver comme l’été.'],
+    iwayaBol: ['Plic… plic… L’eau goutte de la voûte dans un bol de pierre.', 'Goutte après goutte, depuis des siècles, elle a creusé la pierre. L’ermite y buvait l’eau de la montagne.'],
+    iwayaBouddhas: ['Sur un rebord de la paroi, une rangée de petits bouddhas taillés dans la roche, polis par les mains et par le temps.', 'L’ermite les a sculptés un à un, à la lueur des bougies.'],
     magaibutsu: ['Des bouddhas taillés à même la falaise (磨崖仏), dans des niches. Le temps et l’eau les ont presque effacés.', 'La péninsule de Kunisaki en compte des centaines, cachés dans les forêts et les rochers.'],
     magaibutsuNuit: ['Dans le noir, les bouddhas de la falaise ne sont plus que deux ombres douces.'],
     masque: ['Un vieux masque d’oni, rouge, avec deux cornes, pendu au poteau du pavillon.', 'C’est un masque de la fête du feu (修正鬼会) : les oni de Kunisaki sont gentils, ce sont des bouddhas déguisés.'],
@@ -1839,7 +2271,7 @@ const TEXTES = {
     videaste: ['Hi! I’m filming the Nio guardians in the mist for my TikTok, @random_japan_place. Look!'],
     enfant: ['Did you see the giant footprints there, in the mud? They go from the stream all the way up the mountain!', 'Grandma says it’s a kind oni. I think he comes at night, when someone calls him…'],
     randonneur: ['We’re walking Kunisaki’s ridge trail, the 峯道ロングトレイル: over a hundred kilometres of paths between the peninsula’s temples.', 'The monks of old walked the whole thing, temple to temple. We’re taking our time!'],
-    yamabushi: ['I am a yamabushi: I pray by walking in the mountains. Here, for over a thousand years, the mountain gods and the Buddhas have been worshipped together.', 'See the conch at my belt? We blow it to call to each other from one mountain to another. Maybe one day you’ll have one too…'],
+    yamabushi: ['I am a yamabushi: I pray by walking in the mountains. Here, for over a thousand years, the mountain gods and the Buddhas have been worshipped together.', 'See the conch at my belt? We blow it to call to each other from one mountain to another. Maybe one day you’ll have one too…', 'Long ago, a hermit meditated under the waterfall by the pool for hours on end, the icy water on his head. They say that one day, the mountain opened its door to him… You have to hold on, under the water.'],
     yamabushiNuit: ['At night, the mountain speaks louder. Listen… you can hear the cedars creak.'],
     bucheron: ['My grandfather planted these cedars sixty years ago. That patch below, I cut it last year: we’re replanting young cedars.', 'Thanks to the clearing, you can see the valley from the lookout. On misty mornings, it’s a sea of clouds!'],
     photographe: ['Shh… I’m waiting for the sea of clouds to be perfect. I’ve been here three hours.', 'The best moment is when only the tips of the cedars stick out. Go and look from the edge of the lookout!'],
@@ -1850,8 +2282,21 @@ const TEXTES = {
     to: ['A Kunisaki stone stupa (国東塔): a base, a lotus, a round body, a little roof and a spire of rings.', 'You find them almost only on this peninsula. They kept sutras in them, or the memory of someone.'],
     shinboku: ['The great sacred cedar (神木): over five hundred years old, perhaps. A straw rope circles its trunk: a god lives in it.'],
     shinbokuNuit: ['The old cedar fades into the dark. Only its foot shows, with its white rope.'],
-    cascade: ['A thin thread of water falls from the top of the cliff into a small pool. Fudō Myōō (不動明王), the guardian with the sword, watches it fall.', 'The yamabushi come to pray under waterfalls, even in winter.'],
+    cascade: ['A thin thread of water falls from the top of the cliff into a small pool. Fudō Myōō (不動明王), the guardian with the sword, watches it fall.', 'Flat stones cross the pool right under the fall. The yamabushi come to stand there under the icy water, even in winter: takigyō (滝行).'],
     cascadeNuit: ['You can’t see the waterfall anymore, only hear it. It never stops.'],
+    yamabushiApres: ['You found the hermit’s cave?! Then the mountain has accepted you. Keep it to yourself, all right… it’s the mountain’s secret.'],
+    takiFroid: 'Brrr… The icy water pounds on your head and shoulders!',
+    takiTenir: 'Hold on, eyes closed… like the mountain hermits.',
+    takiTot: { kon: ['“Brrr! The mountain hermits stayed under the water much longer…”'], pon: ['“Pon! It’s freezing! The yamabushi stay under there for ages… I prefer a hot bath.”'], chapu: ['“Chapu! Done already? The hermits stayed under the waterfall for ages!”'], gao: ['“Gao… A guardian doesn’t move. Neither did the hermits: they stayed under the water without moving.”'], fuwa: ['“Fuwa… Water likes those who stay. The hermits knew it.”'], saya: ['“The mountain didn’t have time to see you… The hermits stayed longer.”'] },
+    takiFin: ['You stay under the icy water, motionless, eyes closed. The roar of the waterfall fills everything…', 'And suddenly, behind the water, the rock begins to shake!'],
+    grotte: ['The slab of rock slid aside on its own. Behind the waterfall, there was a cave!', 'Deep inside, candles are burning… Yet there’s nobody there.'],
+    grotteCompagnon: { kon: ['“The mountain opened its door to you… The yamabushi was right.”'], pon: ['“Pon?! A secret door! Maybe there are cakes inside?”'], chapu: ['“Chapuuu! A cave behind the water! Let’s go, let’s go!”'], gao: ['“Gao… Lit candles, and no one. I’ll go first.”'], fuwa: ['“Fuwa… The waterfall has kept this secret for so long.”'], saya: ['“It smells of wet stone and wax… Someone watches over this place.”'] },
+    iwayaAutel: ['In a small lacquered wooden shrine with its doors open, a golden Buddha shines in the candlelight.', 'It’s a hibutsu (秘仏), a “hidden Buddha”: it’s almost never shown. Some are opened only once every thirty-three years.', 'The candles are new… Who lit them?'],
+    iwayaAutelNuit: ['At night, the cave has only its candles. The golden Buddha seems to float in the dark.', 'It’s a hibutsu (秘仏), a “hidden Buddha”: it’s almost never shown. Some are opened only once every thirty-three years.'],
+    kobanIwaya: ['On the small offering stand (三方), beside the shrine, an old gold coin…', 'It looks as if it was waiting for you.'],
+    iwayaErmite: ['A worn straw mat, a little lectern with an open sutra, a conch, a pilgrim’s staff against the wall.', 'A hermit lived here. Every day he went to meditate under the waterfall, winter and summer alike.'],
+    iwayaBol: ['Plink… plink… Water drips from the vault into a stone bowl.', 'Drop by drop, over centuries, it has hollowed out the stone. The hermit drank the mountain’s water from it.'],
+    iwayaBouddhas: ['On a ledge of the wall, a row of small Buddhas carved in the rock, polished by hands and by time.', 'The hermit carved them one by one, by candlelight.'],
     magaibutsu: ['Buddhas carved right into the cliff (磨崖仏), in niches. Time and water have almost worn them away.', 'The Kunisaki Peninsula has hundreds of them, hidden in the forests and rocks.'],
     magaibutsuNuit: ['In the dark, the cliff Buddhas are just two soft shadows.'],
     masque: ['An old red oni mask with two horns, hanging on a post of the hall.', 'It’s a mask from the fire festival (修正鬼会): the oni of Kunisaki are kind, they’re Buddhas in disguise.'],
@@ -1930,7 +2375,7 @@ const TEXTES = {
     videaste: ['やあ！　TikTokの　@random_japan_placeで、きりの　中の　仁王さまを　とってるんだ。見て！'],
     enfant: ['どろの　中の　大きな　あしあと、見た？　小川から　山まで　つづいてるの！', 'おばあちゃんは　やさしい　おにだって。だれかが　よぶと、よるに　くると　おもうんだ……'],
     randonneur: ['国東の　峯道ロングトレイルを　あるいてるんだ。半島の　お寺を　つなぐ　百キロいじょうの　山みち。', 'むかしの　おぼうさんは　ぜんぶ　あるいたんだって。ぼくらは　のんびりね！'],
-    yamabushi: ['わたしは　山伏。山を　あるきながら　いのる。ここでは　千年いじょう　まえから、山の　かみさまと　仏さまを　いっしょに　まつってきた。', 'こしの　ほらがいが　見えるかな？　山から　山へ　よびあうのに　ふくんだ。いつか　きみにも……'],
+    yamabushi: ['わたしは　山伏。山を　あるきながら　いのる。ここでは　千年いじょう　まえから、山の　かみさまと　仏さまを　いっしょに　まつってきた。', 'こしの　ほらがいが　見えるかな？　山から　山へ　よびあうのに　ふくんだ。いつか　きみにも……', 'むかし、ひとりの　行者が　いけの　たきに　なん時間も　うたれて、目を　とじていた。ある日、山が　とびらを　ひらいたと　いう……　水の　下で、がまんが　だいじだ。'],
     yamabushiNuit: ['よるの　山は　こえが　大きい。ほら……　杉が　きしむ　おと。'],
     bucheron: ['この　杉は　六十年　まえに　じいさんが　うえたんだ。下の　ところは　きょねん　きって、わかい　杉を　うえなおしている。', 'きったから　展望台から　谷が　見えるんだ。きりの　朝は　雲海だよ！'],
     photographe: ['しーっ……　雲海が　かんぺきに　なるのを　まってるの。もう　三時間。', 'いちばん　いいのは　杉の　さきだけが　出る　ときよ。展望台の　はしで　見てごらん！'],
@@ -1941,8 +2386,21 @@ const TEXTES = {
     to: ['国東塔：だい、はすの　花、まるい　からだ、小さな　やね、わの　とがった　さき。', 'この　半島で　しか　ほとんど　見られない。おきょうや、人の　おもいでを　しまっていた。'],
     shinboku: ['大きな　しんぼく（神木）。五百年いじょう　かもしれない。しめなわが　まいてある：かみさまが　すんでいる。'],
     shinbokuNuit: ['ふるい　杉は　やみに　きえて、根もとと　白い　しめなわだけ　見える。'],
-    cascade: ['がけの　上から　ほそい　水が　小さな　いけに　おちる。けんを　もった　不動明王が　見まもっている。', '山伏は　ふゆでも　たきに　うたれて　いのるんだ。'],
+    cascade: ['がけの　上から　ほそい　水が　小さな　いけに　おちる。けんを　もった　不動明王が　見まもっている。', 'たきの　下まで　ひらたい　いしが　つづいている。山伏は　ふゆでも　ここで　つめたい　水に　うたれる。滝行と　いうんだ。'],
     cascadeNuit: ['たきは　もう　見えない。おとだけ。ずっと　とまらない。'],
+    yamabushiApres: ['行者の　岩屋を　見つけたのか？！　山に　みとめられたな。だれにも　言うなよ……　山の　ひみつだ。'],
+    takiFroid: 'ぶるる……　つめたい　水が　あたまと　かたに　おちてくる！',
+    takiTenir: 'がまん、がまん……　目を　とじて。山の　行者のように……',
+    takiTot: { kon: ['「ぶるる！　山の　行者は、もっと　ずっと　長く　水に　うたれていたんですよ……」'], pon: ['「ポン！　つめたい！　山伏は　ずっと　うたれるんだって……　ぼくは　おふろが　いいな。」'], chapu: ['「チャプ！　もう　おしまい？　行者は　ずっと　たきの　下に　いたんだよ！」'], gao: ['「ガオ……　まもりびとは　うごかない。行者も　うごかずに　水に　うたれていた。」'], fuwa: ['「フワ……　水は　とどまる　ものが　すき。行者は　それを　しっていたの。」'], saya: ['「山は　まだ　あなたを　見ていない……　行者は　もっと　長く　いたのよ。」'] },
+    takiFin: ['つめたい　水に　うたれながら、目を　とじて　じっと　する。たきの　おとが　ぜんぶを　つつむ……', 'とつぜん、水の　うしろで　いわが　ゆれはじめた！'],
+    grotte: ['いわの　いたが　ひとりでに　うごいた。たきの　うしろに、ほらあなが　あった！', 'おくで　ろうそくが　ともっている……　でも、だれも　いない。'],
+    grotteCompagnon: { kon: ['「山が　あなたに　とびらを　ひらいた……　山伏の　はなしは　ほんとうだった。」'], pon: ['「ポン？！　ひみつの　とびら！　中に　おかし　あるかな？」'], chapu: ['「チャプー！　水の　うしろに　ほらあな！　いこう、いこう！」'], gao: ['「ガオ……　ろうそくが　ついていて、だれも　いない。ぼくが　さきに　いく。」'], fuwa: ['「フワ……　たきは　ずっと　この　ひみつを　まもっていたのね。」'], saya: ['「ぬれた　いわと　ろうの　におい……　だれかが　ここを　まもっている。」'] },
+    iwayaAutel: ['とびらの　ひらいた　ぬりの　小さな　ずしの　中で、金の　仏さまが　ろうそくの　あかりに　かがやく。', 'これは　秘仏　――「かくされた　仏さま」。ほとんど　見せない。三十三年に　いちどしか　ひらかない　ものも　ある。', 'ろうそくは　あたらしい……　だれが　つけたのだろう？'],
+    iwayaAutelNuit: ['よるの　ほらあなには　ろうそくの　あかりだけ。金の　仏さまが　やみに　うかんで　見える。', 'これは　秘仏　――「かくされた　仏さま」。ほとんど　見せない。三十三年に　いちどしか　ひらかない　ものも　ある。'],
+    kobanIwaya: ['ずしの　よこ、小さな　三方の　上に、ふるい　金の　おかね……', 'まるで　あなたを　まっていたみたい。'],
+    iwayaErmite: ['すりきれた　わらの　ござ、おきょうを　ひらいた　小さな　つくえ、ほらがい、かべに　たてかけた　つえ。', '行者が　ここで　くらしていた。まいにち、なつも　ふゆも、たきに　うたれに　いったのだ。'],
+    iwayaBol: ['ぽちゃん……　ぽちゃん……　天井から　しずくが　いしの　うつわに　おちる。', 'なん百年も、ひとしずくずつ、いしを　ほってきた。行者は　ここで　山の　水を　のんだ。'],
+    iwayaBouddhas: ['かべの　でっぱりに、いわを　ほった　小さな　仏さまが　ならぶ。手と　ときに　みがかれて　つるつる。', '行者が　ろうそくの　あかりで　ひとつずつ　ほったのだ。'],
     magaibutsu: ['がけに　じかに　ほられた　仏さま（磨崖仏）。時間と　水で　ほとんど　きえかけている。', '国東半島には　森や　岩に　かくれた　磨崖仏が　なんびゃくも　ある。'],
     magaibutsuNuit: ['くらやみの　がけの　仏さまは、二つの　やさしい　かげ。'],
     masque: ['お堂の　はしらに　かかった　ふるい　赤い　おにの　めん。つのが　二本。', '火の　まつり（修正鬼会）の　めん。国東の　おには　やさしい　仏さまの　へんしん。'],

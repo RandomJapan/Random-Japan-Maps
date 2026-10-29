@@ -8,7 +8,8 @@
 //  lumieres : [{ x, y, z (la flamme), halo (son rayon, en m), sol (la hauteur du sol dessous ; null : une lampe
 //  sans sol proche), r (jusqu'où elle éclaire le sol, depuis son pied), c (la couleur, « #rrggbb » ; une lumière
 //  chaude par défaut), mobile (2026-10-24 : la lampe bouge, ses x, y, z sont relus à chaque image : la luciole dorée
-//  de Gokayama ; son halo est le sien, halo : 0) }]
+//  de Gokayama ; son halo est le sien, halo : 0), jour (2026-10-29 : allumée aussi le jour, sa lumière sans son halo :
+//  les bougies d'une grotte, aux Trente Bouddhas) }]
 // ================================================================
 import { NB_LAMPES } from './styles.js';
 
@@ -71,9 +72,10 @@ export function creerLueurs(THREE, lumieres, lampes) {
   // la lumière des lampes : sa portée, depuis la flamme, va jusqu'au bord de ce qu'elle éclaire au sol (r)
   const liste = lumieres.map((l) => {
     const h = l.sol != null ? Math.max(0.3, l.y - l.sol) : 0.8, r = l.sol != null ? l.r ?? 2 : (l.halo ?? 0.6) * 3;
-    return { x: l.x, y: l.y, z: l.z, portee: Math.hypot(r, h) * 1.05, c: new THREE.Color(l.c || CHAUD), d: 0, mobile: l.mobile ? l : null };
+    return { x: l.x, y: l.y, z: l.z, portee: Math.hypot(r, h) * 1.05, c: new THREE.Color(l.c || CHAUD), d: 0, mobile: l.mobile ? l : null, jour: !!l.jour };
   });
-  const tri = liste.slice(), dir = new THREE.Vector3(), vise = new THREE.Vector3();
+  // (le jour, seules celles qui brillent aussi le jour comptent : sans elles, la boucle des lampes s'arrête tout de suite)
+  const toutes = liste.slice(), triJour = liste.filter((l) => l.jour), dir = new THREE.Vector3(), vise = new THREE.Vector3();
   const lisse = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
   /**
@@ -83,10 +85,11 @@ export function creerLueurs(THREE, lumieres, lampes) {
    */
   function choisir(n, camera) {
     const P = lampes.lampesPos.value, Cl = lampes.lampesCouleur.value, Z = lampes.lampesZone.value;
-    if (n <= 0.01 || !liste.length) { P[0].w = 0; Z.w = 0; return; }
+    const tri = n > 0.01 ? toutes : triJour;
+    if (!tri.length) { P[0].w = 0; Z.w = 0; return; }
     camera.getWorldDirection(dir);
     vise.copy(camera.position).addScaledVector(dir, 8);
-    for (const l of liste) {
+    for (const l of tri) {
       if (l.mobile) { l.x = l.mobile.x; l.y = l.mobile.y; l.z = l.mobile.z; }
       l.d = Math.hypot(l.x - vise.x, l.y - vise.y, l.z - vise.z);
     }
@@ -97,7 +100,7 @@ export function creerLueurs(THREE, lumieres, lampes) {
       const l = tri[i];
       const f = (coupe < Infinity ? 1 - lisse(coupe * 0.75, coupe, l.d) : 1) * (1 - lisse(70, 160, Math.hypot(l.x - cp.x, l.y - cp.y, l.z - cp.z)));
       P[i].set(l.x, l.y, l.z, l.portee);
-      Cl[i].set(l.c.r, l.c.g, l.c.b).multiplyScalar(FORCE * n * f);
+      Cl[i].set(l.c.r, l.c.g, l.c.b).multiplyScalar(FORCE * (l.jour ? 1 : n) * f);
     }
     if (k < NB_LAMPES) P[k].w = 0;
     // la boule qui les contient (son centre : la moyenne des lampes)

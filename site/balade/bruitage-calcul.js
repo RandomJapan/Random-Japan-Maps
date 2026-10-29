@@ -796,6 +796,14 @@ function echo(x, sr) {
 }
 
 const OISEAUX = {
+  // (les Trente Bouddhas, 2026-10-29) une goutte qui tombe de la voûte de la grotte de l'ermite dans son bol de pierre :
+  // « plic », un son pur qui monte très vite, puis l'écho de la grotte
+  goutte(sr, r) {
+    const c = composer(sr, r, 1.2);
+    c.ton(0.01, 0.07, (t) => 950 + 1500 * Math.min(1, t / 0.03), ad(0.002, 0.05, 0.07), 0.05)
+      .ton(0.014, 0.05, (t) => 1900 + 800 * Math.min(1, t / 0.02), ad(0.002, 0.035, 0.05), 0.05);
+    return cadrer([echo(echo(c.b, sr), sr)], sr, 0.14);
+  },
   // (Beppu, 2026-10-27) le ronflement du démon (鬼の高いびき) : la vapeur qui sort des rochers par saccades, un souffle grave
   // qui ronfle, deux fois
   ronfle(sr, r) {

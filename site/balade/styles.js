@@ -210,9 +210,10 @@ export const CHUTE_GLSL = `
  * soit sa forme : le sol en pente, les marches, les murs, les personnages (d'abord, le 2026-10-23, une flaque de
  * lumière : un disque à plat, à la hauteur du sol sous la lanterne ; sur une pente ou près des murs d'un
  * escalier, il flottait au-dessus du sol en arcs de cercle). lampesPos : la flamme (xyz) et la portée (w ; 0 :
- * plus aucune lampe après celle-ci) ; lampesCouleur : sa couleur × sa force (0 le jour) ; lampesZone : une boule qui
- * les contient toutes, portées comprises (le reste de l'image, loin d'elles, ne fait pas le tour des lampes). La
- * lumière d'une lampe baisse avec la distance jusqu'à sa portée ; les faces tournées vers elle en reçoivent plus.
+ * plus aucune lampe après celle-ci) ; lampesCouleur : sa couleur × sa force (0 le jour, sauf celles qui brillent
+ * aussi le jour : lueurs.js) ; lampesZone : une boule qui les contient toutes, portées comprises (le reste de l'image,
+ * loin d'elles, ne fait pas le tour des lampes). La lumière d'une lampe baisse avec la distance jusqu'à sa portée ;
+ * les faces tournées vers elle en reçoivent plus.
  */
 export const NB_LAMPES = 12;
 export const LAMPES_GLSL = `
