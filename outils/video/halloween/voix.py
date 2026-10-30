@@ -1,6 +1,6 @@
 """Les voix off et deux bruitages des vidéos d'Halloween, générés le 2026-10-21 avec Flora (le connecteur du
 propriétaire : ElevenLabs v3, voix « George », un conteur britannique grave ; bruitages ElevenLabs Sound Effects).
-Les fichiers sont copiés dans videos/halloween/public/voix (pas dans git) ; ce script les retélécharge depuis Flora.
+Les fichiers sont copiés dans videos/carte/halloween/public/voix (pas dans git) ; ce script les retélécharge depuis Flora.
 Le texte de chaque réplique est noté pour mémoire (les balises [mysteriously], [whispers] dirigent la voix).
 Le conteur prend son temps (des pauses d'une seconde) : chaque réplique est resserrée dans voix/court/<nom>.wav, ses
 silences ramenés à 0,25 s et son débit accéléré de 10 % (atempo : la hauteur de la voix ne change pas).
@@ -11,7 +11,7 @@ import subprocess
 import urllib.request
 from pathlib import Path
 
-DOSSIER = Path(__file__).resolve().parents[3] / 'videos' / 'halloween' / 'public' / 'voix'
+DOSSIER = Path(__file__).resolve().parents[3] / 'videos' / 'carte' / 'halloween' / 'public' / 'voix'
 B = 'https://media.flora.ai/node-inputs/2026/10/20/'
 # nom : (adresse du fichier chez Flora, texte)
 VOIX = {

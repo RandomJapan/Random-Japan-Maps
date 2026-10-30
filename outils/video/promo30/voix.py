@@ -1,6 +1,6 @@
 """La voix off de la vidéo promo de 30 s, générée le 2026-10-21 avec Flora (le connecteur du propriétaire : ElevenLabs
 v3, voix « Sarah », une voix féminine posée et chaleureuse de publicité, en anglais comme les vidéos du compte).
-Les fichiers vont dans videos/promo30/public/voix (pas dans git) ; ce script les retélécharge depuis Flora. Chaque
+Les fichiers vont dans videos/carte/promo30/public/voix (pas dans git) ; ce script les retélécharge depuis Flora. Chaque
 réplique est resserrée dans voix/court/<nom>.wav : silences du début et de la fin coupés, pauses ramenées à 0,2 s,
 un peu accélérée (atempo ≤ 1,15 : la hauteur ne change pas) pour tenir dans les 30 s avec la musique. Le texte de chaque réplique est noté pour mémoire (les balises [excited]… dirigent la voix).
     python outils/video/promo30/voix.py
@@ -10,7 +10,7 @@ import subprocess
 import urllib.request
 from pathlib import Path
 
-DOSSIER = Path(__file__).resolve().parents[3] / 'videos' / 'promo30' / 'public' / 'voix'
+DOSSIER = Path(__file__).resolve().parents[3] / 'videos' / 'carte' / 'promo30' / 'public' / 'voix'
 B = 'https://media.flora.ai/node-inputs/2026/10/21/anonymous/'
 # nom : (fichier chez Flora, texte, accélération)
 VOIX = {

@@ -5,7 +5,7 @@
     python outils/video/tourner.py --brouillon  # pour vérifier la mise en page : 15 images/s, ralenti ×4
 
 Il faut le site en local (python -m http.server 8123 --directory site), Microsoft Edge, Playwright, Pillow et
-ffmpeg (celui du système, sinon `pip install imageio-ffmpeg`). Les vidéos vont dans videos/ (pas dans git) :
+ffmpeg (celui du système, sinon `pip install imageio-ffmpeg`). Les vidéos vont dans videos/carte/films-octobre/ (pas dans git) :
 <nom>.mp4 avec la musique, <nom>-sans-musique.mp4 pour y mettre un son TikTok.
 
 Comment : ralenti.js ralentit tout le temps de la page (la carte bouge 10 fois moins vite, les tuiles arrivent
@@ -30,7 +30,7 @@ from playwright.sync_api import sync_playwright
 
 ICI = Path(__file__).resolve().parent
 RACINE = ICI.parent.parent
-SORTIE = RACINE / 'videos'
+SORTIE = RACINE / 'videos' / 'carte' / 'films-octobre'
 DECALAGE_MUSIQUE = 0.31  # secondes : le premier temps de « Michikusa »
 # la carte de toujours : de jour, sans saison (voir site/ambiance.js) ; les lieux en repères HTML même de loin, que les
 # films animent un à un (voir site/points.js)
@@ -41,7 +41,7 @@ ATTENDRE = "window.carte && document.getElementById('chargement').classList.cont
 FAVORIS = ['kinkaku-ji', 'sanjusangen-do', 'todai-ji-daibutsu-den', 'itsukushima-jinja']
 # Les vidéos des lieux : celles du propriétaire, telles qu'il les a montées pour TikTok (pas dans le dépôt). Le
 # lecteur TikTok ne marche pas dans un navigateur piloté (TikTok le bloque) : les films voyage et pov montrent donc
-# un extrait du fichier de chaque lieu, préparé dans videos/extraits/ (720 × 1280, sans le son).
+# un extrait du fichier de chaque lieu, préparé dans videos/carte/films-octobre/extraits/ (720 × 1280, sans le son).
 VIDEOS_LIEUX = Path(os.environ.get('VIDEOS_LIEUX', r'D:\Montage\Vidéo lieux random japon'))
 DUREE_EXTRAIT = 4.0
 # id de la vidéo TikTok du lieu (colonne « Lien TikTok » du tableau) : (fichier dans VIDEOS_LIEUX, début de l'extrait
@@ -211,7 +211,7 @@ def tourner(images, facteur, ips, dossier, reglages):
 
 
 def monter(dossier, ips, duree, reglages):
-    SORTIE.mkdir(exist_ok=True)
+    SORTIE.mkdir(parents=True, exist_ok=True)
     exe = ffmpeg()
     video = ['-framerate', str(ips), '-i', str(dossier / '%05d.jpg')]
     # les captures sont des JPEG en couleurs « pleine plage » (BT.601) : la vidéo, elle, en BT.709 plage TV, comme

@@ -1,5 +1,5 @@
 """Fabrique la vidéo promo de 30 s finie, depuis le montage Remotion (montage/) : avec la musique et sans (la voix
-et les bruitages restent : pour y mettre un son TikTok), dans videos/promo30/. En vertical 9:16 pour TikTok
+et les bruitages restent : pour y mettre un son TikTok), dans videos/carte/promo30/. En vertical 9:16 pour TikTok
 (Promo30V, la version demandée) et en 16:9 (Promo30, pour YouTube ou le site).
 
     python outils/video/promo30/finir.py              # les deux
@@ -18,7 +18,7 @@ from pathlib import Path
 
 ICI = Path(__file__).resolve().parent
 MONTAGE = ICI / 'montage'
-SORTIE = ICI.parents[2] / 'videos' / 'promo30'
+SORTIE = ICI.parents[2] / 'videos' / 'carte' / 'promo30'
 VIDEOS = {'Promo30V': 'promo-carte-japon-tiktok', 'Promo30': 'promo-carte-japon-16x9'}
 
 

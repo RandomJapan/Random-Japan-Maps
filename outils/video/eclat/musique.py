@@ -7,7 +7,7 @@ sur un téléphone), un clap sur les temps 2 et 4, des charlestons, et la mélod
 phonk) dans la gamme japonaise miyako-bushi (ré, mi bémol, sol, la, si bémol), doublée d'un koto pincé (Karplus-Strong)
 à l'octave du dessous. Les mesures 2, 4 et 6 s'arrêtent net avant la fin (une demi-mesure de silence ou moins) : les
 coupures du montage tombent dans ces trous. La dernière mesure frappe deux coups (le logo) et s'éteint.
-Sortie : videos/eclat/public/musique/eclat.wav (48 kHz, stéréo).
+Sortie : videos/carte/eclat/public/musique/eclat.wav (48 kHz, stéréo).
 """
 import wave
 from functools import lru_cache
@@ -16,7 +16,7 @@ from pathlib import Path
 import numpy as np
 
 RACINE = Path(__file__).resolve().parents[3]
-SORTIE = RACINE / 'videos' / 'eclat' / 'public' / 'musique' / 'eclat.wav'
+SORTIE = RACINE / 'videos' / 'carte' / 'eclat' / 'public' / 'musique' / 'eclat.wav'
 SR = 48000
 BPM = 140
 PAS = 60 / BPM / 4  # une double croche (s)

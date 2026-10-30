@@ -1,5 +1,5 @@
 """Fabrique les vidéos d'Halloween finies, depuis le montage Remotion (montage/) : chacune avec sa musique et sans
-musique (les bruitages restent : pour y mettre un son TikTok), dans videos/halloween/.
+musique (les bruitages restent : pour y mettre un son TikTok), dans videos/carte/halloween/.
 
     python outils/video/halloween/finir.py                  # les trois, en 16:9 et en vertical
     python outils/video/halloween/finir.py HauntedPlaces    # une seule (HauntedPlacesV : sa version verticale)
@@ -18,7 +18,7 @@ from pathlib import Path
 ICI = Path(__file__).resolve().parent
 MONTAGE = ICI / 'montage'
 RACINE = ICI.parent.parent.parent
-SORTIE = RACINE / 'videos' / 'halloween'
+SORTIE = RACINE / 'videos' / 'carte' / 'halloween'
 VIDEOS = {'HauntedPlaces': 'halloween-lieux-hantes', 'NightParade': 'halloween-defile', 'SpookyMap': 'halloween-carte'}
 # en vertical 9:16 pour TikTok (rushes.py --vertical d'abord) : « …V », fichiers « -vertical »
 VIDEOS.update({f'{c}V': f'{n}-vertical' for c, n in list(VIDEOS.items())})

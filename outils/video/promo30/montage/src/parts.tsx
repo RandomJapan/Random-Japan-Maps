@@ -40,7 +40,7 @@ export const ecran = (cles: Cle[], f: number, px: number, py: number, ease: (t: 
 };
 
 /**
- * Une capture de l'interface (videos/promo30/public/ui, 3840 × 2160 pour une page de 1280 × 720) sous une caméra
+ * Une capture de l'interface (videos/carte/promo30/public/ui, 3840 × 2160 pour une page de 1280 × 720) sous une caméra
  * 2,5D. Le grossissement passe par la propriété CSS zoom (pas transform: scale) : le navigateur dessine alors la page
  * à sa taille agrandie, à partir de l'image 3×, et le texte reste net même incliné (règle Q2 du skill).
  * Les enfants se placent en px CSS de la page.
@@ -70,7 +70,7 @@ export const Page: React.FC<{ src: string; cles: Cle[]; ease?: (t: number) => nu
   );
 };
 
-/** Un plan filmé de la carte (videos/promo30/public/rushes, 1920 × 1080) ; cadre(f) : [x, y, largeur] en px du rush. */
+/** Un plan filmé de la carte (videos/carte/promo30/public/rushes, 1920 × 1080) ; cadre(f) : [x, y, largeur] en px du rush. */
 export const Rush: React.FC<{
   nom: string; debut?: number; vitesse?: number; taille?: [number, number]; cadre?: (f: number) => [number, number, number];
   filtre?: string; style?: React.CSSProperties;

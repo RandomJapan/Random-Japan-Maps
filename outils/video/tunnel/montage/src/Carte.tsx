@@ -6,7 +6,7 @@
 // La profondeur de champ : un flou à bascule (tilt-shift) en haut et en bas de l'image, réglable (flou, bande nette).
 import React from "react";
 import { AbsoluteFill, Img, OffthreadVideo, Sequence, staticFile, useCurrentFrame } from "remotion";
-import layout from "../../../../../videos/tunnel/public/ui/layout.json";
+import layout from "../../../../../videos/carte/tunnel/public/ui/layout.json";
 import { Doigt } from "./TikTok";
 import { C, entre, expoEntree, expoS, expoSortie, houle, POLICE_TIKTOK, rebond, s } from "./theme";
 import { T } from "./temps";

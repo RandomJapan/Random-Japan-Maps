@@ -1,4 +1,4 @@
-"""Prépare le dossier « public » du montage des vidéos d'Halloween (videos/halloween/public, pas dans git) :
+"""Prépare le dossier « public » du montage des vidéos d'Halloween (videos/carte/halloween/public, pas dans git) :
 les extraits des vidéos du propriétaire (9:16, H.264 30 images/s, sans le son), les musiques (site/musique, CC BY) et
 les bruitages (ceux du skill video-shotcraft dont l'origine Mixkit est notée : licence libre, sans crédit).
 Les rushes de la carte, eux, viennent de rushes.py.
@@ -11,7 +11,7 @@ from pathlib import Path
 
 ICI = Path(__file__).resolve().parent
 RACINE = ICI.parent.parent.parent
-PUBLIC = RACINE / 'videos' / 'halloween' / 'public'
+PUBLIC = RACINE / 'videos' / 'carte' / 'halloween' / 'public'
 VIDEOS_LIEUX = Path(os.environ.get('VIDEOS_LIEUX', r'D:\Montage\Vidéo lieux random japon'))
 SFX = Path.home() / '.claude' / 'skills' / 'video-shotcraft' / 'assets' / 'audio' / 'sfx'
 # nom : (fichier, début en s, durée en s[, images/s]) — choisis sur des planches-contact (un plan fort, sans le titre incrusté)

@@ -1,7 +1,7 @@
-"""Prépare le dossier « public » du montage de la vidéo promo de 30 s (videos/promo30/public, pas dans git) :
+"""Prépare le dossier « public » du montage de la vidéo promo de 30 s (videos/carte/promo30/public, pas dans git) :
 les extraits des vidéos du propriétaire (9:16, sans le son), la musique (site/musique, CC BY), les bruitages (ceux du
 skill video-shotcraft dont la source Mixkit est notée, et six faits pour la vidéo avec Flora, le connecteur du
-propriétaire), le logo, et les plans d'Halloween déjà tournés (videos/halloween/public/rushes).
+propriétaire), le logo, et les plans d'Halloween déjà tournés (videos/carte/halloween/public/rushes).
 Les plans et captures de la carte viennent de rushes.py et captures.py, la voix off de voix.py.
     python outils/video/promo30/preparer.py
 """
@@ -13,8 +13,8 @@ from pathlib import Path
 
 ICI = Path(__file__).resolve().parent
 RACINE = ICI.parents[2]
-PUBLIC = RACINE / 'videos' / 'promo30' / 'public'
-HALLOWEEN = RACINE / 'videos' / 'halloween' / 'public'
+PUBLIC = RACINE / 'videos' / 'carte' / 'promo30' / 'public'
+HALLOWEEN = RACINE / 'videos' / 'carte' / 'halloween' / 'public'
 VIDEOS_LIEUX = Path(os.environ.get('VIDEOS_LIEUX', r'D:\Montage\Vidéo lieux random japon'))
 SFX = Path.home() / '.claude' / 'skills' / 'video-shotcraft' / 'assets' / 'audio' / 'sfx'
 # nom : (fichier, début en s, durée en s) — choisis sur des planches-contact

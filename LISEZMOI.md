@@ -411,9 +411,18 @@ Le bouton **Au hasard** tire un lieu au sort. On peut choisir une région ou une
 
 **Tu n'as rien à remplir pour ça.** La carte trouve toute seule la préfecture de chaque lieu grâce à ses coordonnées GPS. Un nouveau lieu ajouté dans le tableau apparaît donc directement dans le bon choix de région.
 
+## Le dossier des vidéos
+
+Toutes les vidéos fabriquées sont dans le dossier `videos/`. Il n'est pas sur GitHub : garde ailleurs une copie de celles que tu publies.
+- `balade/` : les vidéos de la balade 3D ; `balade/captures/` garde les planches d'avant-après que je t'ai montrées.
+- `carte/` : les vidéos de la carte, un dossier par vidéo (`films-octobre`, `halloween`, `promo30`, `tunnel`, `eclat`), et `essais/` pour les petites démos (le relief, les feux d'artifice, la plongée…).
+- `tournage/` : la promo que tu as filmée ; `Tik Tok/` : les fichiers de ta caméra DJI.
+
+Dans le dossier d'une vidéo, les fichiers `.mp4` sont les vidéos finies (avec et sans musique). Le sous-dossier `public/` est le matériel du montage (les images filmées dans la carte, les voix, les musiques) : il sert à refaire ou retoucher la vidéo. `apercus/` a des versions légères pour le téléphone, `brouillons/` des essais.
+
 ## La vidéo de présentation (TikTok)
 
-Une vidéo de 30 secondes, au format TikTok (vertical), présente la carte : la vraie carte filmée, avec des titres dans le style du site, et à la fin l'adresse de la carte et « Link in bio ». Elle est dans le dossier `videos/` :
+Une vidéo de 30 secondes, au format TikTok (vertical), présente la carte : la vraie carte filmée, avec des titres dans le style du site, et à la fin l'adresse de la carte et « Link in bio ». Elle est dans le dossier `videos/carte/films-octobre/` :
 - `promo-carte.mp4` : avec la musique « Michikusa » de PeriTune. Dans la légende du TikTok, ajoute le crédit : *Music: Michikusa by PeriTune (CC BY 4.0)*.
 - `promo-carte-sans-musique.mp4` : sans musique, pour mettre un son TikTok à la place.
 
@@ -421,7 +430,7 @@ Une vidéo de 30 secondes, au format TikTok (vertical), présente la carte : la 
 
 ### Les vidéos d'Halloween (16:9, 20 secondes au plus)
 
-Trois vidéos horizontales sur ce que la carte a de nouveau pour Halloween, dans `videos/halloween/` :
+Trois vidéos horizontales sur ce que la carte a de nouveau pour Halloween, dans `videos/carte/halloween/` :
 - `halloween-lieux-hantes.mp4` : les lieux les plus hantés du Japon (Nagoro, le mont Osore, la vallée de l'Enfer, le château de Himeji), avec tes vidéos et la carte de nuit. Un conteur à la voix grave (en anglais) raconte. Musique : *Kengeki · PeriTune (CC BY 4.0)*.
 - `halloween-defile.mp4` : le défilé des cent démons qui traverse la carte, chaque yōkai en gros plan avec son nom. Avec le conteur. Musique : *民族09「揺れる提灯」· 魔王魂 (CC BY 4.0)*.
 - `halloween-carte.mp4` : la carte de jour, puis la même de nuit déguisée pour Halloween (chauves-souris, chapeaux, araignée, chat, défilé, chasse aux yōkai). Sans conteur, sur la musique : *月と狼 · 魔王魂 (CC BY 4.0)*.
@@ -434,7 +443,7 @@ La voix du conteur a été faite avec ton compte **Flora** (environ 0,12 $ par p
 
 ## La vidéo promo de 30 s (motion design, octobre 2026)
 
-Une pub de 30 secondes de la carte, voix off féminine en anglais, dans `videos/promo30/` :
+Une pub de 30 secondes de la carte, voix off féminine en anglais, dans `videos/carte/promo30/` :
 - `promo-carte-japon-tiktok.mp4` : **en vertical 9:16 pour TikTok** (le site de téléphone, les textes hors des zones que TikTok cache) ;
 - `promo-carte-japon-16x9.mp4` : la même en horizontal (YouTube, ton site) ;
 - chacune en `-sans-musique.mp4` (la voix et les bruitages restent), pour mettre un son TikTok.
@@ -445,7 +454,7 @@ La voix et six bruitages ont été faits avec ton compte **Flora** (environ 2 $)
 
 ## La vidéo « tunnel » : de TikTok à la carte (octobre 2026)
 
-Une animation de 30 secondes en vertical (60 images par seconde) qui montre le chemin d'un visiteur : ton post Aogashima sur TikTok → un appui sur ton nom → ton profil → un appui sur le lien de la bio → la caméra plonge dans le lien et atterrit dans la carte → les épingles, la fiche d'Aogashima, les filtres → ton logo et la phrase de fin. Dans `videos/tunnel/` :
+Une animation de 30 secondes en vertical (60 images par seconde) qui montre le chemin d'un visiteur : ton post Aogashima sur TikTok → un appui sur ton nom → ton profil → un appui sur le lien de la bio → la caméra plonge dans le lien et atterrit dans la carte → les épingles, la fiche d'Aogashima, les filtres → ton logo et la phrase de fin. Dans `videos/carte/tunnel/` :
 - `carte-japon-tunnel-tiktok.mp4` : avec la musique (mets dans la légende : *Music: Amenoshita3 by PeriTune (CC BY 4.0)*) ;
 - `carte-japon-tunnel-tiktok-sans-musique.mp4` : la voix et les bruitages seuls, pour mettre un son TikTok.
 

@@ -2,7 +2,7 @@
 //  Les plans de la carte pour la vidéo promo de 30 s (2026-10-21), en 16:9 : le moteur de halloween/plans.js
 //  (window.__planMoteur : caméra par clés [t, lng, lat, zoom, inclinaison, cap], hauteur du centre figée, actions),
 //  injecté avant ce fichier par rushes.py. Les plans d'Halloween (défilé, chapeaux, toile, chasse) sont repris
-//  tels quels de videos/halloween/public/rushes.
+//  tels quels de videos/carte/halloween/public/rushes.
 // ================================================================
 (() => {
   const { plan } = window.__planMoteur;

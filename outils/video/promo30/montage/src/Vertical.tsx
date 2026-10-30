@@ -4,7 +4,7 @@
 // ses onglets en haut (~170 px), la légende en bas (dès ~1450 px), ses boutons à droite.
 import React from "react";
 import { AbsoluteFill, Easing, Img, interpolate, Sequence, staticFile, useCurrentFrame } from "remotion";
-import layoutV from "../../../../../videos/promo30/public/ui-v/layout.json";
+import layoutV from "../../../../../videos/carte/promo30/public/ui-v/layout.json";
 // @ts-expect-error : un module JavaScript du site, sans types
 import { DEFILE, YOKAI } from "../../../../../site/halloween-dessins.js";
 import { Compteur } from "./Debut";

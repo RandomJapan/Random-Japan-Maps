@@ -1,5 +1,5 @@
 """Les images de la vidéo « tunnel » (un TikTok → le profil → le lien de la bio → la carte), dans
-videos/tunnel/public (le dossier « public » du montage, pas dans git) :
+videos/carte/tunnel/public (le dossier « public » du montage, pas dans git) :
 - tiktok/aogashima.mp4 : le passage du post Aogashima (3,3 → 12,7 s : la vue aérienne et son titre, puis le village,
   flou au fond jusqu'au plongeon), en H.264 60 i/s
   (le fichier du propriétaire est en HEVC, que Chrome ne lit pas toujours), couleurs notées (BT.709, plage TV) et une
@@ -7,7 +7,7 @@ videos/tunnel/public (le dossier « public » du montage, pas dans git) :
 - tiktok/aogashima-flou.mp4 : le même en 360 × 640, déjà flou : le fond de la scène du téléphone (moins de calcul
   qu'un flou CSS sur la vidéo pleine taille) ;
 - tiktok/grille-*.jpg : les vignettes de la grille du profil, découpées dans la capture du profil vu par un autre
-  compte (videos/tunnel/sources/profil-visiteur.jpg, 923 × 2000, envoyée par le propriétaire le 2026-10-21) ;
+  compte (videos/carte/tunnel/sources/profil-visiteur.jpg, 923 × 2000, envoyée par le propriétaire le 2026-10-21) ;
 - tiktok/avatar.jpg : la photo du profil (le logo, outils/logo-source/logo-carre.jpg, 1600 px), en 800 px ;
 - sfx/ : les bruitages repris des vidéos d'avant (ceux de video-shotcraft dont la source Mixkit est notée, et ceux
   faits avec Flora pour la promo de 30 s) ; les quatre faits pour cette vidéo viennent de voix.py ;
@@ -23,8 +23,8 @@ from PIL import Image
 
 ICI = Path(__file__).resolve().parent
 RACINE = ICI.parents[2]
-PUBLIC = RACINE / 'videos' / 'tunnel' / 'public'
-SOURCES = RACINE / 'videos' / 'tunnel' / 'sources'
+PUBLIC = RACINE / 'videos' / 'carte' / 'tunnel' / 'public'
+SOURCES = RACINE / 'videos' / 'carte' / 'tunnel' / 'sources'
 VIDEOS_LIEUX = Path(r'D:\Montage\Vidéo lieux random japon')
 # la grille de la capture : trois colonnes, des rangées de 408 px (la troisième coupée par le bas de l'écran)
 COLONNES = [(0, 305), (309, 614), (618, 923)]
@@ -56,7 +56,7 @@ def main():
     (PUBLIC / 'sfx').mkdir(exist_ok=True)
     for dossier, noms in (('promo30', SFX_PROMO), ('halloween', SFX_HALLOWEEN)):
         for nom in noms:
-            shutil.copyfile(RACINE / 'videos' / dossier / 'public' / 'sfx' / f'{nom}.mp3', PUBLIC / 'sfx' / f'{nom}.mp3')
+            shutil.copyfile(RACINE / 'videos' / 'carte' / dossier / 'public' / 'sfx' / f'{nom}.mp3', PUBLIC / 'sfx' / f'{nom}.mp3')
     (PUBLIC / 'musique').mkdir(exist_ok=True)
     shutil.copyfile(RACINE / 'site' / 'musique' / 'peritune-amenoshita3.m4a', PUBLIC / 'musique' / 'peritune-amenoshita3.m4a')
     print('images, bruitages et musique prêts dans', PUBLIC)

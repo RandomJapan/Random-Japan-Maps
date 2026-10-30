@@ -3,7 +3,7 @@
 // saisons (quatre plans à la fois). Les captures et leurs coordonnées viennent de captures.py (ui/layout.json).
 import React from "react";
 import { AbsoluteFill, Easing, Img, interpolate, Sequence, staticFile, useCurrentFrame } from "remotion";
-import layout from "../../../../../videos/promo30/public/ui/layout.json";
+import layout from "../../../../../videos/carte/promo30/public/ui/layout.json";
 import { Arrivee, Cartouche, Cle, Coeur, Curseur, De3D, ecran, Extrait, Fuite, Page, Rush, Sceau, Sources } from "./parts";
 import { C, de, ELAN, FELL, GRAIN, HALO, lin, POSE, TITRE } from "./theme";
 

@@ -1,6 +1,6 @@
 """Fabrique la vidéo « tunnel » finie (un TikTok → le profil → le lien de la bio → la carte ; 30 s, 9:16, 60 images/s),
 depuis le montage Remotion (montage/) : avec la musique et sans (la voix et les bruitages restent : pour y mettre un
-son TikTok), dans videos/tunnel/.
+son TikTok), dans videos/carte/tunnel/.
     python outils/video/tunnel/finir.py            # les deux versions
     python outils/video/tunnel/finir.py avec       # seulement celle avec la musique
 
@@ -18,7 +18,7 @@ from pathlib import Path
 
 ICI = Path(__file__).resolve().parent
 MONTAGE = ICI / 'montage'
-SORTIE = ICI.parents[2] / 'videos' / 'tunnel'
+SORTIE = ICI.parents[2] / 'videos' / 'carte' / 'tunnel'
 NOM = 'carte-japon-tunnel-tiktok'
 
 

@@ -17,7 +17,7 @@ from PIL import Image
 from playwright.sync_api import sync_playwright
 
 ICI = Path(__file__).resolve().parent
-SORTIE = ICI.parents[2] / 'videos' / 'tunnel' / 'public' / 'ui'
+SORTIE = ICI.parents[2] / 'videos' / 'carte' / 'tunnel' / 'public' / 'ui'
 L, H, K = 432, 768, 5
 MARGE = 16  # px CSS autour de chaque bouton : son ombre
 ATTENDRE = "window.carte && document.getElementById('chargement').classList.contains('fini')"

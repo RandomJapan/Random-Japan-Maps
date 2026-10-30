@@ -1,7 +1,7 @@
 """La voix off et les bruitages faits pour la vidéo « tunnel », générés le 2026-10-21 avec Flora (le connecteur du
 propriétaire) : la voix avec ElevenLabs v3, voix « Sarah » (féminine, chaleureuse, celle de la promo de 30 s), en
 anglais ; quatre bruitages avec ElevenLabs Sound Effects (le tap, le « whoosh » du plongeon, le pop de la fiche, la
-cascade de pops des épingles). Ce script les retélécharge dans videos/tunnel/public (pas dans git). Chaque réplique
+cascade de pops des épingles). Ce script les retélécharge dans videos/carte/tunnel/public (pas dans git). Chaque réplique
 est resserrée dans voix/court/<nom>.wav : silences du début et de la fin coupés, pauses ramenées à 0,2 s, un peu
 accélérée (atempo ≤ 1,12 : la hauteur ne change pas). Le texte est noté pour mémoire (les balises dirigent la voix).
     python outils/video/tunnel/voix.py
@@ -11,7 +11,7 @@ import subprocess
 import urllib.request
 from pathlib import Path
 
-PUBLIC = Path(__file__).resolve().parents[3] / 'videos' / 'tunnel' / 'public'
+PUBLIC = Path(__file__).resolve().parents[3] / 'videos' / 'carte' / 'tunnel' / 'public'
 B = 'https://media.flora.ai/node-inputs/2026/10/21/'
 # nom : (fichier chez Flora, texte, accélération)
 VOIX = {

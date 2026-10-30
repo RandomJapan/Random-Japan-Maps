@@ -70,7 +70,7 @@ def main():
     (PUBLIC / 'sfx').mkdir(exist_ok=True)
     for dossier, noms in SFX.items():
         for nom in noms:
-            shutil.copyfile(RACINE / 'videos' / dossier / 'public' / 'sfx' / f'{nom}.mp3', PUBLIC / 'sfx' / f'{nom}.mp3')
+            shutil.copyfile(RACINE / 'videos' / 'carte' / dossier / 'public' / 'sfx' / f'{nom}.mp3', PUBLIC / 'sfx' / f'{nom}.mp3')
     Image.open(RACINE / 'outils' / 'logo-source' / 'logo-carre.jpg').convert('RGB').resize((800, 800), Image.LANCZOS) \
         .save(PUBLIC / 'logo.jpg', quality=93)
     print('extraits, bruitages et logo prêts dans', PUBLIC)

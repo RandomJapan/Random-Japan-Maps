@@ -1,4 +1,4 @@
-"""Rassemble les fichiers de la vidéo « éclat » (2026-10-27) dans videos/eclat/public (hors de git), le dossier public du
+"""Rassemble les fichiers de la vidéo « éclat » (2026-10-27) dans videos/carte/eclat/public (hors de git), le dossier public du
 montage Remotion (outils/video/eclat/montage).
     python outils/video/eclat/preparer.py
 
@@ -22,19 +22,19 @@ from PIL import Image, ImageDraw, ImageFilter
 ICI = Path(__file__).resolve().parent
 RACINE = ICI.parents[2]
 VIDEOS = RACINE / 'videos'
-PUBLIC = VIDEOS / 'eclat' / 'public'
-SOURCES = VIDEOS / 'eclat' / 'sources'
+PUBLIC = VIDEOS / 'carte' / 'eclat' / 'public'
+SOURCES = VIDEOS / 'carte' / 'eclat' / 'sources'
 SHOTCRAFT = Path.home() / '.claude' / 'skills' / 'video-shotcraft' / 'assets' / 'audio' / 'sfx'
 
 PRISES = {
-    'rushes': [VIDEOS / 'promo30/public/rushes-v' / f'{n}.mp4' for n in ('p-plongee', 'p-mer', 'p-printemps', 'p-ete', 'p-automne', 'p-hiver')]
-    + [VIDEOS / 'tunnel/public/rushes' / f'{n}.mp4' for n in ('tn-japon', 'tn-aogashima', 'tn-filtres')]
+    'rushes': [VIDEOS / 'carte/promo30/public/rushes-v' / f'{n}.mp4' for n in ('p-plongee', 'p-mer', 'p-printemps', 'p-ete', 'p-automne', 'p-hiver')]
+    + [VIDEOS / 'carte/tunnel/public/rushes' / f'{n}.mp4' for n in ('tn-japon', 'tn-aogashima', 'tn-filtres')]
     + [VIDEOS / 'balade/public/rushes' / f'{n}.mp4' for n in ('it-torii', 'kk-course', 'tk-barque', 'kk-feux', 'it-feux')],
     'reels': [VIDEOS / 'balade/public/reels' / f'{n}.mp4' for n in ('himeji', 'aogashima', 'itsukushima', 'kinkakuji')],
 }
 CAPTURES = ['himeji-fiche', 'kinkaku-fiche', 'hasard', 'route', 'orochi-bulle']
 SFX = [SHOTCRAFT / 'glass' / f'{n}.mp3' for n in ('glass-break-hammer', 'glass-debris-sweep', 'glass-plate-slide')] + [
-    VIDEOS / 'promo30/public/sfx' / f'{n}.mp3' for n in ('whoosh-fast', 'bass-hit-short', 'swoosh-quick', 'click-camera', 'impact-deep-whoosh',
+    VIDEOS / 'carte/promo30/public/sfx' / f'{n}.mp3' for n in ('whoosh-fast', 'bass-hit-short', 'swoosh-quick', 'click-camera', 'impact-deep-whoosh',
                                                          'transition-snap', 'air-whoosh-powerful', 'hit-fast-exciting', 'taiko')]
 
 
@@ -132,7 +132,7 @@ def main():
             copier(f, PUBLIC / dossier / f.name)
     for n in CAPTURES:
         dest = PUBLIC / 'ui' / f'{n}.jpg'
-        src = VIDEOS / 'promo30/public/ui-v' / f'{n}.png'
+        src = VIDEOS / 'carte/promo30/public/ui-v' / f'{n}.png'
         if not dest.exists() or dest.stat().st_mtime < src.stat().st_mtime:
             Image.open(src).convert('RGB').resize((1620, 2880), Image.LANCZOS).save(dest, quality=92)
     for f in SFX:

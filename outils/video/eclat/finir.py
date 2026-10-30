@@ -1,5 +1,5 @@
 """Fabrique la vidéo « éclat » finie (14,6 s, 9:16, 60 images/s), depuis le montage Remotion (montage/) : avec la musique
-et sans (les bruitages restent : pour y mettre un son TikTok), dans videos/eclat/.
+et sans (les bruitages restent : pour y mettre un son TikTok), dans videos/carte/eclat/.
     python outils/video/eclat/finir.py          # les deux
     python outils/video/eclat/finir.py avec     # seulement avec la musique
 
@@ -15,7 +15,7 @@ from pathlib import Path
 
 ICI = Path(__file__).resolve().parent
 MONTAGE = ICI / 'montage'
-SORTIE = ICI.parents[2] / 'videos' / 'eclat'
+SORTIE = ICI.parents[2] / 'videos' / 'carte' / 'eclat'
 NOM = 'carte-japon-eclat'
 
 

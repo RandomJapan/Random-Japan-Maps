@@ -6,7 +6,7 @@ TikTok), pour le montage (montage/, Remotion).
     python outils/video/halloween/rushes.py --vertical      # tous les plans, en 9:16 (rushes-v/)
 
 Il faut le site en local (python -m http.server 8123 --directory site), Microsoft Edge, Playwright et ffmpeg (celui du
-système, sinon imageio-ffmpeg). Chaque plan devient videos/halloween/public/rushes/<plan>.mp4 (30 images/s), le dossier
+système, sinon imageio-ffmpeg). Chaque plan devient videos/carte/halloween/public/rushes/<plan>.mp4 (30 images/s), le dossier
 « public » du montage (pas dans git).
 Comme tourner.py : ralenti.js ralentit tout le temps de la page (×0,1), et une capture est prise chaque fois que
 l'horloge du plan passe 1/30 s ; Math.random est remplacé par un tirage à graine fixe, pour que chaque plan soit
@@ -26,7 +26,7 @@ from playwright.sync_api import sync_playwright
 ICI = Path(__file__).resolve().parent
 VIDEO = ICI.parent
 RACINE = VIDEO.parent.parent
-SORTIE = RACINE / 'videos' / 'halloween' / 'public' / 'rushes'
+SORTIE = RACINE / 'videos' / 'carte' / 'halloween' / 'public' / 'rushes'
 SORTIE_V = SORTIE.parent / 'rushes-v'
 ATTENDRE = "window.carte && document.getElementById('chargement').classList.contains('fini')"
 NUIT, JOUR = '21:30', '10:30'

@@ -37,7 +37,7 @@ export const de = (f: number, a: number, b: number, sortie = [0, 1], easing = Ea
 export const OMBRE = "0 2px 0 rgba(0,0,0,.55), 0 0 18px rgba(0,0,0,.75), 0 0 42px rgba(0,0,0,.55)";
 
 /**
- * Un rush de la carte (videos/halloween/public/rushes, rushes-v en vertical). debut : instant du rush (s) au début
+ * Un rush de la carte (videos/carte/halloween/public/rushes, rushes-v en vertical). debut : instant du rush (s) au début
  * du plan ; vitesse ; taille : celle du rush, si ce n'est pas celle de la vidéo ; cadre(f) : la partie du rush
  * montrée, [x, y, largeur] en px du rush (la hauteur suit le format de la vidéo).
  */
@@ -235,7 +235,7 @@ export const GrosTitre: React.FC<{ haut?: string; titre: React.ReactNode; bas?: 
   );
 };
 
-/** Un bruitage (videos/halloween/public/sfx) à un instant du plan. */
+/** Un bruitage (videos/carte/halloween/public/sfx) à un instant du plan. */
 export const Son: React.FC<{ nom: string; a: number; volume?: number }> = ({ nom, a, volume = 0.7 }) => (
   <Sequence from={a} layout="none">
     <Audio src={staticFile(`sfx/${nom}.mp3`)} volume={volume} />

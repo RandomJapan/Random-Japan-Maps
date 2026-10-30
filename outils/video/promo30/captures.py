@@ -17,7 +17,7 @@ from playwright.sync_api import sync_playwright
 
 ICI = Path(__file__).resolve().parent
 VERTICAL = '--vertical' in sys.argv
-SORTIE = ICI.parents[2] / 'videos' / 'promo30' / 'public' / ('ui-v' if VERTICAL else 'ui')
+SORTIE = ICI.parents[2] / 'videos' / 'carte' / 'promo30' / 'public' / ('ui-v' if VERTICAL else 'ui')
 L, H, K = (540, 960, 4) if VERTICAL else (1280, 720, 3)
 ATTENDRE = "window.carte && document.getElementById('chargement').classList.contains('fini')"
 CSS = """.aide, .visites, #btn-dev, .btn-qualite, .toast { display: none !important; }
