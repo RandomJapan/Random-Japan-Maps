@@ -112,6 +112,22 @@ PRISES = {
     'mt-nuit': {'lieu': 'motonosumi', 'ui': 'rien'},
     'mt-124': {'lieu': 'motonosumi', 'ui': 'rien'},
     'mt-fin': {'lieu': 'motonosumi', 'ui': 'rien'},
+    # Vidéo 7 : les Trente Bouddhas (les textes du jeu cachés ; le secret pas trouvé : la nuit, l'oni n'est pas à son brasero)
+    'sb-brume': {'lieu': 'sanjubutsu', 'ui': 'rien'},
+    'sb-torii': {'lieu': 'sanjubutsu', 'ui': 'rien'},
+    'sb-escalier': {'lieu': 'sanjubutsu', 'ui': 'rien'},
+    'sb-do': {'lieu': 'sanjubutsu', 'ui': 'rien'},
+    'sb-bouddhas': {'lieu': 'sanjubutsu', 'ui': 'rien'},
+    'sb-waraji': {'lieu': 'sanjubutsu', 'ui': 'rien', 'stockage': {'baladeTampons': {'sanjubutsu': ['waraji']}}},
+    'sb-vue': {'lieu': 'sanjubutsu', 'ui': 'rien'},
+    'sb-cloche': {'lieu': 'sanjubutsu', 'ui': 'rien'},
+    'sb-bougie': {'lieu': 'sanjubutsu', 'ui': 'rien'},
+    'sb-echo': {'lieu': 'sanjubutsu', 'ui': 'rien', 'garder': [[0, 4], [11, 22.5]], 'stockage': {'baladeTampons': {'sanjubutsu': ['vue', 'waraji', 'kane', 'hotoke']}}},
+    'sb-etole': {'lieu': 'sanjubutsu', 'ui': 'rien', 'stockage': {'baladeTampons': {'sanjubutsu': ['vue', 'waraji', 'kane', 'hotoke', 'yamabiko']},
+                                                                'baladeTenue': {'fille': {'cou': 'yamabushi'}}, 'baladeTenuesVues': ['yamabushi']}},
+    'sb-nuit-cloche': {'lieu': 'sanjubutsu', 'ui': 'rien'},
+    'sb-torche': {'lieu': 'sanjubutsu', 'ui': 'rien'},
+    'sb-fin': {'lieu': 'sanjubutsu', 'ui': 'rien'},
 }
 DEFAUT = {'perso': 'fille', 'compagnon': 'kon', 'stockage': {}, 'ui': 'dialogue'}
 

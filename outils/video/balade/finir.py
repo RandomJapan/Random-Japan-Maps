@@ -1,4 +1,4 @@
-"""Fabrique les vidéos de la balade 3D finies (30 à 34 s, 9:16, 60 images/s), depuis le montage Remotion (montage/) :
+"""Fabrique les vidéos de la balade 3D finies (30 à 42 s, 9:16, 60 images/s), depuis le montage Remotion (montage/) :
 chacune avec la musique (un air du jeu) et sans (la voix et les bruitages restent : pour y mettre un son TikTok), dans
 videos/balade/.
     python outils/video/balade/finir.py                    # toutes
@@ -21,7 +21,7 @@ MONTAGE = ICI / 'montage'
 SORTIE = ICI.parents[2] / 'videos' / 'balade'
 NOMS = {'BaladeTour': 'balade-3d-les-5-lieux', 'BaladeTakachiho': 'balade-3d-takachiho', 'BaladeSecrets': 'balade-3d-secrets',
         'BaladeKinkakuji': 'balade-3d-kinkakuji', 'BaladeBeppu': 'balade-3d-beppu',
-        'BaladeMotonosumi': 'balade-3d-motonosumi'}
+        'BaladeMotonosumi': 'balade-3d-motonosumi', 'BaladeSanjubutsu': 'balade-3d-trente-bouddhas'}
 
 
 def ffmpeg():

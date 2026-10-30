@@ -1,4 +1,4 @@
-"""La voix off des vidéos de la balade 3D, générée le 2026-10-26 (le 2026-10-27 pour la vidéo du Pavillon d'or, le 2026-10-28 pour Beppu, le 2026-10-29 pour Motonosumi) avec Flora (le connecteur du propriétaire) :
+"""La voix off des vidéos de la balade 3D, générée le 2026-10-26 (le 2026-10-27 pour la vidéo du Pavillon d'or, le 2026-10-28 pour Beppu, le 2026-10-29 pour Motonosumi, le 2026-10-30 pour les Trente Bouddhas) avec Flora (le connecteur du propriétaire) :
 ElevenLabs v4, voix « Sarah » (celle de la promo de 30 s et de la vidéo « tunnel »), en anglais, stabilité 0,45
 (environ 0,05 $ la réplique). Ce script les retélécharge dans videos/balade/public/voix (pas dans git) et resserre
 chacune dans voix/court/<nom>.wav : silences du début et de la fin coupés, pauses ramenées à 0,2 s, un peu accélérée
@@ -72,6 +72,14 @@ VOIX = {
     'g4': ('m17d0jrbjn78exj0q9sbgdzwvn8h736w', "But some nights... there's one torii too many.", 1.0, 29),
     'g5': ('m1769ntkj9wkgtmgk519za8gy18h6g75', 'Can you find it?', 1.0, 29),
     'g6': ('m17adrb51satm9b7cnc756a65n8h64h1', 'Motonosumi, in 3D. Link in bio.', 1.0, 29),
+    # vidéo 7 : les Trente Bouddhas (2026-10-30 ; les deux listes d'une traite, comme pour Beppu et Motonosumi)
+    'h1': ('m179fxp10b6br6enehg1105pzn8h8c5g', 'I rebuilt the Thirty Buddhas... in my video game!', 1.0, 30),
+    'h2': ('m17atsp6z7gv15whz85mkj5se58h87km', 'Pass the two stone guardians, climb the mossy stairs, and find thirty little Buddhas under the cliff.', 1.0, 30),
+    'h3': ('m178xjm0m77cy1s62aq2ycjye58h91k1', "Give straw sandals to the guardians, see a sea of clouds, ring the great bell, light a candle for today's Buddha, and call to the echo of the cliff!", 1.0, 30),
+    'h4': ('m1766fjqxr6w8b2wthac2ngvv18h9h6y', "Get all five stamps... and earn the yamabushi's stole and conch!", 1.0, 30),
+    'h5': ('m17c9g2agj051r4xd52vp91dms8h8mg0', 'But never ring the bell at night... something comes down the mountain.', 1.0, 30),
+    'h6': ('m179qedhe11r790pf0cg0qr40x8h8gvb', 'Dare to find out?', 1.0, 30),
+    'h7': ('m17b5d9x3cx0x3g9r9f85h2vcx8h86f6', 'The Thirty Buddhas, in 3D. Link in bio.', 1.0, 30),
 }
 # Les répliques coupées à leurs pauses (secondes dans voix/court/<nom>.wav, mesurées le 2026-10-26) : chaque morceau
 # se place avec son texte à l'écran. Sans ça, une réplique entière débordait sur la suivante (elles se superposaient)
@@ -99,6 +107,13 @@ COUPES = {
     'g3': {'g3a': (0, 1.66), 'g3b': (1.76, None)},  # Get all five stamps... / and earn fox ears and a tail!
     'g4': {'g4a': (0, 1.38), 'g4b': (1.47, None)},  # But some nights... / there's one torii too many.
     'g6': {'g6a': (0, 0.90), 'g6b': (1.02, 2.10), 'g6c': (2.20, None)},  # Motonosumi, / in 3D. / Link in bio.
+    # (les Trente Bouddhas, 2026-10-30)
+    'h1': {'h1a': (0, 1.90), 'h1b': (2.05, None)},  # I rebuilt the Thirty Buddhas... / in my video game!
+    'h2': {'h2a': (0, 1.91), 'h2b': (1.98, 3.62), 'h2c': (3.70, None)},  # Pass the two stone guardians, / climb the mossy stairs, / and find thirty little Buddhas under the cliff.
+    'h3': {'h3a': (0, 2.28), 'h3b': (2.40, 4.18), 'h3c': (4.32, 5.92), 'h3d': (6.06, 8.12), 'h3e': (8.22, None)},  # Give straw sandals to the guardians, / see a sea of clouds, / ring the great bell, / light a candle for today's Buddha, / and call to the echo of the cliff!
+    'h4': {'h4a': (0, 1.62), 'h4b': (1.75, None)},  # Get all five stamps... / and earn the yamabushi's stole and conch!
+    'h5': {'h5a': (0, 2.10), 'h5b': (2.25, None)},  # But never ring the bell at night... / something comes down the mountain.
+    'h7': {'h7a': (0, 1.22), 'h7b': (1.33, 2.40), 'h7c': (2.48, None)},  # The Thirty Buddhas, / in 3D. / Link in bio.
 }
 
 

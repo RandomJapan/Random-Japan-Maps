@@ -44,6 +44,13 @@ REELS = {
     'mt-tunnel': ('Motonosumi Shrine.mp4', 24.15, 1.6),
     'mt-otorii': ('Motonosumi Shrine.mp4', 11.45, 1.5),
     'mt-souffle': ('Motonosumi Shrine.mp4', 27.9, 1.5),
+    # les Trente Bouddhas (vidéo 7) : la brume et la lumière entre les cèdres (un plan court : ralenti), le torii de pierre entre
+    # les deux Nio, le chemin qui monte à l'escalier, le pavillon sous la falaise (pas les plans du début, où le titre
+    # « 三十仏の仁王像 » est incrusté)
+    'sanjubutsu': ('Thirty Buddas.mp4', 26.3, 1.62, 0.68),
+    'sb-torii': ('Thirty Buddas.mp4', 20.05, 1.8),
+    'sb-escalier': ('Thirty Buddas.mp4', 9.3, 2.2),
+    'sb-do': ('Thirty Buddas.mp4', 16.55, 1.5),
 }
 SFX = {
     'promo30': ['whoosh-fast', 'swoosh-quick', 'air-whoosh-powerful', 'zoom-air-fast', 'transition-snap', 'impact-deep-whoosh',

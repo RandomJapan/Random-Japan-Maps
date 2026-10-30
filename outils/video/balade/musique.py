@@ -6,7 +6,7 @@ videos/balade/public/musique/<air>.wav (48 kHz, stéréo).
     python outils/video/balade/musique.py [--port 8123]
 
 Il faut le site en local (python -m http.server 8123 --directory site), Microsoft Edge et Playwright.
-Les airs : odori (la danse des fêtes, 112 battements), et l'air de jour de chaque lieu (takachiho 92, aogashima 126, kinkakuji 84, beppu 108, motonosumi 100…).
+Les airs : odori (la danse des fêtes, 112 battements), et l'air de jour de chaque lieu (takachiho 92, aogashima 126, kinkakuji 84, beppu 108, motonosumi 100, sanjubutsu 76…).
 """
 import base64
 import sys
@@ -18,7 +18,7 @@ RACINE = Path(__file__).resolve().parents[3]
 SORTIE = RACINE / 'videos' / 'balade' / 'public' / 'musique'
 PORT = sys.argv[sys.argv.index('--port') + 1] if '--port' in sys.argv else '8123'
 # l'air : sa durée (s)
-AIRS = {'odori': 62, 'takachiho': 75, 'aogashima': 52, 'itsukushima': 70, 'gokayama': 70, 'himeji': 75, 'kinkakuji': 60, 'beppu': 60, 'motonosumi': 60}
+AIRS = {'odori': 62, 'takachiho': 75, 'aogashima': 52, 'itsukushima': 70, 'gokayama': 70, 'himeji': 75, 'kinkakuji': 60, 'beppu': 60, 'motonosumi': 60, 'sanjubutsu': 60}
 
 RENDRE = """async ([air, duree]) => {
   const { son } = await import('/balade/son.js');

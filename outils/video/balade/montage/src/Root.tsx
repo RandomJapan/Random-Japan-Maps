@@ -1,7 +1,8 @@
-// Les vidéos de la balade 3D (2026-10-26 ; le Pavillon d'or, 2026-10-27 ; Beppu, 2026-10-28 ; Motonosumi, 2026-10-29) : 30 à 34 s, 9:16 pour TikTok, 60 images/s. Avec ou sans la musique
+// Les vidéos de la balade 3D (2026-10-26 ; le Pavillon d'or, 2026-10-27 ; Beppu, 2026-10-28 ; Motonosumi, 2026-10-29 ; les Trente Bouddhas, 2026-10-30) : 30 à 42 s, 9:16 pour TikTok, 60 images/s. Avec ou sans la musique
 // (props { bgm: false } : pour mettre un son TikTok ; la voix et les bruitages restent).
 import React from "react";
 import { Composition } from "remotion";
+import { Bouddhas, LONGUEUR as L7 } from "./Bouddhas";
 import { Enfers, LONGUEUR as L5 } from "./Enfers";
 import { LONGUEUR as L6, Torii } from "./Torii";
 import { LONGUEUR as L4, Pavillon } from "./Pavillon";
@@ -18,5 +19,6 @@ export const RemotionRoot: React.FC = () => (
     <Composition id="BaladeKinkakuji" component={Pavillon} durationInFrames={L4} fps={FPS} width={W} height={H} defaultProps={{ bgm: true }} />
     <Composition id="BaladeBeppu" component={Enfers} durationInFrames={L5} fps={FPS} width={W} height={H} defaultProps={{ bgm: true }} />
     <Composition id="BaladeMotonosumi" component={Torii} durationInFrames={L6} fps={FPS} width={W} height={H} defaultProps={{ bgm: true }} />
+    <Composition id="BaladeSanjubutsu" component={Bouddhas} durationInFrames={L7} fps={FPS} width={W} height={H} defaultProps={{ bgm: true }} />
   </>
 );

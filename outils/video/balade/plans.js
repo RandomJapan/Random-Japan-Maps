@@ -839,6 +839,160 @@
         o.cadre(...o.chemin([[0, [-13, 10.5, -37], [8, 18, -14], 50], [7, [-12.4, 10.6, -36.0], [8, 18.4, -14], 48]], t));
       },
     },
+
+    // ================================================================ Vidéo 7 : les Trente Bouddhas (2026-10-30)
+    // (les objets de sanjubutsu.js, trouvés par leurs méthodes : le tronc qui frappe la cloche (frapper), la bougie du bouddha du
+    // jour (allumer), l'oni (arriver) ; le bouddha du jour est celui du vrai calendrier : le 30, Shaka, au bout est du dernier gradin)
+    // la brume entre les cèdres géants, le chemin qui monte vers les deux gardiens Nio (le plan qui répond à la vidéo du
+    // propriétaire) : la caméra regarde les rais de lumière dans les cimes, puis descend vers le torii (personne : le voyageur est
+    // resté à la ferme, le vidéaste qui filme les Nio est écarté)
+    'sb-brume': {
+      duree: 6,
+      preparer(o) { o.placer(-6, 52, 0, 60, { compagnon: false }); o.compagnon(-6.8, 52.6, 0); },
+      chaque(t, dt, o) {
+        const k = o.passant('videaste');
+        if (k) { k.etat.x = -30; k.etat.z = 60; }
+        o.cadre(...o.chemin([[0, [1.2, 4.4, 30.8], [-2.0, 12.5, 20], 62], [6, [0.9, 4.7, 29.4], [-1.0, 8.6, 18.5], 58]], t));
+      },
+    },
+    // le torii de pierre gardé par les deux Nio, en haut de leurs cinq marches (comme la vidéo du propriétaire : les marches devant)
+    'sb-torii': {
+      duree: 4.5,
+      preparer(o) { o.placer(-6.0, 9.6, 0, 9.6, { compagnon: false }); o.compagnon(-6.4, 10.4, 0); },
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [0, 5.5, 27.8], [0, 6.8, 15.5], 54], [4.5, [0, 5.6, 26.6], [0, 6.9, 15.5], 52]], t));
+      },
+    },
+    // le grand escalier moussu : le voyageur le monte, la caméra en bas, sur le palier ; les lanternes de pierre, les rais de lumière
+    'sb-escalier': {
+      duree: 4.5,
+      preparer(o) { o.placer(0, 11.4, 0, -20, { compagnon: false }); o.compagnon(0.5, 12.2, PI); },
+      debut(o) { o.jeu.marcher([[0, 11.4], [0, -6]], 1.5); },
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [0, 6.6, 15.4], [0, 13, -8], 50], [4.5, [0, 7.0, 14.6], [0, 13.6, -8], 48]], t));
+      },
+    },
+    // le pavillon sous la falaise, de côté (comme la vidéo du propriétaire) : la longue façade, le toit de cuivre, la falaise en
+    // surplomb ; le moine devant
+    'sb-do': {
+      duree: 4.5,
+      preparer(o) { o.placer(-14.0, -24.0, -12, -24, { compagnon: false }); o.compagnon(-14.6, -23.2, 0); },
+      chaque(t, dt, o) {
+        // (à l'ouest du clocher : plus à l'est, au premier brouillon, la caméra était dedans, un de ses poteaux passait devant)
+        o.cadre(...o.chemin([[0, [7.0, 22.4, -26.4], [-5, 23.6, -32.8], 54], [4.5, [6.4, 22.5, -27.0], [-5.2, 23.6, -32.8], 52]], t));
+      },
+    },
+    // les trente petits bouddhas sur leurs trois gradins de pierre, dans le pavillon, les bougies devant : la caméra glisse le long de
+    // la rangée (de trois quarts ; au premier brouillon, l'autel brun prenait la moitié de l'image)
+    'sb-bouddhas': {
+      duree: 4,
+      preparer(o) { o.placer(-14.0, -24.0, -12, -24, { compagnon: false }); o.compagnon(-14.6, -23.2, 0); },
+      chaque(t, dt, o) {
+        // (tout près de l'autel, à la hauteur des bouddhas : de plus loin, au deuxième brouillon, le sol prenait la moitié de l'image)
+        o.cadre(...o.chemin([[0, [0.4, 22.95, -32.85], [-4.5, 22.55, -34.6], 44], [4, [-0.2, 22.95, -32.9], [-5.2, 22.55, -34.6], 44]], t));
+      },
+    },
+    // les sandales de paille pendues au râtelier des Nio, à côté du gardien Agyō (le tampon déjà eu : pas de tampon ici)
+    'sb-waraji': {
+      duree: 5,
+      preparer(o) { o.jeu.donner('waraji'); o.placer(2.6, 15.25, 3.6, 15.25, { compagnon: false }); o.compagnon(1.4, 18.6, PI); },
+      quand: [[0.3, (o) => o.agir('ratelier')]],
+      chaque(t, dt, o) {
+        o.lire(t, { delai: 0.6 });
+        // (du nord-est : les grandes sandales pendues devant le gardien, le voyageur de face ; du sud-est, au premier brouillon, le
+        // râtelier restait derrière lui)
+        o.cadre(...o.chemin([[0, [6.0, 6.8, 13.8], [2.6, 6.3, 15.6], 56], [5, [5.7, 6.75, 14.1], [2.6, 6.3, 15.6], 54]], t));
+      },
+    },
+    // la mer de nuages, du belvédère : le voyageur à la balustrade, de dos ; la caméra s'élève sur la vallée sous la brume, d'où
+    // ne dépassent que les cimes des cèdres
+    'sb-vue': {
+      duree: 4.5,
+      preparer(o) { o.placer(20.2, -24.6, 40, 6, { compagnon: false }); o.compagnon(19.0, -25.4, 0.9); },
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [17.0, 24.0, -28.8], [34, 9, -6], 56], [4.5, [17.5, 25.1, -28.3], [40, 9.5, 4], 58]], t));
+      },
+    },
+    // la cloche : le voyageur tire la corde, le tronc recule et frappe la cloche (à 0,95 s du départ du tronc)
+    'sb-cloche': {
+      duree: 4,
+      preparer(o) { o.placer(11.9, -25.6, 9.6, -25.6, { compagnon: false }); o.compagnon(13.4, -23.2, -0.8); },
+      quand: [[0.3, (o) => { o.jeu.geste('offrir'); o.M().lieu.animes.find((a) => a.frapper).frapper(); }], [1.6, (o) => o.jeu.geste(null)]],
+      chaque(t, dt, o) {
+        // (la torche brûlée contre le poteau, au premier plan : un indice du secret, de jour)
+        o.cadre(...o.chemin([[0, [15.6, 22.9, -22.6], [10.8, 23.3, -25.5], 50], [4, [15.1, 22.95, -23.1], [10.8, 23.35, -25.5], 47]], t));
+      },
+    },
+    // la bougie du moine allumée devant le bouddha du jour (le 30 : Shaka, au bout est du dernier gradin)
+    'sb-bougie': {
+      duree: 3.5,
+      preparer(o) { o.placer(-14.0, -24.0, -12, -24, { compagnon: false }); o.compagnon(-14.6, -23.2, 0); },
+      quand: [[1.0, (o) => o.M().lieu.animes.find((a) => a.allumer).allumer()]],
+      chaque(t, dt, o) {
+        // (de trois quarts et d'un peu plus haut que lui : d'en bas, au premier brouillon, le bouddha du gradin du milieu cachait la
+        // bougie ; de face et tout près, au premier tournage, on ne voyait plus que les facettes de sa pierre)
+        o.cadre(...o.chemin([[0, [2.6, 23.8, -32.0], [4.7, 23.0, -34.85], 36], [3.5, [2.9, 23.7, -32.4], [4.7, 23.0, -34.85], 33]], t));
+      },
+    },
+    // l'écho de la falaise : le voyageur appelle trois fois, les mains en porte-voix ; puis le cinquième tampon et la carte de la
+    // récompense (les quatre autres déjà eus)
+    'sb-echo': {
+      duree: 30,
+      preparer(o) { o.placer(-7.6, -28.6, -8.6, -32.6, { compagnon: false }); o.compagnon(-6.4, -27.4, -2.4); },
+      quand: [[0.2, (o) => o.agir('yamabiko')]],
+      chaque(t, dt, o) {
+        o.lire(t, { delai: 0.35 });
+        // (de face, devant lui, un peu de côté : là où le jeu le pose et vers où il appelle, la falaise ; au premier brouillon, la
+        // caméra fixe le voyait de profil, de trop près)
+        const sx = Math.sin(e.cap), sz = Math.cos(e.cap), k = 2.5 - 0.25 * o.lisse(0, 8, t);
+        o.cadre([e.x + sx * k + sz * 0.9, e.y + 0.95, e.z + sz * k - sx * 0.9], [e.x + sz * 0.15, e.y + 0.72, e.z - sx * 0.15], 50);
+      },
+    },
+    // l'étole du yamabushi, ses pompons et sa conque : le voyageur au belvédère, de face, la mer de nuages derrière lui ; il lève
+    // les bras
+    'sb-etole': {
+      duree: 5,
+      preparer(o) { o.placer(20.2, -24.6, 10, -24.6, { compagnon: false }); o.compagnon(20.6, -23.2, -1.4); },
+      quand: [[1.4, (o) => o.jeu.geste('victoire')]],
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [17.3, 22.6, -25.35], [20.2, 22.15, -24.6], 44], [5, [17.85, 22.45, -25.05], [20.2, 22.1, -24.6], 40]], t));
+      },
+    },
+    // la nuit : la cloche qu'il ne faut pas sonner, seule, la forêt noire derrière ; la caméra s'en approche lentement (avec le
+    // voyageur devant elle, aux deux premiers brouillons, on ne voyait que son chapeau)
+    'sb-nuit-cloche': {
+      duree: 4.5,
+      async preparer(o) { o.placer(6.0, -23.0, 9.6, -25.6, { compagnon: false }); o.compagnon(5.2, -22.4, 1.0); await o.nuitTout(true); },
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [14.6, 22.5, -28.4], [9.8, 23.4, -25.0], 50], [4.5, [13.6, 22.6, -27.8], [9.8, 23.45, -25.0], 46]], t));
+      },
+    },
+    // la nuit : une torche descend le sentier de la montagne, entre les cèdres. Celui qui la porte reste caché (le secret, montré sans
+    // être résolu) : on ne voit que sa flamme et sa lueur
+    'sb-torche': {
+      duree: 7,
+      async preparer(o) {
+        o.placer(12.6, -24.4, 18, -40, { compagnon: false }); o.compagnon(11.6, -23.6, 2.6);
+        await o.nuitTout(true);
+        o.M().lieu.animes.find((a) => a.arriver).objet.traverse((m) => { if (m.isMesh) m.visible = false; });
+      },
+      quand: [[0.0, (o) => o.M().lieu.animes.find((a) => a.arriver).arriver([[20.9, -47.0], [20.5, -44.0], [20.0, -40.0], [19.6, -36.0], [18.4, -33.5], [16.6, -33.2], [14.95, -33.1]], o.M().lieu.terrain)]],
+      chaque(t, dt, o) {
+        // (sur le sentier, juste après son portail : le chemin mène l'œil à la flamme ; de la terrasse, au premier brouillon, un gros
+        // cèdre prenait un tiers de l'image et la flamme était minuscule)
+        o.cadre(...o.chemin([[0, [17.2, 23.0, -33.4], [20.4, 24.0, -45], 46], [7, [17.3, 23.0, -33.9], [20.3, 23.8, -44], 44]], t));
+      },
+    },
+    // la fin : du haut du grand escalier, les marches qui descendent dans la brume, les rais de lumière, le torii tout en bas ; le
+    // voyageur descend
+    'sb-fin': {
+      duree: 7,
+      preparer(o) { o.placer(0, -19.6, 0, 20, { compagnon: false }); o.compagnon(0.5, -18.6, 0); },
+      debut(o) { o.jeu.marcher([[0, -19.6], [0, 4]], 1.3); },
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [0, 23.3, -21.6], [0, 9, 10], 54], [7, [0.3, 23.1, -20.8], [0, 8.8, 10], 52]], t));
+      },
+    },
   };
 
   // ---------------------------------------------------------------- le déroulé

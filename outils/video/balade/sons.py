@@ -2,7 +2,7 @@
 le tampon, la récompense, le koban, l'achat, la magie, le daim sauvage…), joués hors temps réel (OfflineAudioContext),
 et ceux de bruitage-calcul.js (fabriqués échantillon par échantillon : les cris des compagnons, le nuage, la rame,
 le coq, le grondement de la grotte, les feux d'artifice, la pièce dans le bol, le fouet du thé, les cigales, la boue et le
-geyser de Beppu…). Rien d'enregistré, aucun droit. Dans videos/balade/public/sfx-jeu/<nom>.wav (48 kHz).
+geyser de Beppu, la cloche des Trente Bouddhas…). Rien d'enregistré, aucun droit. Dans videos/balade/public/sfx-jeu/<nom>.wav (48 kHz).
 
     python outils/video/balade/sons.py [--port 8123]
 
@@ -28,7 +28,9 @@ CALCULES = ['pouf', 'cri/kon', 'cri/pon', 'cri/chapu', 'cri/gao', 'cri/fuwa', 'c
             # (Beppu : la grosse bulle de boue, le four à vapeur, le ronflement du démon, le geyser, les fumerolles)
             'bulle', 'pschitt', 'oiseau/ronfle', 'oiseau/geyser', 'boucle/vapeur',
             # (Motonosumi : la pièce qui tombe dans le tronc, celle qui le manque, le souffle du dragon, les vagues)
-            'saisen', 'tombe', 'oiseau/shiofuki', 'boucle/vagues']
+            'saisen', 'tombe', 'oiseau/shiofuki', 'boucle/vagues',
+            # (les Trente Bouddhas : la cloche de bronze, la bouscarle, le vent dans les feuilles, les insectes de la nuit)
+            'kane', 'oiseau/uguisu', 'boucle/feuilles', 'boucle/insectes']
 # (deux sons du même nom : le « tampon » de bruitage-calcul.js, les deux sceaux du goshuin, devient sceaux.wav ; celui de
 # son.js, la petite note du carnet, reste tampon.wav)
 RENOMMER = {'tampon': 'sceaux'}
