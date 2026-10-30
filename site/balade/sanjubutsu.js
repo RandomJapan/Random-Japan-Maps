@@ -59,6 +59,9 @@ const SHORO = { x: 9.6, z: -25.6, c: 3.0 };
 const TO = { x: -12.6, z: -24.4 };
 const TAKI = { x: -14.6, z: -32.8, r: 2.3, eau: Y_T - 0.32 };
 const ECHO = { x: -7.6, z: -28.6 };
+// (son petit panneau « やまびこ », à sa gauche, à côté des marches ouest du pavillon, tourné vers ceux qui arrivent par
+// l'escalier)
+const ECHO_PANNEAU = { x: ECHO.x - 1.3, z: ECHO.z + 0.4, ry: 0.85 };
 // le grand cèdre sacré (神木), au coin sud-ouest de la terrasse
 const SHINBOKU = { x: -15.6, z: -22.6, r: 1.05 };
 // le belvédère : un éperon de roche au bout est de la terrasse, au-dessus de la coupe de bois
@@ -611,6 +614,40 @@ export function construire(ctx) {
     poser(a.fin(), 0, 0, { y: 0 });
   }
 
+  // ---------------------------------------------------------------- L'écho (le tampon)
+  // un petit panneau de bois sous son chapeau (立札), à gauche de l'endroit d'où l'on appelle : « やまびこ » et le dessin du
+  // tampon, quelqu'un qui appelle et la falaise qui répond. (2026-10-30 : il n'y avait rien là, et l'appel ne se proposait qu'à
+  // 2 m d'un point du milieu de la terrasse ; le propriétaire : « je n'arrive pas à faire le dernier tampon ».)
+  // (dans le morceau de décor où il est : un objet à lui seul coûtait trois appels de dessin)
+  {
+    const { x, z, ry } = ECHO_PANNEAU, a = morceau(x, z), y = solDessine(x, z).h - 0.03, R = repere(x, z, ry);
+    a.boite(0.09, 1.43, 0.09, '#5a4636', R(0, y + 0.615, -0.045))
+      .boite(0.46, 0.52, 0.03, '#a8865a', R(0, y + 1.05, 0.015))
+      .pignon(0.6, 0.11, 0.17, '#4f4a44', R(0, y + 1.3, -0.03));
+    // (le dessin est peint ; « やまびこ » en second texte, pour que la police charge ces lettres)
+    ecrire({ x, y, z, ry }, {
+      texte: '', sous: 'やまびこ', x: 0, y: 1.05, z: 0.035, l: 0.42, h: 0.48, fond: null,
+      dessin: (c, W, H) => {
+        c.fillStyle = '#d6c193'; c.fillRect(0, 0, W, H);
+        c.fillStyle = c.strokeStyle = '#2e3c40'; c.textAlign = 'center'; c.textBaseline = 'middle';
+        c.font = `800 ${Math.round(H * 0.19)}px "M PLUS Rounded 1c", sans-serif`;
+        c.fillText('やまびこ', W / 2, H * 0.16, W * 0.9);
+        // (le motif du tampon, carnet.js, dans sa boîte de 120 : le voyageur, ses trois ondes, l'écho qui revient, la falaise)
+        const k = Math.min((W * 0.9) / 110, (H * 0.66) / 108);
+        c.translate(W / 2 - 61 * k, H * 0.31 - 8 * k);
+        c.scale(k, k);
+        c.lineCap = 'round';
+        c.fill(new Path2D('M84 8 L116 8 L116 116 L76 116 Q86 96 80 80 Q92 64 84 48 Q94 30 84 8 Z'));
+        c.beginPath(); c.arc(20, 62, 7, 0, 2 * PI); c.fill();
+        c.fill(new Path2D('M13 72 L27 72 L30 102 L10 102 Z'));
+        c.lineWidth = 3.4; c.stroke(new Path2D('M36 52 Q44 64 36 76 M46 46 Q56 64 46 82 M56 40 Q68 64 56 88'));
+        c.lineWidth = 2.4; c.setLineDash([3, 4]); c.stroke(new Path2D('M72 50 Q65 64 72 78'));
+      },
+    });
+    const cs = Math.cos(ry), sn = Math.sin(ry);
+    monde.mur(x - 0.24 * cs, z + 0.24 * sn, x + 0.24 * cs, z - 0.24 * sn, 0.3);
+  }
+
   // ---------------------------------------------------------------- Le clocher (鐘楼)
   const CLOCHE = { x: SHORO.x, z: SHORO.z, y: Y_T + 0.3 };
   {
@@ -640,23 +677,40 @@ export function construire(ctx) {
     a.cylindre(0.1, 0.1, 0.03, 12, BRF, { ...R(0.43, y0 + 2.18, 0), rz: PI / 2 });
     monde.cercle(S.x, S.z, 0.7, y0 - 1, y0 + 3.2);
     // la torche brûlée (松明), appuyée au poteau sud-est (un indice : quelqu'un est venu, la nuit) : un fagot de bambous fendus
-    // lié de trois cordes de paille, noirci et cendreux en haut ; son bout touche le poteau (2026-10-30 : il le traversait, et
-    // le propriétaire l'a pris pour « l'espèce de bâton pour frapper la cloche »)
+    // lié de trois cordes de paille, noirci et cendreux en haut. Son pied sur le sol de la terrasse, 30 cm au-delà du coin du
+    // socle ; en haut, le bord du bambou tourné vers le poteau touche son arête. (2026-10-30 : elle traversait le poteau, et le
+    // propriétaire l'a prise pour « l'espèce de bâton pour frapper la cloche » ; puis son pied, au bord du socle, flottait à
+    // 27 cm du sol et son haut s'arrêtait à 3 cm du poteau : « la torche flotte ».)
     {
       const V = (u) => { const l = Math.hypot(...u); return u.map((v) => v / l); }, X3 = (p, q) => [p[1] * q[2] - p[2] * q[1], p[2] * q[0] - p[0] * q[2], p[0] * q[1] - p[1] * q[0]];
-      const diag = [Math.SQRT1_2, 0, Math.SQRT1_2], hC = 1.5, axe = pt(R, d + 0.08 - (0.08 * hC) / 3.5, y0 + hC, d + 0.08 - (0.08 * hC) / 3.5);
-      const T = [axe[0] + diag[0] * 0.21, axe[1], axe[2] + diag[2] * 0.21], B = pt(R, d + 0.54, y0 - 0.03, d + 0.54);
-      const A = V([T[0] - B[0], T[1] - B[1], T[2] - B[2]]), e1 = V(X3(A, [0, 1, 0])), e2 = X3(A, e1), L = Math.hypot(T[0] - B[0], T[1] - B[1], T[2] - B[2]);
+      const diag = [Math.SQRT1_2, 0, Math.SQRT1_2], pied = pt(R, d + 0.75, 0, d + 0.75), B = [pied[0], solDessine(pied[0], pied[2]).h - 0.04, pied[2]];
+      // (l'axe du poteau, penché vers le clocher, et son rayon, à la hauteur y ; ses huit faces ont une arête au sud-est)
+      const axeP = (y) => pt(R, d + 0.08 - (0.08 * (y - y0)) / 3.5, y, d + 0.08 - (0.08 * (y - y0)) / 3.5), rP = (y) => 0.13 - (0.02 * (y - y0)) / 3.5;
+      // (le bambou 1 regarde le poteau, et c'est le plus long : les autres ne l'atteignent pas)
+      const ANG = (k) => (k / 5) * 2 * PI + 0.3, BOUT = (k) => (k === 1 ? 1 : 0.97 + 0.025 * hasard(k, 4.1));
+      let T, A, e1, e2, L;
       const sur = (f, r = 0, ang = 0) => [0, 1, 2].map((i) => B[i] + A[i] * L * f + (e1[i] * Math.cos(ang) + e2[i] * Math.sin(ang)) * r);
+      // le haut, sur la diagonale du poteau à 1,5 m au-dessus du socle, rapproché jusqu'à ce que le bord du bambou 1 entre de
+      // 5 mm dans l'arête
+      for (let n = 0, dl = 0.18; n < 6; n++) {
+        const c = axeP(y0 + 1.5);
+        T = [c[0] + diag[0] * dl, c[1], c[2] + diag[2] * dl];
+        A = V([T[0] - B[0], T[1] - B[1], T[2] - B[2]]); e1 = V(X3(A, [0, 1, 0])); e2 = X3(A, e1); L = Math.hypot(T[0] - B[0], T[1] - B[1], T[2] - B[2]);
+        const bord = sur(BOUT(1), 0.044 + 0.014, ANG(1)), cb = axeP(bord[1]);
+        dl -= Math.hypot(bord[0] - cb[0], bord[2] - cb[2]) - (rP(bord[1]) - 0.005);
+      }
       const yNoir = B[1] + A[1] * L * 0.8, yCendre = B[1] + A[1] * L * 0.97;
       const brule = (wx, wy) => (wy > yCendre ? '#6f6a64' : wy > yNoir ? (hasard(wx * 31, wy * 17) > 0.5 ? '#231e1b' : '#2f2925') : wy > yNoir - 0.06 ? '#5a4a34' : '#9a8250');
-      // (cinq bambous autour de l'axe, sans se chevaucher : serrés, leurs faces scintillaient)
+      // (cinq bambous autour de l'axe, sans se chevaucher : serrés, leurs faces scintillaient ; en anneaux, pour que le haut
+      // soit noirci : la couleur se prend au milieu de chaque triangle, et un fût d'un seul tenant n'en a pas en haut)
       for (let k = 0; k < 5; k++) {
-        const ang = (k / 5) * 2 * PI + 0.3, bout = 0.985 + 0.03 * hasard(k, 4.1);
-        a.fut(sur(0, 0.032, ang), sur(bout, 0.044, ang), 0.017, 0.014, '#9a8250', 5, { teinte: brule });
+        const fs = [0, 0.5, 0.76, 0.8, 0.88, 0.97, BOUT(k)];
+        a.tronc(fs.map((f) => sur(f, 0.032 + (0.012 * f) / BOUT(k), ANG(k))), fs.map((f) => 0.017 - (0.003 * f) / BOUT(k)), '#9a8250', 5, { teinte: brule });
       }
       for (const f of [0.18, 0.5, 0.74]) a.baton(sur(f - 0.018), sur(f + 0.018), 0.052, '#c8a868', 8, { teinte: (wx, wy, wz) => (Math.floor((wx + wz) * 90 + wy * 40) % 2 ? '#c8a868' : '#b0904f') });
-      monde.cercle(B[0] - diag[0] * 0.12, B[2] - diag[2] * 0.12, 0.3);
+      // (on bute contre elle du pied jusqu'au cercle du poteau)
+      const mi = pt(R, d + 0.3, 0, d + 0.3);
+      monde.mur(B[0], B[2], mi[0], mi[2], 0.28);
     }
     poser(a.fin(), 0, 0, { y: 0 });
     monde.surface(S.x - d - 0.45, S.x + d + 0.45, S.z - d - 0.45, S.z + d + 0.45, y0, { sol: 'pierre' });
@@ -1836,7 +1890,7 @@ export function construire(ctx) {
     },
     { id: 'veille', x: VEILLE.x - 1.4, z: VEILLE.z - 1.6, rayon: 2.0, haut: 1.4, verbe: 'regarder', vers: [VEILLE.x, VEILLE.z], si: (jeu) => jeu.estNuit && jeu.secretTrouve('oni') && oni.veille, action: (jeu) => jeu.dire(jeu.tx('oniApres'), 'oni') },
     { id: 'portail', x: PORTAIL.x - 1.25, z: (PORTAIL.z0 + PORTAIL.z1) / 2, rayon: 1.6, haut: 1.4, verbe: 'regarder', vers: [PORTAIL.x + 1.5, -33.2], action: (jeu) => jeu.dire(jeu.txn('portail')) },
-    { id: 'torche', x: CLOCHE.x + 2.3, z: CLOCHE.z + 2.4, rayon: 1.4, haut: 1.4, verbe: 'regarder', vers: [CLOCHE.x + 1.85, CLOCHE.z + 1.85], action: (jeu) => jeu.dire(jeu.txn('torche')) },
+    { id: 'torche', x: CLOCHE.x + 2.2, z: CLOCHE.z + 2.2, rayon: 1.6, haut: 1.4, verbe: 'regarder', vers: [CLOCHE.x + 2.0, CLOCHE.z + 2.0], action: (jeu) => jeu.dire(jeu.txn('torche')) },
     { id: 'empreintes', x: EMPREINTES.x, z: EMPREINTES.z + 0.8, rayon: 1.8, haut: 0.6, verbe: 'regarder', vers: [EMPREINTES.x - 0.6, EMPREINTES.z - 1.2], action: (jeu) => jeu.dire(jeu.txn('empreintes')) },
     {
       // le moine : la bougie du bouddha du jour (le tampon) ; il fait venir le soir, et rend le matin
@@ -1894,8 +1948,9 @@ export function construire(ctx) {
       },
     },
     {
-      // l'écho de la falaise (le tampon) : appeler trois fois ; la troisième, l'écho répond autre chose
-      id: 'yamabiko', x: ECHO.x, z: ECHO.z, rayon: 2.0, haut: 1.4, verbe: 'appeler', vers: [ECHO.x - 1.5, Z_PAROI],
+      // l'écho de la falaise (le tampon) : appeler trois fois ; la troisième, l'écho répond autre chose (on le propose autour
+      // du petit panneau « やまびこ », et l'on appelle à côté de lui)
+      id: 'yamabiko', x: ECHO_PANNEAU.x, z: ECHO_PANNEAU.z, rayon: 2.4, haut: 1.75, verbe: 'appeler', vers: [ECHO.x - 1.5, Z_PAROI],
       async action(jeu) {
         jeu.placer(ECHO.x, ECHO.z, PI + 0.25);
         jeu.cadrer({ de: [ECHO.x + 2.2, Y_T + 1.8, ECHO.z + 3.6], vers: [ECHO.x - 1.6, Y_T + 4.5, Z_PAROI], champ: 62 });
@@ -2435,7 +2490,7 @@ const TEXTES = {
       waraji: ['Les sandales des Nio', 'en bas : les sandales de paille de la grand-mère, pendues au râtelier des gardiens Nio'],
       kane: ['La cloche', 'au clocher de la terrasse : trois coups, en laissant chanter la cloche entre deux'],
       hotoke: ['Le bouddha du jour', 'au pavillon sous la falaise : la bougie du moine, pour le bouddha d’aujourd’hui'],
-      yamabiko: ['L’écho de la falaise', 'sur la terrasse, face à la falaise : appeler trois fois, et écouter qui répond'],
+      yamabiko: ['L’écho de la falaise', 'sur la terrasse, au petit panneau « やまびこ » : appeler trois fois la falaise, et écouter qui répond'],
     },
     vue: ['Sous tes pieds, la vallée a disparu : une mer de nuages blancs (雲海) remplit tout, jusqu’aux montagnes. Seules les pointes des cèdres dépassent, comme des îles.', 'La péninsule de Kunisaki est ronde, faite de vallées qui partent toutes de la même montagne, comme les rayons d’une roue. Les matins de brume, elles se remplissent de nuages.'],
     vueNuit: ['La nuit, la vallée n’est plus qu’un lac d’ombre. Tout au fond, une seule lumière : la fenêtre de la grand-mère.'],
@@ -2540,7 +2595,7 @@ const TEXTES = {
       waraji: ['The Nio’s sandals', 'down below: the grandmother’s straw sandals, hung on the Nio guardians’ rack'],
       kane: ['The bell', 'at the bell tower on the terrace: three strokes, letting the bell sing in between'],
       hotoke: ['Today’s Buddha', 'at the hall under the cliff: the monk’s candle, for today’s Buddha'],
-      yamabiko: ['The cliff’s echo', 'on the terrace, facing the cliff: call out three times, and listen to who answers'],
+      yamabiko: ['The cliff’s echo', 'on the terrace, at the little “やまびこ” sign: call out to the cliff three times, and listen to who answers'],
     },
     vue: ['Below your feet, the valley has vanished: a sea of white clouds (雲海) fills everything, all the way to the mountains. Only the tips of the cedars poke out, like islands.', 'The Kunisaki Peninsula is round, made of valleys that all start from the same mountain, like the spokes of a wheel. On misty mornings they fill with clouds.'],
     vueNuit: ['At night, the valley is just a lake of shadow. Far below, a single light: the grandmother’s window.'],
@@ -2645,7 +2700,7 @@ const TEXTES = {
       waraji: ['仁王の　わらじ', '下で　おばあさんの　わらじを　もらい、仁王さまの　わらじかけに　かける'],
       kane: ['鐘', 'テラスの　鐘楼。鐘が　なりおわるのを　まって、三回　つく'],
       hotoke: ['今日の　仏さま', 'がけの　下の　お堂。おぼうさんの　ろうそくを　今日の　仏さまに'],
-      yamabiko: ['山びこ', 'テラスで　がけに　むかって　三回　よぶ。だれが　こたえるか　きく'],
+      yamabiko: ['山びこ', 'テラスの　「やまびこ」の　ふだの　そばで、がけに　むかって　三回　よぶ。だれが　こたえるか　きく'],
     },
     vue: ['足の　下の　谷が　きえた！　白い　くもの　うみ（雲海）が　山まで　ひろがって、杉の　さきだけが　しまのように　出ている。', '国東半島は　まるくて、谷が　ぜんぶ　おなじ　山から　車の　スポークのように　のびている。きりの　朝は　くもで　いっぱいに　なる。'],
     vueNuit: ['よるの　谷は　かげの　みずうみ。ずっと　下に　あかりが　一つ：おばあさんの　まどだ。'],
