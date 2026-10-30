@@ -102,6 +102,13 @@ function etoile(cx, cy, R, r) {
   }
   return `M${p.join(' L')} Z`;
 }
+/** Un rond festonné (un pompon de coton) : n bosses autour du centre (cx, cy), de rayon r hors tout. */
+function festons(cx, cy, r, n = 8) {
+  const p = (k) => { const a = (k / n) * 2 * Math.PI - Math.PI / 2; return `${(cx + Math.cos(a) * r * 0.8).toFixed(2)} ${(cy + Math.sin(a) * r * 0.8).toFixed(2)}`; };
+  let d = `M${p(0)}`;
+  for (let k = 1; k <= n; k++) d += ` A${(r * 0.34).toFixed(2)} ${(r * 0.34).toFixed(2)} 0 0 1 ${p(k)}`;
+  return `${d} Z`;
+}
 // un trait épais en deux couches : l'encre dessous, la couleur dessus
 const trait = (d, c, l) => `<path d="${d}" fill="none" stroke="${ENCRE}" stroke-width="${l + 2.6}" stroke-linecap="round" stroke-linejoin="round"/><path d="${d}" fill="none" stroke="${c}" stroke-width="${l}" stroke-linecap="round" stroke-linejoin="round"/>`;
 const BOIS_D = 'M17 25 L13.5 14 L9 7 M13.5 14 L17 7.5 M15.2 19.5 L20 14';
@@ -220,11 +227,17 @@ const DESSINS = {
     ${[[11.2, 19], [15.4, 25.6], [32.6, 25.6], [36.8, 19]].map(([x, y], k) => `<circle cx="${x}" cy="${y}" r="2.7" fill="${k % 3 ? '#e8f2ee' : '#d8642a'}" stroke="${ENCRE}" stroke-width="1.3"/>`).join('')}
     <path d="M26 29 A6.5 6.5 0 1 1 26 42 Q21.5 42 20 46.5 Q14 40 19.6 33.6 A6.5 6.5 0 0 1 26 29 Z" fill="#3f9a64" stroke="${ENCRE}" stroke-width="2.1" stroke-linejoin="round"/>
     <path d="M23 32.5 Q26 31 29 33" fill="none" stroke="#9fe0b4" stroke-width="1.6" stroke-linecap="round"/><circle cx="26.5" cy="35" r="1.6" fill="${ENCRE}"/>`,
-  // l'étole du yamabushi (les Trente Bouddhas) : la bande sur les épaules, ses six pompons, la conque pendue à son cordon
-  yamabushi: `${trait('M10 8 Q12 26 24 30 Q36 26 38 8', '#e8e4d8', 3)}
-    ${[[12.2, 16], [15.6, 23.4], [20.6, 28.4], [27.4, 28.4], [32.4, 23.4], [35.8, 16]].map(([x, y], k) => `<circle cx="${x}" cy="${y}" r="3.4" fill="${k % 2 ? '#f6f2e8' : '#e8e2d2'}" stroke="${ENCRE}" stroke-width="1.4"/>`).join('')}
-    <path d="M30 31 Q41 30 42 38 Q42 45 34 45 Q27 44 28 37 Q28 33 30 31 Z" fill="#f2e6cf" stroke="${ENCRE}" stroke-width="2" stroke-linejoin="round"/>
-    <path d="M31 35 Q35 33 38 36 M30 39 Q34 37 39 40" fill="none" stroke="#c98a52" stroke-width="1.6" stroke-linecap="round"/>`,
+  // l'étole du yamabushi (les Trente Bouddhas) : la bande de brocart violet semée d'or, ses quatre pompons de coton
+  // festonnés, la conque pendue à son cordon (à la droite du voyageur : à gauche, vu de face), son ouverture orangée
+  yamabushi: `${trait('M16 32 Q14.4 19 13.6 11 Q13.4 5 24 5 Q34.6 5 34.4 11 Q33.6 19 32 32', '#5e3d86', 3.8)}
+    <path d="M16 32 Q14.4 19 13.6 11 M34.4 11 Q33.6 19 32 32" fill="none" stroke="#efc95e" stroke-width="1.1" stroke-dasharray="1.4 2.4"/>
+    <path d="M15.2 33.8 Q14 33.4 12.6 32" fill="none" stroke="#5e3d86" stroke-width="1.6" stroke-linecap="round"/>
+    <path d="M9.2 26.6 L10.4 22.8 L12.4 23.4 L11.4 27.2 Z" fill="#2b2522" stroke="${ENCRE}" stroke-width="0.8" stroke-linejoin="round"/>
+    <path d="M10.4 26 L14.2 35.6 Q15.8 40.6 13.8 44 Q11 47.6 7.4 47.2 Q3 46.4 2.2 41.6 Q1.6 37.2 5.4 32.4 Z" fill="#eee0c5" stroke="${ENCRE}" stroke-width="1.6" stroke-linejoin="round"/>
+    <path d="M4 36 Q8.6 37.4 13.7 34.8" fill="none" stroke="#a8673e" stroke-width="1.2" stroke-linecap="round"/>
+    <path d="M5.2 33 Q8.6 34.4 12.6 31.9 M3 38.8 Q8 40.6 14.6 37.6" fill="none" stroke="#5e3d86" stroke-width="1.6" stroke-linecap="round"/>
+    <path d="M9.6 40.6 Q13.4 41.2 13 44.2 Q10.6 46.4 8.6 44.6 Q8 42.2 9.6 40.6 Z" fill="#e8925a" stroke="${ENCRE}" stroke-width="1"/>
+    ${[[13.9, 16], [15.8, 29.6], [34.1, 16], [32.2, 29.6]].map(([x, y]) => `<path d="${festons(x, y, 4.7)}" fill="#faf7f0" stroke="${ENCRE}" stroke-width="1.3" stroke-linejoin="round"/>`).join('')}`,
   // sous tes pas : rien ; des pétales ; des étoiles ; des feuilles d'érable
   'trace-aucune': `<path d="M8 32 Q10 24 18 24 L28 26 Q36 27 36 32 Q36 37 28 37 H12 Q8 37 8 32 Z" fill="#ffffff" stroke="${ENCRE}" stroke-width="2"/>
     <path d="M8 34.5 H36" stroke="#d8452e" stroke-width="2.4"/>`,

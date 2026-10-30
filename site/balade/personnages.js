@@ -143,41 +143,248 @@ export function collierMagatama(THREE, a, { bas = 0.735, avant = 0.014, rayon = 
 }
 
 /**
- * L'étole du yamabushi (結袈裟) et sa conque (法螺貝) : la récompense des Trente Bouddhas (2026-10-29). Une bande blanche
- * passée derrière la nuque qui descend en deux bandes sur la poitrine, six pompons de laine (梵天), trois sur chacune, et
- * une conque pendue devant, à la taille, sa housse bleue. Les mêmes mesures que le collier de magatama (le buste).
+ * Le relief de ce qu'on porte sur le buste (2026-10-30) : pour un point (x, y), le z du tissu le plus en avant (sens 1) ou
+ * le plus en arrière (sens −1), d'après les triangles de ses géométries (geos, posées comme le buste) ; null à côté. Une
+ * grille de 5 mm, lue au plus haut des quatre points voisins : ce qu'on y pose ne s'y enfonce pas. L'étole du yamabushi s'y
+ * couche : elle suit chaque tenue (les revers de la veste, le col du happi, le croisé d'un kimono, la cuirasse).
  */
-export function etoleYamabushi(THREE, a, { avant = 0.014, rayon = (y) => 0.15 + 0.022 * Math.min(1, Math.max(0, (0.8 - y) / 0.25)), aplati = 0.9 } = {}) {
-  const PI = Math.PI, BANDE = '#f4f1e8', POMPON = '#fbf9f2', POMPON2 = '#ece6d6', CORDON = '#8a6a3a';
-  // (2026-10-29 : d'abord une bande en U autour du cou et de petits pompons sans trait : sur la fille, un collier de perles
-  // grises qu'on ne voyait pas ; maintenant deux bandes qui descendent sur la poitrine, comme le vrai yuigesa, de gros pompons
-  // cernés d'encre, et la conque devant, à la taille)
-  const buste = (x, y) => { const r = rayon(y); return aplati * r * Math.sqrt(Math.max(0, 1 - (x / r) ** 2)); };
-  const devant = (x, y, e = 0) => [x, y, buste(x, y) + avant + e];
-  // la bande : du bas de la poitrine, à droite, jusqu'à l'épaule, autour de la nuque, puis à gauche jusqu'en bas
-  const pts = [];
-  for (let k = 0; k <= 5; k++) pts.push(devant(0.074, 0.6 + k * 0.05));
-  for (let k = 1; k < 12; k++) { const t = PI / 2 - (k / 12) * PI; pts.push([Math.sin(t) * 0.1, 0.86, Math.cos(t) * -0.08]); }
-  for (let k = 5; k >= 0; k--) pts.push(devant(-0.074, 0.6 + k * 0.05));
-  a.tube(pts, 0.013, BANDE, { cotes: 6, pas: 64, trait: false });
-  // les six pompons (梵天), trois sur chaque bande, de plus en plus gros vers le bas, bosselés comme de la laine
-  [0.8, 0.71, 0.62].forEach((y, k) => {
-    for (const s of [-1, 1]) {
-      const [x, yy, z] = devant(s * 0.074, y, 0.022 + k * 0.004);
-      a.piece(new THREE.IcosahedronGeometry(0.03 + k * 0.004, 1), (k + (s > 0 ? 1 : 0)) % 2 ? POMPON2 : POMPON, {
-        x, y: yy, z,
-        deformer: (px, py, pz) => { const q = 1 + 0.1 * Math.sin(px * 210 + pz * 160) * Math.cos(py * 190); return [px * q, py * q, pz * q * 0.85]; },
-      });
+export function reliefBuste(geos, sens = 1) {
+  const X0 = -0.26, Y0 = 0.36, PAS = 0.005, NX = 105, NY = 117, z = new Float32Array(NX * NY).fill(-Infinity);
+  for (const geo of geos) {
+    const p = geo.attributes.position.array;
+    for (let k = 0; k < p.length; k += 9) {
+      const ax = p[k], ay = p[k + 1], az = p[k + 2] * sens, bx = p[k + 3], by = p[k + 4], bz = p[k + 5] * sens, cx = p[k + 6], cy = p[k + 7], cz = p[k + 8] * sens;
+      const d = (by - cy) * (ax - cx) + (cx - bx) * (ay - cy);
+      if (Math.abs(d) < 1e-12) continue;
+      const i0 = Math.max(0, Math.ceil((Math.min(ax, bx, cx) - X0) / PAS)), i1 = Math.min(NX - 1, Math.floor((Math.max(ax, bx, cx) - X0) / PAS));
+      const j0 = Math.max(0, Math.ceil((Math.min(ay, by, cy) - Y0) / PAS)), j1 = Math.min(NY - 1, Math.floor((Math.max(ay, by, cy) - Y0) / PAS));
+      for (let j = j0; j <= j1; j++) {
+        for (let i = i0; i <= i1; i++) {
+          const x = X0 + i * PAS, y = Y0 + j * PAS, l1 = ((by - cy) * (x - cx) + (cx - bx) * (y - cy)) / d, l2 = ((cy - ay) * (x - cx) + (ax - cx) * (y - cy)) / d;
+          if (l1 < -1e-6 || l2 < -1e-6 || l1 + l2 > 1 + 1e-6) continue;
+          const v = l1 * az + l2 * bz + (1 - l1 - l2) * cz;
+          if (v > z[j * NX + i]) z[j * NX + i] = v;
+        }
+      }
+    }
+  }
+  return (x, y) => {
+    const i = Math.floor((x - X0) / PAS), j = Math.floor((y - Y0) / PAS);
+    let m = -Infinity;
+    for (let b = j; b <= j + 1; b++) for (let a = i; a <= i + 1; a++) if (a >= 0 && b >= 0 && a < NX && b < NY && z[b * NX + a] > m) m = z[b * NX + a];
+    return m === -Infinity ? null : m * sens;
+  };
+}
+
+/**
+ * L'étole du yamabushi (結袈裟) et sa conque (法螺貝) : la récompense des Trente Bouddhas (2026-10-29). Refaite le 2026-10-30
+ * (le propriétaire : « Tu peux faire le collier mieux que ça » : six boules grises à facettes en deux chaînes, une bande
+ * qu'on ne voyait pas, une conque en damier) comme le vrai yuigesa : une bande de brocart (金襴 : violet, liserée et semée
+ * de losanges d'or) passée derrière la nuque, qui descend en deux bandes sur la poitrine ; six pompons de coton (梵天, les
+ * six perfections), quatre devant et deux dans le dos ; la conque (une trompette des mers) pendue à la hanche droite par un
+ * cordon tressé. devant(x, y), dos(x, y) : le relief de ce qu'on porte (reliefBuste), où la bande se couche et où la conque
+ * s'appuie ; arriere : l'atelier de ce qui est dans le dos (à part : le sac le cache), ou null (les longs cheveux de la fille
+ * le couvrent). x < 0 : la droite du voyageur.
+ */
+export function etoleYamabushi(THREE, a, { devant, dos = null, arriere = null }) {
+  const PI = Math.PI, V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
+  const VIOLET = '#5e3d86', VIOLET2 = '#432a62', OR = '#d9ab45', OR2 = '#a87d2c', OR3 = '#efc95e', COTON = '#faf7f0', BLANC = '#f4f0e6';
+  // la bande : large de W, épaisse de E, un liseré d'or de B de chaque côté ; JEU : son écart au tissu
+  const W = 0.036, E = 0.006, B = 0.0065, JEU = 0.003;
+  /**
+   * Une ligne [[x, y]…] couchée sur le relief f (sens 1 devant, −1 dans le dos) : des points { p, n } (n vers le dehors).
+   * Sous toute sa largeur, le tissu (cinq points) donne sa pente en travers et la hauteur où rien ne dépasse dessous ;
+   * le long de la ligne, cette hauteur est lissée sans jamais descendre sous elle.
+   */
+  const coucher = (ligne, f, sens) => {
+    const appuis = ligne.map(([x, y]) => {
+      const us = [-2, -1, 0, 1, 2].map((k) => k * (W / 4 + 0.001)), zs = us.map((u) => f(x + u, y));
+      const pris = us.map((u, k) => [u, zs[k] === null ? null : zs[k] * sens]).filter(([, v]) => v !== null);
+      if (!pris.length) return [0.15, 0];
+      const moy = pris.reduce((s, [, v]) => s + v, 0) / pris.length;
+      const pente = Math.max(-0.6, Math.min(0.6, pris.reduce((s, [u, v]) => s + u * (v - moy), 0) / (pris.reduce((s, [u]) => s + u * u, 0) || 1)));
+      return [Math.max(...pris.map(([u, v]) => v - pente * u)) + JEU, pente];
+    });
+    const n = ligne.length, voisin = (t, i) => t[Math.min(n - 1, Math.max(0, i))];
+    const appui = appuis.map(([h]) => h), pentes = appuis.map(([, s]) => s);
+    const haut = appui.map((v, i) => Math.max(v, voisin(appui, i - 1), voisin(appui, i + 1)));
+    const z = haut.map((v, i) => Math.max(appui[i], 0.25 * voisin(haut, i - 1) + 0.5 * v + 0.25 * voisin(haut, i + 1)));
+    return ligne.map(([x, y], i) => {
+      const gy = (voisin(z, i + 1) - voisin(z, i - 1)) / (voisin(ligne, i + 1)[1] - voisin(ligne, i - 1)[1] || 1);
+      const gx = 0.25 * voisin(pentes, i - 1) + 0.5 * pentes[i] + 0.25 * voisin(pentes, i + 1);
+      return { p: V(x, y, z[i] * sens), n: V(-gx, -gy, sens).normalize() };
+    });
+  };
+  /**
+   * Une bande le long de points { p, n } : le dessus en trois (un liseré d'or, le violet, un liseré), les côtés, le dessous,
+   * fermée aux deux bouts ; des losanges d'or semés sur le violet, un tous les trois points, là où on la voit (sous le menton).
+   */
+  const bande = (at, pts) => {
+    const pos = [], couleurs = [], tri = (A, Bv, C, c) => { pos.push(A.x, A.y, A.z, Bv.x, Bv.y, Bv.z, C.x, C.y, C.z); couleurs.push(c); };
+    const sections = pts.map(({ p, n }, i) => {
+      const t = pts[Math.min(i + 1, pts.length - 1)].p.clone().sub(pts[Math.max(i - 1, 0)].p).normalize();
+      const nn = n.clone().addScaledVector(t, -n.dot(t)).normalize(), b = V().crossVectors(t, nn);
+      const dessous = [-W / 2, W / 2].map((u) => p.clone().addScaledVector(b, u));
+      const dessus = [-W / 2, -W / 2 + B, W / 2 - B, W / 2].map((u) => p.clone().addScaledVector(nn, E).addScaledVector(b, u));
+      return { p, t, n: nn, b, dessous, dessus };
+    });
+    for (let i = 0; i + 1 < sections.length; i++) {
+      const s0 = sections[i], s1 = sections[i + 1];
+      for (let k = 0; k < 3; k++) {
+        const c = k === 1 ? VIOLET : OR;
+        tri(s0.dessus[k], s0.dessus[k + 1], s1.dessus[k + 1], c);
+        tri(s0.dessus[k], s1.dessus[k + 1], s1.dessus[k], c);
+      }
+      tri(s0.dessous[0], s1.dessous[1], s0.dessous[1], VIOLET2);
+      tri(s0.dessous[0], s1.dessous[0], s1.dessous[1], VIOLET2);
+      tri(s0.dessous[1], s1.dessous[1], s1.dessus[3], OR2);
+      tri(s0.dessous[1], s1.dessus[3], s0.dessus[3], OR2);
+      tri(s0.dessous[0], s0.dessus[0], s1.dessus[0], OR2);
+      tri(s0.dessous[0], s1.dessus[0], s1.dessous[0], OR2);
+    }
+    const d = sections[0], f = sections[sections.length - 1];
+    tri(d.dessous[0], d.dessus[3], d.dessus[0], OR2);
+    tri(d.dessous[0], d.dessous[1], d.dessus[3], OR2);
+    tri(f.dessous[0], f.dessus[0], f.dessus[3], OR2);
+    tri(f.dessous[0], f.dessus[3], f.dessous[1], OR2);
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    at.piece(g, VIOLET, { couleurs });
+    // (les losanges : 1,5 mm devant le violet, pas dans son plan)
+    const l = [];
+    sections.forEach(({ p, t, n, b }, i) => {
+      if (i % 3 !== 1 || p.y > 0.8) return;
+      const c = p.clone().addScaledVector(n, E + 0.0015), h = t.clone().multiplyScalar(0.0075), w = b.clone().multiplyScalar(0.0058);
+      const [A, Bv, C, D] = [c.clone().sub(h), c.clone().add(w), c.clone().add(h), c.clone().sub(w)];
+      for (const q of [A, Bv, C, A, C, D]) l.push(q.x, q.y, q.z);
+    });
+    if (l.length) {
+      const gl = new THREE.BufferGeometry();
+      gl.setAttribute('position', new THREE.Float32BufferAttribute(l, 3));
+      at.piece(gl, OR3, { trait: false });
+    }
+  };
+  /**
+   * Un pompon de coton (梵天) en c, de rayon R hors tout : douze grosses touffes rondes autour d'un cœur, tournées au hasard
+   * (graine), le contour festonné comme un petit nuage.
+   */
+  const pompon = (at, c, R, graine, finesse) => {
+    const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(graine * 1.7, graine * 2.3, graine * 0.9));
+    const touffes = [], ico = new THREE.IcosahedronGeometry(1, 0).attributes.position, d = V();
+    for (let i = 0; i < ico.count; i++) { d.fromBufferAttribute(ico, i).normalize(); if (!touffes.some((t) => t.distanceTo(d) < 1e-3)) touffes.push(d.clone()); }
+    for (const t of touffes) t.applyQuaternion(q);
+    // (dans la direction d : la plus loin des touffes, des boules de rayon 0,56 à 0,5 du centre, ou le cœur, 0,82)
+    const loin = (dd) => {
+      let r = 0.82;
+      for (const t of touffes) { const ct = dd.dot(t), h = 0.25 * (1 - ct * ct); if (ct > 0 && h < 0.3136) r = Math.max(r, 0.5 * ct + Math.sqrt(0.3136 - h)); }
+      return (r * R) / 1.06;
+    };
+    const g = new THREE.IcosahedronGeometry(1, finesse), p = g.attributes.position;
+    for (let i = 0; i < p.count; i++) { d.fromBufferAttribute(p, i).normalize(); const r = loin(d); p.setXYZ(i, d.x * r, d.y * r, d.z * r); }
+    at.piece(g, COTON, { x: c.x, y: c.y, z: c.z });
+  };
+
+  // les deux bandes de devant, du bas de la poitrine jusque sous le menton (un peu plus écartées en haut : elles passent en
+  // dedans des bretelles du sac), puis derrière la nuque, sous la grosse tête : on ne le voit pas
+  const ys = Array.from({ length: 19 }, (_, k) => 0.645 + k * 0.01);
+  const [aDroite, aGauche] = [-1, 1].map((s) => coucher(ys.map((y) => [s * (0.0545 + (0.0135 * (y - 0.6)) / 0.22), y]), devant, 1));
+  const epaule = (s, zh) => [
+    { p: V(s * 0.071, 0.842, zh * 0.6), n: V(0, 0.6, 0.8) }, { p: V(s * 0.076, 0.868, 0), n: V(s * 0.2, 1, 0) }, { p: V(s * 0.062, 0.874, -0.06), n: V(s * 0.3, 0.8, -0.5) },
+  ];
+  bande(a, [...aDroite, ...epaule(-1, aDroite.at(-1).p.z), { p: V(0, 0.872, -0.082), n: V(0, 0.6, -0.8) }, ...epaule(1, aGauche.at(-1).p.z).reverse(), ...[...aGauche].reverse()]);
+  // les quatre pompons de devant : au bas des bandes (cachant leur bout ; plus bas, ceux de la fille entraient dans le bout
+  // des bretelles de son sac, qui avancent) et sur la poitrine ; posés sur la bande à la hauteur y
+  const surBande = (cote, y) => {
+    const i = Math.min(cote.length - 2, Math.max(0, Math.floor((y - ys[0]) / 0.01))), t = (y - ys[i]) / 0.01;
+    return [cote[i].p.clone().lerp(cote[i + 1].p, t), cote[i].n.clone().lerp(cote[i + 1].n, t).normalize()];
+  };
+  [aDroite, aGauche].forEach((cote, s) => {
+    for (const [y, R, graine] of [[0.672, 0.034, 1], [0.765, 0.033, 2]]) {
+      const [p, n] = surBande(cote, y);
+      pompon(a, p.addScaledVector(n, E + 0.92 * R), R, graine + 3 * s, 6);
     }
   });
-  // la conque (法螺貝), pendue devant, à droite de la taille, à un cordon tressé passé à la bande ; sa housse bleue
-  const [xb, yb, zb] = devant(0.074, 0.6, 0.01), xh = 0.12, yh = 0.47, zh = zb + 0.05;
-  a.tube([[xb, yb, zb], [xb + 0.02, yb - 0.06, zb + 0.03], [xh, yh + 0.11, zh]], 0.005, CORDON, { cotes: 4, pas: 12, trait: false });
-  const coquille = [];
-  for (let k = 0; k <= 12; k++) { const u = k / 12; coquille.push(new THREE.Vector2(0.004 + 0.05 * Math.sin(u * PI * 0.62) * (1 + 0.12 * Math.sin(u * 24)), u * 0.17)); }
-  a.piece(new THREE.LatheGeometry(coquille, 12), '#f2e6cf', { x: xh, y: yh, z: zh, rz: 0.45, rx: -0.25, teinte: (px, py) => (Math.floor((py - yh) * 110 + px * 40) % 2 ? '#f2e6cf' : '#d9b07e') })
-    .cylindre(0.042, 0.042, 0.03, 12, '#3a5a8a', { x: xh + 0.016, y: yh + 0.035, z: zh, rz: 0.45, rx: -0.25 })
-    .ovale(0.022, '#f6d8c8', { x: xh - 0.03, y: yh + 0.12, z: zh + 0.014, sz: 0.6, trait: false }, 6);
+  // dans le dos : deux bandes qui descendent de la nuque sur les omoplates, un pompon au bout de chacune
+  if (arriere && dos) {
+    const yd = Array.from({ length: 13 }, (_, k) => 0.835 - k * 0.01);
+    for (const s of [-1, 1]) {
+      const ligne = coucher(yd.map((y) => [s * (0.082 + (0.01 * (0.835 - y)) / 0.12), y]), dos, -1);
+      bande(arriere, [{ p: V(s * 0.068, 0.874, -0.05), n: V(s * 0.2, 0.8, -0.5) }, ...ligne]);
+      const { p, n } = ligne[11];
+      pompon(arriere, p.clone().addScaledVector(n, E + 0.92 * 0.032), 0.032, 7 + s, 4);
+    }
+  }
+
+  // la conque : une trompette des mers (Charonia), sa spire en tours bosselés, crème marquée de brun, son ouverture orangée
+  // (un creux) bordée d'une lèvre blanche, l'embouchure laquée au bout de la pointe ; faite le long de +y (la pointe en haut,
+  // l'ouverture vers +z : v = 0), longue de L ; 44 × 22 cases (à 36 × 18, les bords des couleurs faisaient des pixels)
+  const L = 0.165, RM = 0.042, NU = 44, NV = 22, XC = -0.13, YC = 0.47;
+  const lisse = (b0, b1, v) => { const t = Math.min(1, Math.max(0, (v - b0) / (b1 - b0))); return t * t * (3 - 2 * t); };
+  const tours = (u) => (u < 0.62 ? 7 * (u / 0.62) ** 0.85 : 7 + 2.2 * (u - 0.62));
+  // (u : de la pointe, 0, au bout du canal, 1 ; v : le tour ; → [rayon, couleur])
+  const coquille = (u, v) => {
+    const phi = tours(u) - v / (2 * PI), s = phi - Math.floor(phi), spire = 1 - lisse(0.5, 0.72, u);
+    let r = u < 0.6 ? 0.005 + (RM - 0.005) * (u / 0.6) ** 1.15 : RM * (1 - 0.72 * ((u - 0.6) / 0.4) ** 1.5);
+    r *= (1 - spire * 0.17 * (1 - Math.sin(PI * s) ** 0.6)) * (1 + 0.07 * spire * Math.max(0, Math.cos(v * 9)) ** 6 * Math.sin(PI * s) ** 2);
+    const dv = Math.atan2(Math.sin(v), Math.cos(v)), e = ((u - 0.79) / 0.17) ** 2 + (dv / 0.95) ** 2;
+    if (e < 1) return [r * (0.6 + 0.4 * e), '#e8925a'];
+    if (e < 1.5) return [r * (1 + 0.13 * (1 - Math.abs(e - 1.25) / 0.25)), '#f7f0e3'];
+    // (des bandes brunes : sur la spire, au bas de chaque tour ; sur le dernier tour, trois bandes ; rompues en croissants)
+    const brun = (u < 0.62 ? s > 0.55 && s < 0.85 : (u * 9) % 1 > 0.5 && (u * 9) % 1 < 0.78) && Math.sin(v * 3 + u * 20) > -0.4;
+    return [r, brun ? (Math.sin(v * 5 - u * 9) > 0.5 ? '#7a4426' : '#a8673e') : '#eee0c5'];
+  };
+  const rmax = (u) => { let m = 0; for (let j = 0; j < 36; j++) m = Math.max(m, coquille(u, (j / 36) * 2 * PI)[0]); return m; };
+  const grille = Array.from({ length: NU + 1 }, (_, i) => Array.from({ length: NV }, (_, j) => {
+    const u = i / NU, v = (j / NV) * 2 * PI, [r] = coquille(u, v);
+    return [r * Math.sin(v), L * (0.5 - u), r * Math.cos(v)];
+  }));
+  const pts = [], couleurs = [], tri = (A, Bv, C, c) => { pts.push(...A, ...Bv, ...C); couleurs.push(c); };
+  for (let i = 0; i < NU; i++) {
+    for (let j = 0; j < NV; j++) {
+      const j1 = (j + 1) % NV, c = coquille((i + 0.5) / NU, ((j + 0.5) / NV) * 2 * PI)[1];
+      tri(grille[i][j], grille[i + 1][j], grille[i + 1][j1], c);
+      tri(grille[i][j], grille[i + 1][j1], grille[i][j1], c);
+    }
+  }
+  for (let j = 0; j < NV; j++) {
+    const j1 = (j + 1) % NV;
+    tri([0, L / 2 + 0.003, 0], grille[0][j], grille[0][j1], '#d9c8a8');
+    tri([0, -L / 2 - 0.004, 0], grille[NU][j1], grille[NU][j], '#e8d8bc');
+  }
+  // penchée comme le tissu derrière elle (la jupe qui s'évase : sa pente, du haut au bas de la conque), la pointe un peu
+  // vers le milieu, l'ouverture devant et un peu en dehors ; assez en avant pour ne rien toucher, le long de son axe
+  const zh = devant(XC, YC + 0.07), zb = devant(XC, YC - 0.07), k = zh !== null && zb !== null ? (zh - zb) / 0.14 : -0.2;
+  const Y = V(0.2, 1, k).normalize(), Z = V(-0.4, 0, 1), X = V();
+  Z.addScaledVector(Y, -Z.dot(Y)).normalize();
+  X.crossVectors(Y, Z);
+  let zc = 0.15;
+  for (let i = 0; i <= 10; i++) {
+    const u = i / 10, r = rmax(u) + 0.005, q = Y.clone().multiplyScalar(L * (0.5 - u));
+    for (const dx of [-r, 0, r]) { const zt = devant(XC + q.x + dx, YC + q.y); if (zt !== null) zc = Math.max(zc, zt + r - q.z); }
+  }
+  const repere = new THREE.Matrix4().makeBasis(X, Y, Z).setPosition(XC, YC, zc);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+  a.piece(g.applyMatrix4(repere), '#eee0c5', { couleurs })
+    // l'embouchure (吹口) laquée de noir, sa bague de laiton
+    .piece(new THREE.CylinderGeometry(0.0072, 0.0082, 0.024, 10).translate(0, L / 2 + 0.012, 0).applyMatrix4(repere), '#2b2522')
+    .piece(new THREE.CylinderGeometry(0.0095, 0.0095, 0.006, 10).translate(0, L / 2 + 0.004, 0).applyMatrix4(repere), '#c99c48');
+  // le cordon tressé, violet et blanc : deux tours autour de la coquille, noué de côté, puis jusqu'au bas de la bande de
+  // droite (il en sort sous son pompon)
+  const tresse = (x, y, z) => (Math.floor((x + y * 1.3 + z) * 150 + 1000) % 2 ? VIOLET : BLANC);
+  for (const u of [0.28, 0.5]) a.piece(new THREE.TorusGeometry(rmax(u) + 0.0035, 0.0035, 5, 22).rotateX(PI / 2).translate(0, L * (0.5 - u), 0).applyMatrix4(repere), VIOLET, { teinte: tresse });
+  const S = aDroite[0].p.clone().addScaledVector(aDroite[0].n, E / 2), c28 = V(0, L * 0.22, 0).applyMatrix4(repere), vers = S.clone().sub(c28);
+  const vK = Math.atan2(vers.dot(X), vers.dot(Z)), K = c28.clone().addScaledVector(X, Math.sin(vK) * (rmax(0.28) + 0.006)).addScaledVector(Z, Math.cos(vK) * (rmax(0.28) + 0.006));
+  // (le cordon pend un peu entre les deux, et passe devant ce qu'il croise : la ceinture d'une robe, le bas du haut)
+  const cordon = [0, 0.2, 0.4, 0.6, 0.8, 1].map((t) => {
+    const q = S.clone().lerp(K, t);
+    q.y -= 0.012 * Math.sin(PI * t);
+    const zt = t > 0 && t < 1 ? devant(q.x, q.y) : null;
+    if (zt !== null) q.z = Math.max(q.z, zt + 0.009);
+    return q.toArray();
+  });
+  a.tube(cordon, 0.0042, VIOLET, { cotes: 5, pas: 18, teinte: tresse })
+    .boule(0.0085, VIOLET, { x: K.x, y: K.y, z: K.z }, 1);
   return a;
 }
 
@@ -838,25 +1045,40 @@ export function creerHeros(ctx, sorte = 'garcon') {
     yukata: robeBuste, kimonoOr: robeBuste,
     armure: { rayon: (y) => 0.185 + 0.007 * entre(y, 0.81, 0.5), aplati: 0.9, bas: 0.74, avant: 0.026 },
   };
-  const colliers = {};
+  const colliers = {}, dosEtoles = {};
   let habitCourant = 'habit-defaut';
   const majCollier = () => {
-    for (const m of Object.values(colliers)) m.visible = false;
+    for (const m of [...Object.values(colliers), ...Object.values(dosEtoles)]) m.visible = false;
     if (!auCou) return;
-    // (au cou : le collier de magatama, ou l'étole et la conque du yamabushi, à la mesure du buste de la tenue)
-    const k = BUSTES[habitCourant] ? habitCourant : 'habit-defaut', cle = `${auCou}:${k}`;
-    if (!colliers[cle]) { colliers[cle] = maillage((auCou === 'yamabushi' ? etoleYamabushi : collierMagatama)(THREE, atelier(), BUSTES[k]).fin(0, false)); corps.add(colliers[cle]); }
+    // (au cou : le collier de magatama, à la mesure du buste de la tenue ; ou l'étole et la conque du yamabushi, couchées
+    // sur le relief de ce qu'on porte : le haut de la tenue, et le bas qu'elle garde, devant lequel pend la conque ; et le
+    // mino, dont le col de corde et ses cordons passent devant la poitrine : l'étole se pose dessus)
+    const mino = auCou === 'yamabushi' && !!dosPorte && dosPorte === pieces.mino;
+    const k = auCou === 'yamabushi' || BUSTES[habitCourant] ? habitCourant : 'habit-defaut', cle = `${auCou}:${k}${mino ? ':mino' : ''}`;
+    if (!colliers[cle]) {
+      if (auCou === 'yamabushi') {
+        const h = habits[k], geos = [...(h ? [h.meshes[0], ...(h.garde.includes('bas') ? [mBas] : [])] : [mHaut, mBas]), ...(mino ? [pieces.mino] : [])].map((m) => m.children[0].geometry);
+        const a = atelier(), arriere = fille ? null : atelier();
+        etoleYamabushi(THREE, a, { devant: reliefBuste(geos, 1), dos: arriere ? reliefBuste(geos, -1) : null, arriere });
+        colliers[cle] = maillage(a.fin(0, false));
+        if (arriere) { dosEtoles[cle] = maillage(arriere.fin(0, false)); corps.add(dosEtoles[cle]); }
+      } else colliers[cle] = maillage(collierMagatama(THREE, atelier(), BUSTES[k]).fin(0, false));
+      corps.add(colliers[cle]);
+    }
     colliers[cle].visible = true;
+    // (les pompons du dos de l'étole, quand rien ne les couvre : le sac, le mino, les ailes)
+    if (dosEtoles[cle]) dosEtoles[cle].visible = !sacGarde && !dosPorte;
   };
-  // le sac à dos : la tenue le garde ou non (garde : 'sac'), et le mino le cache (sur le dos, à sa place)
+  // le sac à dos : la tenue le garde ou non (garde : 'sac'), et le mino le cache (sur le dos, à sa place) ; et le dos de
+  // l'étole avec lui (majCollier)
   let sacGarde = true, dosPorte = null;
-  const majSac = () => { mSac.visible = sacGarde && !dosPorte; };
+  const majSac = () => { mSac.visible = sacGarde && !dosPorte; majCollier(); };
   /** Mettre la tenue id (HABITS ; 'habit-defaut' ou inconnue : les habits de tous les jours). */
   function habiller(id) {
     if (habitPorte) for (const m of habitPorte.meshes) m.visible = false;
     const f = HABITS[id];
+    // (le collier suit, dans majSac : une fois les morceaux de la tenue faits, l'étole se couche sur eux)
     habitCourant = f ? id : 'habit-defaut';
-    majCollier();
     if (!f) {
       mHaut.visible = mBas.visible = true;
       majFoulard();
