@@ -5,7 +5,7 @@
 //  instantané à la bordure blanche, une page de carnet avec les tampons du lieu), le nom du lieu, la date et
 //  l'adresse de la carte. On l'enregistre, ou on la partage (le menu du téléphone).
 //  creerPhoto(el, o) → { ouvrir(), fermer(), ouvert() } ; o : { t (les textes : tresors.photo), capturer() → canvas
-//  (l'image du jeu, sans l'interface), infos() → { lieu, lieuJa, tampons [svg], compagnon, date }, pose(nom), fermer(), son }.
+//  (l'image du jeu, sans l'interface), infos() → { lieu, phrase (le nom dans une phrase), lieuJa, salut, tampons [svg], compagnon, date }, pose(nom), fermer(), son }.
 // ================================================================
 import { partagerFichier, telecharger } from '../commun.js';
 
@@ -222,7 +222,7 @@ export function creerPhoto(el, o) {
     if (b.classList.contains('photo-declencheur')) { await declencher(); return; }
     if (b.classList.contains('photo-reprendre')) { el.querySelector('.photo-resultat').hidden = true; return; }
     if (b.classList.contains('photo-enregistrer')) { if (fichier) telecharger(fichier); return; }
-    if (b.classList.contains('photo-partager')) { if (fichier && !(await partagerFichier(fichier, T().texte(o.infos().lieu)))) telecharger(fichier); return; }
+    if (b.classList.contains('photo-partager')) { if (fichier && !(await partagerFichier(fichier, T().texte(o.infos().phrase)))) telecharger(fichier); return; }
     if (b.classList.contains('photo-fermer')) o.fermer();
   });
   // (on ne parle pas, on ne tourne pas la caméra à travers l'interface)

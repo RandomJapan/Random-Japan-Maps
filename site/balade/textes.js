@@ -21,6 +21,11 @@ export function choisirLangue() {
   return 'en';
 }
 
+// Le nom d'un lieu dans une phrase, en français (infos.phrase du lieu, sinon son nom) : « les Trente Bouddhas » → aux, des ;
+// « le château de Himeji » → au, du ; sinon à, et de ou d’ devant une voyelle (2026-10-30 : « Bienvenue à Trente Bouddhas ! »).
+const aLieu = (l) => (l.startsWith('les ') ? `aux ${l.slice(4)}` : l.startsWith('le ') ? `au ${l.slice(3)}` : `à ${l}`);
+const deLieu = (l) => (l.startsWith('les ') ? `des ${l.slice(4)}` : l.startsWith('le ') ? `du ${l.slice(3)}` : /^[aeiouyhâéèêîôû]/i.test(l) ? `d’${l}` : `de ${l}`);
+
 export const TEXTES = {
   en: {
     titrePage: '3D walk', retour: 'Back to the map', carnet: 'Stamp book', menu: 'Menu', fermer: 'Close',
@@ -173,12 +178,12 @@ export const TEXTES = {
     carnetVide: 'Pas encore trouvé', carnetComplet: 'Tous les tampons de ce lieu : bravo !',
     menuVoyageur: 'Changer de voyageur', menuCompagnon: 'Compagnon', menuSon: 'Son', menuMusique: 'Musique', menuLangue: 'Langue', menuBalades: 'Toutes les balades 3D', menuCarte: 'Retour à la carte',
     sonOui: 'Oui', sonNon: 'Non',
-    videoTitre: (lieu) => `Ma vidéo ${/^[aeiouyhâéèêîôû]/i.test(lieu) ? 'd’' : 'de '}${lieu}`, videoFermer: 'Retour à la balade',
+    videoTitre: (lieu) => `Ma vidéo ${deLieu(lieu)}`, videoFermer: 'Retour à la balade',
     videoErreur: 'Le lecteur de TikTok n’a pas pu démarrer ici.', videoSurTikTok: 'La voir sur TikTok', videoReessayer: 'Réessayer',
     videoLien: 'La vidéo ne se lance pas ? La voir sur TikTok',
     chargement: 'Chargement…',
-    bienvenue: (lieu) => [`Bienvenue à ${lieu} !`, 'Avant de partir… es-tu un garçon ou une fille ?'],
-    revoila: (lieu) => [`Te revoilà à ${lieu} !`],
+    bienvenue: (lieu) => [`Bienvenue ${aLieu(lieu)} !`, 'Avant de partir… es-tu un garçon ou une fille ?'],
+    revoila: (lieu) => [`Te revoilà ${aLieu(lieu)} !`],
     compagnonQuestion: ['Trois compagnons aimeraient faire la balade avec toi.', 'Lequel choisis-tu ?'],
     ouTampon: (ou) => `« Un tampon… ${ou} ! »`,
     compagnons: {
@@ -244,18 +249,18 @@ export const TEXTES = {
         'trace-aucune': 'Rien de spécial sous tes pas.', 'trace-petales': 'Des pétales de cerisier s’envolent à chaque pas.', 'trace-etoiles': 'De petites étoiles dorées scintillent à chaque pas.', 'trace-feuilles': 'Des feuilles d’érable rouges et orangées à chaque pas.',
         'cp-defaut': 'Ton compagnon, tel qu’il est.', 'cp-bandana': 'Un foulard à pois noué autour du cou.', 'cp-chapeau': 'Un petit chapeau de paille pointu, comme les statues de tanuki.', 'cp-grelot': 'Un gros grelot doré sur un cordon rouge, comme aux sanctuaires.',
       },
-      verrou: (lieu, n, total) => `Trouve les ${total} tampons ${/^[aeiouyhâéèêîôû]/i.test(lieu) ? 'd’' : 'de '}${lieu} pour la gagner (${n}/${total}).`,
+      verrou: (lieu, n, total) => `Trouve les ${total} tampons ${deLieu(lieu)} pour la gagner (${n}/${total}).`,
       verrouAchat: (n) => `En vente chez Bunbuku, le marchand ambulant (${n} koban).`,
       aide: 'Trouve tous les tampons d’un lieu pour gagner une nouvelle pièce ! D’autres s’achètent avec des koban.', tourner: 'Glisse pour le faire tourner',
       recompense: (nom) => `Récompense de tous les tampons : ${nom}`, recompenseGagnee: (nom) => `Récompense gagnée : ${nom}`,
-      gain: (lieu, nom) => [`Tous les tampons ${/^[aeiouyhâéèêîôû]/i.test(lieu) ? 'd’' : 'de '}${lieu} ! Voici ta récompense…`, `Tu gagnes : ${nom} !`],
+      gain: (lieu, nom) => [`Tous les tampons ${deLieu(lieu)} ! Voici ta récompense…`, `Tu gagnes : ${nom} !`],
       porter: 'Tu veux l’essayer tout de suite ?', porterOui: 'Oui !', porterNon: 'Plus tard',
       porte: ['Ça te va très bien !', 'Tu peux changer de tenue quand tu veux : Menu → Garde-robe.'],
       plusTard: ['Tu pourras l’essayer quand tu veux : Menu → Garde-robe.'],
     },
     tresors: {
       secrets: { corbeaux: 'Les corbeaux sacrés', tresor: 'La boîte au trésor', heike: 'Les lucioles des Heike', okiku: 'La dixième assiette d’Okiku', miroir: 'Le miroir du soleil', phenix: 'Le phénix du reflet', ippen: 'Les pierres d’Ippen', torii124: 'Le 124e torii', oni: 'L’oni gentil', iwaya: 'La grotte de l’ermite' },
-      trouve: (lieu) => [`Tu as trouvé le secret ${/^[aeiouyhâéèêîôû]/i.test(lieu) ? 'd’' : 'de '}${lieu} !`, 'Tu gagnes un koban : une vieille pièce d’or de l’époque d’Edo.'],
+      trouve: (lieu) => [`Tu as trouvé le secret ${deLieu(lieu)} !`, 'Tu gagnes un koban : une vieille pièce d’or de l’époque d’Edo.'],
       marchandOu: { itsukushima: 'Il paraît qu’un marchand tanuki s’est installé sous les pins, entre le sanctuaire et la colline. Il adore les koban…', aogashima: 'Il paraît qu’un marchand tanuki s’est installé au milieu de la forêt, à l’est du cratère. Il adore les koban…', gokayama: 'Il paraît qu’un marchand tanuki s’est installé sous les grands cèdres, près du sanctuaire. Il adore les koban…', himeji: 'Il paraît qu’un marchand tanuki s’est installé sous les cerisiers, à l’ouest de la grande pelouse. Il adore les koban…', takachiho: 'Il paraît qu’un marchand tanuki s’est installé dans la cour du sanctuaire, au bord de la forêt, près de l’escalier qui descend à la rivière. Il adore les koban…', kinkakuji: 'Il paraît qu’un marchand tanuki s’est installé sous les érables de la colline, entre le pavillon du thé du soir et le salon de thé. Il adore les koban…', beppu: 'Il paraît qu’un marchand tanuki s’est installé dans le bambou, le long du sentier qui monte à Shibaseki, à l’ouest de la rue. Il adore les koban…', motonosumi: 'Il paraît qu’un marchand tanuki s’est installé sous les pins, au bout ouest du parvis du sanctuaire. Il adore les koban…', sanjubutsu: 'Il paraît qu’un marchand tanuki s’est installé dans une clairière, à l’ouest du pied du grand escalier, près d’un petit jizō. Il adore les koban…' },
       secretReste: ['Ton carnet frémit… Il reste un secret ici. Les plus attentifs le trouveront !'],
       carnetSecret: 'Il reste un secret ici… Les plus attentifs le trouveront.', carnetSecretTrouve: (nom) => `Secret trouvé : ${nom}`, carnetKoban: (n) => `Koban : ${n}`,
@@ -295,7 +300,7 @@ export const TEXTES = {
         titre: 'Appareil photo', aide: 'Glisse pour tourner autour · molette ou deux doigts pour zoomer', cadre: 'Cadre', pose: 'Pose',
         cadres: { carte: 'Carte postale', estampe: 'Estampe', polaroid: 'Instantané', carnet: 'Carnet' },
         poses: { naturel: 'Naturel', victoire: 'Ouais !', saut: 'Saut', salut: 'Salut', coeur: 'Cœur', coucou: 'Coucou' },
-        enregistrer: 'Enregistrer', partager: 'Partager', reprendre: 'Une autre', fermer: 'Fermer', salut: (lieu) => `Bons baisers ${/^[aeiouyhâéèêîôû]/i.test(lieu) ? 'd’' : 'de '}${lieu} !`, texte: (lieu) => `Ma balade en 3D à ${lieu} · map.randomjapanplace.com`,
+        enregistrer: 'Enregistrer', partager: 'Partager', reprendre: 'Une autre', fermer: 'Fermer', salut: (lieu) => `Bons baisers ${deLieu(lieu)} !`, texte: (lieu) => `Ma balade en 3D ${aLieu(lieu)} · map.randomjapanplace.com`,
       },
     },
   },

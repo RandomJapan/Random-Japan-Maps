@@ -1953,6 +1953,8 @@ function appliquerNuit(v) {
 const textesDe = (L, cle) => L.textes[langue]?.[cle] ?? L.textes.en[cle];
 const tx = (cle) => textesDe(M.lieu, cle);
 const nomDe = (L) => L.nom[langue] || L.nom.en;
+/** Le nom du lieu dans une phrase (« les Trente Bouddhas » : textes.js en fait « aux », « des ») ; sinon son nom. */
+const phraseDe = (L) => L.phrase?.[langue] || nomDe(L);
 /** Un texte du compagnon e (textes.js : compagnons) ; tc : celui du compagnon choisi. */
 const tcDe = (e, cle) => (TEXTES[langue].compagnons?.[e] ?? TEXTES.en.compagnons[e])[cle];
 const tc = (cle) => tcDe(espece || 'kon', cle);
@@ -2267,7 +2269,7 @@ function majGarderobe(info = null) {
     return `<section><h3>${T[place]}</h3><div class="pieces">${boutons}</div></section>`;
   }).join('');
   const p = piece(info) || piece(tenue.yeux !== 'aucune' && !info ? tenue.yeux : tenue.tete);
-  const texte = gagnee(p, totalTampons) ? descriptionPiece(p.id) : p.achat ? T.verrouAchat(article(p.achat).prix) : T.verrou(nomDe(LIEUX[p.lieu].infos), (lireTampons()[p.lieu] || []).length, totalTampons(p.lieu));
+  const texte = gagnee(p, totalTampons) ? descriptionPiece(p.id) : p.achat ? T.verrouAchat(article(p.achat).prix) : T.verrou(phraseDe(LIEUX[p.lieu].infos), (lireTampons()[p.lieu] || []).length, totalTampons(p.lieu));
   $('.garde-robe').innerHTML = `<button class="fermer" type="button" aria-label="${t('fermer')}">×</button>`
     + `<h2>${T.titre}${T.titreJa ? ` <span>${T.titreJa}</span>` : ''}</h2>${sections}`
     + `<p class="piece-info"><b>${nomPiece(p.id)}</b> ${texte}</p><p class="tenue-aide">${T.aide}<br><small>${T.tourner}</small></p>`;
@@ -2318,7 +2320,7 @@ async function offrirRecompenses() {
     el.hidden = false;
     son.cadeau();
     await attendre(900);
-    await dialogue.dire(T.gain(nomDe(LIEUX[p.lieu].infos), nom));
+    await dialogue.dire(T.gain(phraseDe(LIEUX[p.lieu].infos), nom));
     el.hidden = true;
     if ((await dialogue.choisir([T.porter], [T.porterOui, T.porterNon])) !== 0) await dialogue.dire(T.plusTard);
     else {
@@ -2442,7 +2444,7 @@ function video() {
     };
     addEventListener('message', ecoute);
     charger();
-    $('.video-titre').textContent = t('videoTitre')(nomDe(M.lieu));
+    $('.video-titre').textContent = t('videoTitre')(phraseDe(M.lieu));
     $('.video-lien').href = surTikTok;
     $('.video-lien').textContent = t('videoLien');
     $('.video-fermer').textContent = t('videoFermer');
@@ -2853,7 +2855,7 @@ async function decouvrirSecret(id) {
   el.hidden = false;
   son.koban();
   await attendre(1100);
-  await dialogue.dire(T.trouve(nomDe(M.lieu)));
+  await dialogue.dire(T.trouve(phraseDe(M.lieu)));
   el.hidden = true;
   M.kon.sauter();
   M.bruitage.cri(espece, { pan: panDe(renard.x, renard.z) });
@@ -3090,7 +3092,7 @@ const photo = creerPhoto($('.photo'), {
   infos() {
     const L = M.lieu, pris = lireTampons()[L.id] || [];
     return {
-      id: L.id, lieu: nomDe(L), lieuJa: L.nomJa, salut: t('tresors').photo.salut(nomDe(L)), compagnon: tc('nom'),
+      id: L.id, lieu: nomDe(L), phrase: phraseDe(L), lieuJa: L.nomJa, salut: t('tresors').photo.salut(phraseDe(L)), compagnon: tc('nom'),
       date: new Date().toLocaleDateString(langue === 'en' ? 'en-GB' : langue, { year: 'numeric', month: 'long', day: 'numeric' }),
       tampons: L.tampons.filter((tp) => pris.includes(tp.id)).map((tp) => dessinTampon(tp, L.nomJa, 200)),
     };
@@ -4019,7 +4021,7 @@ addEventListener('resize', () => {
 
 // ---------------------------------------------------------------- C'est parti
 async function depart() {
-  const lieu = nomDe(M.lieu);
+  const lieu = phraseDe(M.lieu);
   if (!sorte) {
     // la première fois, comme dans les jeux : es-tu un garçon ou une fille ? (les deux voyageurs face à l'objectif)
     const r = await dialogue.choisir(t('bienvenue')(lieu), [t('garcon'), t('fille')], { obligatoire: true });

@@ -360,6 +360,8 @@ function dansLeCadre(x, z) {
 export const infos = {
   id: 'sanjubutsu', carte: 'thirty-buddhas-nio-statues', video: '7646873869042666774',
   nom: { en: 'Thirty Buddhas', fr: 'Trente Bouddhas', ja: '三十仏' }, nomJa: '三十仏の仁王像',
+  // (dans une phrase : « Bienvenue aux Trente Bouddhas », « Welcome to the Thirty Buddhas » ; textes.js, aLieu, deLieu)
+  phrase: { en: 'the Thirty Buddhas', fr: 'les Trente Bouddhas' },
   tampons: [
     { id: 'vue', motif: 'unkai', ja: '雲海', encre: '#4a6a7a' },
     { id: 'waraji', motif: 'waraji', ja: '仁王の草鞋', encre: '#8a6a2a', forme: 'carre' },
