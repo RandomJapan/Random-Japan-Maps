@@ -66,8 +66,8 @@ import * as sanjubutsu from './sanjubutsu.js';
 // (Kinkaku-ji, en essai depuis le 2026-10-26, sorti le 2026-10-27 : « c'est bon tu peux le mettre en ligne pour tout le monde » ;
 // Beppu, en essai depuis le 2026-10-27, sorti le 2026-10-28 : « tu peux mettre en ligne pour tout le monde » ; Motonosumi, en
 // essai depuis le 2026-10-28, sorti le 2026-10-29 : « met en ligne Motonosumi pour tout le monde » ; les Trente Bouddhas, en
-// essai depuis le 2026-10-29)
-const EN_ESSAI = ['sanjubutsu'];
+// essai depuis le 2026-10-29, sortis le 2026-10-30 : « envoie les trente Bouddhas pour tout le monde »)
+const EN_ESSAI = [];
 const LIEUX = Object.fromEntries(Object.entries({ itsukushima, aogashima, gokayama, himeji, takachiho, kinkakuji, beppu, motonosumi, sanjubutsu }).filter(([id]) => !EN_ESSAI.includes(id) || modeDev()));
 const params = new URLSearchParams(location.search);
 const PHOTO = params.get('photo');
