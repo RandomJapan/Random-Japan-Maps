@@ -2702,7 +2702,20 @@ const jeu = {
    * secret, sur l'estrade de la kokiriko) ; y : la hauteur du sol voulu (une estrade), sinon celle où il est.
    */
   placer(x, z, cap, y) {
-    Object.assign(etat, { x, z, y: M.lieu.monde.hauteur(x, z, (y ?? etat.y) + 0.5), vx: 0, vz: 0 });
+    const monde = M.lieu.monde, de = (y ?? etat.y) + 0.5;
+    let h = monde.hauteur(x, z, de);
+    // (jamais là où l'on ne peut pas être, ni enfermé : posé entre les murs du socle d'une statue ou d'un tronc d'offrandes, on
+    // n'en sortait plus, 2026-10-30, les Trente Bouddhas ; on prend la place la plus proche d'où l'on peut partir, à 2 m au plus)
+    const bon = (xx, zz, hh) => monde.libre(xx, zz, hh) && !monde.enferme(xx, zz, hh);
+    if (!bon(x, z, h)) {
+      cherche: for (let r = 0.1; r < 2.05; r += 0.1) {
+        for (let k = 0; k < 24; k++) {
+          const t = (k / 24) * 2 * Math.PI, xx = x + Math.sin(t) * r, zz = z + Math.cos(t) * r, hh = monde.hauteur(xx, zz, de);
+          if (bon(xx, zz, hh)) { x = xx; z = zz; h = hh; break cherche; }
+        }
+      }
+    }
+    Object.assign(etat, { x, z, y: h, vx: 0, vz: 0 });
     if (cap !== undefined) etat.cap = cap;
   },
   /**
@@ -3192,6 +3205,21 @@ function cadrerTrio() {
   camera.userData.place = false;
 }
 
+/**
+ * Le point d'une ligne brisée [[x, z], …] le plus proche de x, z : { x, z, d (la distance), tx, tz (le sens de la ligne là), bout
+ * (au-delà de son premier ou de son dernier point) }.
+ */
+function auPlusPresDe(points, x, z) {
+  let q = { d: Infinity, x, z, tx: 0, tz: 1, bout: false };
+  const n = points.length - 1;
+  for (let k = 0; k < n; k++) {
+    const [x0, z0] = points[k], [x1, z1] = points[k + 1], dx = x1 - x0, dz = z1 - z0, l = Math.hypot(dx, dz) || 1;
+    const f0 = ((x - x0) * dx + (z - z0) * dz) / (l * l), f = Math.min(1, Math.max(0, f0)), px = x0 + f * dx, pz = z0 + f * dz, d = Math.hypot(x - px, z - pz);
+    if (d < q.d) q = { d, x: px, z: pz, tx: dx / l, tz: dz / l, bout: (k === 0 && f0 < 0) || (k === n - 1 && f0 > 1) };
+  }
+  return q;
+}
+
 function avancer(dt) {
   const L = M.lieu, monde = L.monde;
   const autres = M.passants.filter((p) => !absent(p)).map((p) => [p.etat.x, p.etat.z, 0.45]);
@@ -3211,6 +3239,24 @@ function avancer(dt) {
   }
   if (siege?.libre && m > 0.3) seLever(); // assis sur un banc : on se lève dès qu'on veut marcher
   const ne = niveauEau(etat.x, etat.z), dansLEau = ne != null && L.terrain(etat.x, etat.z) < ne - 0.05 && etat.y < ne + 0.5;
+  // les guides du lieu (lieu.guides : [{ points: [[x, z], …], r }]) : sur un passage étroit (des pierres de gué), qui avance le
+  // long de la ligne n'y va presque plus de travers, et il est ramené vers son milieu, comme sur un pont de jeu vidéo. Sans eux,
+  // la caméra un peu de biais, on butait sur le bord d'une pierre, ou dans un coin (2026-10-30, les Trente Bouddhas : « quand on
+  // a envie de partir de la grotte, des fois, on peut pas partir, ça bloque »)
+  if (!grimpe && !marche && m > 0.05) {
+    for (const g of L.guides || []) {
+      const q = auPlusPresDe(g.points, etat.x, etat.z);
+      if (q.bout || q.d > g.r) continue;
+      const le = dx * q.tx + dz * q.tz;
+      if (Math.abs(le) < 0.3 * m) continue;
+      const tx = dx - le * q.tx, tz = dz - le * q.tz, k = q.d > 0.004 ? Math.min(1, q.d / 0.25) * Math.abs(le) * 0.7 : 0;
+      dx = le * q.tx + tx * 0.2 + (k ? ((q.x - etat.x) / q.d) * k : 0);
+      dz = le * q.tz + tz * 0.2 + (k ? ((q.z - etat.z) / q.d) * k : 0);
+      const n = Math.hypot(dx, dz);
+      if (n > m) { dx *= m / n; dz *= m / n; }
+      break;
+    }
+  }
   const course = appuye('ShiftLeft', 'ShiftRight') || Math.hypot(joy.x, joy.y) > 0.92;
   const vmax = (course ? COURSE : MARCHE) * (dansLEau ? 0.62 : 1);
   const k = Math.min(1, dt * 10);
@@ -3242,16 +3288,17 @@ function avancer(dt) {
   // on glisse le long des obstacles : d'abord le mouvement entier, sinon le même tourné de plus en plus (moins vite :
   // la part qui longe l'obstacle), d'un côté puis de l'autre ; enfin chaque axe à part. (Le long d'une main
   // courante en biais, ni l'axe x ni l'axe z ne passaient : on restait coincé, 2026-10-23.)
-  const nx = etat.x + etat.vx * dt, nz = etat.z + etat.vz * dt;
-  let bouge = grimpe || marche || monde.libre(nx, nz, etat.y, autres);
+  // (depuis : d'où part le pas ; un mur mince ne se traverse pas d'un grand pas, monde.js)
+  const nx = etat.x + etat.vx * dt, nz = etat.z + etat.vz * dt, depuis = [etat.x, etat.z];
+  let bouge = grimpe || marche || monde.libre(nx, nz, etat.y, autres, depuis);
   if (bouge && !grimpe && !marche) { etat.x = nx; etat.z = nz; }
   for (let i = 1; !bouge && i <= 8; i++) {
     const a = Math.ceil(i / 2) * 0.32 * (i % 2 ? 1 : -1), c = Math.cos(a), s = Math.sin(a);
     const vx = (etat.vx * c + etat.vz * s) * c, vz = (etat.vz * c - etat.vx * s) * c;
-    if (monde.libre(etat.x + vx * dt, etat.z + vz * dt, etat.y, autres)) { etat.x += vx * dt; etat.z += vz * dt; etat.vx = vx; etat.vz = vz; bouge = true; }
+    if (monde.libre(etat.x + vx * dt, etat.z + vz * dt, etat.y, autres, depuis)) { etat.x += vx * dt; etat.z += vz * dt; etat.vx = vx; etat.vz = vz; bouge = true; }
   }
   if (!bouge) {
-    if (monde.libre(nx, etat.z, etat.y, autres)) { etat.x = nx; etat.vz *= 0.5; } else if (monde.libre(etat.x, nz, etat.y, autres)) { etat.z = nz; etat.vx *= 0.5; } else { etat.vx = etat.vz = 0; }
+    if (monde.libre(nx, etat.z, etat.y, autres, depuis)) { etat.x = nx; etat.vz *= 0.5; } else if (monde.libre(etat.x, nz, etat.y, autres, depuis)) { etat.z = nz; etat.vx *= 0.5; } else { etat.vx = etat.vz = 0; }
   }
   etat.vitesse = Math.hypot(etat.vx, etat.vz);
   if (!grimpe) etat.y += (monde.hauteur(etat.x, etat.z, etat.y) - etat.y) * Math.min(1, dt * 18);

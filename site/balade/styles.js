@@ -963,11 +963,11 @@ export function passeFinale(THREE, style, { echantillons = 4, flou = true } = {}
   const texel = { value: new THREE.Vector2(1, 1) }, texelReduit = { value: new THREE.Vector2(1, 1) };
   const LINEAIRE = `
     uniform float pres, loin, debut, fin;
+    float metres(float d) { float z = d * 2.0 - 1.0; return 2.0 * pres * loin / (loin + pres - z * (loin - pres)); }
     float lointain(float d) {
       // le ciel (rien n'y est dessiné : la profondeur est restée à 1) reste net : les étoiles, les nuages
       if (d > 0.999999) return 0.0;
-      float z = d * 2.0 - 1.0;
-      return smoothstep(debut, fin, 2.0 * pres * loin / (loin + pres - z * (loin - pres)));
+      return smoothstep(debut, fin, metres(d));
     }`;
   const SOMMET = `
     in vec3 position;
@@ -1052,7 +1052,7 @@ export function passeFinale(THREE, style, { echantillons = 4, flou = true } = {}
   const finale = passe(`
     precision highp float;
     uniform sampler2D image, profondeur, reduite, lueur;
-    uniform vec2 texelReduit, ecran;
+    uniform vec2 texel, texelReduit, ecran;
     uniform float force, saturation, vignette, forceLueur;
     uniform mat4 inverse;
     uniform vec3 oeil, valleeCouleur;
@@ -1063,6 +1063,14 @@ export function passeFinale(THREE, style, { echantillons = 4, flou = true } = {}
     void main() {
       vec3 c = texture(image, vUv).rgb;
       float dp = texture(profondeur, vUv).r;
+      // (au bord d'une chose proche, devant le lointain, le pixel mêle leurs deux couleurs mais n'a qu'une profondeur, souvent
+      // celle du lointain : flouté ou embrumé comme lui, il se couvrait d'un trait clair, qui scintillait le long des troncs
+      // fins, 2026-10-30, les Trente Bouddhas. Là où le flou ou la brume de la vallée commencent, on prend la plus proche des
+      // profondeurs voisines)
+      if (dp < 0.999999 && (force > 0.0 || valleeForce > 0.0) && metres(dp) > min(debut, valleeForce > 0.0 ? valleeDebut : debut)) {
+        dp = min(dp, min(min(texture(profondeur, vUv + vec2(texel.x, 0.0)).r, texture(profondeur, vUv - vec2(texel.x, 0.0)).r),
+          min(texture(profondeur, vUv + vec2(0.0, texel.y)).r, texture(profondeur, vUv - vec2(0.0, texel.y)).r)));
+      }
       float f = force > 0.0 ? lointain(dp) * force : 0.0;
       if (f > 0.002) {
         vec4 b = texture(reduite, vUv + vec2(-0.7, -0.7) * texelReduit) + texture(reduite, vUv + vec2(0.7, -0.7) * texelReduit)
@@ -1086,7 +1094,7 @@ export function passeFinale(THREE, style, { echantillons = 4, flou = true } = {}
       sortie = vec4(clamp(c, 0.0, 1.0), 1.0);
     }`, {
     image: { value: image.texture }, profondeur: { value: profondeur }, reduite: { value: reduite.texture },
-    texelReduit, ecran: { value: new THREE.Vector2(1, 1) }, force: { value: flou ? R.flou.force : 0 },
+    texel, texelReduit, ecran: { value: new THREE.Vector2(1, 1) }, force: { value: flou ? R.flou.force : 0 },
     saturation: { value: R.saturation }, vignette: { value: R.vignette }, pres, loin, debut, fin,
     lueur: { value: lumA.texture }, forceLueur, ...vallee,
   });

@@ -113,20 +113,34 @@ export function creerMonde({ terrain, cadre, profond = -0.6, pente = null }) {
     return Math.hypot(x - (x0 + f * dx), z - (z0 + f * dz));
   }
 
+  /** Le pas de (x0, z0) à (x1, z1) passe-t-il de part en part la ligne du mur m (strictement d'un côté à l'autre) ? */
+  function traverse(m, x0, z0, x1, z1) {
+    const [ax, az, bx, bz] = m, ux = bx - ax, uz = bz - az, vx = x1 - x0, vz = z1 - z0;
+    const c0 = ux * (z0 - az) - uz * (x0 - ax), c1 = ux * (z1 - az) - uz * (x1 - ax);
+    if (c0 * c1 >= 0) return false;
+    const d0 = vx * (az - z0) - vz * (ax - x0), d1 = vx * (bz - z0) - vz * (bx - x0);
+    return d0 * d1 < 0;
+  }
+
   /**
    * Peut-on être en x, z en venant de la hauteur y ? (le cadre, les cercles et les murs à cette hauteur, le
    * dessous des planchers, l'eau profonde, et pas plus d'une marche à monter ou descendre).
-   * autres : des cercles de plus [x, z, rayon] (les passants).
+   * autres : des cercles de plus [x, z, rayon] (les passants) ; depuis : [x, z], d'où l'on vient (un pas) : un mur
+   * mince ne se traverse pas d'un pas plus long que son épaisseur (en courant, 11 cm par image à 60 images par
+   * seconde, 33 cm à 20 : on passait au travers des murs de 10 cm d'un tronc d'offrandes ou du socle d'une statue, et
+   * l'on restait enfermé dedans ; 2026-10-30, les Trente Bouddhas), ni un petit cercle.
    */
-  function libre(x, z, y, autres = []) {
+  function libre(x, z, y, autres = [], depuis = null) {
     if (typeof cadre === 'function' ? !cadre(x, z) : x < cadre[0] || x > cadre[1] || z < cadre[2] || z > cadre[3]) return false;
     for (const [cx, cz, r, bas = -Infinity, haut = Infinity] of cercles) {
       if (y >= bas && y <= haut && (x - cx) ** 2 + (z - cz) ** 2 < r * r) return false;
+      // (un cercle plus petit qu'un pas : le pas qui passe dedans, venu de dehors)
+      if (depuis && r < 0.2 && y >= bas && y <= haut && (depuis[0] - cx) ** 2 + (depuis[1] - cz) ** 2 >= r * r && versMur([depuis[0], depuis[1], x, z], cx, cz) < r) return false;
     }
     for (const [cx, cz, r] of autres) if ((x - cx) ** 2 + (z - cz) ** 2 < r * r) return false;
     for (const m of murs) {
       const [, , , , r, bas = -Infinity, haut = Infinity] = m;
-      if (y >= bas && y <= haut && versMur(m, x, z) < r) return false;
+      if (y >= bas && y <= haut && (versMur(m, x, z) < r || (depuis && traverse(m, depuis[0], depuis[1], x, z)))) return false;
     }
     const { h, surface } = poserPied(x, z, y);
     for (const s of surfaces) {
@@ -137,6 +151,26 @@ export function creerMonde({ terrain, cadre, profond = -0.6, pente = null }) {
     if (profond !== null && !surface && h < profond) return false;
     if (pente !== null && h > y + 0.005 && !surface && raideur(x, z) > pente) return false;
     return Math.abs(h - y) < PAS;
+  }
+
+  /**
+   * Est-on enfermé en x, z, à la hauteur y, dans un recoin ? Dans aucune des seize directions on ne peut s'éloigner de 1,5 m sans
+   * passer un mur ni sortir du cadre. (Entre les quatre murs du socle d'une statue, on est « libre », loin de chacun d'eux, mais
+   * on n'en sort plus : 2026-10-30, les Trente Bouddhas. Pas plus loin : une petite pièce, un grenier, ne sont pas des enclos.)
+   */
+  function enferme(x, z, y) {
+    const dedansCadre = (qx, qz) => (typeof cadre === 'function' ? cadre(qx, qz) : qx >= cadre[0] && qx <= cadre[1] && qz >= cadre[2] && qz <= cadre[3]);
+    for (let k = 0; k < 16; k++) {
+      const dx = Math.sin((k / 16) * 2 * Math.PI), dz = Math.cos((k / 16) * 2 * Math.PI);
+      let px = x, pz = z, sort = true;
+      for (let d = 0.1; d < 1.55 && sort; d += 0.1) {
+        const qx = x + dx * d, qz = z + dz * d;
+        if (!dedansCadre(qx, qz) || murs.some((m) => y >= (m[5] ?? -Infinity) && y <= (m[6] ?? Infinity) && traverse(m, px, pz, qx, qz))) sort = false;
+        px = qx; pz = qz;
+      }
+      if (sort) return false;
+    }
+    return true;
   }
 
   /** La pente du sol naturel en x, z (la hauteur gagnée par mètre, dans le sens où il monte le plus). */
@@ -193,7 +227,7 @@ export function creerMonde({ terrain, cadre, profond = -0.6, pente = null }) {
   const dedans3 = (o, [x0, x1, z0, z1, bas, haut], m) => o.x >= x0 - m && o.x <= x1 + m && o.y >= bas - m && o.y <= haut + m && o.z >= z0 - m && o.z <= z1 + m;
 
   return {
-    terrain, cadre, surfaces, cercles, murs, blocs, toits, hauteur, libre, abri, visee, raideur, solSous,
+    terrain, cadre, surfaces, cercles, murs, blocs, toits, hauteur, libre, enferme, abri, visee, raideur, solSous,
     surface(x0, x1, z0, z1, h, o = {}) { surfaces.push({ x0, x1, z0, z1, h, ...o }); },
     rampe(x0, x1, z0, z1, axe, h0, h1, o = {}) { surfaces.push({ x0, x1, z0, z1, h: Math.max(h0, h1), rampe: { axe, h0, h1 }, ...o }); },
     /**
