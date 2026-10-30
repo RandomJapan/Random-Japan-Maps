@@ -136,6 +136,7 @@ export const TEXTES = {
     balade_beppu: 'Boiling hells in blue, red and white, a geyser under a stone roof, eggs cooked in the steam.',
     balade_motonosumi: '123 red torii down to the sea, the offering box up on the great torii, the sea bursting out between the rocks.',
     balade_sanjubutsu: 'Mossy steps in the mist between giant cedars, two stone Nio guardians, thirty Buddhas under a cliff.',
+    balade_udo: 'A vermilion shrine inside a sea cave, luck balls to throw onto the turtle rock, red torii up to the little Inari shrine, and a boat that waits for you.',
     autreLien: 'More info',
     pageLieu: "This place's page",
     // Les grandes villes (villes.js)
@@ -618,6 +619,7 @@ export const TEXTES = {
     balade_beppu: 'Des enfers bleus, rouges et blancs qui bouillent, un geyser sous un toit de pierre, des œufs cuits à la vapeur.',
     balade_motonosumi: '123 torii rouges jusqu’à la mer, le tronc des offrandes tout en haut du grand torii, la mer qui jaillit entre les rochers.',
     balade_sanjubutsu: 'Des marches moussues dans la brume entre des cèdres géants, deux gardiens Nio de pierre, trente bouddhas sous une falaise.',
+    balade_udo: 'Un sanctuaire vermillon dans une grotte au bord de la mer, des boules de chance à lancer sur le rocher de la tortue, des torii rouges jusqu’au petit sanctuaire d’Inari, et un bateau qui t’attend.',
     autreLien: "Plus d'infos",
     pageLieu: 'La page de ce lieu',
     // Les grandes villes (villes.js)
@@ -1099,6 +1101,7 @@ export const TEXTES = {
     balade_beppu: '青・赤・白に煮えたつ地獄、石の屋根の下の間欠泉、湯けむりで蒸した卵。',
     balade_motonosumi: '海までつづく123基の赤い鳥居、大鳥居の上の賽銭箱、岩のあいだから吹きあがる潮。',
     balade_sanjubutsu: '霧の中、巨大な杉のあいだの苔むした石段、石の仁王像、崖の下の三十の仏さま。',
+    balade_udo: '海の洞窟の中の朱色の神社、亀石に投げる運玉、お稲荷さんまで続く赤い鳥居、そしてあなたを待つ船。',
     autreLien: '詳細',
     pageLieu: 'このスポットのページ',
     // Les grandes villes (villes.js)

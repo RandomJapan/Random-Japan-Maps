@@ -346,6 +346,42 @@ const AIRS = {
     jour: { tempo: 76, lead: 'shakuhachi', arpege: 'koto', basse: 'pizzDoux', nappe: true, batterie: 'zen' },
     nuit: { tempo: 58, lead: 'boite', arpege: 'kotoDoux', basse: 'pizzDoux', nappe: true, batterie: null },
   },
+  // Sol majeur, la gamme yo (sol la si ré mi) : Udo (2026-10-30), la côte du soleil de Miyazaki, la grotte de la princesse de la
+  // mer ; un air qui se balance comme la houle. Le jour, la flûte fue sur le koto, une basse qui rebondit, à 100 battements ; la
+  // nuit, la boîte à musique, à 72
+  udo: {
+    gamme: [7, 9, 11, 0, 2, 4, 6], // sol majeur (pour la seconde voix)
+    intro: ['G', 'C'],
+    A: {
+      accords: ['G', 'Em', 'C', 'D', 'G', 'Em', 'C D', 'G'],
+      melodie: [
+        [74, 4], [76, 2], [74, 2], [71, 4], [69, 4],
+        [67, 6], [69, 2], [71, 8],
+        [72, 4], [71, 2], [69, 2], [67, 4], [69, 4],
+        [71, 12], [null, 4],
+        [74, 4], [79, 4], [78, 2], [76, 2], [74, 4],
+        [76, 6], [74, 2], [71, 4], [69, 4],
+        [67, 4], [69, 4], [71, 2], [74, 2], [72, 4],
+        [71, 12], [null, 4],
+      ],
+      fin2: [[71, 8], [74, 4], [76, 4]],
+    },
+    B: {
+      accords: ['C', 'G', 'Am', 'D', 'Em', 'C', 'Am D', 'G'],
+      melodie: [
+        [79, 6], [78, 2], [76, 8],
+        [74, 4], [76, 2], [74, 2], [71, 8],
+        [72, 4], [74, 4], [76, 6], [79, 2],
+        [78, 12], [null, 4],
+        [76, 4], [74, 2], [72, 2], [71, 4], [67, 4],
+        [69, 6], [71, 2], [72, 8],
+        [71, 4], [69, 4], [67, 4], [66, 4],
+        [67, 12], [null, 4],
+      ],
+    },
+    jour: { tempo: 100, lead: 'fue', arpege: 'koto', basse: 'rebond', nappe: true, batterie: 'legere' },
+    nuit: { tempo: 72, lead: 'boite', arpege: 'kotoDoux', basse: 'pizzDoux', nappe: true, batterie: null },
+  },
   // Ré majeur, la gamme yo (ré mi sol la si) : l'air de la danse des fêtes d'été, sautillant (112 battements : la
   // danse du voyageur est réglée dessus, personnages.js)
   odori: {

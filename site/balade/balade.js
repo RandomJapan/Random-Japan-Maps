@@ -21,7 +21,7 @@
 //  donne un koban, la monnaie de Bunbuku, le marchand ambulant (tresors.js), qui vend des objets précieux : la danse des
 //  fêtes, la traînée sous les pas, les accessoires du compagnon, les feux d'artifice (feux.js), des tenues entières,
 //  l'appareil photo (photo.js), trois compagnons secrets et le calendrier magique (calendrier.js : les saisons).
-//  ?lieu=itsukushima|aogashima|gokayama|himeji|takachiho|kinkakuji|beppu|motonosumi|sanjubutsu ; ?perso=garcon|fille ; ?compagnon=kon|pon|chapu ; ?langue=en|fr|ja ;
+//  ?lieu=itsukushima|aogashima|gokayama|himeji|takachiho|kinkakuji|beppu|motonosumi|sanjubutsu|udo ; ?perso=garcon|fille ; ?compagnon=kon|pon|chapu ; ?langue=en|fr|ja ;
 //  ?photo=heros|perso : une image fixe (captures) ; ?demo : une partie jouée image par image (vidéos) ;
 //  ?ciel=parchemin : un essai du style (styles.js) ; ?flou=0 : sans le flou du lointain ; ?aa=0 : sans anticrénelage.
 // ================================================================
@@ -56,6 +56,7 @@ import * as kinkakuji from './kinkakuji.js';
 import * as beppu from './beppu.js';
 import * as motonosumi from './motonosumi.js';
 import * as sanjubutsu from './sanjubutsu.js';
+import * as udo from './udo.js';
 
 // chaque lieu : { infos (noms, tampons, textes : sans rien construire), construire(ctx) }
 // (EN_ESSAI : les lieux en cours, qu'on ne voit qu'en mode développeur, localStorage.modeDev = 'oui', celui de la carte ; le
@@ -66,9 +67,10 @@ import * as sanjubutsu from './sanjubutsu.js';
 // (Kinkaku-ji, en essai depuis le 2026-10-26, sorti le 2026-10-27 : « c'est bon tu peux le mettre en ligne pour tout le monde » ;
 // Beppu, en essai depuis le 2026-10-27, sorti le 2026-10-28 : « tu peux mettre en ligne pour tout le monde » ; Motonosumi, en
 // essai depuis le 2026-10-28, sorti le 2026-10-29 : « met en ligne Motonosumi pour tout le monde » ; les Trente Bouddhas, en
-// essai depuis le 2026-10-29, sortis le 2026-10-30 : « envoie les trente Bouddhas pour tout le monde »)
-const EN_ESSAI = [];
-const LIEUX = Object.fromEntries(Object.entries({ itsukushima, aogashima, gokayama, himeji, takachiho, kinkakuji, beppu, motonosumi, sanjubutsu }).filter(([id]) => !EN_ESSAI.includes(id) || modeDev()));
+// essai depuis le 2026-10-29, sortis le 2026-10-30 : « envoie les trente Bouddhas pour tout le monde » ; Udo, en essai depuis le
+// 2026-10-30)
+const EN_ESSAI = ['udo'];
+const LIEUX = Object.fromEntries(Object.entries({ itsukushima, aogashima, gokayama, himeji, takachiho, kinkakuji, beppu, motonosumi, sanjubutsu, udo }).filter(([id]) => !EN_ESSAI.includes(id) || modeDev()));
 const params = new URLSearchParams(location.search);
 const PHOTO = params.get('photo');
 const DEMO = params.has('demo');
@@ -2558,8 +2560,11 @@ async function parlerCompagnon() {
   await dialogue.dire([tc('indice'), t('ouTampon')(texteTampon(L, manque).indice)], { qui: tc('nom') });
 }
 
-/** Le tampon pressé dans le carnet : le dessin qui s'imprime, la fanfare, puis la phrase. */
-async function tampon(id) {
+/**
+ * Le tampon pressé dans le carnet : le dessin qui s'imprime, la fanfare, puis la phrase ; puis (si on le donne) ce qu'en dit le
+ * compagnon, avant « tous les tampons ».
+ */
+async function tampon(id, puis) {
   const L = M.lieu;
   const tp = L.tampons.find((x) => x.id === id);
   if (!ajouterTampon(L.id, id)) { await dialogue.dire([t('dejaTampon')]); return; }
@@ -2572,8 +2577,12 @@ async function tampon(id) {
   majCompteur();
   await dialogue.dire([t('tamponObtenu')(texteTampon(L, tp).nom)]);
   el.hidden = true;
+  // (à Udo, « le bateau, vite ! » au dernier tampon était suivi de ce que le compagnon dit du tampon, et s'y perdait)
+  if (puis) await puis();
   if ((lireTampons()[L.id] || []).length === L.tampons.length) {
-    await dialogue.dire(tc('tout'), { qui: tc('nom') });
+    // (un lieu peut dire autre chose que « un autre lieu ? ouvre le menu » : à Udo, le batelier du port emmène à Yakushima,
+    // 2026-10-30)
+    await dialogue.dire(tx('toutCompagnon')?.[espece || 'kon'] || tc('tout'), { qui: tc('nom') });
     await offrirRecompenses();
   }
 }

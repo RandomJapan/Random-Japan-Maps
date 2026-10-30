@@ -268,6 +268,40 @@ const MOTIFS = {
     <path d="M36 52 Q44 64 36 76 M46 46 Q56 64 46 82 M56 40 Q68 64 56 88" fill="none" stroke-width="3.4" stroke-linecap="round"/>
     <path d="M72 50 Q65 64 72 78" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="3 4"/>
     <path d="M90 30 Q96 36 92 44 M94 70 Q100 76 96 84" class="vide" fill="none" stroke-width="2"/>`,
+  // Udo (2026-10-30) : la plaquette de vœux en lapin, sa ficelle ; l'escalier sous les torii d'Inari ; le lapin blanc qu'on caresse
+  // sur son rocher ; les rochers de la mère, la corde sacrée, les gouttes dans le bassin ; le rocher de la tortue, son creux
+  // carré, la corde, et la boule de chance qui vole
+  emaLapin: `<path d="M60 4 V24" fill="none" stroke-width="2.6"/><circle cx="60" cy="6" r="3"/>
+    <ellipse cx="45" cy="34" rx="9" ry="24" transform="rotate(-14 45 34)"/><ellipse cx="75" cy="34" rx="9" ry="24" transform="rotate(14 75 34)"/>
+    <ellipse cx="45" cy="36" rx="3.6" ry="15" class="vide" transform="rotate(-14 45 36)"/><ellipse cx="75" cy="36" rx="3.6" ry="15" class="vide" transform="rotate(14 75 36)"/>
+    <ellipse cx="60" cy="78" rx="40" ry="31"/>
+    <circle cx="47" cy="70" r="4.4" class="vide"/><circle cx="73" cy="70" r="4.4" class="vide"/>
+    <path d="M55 80 Q60 85 65 80" class="vide" fill="none" stroke-width="2.4"/>
+    <path d="M40 94 H58 M62 94 H80" class="vide" fill="none" stroke-width="2.2"/>`,
+  toiriEscalier: `<path d="M14 30 Q60 22 106 30 L105 37 Q60 30 15 37 Z"/><rect x="22" y="42" width="76" height="5"/>
+    <rect x="27" y="36" width="7" height="76"/><rect x="86" y="36" width="7" height="76"/>
+    <path d="M38 52 Q60 47 82 52 L81 57 Q60 52 39 57 Z"/><rect x="43" y="56" width="5" height="40"/><rect x="72" y="56" width="5" height="40"/>
+    <path d="M50 66 Q60 63 70 66 L69 69 Q60 66 51 69 Z"/><rect x="53" y="68" width="3" height="20"/><rect x="64" y="68" width="3" height="20"/>
+    <path d="M40 112 H80 M43 104 H77 M47 97 H73 M51 91 H69" fill="none" stroke-width="3"/>`,
+  usagi: `<path d="M8 112 Q16 92 36 90 L84 90 Q104 92 112 112 Z"/>
+    <ellipse cx="60" cy="70" rx="25" ry="21"/><circle cx="60" cy="44" r="15"/>
+    <ellipse cx="51" cy="20" rx="5.5" ry="16" transform="rotate(-10 51 20)"/><ellipse cx="69" cy="20" rx="5.5" ry="16" transform="rotate(10 69 20)"/>
+    <ellipse cx="51" cy="22" rx="2" ry="10" class="vide" transform="rotate(-10 51 22)"/><ellipse cx="69" cy="22" rx="2" ry="10" class="vide" transform="rotate(10 69 22)"/>
+    <circle cx="54" cy="44" r="2.6" class="vide"/><circle cx="66" cy="44" r="2.6" class="vide"/>
+    <path d="M30 34 Q22 30 18 36 M90 34 Q98 30 102 36 M26 52 Q18 54 16 60" fill="none" stroke-width="2.4" stroke-linecap="round"/>`,
+  ochichi: `<path d="M14 22 Q60 34 106 22" fill="none" stroke-width="4"/>
+    <path d="M36 28 l-4 8 l6 0 l-4 8 M60 31 l-4 8 l6 0 l-4 8 M84 28 l-4 8 l6 0 l-4 8" fill="none" stroke-width="2"/>
+    <path d="M18 70 Q18 44 40 44 Q60 44 60 66 Q60 44 80 44 Q102 44 102 70 Z"/>
+    <circle cx="40" cy="66" r="3.4" class="vide"/><circle cx="80" cy="66" r="3.4" class="vide"/>
+    <path d="M40 74 Q36 82 40 86 Q44 82 40 74 Z M80 78 Q76 86 80 90 Q84 86 80 78 Z"/>
+    <path d="M28 98 H92 L86 112 H34 Z"/><path d="M36 102 Q60 98 84 102" class="vide" fill="none" stroke-width="2.2"/>`,
+  kameishi: `<path d="M6 108 Q16 100 26 108 Q36 100 46 108 Q56 100 66 108 Q76 100 86 108 Q96 100 106 108 L114 114 L6 114 Z"/>
+    <path d="M14 104 Q16 66 60 62 Q104 66 106 104 Z"/>
+    <rect x="50" y="66" width="20" height="10" class="vide"/>
+    <ellipse cx="60" cy="71" rx="22" ry="8" fill="none" stroke-width="3"/>
+    <path d="M100 92 Q110 84 112 92" fill="none" stroke-width="3" stroke-linecap="round"/>
+    <path d="M16 18 Q40 6 58 52" fill="none" stroke-width="2.4" stroke-dasharray="4 4" stroke-linecap="round"/>
+    <circle cx="14" cy="20" r="8"/><path d="M10 20 H18 M14 16 V24" class="vide" fill="none" stroke-width="1.8"/>`,
   aburaage: `<path d="M30 46 L34 12 L52 36 L68 36 L86 12 L90 46 Q92 70 60 92 Q28 70 30 46 Z"/>
     <path d="M37 20 L40 36 L48 38 Z M83 20 L80 36 L72 38 Z" class="vide"/>
     <path d="M40 54 L54 58 L42 62 Z M80 54 L66 58 L78 62 Z" class="vide"/><ellipse cx="60" cy="80" rx="5" ry="3.6" class="vide"/>

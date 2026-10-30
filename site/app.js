@@ -2277,7 +2277,7 @@ async function remplirFiche(l) {
  * Les lieux qu'on peut visiter dans la balade 3D (site/balade/) : id du lieu sur la carte → id du lieu de la
  * balade (?lieu=). À compléter quand la balade gagne un lieu.
  */
-const BALADES = { 'itsukushima-jinja': 'itsukushima', aogashima: 'aogashima', gokayama: 'gokayama', 'himeji-castle': 'himeji', 'takachiho-gorge': 'takachiho', 'amanoiwato-jinja': 'takachiho', 'kinkaku-ji': 'kinkakuji', 'the-hells-of-beppu': 'beppu', 'motonosumi-shrine': 'motonosumi', 'thirty-buddhas-nio-statues': 'sanjubutsu' };
+const BALADES = { 'itsukushima-jinja': 'itsukushima', aogashima: 'aogashima', gokayama: 'gokayama', 'himeji-castle': 'himeji', 'takachiho-gorge': 'takachiho', 'amanoiwato-jinja': 'takachiho', 'kinkaku-ji': 'kinkakuji', 'the-hells-of-beppu': 'beppu', 'motonosumi-shrine': 'motonosumi', 'thirty-buddhas-nio-statues': 'sanjubutsu', 'udo-inari-shrine': 'udo' };
 /**
  * Les lieux de la balade encore en essai : leur bouton « Visiter en 3D » n'existe qu'en mode développeur (la classe dev). Le
  * propriétaire, 2026-10-26 : chaque nouveau lieu arrive d'abord en mode développeur, et sort quand il le dit (l'ôter d'ici, et
@@ -2285,8 +2285,8 @@ const BALADES = { 'itsukushima-jinja': 'itsukushima', aogashima: 'aogashima', go
  */
 // (Kinkaku-ji, en essai depuis le 2026-10-26, sorti le 2026-10-27 ; Beppu, en essai depuis le 2026-10-27, sorti le 2026-10-28 ;
 // Motonosumi, en essai depuis le 2026-10-28, sorti le 2026-10-29 ; les Trente Bouddhas, en essai depuis le 2026-10-29, sortis
-// le 2026-10-30)
-const BALADES_ESSAI = new Set([]);
+// le 2026-10-30 ; Udo, en essai depuis le 2026-10-30)
+const BALADES_ESSAI = new Set(['udo']);
 const lienBalade = (id) => `balade/?lieu=${id}&langue=${langue}`;
 
 /**
