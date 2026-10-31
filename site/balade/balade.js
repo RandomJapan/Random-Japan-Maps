@@ -48,6 +48,7 @@ import { SECRETS, SECRETS_EN_PLUS, ARTICLES, article, secretTrouve, trouverSecre
 import { creerFeux } from './feux.js';
 import { creerChutes, SAISONS } from './calendrier.js';
 import { creerPhoto } from './photo.js';
+import { carteTraversee, animerTraversee } from './traversee.js';
 import * as itsukushima from './itsukushima.js';
 import * as aogashima from './aogashima.js';
 import * as gokayama from './gokayama.js';
@@ -2845,9 +2846,9 @@ const jeu = {
   /** Peut-on partir en bateau vers ce lieu ? (pas s'il est en essai, pour un visiteur) */
   peutPartir,
   /**
-   * Partir en bateau vers un autre lieu (le batelier d'Udo vers Yakushima, et retour) : la carte de la traversée, le petit bateau
-   * qui la suit, puis le lieu, où l'on arrive au quai (?arrivee=bateau). La première fois, Yakushima s'ouvre (au carnet, à la
-   * garde-robe, et sur la carte : son « Visiter en 3D »).
+   * Partir en bateau vers un autre lieu (le batelier d'Udo vers Yakushima, et retour) : la carte de la traversée (traversee.js),
+   * le petit bateau qui avance pas à pas, la corne au départ et à l'arrivée, puis le lieu, où l'on arrive au quai
+   * (?arrivee=bateau). La première fois, Yakushima s'ouvre (au carnet, à la garde-robe, et sur la carte : son « Visiter en 3D »).
    */
   async partir(lieu) {
     if (ILES[lieu]) memoire.ecrire(ILES[lieu], 'oui');
@@ -2855,8 +2856,13 @@ const jeu = {
     el.innerHTML = carteTraversee(M.lieu.id, lieu, langue);
     el.hidden = false;
     requestAnimationFrame(() => el.classList.add('vue'));
-    son.magie();
-    await attendre(3600);
+    M.bruitage.oiseau('corne');
+    await attendre(800);
+    // (la carte couvre tout l'écran : le paysage ne se dessine plus derrière elle, le bateau avance sans à-coups)
+    M.enMer = true;
+    await animerTraversee(el, { duree: 6500 });
+    M.bruitage.oiseau('corne', { force: 0.8 });
+    await attendre(1400);
     const u = new URLSearchParams(location.search);
     u.set('lieu', lieu);
     u.set('arrivee', 'bateau');
@@ -2865,35 +2871,6 @@ const jeu = {
     await attendre(60000);
   },
 };
-
-/**
- * La carte de la traversée (2026-10-31) : le sud de Kyūshū, Tanegashima, Yakushima, la route en pointillés et le petit bateau qui la
- * suit (SVG, animateMotion), dans la langue du joueur ; de, vers : les lieux (udo, yakushima).
- */
-function carteTraversee(de, vers, l) {
-  const NOMS = { udo: { fr: 'Udo', en: 'Udo', ja: '鵜戸' }, yakushima: { fr: 'Yakushima', en: 'Yakushima', ja: '屋久島' } };
-  const TITRE = { fr: (n) => `En route pour ${n}…`, en: (n) => `Sailing to ${n}…`, ja: (n) => `${n}へ　しゅっこう！` };
-  // (par le détroit d'Ōsumi, entre le cap Sata et Tanegashima)
-  const route = 'M476 230 C 520 330, 400 420, 300 442 S 226 530, 208 590';
-  const chemin = de === 'udo' ? route : 'M208 590 C 190 650, 226 530, 300 442 S 520 330, 476 230';
-  const n = (id) => NOMS[id]?.[l] ?? NOMS[id]?.en ?? id, titre = (TITRE[l] || TITRE.en)(n(vers));
-  return `<svg viewBox="0 0 560 700" role="img" aria-label="${titre}">
-    <rect width="560" height="700" fill="#cfe4ea"/>
-    <path d="M0 0 H560 V60 L520 90 L478 140 L466 200 L478 228 L452 256 L398 276 L352 300 L300 332 L262 382 L232 426 L214 392 L206 348 L192 304 L176 342 L150 382 L108 372 L66 332 L28 302 L0 286 Z" fill="#e8dcb8" stroke="#8a7a5a" stroke-width="2"/>
-    <path d="M326 458 Q340 470 336 520 Q330 580 316 612 Q304 600 308 540 Q312 480 326 458 Z" fill="#e8dcb8" stroke="#8a7a5a" stroke-width="2"/>
-    <path d="M150 600 Q160 572 192 566 Q226 570 232 604 Q230 642 196 652 Q160 650 150 600 Z" fill="#cfe0a8" stroke="#6a7a4a" stroke-width="2"/>
-    <path d="M172 618 L188 588 L200 606 L212 592 L224 620 Z" fill="#7a9a5a"/>
-    <path d="${route}" fill="none" stroke="#c8402c" stroke-width="3" stroke-dasharray="8 7" stroke-linecap="round"/>
-    <circle cx="476" cy="230" r="7" fill="#c8402c"/><circle cx="208" cy="590" r="7" fill="#c8402c"/>
-    <text x="490" y="222" font-size="22" fill="#2a2420" font-weight="700">${n('udo')}</text>
-    <text x="70" y="560" font-size="22" fill="#2a2420" font-weight="700">${n('yakushima')}</text>
-    <text x="40" y="150" font-size="20" fill="#6a5a3a">${l === 'ja' ? '九州' : 'Kyūshū'}</text>
-    <g><path d="M-16 4 L16 4 L10 12 L-12 12 Z" fill="#f4f2ea" stroke="#2a2420" stroke-width="1.5"/><rect x="-6" y="-6" width="10" height="10" fill="#f4f2ea" stroke="#2a2420" stroke-width="1.5"/><path d="M0 -6 V-18 L10 -12 Z" fill="#e8583e"/>
-      <animateMotion dur="3.2s" fill="freeze" path="${chemin}"/></g>
-    <text x="280" y="676" font-size="26" text-anchor="middle" fill="#2a2420" font-weight="700">${titre}</text>
-  </svg>`;
-}
-
 
 // ---------------------------------------------------------------- Les trésors (2026-10-23) : les secrets, le marchand
 /** Les scènes que le lieu demande (la porte de bambous qui s'ouvre…) : jouées dès qu'on est libre. */
@@ -4204,6 +4181,8 @@ if (DEMO) {
   window.__pret = true;
 } else {
   rendu.setAnimationLoop((now) => {
+    // (pendant la traversée en bateau, la carte couvre le paysage : on ne le dessine plus)
+    if (M.enMer) { avant = now; return; }
     // (jamais négatif : la première image peut porter une date un peu antérieure à la fin du chargement)
     const dt = Math.min(0.05, Math.max(0, (now - avant) / 1000));
     adapter(now - avant);

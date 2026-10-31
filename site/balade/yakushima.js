@@ -2515,7 +2515,7 @@ export function construire(ctx) {
     actionBete: async (jeu, b) => { await jeu.dire(jeu.txn(b.sorte)); },
     // (le secret, tresors.js : les champignons qui brillent ; le marchand, à l'abri de Kosugidani ; les sons en plus ; les feux
     // d'artifice au-dessus de la mer, au nord)
-    secret: 'champignons', marchand: MARCHAND, sons: ['claque', 'cloche', 'papier', 'oiseau/singe'],
+    secret: 'champignons', marchand: MARCHAND, sons: ['claque', 'cloche', 'papier', 'oiseau/singe', 'oiseau/corne'],
     feux: { x: -20, y: 0, z: -170, large: 90, haut: [42, 68] },
     // (on arrive en bateau d'Udo : là, au quai ; le départ est le même)
     arrivee: depart,

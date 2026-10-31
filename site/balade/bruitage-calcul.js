@@ -878,6 +878,17 @@ const OISEAUX = {
       .cri(0.48, 0.2, (t) => 330 - 80 * t, ad(0.02, 0.08, 0.2), { fc: 850, bw: 550, rauque: 0.7 });
     return cadrer([echo(c.b, sr)], sr, 0.25);
   },
+  // (2026-10-31) la corne du bateau du batelier (d'Udo à Yakushima), quand il part et quand il accoste : un long coup grave puis
+  // un court, « pôôô… pô » ; une trompe un peu nasale (ses harmoniques), qui monte à sa note en 60 ms, un souffle dedans ; l'écho
+  corne(sr, r) {
+    const c = composer(sr, r, 2.3);
+    for (const [t0, d] of [[0.02, 1.0], [1.25, 0.45]]) {
+      const f = (t) => 233 * (1 - 0.035 * Math.exp(-t / 0.06)), env = ad(0.05, 0.14, d);
+      for (const [k, g] of [[1, 0.9], [2, 0.75], [3, 0.5], [4, 0.32], [5, 0.2], [6, 0.12]]) c.ton(t0, d, (t) => f(t) * k, (t) => g * env(t), 0);
+      c.bruit(t0, { f: 900, q: 0.8, duree: d, forme: env, gain: 0.05 });
+    }
+    return cadrer([echo(c.b, sr)], sr, 0.25);
+  },
   // (Yakushima, 2026-10-31) le singe de Yakushima (ヤクシマザル) : le « kuu » doux qui monte puis retombe, le cri qui garde la
   // troupe ensemble ; un second, plus court
   singe(sr, r) {

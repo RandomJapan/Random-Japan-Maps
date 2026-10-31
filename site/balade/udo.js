@@ -3293,7 +3293,7 @@ export function construire(ctx) {
     // (le secret, tresors.js : les plumes de cormoran ; le marchand, sous les camphriers au sud de l'allée ; les sons à fabriquer
     // en plus (le cri du cormoran : celui du héron de Gokayama, un « gwaa » rauque) ; les feux d'artifice au-dessus de la mer, à
     // l'est, devant la grotte)
-    secret: 'plumes', marchand: MARCHAND, sons: ['claque', 'cloche', 'pinceau', 'papier', 'piece', 'caillou', 'tombe', 'oiseau/goutte', 'oiseau/aosagi'],
+    secret: 'plumes', marchand: MARCHAND, sons: ['claque', 'cloche', 'pinceau', 'papier', 'piece', 'caillou', 'tombe', 'oiseau/goutte', 'oiseau/aosagi', 'oiseau/corne'],
     feux: { x: 150, y: 0, z: -30, large: 90, haut: [42, 66] },
     // les mouettes (mouettes.js) : au-dessus de la mer, de la crique du port et du platier ; posées près du rocher de la tortue,
     // sur la digue, une bitte du quai, le platier
