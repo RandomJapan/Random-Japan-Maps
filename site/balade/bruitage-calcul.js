@@ -878,6 +878,14 @@ const OISEAUX = {
       .cri(0.48, 0.2, (t) => 330 - 80 * t, ad(0.02, 0.08, 0.2), { fc: 850, bw: 550, rauque: 0.7 });
     return cadrer([echo(c.b, sr)], sr, 0.25);
   },
+  // (Yakushima, 2026-10-31) le singe de Yakushima (ヤクシマザル) : le « kuu » doux qui monte puis retombe, le cri qui garde la
+  // troupe ensemble ; un second, plus court
+  singe(sr, r) {
+    const c = composer(sr, r, 1.1);
+    c.ton(0.03, 0.34, (t) => 640 + 520 * Math.sin(Math.PI * Math.min(1, t / 0.34) * 0.85), ad(0.03, 0.12, 0.34))
+      .ton(0.52, 0.24, (t) => 700 + 420 * Math.sin(Math.PI * Math.min(1, t / 0.24) * 0.85), ad(0.03, 0.09, 0.24));
+    return cadrer([echo(c.b, sr)], sr, 0.25);
+  },
   // la bouscarle du Japon (uguisu), l'oiseau du printemps : « hôôô… ho-ke-kyo ! »
   uguisu(sr, r) {
     const c = composer(sr, r, 2.4);

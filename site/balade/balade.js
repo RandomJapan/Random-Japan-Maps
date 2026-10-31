@@ -21,7 +21,8 @@
 //  donne un koban, la monnaie de Bunbuku, le marchand ambulant (tresors.js), qui vend des objets précieux : la danse des
 //  fêtes, la traînée sous les pas, les accessoires du compagnon, les feux d'artifice (feux.js), des tenues entières,
 //  l'appareil photo (photo.js), trois compagnons secrets et le calendrier magique (calendrier.js : les saisons).
-//  ?lieu=itsukushima|aogashima|gokayama|himeji|takachiho|kinkakuji|beppu|motonosumi|sanjubutsu|udo ; ?perso=garcon|fille ; ?compagnon=kon|pon|chapu ; ?langue=en|fr|ja ;
+//  ?lieu=itsukushima|aogashima|gokayama|himeji|takachiho|kinkakuji|beppu|motonosumi|sanjubutsu|udo|yakushima ; ?perso=garcon|fille ; ?compagnon=kon|pon|chapu ; ?langue=en|fr|ja ;
+//  ?arrivee=bateau : on arrive au quai par le bateau d'un autre lieu (jeu.partir : sans le choix du compagnon) ;
 //  ?photo=heros|perso : une image fixe (captures) ; ?demo : une partie jouée image par image (vidéos) ;
 //  ?ciel=parchemin : un essai du style (styles.js) ; ?flou=0 : sans le flou du lointain ; ?aa=0 : sans anticrénelage.
 // ================================================================
@@ -57,6 +58,7 @@ import * as beppu from './beppu.js';
 import * as motonosumi from './motonosumi.js';
 import * as sanjubutsu from './sanjubutsu.js';
 import * as udo from './udo.js';
+import * as yakushima from './yakushima.js';
 
 // chaque lieu : { infos (noms, tampons, textes : sans rien construire), construire(ctx) }
 // (EN_ESSAI : les lieux en cours, qu'on ne voit qu'en mode développeur, localStorage.modeDev = 'oui', celui de la carte ; le
@@ -68,12 +70,20 @@ import * as udo from './udo.js';
 // Beppu, en essai depuis le 2026-10-27, sorti le 2026-10-28 : « tu peux mettre en ligne pour tout le monde » ; Motonosumi, en
 // essai depuis le 2026-10-28, sorti le 2026-10-29 : « met en ligne Motonosumi pour tout le monde » ; les Trente Bouddhas, en
 // essai depuis le 2026-10-29, sortis le 2026-10-30 : « envoie les trente Bouddhas pour tout le monde » ; Udo, en essai depuis le
-// 2026-10-30)
-const EN_ESSAI = ['udo'];
-const LIEUX = Object.fromEntries(Object.entries({ itsukushima, aogashima, gokayama, himeji, takachiho, kinkakuji, beppu, motonosumi, sanjubutsu, udo }).filter(([id]) => !EN_ESSAI.includes(id) || modeDev()));
+// 2026-10-30 ; Yakushima, en essai depuis le 2026-10-31)
+const EN_ESSAI = ['udo', 'yakushima'];
+// (les îles où l'on n'arrive qu'en bateau : Yakushima, depuis Udo, une fois ses cinq tampons pris ; le propriétaire, le 2026-10-30 :
+// « On peut pas débloquer Yakushima sans avoir fait ce lieu-là… à partir du moment où tu as pris le bateau… la petite icône visiter
+// en 3D… elle apparaît ». Prendre le bateau (jeu.partir) écrit localStorage.baladeYakushima = 'oui', que lit aussi la carte, app.js)
+const ILES = { yakushima: 'baladeYakushima' };
+const ileOuverte = (id) => { try { return !ILES[id] || localStorage.getItem(ILES[id]) === 'oui'; } catch { return false; } };
+/** Peut-on aller à ce lieu (en bateau) ? Pas s'il est en essai et qu'on n'est pas en mode développeur. */
+const peutPartir = (id) => !EN_ESSAI.includes(id) || modeDev();
+const LIEUX = Object.fromEntries(Object.entries({ itsukushima, aogashima, gokayama, himeji, takachiho, kinkakuji, beppu, motonosumi, sanjubutsu, udo, yakushima }).filter(([id]) => (!EN_ESSAI.includes(id) || modeDev()) && ileOuverte(id)));
 const params = new URLSearchParams(location.search);
 const PHOTO = params.get('photo');
 const DEMO = params.has('demo');
+const ARRIVEE = params.get('arrivee') === 'bateau';
 const LIEU = LIEUX[params.get('lieu')] ? params.get('lieu') : 'itsukushima';
 /** Les pièces de tenue qu'on voit : sans celles des lieux en essai, pour un visiteur. */
 const PIECES_VUES = PIECES.filter((p) => !p.lieu || LIEUX[p.lieu]);
@@ -206,7 +216,8 @@ function construire() {
   const miroir = lieu.miroir && lieu.eauxCalmes?.length ? creerMiroir(lieu.miroir) : null;
   if (lieu.eauxCalmes?.length) courants.push(creerEauxCalmes(lieu, mats.lampes, ciel, miroir));
   // les cascades (Takachiho) : leur voile, leur écume, un arc-en-ciel (leurs uniformes : comme l'eau qui coule)
-  for (const c of lieu.cascades || []) courants.push(...creerCascade(c, P, mats.lampes, lieu, ciel));
+  // (voile: false : seulement son bruit ; l'eau glisse sur une dalle, c'est le ruban de la rivière : Yakushima, 2026-10-31)
+  for (const c of lieu.cascades || []) if (c.voile !== false) courants.push(...creerCascade(c, P, mats.lampes, lieu, ciel));
   for (const c of courants) groupe.add(c);
   const etoiles = creerEtoiles();
   ciel.add(etoiles);
@@ -263,8 +274,10 @@ function construire() {
     const b = creerDaim(ctx, d.male, [0, 0.95, 0.5, 0.25, 0.7][i] ?? i * 0.37);
     b.objet.position.set(d.x, lieu.monde.hauteur(d.x, d.z), d.z);
     b.objet.rotation.y = d.cap;
+    // (taille : les cerfs de Yakushima sont plus petits, 2026-10-31)
+    if (d.taille) b.objet.scale.setScalar(d.taille);
     groupe.add(b.objet);
-    lieu.monde.cercle(d.x, d.z, 0.7);
+    lieu.monde.cercle(d.x, d.z, 0.7 * (d.taille ?? 1));
     // couche : 0 debout, 1 couché (la nuit) ; chacun se couche à sa vitesse
     return { ...d, b, couche: 0, vitesseCouche: 0.3 + 0.35 * ((i * 0.618) % 1) };
   });
@@ -2510,7 +2523,8 @@ function cibleProche() {
       cands.push({ ...q, verbe: typeof q.verbe === 'function' ? q.verbe(jeu) : q.verbe, y: q.y ?? L.monde.hauteur(q.x, q.z), haut: q.haut || 2.1 });
     }
   }
-  for (const d of M.daims) cands.push({ x: d.x, z: d.z, y: L.monde.hauteur(d.x, d.z), rayon: 1.9, verbe: 'caresser', haut: 1.55 - 0.5 * lisse(0, 1, d.couche), action: L.actionDaim });
+  // (verbeDaim : à Yakushima, des cerfs sauvages qu'on regarde sans les toucher)
+  for (const d of M.daims) cands.push({ x: d.x, z: d.z, y: L.monde.hauteur(d.x, d.z), rayon: 1.9, verbe: L.verbeDaim || 'caresser', haut: (1.55 - 0.5 * lisse(0, 1, d.couche)) * (d.taille ?? 1), action: L.actionDaim });
   // les bêtes : les regarder, caresser un chat (il ronronne)
   for (const b of M.betes?.cibles() || []) {
     cands.push({ ...b, action: async (jeu) => {
@@ -2828,7 +2842,57 @@ const jeu = {
   },
   /** Joue-t-on sur un écran tactile ? (les consignes : « glisse », « appuie ») */
   tactile,
+  /** Peut-on partir en bateau vers ce lieu ? (pas s'il est en essai, pour un visiteur) */
+  peutPartir,
+  /**
+   * Partir en bateau vers un autre lieu (le batelier d'Udo vers Yakushima, et retour) : la carte de la traversée, le petit bateau
+   * qui la suit, puis le lieu, où l'on arrive au quai (?arrivee=bateau). La première fois, Yakushima s'ouvre (au carnet, à la
+   * garde-robe, et sur la carte : son « Visiter en 3D »).
+   */
+  async partir(lieu) {
+    if (ILES[lieu]) memoire.ecrire(ILES[lieu], 'oui');
+    const el = $('.voyage');
+    el.innerHTML = carteTraversee(M.lieu.id, lieu, langue);
+    el.hidden = false;
+    requestAnimationFrame(() => el.classList.add('vue'));
+    son.magie();
+    await attendre(3600);
+    const u = new URLSearchParams(location.search);
+    u.set('lieu', lieu);
+    u.set('arrivee', 'bateau');
+    for (const k of ['compagnon', 'photo', 'demo']) u.delete(k);
+    location.href = `${location.pathname}?${u}`;
+    await attendre(60000);
+  },
 };
+
+/**
+ * La carte de la traversée (2026-10-31) : le sud de Kyūshū, Tanegashima, Yakushima, la route en pointillés et le petit bateau qui la
+ * suit (SVG, animateMotion), dans la langue du joueur ; de, vers : les lieux (udo, yakushima).
+ */
+function carteTraversee(de, vers, l) {
+  const NOMS = { udo: { fr: 'Udo', en: 'Udo', ja: '鵜戸' }, yakushima: { fr: 'Yakushima', en: 'Yakushima', ja: '屋久島' } };
+  const TITRE = { fr: (n) => `En route pour ${n}…`, en: (n) => `Sailing to ${n}…`, ja: (n) => `${n}へ　しゅっこう！` };
+  // (par le détroit d'Ōsumi, entre le cap Sata et Tanegashima)
+  const route = 'M476 230 C 520 330, 400 420, 300 442 S 226 530, 208 590';
+  const chemin = de === 'udo' ? route : 'M208 590 C 190 650, 226 530, 300 442 S 520 330, 476 230';
+  const n = (id) => NOMS[id]?.[l] ?? NOMS[id]?.en ?? id, titre = (TITRE[l] || TITRE.en)(n(vers));
+  return `<svg viewBox="0 0 560 700" role="img" aria-label="${titre}">
+    <rect width="560" height="700" fill="#cfe4ea"/>
+    <path d="M0 0 H560 V60 L520 90 L478 140 L466 200 L478 228 L452 256 L398 276 L352 300 L300 332 L262 382 L232 426 L214 392 L206 348 L192 304 L176 342 L150 382 L108 372 L66 332 L28 302 L0 286 Z" fill="#e8dcb8" stroke="#8a7a5a" stroke-width="2"/>
+    <path d="M326 458 Q340 470 336 520 Q330 580 316 612 Q304 600 308 540 Q312 480 326 458 Z" fill="#e8dcb8" stroke="#8a7a5a" stroke-width="2"/>
+    <path d="M150 600 Q160 572 192 566 Q226 570 232 604 Q230 642 196 652 Q160 650 150 600 Z" fill="#cfe0a8" stroke="#6a7a4a" stroke-width="2"/>
+    <path d="M172 618 L188 588 L200 606 L212 592 L224 620 Z" fill="#7a9a5a"/>
+    <path d="${route}" fill="none" stroke="#c8402c" stroke-width="3" stroke-dasharray="8 7" stroke-linecap="round"/>
+    <circle cx="476" cy="230" r="7" fill="#c8402c"/><circle cx="208" cy="590" r="7" fill="#c8402c"/>
+    <text x="490" y="222" font-size="22" fill="#2a2420" font-weight="700">${n('udo')}</text>
+    <text x="70" y="560" font-size="22" fill="#2a2420" font-weight="700">${n('yakushima')}</text>
+    <text x="40" y="150" font-size="20" fill="#6a5a3a">${l === 'ja' ? '九州' : 'Kyūshū'}</text>
+    <g><path d="M-16 4 L16 4 L10 12 L-12 12 Z" fill="#f4f2ea" stroke="#2a2420" stroke-width="1.5"/><rect x="-6" y="-6" width="10" height="10" fill="#f4f2ea" stroke="#2a2420" stroke-width="1.5"/><path d="M0 -6 V-18 L10 -12 Z" fill="#e8583e"/>
+      <animateMotion dur="3.2s" fill="freeze" path="${chemin}"/></g>
+    <text x="280" y="676" font-size="26" text-anchor="middle" fill="#2a2420" font-weight="700">${titre}</text>
+  </svg>`;
+}
 
 
 // ---------------------------------------------------------------- Les trésors (2026-10-23) : les secrets, le marchand
@@ -3151,9 +3215,9 @@ function changerSaison(s, { tout = false } = {}) {
 // ---------------------------------------------------------------- Le jeu
 /** Le joueur au départ du lieu (ou dans la pose d'une capture), son compagnon à côté. */
 function placer() {
-  const L = M.lieu;
-  Object.assign(etat, { x: L.depart.x, z: L.depart.z, cap: L.depart.cap, vitesse: 0, vx: 0, vz: 0 });
-  cam.lacet = L.depart.cap + Math.PI;
+  const L = M.lieu, D = ARRIVEE && L.arrivee ? L.arrivee : L.depart;
+  Object.assign(etat, { x: D.x, z: D.z, cap: D.cap, vitesse: 0, vx: 0, vz: 0 });
+  cam.lacet = D.cap + Math.PI;
   const photo = PHOTO && L.photos[PHOTO];
   if (photo) {
     Object.assign(etat, { x: photo.x, z: photo.z, cap: photo.cap });
@@ -4037,6 +4101,18 @@ addEventListener('resize', () => {
 // ---------------------------------------------------------------- C'est parti
 async function depart() {
   const lieu = phraseDe(M.lieu);
+  // on arrive en bateau d'un autre lieu (le batelier d'Udo et de Yakushima, jeu.partir) : au quai, avec le même compagnon, sans
+  // le choisir de nouveau ; l'adresse oublie ?arrivee (on ne revit pas l'arrivée en rechargeant la page)
+  if (ARRIVEE && sorte && espece) {
+    const u = new URLSearchParams(location.search);
+    u.delete('arrivee');
+    history.replaceState(null, '', `${location.pathname}?${u}`);
+    await dialogue.dire(tx('arrivee') || t('revoila')(lieu));
+    await dialogue.dire(tc('salut')(M.lieu.tampons.length), { qui: tc('nom') });
+    await offrirRecompenses();
+    etat.mode = 'jeu';
+    return;
+  }
   if (!sorte) {
     // la première fois, comme dans les jeux : es-tu un garçon ou une fille ? (les deux voyageurs face à l'objectif)
     const r = await dialogue.choisir(t('bienvenue')(lieu), [t('garcon'), t('fille')], { obligatoire: true });

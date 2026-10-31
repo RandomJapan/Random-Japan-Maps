@@ -3155,8 +3155,11 @@ export function construire(ctx) {
         }
         const r = await jeu.choisir(jeu.tx('batelierPret'), [jeu.t('oui'), jeu.t('non')], 'batelier');
         if (r !== 0) { await jeu.dire(jeu.tx('batelierAttend'), 'batelier'); return; }
-        // (Yakushima n'est pas encore faite : le propriétaire, 2026-10-30, « on s'occupe de l'île Yakushima, qu'on fera ensemble après »)
-        await jeu.dire(jeu.tx('batelierBientot'), 'batelier');
+        // (le 2026-10-31, Yakushima est faite : le bateau part, la carte de la traversée, et l'on arrive au port de Miyanoura ; pour
+        // un visiteur, tant que Yakushima est en essai, le moteur tousse encore)
+        if (!jeu.peutPartir('yakushima')) { await jeu.dire(jeu.tx('batelierBientot'), 'batelier'); return; }
+        await jeu.dire(jeu.tx('batelierPart'), 'batelier');
+        await jeu.partir('yakushima');
       },
     },
     { id: 'bateau', x: BATEAU.x + 2.6, z: QUAI.z0 + 0.6, rayon: 1.6, haut: 1.6, verbe: 'regarder', vers: [BATEAU.x, BATEAU.z], action: (jeu) => jeu.dire(jeu.txn('bateau')) },
@@ -3323,6 +3326,8 @@ export function construire(ctx) {
     flou: [170, 480],
     soleil: [0.55, 0.7, 0.45],
     depart,
+    // (quand on rentre de Yakushima en bateau : sur le quai de Fukei, à côté du batelier, tourné vers le vieil escalier)
+    arrivee: { x: -37.6, z: -31.2, cap: 0.1 },
     photos: {
       heros: { x: 30.0, z: -26.0, cap: -PI / 2, lacet: -PI / 2 + PI + 0.35, tangage: 0.16, distance: 7.5 },
       perso: { x: DEPART.x, z: DEPART.z, cap: DEPART.cap, lacet: DEPART.cap + PI + PI + 0.2, tangage: 0.1, distance: 4.4 },
@@ -3704,6 +3709,8 @@ const TEXTES = {
     batelierPret: ['Oh ! Les cinq tampons d’Udo ! Toyotama-hime, la fille du dieu de la mer, veille sur toi maintenant.', 'On part pour Yakushima ?'],
     batelierAttend: ['Je t’attends. Le bateau est prêt quand tu l’es.'],
     batelierBientot: ['Hmm… le moteur tousse un peu ce matin. Il me faut encore un peu de temps pour le régler.', 'Reviens bientôt : je t’emmènerai à Yakushima, promis !'],
+    batelierPart: ['En route pour Yakushima ! Tiens-toi bien : au large, la houle se lève.'],
+    arrivee: ['Le bateau accoste au port de Fukei. Te revoilà à Udo !'],
     toutCompagnon: { kon: ['Tous les tampons d’Udo !', 'Le batelier du port, en bas du vieil escalier, va pouvoir nous emmener à Yakushima !'], pon: ['Pon ! Le carnet est plein !', 'Vite, au port : le batelier nous attend pour Yakushima !'], chapu: ['Tous les tampons ! Chapu chapu !', 'Le bateau ! On va prendre le bateau pour Yakushima ! Au port, en bas du vieil escalier, vite !'], gao: ['Gao ! Mission accomplie : les cinq tampons.', 'Le batelier du port, en bas du vieil escalier, nous emmènera à Yakushima.'], fuwa: ['Fuwaaa ! Tous les tampons !', 'La mer nous appelle… Le batelier du port, en bas du vieil escalier, nous attend !'], saya: ['Les cinq tampons… La princesse de la mer veille sur nous.', 'Yakushima, l’île des grands cèdres… Allons voir le batelier, en bas, au port.'] },
     bateau: ['Le bateau du batelier : une coque blanche, une bande bleue, le drapeau des pêcheurs en haut du mât. Prêt à partir.'],
     bateauNuit: ['La nuit, le bateau du batelier dort contre le quai. L’eau clapote contre sa coque.'],
@@ -3833,6 +3840,8 @@ const TEXTES = {
     batelierPret: ['Oh! Udo’s five stamps! Toyotama-hime, daughter of the god of the sea, is watching over you now.', 'Shall we set off for Yakushima?'],
     batelierAttend: ['I’ll wait for you. The boat is ready when you are.'],
     batelierBientot: ['Hmm… the engine is coughing a bit this morning. I need a little more time to fix it.', 'Come back soon: I’ll take you to Yakushima, I promise!'],
+    batelierPart: ['Off to Yakushima! Hold on tight: the swell rises out at sea.'],
+    arrivee: ['The boat docks at Fukei harbour. Welcome back to Udo!'],
     toutCompagnon: { kon: ['Every stamp of Udo!', 'The boatman at the harbour, at the bottom of the old stairs, can take us to Yakushima!'], pon: ['Pon! The book is full!', 'Quick, to the harbour: the boatman is waiting to take us to Yakushima!'], chapu: ['Every stamp! Chapu chapu!', 'The boat! We’re taking the boat to Yakushima! To the harbour, down the old stairs, quick!'], gao: ['Gao! Mission accomplished: all five stamps.', 'The boatman at the harbour, at the bottom of the old stairs, will take us to Yakushima.'], fuwa: ['Fuwaaa! Every stamp!', 'The sea is calling us… The boatman at the harbour, down the old stairs, is waiting!'], saya: ['All five stamps… The princess of the sea watches over us.', 'Yakushima, the island of the great cedars… Let’s go and see the boatman, down at the harbour.'] },
     bateau: ['The boatman’s boat: a white hull, a blue stripe, the fishermen’s flag at the top of the mast. Ready to go.'],
     bateauNuit: ['At night, the boatman’s boat sleeps against the quay. The water laps against its hull.'],
@@ -3962,6 +3971,8 @@ const TEXTES = {
     batelierPret: ['おお！　鵜戸の　スタンプが　五つ！　うみの　かみさまの　むすめ、豊玉姫が　もう　おまえを　まもってくれる。', '屋久島へ　しゅっぱつ　するか？'],
     batelierAttend: ['まってるよ。おまえの　したくが　できたら　いつでも　いける。'],
     batelierBientot: ['うーん……　けさは　エンジンが　ちょっと　せきこんでる。なおすのに　もう　すこし　じかんが　いるな。', 'また　すぐ　おいで。かならず　屋久島へ　つれていくから！'],
+    batelierPart: ['屋久島へ　しゅっぱつ！　しっかり　つかまってな、おきは　なみが　たかいぞ。'],
+    arrivee: ['ふねが　吹毛井港に　つきました。鵜戸に　おかえりなさい！'],
     toutCompagnon: { kon: ['鵜戸の　スタンプ、ぜんぶ　そろいました！', 'ふるい　かいだんの　下の　みなとの　せんどうさんが、屋久島へ　つれていってくれます！'], pon: ['ポン！　ちょうめんが　いっぱい！', 'はやく　みなとへ。せんどうさんが　屋久島へ　つれてってくれる！'], chapu: ['スタンプ　ぜんぶ！　チャプチャプ！', '船！　船で　屋久島へ　いくんだ！　ふるい　かいだんを　おりて、みなとへ　いそげ！'], gao: ['ガオ！　にんむ　かんりょう。スタンプ　五つ。', 'ふるい　かいだんの　下の　みなとの　せんどうさんが、屋久島へ　つれていってくれる。'], fuwa: ['フワァ！　スタンプ　ぜんぶ！', 'うみが　よんでる……　ふるい　かいだんの　下の　みなとの　せんどうさんが　まってるよ！'], saya: ['スタンプが　五つ……　うみの　おひめさまが　見まもってくれる。', '大きな　スギの　しま、屋久島……　下の　みなとの　せんどうさんに　あいに　いきましょう。'] },
     bateau: ['せんどうさんの　船。白い　ふなべりに　青い　せん、マストの　上には　りょうしの　はた。いつでも　しゅっぱつ　できそう。'],
     bateauNuit: ['よるの　船は　がんぺきで　ねむっている。なみが　ふなべりで　ちゃぷちゃぷ　いう。'],

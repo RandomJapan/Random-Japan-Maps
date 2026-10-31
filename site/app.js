@@ -2277,7 +2277,7 @@ async function remplirFiche(l) {
  * Les lieux qu'on peut visiter dans la balade 3D (site/balade/) : id du lieu sur la carte → id du lieu de la
  * balade (?lieu=). À compléter quand la balade gagne un lieu.
  */
-const BALADES = { 'itsukushima-jinja': 'itsukushima', aogashima: 'aogashima', gokayama: 'gokayama', 'himeji-castle': 'himeji', 'takachiho-gorge': 'takachiho', 'amanoiwato-jinja': 'takachiho', 'kinkaku-ji': 'kinkakuji', 'the-hells-of-beppu': 'beppu', 'motonosumi-shrine': 'motonosumi', 'thirty-buddhas-nio-statues': 'sanjubutsu', 'udo-inari-shrine': 'udo' };
+const BALADES = { yakushima: 'yakushima', 'itsukushima-jinja': 'itsukushima', aogashima: 'aogashima', gokayama: 'gokayama', 'himeji-castle': 'himeji', 'takachiho-gorge': 'takachiho', 'amanoiwato-jinja': 'takachiho', 'kinkaku-ji': 'kinkakuji', 'the-hells-of-beppu': 'beppu', 'motonosumi-shrine': 'motonosumi', 'thirty-buddhas-nio-statues': 'sanjubutsu', 'udo-inari-shrine': 'udo' };
 /**
  * Les lieux de la balade encore en essai : leur bouton « Visiter en 3D » n'existe qu'en mode développeur (la classe dev). Le
  * propriétaire, 2026-10-26 : chaque nouveau lieu arrive d'abord en mode développeur, et sort quand il le dit (l'ôter d'ici, et
@@ -2285,8 +2285,15 @@ const BALADES = { 'itsukushima-jinja': 'itsukushima', aogashima: 'aogashima', go
  */
 // (Kinkaku-ji, en essai depuis le 2026-10-26, sorti le 2026-10-27 ; Beppu, en essai depuis le 2026-10-27, sorti le 2026-10-28 ;
 // Motonosumi, en essai depuis le 2026-10-28, sorti le 2026-10-29 ; les Trente Bouddhas, en essai depuis le 2026-10-29, sortis
-// le 2026-10-30 ; Udo, en essai depuis le 2026-10-30)
-const BALADES_ESSAI = new Set(['udo']);
+// le 2026-10-30 ; Udo, en essai depuis le 2026-10-30 ; Yakushima, en essai depuis le 2026-10-31)
+const BALADES_ESSAI = new Set(['udo', 'yakushima']);
+/**
+ * Les balades où l'on n'arrive qu'en bateau : Yakushima, depuis Udo (le propriétaire, 2026-10-30 : son « Visiter en 3D » n'apparaît
+ * qu'à partir du moment où l'on a pris le bateau ; la balade l'écrit dans localStorage.baladeYakushima). Avant, ni le bouton de
+ * la fiche, ni la carte du panneau des balades.
+ */
+const BALADES_BATEAU = { yakushima: 'baladeYakushima' };
+const baladeOuverte = (id) => { try { return !BALADES_BATEAU[id] || localStorage.getItem(BALADES_BATEAU[id]) === 'oui'; } catch { return false; } };
 const lienBalade = (id) => `balade/?lieu=${id}&langue=${langue}`;
 
 /**
@@ -2306,7 +2313,7 @@ function remplirBalades() {
     const l = lieux.find((x) => x.id === idCarte);
     if (l && !parBalade.has(id)) parBalade.set(id, l);
   }
-  const liste = [...parBalade].sort(([, a], [, b]) => b.lat - a.lat);
+  const liste = [...parBalade].filter(([id]) => baladeOuverte(id)).sort(([, a], [, b]) => b.lat - a.lat);
   const lignes = liste.map(([id, l]) => {
     const nom = enLangue(l.nom);
     const autre = langue === 'ja' ? (l.nom.en !== nom ? l.nom.en : '') : l.nom.ja;
@@ -2364,7 +2371,7 @@ function remplirBoutons(l) {
   if (pres?.position()) boutons.push(`<button type="button" data-aller>${SVG.route}${echapper(t('yAller'))}</button>`);
   else boutons.push(`<a href="https://www.google.com/maps/dir/?api=1&destination=${l.lat},${l.lng}" target="_blank" rel="noopener">${SVG.route}${echapper(t('itineraire'))}</a>`);
   // la balade 3D (pour tous depuis le 2026-10-26)
-  if (BALADES[l.id]) boutons.push(`<a${BALADES_ESSAI.has(BALADES[l.id]) ? ' class="dev"' : ''} href="${lienBalade(BALADES[l.id])}">${SVG.balade}${echapper(t('visiter3d'))}</a>`);
+  if (BALADES[l.id] && baladeOuverte(BALADES[l.id])) boutons.push(`<a${BALADES_ESSAI.has(BALADES[l.id]) ? ' class="dev"' : ''} href="${lienBalade(BALADES[l.id])}">${SVG.balade}${echapper(t('visiter3d'))}</a>`);
   $('fiche-boutons').innerHTML = boutons.join('');
 }
 

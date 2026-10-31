@@ -384,6 +384,10 @@ body.en-boutique .joystick, body.en-boutique .bouton-a, body.en-boutique .aide, 
   .articles { grid-template-columns: repeat(4, 1fr); }
 }
 
+/* la carte de la traversée en bateau (jeu.partir : d'Udo à Yakushima, et retour) */
+.voyage { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 16px; background: #f4ecd8; opacity: 0; transition: opacity 0.7s ease; font-family: inherit; }
+.voyage.vue { opacity: 1; }
+.voyage svg { width: min(92vw, 560px); max-height: 92vh; height: auto; border-radius: 10px; box-shadow: 0 6px 24px rgba(42, 36, 32, 0.25); }
 /* la feuille de papier (la carte au trésor, la photo, la lettre), au-dessus de la boîte de dialogue */
 .feuille { position: fixed; inset: 0; display: grid; place-items: center; padding: 14px 14px calc(var(--bas) + 140px); pointer-events: none; }
 body.tactile .feuille { padding-bottom: calc(var(--bas) + 250px); }

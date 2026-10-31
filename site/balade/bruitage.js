@@ -45,6 +45,8 @@ const V = {
   bulle: 0.1, pschitt: 0.07, ronfle: 0.09, geyser: 0.1,
   // (Motonosumi) le souffle du dragon (oiseau()), la pièce dans le tronc de bois
   shiofuki: 0.11, saisen: 0.1,
+  // (Yakushima) le « kuu » des singes (oiseau())
+  singe: 0.045,
 };
 const lisse = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
 

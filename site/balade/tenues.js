@@ -29,6 +29,7 @@ export const PIECES = [
   { id: 'heron', place: 'tete', lieu: 'himeji' },
   { id: 'cornes', place: 'tete', lieu: 'beppu' },
   { id: 'renard', place: 'tete', lieu: 'motonosumi' },
+  { id: 'champignon', place: 'tete', lieu: 'yakushima' },
   { id: 'kabuto', place: 'tete', achat: 'armure' },
   { id: 'aucune', place: 'yeux' },
   { id: 'etoiles', place: 'yeux', lieu: 'aogashima' },
@@ -132,6 +133,15 @@ const DESSINS = {
     <ellipse cx="10.5" cy="27" rx="6" ry="3" transform="rotate(-28 10.5 27)" fill="#b98250" stroke="${ENCRE}" stroke-width="1.8"/>
     <ellipse cx="37.5" cy="27" rx="6" ry="3" transform="rotate(28 37.5 27)" fill="#b98250" stroke="${ENCRE}" stroke-width="1.8"/>
     ${trait(BOIS_D, '#e2c596', 3)}<g transform="translate(48 0) scale(-1 1)">${trait(BOIS_D, '#e2c596', 3)}</g>`,
+  // le chapeau-champignon (Yakushima) : un chapeau rond de champignon, crème, son milieu plus foncé, ses lamelles dessous ; deux
+  // tout petits champignons dessus ; un éclat vert (la nuit, il brille)
+  champignon: `<path d="M5 30 Q6 10 24 9 Q42 10 43 30 Q24 34 5 30 Z" fill="#efe6c8" stroke="${ENCRE}" stroke-width="2.4" stroke-linejoin="round"/>
+    <path d="M17 14 Q24 10 31 14 Q24 17 17 14 Z" fill="#c8a878"/>
+    <path d="M9 30 L11 34 M15 31 L16 35 M21 31.5 L21.5 35.5 M27 31.5 L26.5 35.5 M33 31 L32 35 M39 30 L37 34" stroke="${ENCRE}" stroke-width="1.4" stroke-linecap="round"/>
+    <path d="M7 31 Q24 37 41 31 Q24 39 7 31 Z" fill="#d8d0b0" stroke="${ENCRE}" stroke-width="1.6" stroke-linejoin="round"/>
+    <path d="M30 10 L30.5 5.5" stroke="${ENCRE}" stroke-width="1.6"/><path d="M27.5 6 Q30.5 2 33.5 6 Z" fill="#efe6c8" stroke="${ENCRE}" stroke-width="1.4" stroke-linejoin="round"/>
+    <path d="M18 11.5 L17.6 8" stroke="${ENCRE}" stroke-width="1.4"/><path d="M15.6 8.4 Q17.6 5.6 19.6 8.4 Z" fill="#efe6c8" stroke="${ENCRE}" stroke-width="1.3" stroke-linejoin="round"/>
+    <circle cx="38" cy="10" r="3.2" fill="#9ef08a" opacity="0.85"/><circle cx="38" cy="10" r="1.4" fill="#ffffff"/>`,
   // la coiffe du héron blanc (Himeji) : un bandeau blanc, une tête de héron au bec jaune posée devant, et derrière, les
   // longues plumes blanches de la parade (les aigrettes) qui retombent
   heron: `<path d="M27 21 Q36 10 46 13 Q38 14 31 22 M25 20 Q30 6 41 4 Q33 8 28 20 M23 20 Q24 9 31 2 Q27 10 26 20" fill="#ffffff" stroke="${ENCRE}" stroke-width="1.8" stroke-linejoin="round"/>

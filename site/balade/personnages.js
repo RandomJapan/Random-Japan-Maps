@@ -743,6 +743,28 @@ export function creerHeros(ctx, sorte = 'garcon') {
       }
       return a;
     },
+    // le chapeau-champignon (Yakushima, 2026-10-31, la récompense choisie par le propriétaire : « Un chapeau-champignon ») : le
+    // chapeau d'un champignon de la forêt de mousse posé sur la tête, crème à peine vert, son milieu brun, son bord un peu ondulé,
+    // ses lamelles dessous ; deux tout petits champignons qui poussent dessus. La nuit, il brille d'un vert doux (sorte lumiere),
+    // comme les champignons du secret (シイノトモシビタケ)
+    champignon() {
+      const a = atelier(), y = CY + 0.15, R = 0.4, CREME = '#e6edc6', BRUN = '#c4a274', LAMES = '#d6d4b0';
+      a.piece(new THREE.SphereGeometry(R, 24, 9, 0, 2 * PI, 0, PI / 2), CREME, {
+        y, sy: 0.62, sorte: 'lumiere', nuance: 0.03,
+        deformer: (px, py, pz) => { const th = Math.atan2(pz, px), b = 1 + 0.035 * Math.sin(th * 7) * (1 - py / R); return [px * b, py, pz * b]; },
+        teinte: (wx, wy) => (wy > y + R * 0.62 * 0.78 ? BRUN : wy > y + R * 0.62 * 0.6 ? '#d8c8a0' : CREME),
+      });
+      // le dessous : les lamelles (des rayons fins), le bord
+      a.piece(new THREE.RingGeometry(0.1, R * 0.99, 24), LAMES, { y: y + 0.004, rx: PI / 2, trait: false, sorte: 'lumiere' });
+      for (let k = 0; k < 24; k++) { const t = (k / 24) * 2 * PI; a.boite(R * 0.82, 0.012, 0.006, '#bdb894', { x: Math.cos(t) * R * 0.52, y: y + 0.01, z: Math.sin(t) * R * 0.52, ry: -t, trait: false }); }
+      // les deux petits champignons, sur le dessus, un peu penchés
+      for (const [x, z, h, r, inc] of [[0.12, -0.05, 0.1, 0.055, 0.25], [-0.1, 0.07, 0.07, 0.04, -0.3]]) {
+        const yb = y + R * 0.62 * Math.sqrt(Math.max(0, 1 - (x * x + z * z) / (R * R))) - 0.01;
+        a.cylindre(0.012, 0.016, h, 6, '#f2f0e0', { x, y: yb + h / 2, z, rz: inc })
+          .piece(new THREE.SphereGeometry(r, 10, 4, 0, 2 * PI, 0, PI / 2), CREME, { x: x - Math.sin(inc) * h, y: yb + h * Math.cos(inc), z, sy: 0.6, rz: inc, sorte: 'lumiere' });
+      }
+      return a;
+    },
     // la coiffe du héron blanc (Himeji, le « Héron blanc ») : un héron perché sur la tête comme un chapeau, le corps blanc
     // et ses ailes repliées, le cou en S qui se dresse devant, la tête au bec jaune, l'œil noir, la petite huppe ; derrière,
     // les longues plumes de la parade (les aigrettes) qui retombent
@@ -1404,7 +1426,7 @@ export function creerHeros(ctx, sorte = 'garcon') {
       if (place !== 'tete' && place !== 'yeux') return;
       if (place === 'tete') {
         coiffe.visible = id === 'defaut';
-        if (dessus) dessus.visible = id !== 'defaut' && id !== 'kabuto' && id !== 'heron';
+        if (dessus) dessus.visible = id !== 'defaut' && id !== 'kabuto' && id !== 'heron' && id !== 'champignon';
         if (id === 'renard' && !queue) { queue = queueRenard(); corps.add(queue); }
         if (queue) queue.visible = id === 'renard';
       }

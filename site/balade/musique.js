@@ -382,6 +382,41 @@ const AIRS = {
     jour: { tempo: 100, lead: 'fue', arpege: 'koto', basse: 'rebond', nappe: true, batterie: 'legere' },
     nuit: { tempo: 72, lead: 'boite', arpege: 'kotoDoux', basse: 'pizzDoux', nappe: true, batterie: null },
   },
+  // Mi mineur (2026-10-31) : Yakushima, les cèdres millénaires et la forêt de mousse, la pluie ; un air ample et un peu mystérieux,
+  // qui respire comme la brume entre les arbres. Le jour, le shakuhachi sur le koto, à 92 battements ; la nuit, la boîte à musique, à 70
+  yakushima: {
+    gamme: [4, 6, 7, 9, 11, 0, 2], // mi mineur (pour la seconde voix)
+    intro: ['Em', 'C'],
+    A: {
+      accords: ['Em', 'C', 'G', 'D', 'Em', 'Am', 'C D', 'Em'],
+      melodie: [
+        [76, 6], [74, 2], [71, 4], [67, 4],
+        [69, 4], [71, 4], [72, 4], [71, 4],
+        [74, 6], [71, 2], [67, 8],
+        [69, 12], [null, 4],
+        [76, 4], [79, 4], [78, 2], [76, 2], [74, 4],
+        [72, 6], [71, 2], [69, 8],
+        [67, 4], [69, 4], [71, 4], [74, 4],
+        [71, 12], [null, 4],
+      ],
+      fin2: [[71, 8], [74, 4], [76, 4]],
+    },
+    B: {
+      accords: ['C', 'G', 'Am', 'Em', 'C', 'D', 'Bm Em', 'Em'],
+      melodie: [
+        [79, 6], [76, 2], [72, 8],
+        [74, 4], [76, 2], [74, 2], [71, 8],
+        [72, 4], [74, 4], [76, 6], [79, 2],
+        [76, 12], [null, 4],
+        [76, 4], [74, 2], [72, 2], [71, 4], [67, 4],
+        [69, 6], [71, 2], [74, 8],
+        [71, 4], [69, 4], [67, 4], [66, 4],
+        [64, 12], [null, 4],
+      ],
+    },
+    jour: { tempo: 92, lead: 'shakuhachi', arpege: 'koto', basse: 'pizzDoux', nappe: true, batterie: 'legere' },
+    nuit: { tempo: 70, lead: 'boite', arpege: 'kotoDoux', basse: 'pizzDoux', nappe: true, batterie: null },
+  },
   // Ré majeur, la gamme yo (ré mi sol la si) : l'air de la danse des fêtes d'été, sautillant (112 battements : la
   // danse du voyageur est réglée dessus, personnages.js)
   odori: {

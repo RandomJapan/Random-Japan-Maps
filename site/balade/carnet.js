@@ -295,6 +295,29 @@ const MOTIFS = {
     <circle cx="40" cy="66" r="3.4" class="vide"/><circle cx="80" cy="66" r="3.4" class="vide"/>
     <path d="M40 74 Q36 82 40 86 Q44 82 40 74 Z M80 78 Q76 86 80 90 Q84 86 80 78 Z"/>
     <path d="M28 98 H92 L86 112 H34 Z"/><path d="M36 102 Q60 98 84 102" class="vide" fill="none" stroke-width="2.2"/>`,
+  // Yakushima (2026-10-31) : le torii de pierre du Yaku-jinja devant les montagnes ; le singe sur sa branche et le cerf dessous ; le
+  // rocher Taiko-iwa et les sommets ; la souche de Wilson et son cœur de ciel ; le Jōmon Sugi, son tronc énorme et sa cime
+  yakujinja: `<path d="M4 84 L30 44 L46 62 L66 30 L92 66 L104 54 L116 84 Z" opacity="0.35"/>
+    <rect x="12" y="34" width="96" height="9" rx="2"/><rect x="20" y="50" width="80" height="6"/>
+    <rect x="30" y="40" width="9" height="74"/><rect x="81" y="40" width="9" height="74"/><rect x="55" y="42" width="10" height="9"/>
+    <path d="M8 34 Q60 24 112 34 L112 30 Q60 20 8 30 Z"/>`,
+  sarushika: `<path d="M4 30 Q50 22 116 26 L116 31 Q50 28 4 36 Z"/>
+    <ellipse cx="74" cy="20" rx="9" ry="11"/><circle cx="74" cy="6" r="7"/><ellipse cx="74" cy="7" rx="4" ry="4.4" class="vide"/>
+    <path d="M65 26 Q58 30 60 36 L64 34 Q64 30 68 28 Z"/><path d="M82 26 Q88 30 86 36 L82 34 Q82 30 79 28 Z"/>
+    <path d="M30 112 L32 86 Q30 76 38 72 L70 70 Q80 64 84 52 L90 50 L94 58 Q92 68 84 74 L84 86 L86 112 L80 112 L78 88 Q60 92 44 88 L40 112 Z"/>
+    <path d="M88 50 L84 40 M92 50 L98 42" fill="none" stroke-width="3" stroke-linecap="round"/>
+    <path d="M60 44 l-3 6 M66 48 l-1 6" fill="none" stroke-width="2.4" stroke-linecap="round"/>`,
+  taikoiwa: `<path d="M2 76 L22 42 L34 54 L52 22 L66 40 L78 30 L98 58 L118 46 L118 80 Z" opacity="0.35"/>
+    <path d="M4 112 Q8 80 40 74 Q62 70 84 76 Q114 84 116 112 Z"/>
+    <path d="M30 86 Q50 80 70 84" fill="none" class="vide" stroke-width="3"/>
+    <circle cx="58" cy="66" r="5"/><path d="M53 74 L58 70 L63 74 L61 76 L58 74 L55 76 Z"/>`,
+  wilson: `<path d="M8 114 Q14 92 22 70 Q20 48 32 34 Q46 26 60 30 Q76 26 88 34 Q100 48 98 70 Q106 92 112 114 Z"/>
+    <path d="M60 46 C 60 40, 50 36, 46 42 C 42 48, 48 56, 60 66 C 72 56, 78 48, 74 42 C 70 36, 60 40, 60 46 Z" class="vide"/>
+    <path d="M50 114 Q54 96 60 92 Q66 96 70 114 Z" class="vide"/>
+    <path d="M36 30 L34 8 L42 12 L40 30 Z M80 30 L84 6 L90 14 L84 30 Z"/>`,
+  jomonsugi: `<path d="M10 116 Q22 104 30 104 Q32 86 36 70 Q30 64 34 54 Q42 50 44 40 L76 40 Q78 50 86 54 Q90 64 84 70 Q88 86 90 104 Q98 104 110 116 Z"/>
+    <path d="M44 40 Q30 34 22 22 Q34 26 44 30 Q46 18 56 10 Q58 22 60 30 Q66 16 78 12 Q76 24 76 32 Q88 24 100 26 Q90 34 76 40 Z" opacity="0.8"/>
+    <path d="M48 66 Q52 76 48 88 M64 60 Q60 74 66 92 M74 68 Q78 78 74 90" fill="none" class="vide" stroke-width="2.6" stroke-linecap="round"/>`,
   kameishi: `<path d="M6 108 Q16 100 26 108 Q36 100 46 108 Q56 100 66 108 Q76 100 86 108 Q96 100 106 108 L114 114 L6 114 Z"/>
     <path d="M14 104 Q16 66 60 62 Q104 66 106 104 Z"/>
     <rect x="50" y="66" width="20" height="10" class="vide"/>
