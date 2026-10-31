@@ -824,7 +824,7 @@ export function construire(ctx) {
     a.boite(B.p, 0.3, B.l, P.pierreFonce, R(0, y - 0.1, 0));
     a.boite(B.p - 0.2, 2.5, B.l - 0.2, '#f2eee4', R(0, y + 1.25, 0, { nuance: 0.03 }));
     for (const [u, v] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) a.boite(0.14, 2.6, 0.14, P.boisFonce, R(u * (B.p / 2 - 0.1), y + 1.3, v * (B.l / 2 - 0.1)));
-    a.toitJapon(B.p + 1.3, B.l + 1.2, 0.95, 0.35, { ...R(0, y + 2.5, 0), tuile: P.tuileShiro, tuile2: P.tuileShiroClaire, bord: '#4a4a4e', rangs: 12 });
+    a.toitJapon(B.p + 1.3, B.l + 1.2, 0.95, 0.35, { ...R(0, y + 2.5, 0), tuile: P.tuileShiro, tuile2: P.tuileShiroClaire, bord: '#4a4a4e', rangs: 12, murs: { l: B.p / 2 - 0.1, p: B.l / 2 - 0.1, y: 0, c: '#f2eee4' } });
     // le guichet (vers +z dans son repère, l'ouest) : la vitre sombre, le cadre, l'enseigne « 授与所 »
     a.boite(2.6, 1.2, 0.04, '#3a3a40', R(0, y + 1.3, B.l / 2 - 0.08, { trait: false })).boite(2.8, 0.1, 0.08, P.boisFonce, R(0, y + 1.95, B.l / 2 - 0.04)).boite(2.8, 0.1, 0.08, P.boisFonce, R(0, y + 0.66, B.l / 2 - 0.04));
     a.boite(1.2, 0.34, 0.05, P.bois, R(0, y + 2.28, B.l / 2 - 0.02));
@@ -861,7 +861,10 @@ export function construire(ctx) {
     {
       const R = repere(3.6, 27.4, PI);
       for (const [u, v] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) a.boite(0.12, 2.2, 0.12, P.boisFonce, R(u * 0.95, y + 1.1, v * 0.7));
-      a.toitJapon(2.6, 2.1, 0.7, 0.3, { ...R(0, y + 2.2, 0), tuile: P.tuileShiro, tuile2: P.tuileShiroClaire, bord: '#4a4a4e', rangs: 9 });
+      // (2026-10-31 : des poutres sur les quatre poteaux, le bandeau sous le toit : il tenait sur quatre pointes)
+      for (const v of [-1, 1]) a.boite(2.04, 0.14, 0.12, P.boisFonce, R(0, y + 2.13, v * 0.7));
+      for (const u of [-1, 1]) a.boite(0.12, 0.13, 1.52, P.boisFonce, R(u * 0.95, y + 2.135, 0));
+      a.toitJapon(2.6, 2.1, 0.7, 0.3, { ...R(0, y + 2.2, 0), tuile: P.tuileShiro, tuile2: P.tuileShiroClaire, bord: '#4a4a4e', rangs: 9, murs: { l: 0.99, p: 0.74, y: 0, c: P.boisFonce } });
       a.boite(1.3, 0.62, 0.7, P.pierre, R(0, y + 0.31, 0, { nuance: 0.08 })).boite(1.1, 0.03, 0.5, '#5aa0a8', R(0, y + 0.6, 0, { trait: false }));
       a.cylindre(0.012, 0.012, 1.2, 5, P.bois, R(0, y + 0.66, -0.3, { rz: PI / 2 }));
       for (let k = 0; k < 4; k++) a.cylindre(0.03, 0.03, 0.06, 8, P.bois, R(-0.36 + k * 0.24, y + 0.7, -0.3));

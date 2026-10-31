@@ -267,10 +267,19 @@ export function ateliers(THREE, repeindre = null, matieres = null, sortes = null
        * relèvent, avec une épaisseur et un bandeau au bord. Largeur en x, profondeur en z, base (bord du toit)
        * à y = 0 ; en haut, un rectangle ratioHaut fois plus petit (0 : une pointe). Les tuiles font des
        * rangs de deux teintes. o : creux (exposant du profil), releve (hauteur des coins relevés), position…
+       * - murs : ce qui porte le toit, { l, p, y, c, plafond, cp, e } : le dehors des murs ou des poutres (demi-côtés, dans
+       *   le repère du toit), la hauteur de leur haut (depuis le bord du toit : négative sous lui), la couleur du bandeau ;
+       *   plafond : la hauteur du dessous de l'avant-toit au droit des murs (35 cm au-dessus d'eux par défaut ; false : pas
+       *   de plafond, le bandeau monte jusqu'au dessous du toit), cp sa couleur, e l'épaisseur du bandeau.
+       *   Le dessous du toit monte vers le faîte : au-dessus de la ligne des murs, il est bien plus haut que le bord, et entre
+       *   le haut des murs et lui, on voyait le vide (le toit flottait : Kinkaku-ji, 2026-10-27 ; Udo, 2026-10-31, « les
+       *   toits des bâtiments ne sont jamais reliés à leur structure »). Le dessous de l'avant-toit (軒裏) va du bord du toit
+       *   aux murs : il suit le dessous du toit tant qu'il est plus bas que le plafond, puis reste à plat ; le bandeau monte
+       *   du haut des murs jusqu'à lui dehors, jusque sous le dessous du toit dedans. Tout bâtiment y a droit (toits.mjs).
        */
       toitJapon(largeur, profondeur, h, ratioHaut, o = {}) {
         // (avant : la couleur du bandeau du bord, entre le dessus et le dessous ; celle du dessous par défaut)
-        const { creux = 1.7, releve = 0.05, epaisseur = 0.022, rangs = 14, tuile = C.tuile, tuile2 = C.tuileClaire, bord = C.faitage, avant = bord } = o;
+        const { creux = 1.7, releve = 0.05, epaisseur = 0.022, rangs = 14, tuile = C.tuile, tuile2 = C.tuileClaire, bord = C.faitage, avant = bord, murs = null } = o;
         const L = largeur / 2, P = profondeur / 2;
         const coins = [[-L, P], [L, P], [L, -P], [-L, -P]];
         const tri = [], couleurs = [];
@@ -313,7 +322,94 @@ export function ateliers(THREE, repeindre = null, matieres = null, sortes = null
         }
         const g = new THREE.BufferGeometry();
         g.setAttribute('position', new THREE.Float32BufferAttribute(tri.flat(), 3));
-        return a.piece(g, tuile, { ...o, couleurs });
+        a.piece(g, tuile, { ...o, couleurs });
+        if (murs) {
+          // le dessous du toit en (x, z) depuis son milieu : le pan où tombe le point, puis v (0 au bord, 1 en haut) là où ce
+          // pan passe au-dessus de lui (les coins relevés avancent un peu : 1 + 0,06 e (1 − v)) ; au milieu, le dessous du haut
+          const dessous = (x, z) => {
+            for (const [travers, long, A, B] of [[z, x, P, L], [x, z, L, P], [-z, x, P, L], [-x, z, L, P]]) {
+              if (travers <= 1e-6) continue;
+              const w = (long * A) / (travers * B);
+              if (Math.abs(w) > 1) continue;
+              const e = w ** 4, s = travers / A;
+              let v0 = 0, v1 = 1;
+              for (let k = 0; k < 22; k++) { const v = (v0 + v1) / 2; if ((1 - v * (1 - ratioHaut)) * (1 + 0.06 * e * (1 - v)) > s) v0 = v; else v1 = v; }
+              const v = (v0 + v1) / 2;
+              return h * v ** creux + releve * e * (1 - v) ** 2 - epaisseur;
+            }
+            return h - epaisseur;
+          };
+          // (le plafond au moins 2 cm au-dessus du dessous des coins relevés : sous eux, il ne dépasse pas)
+          const { l, p, y: y0 = 0, c = bord, cp = bord, e = 0.12 } = murs, pos = [], cols = [];
+          const plafond = murs.plafond === false ? false : Math.max(murs.plafond ?? y0 + 0.35, releve - epaisseur + 0.02);
+          // (un quadrilatère tourné vers n)
+          const quad = (A, B, Cc, D, n, cq = c) => {
+            const u = [B[0] - A[0], B[1] - A[1], B[2] - A[2]], v = [Cc[0] - A[0], Cc[1] - A[1], Cc[2] - A[2]];
+            const sens = (u[1] * v[2] - u[2] * v[1]) * n[0] + (u[2] * v[0] - u[0] * v[2]) * n[1] + (u[0] * v[1] - u[1] * v[0]) * n[2];
+            pos.push(...(sens >= 0 ? [A, B, Cc, A, Cc, D] : [A, Cc, B, A, D, Cc]).flat());
+            cols.push(cq, cq);
+          };
+          for (let k = 0; k < 4; k++) {
+            const [ax, az] = [[-l, p], [l, p], [l, -p], [-l, -p]][k], [bx, bz] = [[l, p], [l, -p], [-l, -p], [-l, p]][k], [nx, nz] = [[0, 1], [1, 0], [0, -1], [-1, 0]][k];
+            const n = Math.max(4, Math.ceil(Math.hypot(bx - ax, bz - az) / 0.25));
+            // le dessous de l'avant-toit : un plafond à plat, de la ligne des murs jusqu'à là où il rencontre le dessous du
+            // toit, qui descend vers le bord (plus près du bord, le toit lui-même : collé à lui, un plafond qui le suivait de
+            // quelques millimètres aurait scintillé) ; un pan par côté, entre les diagonales des coins. ts[i] : où il commence,
+            // dans la colonne i (0 au bord du toit, 1 aux murs), ou null : pas de plafond là, le bandeau monte jusqu'au toit
+            const ligne = (u, t) => { const E = point(k, u, 0, true), wx = ax + (bx - ax) * u, wz = az + (bz - az) * u; return [E[0] + (wx - E[0]) * t, E[2] + (wz - E[2]) * t]; };
+            const debut = (u) => {
+              // (du mur vers le bord, tant que le toit passe au-dessus du plafond ; puis au millimètre près)
+              let t = 1;
+              if (dessous(...ligne(u, 1)) - 0.004 < plafond) return null;
+              while (t > 0 && dessous(...ligne(u, Math.max(0, t - 0.02))) - 0.004 >= plafond) t -= 0.02;
+              if (t <= 0) return 0;
+              let t0 = Math.max(0, t - 0.02), t1 = t;
+              for (let q = 0; q < 16; q++) { const tm = (t0 + t1) / 2; if (dessous(...ligne(u, tm)) - 0.004 >= plafond) t1 = tm; else t0 = tm; }
+              return t1;
+            };
+            // (des murs sous le dessus plat du toit, à moins de 8 cm de lui : pas de plafond de ce côté, parallèle à ce dessus
+            // et tout près, il scintillait ; le bandeau monte jusqu'au toit)
+            const ecarts = plafond === false ? [] : Array.from({ length: n + 1 }, (_, i) => dessous(...ligne(i / n, 1)) - plafond).sort((q1, q2) => q1 - q2);
+            const ts = Array.from({ length: n + 1 }, (_, i) => (plafond === false || ecarts[Math.floor(n / 2)] < 0.08 ? null : debut(i / n)));
+            // (le haut du bandeau dehors, au point i des murs : le plafond, ou juste sous le toit, ou, sans plafond voulu, dans
+            // l'épaisseur du toit)
+            const haut = (i) => { const [x, z] = ligne(i / n, 1); return Math.max(y0, ts[i] !== null ? plafond : dessous(x, z) + (plafond === false ? epaisseur * 0.6 : -0.004)); };
+            for (let i = 0; i < n; i++) {
+              const f0 = i / n, f1 = (i + 1) / n, bas = [];
+              const x0 = ax + (bx - ax) * f0, z0 = az + (bz - az) * f0, x1 = ax + (bx - ax) * f1, z1 = az + (bz - az) * f1;
+              // dehors : le bandeau, du haut des murs au dessous de l'avant-toit
+              {
+                const h0 = haut(i), h1 = haut(i + 1);
+                if (h0 > y0 + 0.002 || h1 > y0 + 0.002) quad([x0, y0, z0], [x1, y0, z1], [x1, h1, z1], [x0, h0, z0], [nx, 0, nz]);
+                bas.push([x0, y0, z0], [x1, y0, z1]);
+              }
+              // dedans (e plus loin) : jusque sous le dessous du toit (vu d'en dessous, par une porte ouverte, pas de ciel) ; aux
+              // deux bouts du côté, raccourci de e (le dessous du bandeau de deux côtés voisins se chevauchait au coin, dans le
+              // même plan)
+              // (ses points répartis de e à lg − e le long du côté : décalés seulement aux deux bouts, sur un côté court, ils se
+              // croisaient)
+              {
+                const lg = Math.hypot(bx - ax, bz - az), tx = (bx - ax) / lg, tz = (bz - az) / lg, m = Math.min(e, lg * 0.45);
+                const s0 = m + (lg - 2 * m) * f0, s1 = m + (lg - 2 * m) * f1;
+                const xa = ax + tx * s0 - nx * e, za = az + tz * s0 - nz * e, xb = ax + tx * s1 - nx * e, zb = az + tz * s1 - nz * e;
+                const h0 = Math.max(y0, dessous(xa, za) - 0.005), h1 = Math.max(y0, dessous(xb, zb) - 0.005);
+                if (h0 > y0 + 0.002 || h1 > y0 + 0.002) quad([xa, y0, za], [xb, y0, zb], [xb, h1, zb], [xa, h0, za], [-nx, 0, -nz]);
+                bas.push([xa, y0, za], [xb, y0, zb]);
+              }
+              // (le dessous du bandeau, entre ses deux faces : vu d'en bas, pas de fente)
+              quad(bas[0], bas[1], bas[3], bas[2], [0, -1, 0]);
+            }
+            for (let i = 0; i < n; i++) {
+              if (ts[i] === null || ts[i + 1] === null) continue;
+              const [xa, za] = ligne(i / n, ts[i]), [xb, zb] = ligne((i + 1) / n, ts[i + 1]), [xc, zc] = ligne((i + 1) / n, 1), [xd, zd] = ligne(i / n, 1);
+              quad([xa, plafond, za], [xb, plafond, zb], [xc, plafond, zc], [xd, plafond, zd], [0, -1, 0], cp);
+            }
+          }
+          const gm = new THREE.BufferGeometry();
+          gm.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+          a.piece(gm, c, { x: o.x, y: o.y, z: o.z, rx: o.rx, ry: o.ry, rz: o.rz, ordre: o.ordre, s: o.s, sx: o.sx, sy: o.sy, sz: o.sz, couleurs: cols, nuance: 0.03 });
+        }
+        return a;
       },
       /**
        * Un socle de pierre (ishigaki) : tronc de pyramide de largeur × profondeur en bas, rapetissé de `retrait`

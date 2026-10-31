@@ -898,7 +898,7 @@ export function construire(ctx) {
         emprises.push({ x: x + u * 2.25, z, r: 0.3 });
       }
       a.boite(5.2, 0.32, 0.36, P.vermillon, { x, y: y + 3.1, z }).boite(4.6, 0.2, 0.26, P.vermillonFonce, { x, y: y + 2.55, z });
-      a.toitJapon(6.2, 1.8, 0.75, 0.25, { x, y: y + 3.26, z, tuile: P.tuileShiro, tuile2: P.tuileShiroClaire, bord: '#4a4a4e', rangs: 14 });
+      a.toitJapon(6.2, 1.8, 0.75, 0.25, { x, y: y + 3.26, z, tuile: P.tuileShiro, tuile2: P.tuileShiroClaire, bord: '#4a4a4e', rangs: 14, murs: { l: 2.58, p: 0.17, y: 0, c: P.vermillon } });
       // (sous le toit, sans le traverser à ses bouts)
       a.boite(3.6, 0.3, 0.6, P.vermillonFonce, { x, y: y + 3.36, z });
       ecrire({ x, y, z, ry: 0 }, { texte: '海地獄', x: 0, y: 2.55, z: 0.135, l: 1.2, h: 0.18, fond: null, encre: '#f8f0dc' });
@@ -1380,7 +1380,7 @@ export function construire(ctx) {
     for (const u of [-1, 1]) for (const v of [-1, 1]) { a.boite(0.12, 2.4, 0.12, P.boisNoir, { x: x + u * 1.75, y: y + 1.2, z: z - 0.25 + v * 0.95 }); monde.cercle(x + u * 1.75, z - 0.25 + v * 0.95, 0.3); }
     for (const v of [-1, 1]) a.boite(3.66, 0.16, 0.14, P.boisNoir, { x, y: y + 2.36, z: z - 0.25 + v * 0.95 });
     for (const u of [-1, 1]) a.boite(0.14, 0.18, 1.76, P.boisNoir, { x: x + u * 1.75, y: y + 2.35, z: z - 0.25 });
-    a.boite(2.4, 0.25, 1.2, P.boisNoir, { x, y: y + 2.55, z: z - 0.25 }).toitJapon(4.6, 3.0, 0.8, 0.35, { x, y: y + 2.42, z: z - 0.25, tuile: P.tuileShiro, tuile2: P.tuileShiroClaire, bord: '#4a4a4e', rangs: 10 });
+    a.boite(2.4, 0.25, 1.2, P.boisNoir, { x, y: y + 2.55, z: z - 0.25 }).toitJapon(4.6, 3.0, 0.8, 0.35, { x, y: y + 2.42, z: z - 0.25, tuile: P.tuileShiro, tuile2: P.tuileShiroClaire, bord: '#4a4a4e', rangs: 10, murs: { l: 1.75, p: 0.95, y: 0.02, c: P.boisNoir } });
     monde.mur(x - 1.7, z - 0.78, x + 1.7, z - 0.78, 0.48);
     monde.surface(x - 1.6, x + 1.6, z - 0.5, z + 0.5, y + 0.27, { plein: true });
     vapeurs.push({ x, z, y: y + 0.2, n: 9, haut: 1.6, large: 0.9, taille: 1.3, opacite: 0.4 });

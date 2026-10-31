@@ -406,7 +406,7 @@ export function construire(ctx) {
     }
     a.boite(l + 1.4, 0.4, 0.46, '#4a3a2e', R(0, y + H - 0.55, 0))
       .boite(l + 1.0, 0.24, 0.3, '#4a3a2e', R(0, y + H - 0.1, 0));
-    toitH(a, l + 2.6, 2.6, 1.0, 0.18, { ...R(0, y + H + 0.05, 0), releve: 0.18, rangs: 14, epaisseur: 0.1, ...TUILES });
+    toitH(a, l + 2.6, 2.6, 1.0, 0.18, { ...R(0, y + H + 0.05, 0), releve: 0.18, rangs: 14, epaisseur: 0.1, ...TUILES, murs: { l: (l + 1.0) / 2 - 0.01, p: 0.14, y: -0.03, c: '#4a3a2e' } });
     return a;
   }
 
@@ -659,13 +659,13 @@ export function construire(ctx) {
     a.boite(W, 0.5, D, P.pierreFonce, { x, y: y + 0.2, z, teinte: pierres })
       .boite(W - 0.1, h1, D - 0.1, P.platre, { x, y: y + 0.4 + h1 / 2, z });
     fenetres(a, x, z, y + 2.1, W - 0.1, D - 0.1);
-    toitH(a, W + 2.0, D + 2.0, 1.1, deux ? 0.62 : 0.26, { x, y: y + 3.3, z, releve: 0.24, rangs: 14, epaisseur: 0.12, ...TUILES });
+    toitH(a, W + 2.0, D + 2.0, 1.1, deux ? 0.62 : 0.26, { x, y: y + 3.3, z, releve: 0.24, rangs: 14, epaisseur: 0.12, ...TUILES, murs: { l: (W - 0.1) / 2, p: (D - 0.1) / 2, y: h1 - 2.9, c: P.platre } });
     if (deux) {
       const w = (W + 2.0) * 0.62 - 0.3, d = (D + 2.0) * 0.62 - 0.3, y2 = y + 4.3;
       const h2 = 2.3 + sousToit(w + 1.9, d + 1.9, 1.3, 0.22, 1.7, 0.12, w, d);
       a.boite(w, h2, d, P.platre, { x, y: y2 + h2 / 2, z });
       fenetres(a, x, z, y2 + 1.3, w, d);
-      toitH(a, w + 1.9, d + 1.9, 1.3, 0.22, { x, y: y2 + 2.3, z, releve: 0.24, rangs: 12, epaisseur: 0.12, ...TUILES });
+      toitH(a, w + 1.9, d + 1.9, 1.3, 0.22, { x, y: y2 + 2.3, z, releve: 0.24, rangs: 12, epaisseur: 0.12, ...TUILES, murs: { l: w / 2, p: d / 2, y: h2 - 2.3, c: P.platre } });
     }
     // (un bloc à leur forme : le segment épais d'avant, arrondi, dépassait de leurs bouts de sa demi-largeur, un mur
     // invisible de deux mètres devant elles)
@@ -838,7 +838,7 @@ export function construire(ctx) {
       // le toit : quatre pans, ses arêtes (toitH) ; en haut, le pignon (irimoya), son triangle blanc et ses ornements
       // dorés, l'arête du faîte et ses tuiles d'about
       const lt = W + 2.6, dt = D + 3.4, yR = y + H1 + 2.85 + 1.5, lg = lt * 0.3 * 1.21;
-      toitH(a, lt, dt, 1.5, 0.3, { x, y: y + H1 + 2.85, z, releve: 0.28, rangs: 18, epaisseur: 0.14 });
+      toitH(a, lt, dt, 1.5, 0.3, { x, y: y + H1 + 2.85, z, releve: 0.28, rangs: 18, epaisseur: 0.14, murs: { l: W / 2, p: (D + 0.3) / 2, y: hT - 2.65, c: P.platre } });
       a.pignon(lg, 1.0, dt * 0.32, P.platre, { x, y: yR - 0.06, z });
       deuxPans(a, lg + 0.4, dt * 0.34 + 0.4, 1.08, yR - 0.12, { x, z });
       for (const sx of [-1, 1]) {
@@ -1317,7 +1317,7 @@ export function construire(ctx) {
         monde.toit(X - w2, X + w2, Z - d2, Z + d2, y1 - 0.3, y1 + 4);
         // le grand toit : quatre pans, puis le pignon du haut (irimoya), son triangle blanc, l'arête, les shachihoko
         const lt = E.W + 3.0, dt = E.D + 3.0, yR = y1 + E.toit;
-        toitH(a, lt, dt, E.toit, 0.38, { x: X, y: y1, z: Z, releve: 0.36, rangs: Math.round(lt * 1.4), epaisseur: 0.18, creux: 1.5, ...TUILES });
+        toitH(a, lt, dt, E.toit, 0.38, { x: X, y: y1, z: Z, releve: 0.36, rangs: Math.round(lt * 1.4), epaisseur: 0.18, creux: 1.5, ...TUILES, murs: { l: w2 + 0.1, p: d2 + 0.1, y: yMur - y1, c: P.platre } });
         const lg = lt * 0.46;
         a.pignon(lg, 1.3, dt * 0.36, P.platre, { x: X, y: yR - 0.08, z: Z });
         deuxPans(a, lg + 0.5, dt * 0.38 + 0.4, 1.38, yR - 0.14, { x: X, z: Z });
@@ -1843,7 +1843,7 @@ export function construire(ctx) {
     a.boite(3.1, 0.88, 0.5, BOIS, R(0, y + 0.44, 0.78))
       .boite(3.3, 0.06, 0.66, '#8a6848', R(0, y + 0.91, 0.8));
     // le toit de tuiles, ses arêtes
-    toitH(a, 4.4, 3.0, 0.85, 0.3, { ...R(0, y + 2.48, 0), releve: 0.12, rangs: 10, epaisseur: 0.08 });
+    toitH(a, 4.4, 3.0, 0.85, 0.3, { ...R(0, y + 2.48, 0), releve: 0.12, rangs: 10, epaisseur: 0.08, murs: { l: 1.68, p: 0.9, y: -0.03, c: FONCE } });
     // les trois norens bleus, sous la poutre de devant
     for (const [lx, texte] of [[-1.12, 'おでん'], [0, '茶屋'], [1.12, 'だんご']]) {
       a.boite(1.08, 0.55, 0.02, '#2f4a6a', R(lx, y + 2.03, 1.08, { trait: false }));

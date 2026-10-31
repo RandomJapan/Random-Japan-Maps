@@ -1135,7 +1135,15 @@ export function construire(ctx) {
     a.boite(1.6, 0.9, 2.2, P.platre, R(0, h + hp + 0.7, 0)).pignon(2.2, 0.6, 2.8, P.tuileShiro, R(0, h + hp + 1.15, 0, { ry: PI / 2 }));
     // l'entrée : l'auvent, la grande porte de bois
     a.boite(4.2, 2.8, 0.12, '#5a4636', R(0, 1.9, p / 2 + 0.14, { teinte: (x) => (Math.floor(x * 3 + 99) % 2 ? '#5a4636' : '#4a3a2e') }));
-    a.toitJapon(6.4, 2.6, 0.9, 0.2, { ...TUILES, rangs: 12, ...R(0, 3.7, p / 2 + 1.1) });
+    // (2026-10-31 : l'auvent tenait en l'air devant la façade ; deux poteaux sur leurs pierres, la poutre de devant, celles des
+    // côtés jusqu'à la façade, le bandeau sous le toit)
+    for (const u of [-1, 1]) {
+      a.cylindre(0.12, 0.13, 3.62, 10, '#2e2622', R(u * 2.4, 1.81, p / 2 + 1.95)).cylindre(0.2, 0.22, 0.14, 10, '#9a9488', R(u * 2.4, 0.07, p / 2 + 1.95));
+      a.boite(0.2, 0.18, 1.85, '#2e2622', R(u * 2.4, 3.61, p / 2 + 1.05));
+      const q = R(u * 2.4, 0, p / 2 + 1.95); monde.cercle(q.x, q.z, 0.36);
+    }
+    a.boite(5.0, 0.2, 0.22, '#2e2622', R(0, 3.6, p / 2 + 1.95));
+    a.toitJapon(6.4, 2.6, 0.9, 0.2, { ...TUILES, rangs: 12, ...R(0, 3.7, p / 2 + 1.1), murs: { l: 2.38, p: 0.92, y: 0, c: '#2e2622' } });
     poser(a.fin(), 0, 0, { y: terrain(KURI.x, KURI.z) });
     monde.surface(KURI.x - l / 2 - 0.6, KURI.x + l / 2 + 0.6, KURI.z - p / 2 - 0.6, KURI.z + p / 2 + 0.6, 12, { plein: true });
   }

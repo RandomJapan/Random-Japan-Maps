@@ -275,7 +275,7 @@ export function construire(ctx) {
     poteaux(a, HARAIDEN, 3.0, { pas: 3 });
     gardeCorps(a, [[6, -8, 6, -4], [-6, -8, -6, -4]]);
     a.boite(12.2, 0.3, 8.2, P.vermillon, { y: PLANCHER + 3.05, z: -8 })
-      .toitJapon(15, 11, 3.2, 0.3, { y: PLANCHER + 3.2, z: -8, releve: 0.6, rangs: 20, epaisseur: 0.2 })
+      .toitJapon(15, 11, 3.2, 0.3, { y: PLANCHER + 3.2, z: -8, releve: 0.6, rangs: 20, epaisseur: 0.2, murs: { l: 6.1, p: 4.1, y: 0, c: P.vermillon } })
       .boite(7.5, 0.4, 0.5, P.toitBord, { y: PLANCHER + 6.4, z: -8 });
     // la boîte à offrandes (saisen-bako), ses lattes, et la grosse cloche au bout de sa corde
     a.boite(2.2, 0.75, 0.9, P.boisFonce, { y: PLANCHER + 0.37, z: -4.75 });
@@ -302,7 +302,7 @@ export function construire(ctx) {
       }
     }
     a.boite(lx + 0.3, 0.3, lz + 0.3, P.vermillon, { x: cx, y: PLANCHER + h + 0.05, z: cz })
-      .toitJapon(toit[0], toit[1], toit[2], 0.25, { x: cx, y: PLANCHER + h + 0.2, z: cz, releve: 0.6, rangs: 20, epaisseur: 0.2 })
+      .toitJapon(toit[0], toit[1], toit[2], 0.25, { x: cx, y: PLANCHER + h + 0.2, z: cz, releve: 0.6, rangs: 20, epaisseur: 0.2, murs: { l: lx / 2 + 0.15, p: lz / 2 + 0.15, y: 0, c: P.vermillon } })
       .boite(toit[0] * 0.5, 0.42, 0.5, P.toitBord, { x: cx, y: PLANCHER + h + 0.2 + toit[2], z: cz });
     poser(a.fin(0, peinture), 0, 0, { y: 0 });
     monde.bloc(x0, x1, z0, z1, PLANCHER - 3, PLANCHER + h + 0.2);
@@ -331,7 +331,7 @@ export function construire(ctx) {
       const x = s * 7.4, z = -15;
       for (const [dx, dz] of [[-1.2, -1.6], [1.2, -1.6], [-1.2, 1.6], [1.2, 1.6]]) a.boite(0.22, 2.4, 0.22, P.vermillon, { x: x + dx, y: PLANCHER + 1.2, z: z + dz });
       a.boite(2.8, 0.2, 3.6, P.vermillon, { x, y: PLANCHER + 2.45, z })
-        .toitJapon(4.2, 5, 1.4, 0.25, { x, y: PLANCHER + 2.5, z, releve: 0.3, rangs: 10, epaisseur: 0.12 });
+        .toitJapon(4.2, 5, 1.4, 0.25, { x, y: PLANCHER + 2.5, z, releve: 0.3, rangs: 10, epaisseur: 0.12, murs: { l: 1.38, p: 1.78, y: 0.05, c: P.vermillon } });
       monde.toit(x - 2.1, x + 2.1, z - 2.5, z + 2.5, PLANCHER + 2.3, PLANCHER + 4.1);
     }
     poser(a.fin(0, peinture), 0, 0, { y: 0 });
@@ -662,7 +662,7 @@ export function construire(ctx) {
     a.boite(6, 3, 5, P.blanc, { y: 1.5, z: 0.6 })
       .boite(6.2, 0.25, 5.2, P.boisFonce, { y: 3.05, z: 0.6 })
       .boite(6, 2.2, 4.4, P.boisFonce, { y: 4.3, z: 0.8 })
-      .toitJapon(7.2, 6.4, 1.6, 0.3, { y: 5.35, z: 0.8, releve: 0.25, rangs: 12, epaisseur: 0.14, tuile: P.toitBord, tuile2: '#6a5e58' })
+      .toitJapon(7.2, 6.4, 1.6, 0.3, { y: 5.35, z: 0.8, releve: 0.25, rangs: 12, epaisseur: 0.14, tuile: P.toitBord, tuile2: '#6a5e58', murs: { l: 3.0, p: 2.2, y: 0.05, c: P.boisFonce } })
       .boite(0.25, 2.6, 0.25, P.boisFonce, { x: -2.9, y: 1.3, z: -1.9 })
       .boite(0.25, 2.6, 0.25, P.boisFonce, { x: 2.9, y: 1.3, z: -1.9 })
       .boite(5.4, 2.4, 0.1, P.fenetre, { y: 1.3, z: -1.88, trait: false }) // 3 cm devant le mur (dans son plan, les deux scintillaient)

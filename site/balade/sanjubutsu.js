@@ -662,7 +662,7 @@ export function construire(ctx) {
     }
     for (const v of [-1, 1]) a.boite(S.c + 0.5, 0.2, 0.18, '#4f3d2f', R(0, y0 + 3.4, v * d)).boite(0.17, 0.2, S.c + 0.5, '#4f3d2f', R(v * d, y0 + 3.43, 0)).boite(S.c + 0.3, 0.12, 0.12, '#4f3d2f', R(0, y0 + 2.6, v * d));
     a.boite(0.2, 0.24, S.c + 0.2, '#4f3d2f', R(0, y0 + 3.62, 0));
-    a.toitJapon(S.c + 1.9, S.c + 1.9, 1.15, 0.22, { ...R(0, y0 + 3.75, 0), tuile: '#6f7478', tuile2: '#7d8287', bord: '#4f5458', rangs: 10 });
+    a.toitJapon(S.c + 1.9, S.c + 1.9, 1.15, 0.22, { ...R(0, y0 + 3.75, 0), tuile: '#6f7478', tuile2: '#7d8287', bord: '#4f5458', rangs: 10, murs: { l: d + 0.07, p: d + 0.07, y: -0.22, c: '#4f3d2f' } });
     // la cloche de bronze, pendue : son anneau (竜頭), son corps aux bandes et aux tétons (乳), la fleur de lotus où frappe le
     // tronc (撞座)
     const BR = '#4f5a48', BRF = '#3f4a3a';

@@ -1522,7 +1522,7 @@ export function construire(ctx) {
       .boite(HL, 2.4, HP, '#7a5a40', { x: xS, y: yS + 0.5 + 1.2, z: zS });
     for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) a.boite(0.22, 2.5, 0.22, '#4a3626', { x: xS + dx * HL / 2, y: yS + 0.5 + 1.25, z: zS + dz * HP / 2 });
     a.boite(0.6, 0.08, HP + 0.4, P.bois, { x: xS + HL / 2 + 0.3, y: yS + 0.95, z: zS })
-      .toitJapon(HL + 1.8, HP + 1.6, 1.5, 0.35, { x: xS, y: yS + 2.9, z: zS, releve: 0.3, rangs: 18 })
+      .toitJapon(HL + 1.8, HP + 1.6, 1.5, 0.35, { x: xS, y: yS + 2.9, z: zS, releve: 0.3, rangs: 18, murs: { l: HL / 2, p: HP / 2, y: 0, c: '#7a5a40' } })
       .boite(0.3, 0.25, 1.4, P.or, { x: xS, y: yS + 4.45, z: zS });
     // la façade (à l'est) : les portes à claire-voie, la cloche (suzu) et sa corde rouge et blanche, la boîte des offrandes
     shoji(a, 2.4, 1.6, 6, 4, { x: xS + HL / 2 + 0.03, y: yS + 1.75, z: zS, ry: PI / 2 });

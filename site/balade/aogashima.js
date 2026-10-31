@@ -1059,7 +1059,7 @@ export function construire(ctx) {
         .boite(0.13, 0.16, AZUMAYA.cote + 0.36, P.bois, { x: sg * c, y: HP - 0.065 });
     }
     // le toit à quatre pans, son faîte et son joyau (hōju)
-    a.toitJapon(4.6, 4.6, 1.25, 0.12, { y: HP + 0.06, creux: 1.4, releve: 0.08, rangs: 16 })
+    a.toitJapon(4.6, 4.6, 1.25, 0.12, { y: HP + 0.06, creux: 1.4, releve: 0.08, rangs: 16, murs: { l: c + 0.05, p: c + 0.05, y: -0.02, c: P.bois } })
       .boite(0.62, 0.1, 0.62, P.toitBord, { y: HP + 0.06 + 1.25 + 0.03 })
       .cylindre(0.07, 0.09, 0.16, 8, P.bronze, { y: HP + 0.06 + 1.25 + 0.16 })
       .boule(0.09, P.bronze, { y: HP + 0.06 + 1.25 + 0.3, sy: 1.15 }, 1);

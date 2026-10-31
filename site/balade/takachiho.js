@@ -1626,7 +1626,7 @@ export function construire(ctx) {
     }
     a.boite(8.5, 0.07, 0.08, BN, R(0, y + 4.2, 2.86));
     for (let k = 0; k <= 16; k++) a.boite(0.05, 0.42, 0.05, BN, R(-4.2 + k * (8.4 / 16), y + 4.0, 2.86 + (k % 2) * 0.004, { trait: false }));
-    a.toitJapon(9.9, 7.0, 1.9, 0.15, { ...R(0, y + 5.76, -0.2), releve: 0.16 });
+    a.toitJapon(9.9, 7.0, 1.9, 0.15, { ...R(0, y + 5.76, -0.2), releve: 0.16, murs: { l: 4.2, p: 2.6, y: -0.01, c: P.blanc } });
     // l'ardoise du menu, sur son pied, à côté de l'entrée
     {
       const q = R(-2.4, 0, 4.1, { ry: 0.25 });
@@ -1650,7 +1650,10 @@ export function construire(ctx) {
       monde.cercle(px, pz, 0.36);
     }
     // (son bord ouest 30 cm avant celui de l'auvent du restaurant, plus haut : avant le 2026-10-26, ils se recouvraient)
-    a.toitJapon(5.0, z1 - z0 + 2.2, 0.9, 0.1, { x: x + 0.55, y: y + 2.6, z: (z0 + z1) / 2, releve: 0.08, tuile: '#7a6a52', tuile2: '#86765c', bord: P.boisFonce });
+    // (2026-10-31 : ses poutres sur les poteaux, le bandeau sous le toit, centré sur eux : 30 cm de moins à l'est)
+    for (const pz of [z0 - 0.4, z1 + 0.4]) a.boite(4.16, 0.15, 0.14, P.bois, { x: x + 0.4, y: y + 2.525, z: pz });
+    for (const px of [x - 1.6, x + 2.4]) a.boite(0.14, 0.14, z1 - z0 + 0.94, P.bois, { x: px, y: y + 2.53, z: (z0 + z1) / 2 });
+    a.toitJapon(4.7, z1 - z0 + 2.2, 0.9, 0.1, { x: x + 0.4, y: y + 2.6, z: (z0 + z1) / 2, releve: 0.08, tuile: '#7a6a52', tuile2: '#86765c', bord: P.boisFonce, murs: { l: 2.06, p: (z1 - z0) / 2 + 0.45, y: 0, c: P.bois } });
     // le tonneau d'eau, en haut, sur son tréteau ; le tuyau de bambou qui verse dans la gouttière. (2026-10-26, « la fontaine
     // flotte dans les airs, et le seau qui reçoit l'eau à la fin aussi » : leur fond était à 37 et 44 cm au-dessus de l'herbe,
     // sur rien)
@@ -1769,7 +1772,7 @@ export function construire(ctx) {
     a.boite(6.5, 0.1, 1.55, P.toit, R(0, y + 2.98, 2.9, { rx: 0.28, ordre: 'YXZ' })).boite(6.46, 0.05, 1.55, P.toitBord, R(0, y + 2.92, 2.905, { rx: 0.28, ordre: 'YXZ' }));
     // le toit : quatre pans de tuiles aux coins relevés, débordant de 90 cm sur les côtés et d'un mètre devant et derrière
     a.boite(6.14, 0.12, 4.48, BN, R(0, y + 3.55, -0.01));
-    a.toitJapon(7.6, 6.3, 1.7, 0.18, { ...R(0, y + 3.62, -0.01), releve: 0.12 });
+    a.toitJapon(7.6, 6.3, 1.7, 0.18, { ...R(0, y + 3.62, -0.01), releve: 0.12, murs: { l: 3.0, p: 2.2, y: 0, c: P.blanc } });
     // le noren, les lanternes, l'enseigne
     for (const k of [-1, 0, 1]) a.boite(1.8, 0.62, 0.02, k ? '#2f4a7a' : '#b8402a', R(k * 1.92, y + 2.66, 2.26));
     ecrire(R(0, y, 2.28), { texte: 'おみやげ', fond: null, encre: '#f4ecd8', x: 0, y: 2.66, z: 0, l: 1.3, h: 0.36 });
@@ -1898,7 +1901,7 @@ export function construire(ctx) {
       }
       for (const sz of [-1, 1]) a.boite(3.0, 0.14, 0.1, P.boisFonce, R(0, 2.4, sz * 1.35));
       for (const sx of [-1, 1]) a.boite(0.1, 0.12, 3.0, P.boisFonce, R(sx * 1.35, 2.25, 0));
-      a.toitJapon(4.0, 4.0, 1.25, 0.06, { ...R(0, 2.5, 0), releve: 0.14 });
+      a.toitJapon(4.0, 4.0, 1.25, 0.06, { ...R(0, 2.5, 0), releve: 0.14, murs: { l: 1.42, p: 1.43, y: -0.19, c: P.boisFonce } });
       // (la lanterne pendue à une traverse posée sur les deux poutres du milieu : elle flottait sous le toit)
       a.boite(0.1, 0.1, 2.76, P.boisFonce, R(0, 2.52, 0));
       lanternePendue(a, x, 2.15, z, 7, '#f4f0e6', 2.47);
