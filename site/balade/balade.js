@@ -132,8 +132,9 @@ function construire() {
   const groupe = new THREE.Group();
   // le décor s'efface en pointillés quand il cache le joueur (styles.js) ; les personnages, jamais
   // (trait : false, pas de trait d'encre : la forêt lointaine de Gokayama, où il ne faisait plus qu'un pixel)
-  const maillageDe = (corpsM, traitM, profondeur = null) => ({ geometrie }, ombre = true, trait = true) => {
-    lisser(geometrie);
+  // (facesExactes : les tuiles et le chaume gardent la normale de leur face, la matière du décor les lisse elle-même, lisser)
+  const maillageDe = (corpsM, traitM, profondeur = null, facesExactes = false) => ({ geometrie }, ombre = true, trait = true) => {
+    lisser(geometrie, facesExactes);
     const g = new THREE.Group();
     const corps = new THREE.Mesh(geometrie, corpsM);
     corps.castShadow = ombre;
@@ -143,7 +144,7 @@ function construire() {
     if (trait) g.add(new THREE.Mesh(geometrie, traitM));
     return g;
   };
-  const maillage = maillageDe(mats.corps, mats.trait, mats.profondeur);
+  const maillage = maillageDe(mats.corps, mats.trait, mats.profondeur, true);
   // (sortesNuit : les couleurs du lieu qui s'allument ou s'illuminent la nuit, styles.js)
   const ctx = { THREE, atelier: ateliers(THREE, style.repeindre, style.matieres, LIEUX[LIEU].sortesNuit?.(P)), P, peinture: style.peinture, maillage };
   const ctxPerso = { ...ctx, maillage: maillageDe(mats.corpsPerso, mats.traitPerso) };
@@ -374,15 +375,18 @@ function construire() {
  * Les normales d'un modèle de l'atelier : chaque face a la sienne (des facettes nettes), sauf là où la forme
  * est ronde (cylindres, boules, troncs, visages) : la normale lissée de la pièce (l'attribut `contour`) si
  * elle s'écarte de moins de 42° de celle de la face. Les boîtes gardent leurs arêtes vives, les rondeurs
- * s'éclairent sans facettes, comme dans Pokémon X et Y.
+ * s'éclairent sans facettes, comme dans Pokémon X et Y. facesExactes (le décor) : les tuiles et le chaume gardent la
+ * normale de leur face ; la matière du décor les lisse elle-même, par la même règle (styles.js), et garde la normale de la
+ * face pour peindre leurs rangs (2026-10-31 : d'après la normale lissée, ou celle des dérivées, ils tremblaient).
  */
 const lissees = new WeakSet();
-function lisser(geo) {
+function lisser(geo, facesExactes = false) {
   if (lissees.has(geo)) return;
   lissees.add(geo);
-  const n = geo.attributes.normal?.array, c = geo.attributes.contour?.array;
+  const n = geo.attributes.normal?.array, c = geo.attributes.contour?.array, m = facesExactes ? geo.attributes.matiere?.array : null;
   if (!n || !c) return;
   for (let i = 0; i < n.length; i += 3) {
+    if (m && (m[i / 3] === MATIERES.tuiles || m[i / 3] === MATIERES.chaume)) continue;
     const l = Math.hypot(c[i], c[i + 1], c[i + 2]);
     if (l < 0.5) continue;
     if ((n[i] * c[i] + n[i + 1] * c[i + 1] + n[i + 2] * c[i + 2]) / l > 0.74) { n[i] = c[i] / l; n[i + 1] = c[i + 1] / l; n[i + 2] = c[i + 2] / l; }

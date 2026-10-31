@@ -541,10 +541,16 @@ const BRUIT_GLSL = `
  * Peindre une matière (textures.js) : la texture plaquée selon la face (vue d'en haut, de face ou de côté :
  * le plan le plus en face de la normale de la face) ; les tuiles suivent la pente du toit, en rangs qui
  * descendent. La texture multiplie la couleur (0,5 : ×1), ou impose la sienne là où son alpha est à 0.
+ * Les rangs de pose des tuiles (une bande sombre, puis une claire, en haut de chaque rang) sont peints ici, pas dans la
+ * texture (2026-10-31) : chaque pixel prend la part de bande qu'il couvre, un trait net de près, qui s'estompe de loin
+ * (dans la texture, 4 texels de large). Le crépitement du petit toit des panneaux (Udo : « sur le panneau, il y a des
+ * espèces de… scintillements ») venait, lui, de la normale n : voir la matière du décor (vFaceExacte).
  */
 const PEINDRE_GLSL = `
   uniform highp sampler2DArray details;
   uniform float echelles[${ECHELLES.length}];
+  // la part de [a, b] sous un pixel de largeur w (dans la même unité) centré en v
+  float couvre(float v, float a, float b, float w) { return clamp((min(v + 0.5 * w, b) - max(v - 0.5 * w, a)) / w, 0.0, 1.0); }
   vec3 peindre(vec3 base, float couche, vec3 p, vec3 n) {
     if (couche < 0.5) return base;
     vec3 a = abs(n);
@@ -556,7 +562,14 @@ const PEINDRE_GLSL = `
     } else if (a.y > max(a.x, a.z)) uv = p.xz;
     else if (a.x > a.z) uv = vec2(p.z, p.y);
     else uv = vec2(p.x, p.y);
-    vec4 t = texture(details, vec3(uv / echelles[int(couche)], couche));
+    uv /= echelles[int(couche)];
+    vec4 t = texture(details, vec3(uv, couche));
+    // (les rangs : quatre par répétition de la texture ; la largeur d'un pixel lue au même endroit que la texture)
+    float r = uv.y * 4.0, w = max(fwidth(r), 1e-3);
+    if (couche == ${MATIERES.tuiles}.0) {
+      float v = fract(r);
+      t.rgb *= 1.0 - 0.38 * (couvre(v, 0.0, 0.06, w) + couvre(v, 1.0, 1.06, w)) + 0.12 * couvre(v, 0.06, 0.12, w);
+    }
     return mix(t.rgb, base * t.rgb * 2.0, t.a);
   }`;
 
@@ -770,12 +783,31 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
   corps.onBeforeCompile = (s) => {
     Object.assign(s.uniforms, uniformesCoupe(0.6, 0), communs, vent, abri, { lueur, saisons });
     s.vertexShader = s.vertexShader
-      .replace('#include <common>', `#include <common>\nattribute float matiere;\nattribute vec3 saison;\nattribute vec3 contour;\nuniform vec3 saisons;\nvarying float vMatiere;\nvarying float vLueur;\nvarying vec3 vCoupe;\nvarying vec3 vCoupeN;\nvarying vec3 vLisse;\nvarying vec3 vSaison;${VENT_GLSL}${CHUTE_GLSL}`)
+      .replace('#include <common>', `#include <common>\nattribute float matiere;\nattribute vec3 saison;\nattribute vec3 contour;\nuniform vec3 saisons;\nvarying float vMatiere;\nvarying float vLueur;\nvarying vec3 vCoupe;\nvarying vec3 vCoupeN;\nvarying vec3 vLisse;\nvarying vec3 vSaison;\nvarying float vFaceExacte;${VENT_GLSL}${CHUTE_GLSL}`)
+      // (les tuiles et le chaume : leur normale arrive telle qu'est leur face (balade.js, lisser ne la lisse pas) ; vCoupeN la
+      // garde pour peindre leurs rangs, et la lumière la lisse ici, comme lisser le fait pour le reste : même règle, même rendu.
+      // Les autres arrivent déjà lissées : vCoupeN, comme avant. vFaceExacte : peindre d'après la face (un pan plat, un angle
+      // net comme le petit toit des panneaux) ; pas sur un toit courbe (entre 0,5° et 25° de sa normale lissée) : là, chaque
+      // facette peinte d'après la sienne montrait ses raccords, que le tremblement de la normale de l'écran cachait (Himeji,
+      // Itsukushima, 2026-10-31). Un triangle n'est peint d'après sa face que si ses trois sommets le permettent (1 partout ; au
+      // faîte d'un toit courbe, deux sommets sur l'arête vive et le troisième sur la courbe : non)
+      .replace('#include <beginnormal_vertex>', `#include <beginnormal_vertex>
+        vCoupeN = normalize(mat3(modelMatrix) * objectNormal);
+        vFaceExacte = 0.0;
+        if (abs(matiere - ${MATIERES.tuiles}.0) < 0.5 || abs(matiere - ${MATIERES.chaume}.0) < 0.5) {
+          vFaceExacte = 1.0;
+          float lc = length(contour);
+          if (lc > 0.5) {
+            float cl = dot(objectNormal, contour) / lc;
+            if (cl > 0.74) objectNormal = contour / lc;
+            if (cl > 0.906 && cl < 0.99996) vFaceExacte = 0.0;
+          }
+        }`)
       .replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed += souffleObjet(transformed, saison);\nif (tombee(saison)) transformed = vec3(0.0);')
-      .replace('#include <project_vertex>', '#include <project_vertex>\nvLisse = mat3(modelMatrix) * contour;\nvSaison = saison;\nvMatiere = matiere;\nvLueur = abs(saison.x - 8.0) < 0.5 ? 1.0 : abs(saison.x - 9.0) < 0.5 ? 2.0 : abs(saison.x - 10.0) < 0.5 ? 3.0 : abs(saison.x - 14.0) < 0.5 ? 4.0 : 0.0;\nvCoupe = (modelMatrix * vec4(transformed, 1.0)).xyz;\nvCoupeN = normalize(mat3(modelMatrix) * objectNormal);');
+      .replace('#include <project_vertex>', '#include <project_vertex>\nvLisse = mat3(modelMatrix) * contour;\nvSaison = saison;\nvMatiere = matiere;\nvLueur = abs(saison.x - 8.0) < 0.5 ? 1.0 : abs(saison.x - 9.0) < 0.5 ? 2.0 : abs(saison.x - 10.0) < 0.5 ? 3.0 : abs(saison.x - 14.0) < 0.5 ? 4.0 : 0.0;\nvCoupe = (modelMatrix * vec4(transformed, 1.0)).xyz;');
     eclairerParLampes(s, lampes);
     s.fragmentShader = s.fragmentShader
-      .replace('#include <common>', `#include <common>\nvarying float vMatiere;\nvarying float vLueur;\nvarying vec3 vLisse;\nvarying vec3 vSaison;\nuniform float lueur;${COUPE_GLSL}${PEINDRE_GLSL}${SAISONS_GLSL}${ABRI_GLSL}`)
+      .replace('#include <common>', `#include <common>\nvarying float vMatiere;\nvarying float vLueur;\nvarying vec3 vLisse;\nvarying vec3 vSaison;\nvarying float vFaceExacte;\nuniform float lueur;${COUPE_GLSL}${PEINDRE_GLSL}${SAISONS_GLSL}${ABRI_GLSL}`)
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
         // (les croisillons des shōji, la nuit : de loin, ils prennent un peu de la lumière du papier, la fenêtre devient
         // une vitre de papier allumée ; de près, ils restent sombres)
@@ -788,8 +820,14 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
       .replace('#include <color_fragment>', `#include <color_fragment>
         {
           vec3 nf = normalize(cross(dFdx(vCoupe), dFdy(vCoupe)));
+          float couche = floor(vMatiere + 0.5);
+          // (les tuiles et le chaume d'un pan plat : la normale exacte de leur face (vCoupeN, les trois sommets la même). Celle
+          // des dérivées tremble d'un carré de 2 × 2 pixels à l'autre (à des dizaines de mètres de l'origine du lieu, les chiffres
+          // manquent), et les rangs de tuiles, placés d'après elle, tremblaient avec elle : sur le petit toit des panneaux, un
+          // trait en pointillés qui crépitait quand la caméra bougeait, 2026-10-31)
+          vec3 nPeinte = vFaceExacte > 0.999 ? normalize(vCoupeN) : nf;
           diffuseColor.rgb = feuillageSaison(diffuseColor.rgb, vSaison.x, vSaison.z, vSaison.y, vCoupe, true);
-          diffuseColor.rgb = neigeFeuillage(peindre(diffuseColor.rgb, floor(vMatiere + 0.5), vCoupe, nf), vSaison.x, nf, vLisse, vCoupe, saisons.z > 0.001 ? abrite(vCoupe) : 0.0);
+          diffuseColor.rgb = neigeFeuillage(peindre(diffuseColor.rgb, couche, vCoupe, nPeinte), vSaison.x, nf, vLisse, vCoupe, saisons.z > 0.001 ? abrite(vCoupe) : 0.0);
         }`);
   };
   corps.customProgramCacheKey = () => 'corps-decor';

@@ -62,6 +62,8 @@ const TERRASSE = { x0: 22.4, x1: 45, z0: -45.4, z1: -23.2 };
 const INARI_ESC = { x: -13, demi: 1.15, z0: -2.5, z1: -10.2, n: 25, y0: Y_ROUTE, y1: Y_INARI };
 const INARI = { x0: -18.6, x1: -7.4, z0: -17.4, z1: -10.2 };
 const HATCHO = { x: -36, demi: 1.2, z0: -9, z1: -27, n: 50, y0: Y_ROUTE, y1: Y_PORT };
+// son panneau (八丁坂 ↓ 吹毛井港), au bord de la place, à l'ouest du haut des marches, tourné vers la place (au sud)
+const PANNEAU_HATCHO = { x: HATCHO.x - HATCHO.demi - 1.3, z: PLACE.z0 + 0.2 };
 // le quai du port de Fukei (吹毛井港), au fond de la crique au nord ; l'eau de la crique au-delà de son bord (z < z0)
 const QUAI = { x0: -60, x1: -27.4, z0: -33.4, z1: -27 };
 // le coin de Bunbuku, sous les camphriers, au sud de l'allée (il mord sur l'allée : un coin qui ne fait que la toucher laisse
@@ -1956,9 +1958,9 @@ export function construire(ctx) {
       murRect(repere(xb, zb + 0.05, 0), 0.9, 0.25);
     }
     for (const [x, z] of [[PLACE.x0 + 1.4, PLACE.z1 - 1.4]]) { palmier(a, x, y, z, 6.5); monde.cercle(x, z, 0.75); }
-    // le panneau du Hatchōzaka (八丁坂), au bord de la descente
+    // le panneau du Hatchōzaka (八丁坂), au bord de la descente (on le lit : lire('hatcho'))
     {
-      const p = { x: HATCHO.x - HATCHO.demi - 1.3, z: PLACE.z0 + 0.2, ry: PI };
+      const p = { ...PANNEAU_HATCHO, ry: PI };
       const b = panneau(atelier(), P, { ecrit: true });
       poser(b.fin(), p.x, p.z, { y, ry: p.ry });
       ecrire({ x: p.x, y, z: p.z, ry: p.ry }, { ...PAPIER_PANNEAU, texte: '八丁坂 ↓ 吹毛井港', fond: '#fff8e8', encre: '#2a2420', lignes: 2 });
@@ -2833,6 +2835,8 @@ export function construire(ctx) {
     { id: 'chozuya', x: CHOZUYA.x + 1.3, z: CHOZUYA.z, rayon: 1.5, haut: 1.0, verbe: 'regarder', vers: [CHOZUYA.x, CHOZUYA.z], action: (jeu) => jeu.dire(jeu.tx('chozuya')) },
     lire('yuisho', -44.0, 4.6, PI / 2),
     lire('kameishi', 40.6, -37.6, PI / 2 + 0.3),
+    // (2026-10-31 : « le panneau qui va vers le port, on ne peut pas le lire »)
+    lire('hatcho', PANNEAU_HATCHO.x, PANNEAU_HATCHO.z, PI),
     { id: 'videaste', passant: 'videaste', verbe: 'parler', async action(jeu) { await jeu.dire(jeu.tx('videaste'), 'videaste'); await jeu.video(); } },
     parler('obaa'), parler('mariee'), parler('marie'), parler('ecolier'), parler('photographe'), parler('gardien'), parler('touriste'), parler('touriste2'), parler('pecheuse'), parler('randonneur'), parler('chauffeur'),
     ...interactionsBancs(bancs),
@@ -3299,6 +3303,7 @@ const TEXTES = {
     chozuya: ['La fontaine des ablutions (手水舎). On se lave la main gauche, puis la droite, puis on se rince la bouche, avant d’aller prier.'],
     'panneau-yuisho': ['« Udo-jingū (鵜戸神宮). Le dieu : Ugayafukiaezu, fils de Toyotama-hime, la fille du dieu de la mer, et père de l’empereur Jinmu. »', '« Le sanctuaire est bâti dans une grotte de la falaise, au bord de la mer de Hyūga : on y descend pour prier. On y vient pour les naissances, les mariages et la chance. »'],
     'panneau-kameishi': ['« Le rocher de la tortue (霊石亀石). On dit que c’est la tortue qui porta Toyotama-hime depuis le palais du dragon. »', '« Lancez les boules de chance (運玉) dans le creux de son dos : les hommes de la main gauche, les femmes de la main droite. Si la boule y reste, votre vœu se réalisera. »'],
+    'panneau-hatcho': ['« 八丁坂 ↓ 吹毛井港 » : le Hatchōzaka, vers le port de Fukei.', 'Le plus vieux chemin du sanctuaire : un escalier de pierre qui descend jusqu’au port. Les marches du milieu sont creusées par des siècles de pas.'],
     videaste: ['Salut ! Je filme la grotte pour ma chaîne. Un sanctuaire vermillon dans une falaise, au bord du Pacifique… On ne voit ça qu’ici.', 'Tu veux voir ma vidéo ?'],
     obaa: ['Je viens prier pour ma petite-fille : elle attend un bébé pour le printemps.', 'Ici, la princesse de la mer a mis son enfant au monde. Toutes les grands-mères de Miyazaki viennent prier à Udo !'],
     mariee: ['On vient de se marier ! Autrefois, les jeunes mariés venaient à Udo sur un cheval couvert de clochettes (シャンシャン馬).', 'Moi, je lance de la main droite… et lui de la gauche !'],
@@ -3417,6 +3422,7 @@ const TEXTES = {
     chozuya: ['The purification fountain (手水舎). You wash your left hand, then your right, then rinse your mouth, before going to pray.'],
     'panneau-yuisho': ['“Udo-jingū (鵜戸神宮). The god: Ugayafukiaezu, son of Toyotama-hime, daughter of the god of the sea, and father of Emperor Jinmu.”', '“The shrine is built in a cave in the cliff, on the Hyūga sea: you go down to pray. People come here for births, weddings and luck.”'],
     'panneau-kameishi': ['“The turtle rock (霊石亀石). They say it’s the turtle that carried Toyotama-hime from the dragon palace.”', '“Throw luck balls (運玉) into the hollow on its back: men with the left hand, women with the right. If the ball stays in, your wish will come true.”'],
+    'panneau-hatcho': ['“八丁坂 ↓ 吹毛井港”: the Hatchōzaka, down to Fukei harbour.', 'The oldest path to the shrine: a stone staircase down to the harbour. The middle of the steps is worn hollow by centuries of feet.'],
     videaste: ['Hi! I’m filming the cave for my channel. A vermilion shrine in a cliff, by the Pacific… You only see that here.', 'Want to see my video?'],
     obaa: ['I’ve come to pray for my granddaughter: she’s expecting a baby in the spring.', 'Here, the princess of the sea brought her child into the world. Every grandmother in Miyazaki comes to pray at Udo!'],
     mariee: ['We’ve just got married! Long ago, newlyweds came to Udo on a horse covered with little bells (シャンシャン馬).', 'I throw with my right hand… and him with his left!'],
@@ -3535,6 +3541,7 @@ const TEXTES = {
     chozuya: ['手水舎。おまいりの　まえに、左手、右手を　あらって、口を　すすぐ。'],
     'panneau-yuisho': ['「鵜戸神宮。ごさいじん：ウガヤフキアエズノミコト。うみの　かみさまの　むすめ・豊玉姫の　子で、神武天皇の　おとうさん。」', '「日向の　うみに　めんした　がけの　どうくつに　たつ　お宮で、くだって　おまいりします。あんざん、えんむすび、うんの　かみさまです。」'],
     'panneau-kameishi': ['「霊石　亀石。豊玉姫が　竜宮から　のってきた　カメと　いわれています。」', '「せなかの　くぼみに　運玉を　なげいれましょう。男性は　左手、女性は　右手で。はいれば　ねがいが　かなうと　いわれます。」'],
+    'panneau-hatcho': ['「八丁坂　↓　吹毛井港」　みなとへ　おりる　みちの　あんないばん。', '八丁坂は　鵜戸神宮の　いちばん　ふるい　さんどう。まんなかの　石だんは、なん百年もの　あしあとで　すりへって　いる。'],
     videaste: ['やあ！　チャンネルの　ために　どうくつを　とってるんだ。太平洋の　がけの　中の　朱色の　お宮……　ここでしか　見られないよ。', 'ぼくの　どうが、見る？'],
     obaa: ['まごむすめの　ために　おまいりに　きたの。はるに　あかちゃんが　うまれるのよ。', 'ここで　うみの　おひめさまが　あかちゃんを　うんだの。宮崎の　おばあちゃんは　みんな　鵜戸に　おまいりに　くるのよ！'],
     mariee: ['わたしたち、けっこんした　ばかりなの！　むかしは　はなよめと　はなむこが　すずで　かざった　馬（シャンシャン馬）で　鵜戸に　きたんだって。', 'わたしは　右手で　なげて……　かれは　左手！'],

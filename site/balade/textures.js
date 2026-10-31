@@ -280,12 +280,12 @@ const COUCHES = {
     }
   },
   tuiles(f) {
-    // les rangs de tuiles rondes (en long, le long de y) et les rangs de pose (en travers), 4 × 4
-    const L = N / 4, H = N / 4, g = f.grille(4);
+    // les rangs de tuiles rondes (en long, le long de y), 4 par répétition ; les rangs de pose (en travers, 4 aussi) sont
+    // peints par le shader, nets de près et fondus de loin (styles.js, PEINDRE_GLSL, 2026-10-31)
+    const L = N / 4, g = f.grille(4);
     f.partout((x, y) => {
-      const u = (x % L) / L, v = (y % H) / H;
-      let k = u < 0.55 ? 0.92 + 0.22 * Math.sin((u / 0.55) * Math.PI) : 0.74 + 0.1 * Math.sin(((u - 0.55) / 0.45) * Math.PI);
-      if (v < 0.06) k *= 0.62; else if (v < 0.12) k *= 1.12;
+      const u = (x % L) / L;
+      const k = u < 0.55 ? 0.92 + 0.22 * Math.sin((u / 0.55) * Math.PI) : 0.74 + 0.1 * Math.sin(((u - 0.55) / 0.45) * Math.PI);
       return k * (1 + (g(x, y) - 0.5) * 0.08) * (1 + (f.hasard() - 0.5) * 0.04);
     });
   },

@@ -278,7 +278,7 @@ const MOTIFS = {
     <circle cx="47" cy="70" r="4.4" class="vide"/><circle cx="73" cy="70" r="4.4" class="vide"/>
     <path d="M55 80 Q60 85 65 80" class="vide" fill="none" stroke-width="2.4"/>
     <path d="M40 94 H58 M62 94 H80" class="vide" fill="none" stroke-width="2.2"/>`,
-  toiriEscalier: `<path d="M14 30 Q60 22 106 30 L105 37 Q60 30 15 37 Z"/><rect x="22" y="42" width="76" height="5"/>
+  toriiEscalier: `<path d="M14 30 Q60 22 106 30 L105 37 Q60 30 15 37 Z"/><rect x="22" y="42" width="76" height="5"/>
     <rect x="27" y="36" width="7" height="76"/><rect x="86" y="36" width="7" height="76"/>
     <path d="M38 52 Q60 47 82 52 L81 57 Q60 52 39 57 Z"/><rect x="43" y="56" width="5" height="40"/><rect x="72" y="56" width="5" height="40"/>
     <path d="M50 66 Q60 63 70 66 L69 69 Q60 66 51 69 Z"/><rect x="53" y="68" width="3" height="20"/><rect x="64" y="68" width="3" height="20"/>
@@ -313,6 +313,8 @@ const MOTIFS = {
 export function dessinTampon(t, lieuJa, taille = 120) {
   const f = `encre-${t.id}`;
   const rond = t.forme !== 'carre';
+  // (un motif mal nommé laissait le tampon sans dessin, sans rien dire : Udo, « toiriEscalier », 2026-10-31)
+  if (!MOTIFS[t.motif]) console.error(`Tampon sans dessin : ${t.id} (motif « ${t.motif} »)`);
   const cadre = rond
     ? '<circle cx="60" cy="60" r="55" fill="none" stroke-width="4"/><circle cx="60" cy="60" r="49" fill="none" stroke-width="1.6"/>'
     : '<rect x="6" y="6" width="108" height="108" rx="14" fill="none" stroke-width="4"/><rect x="12" y="12" width="96" height="96" rx="10" fill="none" stroke-width="1.6"/>';
