@@ -13,12 +13,13 @@
 //  de terre « 運玉 » (les hommes de la main gauche, les femmes de la droite), modelées par les écoliers d'Udo depuis 1954.
 //  Le lapin est le messager du dieu (撫でうさぎ : on caresse la statue là où l'on veut guérir). Sur le chemin : le grand
 //  torii, le Shinmon (神門), le Rōmon rouge à étage (楼門), les lanternes des seigneurs Itō d'Obi (leurs feux en phases de
-//  lune), le pont Tamabashi (玉橋), et sur la colline, le petit sanctuaire Udo Inari et ses torii rouges. Autrefois, les
-//  pèlerins arrivaient en bateau au port de Fukigei et montaient l'escalier du Hatchōzaka (八丁坂) : c'est là qu'attend
+//  lune), le pont Tamabashi (玉橋), et sur la colline, le petit sanctuaire Udo Inari et ses torii rouges. Le plus vieux
+//  chemin des pèlerins, l'escalier du Hatchōzaka (八丁坂), descend au port de Fukei (吹毛井) : c'est là qu'attend
 //  le batelier de Yakushima. Les distances sont resserrées ; la grotte (38 × 29 m, 8,5 m de haut) un peu plus petite.
 //  Sources : le TikTok et les rushes du propriétaire (« 0518.mp4 »), ja.wikipedia (鵜戸神宮), les photos de Wikimedia
 //  Commons (Romon, Shimmon, Tamabashi, Honden, Udo Inari, Kame-ishi, le lapin), les panneaux du ministère du tourisme (撫で
-//  うさぎ, 神橋), un carnet de voyage (igoiseeishoot, 2025).
+//  うさぎ, 神橋, 鵜戸山八丁坂 : « the port of Fukei », 815 marches ; le jeu disait « Fukigei », pris d'un article de voyage :
+//  corrigé le 2026-10-31), un carnet de voyage (igoiseeishoot, 2025).
 //  Repère : x vers l'est, z vers le sud, y vers le haut, en mètres ; la mer au nord, à l'est et au sud (niveau 0) ; le cap
 //  à 10 m, la crête au-dessus de la grotte à 20 m, la terrasse de la grotte à 4,5 m, le quai du port à 1,2 m.
 //  ctx : { THREE, atelier, P (palette), peinture, perso, maillage }.
@@ -35,7 +36,7 @@ const PI = Math.PI;
 // ---------------------------------------------------------------- Le plan
 // les hauteurs : le parking, la rue des boutiques, la place du Shinmon et l'allée (Y_ROUTE) ; le haut des marches du Rōmon
 // (Y_ROMON) ; le pont Tamabashi et la pointe (Y_POINTE) ; la terrasse de la grotte (Y_T) ; le sanctuaire d'Inari (Y_INARI) ;
-// le quai du port de Fukigei (Y_PORT)
+// le quai du port de Fukei (Y_PORT)
 const Y_ROUTE = 10.0, Y_ROMON = 11.0, Y_POINTE = 10.6, Y_T = 4.5, Y_INARI = 14.4, Y_PORT = 1.2;
 // le parking et l'arrêt de bus (le départ), à l'ouest ; la rue des boutiques (門前町) ; la place du Shinmon (神門), à son bout
 // est ; l'allée jusqu'au Rōmon
@@ -61,7 +62,7 @@ const TERRASSE = { x0: 22.4, x1: 45, z0: -45.4, z1: -23.2 };
 const INARI_ESC = { x: -13, demi: 1.15, z0: -2.5, z1: -10.2, n: 25, y0: Y_ROUTE, y1: Y_INARI };
 const INARI = { x0: -18.6, x1: -7.4, z0: -17.4, z1: -10.2 };
 const HATCHO = { x: -36, demi: 1.2, z0: -9, z1: -27, n: 50, y0: Y_ROUTE, y1: Y_PORT };
-// le quai du port de Fukigei (吹毛井港), au fond de la crique au nord ; l'eau de la crique au-delà de son bord (z < z0)
+// le quai du port de Fukei (吹毛井港), au fond de la crique au nord ; l'eau de la crique au-delà de son bord (z < z0)
 const QUAI = { x0: -60, x1: -27.4, z0: -33.4, z1: -27 };
 // le coin de Bunbuku, sous les camphriers, au sud de l'allée (il mord sur l'allée : un coin qui ne fait que la toucher laisse
 // un mur invisible, Kinkaku-ji, 2026-10-27)
@@ -2194,7 +2195,7 @@ export function construire(ctx) {
     poser(a.fin(), 0, 0, { y: 0 });
   }
 
-  // ---------------------------------------------------------------- Le Hatchōzaka (八丁坂) et le port de Fukigei (吹毛井港)
+  // ---------------------------------------------------------------- Le Hatchōzaka (八丁坂) et le port de Fukei (吹毛井港)
   // Le vieil escalier des pèlerins, de la place du Shinmon jusqu'au port, entre deux murets de pierre ; en bas, le quai de béton
   // au fond de la crique : ses bittes d'amarrage et leur grosse corde au bord de l'eau, la remise des pêcheurs, les filets, les
   // bouées, les caisses ; le bateau du batelier (celui de Yakushima) amarré au quai, d'autres barques ; la digue et son phare.
@@ -2542,7 +2543,7 @@ export function construire(ctx) {
     // deux touristes sur le chemin des lanternes
     { id: 'touriste', x: 9.4, z: 1.4, cap: -PI / 2, tenue: { taille: 0.95, peau: '#f2c9a8', cheveux: '#3a2a22', coiffure: 'queue', chapeau: { sorte: 'soleil', c: '#f4efe2' }, haut: '#8ac4e8', manches: 'courtes', bas: { sorte: 'jupe', c: '#2f3a5a' }, chaussures: '#f4f0e6', semelle: '#3a3236', appareil: true }, quand: 'jour' },
     { id: 'touriste2', x: 10.6, z: 1.6, cap: -PI / 2 + 0.3, tenue: { taille: 1.06, peau: PEAU, cheveux: NOIR, coiffure: 'court', haut: '#3a6a5a', manches: 'courtes', bas: { sorte: 'pantalon', c: '#3a3a44' }, chaussures: P.blanc, semelle: '#3a3236' }, quand: 'jour' },
-    // le batelier du port de Fukigei, devant son bateau (celui de Yakushima) : il reste la nuit
+    // le batelier du port de Fukei, devant son bateau (celui de Yakushima) : il reste la nuit
     { id: 'batelier', x: BATELIER.x, z: BATELIER.z, cap: BATELIER.cap, tenue: { taille: 1.0, peau: '#d8a880', cheveux: '#5a5650', coiffure: 'court', chapeau: { sorte: 'bandeau', c: '#f4f0e6' }, haut: '#3a5a7a', manches: 'longues', tablier: '#e8a42a', bas: { sorte: 'pantalon', c: '#3a3f4a' }, chaussures: '#e8e4dc', semelle: '#2a2a30', yeux: 'plisses' } },
     // une pêcheuse qui trie les poissons, à côté des caisses
     { id: 'pecheuse', x: -46.6, z: QUAI.z1 - 1.5, cap: PI - 0.5, tenue: { taille: 0.88, peau: '#e8b890', cheveux: '#5a4a40', coiffure: 'chignon', chapeau: { sorte: 'foulard', c: '#3a6a5a' }, haut: '#c8783a', manches: 'longues', tablier: '#3a5a7a', bas: { sorte: 'pantalon', c: '#3a3a44' }, chaussures: '#e8e4dc', semelle: '#2a2a30', yeux: 'plisses' }, quand: 'jour' },
@@ -3267,7 +3268,7 @@ const TEXTES = {
     kannushiNuit: ['La nuit est belle sur la mer de Hyūga. Tu veux revoir le matin ?'],
     kannushiReste: ['Profite de la nuit.'],
     kannushiMatin: ['Voilà le soleil qui se lève sur la mer. Le premier rayon entre jusque dans la grotte.'],
-    batelier: ['Hé, le voyageur ! Mon bateau va jusqu’à Yakushima, l’île des cèdres millénaires, loin au sud.', 'Autrefois, les pèlerins arrivaient à Udo en bateau, ici, à Fukigei, et montaient le vieil escalier. Moi, je fais le chemin inverse !', 'Mais la mer, ça se respecte : je n’emmène que ceux qui ont salué les dieux d’Udo. Rapporte-moi les cinq tampons du sanctuaire.'],
+    batelier: ['Hé, le voyageur ! Mon bateau va jusqu’à Yakushima, l’île des cèdres millénaires, loin au sud.', 'Autrefois, les pèlerins montaient au sanctuaire par le vieil escalier, depuis ce port de Fukei. Moi, je pars dans l’autre sens : vers la mer !', 'Mais la mer, ça se respecte : je n’emmène que ceux qui ont salué les dieux d’Udo. Rapporte-moi les cinq tampons du sanctuaire.'],
     batelierNuit: ['La nuit, on ne part pas : on regarde les étoiles et on écoute la mer.', 'Rapporte-moi les cinq tampons d’Udo, et je t’emmène à Yakushima.'],
     batelierReste: (n) => `Il te manque encore ${n} tampon${n > 1 ? 's' : ''}.`,
     batelierPret: ['Oh ! Les cinq tampons d’Udo ! Toyotama-hime, la fille du dieu de la mer, veille sur toi maintenant.', 'On part pour Yakushima ?'],
@@ -3293,7 +3294,7 @@ const TEXTES = {
     otorii: ['Le grand torii du sanctuaire, au bout de la rue des boutiques. Au-delà commence le chemin d’Udo-jingū.'],
     vueEscalier: ['La voilà, la vue des cartes postales : l’escalier qui descend le long de la falaise, la terrasse, la grotte et son sanctuaire vermillon, et la mer de Hyūga.', 'Udo est un sanctuaire où l’on « descend » pour prier (下り宮) : c’est très rare au Japon.'],
     vueEscalierNuit: ['La nuit, tout en bas, la grotte brille comme une boîte de laque rouge posée au bord de la mer.'],
-    portVue: ['En bas, le petit port de Fukigei (吹毛井港), au fond de la crique. Le vieil escalier des pèlerins y descend : le Hatchōzaka (八丁坂).'],
+    portVue: ['En bas, le petit port de Fukei (吹毛井港), au fond de la crique. Le vieil escalier des pèlerins y descend : le Hatchōzaka (八丁坂).'],
     portVueNuit: ['En bas, le petit port dort. Le phare rouge de la digue veille.'],
     chozuya: ['La fontaine des ablutions (手水舎). On se lave la main gauche, puis la droite, puis on se rince la bouche, avant d’aller prier.'],
     'panneau-yuisho': ['« Udo-jingū (鵜戸神宮). Le dieu : Ugayafukiaezu, fils de Toyotama-hime, la fille du dieu de la mer, et père de l’empereur Jinmu. »', '« Le sanctuaire est bâti dans une grotte de la falaise, au bord de la mer de Hyūga : on y descend pour prier. On y vient pour les naissances, les mariages et la chance. »'],
@@ -3325,7 +3326,7 @@ const TEXTES = {
     lieuxPlumes: { p1: 'sur le palier d’Udo Inari, en haut des torii rouges', p2: 'sur la pointe, juste après le pont Tamabashi', p3: 'sur le quai du port, en bas du vieil escalier' },
     plumesHutteCompagnon: { kon: ['« Les trois plumes ! Allons les poser sur le toit de la hutte, dans la grotte, au nord du sanctuaire. »'], pon: ['« Pon pon ! Les trois ! Vite, à la hutte de la grotte, au nord du sanctuaire ! »'], chapu: ['« Chapu chapu ! Trois plumes ! À la hutte, dans la grotte, au nord du sanctuaire ! »'], gao: ['« Gao. Les trois plumes. Direction la hutte, dans la grotte, au nord du sanctuaire. »'], fuwa: ['« Fuwaaa ! Les trois ! La hutte de la princesse attend, dans la grotte, au nord du sanctuaire ! »'], saya: ['« Les trois plumes… Portons-les à la hutte, dans la grotte, au nord du sanctuaire. »'] },
     kannushiHutte: ['Tu as vu la petite hutte, contre la paroi, au nord du sanctuaire ? Son toit attend toujours ses dernières plumes…'],
-    randonneur: ['Je monte le Hatchōzaka, le vieil escalier des pèlerins : huit chō, près de neuf cents mètres de marches, du port jusqu’au sanctuaire !', 'Autrefois, tout le monde arrivait par là, en bateau.'],
+    randonneur: ['Je monte le Hatchōzaka, le vieil escalier des pèlerins : huit chō, environ huit cents mètres de marches, du port jusqu’au sanctuaire !', 'On raconte que des nonnes ont monté ses pierres depuis la plage, en équilibre sur la tête !'],
     chauffeur: ['Le car de la côte de Nichinan. Prochain départ dans une heure : prends ton temps, Udo se visite lentement.'],
     chatPort: ['Un chat roux dort sur le quai, à côté des filets. Il sent le poisson.', 'Tu le caresses… Rrrrrr…'],
     chatPortNuit: ['La nuit, le chat du port est réveillé : il guette les bateaux. Ses yeux brillent.'],
@@ -3385,7 +3386,7 @@ const TEXTES = {
     kannushiNuit: ['The night is lovely on the Hyūga sea. Would you like to see the morning again?'],
     kannushiReste: ['Enjoy the night.'],
     kannushiMatin: ['Here comes the sun, rising over the sea. Its first ray reaches all the way into the cave.'],
-    batelier: ['Hey, traveller! My boat goes to Yakushima, the island of thousand-year-old cedars, far to the south.', 'Long ago, pilgrims came to Udo by boat, here at Fukigei, and climbed the old stairs. I do the trip the other way!', 'But the sea deserves respect: I only take those who have greeted the gods of Udo. Bring me the shrine’s five stamps.'],
+    batelier: ['Hey, traveller! My boat goes to Yakushima, the island of thousand-year-old cedars, far to the south.', 'Long ago, pilgrims climbed up to the shrine by the old stairs, from this very harbour of Fukei. I go the other way: out to sea!', 'But the sea deserves respect: I only take those who have greeted the gods of Udo. Bring me the shrine’s five stamps.'],
     batelierNuit: ['We don’t set off at night: we watch the stars and listen to the sea.', 'Bring me Udo’s five stamps, and I’ll take you to Yakushima.'],
     batelierReste: (n) => `You still need ${n} stamp${n > 1 ? 's' : ''}.`,
     batelierPret: ['Oh! Udo’s five stamps! Toyotama-hime, daughter of the god of the sea, is watching over you now.', 'Shall we set off for Yakushima?'],
@@ -3411,7 +3412,7 @@ const TEXTES = {
     otorii: ['The shrine’s great torii, at the end of the street of shops. Beyond it begins the path of Udo-jingū.'],
     vueEscalier: ['There it is, the postcard view: the stairs going down along the cliff, the terrace, the cave and its vermilion shrine, and the Hyūga sea.', 'Udo is a shrine you go “down” to pray at (下り宮): that’s very rare in Japan.'],
     vueEscalierNuit: ['At night, far below, the cave glows like a red lacquer box set at the edge of the sea.'],
-    portVue: ['Down below, the little harbour of Fukigei (吹毛井港), at the end of the cove. The pilgrims’ old stairs lead down to it: the Hatchōzaka (八丁坂).'],
+    portVue: ['Down below, the little harbour of Fukei (吹毛井港), at the end of the cove. The pilgrims’ old stairs lead down to it: the Hatchōzaka (八丁坂).'],
     portVueNuit: ['Down below, the little harbour is asleep. The red lighthouse on the breakwater keeps watch.'],
     chozuya: ['The purification fountain (手水舎). You wash your left hand, then your right, then rinse your mouth, before going to pray.'],
     'panneau-yuisho': ['“Udo-jingū (鵜戸神宮). The god: Ugayafukiaezu, son of Toyotama-hime, daughter of the god of the sea, and father of Emperor Jinmu.”', '“The shrine is built in a cave in the cliff, on the Hyūga sea: you go down to pray. People come here for births, weddings and luck.”'],
@@ -3443,7 +3444,7 @@ const TEXTES = {
     lieuxPlumes: { p1: 'on the landing of Udo Inari, at the top of the red torii', p2: 'on the point, just past the Tamabashi bridge', p3: 'on the harbour quay, at the bottom of the old stairs' },
     plumesHutteCompagnon: { kon: ['“All three feathers! Let’s lay them on the hut’s roof, in the cave, north of the shrine.”'], pon: ['“Pon pon! All three! Quick, to the hut in the cave, north of the shrine!”'], chapu: ['“Chapu chapu! Three feathers! To the hut, in the cave, north of the shrine!”'], gao: ['“Gao. The three feathers. On to the hut, in the cave, north of the shrine.”'], fuwa: ['“Fuwaaa! All three! The princess’s hut is waiting, in the cave, north of the shrine!”'], saya: ['“The three feathers… Let’s carry them to the hut, in the cave, north of the shrine.”'] },
     kannushiHutte: ['Have you seen the little hut against the rock wall, north of the shrine? Its roof is still waiting for its last feathers…'],
-    randonneur: ['I’m climbing the Hatchōzaka, the pilgrims’ old stairs: eight chō, nearly nine hundred metres of steps, from the harbour to the shrine!', 'Long ago, everyone came this way, by boat.'],
+    randonneur: ['I’m climbing the Hatchōzaka, the pilgrims’ old stairs: eight chō, about eight hundred metres of steps, from the harbour to the shrine!', 'They say nuns carried its stones up from the beach, balanced on their heads!'],
     chauffeur: ['The Nichinan coast bus. Next departure in an hour: take your time, Udo is best seen slowly.'],
     chatPort: ['A ginger cat is asleep on the quay, next to the nets. It smells of fish.', 'You pet it… Rrrrrr…'],
     chatPortNuit: ['At night, the harbour cat is awake: it watches the boats. Its eyes glow.'],
@@ -3503,7 +3504,7 @@ const TEXTES = {
     kannushiNuit: ['日向の　うみの　よるは　きれいですね。あさに　もどしますか？'],
     kannushiReste: ['よるを　たのしんで　ください。'],
     kannushiMatin: ['うみから　お日さまが　のぼりました。さいしょの　ひかりが　どうくつの　おくまで　とどきます。'],
-    batelier: ['よう、たびの　人！　わしの　船は　ずっと　南の　屋久島、千年スギの　しままで　いくんだ。', 'むかしの　さんぱいしゃは　この　吹毛井の　みなとに　船で　ついて、ふるい　かいだんを　のぼったもんだ。わしは　そのぎゃくさ！', 'でも　うみは　あなどれん。鵜戸の　かみさまに　あいさつした　人しか　のせない。神社の　スタンプを　五つ　あつめて　おいで。'],
+    batelier: ['よう、たびの　人！　わしの　船は　ずっと　南の　屋久島、千年スギの　しままで　いくんだ。', 'むかしの　さんぱいしゃは　この　吹毛井の　みなとから、ふるい　かいだんを　のぼって　いったもんだ。わしは　ぎゃくに　うみへ　でるのさ！', 'でも　うみは　あなどれん。鵜戸の　かみさまに　あいさつした　人しか　のせない。神社の　スタンプを　五つ　あつめて　おいで。'],
     batelierNuit: ['よるは　船を　ださない。ほしを　見て、うみの　おとを　きくんだ。', '鵜戸の　スタンプを　五つ　あつめたら、屋久島へ　つれていくよ。'],
     batelierReste: (n) => `スタンプは　あと　${n}こ　たりないな。`,
     batelierPret: ['おお！　鵜戸の　スタンプが　五つ！　うみの　かみさまの　むすめ、豊玉姫が　もう　おまえを　まもってくれる。', '屋久島へ　しゅっぱつ　するか？'],
@@ -3561,7 +3562,7 @@ const TEXTES = {
     lieuxPlumes: { p1: '赤い　鳥居の　上の、鵜戸稲荷の　ひろば', p2: '玉橋を　わたった　すぐ　さきの　みさき', p3: 'ふるい　かいだんの　下の、みなとの　きし' },
     plumesHutteCompagnon: { kon: ['「三まい　そろった！　どうくつの、本殿の　北に　ある　こやの　やねに　のせに　いこう。」'], pon: ['「ポンポン！　三まい！　はやく、どうくつの　本殿の　北の　こやへ！」'], chapu: ['「チャプチャプ！　はねが　三まい！　どうくつの　本殿の　北の　こやへ！」'], gao: ['「ガオ。はねが　三まい。どうくつの　本殿の　北の　こやへ　いこう。」'], fuwa: ['「フワ〜！　三まい　そろった！　おひめさまの　こやが　まってる、どうくつの　本殿の　北だよ！」'], saya: ['「三まいの　はね……　どうくつの　本殿の　北の　こやへ　はこびましょう。」'] },
     kannushiHutte: ['本殿の　北、いわの　かべの　そばの　小さな　こやを　見ましたか？　その　やねは、いまも　さいごの　はねを　まって　いるのです……'],
-    randonneur: ['八丁坂を　のぼってるんだ。さんぱいしゃの　ふるい　かいだんで、みなとから　お宮まで　八町、900メートル　ちかくも　ある！', 'むかしは　みんな　船で　きて、ここを　のぼったんだよ。'],
+    randonneur: ['八丁坂を　のぼってるんだ。さんぱいしゃの　ふるい　かいだんで、みなとから　お宮まで　八町、やく　800メートルも　ある！', 'むかし、尼さんたちが　はまから　石を　あたまに　のせて　はこんで、つくったんだって！'],
     chauffeur: ['日南かいがんの　バスだよ。つぎの　しゅっぱつは　一じかんご。ゆっくり　見ておいで。'],
     chatPort: ['がんぺきの　あみの　そばで　茶トラの　ねこが　ねている。さかなの　におい。', 'なでてみた……　ゴロゴロ……'],
     chatPortNuit: ['よる、みなとの　ねこは　おきて　船を　見はっている。目が　ひかる。'],
