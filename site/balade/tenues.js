@@ -14,7 +14,8 @@ import { aAchete } from './tresors.js';
 // (le 2026-10-23, des pièces qu'on achète au marchand avec les koban des secrets, tresors.js : achat ; et trois places
 // de plus : la tenue entière, ce qu'on laisse sous ses pas, ce que porte le compagnon ; puis, avec Gokayama, ce qu'on
 // porte sur le dos : le sac, ou le mino, la cape de paille ; avec Takachiho, ce qu'on porte au cou : le collier de magatama ;
-// avec Kinkaku-ji, sur le dos encore : les ailes du phénix, des plumes d'or qui s'ouvrent quand on court)
+// avec Kinkaku-ji, sur le dos encore : les ailes du phénix, des plumes d'or qui s'ouvrent quand on court ; avec Udo, la
+// cape en plumes de cormoran, dont le bas se soulève quand on court)
 export const PLACES = ['tete', 'yeux', 'habit', 'dos', 'cou', 'pas', 'compagnon'];
 /**
  * Les pièces, par place (une seule pièce par place à la fois) ; lieu : le lieu dont il faut tous les tampons ; achat :
@@ -40,6 +41,7 @@ export const PIECES = [
   { id: 'sac', place: 'dos' },
   { id: 'mino', place: 'dos', lieu: 'gokayama' },
   { id: 'ailes', place: 'dos', lieu: 'kinkakuji' },
+  { id: 'cormoran', place: 'dos', lieu: 'udo' },
   { id: 'cou-rien', place: 'cou' },
   { id: 'magatama', place: 'cou', lieu: 'takachiho' },
   { id: 'yamabushi', place: 'cou', lieu: 'sanjubutsu' },
@@ -217,6 +219,12 @@ const DESSINS = {
     ${[11, 15, 19, 23, 27, 31, 35, 38].map((x) => `<path d="M${x} 38 l1 5" stroke="#a8874a" stroke-width="1.6" stroke-linecap="round"/>`).join('')}
     ${[14, 18, 22, 26, 30, 34].map((x) => `<path d="M${x} 12 L${x - 2 + (x - 24) * 0.2} 36" stroke="#b8975a" stroke-width="1"/>`).join('')}
     <ellipse cx="24" cy="8.5" rx="8" ry="3" fill="#d9bd78" stroke="${ENCRE}" stroke-width="1.6"/>`,
+  // la cape en plumes de cormoran (Udo) : vue de dos, des rangs de plumes bronze bordées de noir, en écailles, le bas en
+  // pointes ; le col de plumes blanches
+  cormoran: `<path d="M16 9 Q24 6 32 9 L38 23 L41 38 ${[37.6, 34.2, 30.8, 27.4, 24, 20.6, 17.2, 13.8, 10.4].map((x, k) => `L${(x + 1.7).toFixed(1)} ${k % 2 ? 41.2 : 44.5} L${x} 40.8`).join(' ')} L7 38 L10 23 Z" fill="#6b5a3a" stroke="${ENCRE}" stroke-width="2.2" stroke-linejoin="round"/>
+    ${[[16, 13.5, 34.5], [23, 11, 37], [30, 9.4, 38.6], [36.4, 8, 40]].map(([y, x0, x1]) => { let d = ''; const n = Math.round((x1 - x0) / 4.4), w = (x1 - x0) / n; for (let k = 0; k < n; k++) d += `M${(x0 + k * w).toFixed(1)} ${y} q${(w / 2).toFixed(2)} 3.4 ${w.toFixed(2)} 0 `; return `<path d="${d}" fill="none" stroke="#29271f" stroke-width="1.5" stroke-linecap="round"/>`; }).join('')}
+    <path d="M14.2 11 Q24 16.4 33.8 11 Q31.4 6.2 24 5.6 Q16.6 6.2 14.2 11 Z" fill="#f3f0e6" stroke="${ENCRE}" stroke-width="1.8" stroke-linejoin="round"/>
+    <path d="M17.5 12.4 l1 2.6 l1.2 -2 M22.4 13.6 l1.4 2.6 l1.4 -2.5 M27.4 13.4 l1.2 2.4 l1 -2.5" fill="none" stroke="#c9c2b0" stroke-width="1.1" stroke-linejoin="round"/>`,
   // les ailes du phénix (le Pavillon d'or) : deux ailes d'or en éventail de longues plumes, dressées vers le haut
   ailes: `${[-1, 1].map((s) => [0, 1, 2, 3, 4].map((k) => { const a = (s < 0 ? Math.PI : 0) + s * (0.35 + k * 0.28), l = 13 + k * 2.4; return `<path d="M${24 + s * 3} 30 L${(24 + s * 3 + Math.cos(a) * l * 0.55 - Math.sin(a) * 2.6).toFixed(1)} ${(30 - Math.sin(a) * l * 0.55 - Math.cos(a) * 2.6 * s).toFixed(1)} L${(24 + s * 3 + Math.cos(a) * l).toFixed(1)} ${(30 - Math.sin(a) * l).toFixed(1)} Z" fill="${k % 2 ? '#f4c845' : '#e2a92e'}" stroke="${ENCRE}" stroke-width="1.6" stroke-linejoin="round"/>`; }).join('')).join('')}
     <ellipse cx="24" cy="32" rx="5" ry="7" fill="#f4c845" stroke="${ENCRE}" stroke-width="1.8"/>`,

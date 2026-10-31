@@ -12,7 +12,7 @@
 // ================================================================
 
 /** Le secret de chaque lieu. */
-export const SECRETS = { itsukushima: 'corbeaux', aogashima: 'tresor', gokayama: 'heike', himeji: 'okiku', takachiho: 'miroir', kinkakuji: 'phenix', beppu: 'ippen', motonosumi: 'torii124', sanjubutsu: 'oni' };
+export const SECRETS = { itsukushima: 'corbeaux', aogashima: 'tresor', gokayama: 'heike', himeji: 'okiku', takachiho: 'miroir', kinkakuji: 'phenix', beppu: 'ippen', motonosumi: 'torii124', sanjubutsu: 'oni', udo: 'plumes' };
 /** Les secrets en plus d'un lieu, un koban chacun ; le carnet ne les montre qu'une fois trouvés (2026-10-29 : la grotte de l'ermite
  * des Trente Bouddhas, derrière la cascade). */
 export const SECRETS_EN_PLUS = { sanjubutsu: ['iwaya'] };

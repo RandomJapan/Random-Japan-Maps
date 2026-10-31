@@ -2581,9 +2581,11 @@ async function tampon(id, puis) {
   if (puis) await puis();
   if ((lireTampons()[L.id] || []).length === L.tampons.length) {
     // (un lieu peut dire autre chose que « un autre lieu ? ouvre le menu » : à Udo, le batelier du port emmène à Yakushima,
-    // 2026-10-30)
-    await dialogue.dire(tx('toutCompagnon')?.[espece || 'kon'] || tc('tout'), { qui: tc('nom') });
+    // 2026-10-30 ; il le dit après la récompense et « il reste un secret » : avant, la carte de la cape le recouvrait, 2026-10-31)
+    const suite = tx('toutCompagnon')?.[espece || 'kon'];
+    if (!suite) await dialogue.dire(tc('tout'), { qui: tc('nom') });
     await offrirRecompenses();
+    if (suite) await dialogue.dire(suite, { qui: tc('nom') });
   }
 }
 const attendre = (ms) => new Promise((r) => setTimeout(r, ms));

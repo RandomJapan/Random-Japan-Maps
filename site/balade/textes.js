@@ -91,7 +91,7 @@ export const TEXTES = {
       titre: 'Wardrobe', titreJa: 'きせかえ', tete: 'On your head', yeux: 'On your face', habit: 'Outfit', dos: 'On your back', cou: 'Around your neck', pas: 'Under your feet', compagnon: 'Your companion',
       noms: {
         defautGarcon: 'Cap', defautFille: 'Straw hat', nue: 'No hat', bois: 'Deer antlers', heron: 'White heron headdress', cornes: 'Oni horns', renard: 'Fox ears and tail', kabuto: 'Samurai helmet', aucune: 'Nothing', etoiles: 'Star glasses', masque: 'Fox mask',
-        sacGarcon: 'Backpack', sacFille: 'Backpack', mino: 'Straw cape (mino)', ailes: 'Phoenix wings', 'cou-rien': 'Nothing', magatama: 'Magatama necklace', yamabushi: 'Yamabushi’s stole and conch',
+        sacGarcon: 'Backpack', sacFille: 'Backpack', mino: 'Straw cape (mino)', ailes: 'Phoenix wings', cormoran: 'Cormorant feather cape', 'cou-rien': 'Nothing', magatama: 'Magatama necklace', yamabushi: 'Yamabushi’s stole and conch',
         habitGarcon: 'Red jacket', habitFille: 'Pink blouse', happi: 'Festival coat', yukata: 'Yukata', kimonoOr: 'Golden kimono', armure: 'Samurai armour',
         'trace-aucune': 'Nothing', 'trace-petales': 'Petals', 'trace-etoiles': 'Stars', 'trace-feuilles': 'Maple leaves',
         'cp-defaut': 'Nothing extra', 'cp-bandana': 'Bandana', 'cp-chapeau': 'Little straw hat', 'cp-grelot': 'Golden bell',
@@ -104,6 +104,7 @@ export const TEXTES = {
         sacGarcon: 'Your yellow backpack, with your rolled-up sleeping mat.', sacFille: 'Your pink backpack, with its little red charm (omamori).',
         mino: 'The straw raincoat of the mountain farmers of Gokayama, for rain and snow. Very warm!',
         ailes: 'Golden wings, like those of the phoenix on the roof of the Golden Pavilion. They open when you run or jump!',
+        cormoran: 'A cape of cormorant feathers (u, 鵜), the seabirds that gave Udo its name: bronze feathers edged with black, and a white collar like the cormorant’s cheeks. Its hem flies up when you run!',
         'cou-rien': 'Nothing around your neck.', magatama: 'Comma-shaped jade jewels (magatama) with carnelian and crystal beads, like the necklace the gods hung on the sacred tree to bring the sun back, at Takachiho.', yamabushi: 'The stole of a yamabushi (the mountain ascetics of Kunisaki): purple and gold brocade, six fluffy cotton pompoms (four in front, two on the back), and a conch shell hanging from its braided cord, to call from one mountain to another.',
         habitGarcon: 'Your everyday clothes: the red jacket over your T-shirt.', habitFille: 'Your everyday clothes: the pink blouse with its sailor collar.',
         happi: 'The indigo coat of festival days, with its white collar and its red and white belt.', yukata: 'A light summer kimono, for festivals and fireworks, with wooden geta.',
@@ -121,7 +122,7 @@ export const TEXTES = {
       plusTard: ['You can put it on anytime: Menu → Wardrobe.'],
     },
     tresors: {
-      secrets: { corbeaux: 'The sacred crows', tresor: 'The treasure box', heike: 'The Heike fireflies', okiku: 'Okiku’s tenth plate', miroir: 'The mirror of the sun', phenix: 'The phoenix of the reflection', ippen: 'Ippen’s stones', torii124: 'The 124th torii', oni: 'The kind oni', iwaya: 'The hermit’s cave' },
+      secrets: { corbeaux: 'The sacred crows', tresor: 'The treasure box', heike: 'The Heike fireflies', okiku: 'Okiku’s tenth plate', miroir: 'The mirror of the sun', phenix: 'The phoenix of the reflection', ippen: 'Ippen’s stones', torii124: 'The 124th torii', oni: 'The kind oni', iwaya: 'The hermit’s cave', plumes: 'The cormorant feathers' },
       trouve: (lieu) => [`You found the secret of ${lieu}!`, 'You get a koban: an old gold coin from the Edo period.'],
       marchandOu: { itsukushima: 'They say a tanuki merchant has set up under the pines, between the shrine and the hill. He loves koban…', aogashima: 'They say a tanuki merchant has set up deep in the forest, on the east side of the crater. He loves koban…', gokayama: 'They say a tanuki merchant has set up under the great cedars, near the shrine. He loves koban…', himeji: 'They say a tanuki merchant has set up under the cherry trees, on the west side of the big lawn. He loves koban…', takachiho: 'They say a tanuki merchant has set up in the shrine’s courtyard, at the edge of the forest, near the stairs down to the river. He loves koban…', kinkakuji: 'They say a tanuki merchant has set up under the maples on the hill, between the evening tea house and the tea stall. He loves koban…', beppu: 'They say a tanuki merchant has set up in the bamboo, along the path up to Shibaseki, west of the street. He loves koban…', motonosumi: 'They say a tanuki merchant has set up under the pines, at the west end of the shrine grounds. He loves koban…', sanjubutsu: 'They say a tanuki merchant has set up in a clearing west of the great staircase, by a little jizō. He loves koban…', udo: 'They say a tanuki merchant has set up under the camphor trees, south of the path between the Shinmon and the Rōmon. He loves koban…' },
       secretReste: ['Your stamp book trembles… There is still a secret here. The most attentive will find it!'],
@@ -229,7 +230,7 @@ export const TEXTES = {
       titre: 'Garde-robe', titreJa: 'きせかえ', tete: 'Sur la tête', yeux: 'Sur le visage', habit: 'Tenue', dos: 'Sur le dos', cou: 'Au cou', pas: 'Sous tes pas', compagnon: 'Ton compagnon',
       noms: {
         defautGarcon: 'Casquette', defautFille: 'Chapeau de paille', nue: 'Tête nue', bois: 'Bois de daim', heron: 'Coiffe du héron blanc', cornes: 'Cornes d’oni', renard: 'Oreilles et queue de renard', kabuto: 'Casque de samouraï', aucune: 'Rien', etoiles: 'Lunettes étoiles', masque: 'Masque de renard',
-        sacGarcon: 'Sac à dos', sacFille: 'Sac à dos', mino: 'Cape de paille (mino)', ailes: 'Ailes du phénix', 'cou-rien': 'Rien', magatama: 'Collier de magatama', yamabushi: 'Étole et conque du yamabushi',
+        sacGarcon: 'Sac à dos', sacFille: 'Sac à dos', mino: 'Cape de paille (mino)', ailes: 'Ailes du phénix', cormoran: 'Cape en plumes de cormoran', 'cou-rien': 'Rien', magatama: 'Collier de magatama', yamabushi: 'Étole et conque du yamabushi',
         habitGarcon: 'Veste rouge', habitFille: 'Chemisier rose', happi: 'Veste de fête', yukata: 'Yukata', kimonoOr: 'Kimono d’or', armure: 'Armure de samouraï',
         'trace-aucune': 'Rien', 'trace-petales': 'Pétales', 'trace-etoiles': 'Étoiles', 'trace-feuilles': 'Feuilles d’érable',
         'cp-defaut': 'Rien de plus', 'cp-bandana': 'Foulard à pois', 'cp-chapeau': 'Petit chapeau de paille', 'cp-grelot': 'Grelot doré',
@@ -242,6 +243,7 @@ export const TEXTES = {
         sacGarcon: 'Ton sac à dos jaune, et ton tapis de sol roulé.', sacFille: 'Ton sac à dos rose, et son petit porte-bonheur rouge (omamori).',
         mino: 'La cape de paille des paysans de la montagne, à Gokayama, contre la pluie et la neige. Bien chaude !',
         ailes: 'Des ailes d’or, comme celles du phénix sur le toit du Pavillon d’or. Elles s’ouvrent quand tu cours ou quand tu sautes !',
+        cormoran: 'Une cape en plumes de cormoran (u, 鵜), les oiseaux de mer qui ont donné son nom à Udo : des plumes bronze bordées de noir, et un col blanc comme les joues du cormoran. Le bas se soulève quand tu cours !',
         'cou-rien': 'Rien au cou.', magatama: 'Des joyaux de jade en forme de virgule (magatama), des perles de cornaline et de cristal : comme le collier que les dieux suspendirent à l’arbre sacré pour faire revenir le soleil, à Takachiho.', yamabushi: 'L’étole des yamabushi, les ascètes des montagnes de Kunisaki : un brocart violet et or, six pompons de coton (quatre devant, deux dans le dos), et une conque pendue à son cordon tressé, pour s’appeler d’une montagne à l’autre.',
         habitGarcon: 'Tes habits de tous les jours : la veste rouge sur ton tee-shirt.', habitFille: 'Tes habits de tous les jours : le chemisier rose au col marin.',
         happi: 'La veste indigo des jours de fête, son col blanc et sa ceinture rouge et blanche.', yukata: 'Un kimono léger d’été, pour les fêtes et les feux d’artifice, avec des geta de bois.',
@@ -259,7 +261,7 @@ export const TEXTES = {
       plusTard: ['Tu pourras l’essayer quand tu veux : Menu → Garde-robe.'],
     },
     tresors: {
-      secrets: { corbeaux: 'Les corbeaux sacrés', tresor: 'La boîte au trésor', heike: 'Les lucioles des Heike', okiku: 'La dixième assiette d’Okiku', miroir: 'Le miroir du soleil', phenix: 'Le phénix du reflet', ippen: 'Les pierres d’Ippen', torii124: 'Le 124e torii', oni: 'L’oni gentil', iwaya: 'La grotte de l’ermite' },
+      secrets: { corbeaux: 'Les corbeaux sacrés', tresor: 'La boîte au trésor', heike: 'Les lucioles des Heike', okiku: 'La dixième assiette d’Okiku', miroir: 'Le miroir du soleil', phenix: 'Le phénix du reflet', ippen: 'Les pierres d’Ippen', torii124: 'Le 124e torii', oni: 'L’oni gentil', iwaya: 'La grotte de l’ermite', plumes: 'Les plumes de cormoran' },
       trouve: (lieu) => [`Tu as trouvé le secret ${deLieu(lieu)} !`, 'Tu gagnes un koban : une vieille pièce d’or de l’époque d’Edo.'],
       marchandOu: { itsukushima: 'Il paraît qu’un marchand tanuki s’est installé sous les pins, entre le sanctuaire et la colline. Il adore les koban…', aogashima: 'Il paraît qu’un marchand tanuki s’est installé au milieu de la forêt, à l’est du cratère. Il adore les koban…', gokayama: 'Il paraît qu’un marchand tanuki s’est installé sous les grands cèdres, près du sanctuaire. Il adore les koban…', himeji: 'Il paraît qu’un marchand tanuki s’est installé sous les cerisiers, à l’ouest de la grande pelouse. Il adore les koban…', takachiho: 'Il paraît qu’un marchand tanuki s’est installé dans la cour du sanctuaire, au bord de la forêt, près de l’escalier qui descend à la rivière. Il adore les koban…', kinkakuji: 'Il paraît qu’un marchand tanuki s’est installé sous les érables de la colline, entre le pavillon du thé du soir et le salon de thé. Il adore les koban…', beppu: 'Il paraît qu’un marchand tanuki s’est installé dans le bambou, le long du sentier qui monte à Shibaseki, à l’ouest de la rue. Il adore les koban…', motonosumi: 'Il paraît qu’un marchand tanuki s’est installé sous les pins, au bout ouest du parvis du sanctuaire. Il adore les koban…', sanjubutsu: 'Il paraît qu’un marchand tanuki s’est installé dans une clairière, à l’ouest du pied du grand escalier, près d’un petit jizō. Il adore les koban…', udo: 'Il paraît qu’un marchand tanuki s’est installé sous les camphriers, au sud de l’allée, entre le Shinmon et le Rōmon. Il adore les koban…' },
       secretReste: ['Ton carnet frémit… Il reste un secret ici. Les plus attentifs le trouveront !'],
@@ -367,7 +369,7 @@ export const TEXTES = {
       titre: 'きせかえ', titreJa: '', tete: 'あたま', yeux: 'かお', habit: 'ふく', dos: 'せなか', cou: 'くび', pas: 'あしもと', compagnon: 'なかま',
       noms: {
         defautGarcon: 'ぼうし', defautFille: 'むぎわらぼうし', nue: 'なし', bois: 'シカのツノ', heron: 'しらさぎの　ぼうし', cornes: 'おにの　ツノ', renard: 'キツネの　みみと　しっぽ', kabuto: 'かぶと', aucune: 'なし', etoiles: 'ほしのメガネ', masque: 'キツネのおめん',
-        sacGarcon: 'リュック', sacFille: 'リュック', mino: 'みの', ailes: '鳳凰の　つばさ', 'cou-rien': 'なし', magatama: 'まがたまの　くびかざり', yamabushi: '山伏の　ゆいげさと　ほらがい',
+        sacGarcon: 'リュック', sacFille: 'リュック', mino: 'みの', ailes: '鳳凰の　つばさ', cormoran: '鵜の　はねの　マント', 'cou-rien': 'なし', magatama: 'まがたまの　くびかざり', yamabushi: '山伏の　ゆいげさと　ほらがい',
         habitGarcon: 'あかい　ジャケット', habitFille: 'ピンクの　ブラウス', happi: 'はっぴ', yukata: 'ゆかた', kimonoOr: '金の　きもの', armure: 'よろい',
         'trace-aucune': 'なし', 'trace-petales': 'はなびら', 'trace-etoiles': 'ほし', 'trace-feuilles': 'もみじ',
         'cp-defaut': 'なし', 'cp-bandana': 'みずたまの　バンダナ', 'cp-chapeau': 'すげがさ', 'cp-grelot': '金の　すず',
@@ -380,6 +382,7 @@ export const TEXTES = {
         sacGarcon: 'きいろい　リュックと、まいた　マット。', sacFille: 'ピンクの　リュックと、小さな　赤い　おまもり。',
         mino: '五箇山の　山の　人たちの、わらの　レインコート。雨にも　雪にも　あったかい！',
         ailes: '金閣の　屋根の　鳳凰みたいな　金の　つばさ。はしったり　ジャンプしたり　すると　ひらくよ！',
+        cormoran: '鵜戸の　名まえの　もとに　なった　うみの　とり、鵜（う）の　はねの　マント。ふちの　くろい　ブロンズいろの　はねと、鵜の　ほっぺみたいな　白い　えり。はしると　すそが　ふわっと　うきあがるよ！',
         'cou-rien': 'くびには　なにも　つけない。', magatama: 'ヒスイの　まがたまと、メノウや　すいしょうの　玉。お日さまを　よびもどすため、高千穂で　神さまたちが　さかきに　かけた　くびかざりみたい！', yamabushi: '国東の　山伏の　ゆいげさ。むらさきと　金の　にしきに、六つの　ぼんてん（まえに　四つ、うしろに　二つ）。山から　山へ　よびあう　ほらがいも。',
         habitGarcon: 'いつもの　ふく。Tシャツに　あかい　ジャケット。', habitFille: 'いつもの　ふく。セーラーえりの　ピンクの　ブラウス。',
         happi: 'おまつりの　日の　あいいろの　はっぴ。白い　えりと　赤白の　おび。', yukata: '夏の　かるい　きもの。おまつりや　花火に。げたを　はいて。',
@@ -397,7 +400,7 @@ export const TEXTES = {
       plusTard: ['メニューの　「きせかえ」で　いつでも　つけられるよ。'],
     },
     tresors: {
-      secrets: { corbeaux: '神鴉', tresor: 'たからの　はこ', heike: '平家ボタル', okiku: 'お菊の　十まいめの　お皿', miroir: 'お日さまの　かがみ', phenix: 'うつった　鳳凰', ippen: '一遍上人の　石', torii124: '124ばんめの　鳥居', oni: 'やさしい　鬼', iwaya: '行者の　岩屋' },
+      secrets: { corbeaux: '神鴉', tresor: 'たからの　はこ', heike: '平家ボタル', okiku: 'お菊の　十まいめの　お皿', miroir: 'お日さまの　かがみ', phenix: 'うつった　鳳凰', ippen: '一遍上人の　石', torii124: '124ばんめの　鳥居', oni: 'やさしい　鬼', iwaya: '行者の　岩屋', plumes: '鵜の　はね' },
       trouve: (lieu) => [`${lieu}の　ひみつを　見つけた！`, '小判を　てに　いれた！　江戸時代の　古い　金貨だ。'],
       marchandOu: { itsukushima: '神社と　丘の　あいだ、松の　木の　下に　タヌキの　商人が　いるらしい。小判が　大すきだって……', aogashima: 'クレーターの　東の　森の　おくに　タヌキの　商人が　いるらしい。小判が　大すきだって……', gokayama: '神社の　そばの　大きな　スギの　下に　タヌキの　商人が　いるらしい。小判が　大すきだって……', himeji: '大きな　しばふの　西の　桜の　下に　タヌキの　商人が　いるらしい。小判が　大すきだって……', takachiho: '神社の　境内、森の　そばの　川へ　おりる　階段の　近くに　タヌキの　商人が　いるらしい。小判が　大すきだって……', kinkakuji: '丘の　上、夕佳亭と　お茶所の　あいだの　もみじの　下に　タヌキの　商人が　いるらしい。小判が　大すきだって……', beppu: '通りの　西、柴石へ　のぼる　みちの　竹やぶに　タヌキの　商人が　いるらしい。小判が　大すきだって……', motonosumi: '神社の　けいだいの　西の　はし、松の　下に　タヌキの　商人が　いるらしい。小判が　大すきだって……', sanjubutsu: '大きな　かいだんの　下の　西、小さな　おじぞうさまの　そばの　森の　ひろばに　タヌキの　商人が　いるらしい。小判が　大すきだって……', udo: '神門と　楼門の　あいだ、さんどうの　南の　クスノキの　下に　タヌキの　商人が　いるらしい。小判が　大すきだって……' },
       secretReste: ['スタンプ帳が　ふるえた……ここには　まだ　ひみつが　ある。よく　見る　人だけが　見つけられる！'],

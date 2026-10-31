@@ -27,6 +27,8 @@ import { creerMonde, interactionsBancs, lisse, hasard, bruitDoux, surLaLigne } f
 import { panneau, PAPIER_PANNEAU } from './decor.js';
 import { MATIERES as M } from './textures.js';
 import { aLeTampon } from './carnet.js';
+import { plumeCormoran } from './personnages.js';
+import { secretTrouve, indiceVu } from './tresors.js';
 
 const PI = Math.PI;
 
@@ -151,6 +153,35 @@ const KAMEISHI = { x: 50.8, z: -34.0, y: 1.9 };
 const LANCEUR = { x: 43.9, z: -33.8 };
 // la petite échoppe des boules de chance (運玉), sur la terrasse
 const ECHOPPE = { x: 38.6, z: -28.4 };
+// la hutte de la naissance (産屋, le secret) : contre la paroi nord de la grotte, au nord du sanctuaire, au bord du chemin qui en
+// fait le tour ; son toit de plumes de cormoran n'a jamais été fini. Les trois plumes du secret, par terre, en vue, à côté de là où
+// l'on passe : sur le palier d'Udo Inari, sur la pointe après le pont, sur le quai du port
+const HUTTE = { x: 11.0, z: GROTTE.z - 9.0 };
+const PLUMES = [
+  { id: 'p1', x: -9.7, z: -12.6, ry: 0.7 },
+  { id: 'p2', x: 30.8, z: -2.2, ry: 2.2 },
+  { id: 'p3', x: -45.2, z: -30.6, ry: -0.9 },
+];
+/**
+ * L'état du secret des plumes : trouvé (fini), les plumes ramassées (pris : des indices, « plume-p1 »…, n). Relu dans le stockage
+ * au plus toutes les 0,4 s : les conditions des actions sont demandées à chaque image, et quatorze lectures du stockage par
+ * image coûtaient à un téléphone près d'une demi-milliseconde (2026-10-31). etatPlumes.oublier() après un changement.
+ */
+const etatPlumes = (() => {
+  let s = null, lu = -1;
+  const lire = () => {
+    const t = performance.now();
+    if (!s || t - lu > 400) {
+      lu = t;
+      const pris = PLUMES.map((p) => indiceVu(`plume-${p.id}`));
+      s = { fini: secretTrouve('plumes'), pris, n: pris.filter(Boolean).length };
+    }
+    return s;
+  };
+  lire.oublier = () => { s = null; };
+  return lire;
+})();
+const ramassees = () => etatPlumes().n;
 
 // ---------------------------------------------------------------- La côte
 // le contour de la terre : le pays à l'ouest, le cap qui avance vers l'est (la crique du port au nord-ouest, la falaise de la
@@ -1160,6 +1191,252 @@ export function construire(ctx) {
     return { objet, briller() { t = 1.6; }, maj(dt) { t = Math.max(0, t - dt); pts.visible = t > 0; pts.material.opacity = Math.min(1, t) * (0.7 + 0.3 * Math.sin(t * 12)); return []; } };
   })();
   animes.push(lueurLapin);
+
+  // ---------------------------------------------------------------- La hutte de la naissance (産屋) : le secret des plumes
+  // Contre la paroi nord de la grotte, au nord du sanctuaire, au bord du chemin qui en fait le tour : une petite hutte à
+  // l'ancienne, ouverte devant : des poteaux de bois brut, un plancher bas, des murs de roseau, un toit à deux pentes dont les
+  // chevrons des bouts se croisent au-dessus du faîte, une corde sacrée devant ; dedans, une natte, le berceau de paille et sa
+  // petite lampe de papier. Son toit de plumes de cormoran n'est pas fini : les trois rangs du haut manquent, de chaque côté (on
+  // voit les perches) : Ugayafukiaezu, « le toit de cormoran pas fini ». Le secret : y rapporter les trois plumes (PLUMES) ;
+  // chacune finit un rang, des deux côtés. Le plumage qui manque est un seul maillage, dessiné peu à peu (setDrawRange).
+  const hutte = (() => {
+    const a = atelier(), R = repere(HUTTE.x, HUTTE.z, 0), y = Y_T;
+    const ECORCE = '#6e563e', BOIS = '#a8875e', ROSEAU = '#cdb88a', ROSEAU2 = '#bda677', NATTE = '#d9c48a';
+    const BRONZE = ['#62583a', '#544c34', '#5c5a3c', '#47432f'], NOIR = '#1f2422';
+    // le plancher (YP), le haut des poteaux (YE), le faîte (YF) ; la pente du toit, de son axe de chevron au faîte jusqu'au bord
+    const YP = y + 0.3, YE = y + 1.5, YF = y + 2.36, PENTE = (YF - YE - 0.07) / 0.68, ZB = 0.95, YB = YF + 0.012 - PENTE * ZB;
+    const pt = (lx, ly, lz) => { const q = R(lx, ly, lz); return [q.x, q.y, q.z]; };
+    // le plancher bas : posé sur les poteaux d'angle (ils le traversent) et deux pieux au milieu ; la natte
+    a.boite(2.06, 0.06, 1.36, BOIS, R(0, YP - 0.03, 0, { nuance: 0.06 }));
+    for (const v of [-0.6, 0.6]) a.cylindre(0.055, 0.055, YP - 0.06 - y, 8, ECORCE, R(0, y + (YP - 0.06 - y) / 2, v));
+    a.boite(1.62, 0.03, 1.02, NATTE, R(-0.05, YP + 0.015, -0.04, { nuance: 0.03 }));
+    // les poteaux d'angle, de bois brut ; ceux du faîte, dehors, aux deux bouts ; les poutres du bord, celles des côtés, le faîte
+    for (const [u, v] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) a.cylindre(0.062, 0.07, YE + 0.02 - y, 8, ECORCE, R(u * 1.0, y + (YE + 0.02 - y) / 2, v * 0.68, { nuance: 0.07 }));
+    for (const u of [-1, 1]) a.cylindre(0.064, 0.072, YF - 0.03 - y, 8, ECORCE, R(u * 1.12, y + (YF - 0.03 - y) / 2, 0, { nuance: 0.07 }));
+    for (const v of [-1, 1]) a.baton(pt(-1.24, YE + 0.03, v * 0.68), pt(1.24, YE + 0.03, v * 0.68), 0.05, ECORCE, 7);
+    for (const u of [-1, 1]) a.baton(pt(u * 1.0, YE + 0.03, -0.8), pt(u * 1.0, YE + 0.03, 0.8), 0.045, ECORCE, 7);
+    a.baton(pt(-1.5, YF + 0.03, 0), pt(1.5, YF + 0.03, 0), 0.062, ECORCE, 8);
+    // les chevrons, de chaque côté ; ceux des deux bouts se croisent au-dessus du faîte (comme les huttes d'autrefois)
+    for (const u of [-1.27, -0.64, 0, 0.64, 1.27]) {
+      for (const s of [-1, 1]) {
+        const bout = Math.abs(u) > 1 ? 0.3 : 0;
+        a.baton(pt(u, YB, s * ZB), pt(u, YF + 0.012 + PENTE * bout, -s * bout), 0.028, ECORCE, 6);
+      }
+    }
+    // la pente : le point à e (m) au-dessus du bord, en x = lx, h au-dessus de l'axe des chevrons (sur la normale du toit)
+    const L = Math.hypot(ZB, PENTE * ZB), cs = 1 / Math.hypot(1, PENTE), sn = PENTE * cs;
+    const surPente = (s, e, lx, h) => pt(lx, YB + e * sn + h * cs, s * (ZB - e * cs + h * sn));
+    const normale = (s) => [0, cs, s * sn];
+    // les rangs de plumes : [pointe, base] le long de la pente, depuis le bord ; une perche sous chaque base
+    const RANGS = [0, 0.23, 0.46, 0.69, 0.92, 1.12].map((e) => [e, Math.min(e + 0.36, L + 0.02)]);
+    for (const s of [-1, 1]) for (const [, eb] of RANGS.slice(0, 5)) a.baton(surPente(s, eb, -1.42, 0.048), surPente(s, eb, 1.42, 0.048), 0.02, ECORCE, 5);
+    const plumes = (b, k, s, sens) => {
+      const [et, eb] = RANGS[k], n = 25, pas = 2.76 / n;
+      for (let j0 = 0; j0 < n; j0++) {
+        const j = sens > 0 ? j0 : n - 1 - j0, lx = -1.38 + (j + 0.5) * pas + (k % 2 ? pas / 2 : 0) - pas / 4, g = hasard(lx * 7.1 + k, s * 3.3);
+        plumeCormoran(THREE, b, {
+          base: surPente(s, eb, lx, 0.07), pointe: surPente(s, et, lx + (g - 0.5) * 0.02, k ? 0.105 : 0.06), normale: normale(s),
+          large: 0.15, epais: 0.012, c: BRONZE[Math.floor(g * 4)], bout: NOIR, roulis: j % 2 ? 0.08 : -0.08, bombe: 0.01,
+        });
+      }
+    };
+    // les trois rangs du bas, de chaque côté : déjà là
+    for (const s of [-1, 1]) for (const k of [0, 1, 2]) plumes(a, k, s, 1);
+    // les murs de roseau (derrière et sur les côtés, jusqu'aux poutres) ; les pignons de roseau au-dessus des côtés
+    const roseau = (wx, wy, wz) => (Math.floor((wx + wz) * 26) % 2 ? ROSEAU : ROSEAU2);
+    a.piece(new THREE.BoxGeometry(1.94, YE - YP, 0.03, 24, 1, 1), ROSEAU, { ...R(0, (YE + YP) / 2, -0.66), teinte: roseau, nuance: 0.04 });
+    for (const u of [-1, 1]) {
+      a.piece(new THREE.BoxGeometry(0.03, YE - YP, 1.28, 1, 1, 16), ROSEAU, { ...R(u * 0.985, (YE + YP) / 2, 0), teinte: roseau, nuance: 0.04 });
+      a.pignon(0.03, YF - YE - 0.12, 1.3, ROSEAU2, R(u * 0.985, YE + 0.075, 0, { nuance: 0.04 }));
+    }
+    // la corde sacrée devant, d'un poteau à l'autre, ses papiers pliés
+    a.tube([pt(-0.97, YE - 0.1, 0.68), pt(-0.4, YE - 0.2, 0.69), pt(0, YE - 0.22, 0.69), pt(0.4, YE - 0.2, 0.69), pt(0.97, YE - 0.1, 0.68)], 0.032, '#d8c48a', { cotes: 6, pas: 14 });
+    for (const lx of [-0.45, 0, 0.45]) for (let k = 0; k < 3; k++) a.boite(0.07, 0.08, 0.006, '#fbfaf4', R(lx + (k % 2 ? 0.025 : -0.025), YE - 0.3 - k * 0.07 + (lx ? 0.02 : 0), 0.7, { rz: k % 2 ? -0.3 : 0.3, trait: false }));
+    // le berceau de paille (son drap blanc) ; la petite lampe de papier (andon) dans le coin, toujours allumée : elle éclaire la hutte
+    const berceau = R(0.25, YP + 0.03, -0.18);
+    a.cylindre(0.2, 0.16, 0.14, 14, '#c9a66a', { ...berceau, y: YP + 0.1, sx: 1.45, nuance: 0.06 }).ovale(0.19, '#f4f2ec', { ...berceau, y: YP + 0.17, sx: 1.45, sy: 0.22 }, 12);
+    const andon = R(-0.72, YP + 0.03, -0.42);
+    a.boite(0.2, 0.03, 0.2, '#5a4030', { ...andon, y: YP + 0.045 }).boite(0.16, 0.28, 0.16, '#fff1d0', { ...andon, y: YP + 0.2, sorte: 'lampe' })
+      .boite(0.2, 0.03, 0.2, '#5a4030', { ...andon, y: YP + 0.355 });
+    for (const [u, v] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) a.boite(0.022, 0.31, 0.022, '#5a4030', { ...R(-0.72 + u * 0.085, YP + 0.2, -0.42 + v * 0.085) });
+    lumieres.push({ ...R(-0.72, YP + 0.25, -0.42), halo: 0, sol: YP, r: 1.9, c: '#ffd9a0', jour: true });
+    // le petit panneau sur son poteau, à côté, tourné vers le chemin : « 産屋 » (la hutte de la naissance)
+    a.boite(0.05, 1.3, 0.05, P.boisFonce, R(2.05, y + 0.65, 1.0)).boite(0.34, 0.56, 0.03, '#f4efe2', R(2.05, y + 1.18, 1.03));
+    ecrire({ ...R(2.05, y, 1.0465), ry: 0 }, { texte: '産屋', vertical: true, x: 0, y: 1.18, z: 0, l: 0.24, h: 0.44, fond: null, encre: '#2a2420' });
+    // on n'y entre pas, ni sous ses bords de toit (le bas du toit, à 1,26 m, est sous la tête du voyageur) : un mur autour, à
+    // 30 cm de la tête sous le bord ; le poteau du panneau ; le faîte arrête la caméra
+    murRect(R, 1.48, 1.03);
+    // (le panneau, 34 cm de large : la tête du voyageur, grosse, y entrait avec un rond de 30 cm)
+    monde.cercle(R(2.05, 0, 1.0).x, R(2.05, 0, 1.0).z, 0.48);
+    monde.bloc(HUTTE.x - 1.45, HUTTE.x + 1.45, HUTTE.z - 0.95, HUTTE.z + 0.95, y - 1, YF + 0.2);
+    poser(a.fin(), 0, 0, { y: 0 });
+    // le plumage qui manque : les rangs 3, 4 et 5, chacun de chaque côté (le devant d'ouest en est, puis le derrière d'est en
+    // ouest) ; tous les morceaux ont le même nombre de sommets : une plume = PAR sommets
+    const b = atelier();
+    for (const k of [3, 4, 5]) { plumes(b, k, 1, 1); plumes(b, k, -1, -1); }
+    const fb = b.fin(0, false), mb = ctx.maillage(fb), geo = fb.geometrie, PAR = geo.attributes.position.count / 150;
+    const objet = new THREE.Group();
+    objet.add(mb);
+    // l'éclat de la hutte au moment où le toit se finit (une lampe de lueurs.js, rangée sous le sol le reste du temps)
+    const eclat = { x: HUTTE.x, y: -500, z: HUTTE.z + 0.2, halo: 0, sol: YP, r: 3.6, c: '#ffe3a8', mobile: true, jour: true };
+    lumieres.push(eclat);
+    let montre = secretTrouve('plumes') ? 3 : 0, cible = montre, brille = 0;
+    // (rien à dessiner : caché, ombre comprise)
+    const dessiner = (n) => { geo.setDrawRange(0, Math.round(n * 50) * PAR); mb.visible = n > 0; };
+    dessiner(montre);
+    return {
+      objet,
+      // le haut du toit, pour y faire voler les plumes : le milieu du rang k (3 à 5), devant ; le faîte
+      rang: (k) => surPente(1, (RANGS[k][0] + RANGS[k][1]) / 2, 0, 0.12),
+      faite: pt(0, YF + 0.1, 0),
+      devant: R(0, y, 1.75),
+      /** Les rangs finis jusqu'à n (1 à 3) : ils se dessinent plume à plume ; se résout une fois fait. */
+      finir(n) { cible = n; return new Promise((fin) => { this.fini = fin; }); },
+      briller() { brille = 3.2; },
+      fini: null,
+      maj(dt) {
+        if (montre < cible) {
+          montre = Math.min(cible, montre + dt / 1.3);
+          dessiner(montre);
+          if (montre >= cible && this.fini) { const f = this.fini; this.fini = null; f(); }
+        }
+        // (l'éclat monte de sous le plancher et y redescend : la lumière vient et s'en va en douceur)
+        brille = Math.max(0, brille - dt);
+        eclat.y = brille > 0 ? YP + 0.9 - 2.6 * (1 - Math.min(1, brille / 0.8, (3.2 - brille) / 0.5)) : -500;
+        return [];
+      },
+    };
+  })();
+  animes.push(hutte);
+  // ---------------------------------------------------------------- Les trois plumes de cormoran (le secret)
+  // Par terre, en vue, à côté de là où l'on passe (PLUMES) : de grandes plumes (50 cm : des plumes de 35 cm se perdaient sur les
+  // dalles), bronze bordées de noir, leur tige blanche ; au-dessus de chacune, de jour comme de nuit, un halo doré qui respire et
+  // une étoile qui scintille, d'une taille fixe à l'écran (vus de loin : comme les pierres d'Ippen de Beppu ; le jour, peints
+  // par-dessus et non ajoutés à la lumière : sur les dalles claires, un éclat ajouté ne se voyait plus). Ramassées, ce sont des
+  // indices (« plume-p1 »…) : on ne perd rien en rechargeant la page. À la hutte, elles volent de la main jusqu'au haut du toit,
+  // l'une après l'autre (voler) ; puis le koban sort de la hutte.
+  const plumesSecret = (() => {
+    const objet = new THREE.Group();
+    // (sans ombre : à plat sur le sol, elle ne se voyait pas, et coûtait un dessin de plus à chaque image)
+    const plume = () => {
+      const b = atelier();
+      plumeCormoran(THREE, b, { base: [0, 0, -0.25], pointe: [0, 0, 0.25], normale: [0, 1, 0], large: 0.17, epais: 0.014, c: '#5c5438', bout: '#1f2422', bombe: 0.006, rachis: true, profil: [0.1, 0.62, 0.92, 1, 0.94, 0.7, 0.2] });
+      return ctx.maillage(b.fin(0, false), false);
+    };
+    // (couchées sur le sol tel qu'il est dessiné, 3 cm au-dessus du terrain ; un peu tournées, un peu penchées : un bord 5 mm
+    // plus haut que l'autre, sans entrer dans le sol)
+    const sol = PLUMES.map((p) => {
+      const m = plume(), y = terrain(p.x, p.z) + 0.03 + 0.013;
+      m.position.set(p.x, y, p.z);
+      m.rotation.set(0, p.ry, 0.06);
+      objet.add(m);
+      return { ...p, m, y };
+    });
+    // (les plumes qui volent et le koban : dans un groupe qui n'entre dans la scène qu'à la fin du secret ; avant, ses matrices
+    // seraient recalculées à chaque image pour rien)
+    const fin = new THREE.Group(), finIci = () => { if (!fin.parent) objet.add(fin); };
+    const vols = [0, 1, 2].map(() => { const m = plume(); m.visible = false; fin.add(m); return { m, t: -1 }; });
+    // le koban, qui sort de la hutte et vient au voyageur
+    const koban = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.025, 24), new THREE.MeshLambertMaterial({ color: '#e8b941', emissive: '#6a4a10' }));
+    koban.scale.set(0.72, 1, 1.15);
+    koban.visible = false;
+    fin.add(koban);
+    let monte = null;
+    // les lueurs, des points d'une taille fixe à l'écran (deux fois plus de pixels sur les écrans denses)
+    const px = Math.min(globalThis.devicePixelRatio || 1, 2);
+    const lueur = nuee(THREE, PLUMES.length, { tache: tacheDouce(THREE, 0.35), additif: true }), etoile = nuee(THREE, PLUMES.length, { tache: etoileDouce(THREE), additif: true });
+    // (le jour, l'étincelle : une étoile à quatre branches cernée d'un trait d'encre, peinte ; elle se voit sur tous les sols)
+    const etincelle = nuee(THREE, PLUMES.length, { tache: etincelleEncre(THREE) });
+    for (const n of [lueur, etoile, etincelle]) { n.m.material.sizeAttenuation = false; objet.add(n.m); }
+    // l'état du secret (dans le stockage du navigateur), relu toutes les 0,4 s : les plumes ramassées, la dernière qui reste
+    let relu = -1, S = null;
+    const relire = (temps) => {
+      if (S && temps - relu < 0.4 && temps >= relu) return S;
+      relu = temps;
+      const fini = secretTrouve('plumes'), pris = PLUMES.map((p) => indiceVu(`plume-${p.id}`)), n = pris.filter(Boolean).length;
+      return (S = { fini, pris, n });
+    };
+    const api = {
+      objet,
+      // montrer(jeu) : la scène qui dit où est la dernière plume, ou, les trois en main, d'aller à la hutte (donnée par le lieu) ;
+      // vue : déjà dite (ou dite en ramassant) : sinon, en arrivant avec deux ou trois plumes, on la dit une fois, dès qu'on est libre
+      montrer: null, vue: false,
+      ramasser(id) { const p = sol.find((q) => q.id === id); if (p) p.m.visible = false; S = null; },
+      /** La plume k vole de (x, y, z) jusqu'au toit ; se résout à l'arrivée. */
+      voler(k, de, vers) {
+        finIci();
+        return new Promise((fin) => { Object.assign(vols[k], { de, vers, t: 0, fin }); vols[k].m.visible = true; });
+      },
+      /** Le koban sort de la hutte (de) et vient au voyageur (vers) ; se résout à l'arrivée. */
+      koban(de, vers) {
+        finIci();
+        return new Promise((fin) => { monte = { de, vers, t: 0, fin }; koban.visible = true; });
+      },
+      maj(dt, temps, c) {
+        const s = relire(temps), j = c.joueur;
+        if (!s.fini && s.n >= 2 && !api.vue && api.montrer && c.scene) { api.vue = true; c.scene((jeu) => api.montrer(jeu)); }
+        let montrees = 0;
+        sol.forEach((p, k) => {
+          if (s.pris[k] || s.fini) p.m.visible = false;
+          const d = Math.hypot(j.x - p.x, j.z - p.z);
+          if (!p.m.visible || d > 70) { lueur.ranger(k); etoile.ranger(k); etincelle.ranger(k); return; }
+          montrees++;
+          // (le halo s'efface tout près, pour qu'on voie la plume)
+          const pres = lisse(1.2, 3.5, d), b = (0.6 + 0.4 * Math.sin(temps * 2.2 + k * 2)) * pres, yy = p.y + 0.62 + 0.05 * Math.sin(temps * 1.3 + k);
+          // (l'étoile : deux scintillements qui se croisent, comme le soleil sur l'eau)
+          const e = Math.max(0, Math.sin(temps * 3.1 + k) * Math.sin(temps * 1.9 + k * 1.7)), f = (0.45 + 0.55 * e) * pres;
+          if (c.nuit > 0.5) {
+            lueur.poser(k, p.x, yy, p.z, 54 * px, b, b * 0.82, b * 0.4, 1);
+            etoile.poser(k, p.x, yy, p.z, (22 + 26 * e) * px, f, f * 0.92, f * 0.7, 1);
+            etincelle.ranger(k);
+          } else {
+            // (le jour : un halo orangé, doux ; l'étincelle d'or cernée d'encre, qui grandit et rapetisse en scintillant)
+            lueur.poser(k, p.x, yy, p.z, 64 * px, 1, 0.62, 0.12, 0.45 * b);
+            etoile.ranger(k);
+            etincelle.poser(k, p.x, yy, p.z, (34 + 18 * e) * px, 1, 0.8, 0.22, pres);
+          }
+        });
+        // (le halo : le jour, peint par-dessus ; la nuit, ajouté à la lumière. Une nuée sans rien à montrer n'est pas dessinée :
+        // l'étoile, le jour ; l'étincelle, la nuit ; tout, loin des plumes)
+        const mode = c.nuit > 0.5 ? THREE.AdditiveBlending : THREE.NormalBlending;
+        if (lueur.m.material.blending !== mode) lueur.m.material.blending = mode;
+        lueur.m.visible = montrees > 0;
+        etoile.m.visible = montrees > 0 && c.nuit > 0.5;
+        etincelle.m.visible = montrees > 0 && c.nuit <= 0.5;
+        for (const n of [lueur, etoile, etincelle]) if (n.m.visible) n.fin();
+        // les plumes qui volent jusqu'au toit : un arc, en tournoyant
+        for (const v of vols) {
+          if (v.t < 0) continue;
+          v.t = Math.min(1, v.t + dt / 0.95);
+          const u = v.t, e = u * u * (3 - 2 * u), [a0, a1] = [v.de, v.vers];
+          v.m.position.set(a0[0] + (a1[0] - a0[0]) * e, a0[1] + (a1[1] - a0[1]) * e + 0.7 * Math.sin(u * PI), a0[2] + (a1[2] - a0[2]) * e);
+          v.m.rotation.set(0.5 * Math.sin(u * 9), Math.atan2(a1[0] - a0[0], a1[2] - a0[2]) + u * 4, 0.4 * Math.sin(u * 7));
+          if (u >= 1) { v.t = -1; v.m.visible = false; const f = v.fin; v.fin = null; f?.(); }
+        }
+        // le koban : il monte de la natte, tourne, puis vient jusqu'au voyageur
+        if (monte) {
+          monte.t = Math.min(1, monte.t + dt / 2.2);
+          const u = monte.t, k = lisse(0.35, 1, u), { de, vers } = monte;
+          koban.position.set(de[0] + (vers[0] - de[0]) * k, de[1] + 0.5 * lisse(0, 0.35, u) + (vers[1] - de[1] - 0.5) * k, de[2] + (vers[2] - de[2]) * k);
+          koban.rotation.set(PI / 2 - 0.2, temps * 4, 0);
+          if (u >= 1) { koban.visible = false; if (vols.every((v) => v.t < 0)) objet.remove(fin); const f = monte.fin; monte = null; f(); }
+        }
+        return [];
+      },
+    };
+    return api;
+  })();
+  // où est la dernière plume (à la deuxième ramassée, ou en arrivant avec deux) ; les trois : la hutte, dans la grotte
+  plumesSecret.montrer = async (jeu) => {
+    if (secretTrouve('plumes')) return;
+    const d = PLUMES.find((q) => !indiceVu(`plume-${q.id}`));
+    await comp(jeu, d ? 'plumeDerniereCompagnon' : 'plumesHutteCompagnon');
+    if (d) await jeu.dire([jeu.tx('plumeDerniere')(jeu.tx('lieuxPlumes')[d.id])]);
+  };
+  animes.push(plumesSecret);
+  // le cormoran du secret : il paraît sur le faîte de la hutte, sèche ses ailes, et s'envole vers la mer
+  const cormoran = creerCormoran(ctx.perso || ctx);
+  animes.push(cormoran);
 
   // ---------------------------------------------------------------- La terrasse : la barrière, l'échoppe, le rocher de la tortue
   // une seule barrière rouge, d'un bout à l'autre : du haut de l'escalier, le long de son côté mer, au bord sud de la terrasse,
@@ -2426,6 +2703,8 @@ export function construire(ctx) {
       async action(jeu) {
         if (!jeu.estNuit) {
           await jeu.dire(jeu.tx('kannushi'), 'kannushi');
+          // (la hutte de la naissance, tant que son toit n'est pas fini : un indice du secret)
+          if (!secretTrouve('plumes')) await jeu.dire(jeu.tx('kannushiHutte'), 'kannushi');
           const r = await jeu.choisir(jeu.tx('kannushiSoir'), [jeu.t('oui'), jeu.t('non')], 'kannushi');
           if (r !== 0) { await jeu.dire(jeu.tx('kannushiNon'), 'kannushi'); return; }
           await jeu.nuit(true);
@@ -2455,6 +2734,90 @@ export function construire(ctx) {
       },
     },
     { id: 'bateau', x: BATEAU.x + 2.6, z: QUAI.z0 + 0.6, rayon: 1.6, haut: 1.6, verbe: 'regarder', vers: [BATEAU.x, BATEAU.z], action: (jeu) => jeu.dire(jeu.txn('bateau')) },
+    // le secret des plumes de cormoran : la hutte de la naissance, dans la grotte ; la regarder (son toit pas fini, combien de
+    // plumes on a, où est la dernière) ; les trois en main, les y poser
+    {
+      id: 'hutte', x: HUTTE.x + 0.3, z: HUTTE.z + 1.75, y: Y_T, rayon: 1.9, haut: 1.4, verbe: 'regarder', vers: [HUTTE.x, HUTTE.z],
+      si: () => etatPlumes().fini || etatPlumes().n < 3,
+      async action(jeu) {
+        if (secretTrouve('plumes')) { await jeu.dire(jeu.tx('hutteFinie')); return; }
+        const n = ramassees(), premiere = !indiceVu('plumes');
+        await jeu.dire(jeu.tx('hutte'));
+        jeu.voirIndice('plumes');
+        if (n === 0) { if (premiere) await comp(jeu, 'hutteCompagnon'); return; }
+        await jeu.dire(jeu.tx('huttePlumes')(n));
+        if (n === 2) await plumesSecret.montrer(jeu);
+      },
+    },
+    {
+      // les poser : chacune vole jusqu'au haut du toit et en finit un rang ; la hutte s'éclaire ; un cormoran paraît sur le
+      // faîte, sèche ses ailes et s'envole par la grotte vers la mer ; le koban sort de la hutte
+      id: 'hutte-plumes', x: HUTTE.x + 0.3, z: HUTTE.z + 1.75, y: Y_T, rayon: 1.9, haut: 1.4, verbe: 'poser', vers: [HUTTE.x, HUTTE.z],
+      si: () => !etatPlumes().fini && etatPlumes().n >= 3,
+      async action(jeu) {
+        const r = await jeu.choisir(jeu.tx('hutteMettre'), [jeu.t('oui'), jeu.t('non')]);
+        if (r !== 0) return;
+        const xj = HUTTE.x + 0.3, zj = HUTTE.z + 1.75, vueHutte = { de: [HUTTE.x + 2.7, Y_T + 2.3, HUTTE.z + 3.3], vers: [HUTTE.x - 0.1, Y_T + 1.6, HUTTE.z + 0.1], champ: 56 };
+        jeu.placer(xj, zj, PI);
+        jeu.cadrer(vueHutte);
+        await jeu.dire(jeu.tx('hutteMet'));
+        jeu.geste('offrir');
+        for (let k = 0; k < 3; k++) {
+          await plumesSecret.voler(k, [xj, Y_T + 1.05, zj - 0.35], hutte.rang(3 + k));
+          jeu.son('papier');
+          const fait = hutte.finir(k + 1);
+          if (k < 2) await jeu.attendre(450); else await fait;
+        }
+        jeu.geste(null);
+        hutte.briller();
+        jeu.son('magie');
+        await jeu.attendre(1100);
+        await jeu.dire(jeu.tx('hutteFin'));
+        // (la caméra à l'ouest de la hutte, vers l'est : le faîte, le couloir, la bouche de la grotte et la mer au bout)
+        const [fx, fy, fz] = hutte.faite;
+        jeu.cadrer({ de: [HUTTE.x - 4.4, Y_T + 2.2, HUTTE.z + 2.3], vers: [HUTTE.x + 9, Y_T + 3.3, HUTTE.z + 3.2], champ: 60 });
+        jeu.nuage(fx + 0.3, fy + 0.35, fz, 1);
+        // (tourné vers la caméra : on voit ses ailes grandes ouvertes)
+        cormoran.poser(fx + 0.3, fy, fz, -1.1);
+        await jeu.attendre(900);
+        cormoran.secher(true);
+        await jeu.attendre(1800);
+        cormoran.envol([[fx + 0.3, fy + 0.42, fz], [HUTTE.x + 2.0, fy + 1.1, HUTTE.z + 1.4], [16.5, Y_T + 4.4, HUTTE.z + 1.4], [22.4, Y_T + 4.6, HUTTE.z + 2.6], [30.0, Y_T + 5.4, -37.5], [44.0, Y_T + 6.5, -38.5], [62.0, 10.5, -43.0], [88.0, 15.0, -50.0]]);
+        await jeu.attendre(4300);
+        await comp(jeu, 'cormoranCompagnon');
+        jeu.cadrer(vueHutte);
+        await plumesSecret.koban([HUTTE.x + 0.25, Y_T + 0.55, HUTTE.z - 0.15], [xj, Y_T + 1.1, zj - 0.3]);
+        // (la caméra reste sur la hutte pendant la carte du koban : derrière le voyageur, sous le toit de la grotte, elle venait
+        // tout contre son chapeau)
+        await jeu.trouverSecret('plumes');
+        etatPlumes.oublier();
+        jeu.cadrer(null);
+      },
+    },
+    // les trois plumes : les ramasser. Devant la première, sans avoir vu la hutte, le compagnon dit ce que c'est et ce qu'on en
+    // fait ; à la deuxième, on dit où est la dernière ; à la troisième, d'aller à la hutte
+    ...PLUMES.map((p, k) => ({
+      id: `plume-${p.id}`, x: p.x, z: p.z, y: monde.hauteur(p.x, p.z), rayon: 1.6, haut: 0.7, verbe: 'ramasser', vers: [p.x, p.z],
+      si: () => !etatPlumes().pris[k] && !etatPlumes().fini,
+      async action(jeu) {
+        etatPlumes.oublier();
+        jeu.cadrerDeCote(p.x, terrain(p.x, p.z), p.z, { distance: 3.2, haut: 1.2 });
+        jeu.geste('creuser');
+        await jeu.attendre(700);
+        plumesSecret.ramasser(p.id);
+        jeu.geste(null);
+        // (à la deuxième et à la troisième, on dit ici où aller : l'anime ne doit pas le redire quand la scène finit)
+        if (ramassees() >= 1) plumesSecret.vue = true;
+        jeu.voirIndice(`plume-${p.id}`);
+        etatPlumes.oublier();
+        jeu.cadrer(null);
+        const n = ramassees();
+        await jeu.dire(jeu.tx('plumeRamassee')(n));
+        if (n === 1) await comp(jeu, indiceVu('plumes') ? 'plumeCompagnon' : 'plumeInconnueCompagnon');
+        jeu.voirIndice('plumes');
+        if (n >= 2) { plumesSecret.vue = true; await plumesSecret.montrer(jeu); }
+      },
+    })),
     { id: 'honden', x: TRONC_HONDEN.x + 1.15, z: TRONC_HONDEN.z, rayon: 1.8, haut: 1.4, verbe: 'prier', vers: [TRONC_HONDEN.x, TRONC_HONDEN.z], async action(jeu) { jeu.son('cloche'); jeu.geste('prier'); await jeu.attendre(900); jeu.son('claque'); await jeu.attendre(2200); jeu.geste(null); await jeu.dire(jeu.txn('honden')); } },
     { id: 'oji', x: OJI.x, z: OJI.z - 2.3, rayon: 1.6, haut: 1.2, verbe: 'prier', vers: [OJI.x, OJI.z], async action(jeu) { jeu.geste('prier'); jeu.son('claque'); await jeu.attendre(2400); jeu.geste(null); await jeu.dire(jeu.tx('oji')); } },
     { id: 'voute', x: X_SALLE + 0.3, z: GROTTE.z - 3.0, rayon: 2.2, haut: 1.6, verbe: 'regarder', async action(jeu) { jeu.cadrer({ de: [X_SALLE + 0.8, Y_T + 1.5, GROTTE.z + 5.6], vers: [X_SALLE - 6, Y_T + 7.5, GROTTE.z - 1], champ: 64 }); await jeu.attendre(700); await jeu.dire(jeu.txn('voute')); jeu.cadrer(null); } },
@@ -2493,9 +2856,10 @@ export function construire(ctx) {
   return {
     ...infos, textes: TEXTES,
     objets, monde, terrain, etiquettes, passants, daims: [], interactions, actionDaim: null, vapeurs, bancs, lumieres, actionBete, animes,
-    // (le secret : à choisir par le propriétaire ; le marchand, sous les camphriers au sud de l'allée ; les sons à fabriquer en
-    // plus ; les feux d'artifice au-dessus de la mer, à l'est, devant la grotte)
-    marchand: MARCHAND, sons: ['claque', 'cloche', 'pinceau', 'papier', 'piece', 'caillou', 'tombe', 'oiseau/goutte'],
+    // (le secret, tresors.js : les plumes de cormoran ; le marchand, sous les camphriers au sud de l'allée ; les sons à fabriquer
+    // en plus (le cri du cormoran : celui du héron de Gokayama, un « gwaa » rauque) ; les feux d'artifice au-dessus de la mer, à
+    // l'est, devant la grotte)
+    secret: 'plumes', marchand: MARCHAND, sons: ['claque', 'cloche', 'pinceau', 'papier', 'piece', 'caillou', 'tombe', 'oiseau/goutte', 'oiseau/aosagi'],
     feux: { x: 150, y: 0, z: -30, large: 90, haut: [42, 66] },
     // les mouettes (mouettes.js) : au-dessus de la mer, de la crique du port et du platier ; posées près du rocher de la tortue,
     // sur la digue, une bitte du quai, le platier
@@ -2620,6 +2984,196 @@ function tacheDouce(THREE, dur = 0.22) {
   const TX = 32, px = new Uint8Array(TX * TX * 4);
   for (let j = 0; j < TX; j++) for (let i = 0; i < TX; i++) {
     const r = Math.hypot(i - TX / 2 + 0.5, j - TX / 2 + 0.5) / (TX / 2), v = Math.min(1, Math.exp(-r * r * 3.2) * 0.9 + Math.max(0, 1 - r / dur) * 0.4) * (r < 1 ? 1 : 0);
+    px.set([255, 255, 255, Math.round(v * 255)], (j * TX + i) * 4);
+  }
+  const t = new THREE.DataTexture(px, TX, TX);
+  t.magFilter = t.minFilter = THREE.LinearFilter;
+  t.needsUpdate = true;
+  return t;
+}
+
+// ---------------------------------------------------------------- Le cormoran (le secret des plumes)
+/**
+ * Un cormoran (鵜, umiu : le cormoran de Temminck, l'oiseau qui a donné son nom à Udo), un peu plus grand que nature (×1,25,
+ * comme les mouettes : de loin, on le voit bien) : noir aux reflets verts, les ailes bronze, la joue blanche, la peau jaune au
+ * coin du bec crochu, l'œil vert. Posé, il se tient droit, appuyé sur sa queue ; il sèche ses ailes grandes ouvertes (sa pose
+ * de toujours, sur les rochers) ; en vol, le cou tendu, il bat vite des ailes. ctx : celui des personnages (perso).
+ * → { objet, poser(x, y, z, cap) (ses pattes en x, y, z), secher(oui), envol(points) (le milieu du corps suit la courbe par ces
+ * points, le premier 0,42 m au-dessus de ses pattes ; se résout au bout, où il disparaît), maj(dt) }. Il regarde vers +z.
+ */
+function creerCormoran(ctx) {
+  const { THREE, atelier, maillage } = ctx;
+  const NOIR = '#1d2624', BRONZE = '#3e3a2b', BRONZE2 = '#4f4934', BEC = '#56544c', JAUNE = '#e2b246', BLANC = '#f0ede2', PATTE = '#1a1a1a';
+  const TAILLE = 1.25, VITESSE = 5.5;
+  // la tête en x, y, z : le bec long et fort, son bout crochu (un peu plus bas si penche), la peau jaune au coin du bec, la joue
+  // blanche, l'œil vert. (Un bec fin et une petite boule au bout faisaient un bâton et une bille, 2026-10-31.)
+  const tete = (a, x, y, z, penche = 0) => {
+    a.ovale(0.066, NOIR, { x, y, z, sx: 0.85, sz: 1.35 }, 10);
+    const by = y - 0.014 - penche * 0.05, bz = z + 0.13;
+    a.cone(0.022, 0.15, 7, BEC, { x, y: by, z: bz, rx: PI / 2 + 0.12 + penche });
+    a.cone(0.009, 0.035, 5, '#33322e', { x, y: by - 0.016, z: bz + 0.07, rx: PI - 0.5 + penche });
+    for (const s of [-1, 1]) {
+      a.ovale(0.02, JAUNE, { x: x + s * 0.03, y: y - 0.016, z: z + 0.055, sx: 0.5, sz: 1.4, trait: false }, 6)
+        .ovale(0.038, BLANC, { x: x + s * 0.038, y: y - 0.022, z: z + 0.02, sx: 0.45, sy: 0.85, sz: 1.1, trait: false }, 8)
+        .ovale(0.015, '#3fae7a', { x: x + s * 0.05, y: y + 0.014, z: z + 0.03, sx: 0.5, trait: false }, 6)
+        .ovale(0.0075, '#101010', { x: x + s * 0.056, y: y + 0.015, z: z + 0.034, sx: 0.5, trait: false }, 5);
+    }
+  };
+  // posé (repère : ses pattes à l'origine) : debout, le corps penché à 50°, appuyé sur sa queue ; le cou en S
+  const pose = atelier()
+    .ovale(0.15, NOIR, { y: 0.34, sx: 0.85, sy: 0.85, sz: 2.1, rx: -0.9 }, 14)
+    .piece(new THREE.BoxGeometry(0.11, 0.018, 0.25), NOIR, { y: 0.065, z: -0.27, rx: -0.55 })
+    .tube([[0, 0.5, 0.12], [0, 0.62, 0.19], [0, 0.71, 0.17], [0, 0.785, 0.2]], 0.044, NOIR, { cotes: 8, pas: 10 });
+  tete(pose, 0, 0.81, 0.215);
+  for (const s of [-1, 1]) pose.ovale(0.045, PATTE, { x: s * 0.06, y: 0.012, z: 0.06, sy: 0.2, sz: 1.4 }, 8).baton([s * 0.055, 0.02, 0.05], [s * 0.05, 0.16, 0.0], 0.014, PATTE, 5);
+  // ses ailes repliées le long du corps (à part : cachées quand il les ouvre)
+  const pliees = atelier();
+  for (const s of [-1, 1]) pliees.ovale(0.13, BRONZE, { x: s * 0.105, y: 0.35, z: -0.03, sx: 0.28, sy: 0.75, sz: 2.05, rx: -0.85 }, 12);
+  // en vol (repère : le milieu du corps) : à l'horizontale, le cou tendu, la tête un peu relevée, les pattes sous la queue
+  const vol = atelier()
+    .ovale(0.15, NOIR, { sx: 0.85, sy: 0.8, sz: 2.15 }, 14)
+    .piece(new THREE.BoxGeometry(0.12, 0.018, 0.24), NOIR, { y: -0.01, z: -0.42 })
+    .tube([[0, 0.02, 0.22], [0, 0.045, 0.36], [0, 0.07, 0.47]], 0.042, NOIR, { cotes: 8, pas: 8 });
+  tete(vol, 0, 0.08, 0.53, -0.1);
+  for (const s of [-1, 1]) vol.ovale(0.035, PATTE, { x: s * 0.04, y: -0.07, z: -0.3, sy: 0.25, sz: 1.5 }, 6);
+  // une aile : le bras (bronze) et la frange de ses plumes au bord de fuite, la main au bout (son pivot au poignet) et ses
+  // cinq rémiges noires, écartées comme des doigts
+  const bras = (s) => {
+    const a = atelier().ovale(0.16, BRONZE2, { x: s * 0.15, sy: 0.11, sz: 0.62 }, 10);
+    for (let k = 0; k < 5; k++) a.boite(0.05, 0.012, 0.13, k % 2 ? BRONZE : NOIR, { x: s * (0.05 + k * 0.05), y: -0.004 + (k % 2) * 0.008, z: -0.12, ry: s * 0.12, trait: false });
+    return a.fin(0, false);
+  };
+  const main = (s) => {
+    const a = atelier().ovale(0.14, BRONZE, { x: s * 0.12, sy: 0.1, sz: 0.5 }, 10);
+    for (let k = 0; k < 5; k++) a.boite(0.17, 0.012, 0.042, NOIR, { x: s * 0.27, z: -0.07 + k * 0.035, ry: s * (0.35 - k * 0.17), trait: false });
+    return a.fin(0, false);
+  };
+  // (son corps n'entre dans la scène que quand il paraît : caché, ses matrices seraient recalculées à chaque image pour rien)
+  const objet = new THREE.Group(), corps = new THREE.Group();
+  const mPose = maillage(pose.fin(0, false)), mPliees = maillage(pliees.fin(0, false)), mVol = maillage(vol.fin(0, false));
+  corps.scale.setScalar(TAILLE);
+  corps.add(mPose, mPliees, mVol);
+  const ailes = [1, -1].map((s) => {
+    const epaule = new THREE.Group(), poignet = new THREE.Group();
+    poignet.position.set(s * 0.29, 0, 0);
+    poignet.add(maillage(main(s)));
+    epaule.add(maillage(bras(s)), poignet);
+    corps.add(epaule);
+    return { s, epaule, poignet };
+  });
+  objet.visible = false;
+  let etat = 'cache', phase = 0, tVol = 0, s = 0, long = 1, chemin = null, fin = null, cri = false;
+  const p = new THREE.Vector3(), tg = new THREE.Vector3();
+  let cap = 0;
+  return {
+    objet,
+    poser(x, y, z, c = 0) { if (!corps.parent) objet.add(corps); objet.position.set(x, y, z); cap = c; etat = 'perche'; objet.visible = true; },
+    secher(oui) { if (etat === 'perche' || etat === 'seche') etat = oui ? 'seche' : 'perche'; },
+    envol(points) {
+      chemin = new THREE.CatmullRomCurve3(points.map((q) => new THREE.Vector3(...q)));
+      long = chemin.getLength();
+      s = 0;
+      tVol = 0;
+      etat = 'vol';
+      cri = true;
+      return new Promise((r) => { fin = r; });
+    },
+    maj(dt) {
+      if (etat === 'cache' || dt <= 0) return [];
+      const cris = [];
+      const vole = etat === 'vol', ouvert = vole || etat === 'seche';
+      mPose.visible = !vole;
+      mPliees.visible = etat === 'perche';
+      mVol.visible = vole;
+      for (const a of ailes) a.epaule.visible = ouvert;
+      if (vole) {
+        // (il prend son élan : de plus en plus vite ; le corps suit la courbe, penché comme elle, et se redresse peu à peu de sa
+        // pose debout à l'horizontale)
+        tVol += dt;
+        s = Math.min(long, s + dt * Math.min(VITESSE, 1.2 + 3.5 * tVol));
+        chemin.getPointAt(s / long, p);
+        chemin.getTangentAt(s / long, tg);
+        objet.position.copy(p);
+        // (il se tourne vers où il vole en 0,5 s : posé, il pouvait regarder ailleurs)
+        const k = Math.min(1, tVol / 0.4), tangage = -Math.atan2(tg.y, Math.hypot(tg.x, tg.z)) * 0.7, vers = Math.atan2(tg.x, tg.z);
+        cap += (((vers - cap + PI) % (2 * PI) + 2 * PI) % (2 * PI) - PI) * Math.min(1, dt * (tVol < 0.5 ? 6 : 12));
+        corps.rotation.set(-0.9 * (1 - k) + tangage * k, cap, 0, 'YXZ');
+        phase += dt * 2 * PI * 3.8;
+        for (const a of ailes) {
+          a.epaule.position.set(a.s * 0.09, 0.045, 0.06);
+          a.epaule.rotation.set(0, 0, a.s * (0.15 + 0.85 * Math.sin(phase)));
+          a.poignet.rotation.set(0, 0, a.s * 0.5 * Math.sin(phase - 0.8));
+        }
+        if (cri) { cri = false; cris.push({ x: p.x, y: p.y, z: p.z, fort: 1, nom: 'aosagi' }); }
+        if (s >= long) { etat = 'cache'; objet.visible = false; objet.remove(corps); const f = fin; fin = null; f?.(); }
+      } else {
+        corps.rotation.set(0, cap, 0, 'YXZ');
+        // (les ailes ouvertes pour sécher, comme sur les rochers : dressées face à l'avant, le bord d'attaque en haut, les plumes
+        // qui pendent ; le bras un peu levé et un peu en avant, la main qui retombe vers le bas ; elles s'éventent. À plat, de
+        // face, on ne voyait que leur tranche, 2026-10-31)
+        phase += dt * 2 * PI * 0.6;
+        for (const a of ailes) {
+          a.epaule.position.set(a.s * 0.11, 0.48, 0.06);
+          a.epaule.rotation.set(-PI / 2, -a.s * 0.3, a.s * (0.28 + 0.06 * Math.sin(phase)), 'YZX');
+          a.poignet.rotation.set(0, a.s * 0.75, 0);
+        }
+      }
+      return cris;
+    },
+  };
+}
+
+/** Des points doux qu'on place un à un (les lueurs des plumes) : poser(k, x, y, z, taille, r, v, b, a), ranger(k), fin(). */
+function nuee(THREE, n, o = {}) {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3).fill(-500), 3).setUsage(THREE.DynamicDrawUsage));
+  g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(n * 4), 4).setUsage(THREE.DynamicDrawUsage));
+  g.setAttribute('taille', new THREE.BufferAttribute(new Float32Array(n), 1).setUsage(THREE.DynamicDrawUsage));
+  const mat = new THREE.PointsMaterial({ size: 1, sizeAttenuation: true, vertexColors: true, map: o.tache || tacheDouce(THREE), transparent: true, depthWrite: false, fog: true, blending: o.additif ? THREE.AdditiveBlending : THREE.NormalBlending });
+  mat.onBeforeCompile = (sh) => {
+    sh.vertexShader = sh.vertexShader.replace('uniform float size;', 'uniform float size;\nattribute float taille;').replace('gl_PointSize = size;', 'gl_PointSize = size * taille;');
+  };
+  const m = new THREE.Points(g, mat);
+  m.frustumCulled = false;
+  m.renderOrder = 2;
+  const A = g.attributes;
+  return {
+    m,
+    poser(k, x, y, z, taille, r, v, b, a) { A.position.setXYZ(k, x, y, z); A.taille.setX(k, taille); A.color.setXYZW(k, r, v, b, a); },
+    ranger(k) { A.position.setXYZ(k, 0, -500, 0); A.taille.setX(k, 0); },
+    fin() { A.position.needsUpdate = A.taille.needsUpdate = A.color.needsUpdate = true; },
+  };
+}
+/**
+ * L'étincelle des plumes de cormoran, le jour (2026-10-31) : une étoile à quatre branches aux côtés creusés, blanche (la couleur
+ * de la nuée la teinte), cernée d'un trait d'encre ; en 64 × 64. (Un éclat doux, ajouté à la lumière, ne se voyait pas sur les
+ * dalles claires du palier et de la pointe.)
+ */
+function etincelleEncre(THREE) {
+  const TX = 64, px = new Uint8Array(TX * TX * 4), S = 3;
+  for (let j = 0; j < TX; j++) for (let i = 0; i < TX; i++) {
+    // (trois sous-points par côté, pour des bords nets sans escalier)
+    let dedans = 0, encre = 0;
+    for (let a = 0; a < S; a++) for (let b = 0; b < S; b++) {
+      const x = Math.abs((i + (a + 0.5) / S - TX / 2) / (TX / 2)), y = Math.abs((j + (b + 0.5) / S - TX / 2) / (TX / 2));
+      const f = Math.sqrt(x) + Math.sqrt(y);
+      if (f < 0.97) { dedans++; if (f > 0.74) encre++; }
+    }
+    const a = dedans / (S * S), e = dedans ? encre / dedans : 0, v = Math.round(255 * (1 - 0.82 * e));
+    px.set([v, Math.round(v * 0.86), Math.round(v * 0.62), Math.round(a * 255)], (j * TX + i) * 4);
+  }
+  const t = new THREE.DataTexture(px, TX, TX);
+  t.magFilter = t.minFilter = THREE.LinearFilter;
+  t.needsUpdate = true;
+  return t;
+}
+/** Une étoile douce à quatre branches (l'éclat qui scintille au-dessus des plumes de cormoran, la nuit). */
+function etoileDouce(THREE) {
+  const TX = 64, px = new Uint8Array(TX * TX * 4);
+  for (let j = 0; j < TX; j++) for (let i = 0; i < TX; i++) {
+    const x = (i - TX / 2 + 0.5) / (TX / 2), y = (j - TX / 2 + 0.5) / (TX / 2);
+    const branches = Math.exp(-Math.abs(y) * 20) * Math.max(0, 1 - Math.abs(x)) ** 1.5 + Math.exp(-Math.abs(x) * 20) * Math.max(0, 1 - Math.abs(y)) ** 1.5;
+    const v = Math.min(1, branches * 0.9 + Math.exp(-(x * x + y * y) * 28));
     px.set([255, 255, 255, Math.round(v * 255)], (j * TX + i) * 4);
   }
   const t = new THREE.DataTexture(px, TX, TX);
@@ -2753,7 +3307,24 @@ const TEXTES = {
     gardien: ['Bonjour, bonjour. Je balaie le sanctuaire d’Inari tous les matins.', 'Les torii de l’escalier ont été offerts par des gens dont le vœu s’est réalisé. Chacun porte un nom.'],
     touriste: ['Tu as vu les lanternes ? Leurs fenêtres sont des lunes ! Une nouvelle lune, un croissant… jusqu’à la pleine lune.'],
     touriste2: ['Regarde en bas, la roche rayée : la planche à laver des oni ! On dirait qu’un géant a passé un peigne dans la mer.'],
-    pecheuse: ['Du poisson frais du matin ! Des chinchards, des maquereaux… La mer de Hyūga est généreuse.', 'Le batelier ? Il connaît toutes les routes de la mer, jusqu’à Yakushima.'],
+    pecheuse: ['Du poisson frais du matin ! Des chinchards, des maquereaux… La mer de Hyūga est généreuse.', 'Le batelier ? Il connaît toutes les routes de la mer, jusqu’à Yakushima.', 'Les cormorans (鵜) pêchent ici tous les matins. Parfois, l’un d’eux laisse une plume sur le quai…'],
+    // le secret des plumes de cormoran : la hutte de la naissance (産屋), les trois plumes, le cormoran
+    hutte: ['Une petite hutte de bois brut, contre la paroi : 産屋 (うぶや), la hutte de la naissance.', 'Ici, Toyotama-hime mit son bébé au monde. On couvrait le toit de plumes de cormoran (鵜), mais le bébé est né avant la fin : en haut, on voit encore les perches.'],
+    huttePlumes: (n) => [`Tu as ${n} plume${n > 1 ? 's' : ''} de cormoran. Il en faut trois pour finir le toit.`],
+    hutteCompagnon: { kon: ['« Le toit n’est pas fini… Avec trois plumes de cormoran, on pourrait le terminer ! Il doit bien y en avoir quelque part. »'], pon: ['« Pon ! Un toit troué, ça ne protège de rien. Cherchons trois plumes de cormoran pour le finir ! »'], chapu: ['« Chapu ! Des plumes de cormoran… Les cormorans, ce sont des pêcheurs, comme moi ! Il doit en traîner près de la mer. »'], gao: ['« Gao… Un toit à moitié fait. Trouvons trois plumes de cormoran, et finissons-le. »'], fuwa: ['« Fuwa… La hutte de la princesse de la mer ! Trois plumes de cormoran, et son toit serait enfin fini. »'], saya: ['« Le toit attend depuis si longtemps… Trois plumes de cormoran suffiraient. Cherchons-les. »'] },
+    hutteMettre: ['Tu as les trois plumes de cormoran. Tu les poses sur le toit de la hutte ?'],
+    hutteMet: ['Tu lèves les trois plumes vers le haut du toit…'],
+    hutteFin: ['Le toit de la hutte est fini !', 'Bien des siècles plus tard, le bébé de Toyotama-hime a enfin son toit de plumes de cormoran.'],
+    cormoranCompagnon: { kon: ['« Un cormoran ! Il est venu voir le toit fini… et le voilà qui repart vers la mer. »'], pon: ['« Pon ! Il est parti si vite ! Il va le dire à la princesse, j’en suis sûr ! »'], chapu: ['« Chapu ! Un cormoran ! Il part pêcher, comme moi ! Bonne pêche ! »'], gao: ['« Gao… Il a gardé la hutte tout ce temps. Maintenant, il peut rentrer. »'], fuwa: ['« Fuwaaa ! Il rentre au palais du dragon, chez la princesse ! »'], saya: ['« Il était là depuis si longtemps… Le voilà libre. »'] },
+    hutteFinie: ['La hutte de la naissance, son toit de plumes de cormoran enfin fini. Sa petite lampe veille près du berceau.'],
+    plumeRamassee: (n) => [`Une grande plume bronze, bordée de noir : une plume de cormoran (鵜) ! (${n} sur 3)`],
+    plumeInconnueCompagnon: { kon: ['« Une plume de cormoran ! Udo, ça veut dire « la porte du cormoran ». Dans la grotte, la hutte où la princesse a eu son bébé n’a jamais eu son toit fini… Trouvons trois plumes et allons le finir ! »'], pon: ['« Pon ! Une plume de cormoran ! Dans la grotte, il y a une petite hutte dont le toit de plumes n’a jamais été fini. Avec trois plumes, on pourrait le terminer ! »'], chapu: ['« Chapu ! Une plume de cormoran, le grand pêcheur noir ! Le toit de la hutte de la naissance, dans la grotte, n’est pas fini… Trois plumes, et hop ! »'], gao: ['« Gao. Une plume de cormoran. La hutte de la grotte attend son toit depuis toujours : trois plumes, et on la finit. »'], fuwa: ['« Fuwaaa ! Une plume de cormoran ! La hutte où la princesse de la mer a eu son bébé, dans la grotte : son toit n’est pas fini. Trouvons-en trois ! »'], saya: ['« Une plume de cormoran… La hutte de la naissance, dans la grotte, n’a jamais eu son toit fini. Trois plumes, et elle serait complète. »'] },
+    plumeCompagnon: { kon: ['« Une plume pour le toit de la hutte ! Encore deux. »'], pon: ['« Pon ! Une ! Plus que deux plumes ! »'], chapu: ['« Chapu ! Elle sent la mer ! Encore deux plumes ! »'], gao: ['« Gao. Une de trouvée. Deux à trouver. »'], fuwa: ['« Fuwa ! Une plume pour la princesse ! Encore deux ! »'], saya: ['« Une plume… Le toit en attend encore deux. »'] },
+    plumeDerniereCompagnon: { kon: ['« Plus qu’une plume ! »'], pon: ['« Pon ! Plus qu’une ! »'], chapu: ['« Chapu ! Plus qu’une plume ! »'], gao: ['« Gao. Plus qu’une. »'], fuwa: ['« Fuwa ! Encore une seule ! »'], saya: ['« Plus qu’une plume… »'] },
+    plumeDerniere: (lieu) => [`La dernière plume de cormoran est ${lieu}.`],
+    lieuxPlumes: { p1: 'sur le palier d’Udo Inari, en haut des torii rouges', p2: 'sur la pointe, juste après le pont Tamabashi', p3: 'sur le quai du port, en bas du vieil escalier' },
+    plumesHutteCompagnon: { kon: ['« Les trois plumes ! Allons les poser sur le toit de la hutte, dans la grotte, au nord du sanctuaire. »'], pon: ['« Pon pon ! Les trois ! Vite, à la hutte de la grotte, au nord du sanctuaire ! »'], chapu: ['« Chapu chapu ! Trois plumes ! À la hutte, dans la grotte, au nord du sanctuaire ! »'], gao: ['« Gao. Les trois plumes. Direction la hutte, dans la grotte, au nord du sanctuaire. »'], fuwa: ['« Fuwaaa ! Les trois ! La hutte de la princesse attend, dans la grotte, au nord du sanctuaire ! »'], saya: ['« Les trois plumes… Portons-les à la hutte, dans la grotte, au nord du sanctuaire. »'] },
+    kannushiHutte: ['Tu as vu la petite hutte, contre la paroi, au nord du sanctuaire ? Son toit attend toujours ses dernières plumes…'],
     randonneur: ['Je monte le Hatchōzaka, le vieil escalier des pèlerins : huit chō, près de neuf cents mètres de marches, du port jusqu’au sanctuaire !', 'Autrefois, tout le monde arrivait par là, en bateau.'],
     chauffeur: ['Le car de la côte de Nichinan. Prochain départ dans une heure : prends ton temps, Udo se visite lentement.'],
     chatPort: ['Un chat roux dort sur le quai, à côté des filets. Il sent le poisson.', 'Tu le caresses… Rrrrrr…'],
@@ -2854,7 +3425,24 @@ const TEXTES = {
     gardien: ['Hello, hello. I sweep the Inari shrine every morning.', 'The torii on the stairs were given by people whose wish came true. Each one bears a name.'],
     touriste: ['Did you see the lanterns? Their windows are moons! A new moon, a crescent… up to the full moon.'],
     touriste2: ['Look down there, the striped rock: the oni’s washboard! It’s as if a giant had combed the sea.'],
-    pecheuse: ['Fresh fish from this morning! Horse mackerel, mackerel… The Hyūga sea is generous.', 'The boatman? He knows every route on the sea, all the way to Yakushima.'],
+    pecheuse: ['Fresh fish from this morning! Horse mackerel, mackerel… The Hyūga sea is generous.', 'The boatman? He knows every route on the sea, all the way to Yakushima.', 'Cormorants (鵜) fish here every morning. Now and then, one leaves a feather on the quay…'],
+    // the cormorant feathers' secret: the birth hut (産屋), the three feathers, the cormorant
+    hutte: ['A little hut of rough wood, against the rock wall: 産屋 (ubuya), the birth hut.', 'Here, Toyotama-hime gave birth to her baby. They were thatching the roof with cormorant (鵜) feathers, but the baby was born before it was done: at the top, you can still see the poles.'],
+    huttePlumes: (n) => [`You have ${n} cormorant feather${n > 1 ? 's' : ''}. It takes three to finish the roof.`],
+    hutteCompagnon: { kon: ['“The roof isn’t finished… With three cormorant feathers, we could finish it! There must be some around.”'], pon: ['“Pon! A roof with a hole keeps nothing out. Let’s find three cormorant feathers to finish it!”'], chapu: ['“Chapu! Cormorant feathers… Cormorants are fishers, like me! There must be some lying near the sea.”'], gao: ['“Gao… A half-built roof. Let’s find three cormorant feathers and finish it.”'], fuwa: ['“Fuwa… The sea princess’s hut! Three cormorant feathers, and its roof would finally be finished.”'], saya: ['“The roof has waited so long… Three cormorant feathers would do. Let’s look for them.”'] },
+    hutteMettre: ['You have the three cormorant feathers. Lay them on the hut’s roof?'],
+    hutteMet: ['You raise the three feathers toward the top of the roof…'],
+    hutteFin: ['The hut’s roof is finished!', 'Many centuries later, Toyotama-hime’s baby finally has his roof of cormorant feathers.'],
+    cormoranCompagnon: { kon: ['“A cormorant! It came to see the finished roof… and now it’s heading back to the sea.”'], pon: ['“Pon! It left so fast! It’s going to tell the princess, I’m sure!”'], chapu: ['“Chapu! A cormorant! Off fishing, like me! Good fishing!”'], gao: ['“Gao… It watched over the hut all this time. Now it can go home.”'], fuwa: ['“Fuwaaa! It’s going home to the dragon palace, to the princess!”'], saya: ['“It was here for so long… Now it’s free.”'] },
+    hutteFinie: ['The birth hut, its roof of cormorant feathers finished at last. Its little lamp keeps watch by the cradle.'],
+    plumeRamassee: (n) => [`A big bronze feather edged with black: a cormorant (鵜) feather! (${n} of 3)`],
+    plumeInconnueCompagnon: { kon: ['“A cormorant feather! Udo means ‘the cormorant’s door’. In the cave, the hut where the princess had her baby never got its roof finished… Let’s find three feathers and go finish it!”'], pon: ['“Pon! A cormorant feather! In the cave there’s a little hut whose feather roof was never finished. With three feathers, we could finish it!”'], chapu: ['“Chapu! A feather of the cormorant, the great black fisher! The roof of the birth hut, in the cave, isn’t finished… Three feathers and there we go!”'], gao: ['“Gao. A cormorant feather. The hut in the cave has always waited for its roof: three feathers, and we finish it.”'], fuwa: ['“Fuwaaa! A cormorant feather! The hut where the sea princess had her baby, in the cave: its roof isn’t finished. Let’s find three!”'], saya: ['“A cormorant feather… The birth hut, in the cave, never got its roof finished. Three feathers, and it would be whole.”'] },
+    plumeCompagnon: { kon: ['“A feather for the hut’s roof! Two more.”'], pon: ['“Pon! One! Just two feathers to go!”'], chapu: ['“Chapu! It smells of the sea! Two more feathers!”'], gao: ['“Gao. One found. Two to find.”'], fuwa: ['“Fuwa! A feather for the princess! Two more!”'], saya: ['“A feather… The roof still waits for two more.”'] },
+    plumeDerniereCompagnon: { kon: ['“Just one feather left!”'], pon: ['“Pon! Just one left!”'], chapu: ['“Chapu! One last feather!”'], gao: ['“Gao. One left.”'], fuwa: ['“Fuwa! Only one more!”'], saya: ['“One feather left…”'] },
+    plumeDerniere: (lieu) => [`The last cormorant feather is ${lieu}.`],
+    lieuxPlumes: { p1: 'on the landing of Udo Inari, at the top of the red torii', p2: 'on the point, just past the Tamabashi bridge', p3: 'on the harbour quay, at the bottom of the old stairs' },
+    plumesHutteCompagnon: { kon: ['“All three feathers! Let’s lay them on the hut’s roof, in the cave, north of the shrine.”'], pon: ['“Pon pon! All three! Quick, to the hut in the cave, north of the shrine!”'], chapu: ['“Chapu chapu! Three feathers! To the hut, in the cave, north of the shrine!”'], gao: ['“Gao. The three feathers. On to the hut, in the cave, north of the shrine.”'], fuwa: ['“Fuwaaa! All three! The princess’s hut is waiting, in the cave, north of the shrine!”'], saya: ['“The three feathers… Let’s carry them to the hut, in the cave, north of the shrine.”'] },
+    kannushiHutte: ['Have you seen the little hut against the rock wall, north of the shrine? Its roof is still waiting for its last feathers…'],
     randonneur: ['I’m climbing the Hatchōzaka, the pilgrims’ old stairs: eight chō, nearly nine hundred metres of steps, from the harbour to the shrine!', 'Long ago, everyone came this way, by boat.'],
     chauffeur: ['The Nichinan coast bus. Next departure in an hour: take your time, Udo is best seen slowly.'],
     chatPort: ['A ginger cat is asleep on the quay, next to the nets. It smells of fish.', 'You pet it… Rrrrrr…'],
@@ -2955,7 +3543,24 @@ const TEXTES = {
     gardien: ['おはよう、おはよう。まいあさ　お稲荷さんを　はいてるんだ。', 'かいだんの　鳥居は、ねがいが　かなった　人たちが　おさめたもの。一つずつ　なまえが　かいてあるよ。'],
     touriste: ['灯籠、見た？　まどが　月なの！　新月、みかづき……　まん月まで。'],
     touriste2: ['下の　しまもようの　いわを　見て。鬼の　洗濯板！　きょじんが　うみを　くしで　とかしたみたい。'],
-    pecheuse: ['けさの　とれたての　さかなだよ！　アジに　サバ……　日向の　うみは　ゆたかだね。', 'せんどうさん？　屋久島まで、うみの　みちは　ぜんぶ　しってるよ。'],
+    pecheuse: ['けさの　とれたての　さかなだよ！　アジに　サバ……　日向の　うみは　ゆたかだね。', 'せんどうさん？　屋久島まで、うみの　みちは　ぜんぶ　しってるよ。', '鵜は　まいあさ　ここで　さかなを　とるんだよ。ときどき、きしに　はねを　おとして　いくの……'],
+    // 鵜の　はねの　ひみつ：産屋、三まいの　はね、鵜
+    hutte: ['いわの　かべに　そって　たつ、小さな　木の　こや。産屋（うぶや）、あかちゃんが　うまれる　こやです。', 'ここで　豊玉姫が　あかちゃんを　うみました。鵜（う）の　はねで　やねを　ふいて　いたけれど、できあがる　まえに　うまれて　しまったのです。上の　ほうは、まだ　ぼうが　見えて　います。'],
+    huttePlumes: (n) => [`鵜の　はねは　いま　${n}まい。やねを　しあげるには　三まい　いります。`],
+    hutteCompagnon: { kon: ['「やねが　できあがって　いない……　鵜の　はねが　三まい　あれば、しあげられるよ！　どこかに　あるはず。」'], pon: ['「ポン！　あなの　あいた　やねじゃ、なんにも　まもれない。鵜の　はねを　三まい　さがして、しあげよう！」'], chapu: ['「チャプ！　鵜の　はね……　鵜は　ぼくと　おなじ　りょうしなんだ！　うみの　ちかくに　おちてるかも。」'], gao: ['「ガオ……　はんぶんの　やね。鵜の　はねを　三まい　みつけて、しあげよう。」'], fuwa: ['「フワ……　うみの　おひめさまの　こや！　鵜の　はねが　三まい　あれば、やっと　やねが　できあがる。」'], saya: ['「やねは　ずっと　まって　いたのね……　鵜の　はねが　三まい　あれば　いい。さがしましょう。」'] },
+    hutteMettre: ['鵜の　はねが　三まい　そろいました。こやの　やねに　のせますか？'],
+    hutteMet: ['三まいの　はねを　やねの　上へ　さしあげると……'],
+    hutteFin: ['こやの　やねが　できあがりました！', 'なん百年も　たって、豊玉姫の　あかちゃんに　やっと　鵜の　はねの　やねが　できました。'],
+    cormoranCompagnon: { kon: ['「鵜だ！　できあがった　やねを　見に　きたんだね……　うみへ　かえって　いく。」'], pon: ['「ポン！　あっという　まに　いっちゃった！　きっと　おひめさまに　しらせに　いくんだ！」'], chapu: ['「チャプ！　鵜だ！　ぼくと　おなじで　さかなを　とりに　いくんだ！　たいりょう　でね！」'], gao: ['「ガオ……　ずっと　こやを　まもって　いたんだな。これで　かえれる。」'], fuwa: ['「フワ〜！　りゅうぐうじょうの　おひめさまの　ところへ　かえるんだ！」'], saya: ['「ずっと　ここに　いたのね……　やっと　じゆうに　なれたわ。」'] },
+    hutteFinie: ['鵜の　はねの　やねが　やっと　できあがった　産屋。小さな　あんどんが　ゆりかごの　そばを　てらして　います。'],
+    plumeRamassee: (n) => [`ふちの　くろい　ブロンズいろの　大きな　はね。鵜の　はねだ！（${n}／3）`],
+    plumeInconnueCompagnon: { kon: ['「鵜の　はねだ！　鵜戸は　「鵜の　と」って　いみなんだよ。どうくつの　中の、おひめさまが　あかちゃんを　うんだ　こやは、やねが　できあがって　いないんだ……　はねを　三まい　あつめて、しあげに　いこう！」'], pon: ['「ポン！　鵜の　はねだ！　どうくつの　中に、はねの　やねが　できあがって　いない　小さな　こやが　あるんだ。三まい　あれば　しあげられるよ！」'], chapu: ['「チャプ！　くろくて　大きな　りょうし、鵜の　はねだ！　どうくつの　うぶやの　やねは　できあがって　いないんだ……　三まい　あつめれば　ばっちり！」'], gao: ['「ガオ。鵜の　はね。どうくつの　こやは　ずっと　やねを　まって　いる。三まい　あれば　しあげられる。」'], fuwa: ['「フワ〜！　鵜の　はねだ！　うみの　おひめさまが　あかちゃんを　うんだ　どうくつの　こや、やねが　できあがって　いないの。三まい　さがそう！」'], saya: ['「鵜の　はね……　どうくつの　うぶやは、やねが　できあがった　ことが　ないの。三まい　あれば　しあがるわ。」'] },
+    plumeCompagnon: { kon: ['「こやの　やねの　はねが　一まい！　あと　二まい。」'], pon: ['「ポン！　一まい！　あと　二まいだ！」'], chapu: ['「チャプ！　うみの　においが　する！　あと　二まい！」'], gao: ['「ガオ。一まい　みつけた。あと　二まい。」'], fuwa: ['「フワ！　おひめさまの　ための　はね！　あと　二まい！」'], saya: ['「はねが　一まい……　やねは　あと　二まい　まって　いるわ。」'] },
+    plumeDerniereCompagnon: { kon: ['「あと　一まいだ！」'], pon: ['「ポン！　あと　一まい！」'], chapu: ['「チャプ！　さいごの　一まい！」'], gao: ['「ガオ。あと　一まい。」'], fuwa: ['「フワ！　あと　一まい　だけ！」'], saya: ['「あと　一まい……」'] },
+    plumeDerniere: (lieu) => [`さいごの　鵜の　はねは　${lieu}に　あります。`],
+    lieuxPlumes: { p1: '赤い　鳥居の　上の、鵜戸稲荷の　ひろば', p2: '玉橋を　わたった　すぐ　さきの　みさき', p3: 'ふるい　かいだんの　下の、みなとの　きし' },
+    plumesHutteCompagnon: { kon: ['「三まい　そろった！　どうくつの、本殿の　北に　ある　こやの　やねに　のせに　いこう。」'], pon: ['「ポンポン！　三まい！　はやく、どうくつの　本殿の　北の　こやへ！」'], chapu: ['「チャプチャプ！　はねが　三まい！　どうくつの　本殿の　北の　こやへ！」'], gao: ['「ガオ。はねが　三まい。どうくつの　本殿の　北の　こやへ　いこう。」'], fuwa: ['「フワ〜！　三まい　そろった！　おひめさまの　こやが　まってる、どうくつの　本殿の　北だよ！」'], saya: ['「三まいの　はね……　どうくつの　本殿の　北の　こやへ　はこびましょう。」'] },
+    kannushiHutte: ['本殿の　北、いわの　かべの　そばの　小さな　こやを　見ましたか？　その　やねは、いまも　さいごの　はねを　まって　いるのです……'],
     randonneur: ['八丁坂を　のぼってるんだ。さんぱいしゃの　ふるい　かいだんで、みなとから　お宮まで　八町、900メートル　ちかくも　ある！', 'むかしは　みんな　船で　きて、ここを　のぼったんだよ。'],
     chauffeur: ['日南かいがんの　バスだよ。つぎの　しゅっぱつは　一じかんご。ゆっくり　見ておいで。'],
     chatPort: ['がんぺきの　あみの　そばで　茶トラの　ねこが　ねている。さかなの　におい。', 'なでてみた……　ゴロゴロ……'],

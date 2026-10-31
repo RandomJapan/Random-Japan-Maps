@@ -80,6 +80,96 @@ export function capeMino(THREE, a, { y = 0.78, k = 1 } = {}) {
 }
 
 /**
+ * Une plume de cormoran (鵜, Udo, 2026-10-31) dans l'atelier a : une lame qui s'amincit en pointe, de base (la hampe) à
+ * pointe, sa face vers normale ; bombée de bombe (en m, au milieu), roulée de roulis autour de sa longueur (deux voisines
+ * qui se recouvrent ne sont pas dans le même plan) ; c, sa couleur ; bout, celle de son bout, après finBout (de 0 à 1 : les
+ * plumes du dos du cormoran sont bronze, bordées de noir) ; rachis : la tige claire sur le dessus ; profil : sa largeur à chaque
+ * rang de sommets, de la hampe à la pointe. Le toit de la hutte d'Udo, ses plumes à ramasser, la cape.
+ */
+export function plumeCormoran(THREE, a, { base, pointe, normale, large, epais = 0.012, c, bout = null, finBout = 0.64, roulis = 0, bombe = 0, rachis = false, trait = true, profil = [0.34, 1, 0.78, 0.1] }) {
+  const B = new THREE.Vector3(...base), Y = new THREE.Vector3(...pointe).sub(B), l = Y.length();
+  Y.normalize();
+  const N = new THREE.Vector3(...normale), Z = N.clone().addScaledVector(Y, -N.dot(Y)).normalize();
+  if (roulis) Z.applyAxisAngle(Y, roulis);
+  const X = new THREE.Vector3().crossVectors(Y, Z), base4 = new THREE.Matrix4().makeBasis(X, Y, Z);
+  // (u : 0 à la hampe, 1 à la pointe ; la largeur à chaque rang de sommets, profil : par défaut, la hampe étroite, le plus large
+  // au premier tiers, la pointe ; bombée au milieu, vers le dehors)
+  const n = profil.length - 1;
+  const forme = (g, largeur) => {
+    const p = g.attributes.position;
+    for (let i = 0; i < p.count; i++) {
+      const u = p.getY(i) / l + 0.5;
+      p.setXYZ(i, p.getX(i) * (largeur ? profil[Math.round(u * n)] : 1), p.getY(i), p.getZ(i) + bombe * Math.sin(Math.PI * Math.min(1, Math.max(0, u))));
+    }
+    return g.applyMatrix4(base4).translate(B.x + (Y.x * l) / 2, B.y + (Y.y * l) / 2, B.z + (Y.z * l) / 2);
+  };
+  const le = (x, y, z) => ((x - B.x) * Y.x + (y - B.y) * Y.y + (z - B.z) * Y.z) / l;
+  a.piece(forme(new THREE.BoxGeometry(large, l, epais, 1, n, 1), true), c, { nuance: 0.04, trait, teinte: bout ? (x, y, z) => (le(x, y, z) > finBout ? bout : c) : undefined });
+  // (la tige : posée sur le dessus, de la hampe aux 86 %)
+  if (rachis) a.piece(forme(new THREE.BoxGeometry(0.009, l * 0.86, 0.008, 1, 3, 1).translate(0, -0.07 * l, epais / 2 + 0.004), false), '#d8d2c0', { nuance: 0, trait: false });
+  return a;
+}
+
+/**
+ * La cape en plumes de cormoran (Udo, 2026-10-31 : la récompense de ses tampons, choisie par le propriétaire : « La cape en
+ * plumes de cormoran ») : sur les épaules et le dos, quatre rangs de plumes qui se recouvrent comme des écailles, bronze
+ * bordées de noir (le dos du cormoran, le 鵜 qui a donné son nom à Udo), le plus haut par-dessus le suivant ; un col de petites
+ * plumes blanches (les joues blanches du cormoran) ; dessous, une doublure sombre. Ouverte devant (les bras en sortent), comme
+ * le mino, autour d'un buste aux épaules à la hauteur y, plus large de k. Les deux rangs du bas en six morceaux qui s'écartent
+ * quand on court (animerCape) : ourlet, [{ a (dans le repère de son pivot), pivot: [x, y, z], axe: [x, y, z], t }] ; le reste,
+ * haut (un atelier). Les angles : t depuis l'avant (x = r sin t, z = r cos t), la cape de t0 à t1, le dos en π. (Sans tige
+ * blanche sur chaque plume : soixante tiges faisaient des rayures, comme une pomme de pin, 2026-10-31.)
+ */
+export function capeCormoran(THREE, atelier, { y = 0.8, k = 1 } = {}) {
+  const PI = Math.PI, t0 = PI - 1.95, t1 = PI + 1.95;
+  const BRONZE = ['#6b5a3a', '#5e5034', '#73603e', '#52492f'], NOIR = '#29271f', BLANC = '#f3f0e6', BLANC2 = '#dcd6c6';
+  // le rayon de la cape à la hauteur yy (évasée vers le bas, comme le mino) ; chaque rang 1,5 cm au-dessus du précédent
+  const r = (yy) => (0.212 + (y - yy) * 0.36) * k;
+  const hasardP = (n) => { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+  const haut = atelier(), ourlet = [];
+  // les rangs, du bas vers le haut : [pointe, base, largeur, nombre]
+  const RANGS = [[y - 0.46, y - 0.25, 0.104, 16], [y - 0.36, y - 0.16, 0.1, 15], [y - 0.25, y - 0.07, 0.094, 14], [y - 0.15, y + 0.005, 0.086, 13]];
+  // (le pivot de l'ourlet, les deux rangs du bas : à la hauteur des pointes du troisième rang, sur la ligne des plumes du
+  // deuxième ; ce qui est au-dessus, sous le troisième rang, rentre un peu quand le bas s'écarte : la doublure du bas est plus
+  // en dedans)
+  const [yt1, yb1] = RANGS[1], yp = RANGS[2][0] + 0.012, rp = r(yb1) + 0.015 + (r(yt1) + 0.012 - r(yb1)) * ((yb1 - yp) / (yb1 - yt1));
+  RANGS.forEach(([yt, yb, large, n], i) => {
+    const dr = 0.015 * i, morceaux = i <= 1 ? 6 : 1;
+    for (let j = 0; j < n; j++) {
+      const t = t0 + ((j + 0.5) / n) * (t1 - t0), s = Math.sin(t), c = Math.cos(t);
+      const rb = r(yb) + dr, rt = r(yt) + dr + 0.012;
+      const plume = {
+        base: [rb * s, yb, rb * c], pointe: [rt * s, yt, rt * c], normale: [s, 0.36, c], large: large * k, epais: 0.011, c: BRONZE[Math.floor(hasardP(i * 31 + j) * 4)],
+        bout: NOIR, finBout: 0.7, roulis: (j % 2 ? 0.09 : -0.09), bombe: 0.007,
+      };
+      if (morceaux === 1) { plumeCormoran(THREE, haut, plume); continue; }
+      // (les deux rangs du bas : en six morceaux, chacun son pivot au milieu du morceau ; il tourne autour de la tangente : les
+      // pointes s'écartent vers le dehors)
+      const m = Math.floor((j / n) * morceaux);
+      if (!ourlet[m]) {
+        const tm = t0 + ((m + 0.5) / morceaux) * (t1 - t0);
+        ourlet[m] = { a: atelier(), pivot: [rp * Math.sin(tm), yp, rp * Math.cos(tm)], axe: [-Math.cos(tm), 0, Math.sin(tm)], t: tm };
+      }
+      const o = ourlet[m], [px, py, pz] = o.pivot;
+      plumeCormoran(THREE, o.a, { ...plume, base: [plume.base[0] - px, plume.base[1] - py, plume.base[2] - pz], pointe: [plume.pointe[0] - px, plume.pointe[1] - py, plume.pointe[2] - pz] });
+    }
+  });
+  // le col : de petites plumes blanches tout autour du cou (sauf devant), par-dessus le haut du dernier rang
+  for (let j = 0; j < 16; j++) {
+    const t = PI - 2.3 + ((j + 0.5) / 16) * 4.6, s = Math.sin(t), c = Math.cos(t), rb = 0.168 * k, rt = 0.206 * k;
+    plumeCormoran(THREE, haut, { base: [rb * s, y + 0.045, rb * c], pointe: [rt * s, y - 0.05, rt * c], normale: [s, 0.9, c], large: 0.062 * k, epais: 0.01, c: BLANC, bout: BLANC2, roulis: j % 2 ? 0.1 : -0.1, bombe: 0.005 });
+  }
+  // la doublure sombre (vue par devant, sous les bras) : deux bandes de cône tournées vers l'intérieur, un rien en dedans des
+  // plumes ; la basse avec l'ourlet (dans le morceau du milieu, elle ne bouge pas : l'ourlet s'écarte d'elle)
+  const DOUBLURE = '#23282a';
+  for (const [ya, yb, dedans] of [[y - 0.2, y + 0.01, 0.012], [y - 0.44, y - 0.18, 0.05]]) {
+    const h = yb - ya;
+    haut.piece(new THREE.CylinderGeometry(r(yb) - dedans, r(ya) - dedans, h, 26, 1, true, t0, t1 - t0), DOUBLURE, { y: (ya + yb) / 2, sx: -1, trait: false });
+  }
+  return { haut, ourlet };
+}
+
+/**
  * Le collier de magatama (勾玉, Takachiho, 2026-10-25) : les joyaux en forme de virgule des dieux du Japon (le collier
  * suspendu à l'arbre sacré devant la grotte d'Amaterasu, avec le miroir). Un cordon autour du cou qui retombe sur la
  * poitrine, des perles de cornaline et de cristal, trois magatama de jade, le plus grand au milieu. bas : la hauteur du bas
@@ -842,6 +932,21 @@ export function creerHeros(ctx, sorte = 'garcon') {
       g.rotation.set(0, s * (1.25 - 1.11 * ouverture), s * (0.45 - 0.12 * ouverture + f), 'YZX');
     });
   };
+  // la cape en plumes de cormoran (Udo, 2026-10-31) : le haut, sur les épaules ; l'ourlet, six morceaux qui s'écartent (un peu
+  // en marchant, plus en courant, grand ouvert quand on saute, qu'on danse ou qu'on fait « Ouais ! »), plus au dos que sur les
+  // côtés, et qui battent chacun à son tour (la phase avance à chaque image)
+  let cape = null, ecartCape = 0, phaseCape = 0;
+  const animerCape = (dt, vitesse, fete) => {
+    if (!cape || !cape.objet.visible) return;
+    const vif = fete || vitesse > 4.4, voulu = fete ? 0.5 : vif ? 0.36 : vitesse > 0.4 ? 0.12 : 0;
+    ecartCape += (voulu - ecartCape) * Math.min(1, dt * 4);
+    phaseCape += dt * 2 * PI * (vif ? 2.6 : 1.2);
+    const bat = (vif ? 0.06 : 0.02) * Math.min(1, ecartCape / 0.1);
+    for (const m of cape.ourlet) {
+      const dos = 0.55 - 0.45 * Math.cos(m.t);
+      m.g.quaternion.setFromAxisAngle(m.axe, Math.max(0, ecartCape * dos + bat * Math.sin(phaseCape + m.t * 2.3)));
+    }
+  };
   // la queue de renard (Motonosumi : elle vient avec les oreilles, la pièce de tête « renard ») : des touffes blanches le long
   // d'une courbe qui part du bas du dos, s'écarte en arrière et remonte, le bout doré ; son pivot, à la base, balance en
   // marchant (la phase s'ajoute à chaque image : jamais le temps multiplié par ce qui varie)
@@ -1052,12 +1157,13 @@ export function creerHeros(ctx, sorte = 'garcon') {
     if (!auCou) return;
     // (au cou : le collier de magatama, à la mesure du buste de la tenue ; ou l'étole et la conque du yamabushi, couchées
     // sur le relief de ce qu'on porte : le haut de la tenue, et le bas qu'elle garde, devant lequel pend la conque ; et le
-    // mino, dont le col de corde et ses cordons passent devant la poitrine : l'étole se pose dessus)
-    const mino = auCou === 'yamabushi' && !!dosPorte && dosPorte === pieces.mino;
-    const k = auCou === 'yamabushi' || BUSTES[habitCourant] ? habitCourant : 'habit-defaut', cle = `${auCou}:${k}${mino ? ':mino' : ''}`;
+    // mino, dont le col de corde et ses cordons passent devant la poitrine, ou le haut de la cape de plumes de cormoran et son
+    // col : l'étole se pose dessus)
+    const surDos = auCou !== 'yamabushi' || !dosPorte ? null : dosPorte === pieces.mino ? ['mino', pieces.mino] : cape && dosPorte === cape.objet ? ['cormoran', cape.haut] : null;
+    const k = auCou === 'yamabushi' || BUSTES[habitCourant] ? habitCourant : 'habit-defaut', cle = `${auCou}:${k}${surDos ? ':' + surDos[0] : ''}`;
     if (!colliers[cle]) {
       if (auCou === 'yamabushi') {
-        const h = habits[k], geos = [...(h ? [h.meshes[0], ...(h.garde.includes('bas') ? [mBas] : [])] : [mHaut, mBas]), ...(mino ? [pieces.mino] : [])].map((m) => m.children[0].geometry);
+        const h = habits[k], geos = [...(h ? [h.meshes[0], ...(h.garde.includes('bas') ? [mBas] : [])] : [mHaut, mBas]), ...(surDos ? [surDos[1]] : [])].map((m) => m.children[0].geometry);
         const a = atelier(), arriere = fille ? null : atelier();
         etoleYamabushi(THREE, a, { devant: reliefBuste(geos, 1), dos: arriere ? reliefBuste(geos, -1) : null, arriere });
         colliers[cle] = maillage(a.fin(0, false));
@@ -1273,6 +1379,18 @@ export function creerHeros(ctx, sorte = 'garcon') {
           ailes.objet.visible = true;
           dosPorte = ailes.objet;
         }
+        // la cape en plumes de cormoran (Udo) : le haut sur les épaules, l'ourlet en six morceaux, chacun sur son pivot
+        if (id === 'cormoran') {
+          if (!cape) {
+            const objet = new THREE.Group(), c = capeCormoran(THREE, atelier), haut = maillage(c.haut.fin(0, false));
+            objet.add(haut);
+            const ourlet = c.ourlet.map((o) => { const g = pivot(ctx, ...o.pivot, maillage(o.a.fin(0, false))); objet.add(g); return { g, axe: new THREE.Vector3(...o.axe), t: o.t }; });
+            cape = { objet, haut, ourlet };
+            corps.add(objet);
+          }
+          cape.objet.visible = true;
+          dosPorte = cape.objet;
+        }
         majSac();
         return;
       }
@@ -1309,6 +1427,7 @@ export function creerHeros(ctx, sorte = 'garcon') {
     animer(dt, vitesse, temps) {
       cligner(dt);
       animerAiles(dt, vitesse, danse || geste === 'saut' || geste === 'victoire');
+      animerCape(dt, vitesse, danse || geste === 'saut' || geste === 'victoire');
       animerQueue(dt, vitesse);
       const marche = Math.min(1, vitesse / 3.2);
       phase += dt * (5 + vitesse * 1.9);

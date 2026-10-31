@@ -8,7 +8,7 @@
 //  lumieres : [{ x, y, z (la flamme), halo (son rayon, en m), sol (la hauteur du sol dessous ; null : une lampe
 //  sans sol proche), r (jusqu'où elle éclaire le sol, depuis son pied), c (la couleur, « #rrggbb » ; une lumière
 //  chaude par défaut), mobile (2026-10-24 : la lampe bouge, ses x, y, z sont relus à chaque image : la luciole dorée
-//  de Gokayama ; son halo est le sien, halo : 0), jour (2026-10-29 : allumée aussi le jour, sa lumière sans son halo :
+//  de Gokayama ; son halo est le sien, halo : 0 ; éteinte, on la range sous le sol, y −500 : elle ne compte plus), jour (2026-10-29 : allumée aussi le jour, sa lumière sans son halo :
 //  les bougies d'une grotte, aux Trente Bouddhas) }]
 // ================================================================
 import { NB_LAMPES } from './styles.js';
@@ -91,10 +91,16 @@ export function creerLueurs(THREE, lumieres, lampes) {
     vise.copy(camera.position).addScaledVector(dir, 8);
     for (const l of tri) {
       if (l.mobile) { l.x = l.mobile.x; l.y = l.mobile.y; l.z = l.mobile.z; }
-      l.d = Math.hypot(l.x - vise.x, l.y - vise.y, l.z - vise.z);
+      // (une lampe mobile éteinte est rangée sous le sol, y −500 : elle ne compte pas. Gardée, elle agrandissait la boule des
+      // lampes jusqu'à 500 m sous terre, et chaque pixel faisait la boucle des lampes : de jour, l'éclat de la hutte d'Udo
+      // coûtait 0,1 à 0,3 ms par image à la carte graphique, 2026-10-31 ; la nuit, les lueurs de Beppu, du Pavillon d'or…)
+      l.d = l.y < -400 ? Infinity : Math.hypot(l.x - vise.x, l.y - vise.y, l.z - vise.z);
     }
     tri.sort((a, b) => a.d - b.d);
-    const k = Math.min(NB_LAMPES, tri.length), coupe = tri.length > NB_LAMPES ? tri[NB_LAMPES].d : Infinity;
+    let k = Math.min(NB_LAMPES, tri.length);
+    while (k > 0 && tri[k - 1].d === Infinity) k--;
+    if (!k) { P[0].w = 0; Z.w = 0; return; }
+    const coupe = tri.length > k && tri[k].d < Infinity ? tri[k].d : Infinity;
     const cp = camera.position;
     for (let i = 0; i < k; i++) {
       const l = tri[i];
