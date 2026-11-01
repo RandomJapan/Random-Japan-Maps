@@ -106,7 +106,7 @@ const CREUX = { x: -15.7, z: 96.4, r: 1.25 };
 // du bout est de la forêt de mousse au col de Tsuji, en passant devant le refuge
 const SENTIER3 = [[15.2, 90.2, 23.6], [18.2, 94.0, 24.4], [20.0, 97.6, 25.5], [21.0, 101.0, 26.7], [21.4, 103.2, 27.2]];
 const HUTTE = { x: 26.0, z: 95.3 };
-const DEVANT_HUTTE = { x0: 19.8, x1: 23.8, z0: 92.8, z1: 97.8, y: 24.95 };
+const DEVANT_HUTTE = { x0: 18.4, x1: 23.8, z0: 92.8, z1: 97.8, y: 24.95 };
 // (le sol plat sous le refuge et devant lui : le refuge et son banc étaient posés d'après le sol sous son milieu, 1 m plus haut que
 // devant lui ; 2026-11-01, « le banc… il flotte »)
 const SOL_HUTTE = { x0: 19.8, x1: 28.6, z0: 92.2, z1: 98.4, y: 24.95 };
