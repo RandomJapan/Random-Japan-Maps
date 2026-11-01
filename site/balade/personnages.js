@@ -1581,6 +1581,23 @@ export function creerPersonnage(ctx, T) {
       .boite(0.2, 0.09, 0.07, OB, { y: 0.56, z: -0.18 })
       .cylindre(0.174, 0.174, 0.012, 16, T.haut, { y: 0.552, sz: 0.93, trait: false });
   }
+  // à genoux : les cuisses vers l'avant, les genoux, les tibias repliés dessous, les pieds sous les fesses, semelles en l'air et
+  // orteils vers l'arrière ; sous un hakama, rien ne se voit, seulement ses plis. (2026-11-01, Udo, « la grand-mère… elle a les jambes
+  // à l'envers » : d'un seul morceau depuis la hanche, ses jambes partaient à l'horizontale derrière elle, les semelles à l'air.)
+  if (seiza) {
+    for (const j of jambes) j.visible = false;
+    if (!long) {
+      const pli = atelier(), hautJ = bas.c || jambeCouleur;
+      for (const s of [-1, 1]) {
+        pli.fut([s * 0.085, 0.455, 0.0], [s * 0.105, 0.415, 0.29], 0.082, 0.068, hautJ, 10)
+          .ovale(0.07, hautJ, { x: s * 0.105, y: 0.4, z: 0.3, sy: 0.92 }, 10)
+          .fut([s * 0.105, 0.36, 0.29], [s * 0.09, 0.35, -0.07], 0.058, 0.046, jambeCouleur, 10)
+          .ovale(0.085, T.chaussures, { x: s * 0.085, y: 0.345, z: -0.12, sx: 0.9, sy: 0.55, sz: 1.3 }, 12)
+          .ovale(0.088, T.semelle, { x: s * 0.085, y: 0.385, z: -0.12, sx: 0.92, sy: 0.2, sz: 1.33 }, 12);
+      }
+      echelle.add(maillage(pli.fin(0, false)));
+    }
+  }
   if (bas.sorte === 'jupe') b.cylindre(0.17, 0.27, 0.2, 14, bas.c, { y: 0.44 });
   else if (long) {
     // le hakama : une large jupe-culotte plissée jusqu'aux chevilles

@@ -61,9 +61,16 @@ const LANTERNES = { x0: 2, x1: 18.4, z0: -2.1, z1: 2.3 };
 // le pont Tamabashi (玉橋), en arc au-dessus de la crique ; la pointe, de l'autre côté ; l'escalier qui descend vers la grotte
 const PONT = { x0: 18.4, x1: 24.6, z: 0.1, demi: 0.78, haut: 0.95 };
 const POINTE = { x0: 24.6, x1: 33.6, z0: -9.2, z1: 3.6 };
+// le sol plat autour du chemin des lanternes, de la pointe et de la terrasse : au-delà de leurs barrières (à 30 cm de ce rectangle
+// où l'on marche), jusqu'à une ligne de la grille du sol (1 m) : c'est là, et pas sous les pieds, que la falaise commence
+// (2026-11-01, « il marche sur le vide à côté de la barrière » : le plat s'arrêtait 15 à 20 cm après le bord où l'on marche, et
+// le sol dessiné, d'un point de la grille à l'autre, tombait déjà sous la barrière, jusqu'à 64 cm sous les pieds)
+const PLAT_LANTERNES = { x0: 2, x1: 19, z0: -3, z1: 3 };
+const PLAT_POINTE = { x0: 24, x1: 34, z0: -10, z1: 4 };
 const ESC = { x: 25.8, demi: 1.25, z0: -9.2, z1: -23.2, n: 35, y0: Y_POINTE, y1: Y_T };
 // la terrasse devant la grotte (le parvis de pierre au bord de la mer)
 const TERRASSE = { x0: 22.4, x1: 45, z0: -45.4, z1: -23.2 };
+const PLAT_TERRASSE = { x0: 22.4, x1: 46, z0: -46, z1: -22 };
 // l'escalier du sanctuaire d'Inari, son palier (on y monte sous les torii rouges) ; le Hatchōzaka, de la place au port
 const INARI_ESC = { x: -13, demi: 1.15, z0: -2.5, z1: -10.2, n: 25, y0: Y_ROUTE, y1: Y_INARI };
 const INARI = { x0: -18.6, x1: -7.4, z0: -17.4, z1: -10.2 };
@@ -82,6 +89,10 @@ const ARRET = { x: -88.4, z: 7.5 };
 // le trottoir de l'arrêt du bus, au coin sud-est du parking (2026-10-31 : « le banc, il est sur une place de parking »)
 const TROTTOIR = { x0: -93.2, x1: -84.05, z0: 6.9, z1: 9.28, h: 0.15 };
 const CHOZUYA = { x: -33.8, z: -5.4 };
+// le bureau des porte-bonheur et ses murs blancs, au sud de la place : le sol à plat sous eux (2026-11-01 : il y montait jusqu'au dessus
+// de son socle, en scintillant) et le gravier jusqu'à leur pied
+const BUREAU = { x0: -46, x1: -26.7, z0: PLACE.z1, z1: PLACE.z1 + 5.7 };
+const PIED_MURS = { x0: PLACE.x0, x1: PLACE.x1, z0: PLACE.z0, z1: PLACE.z1 + 0.95 };
 const DEPART = { x: -90.4, z: 2.6, cap: PI / 2 };
 
 /** Un escalier droit, le long de z : la hauteur du dessus de la marche k (k = 0 : la première depuis z0), et de sa ligne en z. */
@@ -206,10 +217,10 @@ const COTE = [
   [-720, -720], [-150, -720], [-140, -380], [-128, -200], [-118, -110], [-110, -76], [-100, -62],
   [-86, -53], [-74, -48.5], [-67, -46.5], [-64, -41], [-62, -35.6], [-60.4, -33.4],
   [-27.4, -33.4], [-25.8, -36.4], [-24.8, -42], [-22.2, -48], [-16, -52.4],
-  [-4, -54.2], [8, -53.4], [18, -51], [25.4, -48.6], [33, -46.8], [40, -46.3], [44.4, -45.7],
-  [45.9, -43], [46.5, -36], [46.3, -28], [46.5, -23.4],
+  [-4, -54.2], [8, -53.4], [18, -51], [25.4, -48.8], [33, -47.6], [40, -47.6], [45.4, -47.6],
+  [47.4, -46.6], [47.5, -36], [47.4, -28], [47.4, -23.4],
   [47.6, -16], [49.2, -8], [50, 0], [49, 6.6], [46, 10.8], [40, 12.6], [32, 13.2], [26.6, 12.4],
-  [25.0, 8], [24.0, 2.4], [23.4, -1.6], [22.0, -3.2], [20.6, -3.0], [19.6, -1.0], [19.2, 2.0], [18.9, 5.4], [18.0, 6.6],
+  [25.0, 8], [23.4, 2.4], [23.4, -1.6], [22.0, -3.2], [20.6, -3.0], [19.6, -1.0], [19.2, 2.0], [18.9, 5.4], [18.0, 6.6],
   [10, 6.6], [2, 6.9], [-6, 7.6], [-14, 9.8], [-24, 12.2], [-36, 16], [-46, 19.6], [-60, 23.6], [-76, 25.8], [-92, 27.6], [-104, 33], [-114, 52],
   [-124, 110], [-136, 260], [-148, 720], [-720, 720],
 ];
@@ -311,8 +322,8 @@ function terrain(x, z) {
   if (d < -3) h = fond(d);
   else {
     h = terre(x, z);
-    // la falaise : de la terre au fond de la mer en quatre mètres (moins raide au fond de la crique du port)
-    if (d < 3) { const f = fond(Math.min(0, d - 0.5)); h = f + (h - f) * lisse(-1.4, 3, d); }
+    // la falaise : de la terre au fond de la mer en 1,4 m, derrière sa paroi de roche ; à 1,6 m de la côte, c'est déjà le haut
+    if (d < 1.6) { const f = fond(Math.min(0, d - 0.5)); h = f + (h - f) * lisse(0.2, 1.6, d); }
   }
   // au pied des falaises, des rochers qui sortent de l'eau ; les récifs plats au large (pas dans la crique sous le pont, large
   // de 4 m : ses rochers, à 1,5 m au-dessus de l'eau au milieu, la bouchaient, et la paroi de roche passait par-dessus)
@@ -335,7 +346,7 @@ function terrain(x, z) {
   // ---- les retouches : ce qui est bâti, plat
   // le parking, la rue, la place, l'allée : plats, à la hauteur de la route ; le sol revient à la pente en 2 m
   {
-    const dh = Math.min(versRect(PARKING, x, z), versRect(RUE, x, z), versRect(BOUTIQUES, x, z), versRect(PLACE, x, z), versRect(ALLEE, x, z), aLaPlace(RECOIN, x, z) < 0 ? 0 : Math.max(0, aLaPlace(RECOIN, x, z)));
+    const dh = Math.min(versRect(PARKING, x, z), versRect(RUE, x, z), versRect(BOUTIQUES, x, z), versRect(PLACE, x, z), versRect(BUREAU, x, z), versRect(ALLEE, x, z), aLaPlace(RECOIN, x, z) < 0 ? 0 : Math.max(0, aLaPlace(RECOIN, x, z)));
     if (dh < 2.2) h = Y_ROUTE - 0.03 + (h - Y_ROUTE + 0.03) * lisse(0.25, 2.2, dh);
   }
   // les marches du Rōmon et le dessous du Rōmon : à la hauteur de chaque marche ; le chemin des lanternes
@@ -343,15 +354,16 @@ function terrain(x, z) {
     if (x > MARCHES_ROMON.x0 && x < MARCHES_ROMON.x1 && Math.abs(z) < MARCHES_ROMON.z1 + 1.2) h = Math.min(h, yMarchesRomon(x) - 0.22);
     const dr = versRect({ x0: -2, x1: 2.2, z0: -4.8, z1: 4.8 }, x, z);
     if (dr < 1.6) h = Y_ROMON - 0.03 + (h - Y_ROMON + 0.03) * lisse(0.2, 1.6, dr);
-    const dl = versRect(LANTERNES, x, z);
-    if (dl < 2) { const yl = yLanternes(Math.min(LANTERNES.x1, Math.max(LANTERNES.x0, x))); h = yl - 0.03 + (h - yl + 0.03) * lisse(0.25, 2, dl); }
+    // (vers la crique, à l'est, le sol tombe en un mètre : en deux, il bouchait l'eau sous le pont)
+    const dl = versRect(PLAT_LANTERNES, x, z), ll = x > PLAT_LANTERNES.x1 ? 1 : 2;
+    if (dl < ll) { const yl = yLanternes(Math.min(LANTERNES.x1, Math.max(LANTERNES.x0, x))); h = yl - 0.03 + (h - yl + 0.03) * lisse(0, ll, dl); }
   }
   // la pointe (la place au bout du pont), plate ; la terrasse de la grotte, plate
   {
-    const dp = versRect(POINTE, x, z);
-    if (dp < 2) h = Y_POINTE - 0.03 + (h - Y_POINTE + 0.03) * lisse(0.2, 2, dp);
-    const dt = versRect(TERRASSE, x, z);
-    if (dt < 1.2 && x > 21.6) h = Y_T - 0.03 + (h - Y_T + 0.03) * lisse(0.15, 1.2, dt);
+    const dp = versRect(PLAT_POINTE, x, z);
+    if (dp < 1) h = Y_POINTE - 0.03 + (h - Y_POINTE + 0.03) * lisse(0, 1, dp);
+    const dt = versRect(PLAT_TERRASSE, x, z);
+    if (dt < 1 && x > 21.6) h = Y_T - 0.03 + (h - Y_T + 0.03) * lisse(0, 1, dt);
   }
   // le palier du sanctuaire d'Inari, taillé dans le flanc de la crête ; le quai du port
   {
@@ -451,7 +463,7 @@ export function construire(ctx) {
   const { THREE, atelier, P } = ctx;
   const objets = [], bancs = [], lumieres = [], animes = [], etiquettes = [], vapeurs = [];
   const monde = creerMonde({ terrain, cadre: dansLeCadre, profond: null, pente: null });
-  const poser = (fin, x, z, o = {}) => objets.push({ fin, x, z, y: o.y ?? terrain(x, z), ry: o.ry || 0, ombre: o.ombre !== false, trait: o.trait !== false, dedans: o.dedans, avant: o.avant });
+  const poser = (fin, x, z, o = {}) => objets.push({ fin, x, z, y: o.y ?? terrain(x, z), ry: o.ry || 0, ombre: o.ombre !== false, trait: o.trait !== false, dedans: o.dedans, avant: o.avant, recoit: o.recoit });
   const ecrire = (o, e) => {
     const c = Math.cos(o.ry || 0), sn = Math.sin(o.ry || 0);
     etiquettes.push({ ...e, x: o.x + e.x * c + e.z * sn, y: o.y + e.y, z: o.z - e.x * sn + e.z * c, ry: (o.ry || 0) + (e.ry || 0) });
@@ -687,8 +699,11 @@ export function construire(ctx) {
       if (cote((xa + xb) / 2 + nx * 2, (za + zb) / 2 + nz * 2) > 0) { nx = -nx; nz = -nz; }
       for (let k = 0; k < n; k++) {
         const f = k / n, x = xa + (xb - xa) * f, z = za + (zb - za) * f;
-        const sorti = 0.5 + 1.1 * bruitDoux(x * 0.4, z * 0.4, 2), w = 0.6 + 0.9 * hasard(x, z);
-        const bas = [x + nx * (w + 0.8), -1.6, z + nz * (w + 0.8)], haut = [x - nx * 0.4, sorti, z - nz * 0.4];
+        // (son pied plus près là où il y a peu d'eau devant : dans la crique sous le pont, il n'en laissait presque rien)
+        let eau = 0.5;
+        while (eau < 6 && cote(x + nx * eau, z + nz * eau) < 0.3) eau += 0.5;
+        const sorti = 0.5 + 1.1 * bruitDoux(x * 0.4, z * 0.4, 2), w = (0.6 + 0.9 * hasard(x, z)) * lisse(1, 6, eau) + 0.8 * lisse(2, 6, eau);
+        const bas = [x + nx * w, -1.6, z + nz * w], haut = [x - nx * 0.4, sorti, z - nz * 0.4];
         if (prev) {
           const c = bruitDoux(x * 0.6, z * 0.6, 1.5) > 0.5 ? '#4a4741' : '#55514a';
           tri(pos, cols, prev[0], bas, haut, c, [nx, 0.4, nz]);
@@ -702,25 +717,22 @@ export function construire(ctx) {
     a.piece(geo, '#4a4741', { couleurs: cols, nuance: 0.06 });
     poser(a.fin(), 0, 0, { y: 0, trait: false });
   }
-  // (2026-10-31, la deuxième liste du propriétaire : « beaucoup de bugs au niveau des falaises… des surfaces qui ne sont pas
-  // reliées, on a l'impression qu'il y a des trous, alors qu'en fait on peut marcher dessus ». Les rangs de la paroi étaient
-  // à des distances fixes de la côte, jusqu'à 2,9 m dans les terres : sur une falaise étroite (la terrasse, la pointe), les
-  // trois du haut tombaient sur le plat et, poussés vers la mer jusqu'à passer devant le sol, faisaient une bande plate
-  // grise au-delà des barrières, avec des fentes ; dans la crique sous le pont, large de 4 m, les colonnes des deux bords,
-  // poussées jusqu'à 5,5 m, se croisaient. Maintenant les rangs vont par hauteurs, du fond de la mer jusque sous le bord de
-  // la falaise (là où elle cesse d'être raide) ; on pousse au plus 40 % de l'eau devant (1,4 m), en douceur d'une colonne à
-  // l'autre ; une case retournée n'est pas dessinée ; pas de paroi où il n'y a pas de falaise (le platier, les plages). Et
-  // la paroi longe toute la côte que l'on voit, jusqu'aux caps du nord et du sud : le relief en grille les peignait en
-  // traînées floues, « La falaise, elle est un peu floue ».)
+  // La paroi de roche devant chaque falaise : le relief en grille, sur une pente si raide, ne dessinerait que de longues traînées.
+  // (2026-10-31, « des surfaces qui ne sont pas reliées, on a l'impression qu'il y a des trous » ; 2026-11-01, « il y a une espèce de
+  // couche, et entre les deux couches, il y a du vide » : la paroi était une peau posée devant la pente, son rang du haut poussé vers
+  // la mer jusqu'à 1,4 m pour rester devant le sol dessiné : d'en haut, on voyait entre elle et le sol.) Maintenant, sur chaque colonne :
+  //  - le bord : là où le sol, en montant depuis la mer, cesse d'être raide ;
+  //  - les rangs par hauteurs, chacun là où le sol dessiné (la colonne et ses deux voisines à mi-chemin) descend sous lui, plus une
+  //    saillie : le sol, qui tombe en 1,4 m, reste derrière la paroi sans qu'il faille la pousser ;
+  //  - au-dessus du dernier rang, un rang de fermeture, enterré 12 cm sous le sol dessiné, en arrière du bord : la paroi sort du sol.
+  // Vu d'en haut, ce qu'on voit est toujours le plus haut des deux (le sol, la paroi), et les deux sont continus : il n'y a plus de vide
+  // possible entre eux. Aux bouts de la paroi (où la falaise cesse), un bouchon va du dernier rang au rang de fermeture.
   {
     const strate = (y, x, z) => (y < 0.7 ? MOUILLE : ROCHES[((Math.floor((y + 1.6 * bruitDoux(x * 0.07, z * 0.07, 2)) / 1.2) % ROCHES.length) + ROCHES.length) % ROCHES.length]);
-    // (l'écart d'un point au plan de la facette du sol sous lui : positif devant, négatif si le sol passe devant)
-    const devant = (x, y, z) => { const q = solDessine(x, z); return (y - q.h) / Math.sqrt(1 + q.pente * q.pente); };
-    // (combien d'eau devant la côte, le long de n, jusqu'à la terre d'en face)
-    const eauDevant = (x, z, nx, nz) => { let d = 0.5; while (d < 14 && cote(x + nx * d, z + nz * d) < 0.3) d += 0.5; return d; };
+    const sol = (x, z) => solDessine(x, z).h;
     // (au loin, les falaises montent haut, jusqu'au haut des collines : plus de rangs, et leur bord cherché jusqu'à 16 m)
     for (const [i0, i1, pas, ombre] of [[13, 47, 1.6, true], [2, 12, 3.2, false], [47, 59, 3.2, false]]) {
-      const loin = pas > 2, RANGS = loin ? Array.from({ length: 11 }, (_, r) => r / 10) : [0, 0.24, 0.46, 0.66, 0.84, 1], dMax = loin ? 16 : 4.4;
+      const loin = pas > 2, RANGS = loin ? Array.from({ length: 11 }, (_, r) => r / 10) : [0, 0.24, 0.46, 0.66, 0.84, 1], dMax = loin ? 16 : 4.4, H = RANGS.length - 1;
       const ap = atelier(), pp = [], cp = [], colonnes = [];
       let nPrec = null;
       for (let i = i0; i < i1; i++) {
@@ -733,92 +745,68 @@ export function construire(ctx) {
           // (au coin, entre deux bords, la normale moyenne : les colonnes tournent avec la côte)
           let nx = sx, nz = sz;
           if (k === 0 && nPrec) { const mx = sx + nPrec[0], mz = sz + nPrec[1], ml = Math.hypot(mx, mz); if (ml > 0.3) { nx = mx / ml; nz = mz / ml; } }
-          const h = (d) => terrain(px - nx * d, pz - nz * d);
-          // le bord du haut : le premier point (dans les terres) au-dessus de l'eau où le sol cesse de monter raide
+          const ptx = (d, s = 0) => px - nx * d + tx * s, ptz = (d, s = 0) => pz - nz * d + tz * s, h = (d) => terrain(ptx(d), ptz(d));
+          // le bord : en montant depuis la mer, au-dessus des rochers du pied, le premier endroit où le sol cesse de monter raide
           let dE = dMax;
-          for (let d = 0; d <= dMax; d += 0.1) if (h(d) > 0.3 && h(d + 0.6) - h(d) < 0.3) { dE = d; break; }
-          const hB = h(-1.3), hE = h(dE);
+          for (let d = -1.6; d < dMax; d += 0.1) if (h(d) > 1.8 && h(d + 0.6) - h(d) < 0.45) { dE = d; break; }
+          const hB = h(-1.6), hE = h(dE);
           // (pas de falaise : le platier, une plage, des rochers bas ; la frange mouillée suffit)
           if (hE - Math.max(hB, -0.6) < 1.1) { colonnes.push(null); continue; }
-          const marge = 0.12 + 0.0012 * Math.hypot(px, pz), eMax = Math.min(pas > 2 ? 3.0 : 1.4, 0.25 * eauDevant(px, pz, nx, nz));
+          // (le haut pris 80 cm après le bord, là où le sol dessiné est à plat : au bord même, d'un point de la grille à l'autre, il
+          // varie de plusieurs mètres d'une colonne à l'autre, et les couches de roche faisaient des zigzags)
+          const dS = dE + 0.8, yHaut = Math.min(Math.max(hE, h(dS)), sol(ptx(dS), ptz(dS))) - 0.3, marge = 0.14 + 0.0012 * Math.hypot(px, pz);
+          // (où le sol dessiné passe sous y, en descendant du bord : sur la colonne, et à mi-chemin des voisines, au plus 1,1 m plus loin)
+          const COUPES = [0, -pas / 2, pas / 2].map((s) => { const t2 = []; for (let d = dS; d > -2.5; d -= 0.1) t2.push(sol(ptx(d, s), ptz(d, s))); return t2; });
+          const quitte = (t2, y) => { let j = 0; while (j + 1 < t2.length && t2[j + 1] >= y) j++; return dS - j * 0.1; };
           const col = RANGS.map((fr, r) => {
-            const haut = r === RANGS.length - 1;
-            // (le rang du haut 25 cm sous le bord, sous le sol dessiné : il ne fait pas de rebord au-dessus de la pente)
-            const y = haut ? Math.min(hE, solDessine(px - nx * dE, pz - nz * dE).h) - 0.25 : hB + (hE - 0.25 - hB) * fr - (r ? (hasard(r * 7.3 + px, pz) - 0.5) * 0.12 : 0);
-            let d = -1.3;
-            while (d < dE && h(d) < y) d += 0.05;
-            const bx = px - nx * d, bz = pz - nz * d;
-            let e = haut ? 0.06 : 0.24 + 0.1 * hasard(px * 3.1 + r, pz * 1.7);
-            // (sous l'eau, on ne pousse pas : la crique reste ouverte)
-            for (let essai = 0; essai < 12 && e < eMax && y > -0.3; essai++) {
-              const ex = bx + nx * e, ez = bz + nz * e, pire = Math.min(devant(ex, y, ez), devant(ex - tx * pas * 0.5, y, ez - tz * pas * 0.5), devant(ex + tx * pas * 0.5, y, ez + tz * pas * 0.5));
-              if (pire >= marge) break;
-              e += marge - pire + 0.05;
-            }
-            return { bx, y, bz, e: Math.min(e, eMax) };
+            // (les rangs à des hauteurs qui ne dépendent pas des rochers du pied : le premier sous l'eau, le deuxième juste au-dessus, les
+            // couches restent à niveau d'une colonne à l'autre)
+            const y = r === H ? yHaut : r === 0 ? -2.2 : 0.6 + (yHaut - 0.6) * ((fr - RANGS[1]) / (1 - RANGS[1])) - (hasard(r * 7.3 + px, pz) - 0.5) * 0.12, d0 = quitte(COUPES[0], y);
+            const d = Math.min(d0, Math.max(d0 - 1.1, quitte(COUPES[1], y)), Math.max(d0 - 1.1, quitte(COUPES[2], y)));
+            return { y, d: d - marge - (r === H ? 0 : 0.1 + 0.3 * hasard(px * 3.1 + r, pz * 1.7)) };
           });
+          // le rang de fermeture : dans le sol, en arrière du bord
+          const dF = Math.max(dS, col[H].d) + 0.35, yF = Math.min(sol(ptx(dF), ptz(dF)), sol(ptx(dF, -pas / 2), ptz(dF, -pas / 2)), sol(ptx(dF, pas / 2), ptz(dF, pas / 2))) - 0.12;
           const prec = colonnes[colonnes.length - 1];
-          colonnes.push({ col, nx, nz, px, pz, marge, eMax, lie: !!prec && Math.hypot(px - prec.px, pz - prec.pz) < pas * 2.5 });
+          colonnes.push({ col, nx, nz, px, pz, dF, yF, lie: !!prec && Math.hypot(px - prec.px, pz - prec.pz) < pas * 2.5 });
         }
         nPrec = [sx, sz];
       }
-      // (une colonne poussée loin entraîne ses voisines : pas de pointe seule vers la mer)
+      // (une colonne qui avance entraîne ses voisines : pas d'arête seule vers la mer)
       for (let tour = 0; tour < 2; tour++) {
         for (let c = 0; c < colonnes.length; c++) {
           const Q = colonnes[c];
           if (!Q) continue;
           const voisins = [c > 0 && Q.lie ? colonnes[c - 1] : null, colonnes[c + 1]?.lie ? colonnes[c + 1] : null].filter(Boolean);
-          Q.col.forEach((V, r) => { for (const W of voisins) V.e = Math.min(Q.eMax, Math.max(V.e, 0.65 * W.col[r].e)); });
+          Q.col.forEach((V, r) => {
+            for (const W of voisins) V.d = Math.min(V.d, W.col[r].d + 0.45);
+            if (voisins.length === 2) V.d = Math.min(V.d, (voisins[0].col[r].d + voisins[1].col[r].d) / 2 + 0.15);
+          });
         }
       }
-      const place = (Q, r) => { const V = Q.col[r]; return [V.bx + Q.nx * V.e, V.y, V.bz + Q.nz * V.e]; };
-      // (pas de surplomb : un rang n'est jamais en retrait de celui du dessus ; une paroi qui avance au-dessus de l'eau
-      // faisait une encoche sombre, au bout du quai : « on a l'impression qu'il y a des trous »)
-      const aplomb = (Q) => {
-        for (let r = RANGS.length - 2; r >= 0; r--) {
-          const V = Q.col[r], W = Q.col[r + 1], dV = (V.bx - Q.px) * -Q.nx + (V.bz - Q.pz) * -Q.nz, dW = (W.bx - Q.px) * -Q.nx + (W.bz - Q.pz) * -Q.nz;
-          V.e = Math.max(V.e, Math.min(Q.eMax + 0.6, dV - dW + W.e));
-        }
-      };
-      // (les cases : le milieu de leurs bords et de leurs triangles devant le sol dessiné ; sinon leurs coins un peu plus loin)
-      const POIDS = [[0.5, 0.5, 0, 0], [0, 0.5, 0.5, 0], [0, 0, 0.5, 0.5], [0.5, 0, 0, 0.5], [0.5, 0, 0.5, 0], [1 / 3, 1 / 3, 1 / 3, 0], [1 / 3, 0, 1 / 3, 1 / 3]];
-      for (let tour = 0; tour < 3; tour++) {
-        let pousse = false;
-        for (let c = 1; c < colonnes.length; c++) {
-          const P0 = colonnes[c - 1], Q = colonnes[c];
-          if (!P0 || !Q || !Q.lie) continue;
-          for (let r = 0; r + 1 < RANGS.length; r++) {
-            const coins = [place(P0, r), place(Q, r), place(Q, r + 1), place(P0, r + 1)], m = Math.max(P0.marge, Q.marge);
-            let pire = Infinity;
-            for (const w of POIDS) {
-              const x = w[0] * coins[0][0] + w[1] * coins[1][0] + w[2] * coins[2][0] + w[3] * coins[3][0], y = w[0] * coins[0][1] + w[1] * coins[1][1] + w[2] * coins[2][1] + w[3] * coins[3][1];
-              const z = w[0] * coins[0][2] + w[1] * coins[1][2] + w[2] * coins[2][2] + w[3] * coins[3][2];
-              if (y > -0.3) pire = Math.min(pire, devant(x, y, z));
-            }
-            if (pire >= m) continue;
-            for (const [S, rr] of [[P0, r], [Q, r], [Q, r + 1], [P0, r + 1]]) {
-              const V = S.col[rr], e = Math.min(S.eMax, V.e + m - pire + 0.05);
-              if (e > V.e + 1e-3) { V.e = e; pousse = true; }
-            }
+      // (pas de surplomb : un rang n'est jamais en retrait de celui du dessus ; le pied sous l'eau, un peu en avant)
+      for (const Q of colonnes) {
+        if (!Q) continue;
+        for (let r = H - 1; r >= 0; r--) Q.col[r].d = Math.min(Q.col[r].d, Q.col[r + 1].d);
+        Q.col[0].d = Q.col[1].d - 0.5;
+      }
+      const place = (Q, r) => { const V = r > H ? { d: Q.dF, y: Q.yF } : Q.col[r]; return [Q.px - Q.nx * V.d, V.y, Q.pz - Q.nz * V.d]; };
+      for (let c = 0; c < colonnes.length; c++) {
+        const Q = colonnes[c], P0 = colonnes[c - 1];
+        if (!Q) continue;
+        const relie = !!P0 && Q.lie, n = [Q.nx, 0.35, Q.nz];
+        if (relie) {
+          for (let r = 0; r <= H; r++) {
+            const A = place(P0, r), B = place(Q, r), C = place(Q, r + 1), D = place(P0, r + 1), c2 = strate((A[1] + B[1] + C[1] + D[1]) / 4, Q.px, Q.pz);
+            // (une couleur par case, de la couche de sa hauteur : des bandes, pas une mosaïque de triangles)
+            tri(pp, cp, A, B, C, c2, n);
+            tri(pp, cp, A, C, D, c2, n);
           }
         }
-        if (!pousse) break;
-      }
-      for (const Q of colonnes) if (Q) aplomb(Q);
-      for (let c = 1; c < colonnes.length; c++) {
-        const P0 = colonnes[c - 1], Q = colonnes[c];
-        if (!P0 || !Q || !Q.lie) continue;
-        // (le sens d'une case bien posée : sa normale vers la mer ; retournée — deux colonnes croisées dans un creux —, rien)
-        const tx = Q.px - P0.px, tz = Q.pz - P0.pz, sens = Math.sign(tz * Q.nx - tx * Q.nz) || 1;
-        for (let r = 0; r + 1 < RANGS.length; r++) {
-          const A = place(P0, r), B = place(Q, r), C = place(Q, r + 1), D = place(P0, r + 1);
-          const ux = B[0] - A[0], uy = B[1] - A[1], uz = B[2] - A[2], vx = D[0] - A[0], vy = D[1] - A[1], vz = D[2] - A[2];
-          const Nx = uy * vz - uz * vy, Nz = ux * vy - uy * vx;
-          if ((Nx * Q.nx + Nz * Q.nz) * sens > 0) continue;
-          // (une couleur par case, de la couche de sa hauteur : des bandes, pas une mosaïque de triangles)
-          const hN = [Q.nx, 0.35, Q.nz], c2 = strate((A[1] + B[1] + C[1] + D[1]) / 4, Q.px, Q.pz);
-          tri(pp, cp, A, B, C, c2, hN);
-          tri(pp, cp, A, C, D, c2, hN);
+        // (les bouts de la paroi : un bouchon, de chaque rang au rang de fermeture)
+        if (!relie || !colonnes[c + 1]?.lie) {
+          const F = place(Q, H + 1);
+          for (let r = 0; r < H; r++) { const A = place(Q, r), B = place(Q, r + 1); tri(pp, cp, A, B, F, strate((A[1] + B[1]) / 2, Q.px, Q.pz), n); }
         }
       }
       const gp = new THREE.BufferGeometry();
@@ -1646,20 +1634,99 @@ export function construire(ctx) {
       a.cylindre(0.2, 0.22, H1, 12, ROUGE, R(lx, y + H1 / 2, lz)).cylindre(0.3, 0.32, 0.18, 12, P.pierre, R(lx, y + 0.06, lz));
       monde.cercle(R(lx, 0, lz).x, R(lx, 0, lz).z, 0.48);
     }
-    // les travées de côté : un treillis rouge devant et derrière, le gardien assis dedans, les murs blancs du bas
+    /**
+     * Un gardien (随身) en habit de cour de l'époque de Heian, assis sur son siège sur une estrade laquée, tourné vers ceux qui
+     * arrivent par l'allée : la robe (袍) à larges manches et son col rond, la ceinture noire et or, le pantalon clair, les bottes ;
+     * le visage peint, les yeux grands ouverts, la barbe ; le bonnet noir (冠), sa queue roulée et ses deux éventails de crin (緌) ;
+     * l'arc debout dans une main, le sabre (太刀) à l'autre côté, le carquois plat (平胡簶) dans le dos et ses flèches en éventail. Un
+     * jeune en rouge, un vieux en noir à la barbe blanche, comme la paire des portes des sanctuaires. (2026-11-01, « les espèces
+     * de mannequins… faudrait les refaire » : une boule rouge, une boule beige, un cylindre noir et un bâton, sur une boîte.)
+     * sens : de quel côté du passage il est ; lx, lz dans le repère du Rōmon, y le sol.
+     */
+    const zuijin = (lx, lz, sens, vieux) => {
+      // (dans son repère : u vers le passage, h en haut, v devant lui, vers l'allée)
+      const Q = (u, h, v, o = {}) => R(lx - sens * u, y + h, lz - v, o), pt = (u, h, v) => { const q = Q(u, h, v); return [q.x, q.y, q.z]; };
+      const ROBE = vieux ? '#2b2b34' : '#a8321f', ROBE_F = vieux ? '#1c1c22' : '#7c2416', CLAIR = vieux ? '#d8d2e0' : '#ece5d4', PEAU_G = vieux ? '#e2c6a2' : '#ecd0ae', NOIR_B = '#17171b', BARBE = vieux ? '#ece8df' : '#17171b';
+      // l'estrade laquée, son bord d'or, le feutre rouge ; le siège
+      a.boite(1.5, 0.3, 1.5, P.boisNoir, Q(0, 0.17, 0.05)).boite(1.54, 0.035, 1.54, OR, Q(0, 0.335, 0.05)).boite(1.44, 0.02, 1.44, '#8a2a22', Q(0, 0.36, 0.05, { trait: false }));
+      a.boite(0.74, 0.3, 0.54, P.boisNoir, Q(0, 0.51, -0.04));
+      for (const s of [-1, 1]) {
+        // les bottes sur l'estrade, le pantalon, le genou et la cuisse sous la robe
+        a.ovale(0.1, NOIR_B, Q(s * 0.33, 0.43, 0.5, { sx: 0.85, sy: 0.68, sz: 1.5 }), 10).fut(pt(s * 0.33, 0.4, 0.44), pt(s * 0.33, 0.55, 0.44), 0.085, 0.09, NOIR_B, 8);
+        a.fut(pt(s * 0.33, 0.52, 0.44), pt(s * 0.31, 0.74, 0.46), 0.1, 0.13, CLAIR, 9);
+        a.fut(pt(s * 0.17, 0.82, -0.02), pt(s * 0.31, 0.78, 0.44), 0.17, 0.135, ROBE, 10).ovale(0.135, ROBE, Q(s * 0.31, 0.77, 0.45), 10);
+      }
+      // le pan de la robe entre les genoux ; les hanches ; le pan qui traîne derrière (裾)
+      a.piece(new THREE.BoxGeometry(1, 1, 1, 1, 4, 1), ROBE, { ...Q(0, 0.64, 0.42, { rx: -0.08 }), sx: 0.3, sy: 0.5, sz: 0.05, deformer: (px, py, pz) => [px * (1 - py * 0.7), py, pz] });
+      a.ovale(0.34, ROBE, Q(0, 0.84, -0.02, { sx: 1.0, sy: 0.55, sz: 0.85 }), 14);
+      a.boite(0.46, 0.03, 0.72, ROBE_F, Q(0, 0.58, -0.56, { rx: 0.62, nuance: 0.04 }));
+      // le buste, les épaules ; la ceinture noire et ses plaques d'or ; le col rond, le blanc dedans, le cou
+      a.piece(new THREE.CylinderGeometry(0.235, 0.32, 0.52, 16, 2), ROBE, { ...Q(0, 1.1, -0.02), sz: 0.8 });
+      a.ovale(0.27, ROBE, Q(0, 1.35, -0.03, { sx: 1.12, sy: 0.4, sz: 0.72 }), 14);
+      a.cylindre(0.325, 0.335, 0.07, 16, NOIR_B, { ...Q(0, 0.89, -0.02), sz: 0.82 });
+      for (let k = 0; k < 5; k++) a.boite(0.05, 0.045, 0.012, OR, Q(-0.16 + k * 0.08, 0.89, 0.255, { trait: false }));
+      a.cylindre(0.115, 0.13, 0.085, 14, ROBE, Q(0, 1.44, -0.01)).cylindre(0.095, 0.095, 0.09, 12, '#f4efe4', Q(0, 1.445, -0.01, { trait: false })).cylindre(0.072, 0.078, 0.11, 10, PEAU_G, Q(0, 1.5, 0));
+      // les bras : la manche (une large poche qui pend), le blanc au poignet, la main
+      for (const s of [-1, 1]) {
+        a.fut(pt(s * 0.28, 1.33, -0.03), pt(s * 0.36, 1.02, 0.1), 0.125, 0.135, ROBE, 9);
+        a.ovale(1, ROBE, Q(s * 0.39, 0.84, 0.2, { sx: 0.105, sy: 0.33, sz: 0.27 }), 12);
+        a.ovale(0.062, '#f4efe4', Q(s * 0.4, 0.93, 0.44, { sz: 0.4, trait: false }), 8).boule(0.056, PEAU_G, Q(s * 0.4, 0.93, 0.5), 1);
+      }
+      // l'arc, debout dans la main côté passage : laqué noir, sa poignée rouge, sa corde
+      a.tube([pt(0.45, 0.38, 0.6), pt(0.45, 0.93, 0.5), pt(0.45, 1.5, 0.48), pt(0.45, 2.28, 0.6)], 0.018, '#241a14', { cotes: 6, pas: 16 });
+      a.cylindre(0.026, 0.026, 0.16, 8, '#a8321f', Q(0.45, 0.93, 0.5)).baton(pt(0.45, 0.38, 0.6), pt(0.45, 2.28, 0.6), 0.004, '#d8d0c0', 4, { trait: false });
+      // le sabre à l'autre côté : le fourreau noir et ses garnitures d'or, sa poignée sous la main
+      a.baton(pt(-0.42, 0.9, 0.12), pt(-0.5, 0.5, -0.62), 0.03, NOIR_B, 6).boule(0.036, OR, Q(-0.5, 0.5, -0.62), 1).baton(pt(-0.42, 0.9, 0.12), pt(-0.41, 0.95, 0.44), 0.022, '#e8dcc0', 6).boule(0.045, OR, Q(-0.42, 0.9, 0.12, { sy: 0.5 }), 1);
+      for (const f of [0.2, 0.45]) { const c = [-0.42 - 0.08 * f, 0.9 - 0.4 * f, 0.12 - 0.74 * f]; a.boule(0.036, OR, Q(c[0], c[1], c[2], { sy: 0.45 }), 1); }
+      // le carquois plat dans le dos, ses flèches en éventail derrière l'épaule, leurs plumes
+      a.boite(0.32, 0.2, 0.05, '#2a2420', Q(0.1, 1.0, -0.3, { rx: 0.1 })).boite(0.34, 0.03, 0.06, OR, Q(0.1, 1.09, -0.3, { rx: 0.1 }));
+      for (let k = 0; k < 9; k++) {
+        const j = k - 4, tu = 0.1 + j * 0.075, th = 1.72 - Math.abs(j) * 0.025, tv = -0.42;
+        a.baton(pt(0.1 + j * 0.02, 1.02, -0.32), pt(tu, th, tv), 0.007, '#c9b48a', 4, { trait: false });
+        a.boite(0.035, 0.13, 0.006, k % 2 ? '#f4efe4' : '#2a2420', Q(tu, th - 0.02, tv, { trait: false }));
+      }
+      // la tête : le visage, les oreilles, les yeux, les sourcils froncés, le nez, la moustache et la barbe
+      a.ovale(0.165, PEAU_G, Q(0, 1.68, 0.02, { sx: 0.92, sy: 1.1, sz: 0.95 }), 14);
+      a.ovale(0.024, PEAU_G, Q(0, 1.675, 0.17, { sx: 0.8, sy: 1.25 }), 6);
+      for (const s of [-1, 1]) {
+        a.ovale(0.03, PEAU_G, Q(s * 0.15, 1.68, 0.0, { sx: 0.4, sz: 0.7 }), 6);
+        a.ovale(0.03, '#fbf8ee', Q(s * 0.062, 1.71, 0.155, { sx: 1.1, sy: 0.7, sz: 0.4, trait: false }), 8).boule(0.015, '#15151a', Q(s * 0.062, 1.71, 0.167, { trait: false }), 1);
+        a.boite(0.08, 0.018, 0.014, BARBE, Q(s * 0.066, 1.755, 0.158, { rz: -sens * s * 0.35, trait: false }));
+        a.boite(0.09, 0.016, 0.014, BARBE, Q(s * 0.042, 1.625, 0.165, { rz: sens * s * 0.3, trait: false }));
+      }
+      a.ovale(0.055, BARBE, Q(0, vieux ? 1.52 : 1.565, 0.125, { sx: 0.8, sy: vieux ? 1.7 : 0.8, sz: 0.55 }), 8);
+      // le bonnet noir : la bande, la calotte, le haut qui se dresse derrière (巾子), la queue roulée (巻纓) ; les éventails de crin (緌)
+      a.cylindre(0.16, 0.165, 0.06, 14, NOIR_B, { ...Q(0, 1.765, -0.01), sz: 1.03 }).ovale(0.17, NOIR_B, Q(0, 1.785, -0.015, { sx: 0.98, sy: 0.55, sz: 1.02 }), 14);
+      a.ovale(0.075, NOIR_B, Q(0, 1.93, -0.085, { sx: 0.9, sy: 1.2, sz: 1.05 }), 10);
+      a.tube([pt(0, 1.88, -0.16), pt(0, 2.0, -0.25), pt(0, 2.09, -0.17), pt(0, 2.03, -0.1)], 0.022, NOIR_B, { cotes: 5, pas: 10 });
+      for (const s of [-1, 1]) {
+        a.cylindre(0.115, 0.115, 0.012, 14, '#1f1f24', Q(s * 0.205, 1.68, 0.0, { rz: PI / 2 }));
+        a.baton(pt(s * 0.15, 1.78, 0), pt(s * 0.205, 1.74, 0), 0.006, NOIR_B, 4, { trait: false });
+      }
+    };
+    // les travées de côté : le gardien assis (随身) ; devant (vers l'allée), le treillis rouge à travers lequel on le voit ; derrière et au
+    // bout, le fond laqué sombre derrière le treillis (on y voyait la mer) ; les murs blancs du bas ; du côté du passage, une balustrade basse
     for (const sg of [-1, 1]) {
       const xm = sg * (PAS1 + W / 2) / 2 + sg * 0.05, lb = W / 2 - PAS1 - 0.6;
       for (const lz of [-D / 2 + 0.25, D / 2 - 0.25]) {
         a.boite(lb, 0.9, 0.08, BLANC_PIGNON, R(xm, y + 0.45, lz));
-        a.boite(lb, 2.4, 0.04, LAQUE_BOIS, R(xm, y + 2.1, lz, { trait: false }));
+        if (lz > 0) a.boite(lb, 2.4, 0.04, LAQUE_BOIS, R(xm, y + 2.1, lz, { trait: false }));
         for (let k = 1; k < 10; k++) a.boite(0.03, 2.4, 0.06, ROUGE, R(xm - lb / 2 + (k * lb) / 10, y + 2.1, lz));
         for (let k = 1; k < 7; k++) a.boite(lb, 0.03, 0.06, ROUGE, R(xm, y + 0.9 + k * 0.34, lz));
       }
-      // le gardien (随身) : assis sur son banc, un habit rouge ou noir, le chapeau noir, l'arc
-      const q = R(xm, y, 0), c = sg > 0 ? '#2a2830' : '#b8402c';
-      a.boite(1.0, 0.5, 0.6, P.boisNoir, R(xm, y + 0.25, -0.1)).ovale(0.34, c, R(xm, y + 1.0, 0.0, { sx: 1.1, sy: 1.3 }), 10)
-        .boule(0.17, '#e8c8a0', R(xm, y + 1.62, 0.04), 1).cylindre(0.1, 0.12, 0.3, 8, '#1e1e22', R(xm, y + 1.86, 0.0));
-      a.baton([q.x, y + 0.5, q.z], [q.x, y + 2.2, q.z], 0.03, '#3a2a20', 5);
+      {
+        const lxb = sg * (W / 2 - 0.25);
+        for (const [zb, l] of [[-0.95, 1.54], [0.95, 1.54]]) {
+          a.boite(0.08, 0.9, l, BLANC_PIGNON, R(lxb, y + 0.45, zb)).boite(0.04, 2.4, l, LAQUE_BOIS, R(lxb, y + 2.1, zb, { trait: false }));
+          for (let k = 1; k < 5; k++) a.boite(0.06, 2.4, 0.03, ROUGE, R(lxb, y + 2.1, zb - l / 2 + (k * l) / 5));
+          for (let k = 1; k < 7; k++) a.boite(0.06, 0.03, l, ROUGE, R(lxb, y + 0.9 + k * 0.34, zb));
+        }
+        // la balustrade basse, côté passage : ses lisses d'un poteau à l'autre, ses barreaux
+        const lxp = sg * (PAS1 + 0.15), q0 = R(lxp, 0, -D / 2 + 0.25), q1 = R(lxp, 0, D / 2 - 0.25);
+        a.baton([q0.x, y + 0.82, q0.z], [q1.x, y + 0.82, q1.z], 0.035, ROUGE, 6).baton([q0.x, y + 0.26, q0.z], [q1.x, y + 0.26, q1.z], 0.028, ROUGE, 6);
+        for (let k = 1; k < 14; k++) if (k !== 7) a.boite(0.05, 0.56, 0.05, ROUGE, R(lxp, y + 0.54, -D / 2 + 0.25 + (k * (D - 0.5)) / 14));
+      }
+      zuijin(xm, 0.1, sg, sg > 0);
       murRect(repere(R(xm, 0, 0).x, R(xm, 0, 0).z, PI / 2), lb / 2 + 0.15, D / 2 - 0.1);
     }
     // les poutres du bas, le bandeau des consoles, le petit toit (腰屋根) qui fait le tour sous la galerie
@@ -1757,11 +1824,12 @@ export function construire(ctx) {
       for (const x of [PONT.x0, PONT.x1]) a.boule(0.08, OR, { x, y: yPont(x) + 1.02, z }, 1).cone(0.035, 0.1, 8, OR, { x, y: yPont(x) + 1.13, z });
       monde.mur(PONT.x0, z, PONT.x1, z, 0.25);
     }
-    // les culées : deux massifs de pierre de part et d'autre de la crique, sous les bouts du tablier
-    // (la culée ouest, de toute la largeur du chemin des lanternes : son bout, au bord de la crique, est sur elle)
-    for (const [x0, x1, z0, z1] of [[PONT.x0 - 0.4, 19.3, LANTERNES.z0 - 0.3, LANTERNES.z1 + 0.3], [23.8, PONT.x1 + 0.4, PONT.z - DEMI - 0.25, PONT.z + DEMI + 0.25]]) {
-      const xm = (x0 + x1) / 2, zm = (z0 + z1) / 2, sol = Math.min(terrain(x0, zm), terrain(x1, zm), terrain(xm, zm), terrain(xm, z0), terrain(xm, z1)) - 0.5;
-      a.boite(x1 - x0, Y_POINTE - 0.04 - sol, z1 - z0, PIERRES[1], { x: xm, y: (Y_POINTE - 0.04 + sol) / 2, z: zm, nuance: 0.07 });
+    // les culées : de chaque côté de la crique, sous les bouts du tablier, deux assises de pierre posées sur la roche, qui
+    // avancent au-dessus de sa paroi (2026-11-01 : de hauts massifs, en travers de la paroi, en faisaient sortir des coins de pierre)
+    for (const [x0, x1, sens] of [[PONT.x0 - 0.4, 19.85, 1], [23.35, PONT.x1 + 0.4, -1]]) {
+      const zm = PONT.z, zl = 2 * (DEMI + 0.25), yh = Y_POINTE - 0.04;
+      a.boite(x1 - x0, 0.62, zl, PIERRES[1], { x: (x0 + x1) / 2, y: yh - 0.31, z: zm, nuance: 0.07 });
+      a.boite(x1 - x0 - 0.18, 0.62, zl - 0.2, PIERRES[0], { x: (x0 + x1) / 2 - sens * 0.09, y: yh - 0.92, z: zm, nuance: 0.07 });
     }
     poser(a.fin(), 0, 0, { y: 0 });
   }
@@ -2037,6 +2105,11 @@ export function construire(ctx) {
       // même plan ; le bandeau sous le toit pose sur elles)
       a.boite(J.l - 0.1, 0.2, 0.22, P.boisFonce, R(0, y + 2.61, J.p / 2 - 0.1));
       for (const u of [-1, 1]) a.boite(0.2, 0.19, J.p / 2 - 0.85, P.boisFonce, R(u * (J.l / 2 - 0.1), y + 2.6, (J.p / 2 - 0.1 + 0.75) / 2 - 0.05));
+      // (ses deux bouts, de planches, du corps au comptoir : derrière le comptoir, on voyait la mer à travers le bureau)
+      for (const u of [-1, 1]) {
+        a.boite(0.14, 2.6, 1.72, '#8a6a4e', R(u * (J.l / 2 - 0.1), y + 1.3, 1.56, { nuance: 0.04 }));
+        for (let k = 0; k < 3; k++) a.boite(0.03, 2.5, 0.05, P.boisFonce, R(u * (J.l / 2 - 0.1 + 0.08), y + 1.25, 1.0 + k * 0.56, { trait: false }));
+      }
       a.toitJapon(J.l + 1.4, J.p + 1.6, 1.4, 0.28, { ...R(0, y + 2.9, 0), tuile: P.tuileShiro, tuile2: P.tuileShiroClaire, bord: '#4a4a4e', rangs: 16, releve: 0.12, murs: { l: J.l / 2 - 0.1, p: J.p / 2 - 0.05, y: -0.3, c: '#8a6a4e' } });
       a.boite(1.6, 0.36, 0.05, P.bois, R(0, y + 2.65, J.p / 2 + 0.02));
       ecrire({ ...R(0, y, J.p / 2 + 0.05), ry: PI }, { texte: '授与所', x: 0, y: 2.65, z: 0, l: 1.3, h: 0.28, fond: null, encre: '#2a2420' });
@@ -2044,9 +2117,14 @@ export function construire(ctx) {
       monde.bloc(J.x - J.l / 2, J.x + J.l / 2, J.z - J.p / 2, J.z + J.p / 2, y - 1, y + 4.4);
       lumieres.push({ ...R(0, y + 2.3, J.p / 2 + 0.8), halo: 0, sol: y, r: 3.0, c: '#ffe2b0' });
       // les murs blancs de chaque côté, jusqu'aux coins de la place
-      for (const [x0, x1] of [[PLACE.x0 - 0.2, J.x - J.l / 2], [J.x + J.l / 2, SHINMON.x - 0.3]]) {
+      // (2026-11-01, « à l'intérieur d'une boutique, il y a une surface qui scintille », « une autre juste à côté de la boutique où tu
+      // fais un vœu » : ce mur partait 20 cm à l'ouest du coin de la place : à travers le mur de la boutique 日南 干物, son bout, son
+      // pied de pierre et son chaperon se voyaient dedans, 4 cm devant l'enduit ; et, au coin du bureau, le bout de son pied et celui
+      // du socle étaient dans le même plan. Il finit maintenant dans l'épaisseur de l'un et de l'autre.)
+      for (const [x0, x1] of [[PLACE.x0 - 0.08, J.x - J.l / 2 + 0.05], [J.x + J.l / 2 - 0.05, SHINMON.x - 0.3]]) {
         const l = x1 - x0, xm = (x0 + x1) / 2, zw = PLACE.z1 + 0.55;
-        a.boite(l, 0.4, 0.7, PIERRES[1], { x: xm, y: y + 0.1, z: zw }).boite(l, 1.9, 0.5, BLANC_PIGNON, { x: xm, y: y + 1.15, z: zw, nuance: 0.02 })
+        // (le mur 3 cm plus court que son pied à chaque bout : leurs bouts, dans le même plan sur les 10 cm où ils se chevauchent, scintillaient)
+        a.boite(l, 0.4, 0.7, PIERRES[1], { x: xm, y: y + 0.1, z: zw }).boite(l - 0.06, 1.9, 0.5, BLANC_PIGNON, { x: xm, y: y + 1.15, z: zw, nuance: 0.02 })
           .pignon(l + 0.1, 0.36, 0.9, P.tuileShiro, { x: xm, y: y + 2.1, z: zw });
         monde.mur(x0, zw, x1, zw, 0.52);
         // (la caméra s'arrête devant le mur : elle s'y glissait, au coin du bureau, et le mur s'effaçait en pointillés juste
@@ -2144,6 +2222,7 @@ export function construire(ctx) {
      * La maison, dans le repère R (la façade vers +z) : W de large (x), D de profondeur (z), le sol du parking en y ; o : sol (du
      * dedans), enseigne (texte, fond, encre), cafe ; renvoie F (le plancher) et les x des travées.
      */
+    const doublure = atelier();
     const maison = (a, R, W, D, y, o) => {
       // (o.hw, o.vg : la hauteur des murs, le débord du toit sur les pignons ; des boutiques collées, chacune la sienne)
       const HW = o.hw ?? HW0, VG = o.vg ?? VG0;
@@ -2159,6 +2238,11 @@ export function construire(ctx) {
         a.boite(0.02, 0.9, D - 0.3, KOSHI, R(u * (W / 2 + 0.01), F + 0.45, 0, { nuance: 0.05 }));
       }
       a.boite(W - 0.32, 0.05, D - 0.32, '#d9c4a0', R(0, F + HW - 0.025, 0, { trait: false }));
+      // (l'enduit du dedans, une doublure à part, qui ne reçoit pas d'ombre : la carte d'ombres ne garde que les faces tournées à
+      // l'opposé du soleil ; celle d'un mur, c'est son enduit du dedans lui-même, qui ne s'ombre pas : le soleil passait, et l'ombre des
+      // lanternes et du grand torii se dessinait à l'intérieur)
+      doublure.boite(W - 0.32, HW - 0.05, 0.02, PLATRE, R(0, F + (HW - 0.05) / 2, -D / 2 + 0.17, { nuance: 0.03 }));
+      for (const u of [-1, 1]) doublure.boite(0.02, HW - 0.05, D - 0.32, PLATRE, R(u * (W / 2 - 0.17), F + (HW - 0.05) / 2, 0, { nuance: 0.03 }));
       // les poteaux des coins (1 cm devant les planches), ceux de la façade, la poutre des ouvertures (1 cm devant eux), la frise
       for (const [u, v] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) a.boite(0.22, HW + 0.02, 0.22, P.boisFonce, R(u * (W / 2 - 0.08), F + HW / 2, v * (D / 2 - 0.08)));
       for (const u of [-1, 1]) a.boite(0.18, HW, 0.18, P.boisFonce, R(u * 1.25, F + HW / 2, D / 2 - 0.09));
@@ -2312,7 +2396,7 @@ export function construire(ctx) {
       // (la table près du bord de l'estrade : la grand-mère, assise au bout, est à portée de voix depuis la salle)
       const zt = ze + 0.15;
       a.boite(1.3, 0.05, 0.8, P.boisFonce, R(xe, yE + 0.32, zt)).boite(1.2, 0.29, 0.7, '#3e2f25', R(xe, yE + 0.165, zt, { trait: false }));
-      for (const [dx, dz] of [[-0.35, 0.55], [0.35, 0.55], [-0.35, -0.72], [0.35, -0.72], [0.95, 0]]) a.boite(0.46, 0.07, 0.46, sorte === 'chaya' ? '#3f5a8a' : '#8a3a3a', R(xe + dx, yE + 0.055, zt + dz));
+      for (const [dx, dz, c] of [[-0.35, 0.55, 0.46], [0.35, 0.55, 0.46], [-0.35, -0.72, 0.46], [0.35, -0.72, 0.46], [0.97, 0, 0.62]]) a.boite(c, 0.07, c, sorte === 'chaya' ? '#3f5a8a' : '#8a3a3a', R(xe + dx, yE + 0.055, zt + dz));
       tenir(ESTRADE.x0, ESTRADE.z0, ESTRADE.x1, ESTRADE.z1);
       // (l'estrade : un sol, pour les gens assis dessus ; le voyageur, lui, n'y monte pas : son bord l'arrête)
       { const q0 = R(ESTRADE.x0, 0, ESTRADE.z0), q1 = R(ESTRADE.x1, 0, ESTRADE.z1); monde.surface(Math.min(q0.x, q1.x), Math.max(q0.x, q1.x), Math.min(q0.z, q1.z), Math.max(q0.z, q1.z), yE + 0.02, { sol: 'bois' }); }
@@ -2450,6 +2534,7 @@ export function construire(ctx) {
       if (B.distributeurs) { const qd = R(xin - 1.02, 0, D / 2 + 0.41); murRect(repere(qd.x, qd.z, B.nord ? 0 : PI), 0.98, 0.36); }
       monde.bloc(B.x - W / 2, B.x + W / 2, zc - D / 2, zc + D / 2, y - 1, y + 4.6);
     }
+    poser(doublure.fin(), 0, 0, { y: 0, ombre: false, trait: false, recoit: false });
   }
   {
     // le parking : ses lignes, des voitures, le car de la côte ; tout autour, une haie taillée sur un muret de pierre
@@ -3318,7 +3403,8 @@ export function construire(ctx) {
     // (le sol en cases de 25 cm le long des escaliers, devant la falaise de la grotte et dans la grotte)
     solDetaille,
     etendue: ETENDUE,
-    eau: { x0: -1400, x1: 1400, z0: -1400, z1: 1400, niveau: 0, clair: '#58c6c2', profond: '#1b5b9e' },
+    // (la profondeur de l'eau tous les 1,5 m autour du cap : balade.js, planEauFin)
+    eau: { x0: -1400, x1: 1400, z0: -1400, z1: 1400, niveau: 0, clair: '#58c6c2', profond: '#1b5b9e', fin: { x0: -112, x1: 62, z0: -64, z1: 40, pas: 1.5 } },
     centreRive: [-20, -10],
     vent: { dir: [-0.8, 0.6], force: 1.0 }, oiseaux: ['milan', 'mouette'], ambiances: ['vagues', 'insectes'],
     brume: [190, 1700],
@@ -3629,17 +3715,19 @@ function aspectSol(P, x, z, h) {
   // le quai : des dalles de béton (avant la roche du rivage : il est au bord de l'eau)
   if (dansRect(QUAI, x, z, 0.1) && h > Y_PORT - 0.3) return [bruit > 0.5 ? '#bdb8ad' : '#b3aea2', M.dalles];
   const d = cote(x, z);
-  // le rivage et les falaises : la roche mouillée, puis les couches grises et beiges
-  if (d < 3.2 || h < 1.0) return [h < 0.7 ? '#4d4a43' : bruit > 0.5 ? '#938a78' : '#857d6d', M.roche];
+  // le rivage et les falaises : la roche mouillée, puis les couches grises et beiges ; mais le dallage et le gravier vont jusqu'aux
+  // barrières (2026-11-01 : on marchait sur des courbes de roche, à plat, sur 3 m le long de chaque bord)
+  const batiBord = dansRect(POINTE, x, z, 0.35) || dansRect(LANTERNES, x, z, 0.35) || (dansRect(TERRASSE, x, z, 0.35) && x > xParoi(z) + 0.4);
+  if (!batiBord && (d < 2.4 || h < 1.0)) return [h < 0.7 ? '#4d4a43' : bruit > 0.5 ? '#938a78' : '#857d6d', M.roche];
   // le parking et la rue : le goudron
   if (dansRect(PARKING, x, z, 0.05)) return [bruit > 0.5 ? '#6e6c69' : '#666461', M.route];
   if (dansRect(RUE, x, z, 0.05)) return [bruit > 0.5 ? '#77746f' : '#6f6c67', M.route];
   // la place du Shinmon, l'allée, le chemin des lanternes, le palier d'Inari : le gravier clair (玉砂利) ; le coin de Bunbuku : la
   // terre sous les camphriers
   if (aLaPlace(RECOIN, x, z) < 0.15) return [bruit > 0.5 ? '#8f7d60' : '#86755a', M.terre];
-  if (dansRect(PLACE, x, z, 0.05) || dansRect(ALLEE, x, z, 0.05) || dansRect(LANTERNES, x, z, 0.05) || dansRect(INARI, x, z, 0.05)) return [bruit > 0.5 ? '#d6cfbf' : '#cdc6b5', M.terre];
+  if (dansRect(PIED_MURS, x, z, 0.05) || dansRect(ALLEE, x, z, 0.05) || dansRect(LANTERNES, x, z, 0.35) || dansRect(INARI, x, z, 0.05)) return [bruit > 0.5 ? '#d6cfbf' : '#cdc6b5', M.terre];
   // sous le Rōmon, la pointe, la terrasse de la grotte, la grotte : les dalles de pierre
-  if (dansRect(POINTE, x, z, 0.05) || (dansRect(TERRASSE, x, z, 0.05) && x > xParoi(z) + 0.4) || (x > MARCHES_ROMON.x1 - 0.1 && x < LANTERNES.x0 + 0.1 && Math.abs(z) < 3)) return [bruit > 0.5 ? '#c4bdae' : '#b9b2a2', M.dalles];
+  if (dansRect(POINTE, x, z, 0.35) || (dansRect(TERRASSE, x, z, 0.35) && x > xParoi(z) + 0.4) || (x > MARCHES_ROMON.x1 - 0.1 && x < LANTERNES.x0 + 0.1 && Math.abs(z) < 5.1)) return [bruit > 0.5 ? '#c4bdae' : '#b9b2a2', M.dalles];
   if (solGrotte(x, z)) return [bruit > 0.5 ? '#8a8476' : '#7f796c', M.dalles];
   // les escaliers : la pierre
   if (ESCALIERS.some((E) => surEsc(E, x, z, 0.3))) return ['#a9a291', M.roche];

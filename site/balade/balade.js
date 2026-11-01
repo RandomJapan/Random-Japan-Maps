@@ -174,6 +174,8 @@ function construire() {
   const decor = [], decorsDedans = [], traitsDecor = [];
   for (const o of lieu.objets) {
     const m = maillage(o.fin, o.ombre, o.trait !== false);
+    // (l'enduit du dedans d'une boutique : aucune ombre du dehors n'y tombe ; udo.js, doublure)
+    if (o.recoit === false) m.traverse((q) => { q.receiveShadow = false; });
     m.position.set(o.x, o.y, o.z);
     m.rotation.y = o.ry;
     // (le décor ne bouge jamais : sa matrice est calculée une fois, pas à chaque image ; Takachiho, 2026-10-25)
@@ -773,6 +775,35 @@ function uniformesEau(lieu, ciel) {
 }
 
 /**
+ * Un plan d'eau aux lignes serrées autour du lieu (e.fin : { x0, x1, z0, z1, pas }), de plus en plus lâches en s'éloignant : la
+ * profondeur n'est connue qu'aux sommets. (Udo, 2026-11-01 : sur 2800 m en 220 cases, un sommet tous les 13 m ; dans la crique de 4 m
+ * sous le pont, tous les sommets autour étaient sur la terre, profondeur 0 : une flaque d'écume blanche, là où il y a 3 m de fond.)
+ */
+function planEauFin(e, niveau) {
+  const F = e.fin;
+  const lignes = (a, b, f0, f1) => {
+    const t = [];
+    for (let v = f0, s = F.pas * 3; v > a; v -= s, s = Math.min(100, s * 1.13)) t.unshift(v);
+    t.unshift(a);
+    t.pop();
+    for (let v = f0; v < f1; v += F.pas) t.push(v);
+    for (let v = f1, s = F.pas * 3; v < b; v += s, s = Math.min(100, s * 1.13)) t.push(v);
+    t.push(b);
+    return t;
+  };
+  const xs = lignes(e.x0, e.x1, F.x0, F.x1), zs = lignes(e.z0, e.z1, F.z0, F.z1), pos = new Float32Array(xs.length * zs.length * 3), ind = [];
+  zs.forEach((z, j) => xs.forEach((x, i) => pos.set([x, niveau, z], (j * xs.length + i) * 3)));
+  for (let j = 0; j + 1 < zs.length; j++) for (let i = 0; i + 1 < xs.length; i++) {
+    const a = j * xs.length + i, b = a + 1, c = a + xs.length, d = c + 1;
+    ind.push(a, c, b, b, c, d);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  g.setIndex(ind);
+  return g;
+}
+
+/**
  * L'eau : claire sur l'estran (on voit le fond), plus bleue au large ; des lignes d'eau parallèles à la rive (comme la
  * houle de la carte). Refaite le 2026-10-24 (« améliorer les graphismes ») : de petites rides qui bougent, le ciel qui
  * s'y reflète d'autant plus qu'on la regarde de biais, des éclats de soleil nets (avant : des cases de 25 cm qui
@@ -783,9 +814,8 @@ function uniformesEau(lieu, ciel) {
 function creerEau(lieu, P, lampes, ciel, contact) {
   const e = lieu.eau, pas = 3, niveau = e.niveau || 0;
   const nx = Math.round((e.x1 - e.x0) / pas), nz = Math.round((e.z1 - e.z0) / pas);
-  const g = new THREE.PlaneGeometry(e.x1 - e.x0, e.z1 - e.z0, Math.min(nx, 220), Math.min(nz, 260));
-  g.rotateX(-Math.PI / 2);
-  g.translate((e.x0 + e.x1) / 2, niveau, (e.z0 + e.z1) / 2);
+  const g = e.fin ? planEauFin(e, niveau) : new THREE.PlaneGeometry(e.x1 - e.x0, e.z1 - e.z0, Math.min(nx, 220), Math.min(nz, 260));
+  if (!e.fin) { g.rotateX(-Math.PI / 2); g.translate((e.x0 + e.x1) / 2, niveau, (e.z0 + e.z1) / 2); }
   const p = g.attributes.position;
   const prof = new Float32Array(p.count);
   for (let i = 0; i < p.count; i++) prof[i] = Math.max(0, niveau - lieu.terrain(p.getX(i), p.getZ(i)));
