@@ -70,7 +70,9 @@ export function creerEtiquettes(THREE, liste, { anisotropie = 4 } = {}) {
     g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
     g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
     // (les étiquettes transparentes autour, comme le cadran rond : découpées)
-    const mat = lumineux ? new THREE.MeshBasicMaterial({ map: texture, alphaTest: 0.5 }) : new THREE.MeshLambertMaterial({ map: texture, alphaTest: 0.5 });
+    // (posées à 1 ou 2 mm de leur panneau : à 60 m, la profondeur ne les sépare plus, elles scintillaient ; le décalage les garde devant à toute distance)
+    const dessus = { polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -4 };
+    const mat = lumineux ? new THREE.MeshBasicMaterial({ map: texture, alphaTest: 0.5, ...dessus }) : new THREE.MeshLambertMaterial({ map: texture, alphaTest: 0.5, ...dessus });
     const m = new THREE.Mesh(g, mat);
     m.receiveShadow = !lumineux;
     groupe.add(m);

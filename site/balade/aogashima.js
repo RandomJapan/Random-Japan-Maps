@@ -495,7 +495,7 @@ export function construire(ctx) {
     ecrire(poseS, { fond: null, dessin: thermometre, x: 4.255, y: y0 + 1.95, z: -0.35, ry: -PI / 2, l: 0.2, h: 0.58 });
     ecrire(poseS, { texte: '高温注意', fond: '#f6d33a', encre: '#2a2420', x: X + 0.075, y: y0 + 1.85, z: q0 - 0.45, ry: PI / 2, l: 0.62, h: 0.28 });
     a.cylindre(0.11, 0.11, 0.16, 10, '#fff1c8', { x: 2.0, y: y0 + 2.55, z: -3.22, rx: PI / 2, sorte: 'lampe' });
-    for (const dx of [-0.1, 0, 0.1]) a.boite(0.015, 0.24, 0.2, '#3a3236', { x: 2.0 + dx, y: y0 + 2.55, z: -3.2, trait: false });
+    for (const dx of [-0.11, 0, 0.11]) a.boite(0.015, 0.24, 0.2, '#3a3236', { x: 2.0 + dx, y: y0 + 2.55, z: -3.2, trait: false });
     // le distributeur de boissons, contre le mur de devant, et sa poubelle à canettes
     a.boite(1.0, 1.83, 0.72, '#2f6fb8', { x: -3.6, y: 0.915, z: 3.88 })
       .boite(1.02, 0.1, 0.74, '#f2f2f2', { x: -3.6, y: 1.88, z: 3.88 })
@@ -583,7 +583,7 @@ export function construire(ctx) {
       .boite(1.48, 0.16, 0.1, '#c8c8c8', { y: 0.5, z: 1.66 })
       .boite(1.36, 0.07, 2.05, '#e2e1dc', { y: 0.66, z: -0.6 })
       .boite(0.05, 0.32, 2.05, BL, { x: -0.68, y: 0.85, z: -0.6 }).boite(0.05, 0.32, 2.05, BL, { x: 0.68, y: 0.85, z: -0.6 })
-      .boite(1.31, 0.32, 0.05, BL, { y: 0.85, z: -1.6 })
+      .boite(1.31, 0.32, 0.06, BL, { y: 0.85, z: -1.605 })
       .boite(1.31, 0.55, 0.05, BL, { y: 0.97, z: 0.44 });
     for (const sg of [-1, 1]) a.boite(0.2, 0.12, 0.03, '#fff6c8', { x: sg * 0.5, y: 0.78, z: 1.64, trait: false, sorte: 'lumiere' });
     for (const [x, z] of [[-0.32, -0.3], [0.3, -0.95]]) {
@@ -1084,7 +1084,7 @@ export function construire(ctx) {
     for (const x of [-0.48, 0.48]) a.boite(0.06, 0.67, 0.56, P.boisFonce, { x, y: B + 0.335, z: -0.1 });
     a.boite(0.42, 0.02, 0.3, '#3f6aa0', { x: 0.22, y: B + 0.74, z: -0.08, ry: 0.25 })
       .boite(0.39, 0.016, 0.27, '#fbf6ea', { x: 0.22, y: B + 0.756, z: -0.08, ry: 0.25, trait: false })
-      .boite(0.005, 0.004, 0.25, '#cfc8b8', { x: 0.22, y: B + 0.765, z: -0.08, ry: 0.25, trait: false })
+      .boite(0.005, 0.01, 0.25, '#cfc8b8', { x: 0.22, y: B + 0.766, z: -0.08, ry: 0.25, trait: false })
       .baton([0.0, B + 0.738, 0.12], [0.14, B + 0.738, 0.2], 0.007, '#e8b941', 5, { trait: false });
     poser(a.fin(0, peinture), AZUMAYA.x, AZUMAYA.z, { y: yA, ry: CAP_ABRI });
     // ce qui arrête : les poteaux, les garde-corps (le devant ouvert), les bancs, la table ; le plancher ; le toit

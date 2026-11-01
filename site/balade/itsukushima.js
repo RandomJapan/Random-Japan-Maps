@@ -221,7 +221,7 @@ export function construire(ctx) {
     const ry = selonX ? 0 : PI / 2;
     const r = dy ? 0.04 : 0; // (sa poutre un peu en retrait de celle de l'autre galerie)
     a.boite(x1 - x0 - r, 0.24, z1 - z0 - r, P.vermillon, { x: cx, y: PLANCHER + h + 0.05 + dy, z: cz })
-      .boite(x1 - x0 - 0.3, 0.06, z1 - z0 - 0.3, P.blanc, { x: cx, y: PLANCHER + h + 0.2 + dy, z: cz, trait: false })
+      .boite(x1 - x0 - 0.3 - r, 0.06, z1 - z0 - 0.3 - r, P.blanc, { x: cx, y: PLANCHER + h + 0.2 + dy, z: cz, trait: false })
       .pignon(L + 1.2, 1.1, l + 1.6, P.toit, { ry, x: cx, y: PLANCHER + h + 0.22 + dy, z: cz })
       .boite(selonX ? L + 1.3 : 0.32, 0.24, selonX ? 0.32 : L + 1.3, P.toitBord, { x: cx, y: PLANCHER + h + 1.34 + dy, z: cz });
     const n = Math.round(L / 2.4);
@@ -256,7 +256,7 @@ export function construire(ctx) {
     for (let i = 0; i < n; i++) {
       const f = (i + 0.5) / n, h = PLANCHER + (bas - PLANCHER) * f;
       // (les marches se recouvrent de 5 cm : leurs flancs, une sur deux 1 cm en retrait, ne sont pas dans le même plan)
-      const r = (i % 2) * 0.02;
+      const r = 0.02 + (i % 2) * 0.02;
       if (axe === 'x') a.boite((x1 - x0) / n + 0.05, 0.18, z1 - z0 - r, P.bois, { x: x0 + f * (x1 - x0), y: h - 0.09, z: cz });
       else a.boite(x1 - x0 - r, 0.18, (z1 - z0) / n + 0.05, P.bois, { x: cx, y: h - 0.09, z: z0 + f * (z1 - z0) });
     }
@@ -624,7 +624,7 @@ export function construire(ctx) {
     for (let x = 16; x < 62; x += 1.6) {
       if (hasard(x, 7) < 0.35) continue;
       const z = -8.6 + Math.sin(x * 0.35) * 0.5 + (hasard(x, 3) - 0.5) * 0.6;
-      a.ruban([[x, terrain(x, z) + 0.02, z], [x + 0.8, terrain(x + 0.8, z + 0.2) + 0.02, z + 0.2], [x + 1.4, terrain(x + 1.4, z - 0.1) + 0.02, z - 0.1]], 0.1, P.algue);
+      a.ruban([[x, terrain(x, z) + 0.05, z], [x + 0.8, terrain(x + 0.8, z + 0.2) + 0.05, z + 0.2], [x + 1.4, terrain(x + 1.4, z - 0.1) + 0.05, z - 0.1]], 0.1, P.algue);
     }
     for (let i = 0; i < 90; i++) {
       const x = 15 + hasard(i, 1) * 46, z = -11 + hasard(i, 2) * 14;
@@ -950,7 +950,7 @@ export function construire(ctx) {
   /** Une tige de bambou en (x, z) : ses nœuds, ses feuilles en haut (raides au vent : « conifere »). */
   const bambou = (a, x, z, h, rr, y0, k) => {
     a.cylindre(rr * 0.85, rr, h, 7, k % 3 ? VERT : VERT2, { x, y: y0 + h / 2 - 0.1, z });
-    for (let y = 0.6 + (k % 4) * 0.12; y < h - 0.4; y += 0.55 + (k % 3) * 0.08) a.cylindre(rr * 1.12, rr * 1.12, 0.035, 7, NOEUD, { x, y: y0 + y, z, trait: false });
+    for (let y = 0.6 + (k % 4) * 0.12; y < h - 0.4; y += 0.55 + (k % 3) * 0.08) a.cylindre(rr * 1.12 + 0.005, rr * 1.12 + 0.005, 0.035, 7, NOEUD, { x, y: y0 + y, z, trait: false });
     for (let f = 0; f < 6; f++) {
       const t = k * 1.7 + f * 1.05, yf = y0 + h * (0.68 + 0.05 * f);
       a.cone(0.06, 0.62, 3, FEUILLE, { x: x + Math.sin(t) * 0.28, y: yf, z: z + Math.cos(t) * 0.28, rx: Math.cos(t) * 1.25, rz: -Math.sin(t) * 1.25, sz: 0.25, sorte: 'conifere' });
@@ -1057,7 +1057,7 @@ export function construire(ctx) {
     const f = atelier();
     for (let i = 0; i < 70; i++) {
       const t2 = hasard(i, 9.1) * 2 * Math.PI, rr = Math.sqrt(hasard(i, 2.7)) * (B.r - 0.6), x = B.x + Math.sin(t2) * rr, z = B.z + Math.cos(t2) * rr;
-      f.boite(0.04, 0.004, 0.16, hasard(i, 4.4) > 0.5 ? '#c9b26a' : '#9fb05a', { x, y: terrain(x, z) + 0.035, z, ry: hasard(i, 8.8) * 6, trait: false });
+      f.boite(0.04, 0.004, 0.16, hasard(i, 4.4) > 0.5 ? '#c9b26a' : '#9fb05a', { x, y: terrain(x, z) + 0.05, z, ry: hasard(i, 8.8) * 6, trait: false });
     }
     poser(f.fin(0, false), 0, 0, { y: 0, ombre: false });
   }

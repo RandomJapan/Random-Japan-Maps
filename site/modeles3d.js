@@ -206,9 +206,63 @@ const hasard = (x, y, z) => { const s = Math.sin(x * 127.1 + y * 311.7 + z * 74.
 const bosses = (r, ecart = 0.12, graine = 1) => (ang) => r * (1 + ecart * (Math.sin(ang * 3 + graine) * 0.6 + Math.sin(ang * 5 + graine * 2.3) * 0.4));
 
 /**
+ * Les pans d'une pièce de tuiles ou de chaume (la balade, matieres.rangs). Ses rangs se peignent le long d'un pan : il faut sa
+ * direction (vers le bas de la pente), la même sur tous ses triangles. D'après la normale de chaque pixel (dérivées de la
+ * position), elle tremblait, et les rangs avec, placés d'après elle : un crépitement sur les toits dès que la caméra bouge ;
+ * d'après celle de chaque triangle, sur un toit courbe, chaque facette montrait ses raccords (Himeji, Itsukushima, 2026-10-31).
+ * Ici, les triangles de la pièce sont groupés par direction, à 22° près autour des directions les plus présentes (un toit à
+ * quatre pans en a quatre, ses coins relevés avec eux ; un toit rond, une par facette ou presque), et chacun reçoit celle de son
+ * groupe, à la place de sa graine et de son tirage (saison.y, saison.z, qui ne servent qu'aux feuillages : pas à la sorte 0 ni au
+ * chaume, les seules à passer ici). (0, 0) : pas de
+ * pan (à plat, ou debout) : la peinture projette comme pour le reste.
+ */
+function pansDeRangs(p, debut, matiere, saison, rangs) {
+  const pi = Math.PI, restants = [];
+  const poser = (k, dx, dz) => {
+    for (let s = 0; s < 9; s += 3) { saison[debut + k + s + 1] = dx; saison[debut + k + s + 2] = dz; }
+  };
+  for (let k = 0; k < p.length; k += 9) {
+    const m = matiere[(debut + k) / 3];
+    if ((m !== rangs[0] && m !== rangs[1]) || (saison[debut + k] !== 0 && saison[debut + k] !== SORTES.chaume)) continue;
+    const ux = p[k + 3] - p[k], uy = p[k + 4] - p[k + 1], uz = p[k + 5] - p[k + 2], vx = p[k + 6] - p[k], vy = p[k + 7] - p[k + 1], vz = p[k + 8] - p[k + 2];
+    const nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx, l = Math.hypot(nx, ny, nz) || 1, h = Math.hypot(nx, nz);
+    poser(k, 0, 0);
+    if (Math.abs(ny) / l < 0.15 || h / l < 0.05) continue;
+    // (vers le bas de la pente : le dessous d'un toit, tourné vers le faîte, est du même pan que son dessus)
+    const sg = ny > 0 ? 1 : -1;
+    restants.push([k, Math.atan2(sg * nz, sg * nx), l]);
+  }
+  const ecart = (a, b) => Math.abs(((a - b + 3 * pi) % (2 * pi)) - pi);
+  const N = 72, histo = new Float64Array(N);
+  while (restants.length) {
+    histo.fill(0);
+    for (const t of restants) histo[Math.floor(((t[1] + pi) / (2 * pi)) * N) % N] += t[2];
+    let b = 0;
+    for (let q = 1; q < N; q++) if (histo[q] > histo[b]) b = q;
+    // la direction la plus présente : la moyenne autour du pic, puis tout près d'elle
+    let A = ((b + 0.5) / N) * 2 * pi - pi;
+    for (const r of [0.09, 0.026]) {
+      let sx = 0, sz = 0;
+      for (const t of restants) if (ecart(t[1], A) < r) { sx += t[2] * Math.cos(t[1]); sz += t[2] * Math.sin(t[1]); }
+      if (sx || sz) A = Math.atan2(sz, sx);
+    }
+    const dx = Math.cos(A), dz = Math.sin(A);
+    let reste = 0;
+    for (const t of restants) {
+      if (ecart(t[1], A) < 0.385) poser(t[0], dx, dz);
+      else restants[reste++] = t;
+    }
+    // (au moins le pic y est passé, sauf aux arrondis : pour finir à coup sûr)
+    if (reste === restants.length) { poser(restants[0][0], Math.cos(restants[0][1]), Math.sin(restants[0][1])); restants[0] = restants[--reste]; }
+    restants.length = reste;
+  }
+}
+
+/**
  * Renvoie la fabrique d'« ateliers » : un atelier assemble des formes colorées en un seul objet (une seule forme à
  * dessiner par modèle). repeindre : { couleur de C → autre couleur } (la balade 3D peint ses lieux dans plusieurs styles) ;
- * matieres : { couleur (repeinte) → numéro de matière } (la balade 3D : l'attribut `matiere`, le bois, les tuiles…) ;
+ * matieres : { couleur (repeinte) → numéro de matière } (la balade 3D : l'attribut `matiere`, le bois, les tuiles…), et
+ * matieres.rangs, les deux matières peintes par rangs le long de leurs pans (pansDeRangs) ;
  * sortes : { couleur → sorte (SORTES) } en plus de SORTE_COULEUR (la balade 3D : ce qui s'allume la nuit dans un lieu).
  */
 export function ateliers(THREE, repeindre = null, matieres = null, sortes = null) {
@@ -863,6 +917,7 @@ export function ateliers(THREE, repeindre = null, matieres = null, sortes = null
               saison[i + k + s + 2] = tirage;
             }
           }
+          if (matieres?.rangs) pansDeRangs(p, i, matiere, saison, matieres.rangs);
           i += p.length;
         }
         const geo = new THREE.BufferGeometry();

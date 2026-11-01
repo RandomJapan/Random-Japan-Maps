@@ -1346,7 +1346,7 @@ export function construire(ctx) {
     // les claveaux de la voûte, sur ses deux faces : une couronne de pierres un peu en saillie
     for (let i = 0; i <= nv; i++) {
       const [ax, ay] = arc(i / nv), t = Math.atan2(arc(Math.min(1, (i + 1) / nv))[1] - arc(Math.max(0, (i - 1) / nv))[1], portee / nv * 2);
-      for (const s of [-1, 1]) a.boite(0.42, 0.62, 0.12, i % 2 ? P.pierreFonce : P.pierre, { x: ax, y: ay + 0.24, z: Pt.z + s * (l / 2 + 0.05), rz: t });
+      for (const s of [-1, 1]) a.boite(0.42, 0.62, 0.12, i % 2 ? P.pierreFonce : P.pierre, { x: ax, y: ay + 0.24, z: Pt.z + s * (l / 2 + 0.06), rz: t });
     }
     // les parapets : des murets de pierre, leur chaperon
     for (const s of [-1, 1]) {
@@ -1621,8 +1621,8 @@ export function construire(ctx) {
     a.boite(8.7, 0.2, 0.2, BN, R(0, y + 5.66, 2.43));
     for (const lx of [-2.8, 0, 2.8]) {
       a.boite(2.0, 1.1, 0.05, P.shoji, R(lx, y + 4.65, 2.42, { trait: false })).boite(2.06, 1.16, 0.04, BN, R(lx, y + 4.65, 2.4));
-      for (let k = 1; k < 4; k++) a.boite(0.03, 1.1, 0.03, P.shojiCadre, R(lx - 1 + k * 0.5, y + 4.65, 2.45, { trait: false }));
-      a.boite(2.0, 0.03, 0.03, P.shojiCadre, R(lx, y + 4.65, 2.45, { trait: false }));
+      for (let k = 1; k < 4; k++) a.boite(0.03, 1.08, 0.03, P.shojiCadre, R(lx - 1 + k * 0.5, y + 4.65, 2.45, { trait: false }));
+      a.boite(1.98, 0.03, 0.03, P.shojiCadre, R(lx, y + 4.65, 2.45, { trait: false }));
     }
     a.boite(8.5, 0.07, 0.08, BN, R(0, y + 4.2, 2.86));
     for (let k = 0; k <= 16; k++) a.boite(0.05, 0.42, 0.05, BN, R(-4.2 + k * (8.4 / 16), y + 4.0, 2.86 + (k % 2) * 0.004, { trait: false }));
@@ -1651,7 +1651,7 @@ export function construire(ctx) {
     }
     // (son bord ouest 30 cm avant celui de l'auvent du restaurant, plus haut : avant le 2026-10-26, ils se recouvraient)
     // (2026-10-31 : ses poutres sur les poteaux, le bandeau sous le toit, centré sur eux : 30 cm de moins à l'est)
-    for (const pz of [z0 - 0.4, z1 + 0.4]) a.boite(4.16, 0.15, 0.14, P.bois, { x: x + 0.4, y: y + 2.525, z: pz });
+    for (const pz of [z0 - 0.4, z1 + 0.4]) a.boite(4.18, 0.15, 0.14, P.bois, { x: x + 0.4, y: y + 2.525, z: pz });
     for (const px of [x - 1.6, x + 2.4]) a.boite(0.14, 0.14, z1 - z0 + 0.94, P.bois, { x: px, y: y + 2.53, z: (z0 + z1) / 2 });
     a.toitJapon(4.7, z1 - z0 + 2.2, 0.9, 0.1, { x: x + 0.4, y: y + 2.6, z: (z0 + z1) / 2, releve: 0.08, tuile: '#7a6a52', tuile2: '#86765c', bord: P.boisFonce, murs: { l: 2.06, p: (z1 - z0) / 2 + 0.45, y: 0, c: P.bois } });
     // le tonneau d'eau, en haut, sur son tréteau ; le tuyau de bambou qui verse dans la gouttière. (2026-10-26, « la fontaine
@@ -1745,9 +1745,9 @@ export function construire(ctx) {
     for (const lx of [-2.98, 2.98]) a.boite(0.2, 3.3, 0.2, BN, R(lx, y + 1.97, -2.14));
     a.boite(6.3, 0.24, 0.22, BN, R(0, y + 3.1, 2.12)).boite(6.0, 0.4, 0.12, P.blanc, R(0, y + 3.42, 2.1));
     // dedans : le sol, les étagères du fond pleines de choses, la table du milieu, une lampe
-    a.boite(5.7, 0.04, 4.1, '#b9ab8c', R(0, y + 0.34, 0, { trait: false }));
+    a.boite(5.7, 0.04, 4.08, '#b9ab8c', R(0, y + 0.34, 0, { trait: false }));
     for (const h of [0.95, 1.45, 1.95]) a.boite(5.5, 0.04, 0.42, P.bois2, R(0, y + h, -1.84));
-    for (const lx of [-2.75, -0.9, 0.9, 2.75]) a.boite(0.05, 1.9, 0.42, P.bois2, R(lx, y + 1.3, -1.84));
+    for (const lx of [-2.75, -0.9, 0.9, 2.75]) a.boite(0.05, 1.9, 0.44, P.bois2, R(lx, y + 1.3, -1.84));
     for (let k = 0; k < 33; k++) {
       const etage = [0.97, 1.47, 1.97][k % 3], lx = -2.55 + Math.floor(k / 3) * 0.47 + 0.08 * hasard(k, 1), c = COUL[(k * 5) % COUL.length];
       if (k % 4 === 0) a.cylindre(0.07, 0.08, 0.3, 8, k % 8 ? '#3a5a3a' : '#5a3a2a', R(lx, y + etage + 0.17, -1.84));
@@ -1901,7 +1901,7 @@ export function construire(ctx) {
       }
       for (const sz of [-1, 1]) a.boite(3.0, 0.14, 0.1, P.boisFonce, R(0, 2.4, sz * 1.35));
       for (const sx of [-1, 1]) a.boite(0.1, 0.12, 3.0, P.boisFonce, R(sx * 1.35, 2.25, 0));
-      a.toitJapon(4.0, 4.0, 1.25, 0.06, { ...R(0, 2.5, 0), releve: 0.14, murs: { l: 1.42, p: 1.43, y: -0.19, c: P.boisFonce } });
+      a.toitJapon(4.0, 4.0, 1.25, 0.06, { ...R(0, 2.5, 0), releve: 0.14, murs: { l: 1.44, p: 1.44, y: -0.19, c: P.boisFonce } });
       // (la lanterne pendue à une traverse posée sur les deux poutres du milieu : elle flottait sous le toit)
       a.boite(0.1, 0.1, 2.76, P.boisFonce, R(0, 2.52, 0));
       lanternePendue(a, x, 2.15, z, 7, '#f4f0e6', 2.47);

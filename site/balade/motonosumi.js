@@ -489,9 +489,9 @@ export function construire(ctx) {
     const marches = [];
     for (let j = 0; j < N_PLACES; j++) {
       const s = sPlace(j), [x, z, ang] = pointLigne(s), haut = yMarche(j), bas = Math.min(terrain(x, z), haut) - 0.45;
-      // (une marche sur deux 2 cm plus large : bout à bout, leurs côtés auraient été dans le même plan)
+      // (trois largeurs, de 1,5 cm en 1,5 cm : bout à bout, leurs côtés auraient été dans le même plan ; une sur deux ne suffisait pas aux coudes)
       const a = morceau(x, z);
-      a.boite(2 * DEMI + 0.2 + (j % 2) * 0.02, haut - bas, ESP + 0.05, j % 2 ? BETON : BETON_FONCE, { x, y: (haut + bas) / 2, z, ry: ang, nuance: 0.05 });
+      a.boite(2 * DEMI + 0.2 + (j % 3) * 0.015, haut - bas, ESP + 0.05, j % 2 ? BETON : BETON_FONCE, { x, y: (haut + bas) / 2, z, ry: ang, nuance: 0.05 });
       marches.push([x, z, haut]);
     }
     // le voyageur marche le long de la ligne qui passe au milieu de chaque marche ; au bout, le palier et le plateau
@@ -533,7 +533,7 @@ export function construire(ctx) {
     for (const [x, y, z, ang] of plaques) {
       const a = morceau(x, z);
       a.boite(0.1, 0.34, 0.012, '#f4efe2', { x, y, z, ry: ang + PI / 2, trait: false });
-      for (let k = 0; k < 3; k++) a.boite(0.016, 0.07, 0.004, '#2a2420', { x: x - Math.cos(ang) * 0.007, y: y + 0.1 - k * 0.09, z: z + Math.sin(ang) * 0.007, ry: ang + PI / 2, trait: false });
+      for (let k = 0; k < 3; k++) a.boite(0.016, 0.07, 0.007, '#2a2420', { x: x - Math.cos(ang) * 0.0095, y: y + 0.1 - k * 0.09, z: z + Math.sin(ang) * 0.0095, ry: ang + PI / 2, trait: false });
     }
   }
 
@@ -567,10 +567,12 @@ export function construire(ctx) {
     {
       const zb = TRONC.z - OTORII.z, yb = TRONC.y - y;
       a.boite(0.66, 0.34, 0.36, P.boisFonce, R(0, y + yb, zb, { nuance: 0.05 }))
-        .boite(0.7, 0.05, 0.4, P.boisNoir, R(0, y + yb + 0.19, zb))
-        .boite(0.56, 0.02, 0.26, '#1e1612', R(0, y + yb + 0.205, zb, { trait: false }))
         .boite(0.26, 0.05, 0.3, P.boisNoir, R(0, y + yb - 0.2, zb + 0.11));
-      for (let k = -2; k <= 2; k++) a.boite(0.54, 0.025, 0.025, P.bois, R(0, y + yb + 0.225, zb + k * 0.05, { trait: false }));
+      // (un vrai cadre autour de la fente : un dessus plein et la fente posée au même niveau scintillaient, comme à Udo)
+      for (const v of [-1, 1]) a.boite(0.7, 0.05, 0.06, P.boisNoir, R(0, y + yb + 0.19, zb + v * 0.175));
+      for (const u of [-1, 1]) a.boite(0.06, 0.035, 0.3, P.boisNoir, R(u * 0.315, y + yb + 0.185, zb));
+      a.boite(0.6, 0.012, 0.3, '#1e1612', R(0, y + yb + 0.176, zb, { trait: false }));
+      for (let k = -2; k <= 2; k++) a.boite(0.6, 0.025, 0.025, P.bois, R(0, y + yb + 0.195, zb + k * 0.05, { trait: false }));
       a.boite(0.4, 0.17, 0.012, '#f4efe2', R(0, y + yb + 0.01, zb - 0.186, { trait: false }));
       ecrire({ x: OTORII.x, y, z: OTORII.z, ry: 0 }, { texte: '賽銭', x: 0, y: yb + 0.01, z: zb - 0.193, ry: PI, l: 0.34, h: 0.14, fond: null, encre: '#2a2420' });
     }
@@ -601,18 +603,25 @@ export function construire(ctx) {
    * Une rampe blanche le long de pts [[x, z, y?]…] à la hauteur y (celle du point s'il en a une) ; muret : un muret de pierre
    * dessous, haut de muret. Le mur qui arrête le voyageur suit sa ligne, 30 cm de chaque côté.
    */
+  let nMurets = 0;
+  const poteauxFaits = new Set();
   const rampeBlanche = (pts, y, { muret = 0.4 } = {}) => {
     const a = morceau(pts[0][0], pts[0][1], 60), Y = (p) => p[2] ?? y;
+    // (deux rampes qui se rejoignent : un seul poteau, un muret sur deux plus large, d'une rampe à l'autre)
     for (let i = 0; i + 1 < pts.length; i++) {
       const [xa, za] = pts[i], [xb, zb] = pts[i + 1], ya = Y(pts[i]), yb = Y(pts[i + 1]), l = Math.hypot(xb - xa, zb - za), ang = Math.atan2(xb - xa, zb - za);
       if (muret) {
         // (un muret sur deux 1 cm plus large et plus haut : bout à bout, ils se recouvrent)
-        a.boite(0.3 + (i % 2) * 0.01, muret + 0.4 + (i % 2) * 0.01 + Math.abs(yb - ya), l + 0.3, P.pierre, { x: (xa + xb) / 2, y: (ya + yb) / 2 + (muret - 0.4) / 2, z: (za + zb) / 2, ry: ang, nuance: 0.07 });
+        const m = nMurets++ % 3;
+        a.boite(0.3 + m * 0.01, muret + 0.4 + m * 0.01 + Math.abs(yb - ya), l + 0.3, P.pierre, { x: (xa + xb) / 2, y: (ya + yb) / 2 + (muret - 0.4) / 2, z: (za + zb) / 2, ry: ang, nuance: 0.07 });
       }
       const n = Math.max(1, Math.ceil(l / 1.8));
       for (let k = 0; k <= n; k++) {
         if (k === n && i + 2 < pts.length) continue;
         const f = k / n, x = xa + (xb - xa) * f, z = za + (zb - za) * f, yk = ya + (yb - ya) * f;
+        const cle = `${Math.round(x * 50)},${Math.round(z * 50)}`;
+        if (poteauxFaits.has(cle)) continue;
+        poteauxFaits.add(cle);
         a.cylindre(0.026, 0.026, 1.1, 6, BLANC_METAL, { x, y: yk + muret + 0.55, z });
       }
       for (const hr of [0.55, 1.08]) a.baton([xa, ya + muret + hr, za], [xb, yb + muret + hr, zb], 0.022, BLANC_METAL, 6);
@@ -666,7 +675,7 @@ export function construire(ctx) {
         const f = k / n, px = lx0 + (lx1 - lx0) * f, pz = lz0 + (lz1 - lz0) * f;
         a.boite(0.085, 0.95, 0.028, k % 2 ? ROUGE : ROUGE_F, R(px, y + 0.475, pz, { ry: ang + PI / 2 })).pignon(0.028, 0.07, 0.085, k % 2 ? ROUGE : ROUGE_F, R(px, y + 0.95, pz, { ry: ang + PI }));
       }
-      for (const hb of [0.22, 0.76]) a.boite(0.045, 0.07, l - 0.1, ROUGE_F, R((lx0 + lx1) / 2 + nx * 0.037, y + hb, (lz0 + lz1) / 2 + nz * 0.037, { ry: ang }));
+      for (const hb of [0.22, 0.76]) a.boite(0.06, 0.07, l - 0.1, ROUGE_F, R((lx0 + lx1) / 2 + nx * 0.04, y + hb, (lz0 + lz1) / 2 + nz * 0.04, { ry: ang }));
     };
     cloture(-LX, -LZ, LX, -LZ, 0, -1); cloture(-LX, -LZ, -LX, LZ, -1, 0); cloture(LX, -LZ, LX, LZ, 1, 0); cloture(-LX, LZ, -0.69, LZ, 0, 1); cloture(0.69, LZ, LX, LZ, 0, 1);
     for (const [u, v] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
@@ -1118,7 +1127,7 @@ export function construire(ctx) {
       // la table du milieu et ses boîtes de manjū, la caisse sur le comptoir
       ab.boite(1.6, 0.75, 1.0, P.bois, R(0, F + 0.375, -0.6, { trait: false }));
       for (let k = 0; k < 8; k++) ab.boite(0.3, 0.1 + 0.05 * (k % 3), 0.22, SOUVENIRS[(k * 3) % SOUVENIRS.length], R(-0.6 + (k % 4) * 0.4, F + 0.8 + 0.03 * (k % 3), -0.85 + Math.floor(k / 4) * 0.5, { trait: false }));
-      ab.boite(0.36, 0.22, 0.32, '#3a3a40', R(-0.75, F + 0.88, D / 2 - 0.3)).boite(0.3, 0.1, 0.02, '#8fd0a0', R(-0.75, F + 0.94, D / 2 - 0.135, { trait: false }));
+      ab.boite(0.36, 0.22, 0.32, '#3a3a40', R(-0.75, F + 0.88, D / 2 - 0.3)).boite(0.3, 0.09, 0.02, '#8fd0a0', R(-0.75, F + 0.935, D / 2 - 0.135, { trait: false }));
       // au nord, devant le mur plein : deux distributeurs, un rouge et un bleu (leur dos 5 cm devant le mur)
       for (const [k, c] of [[0, '#c8302c'], [1, '#2f6ab0']]) distributeur(ab, R, xin - 0.52 - k * 1.0, D / 2 + 0.41, F, c);
       { const q1 = R(xin - 0.52, 0, D / 2 + 0.41), q2 = R(xin - 1.52, 0, D / 2 + 0.41); murRect(repere((q1.x + q2.x) / 2, (q1.z + q2.z) / 2, PI / 2), 0.98, 0.36); }
@@ -2285,8 +2294,8 @@ function voiture(THREE, a, R, y, c, sorte) {
   }
   a.boite(Math.min(0.62, W - 0.95), 0.12, 0.02, SOMBRE, R(0, y + yb - 0.29, zf + 0.04 + 0.002, { trait: false }));
   for (const [zp, sens] of [[zf, 1], [zr, -1]]) {
-    a.boite(0.33, 0.165, 0.014, V.plaque, R(0, y + g + 0.26, zp + sens * (0.04 + 0.006), { trait: false }))
-      .boite(0.2, 0.03, 0.006, sorte === 'kei' ? '#2a2a2a' : '#2f6a4a', R(0, y + g + 0.28, zp + sens * (0.04 + 0.015), { trait: false }));
+    a.boite(0.33, 0.165, 0.014, V.plaque, R(0, y + g + 0.26, zp + sens * (0.04 + 0.01), { trait: false }))
+      .boite(0.2, 0.03, 0.006, sorte === 'kei' ? '#2a2a2a' : '#2f6a4a', R(0, y + g + 0.28, zp + sens * (0.04 + 0.019), { trait: false }));
   }
   // les rétroviseurs, les poignées des portes
   for (const u of [-1, 1]) {

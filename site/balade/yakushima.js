@@ -518,7 +518,7 @@ export function construire(ctx) {
         const f = k / n, x = xa + (xb - xa) * f, z = za + (zb - za) * f, y = ya + (yb - ya) * f;
         a.cylindre(0.05, 0.05, 1.1, 7, '#d8dcd8', { x, y: y + 0.35, z });
       }
-      a.boite(0.06, 0.32, l + 0.1, '#f2f3ef', { x: (xa + xb) / 2 - Math.cos(ang) * 0.07, y: (ya + yb) / 2 + 0.72, z: (za + zb) / 2 + Math.sin(ang) * 0.07, ry: ang, rx: -pente, ordre: 'YXZ', nuance: 0.02 });
+      a.boite(0.06 + (i % 2) * 0.012, 0.32, l + 0.1, '#f2f3ef', { x: (xa + xb) / 2 - Math.cos(ang) * 0.07, y: (ya + yb) / 2 + 0.72, z: (za + zb) / 2 + Math.sin(ang) * 0.07, ry: ang, rx: -pente, ordre: 'YXZ', nuance: 0.02 });
       monde.mur(xa, za, xb, zb, 0.3);
     }
   };
@@ -529,7 +529,7 @@ export function construire(ctx) {
   {
     const a = atelier(), Q = QUAI, y = Y_PORT;
     a.boite(Q.x1 - Q.x0, y + 2.6, 0.7, BETON, { x: (Q.x0 + Q.x1) / 2, y: (y - 2.6) / 2, z: Q.z0 - 0.3, nuance: 0.05 });
-    a.boite(Q.x1 - Q.x0, 0.22, 0.42, '#c9c4b8', { x: (Q.x0 + Q.x1) / 2, y: y + 0.08, z: Q.z0 + 0.2, nuance: 0.04 });
+    a.boite(Q.x1 - Q.x0 + 0.04, 0.22, 0.42, '#c9c4b8', { x: (Q.x0 + Q.x1) / 2, y: y + 0.08, z: Q.z0 + 0.2, nuance: 0.04 });
     const bittes = [];
     for (let x = Q.x0 + 1.4; x <= Q.x1 - 1.0; x += 3.6) {
       a.cylindre(0.16, 0.2, 0.42, 10, '#2e2e32', { x, y: y + 0.4, z: Q.z0 + 0.2 }).cylindre(0.24, 0.24, 0.08, 10, '#2e2e32', { x, y: y + 0.62, z: Q.z0 + 0.2 });
@@ -637,7 +637,7 @@ export function construire(ctx) {
   // son enseigne (宮之浦港) ; un bloc plein, des murs
   {
     const a = atelier(), x0 = Q_GARE.x0, x1 = Q_GARE.x1, z0 = Q_GARE.z0, z1 = Q_GARE.z1, y = Y_PORT, xm = (x0 + x1) / 2, H = 3.6;
-    a.boite(x1 - x0 + 0.2, 0.25, z1 - z0 + 0.2, BETON_FONCE, { x: xm, y: y - 0.1, z: (z0 + z1) / 2 });
+    a.boite(x1 - x0 + 0.2, 0.25, z1 - z0 + 0.2, BETON_FONCE, { x: xm, y: y - 0.08, z: (z0 + z1) / 2 });
     a.boite(x1 - x0, H, z1 - z0, '#f1efe8', { x: xm, y: y + H / 2, z: (z0 + z1) / 2, nuance: 0.03 });
     // les vitres de la façade (au nord, vers le quai), leurs montants, la porte ; l'auvent ; le toit plat et son rebord
     a.boite(x1 - x0 - 1.2, 2.1, 0.02, '#8fb4c4', { x: xm, y: y + 1.25, z: z0 - 0.012, trait: false });
@@ -674,7 +674,7 @@ export function construire(ctx) {
       const HW = o.hw ?? 3.0, VG = o.vg ?? 0.3;
       const F = y + 0.04, xin = W / 2 - 0.19;
       // le socle (5 cm plus large que les murs de chaque côté), et sous lui la pierre jusque dans le sol ; le sol du dedans
-      a.boite(W + 0.1, 0.3, D + 0.1, P.pierreFonce, R(0, y - 0.11, 0, { nuance: 0.05 })).boite(W + 0.06, 0.8, D + 0.06, P.pierreFonce, R(0, y - 0.65, 0, { nuance: 0.05, trait: false }));
+      a.boite(W + 0.1, 0.3, D + 0.1, P.pierreFonce, R(0, y - 0.1, 0, { nuance: 0.05 })).boite(W + 0.06, 0.8, D + 0.06, P.pierreFonce, R(0, y - 0.65, 0, { nuance: 0.05, trait: false }));
       a.boite(W - 0.32, 0.02, D - 0.32, o.sol, R(0, F + 0.01, 0, { trait: false }));
       a.boite(W - 0.32, HW, 0.16, PLATRE, R(0, F + HW / 2, -D / 2 + 0.08, { nuance: 0.03 }));
       a.boite(W - 0.3, 0.9, 0.02, KOSHI, R(0, F + 0.45, -D / 2 - 0.01, { nuance: 0.05 }));
@@ -824,7 +824,7 @@ export function construire(ctx) {
     {
       const a = atelier();
       for (const x of [RUE.x0 + 0.25, RUE.x1 - 0.25]) {
-        for (let z = RUE.z0 + 0.5; z < RUE.z1 - 0.3; z += 1.0) a.boite(0.36, 0.02, 0.96, '#8a8c8e', { x, y: yRue(z) + 0.005, z, trait: false, rx: 0.058 });
+        for (let z = RUE.z0 + 0.5; z < RUE.z1 - 0.3; z += 1.0) a.boite(0.36, 0.02, 0.96, '#8a8c8e', { x, y: yRue(z) + 0.05, z, trait: false, rx: 0.058 });
       }
       for (const [x, z] of [[RUE.x1 - 0.45, -38.6], [RUE.x0 + 0.45, -27.4]]) {
         const y = yRue(z);
@@ -854,7 +854,7 @@ export function construire(ctx) {
   function dedansResto(a, R, F) {
     const yS = F + 0.02, T3 = (lx, ly, lz) => { const q = R(lx, ly, lz); return [q.x, q.y, q.z]; };
     const tenir = (lx, lz, lx2, lz2) => { const q0 = R(lx, 0, lz), q1 = R(lx2, 0, lz2); murRect(repere((q0.x + q1.x) / 2, (q0.z + q1.z) / 2, R(0, 0, 0).ry), Math.abs(lx2 - lx) / 2, Math.abs(lz2 - lz) / 2); };
-    const bol = (lx, yy, lz, c = '#f4efe2', dedans = '#c89a5a', r = 0.08) => a.cylindre(r, r * 0.65, r * 0.75, 12, c, R(lx, yy + r * 0.37, lz)).cylindre(r * 0.92, r * 0.92, 0.008, 12, dedans, R(lx, yy + r * 0.72, lz, { trait: false }));
+    const bol = (lx, yy, lz, c = '#f4efe2', dedans = '#c89a5a', r = 0.08) => a.cylindre(r, r * 0.65, r * 0.75, 12, c, R(lx, yy + r * 0.37, lz)).cylindre(r * 0.92, r * 0.92, 0.008, 12, dedans, R(lx, yy + r * 0.72 + 0.006, lz, { trait: false }));
     const assiette = (lx, yy, lz, plat) => { a.cylindre(0.13, 0.1, 0.02, 14, '#f4efe2', R(lx, yy + 0.01, lz)); plat(lx, yy + 0.02, lz); };
     const baguettes = (lx, yy, lz) => { a.baton(T3(lx - 0.1, yy + 0.008, lz + 0.12), T3(lx + 0.12, yy + 0.008, lz + 0.14), 0.005, '#8a5a3a', 3, { trait: false }); };
     // (le poisson volant frit : un corps doré, ses grandes nageoires écartées ; le sashimi de maquereau : des tranches roses)
@@ -975,7 +975,7 @@ export function construire(ctx) {
     {
       const R = RJ, Wh = 4.6, Dh = 4.0, yh = y + 0.5, HW = 2.3;
       a.boite(Wh + 0.6, 0.5, Dh + 0.6, PIERRE_F, R(0, y + 0.25, 0, { nuance: 0.05 }));
-      a.boite(Wh, 0.08, Dh, P.bois, R(0, yh + 0.04, 0));
+      a.boite(Wh - 0.02, 0.08, Dh - 0.02, P.bois, R(0, yh + 0.04, 0));
       for (const [u, v] of [[-1, -1], [1, -1], [-1, 1], [1, 1], [-0.33, 1], [0.33, 1], [-1, 0], [1, 0]]) a.boite(0.2, HW, 0.2, '#8a6a4e', R(u * (Wh / 2 - 0.1), yh + HW / 2, v * (Dh / 2 - 0.1)));
       a.boite(Wh - 0.2, HW, 0.1, '#e8dcc0', R(0, yh + HW / 2, -Dh / 2 + 0.1));
       for (const u of [-1, 1]) a.boite(0.1, HW, Dh - 0.2, '#e8dcc0', R(u * (Wh / 2 - 0.1), yh + HW / 2, 0));
@@ -983,7 +983,7 @@ export function construire(ctx) {
       for (let k = 0; k < 3; k++) {
         const lx = (k - 1) * 1.47;
         a.boite(1.3, HW - 0.4, 0.04, '#3a2c24', R(lx, yh + (HW - 0.4) / 2, Dh / 2 - 0.12));
-        for (let j = 0; j < 9; j++) a.boite(0.03, HW - 0.42, 0.05, '#c9a878', R(lx - 0.6 + j * 0.15, yh + (HW - 0.4) / 2, Dh / 2 - 0.09, { trait: false }));
+        for (let j = 0; j < 9; j++) a.boite(0.03, HW - 0.42, 0.06, '#c9a878', R(lx - 0.6 + j * 0.15, yh + (HW - 0.4) / 2, Dh / 2 - 0.09, { trait: false }));
         for (let j = 0; j < 7; j++) a.boite(1.28, 0.03, 0.05, '#c9a878', R(lx, yh + 0.1 + j * 0.28, Dh / 2 - 0.09, { trait: false }));
       }
       a.boite(Wh + 0.1, 0.24, 0.24, '#8a6a4e', R(0, yh + HW - 0.12, Dh / 2 - 0.1));
@@ -1044,7 +1044,7 @@ export function construire(ctx) {
         const l = Math.hypot(x1 - x0, z1 - z0), ang = Math.atan2(x1 - x0, z1 - z0), n = Math.max(1, Math.round(l / 1.2));
         for (let k = 0; k < n; k++) {
           const f = (k + 0.5) / n, x = x0 + (x1 - x0) * f, z = z0 + (z1 - z0) * f;
-          a.boite(0.5, 0.95 + (k % 2) * 0.012, l / n + 0.02, PIERRE_F, { x, y: y + 0.15, z, ry: ang, nuance: 0.06 });
+          a.boite(0.5 + (k % 2) * 0.012, 0.95 + (k % 2) * 0.012, l / n + 0.02, PIERRE_F, { x, y: y + 0.15, z, ry: ang, nuance: 0.06 });
           a.houppe(0.38, '#4f7d3c', { x, y: y + 0.95, z, sy: 0.7, sorte: 'buisson' }, 1);
         }
         const ux = (x1 - x0) / l, uz = (z1 - z0) / l;
@@ -1882,7 +1882,7 @@ export function construire(ctx) {
     const a = atelier(), D = DECK, y = D.y;
     a.boite(D.x1 - D.x0, 0.12, D.z1 - D.z0, '#8a7058', { x: (D.x0 + D.x1) / 2, y: y - 0.06, z: (D.z0 + D.z1) / 2, nuance: 0.04 });
     for (let x = D.x0 + 0.15; x < D.x1; x += 0.3) a.boite(0.02, 0.012, D.z1 - D.z0 - 0.04, '#6a5440', { x, y: y + 0.002, z: (D.z0 + D.z1) / 2, trait: false });
-    for (let x = D.x0 + 0.3; x < D.x1; x += 2.4) for (const z of [D.z0 + 0.3, D.z1 - 0.3]) { const sol = terrain(x, z); a.boite(0.16, y - sol + 0.3, 0.16, '#6a5440', { x, y: (y + sol - 0.3) / 2, z }); }
+    for (let x = D.x0 + 0.3; x < D.x1; x += 2.4) for (const z of [D.z0 + 0.3, D.z1 - 0.3]) { const sol = terrain(x, z); a.boite(0.16, y - sol + 0.28, 0.16, '#6a5440', { x, y: (y + sol - 0.3) / 2 - 0.01, z }); }
     // la rambarde : au sud (vers l'arbre), à l'est, à l'ouest, et au nord sauf l'arrivée de l'escalier
     rambarde([[D.x0 + 2.2, D.z0 - 0.05, y], [D.x1 + 0.05, D.z0 - 0.05, y], [D.x1 + 0.05, D.z1 + 0.05, y], [D.x0 - 0.05, D.z1 + 0.05, y], [D.x0 - 0.05, D.z0 + 1.3, y]]);
     // deux bancs le long du nord, face à l'arbre

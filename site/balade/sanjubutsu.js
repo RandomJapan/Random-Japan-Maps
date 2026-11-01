@@ -431,7 +431,7 @@ export function construire(ctx) {
       deformer: (px, py, pz) => {
         const l = Math.hypot(px, py, pz) || 1, nx = px / l, ny = py / l, nz = pz / l;
         const k = 1 + 0.15 * Math.sin(nx * 3.1 + g * 9) * Math.cos(nz * 2.7 - g * 5) + 0.08 * Math.sin(ny * 6.3 + nx * 2 + g * 3);
-        return [px * k, Math.max(py * k, -0.45), pz * k];
+        return [px * k, Math.max(py * k, -0.45 - 0.03 * g), pz * k];
       },
       // (le dessus moussu, les flancs gris tachés de lichen)
       teinte: (wx, wy, wz) => (wy > y + ry * 0.45 ? (hasard(wx * 3, wz * 3) > 0.35 ? MOUSSE : MOUSSE_F) : tachee(g * 7)(wx, wy, wz)),
@@ -974,7 +974,7 @@ export function construire(ctx) {
       for (const sg of [-1, 1]) {
         const ang = sg < 0 ? -1.92 : -1.22, dx = Math.cos(ang) * 0.115, dz = -Math.sin(ang) * 0.115;
         b.boite(0.23, H - 0.07, 0.016, NOIR, { x: X + sg * (L / 2) + dx, y: yA + H / 2, z: z + Pp / 2 + dz, ry: ang })
-          .boite(0.17, 0.012, 0.02, OR, { x: X + sg * (L / 2) + dx, y: yA + H / 2, z: z + Pp / 2 + dz, ry: ang });
+          .boite(0.17, 0.012, 0.03, OR, { x: X + sg * (L / 2) + dx, y: yA + H / 2, z: z + Pp / 2 + dz, ry: ang });
       }
       // (en feuille d'or, celle du Pavillon d'or, qui brille comme un métal ; les cheveux peints en bleu, comme sur les statues
       // dorées ; refait le 2026-10-30 : « refais le Bouddha doré dans la caverne… histoire qu'il soit mieux fait »)
@@ -1012,7 +1012,7 @@ export function construire(ctx) {
       const xp = X - 1.75, zp = zS(1.45);
       b.boite(0.28, 0.025, 0.5, '#3a2a20', { x: xp, y: sol + 0.28, z: zp });
       for (const [u, v] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) b.boite(0.03, 0.25, 0.03, '#3a2a20', { x: xp + u * 0.11, y: sol + 0.15, z: zp + v * 0.21 });
-      b.boite(0.2, 0.01, 0.3, '#efe8d6', { x: xp, y: sol + 0.298, z: zp, ry: 0.08, trait: false }).boite(0.004, 0.012, 0.28, '#a89a7a', { x: xp, y: sol + 0.3, z: zp, ry: 0.08, trait: false });
+      b.boite(0.2, 0.01, 0.3, '#efe8d6', { x: xp, y: sol + 0.298, z: zp, ry: 0.08, trait: false }).boite(0.004, 0.012, 0.28, '#a89a7a', { x: xp, y: sol + 0.303, z: zp, ry: 0.08, trait: false });
       monde.cercle(xp, zp, 0.42);
       // (la conque : un cône clair à bandes brunes, couché, son ouverture évasée)
       const xc = X - 1.0, zc = zS(2.4);
@@ -1360,7 +1360,7 @@ export function construire(ctx) {
       const [xa, za] = CHEMIN[3], [xb, zb] = CHEMIN[4], L = Math.hypot(xb - xa, zb - za), ux = (xb - xa) / L, uz = (zb - za) / L, ang = Math.atan2(ux, uz);
       const yd = terre(PONT.x, PONT.z) - 0.02;
       a.boite(3.1, 0.24, 2.8, PIERRE, { x: PONT.x, y: yd - 0.1, z: PONT.z, ry: ang, teinte: tachee(95, 0.3) });
-      for (const s of [-1, 1]) a.boite(0.18, 0.18, 2.8, PIERRE_F, { x: PONT.x + uz * s * 1.42, y: yd + 0.08, z: PONT.z - ux * s * 1.42, ry: ang, teinte: tachee(96, 0.4) });
+      for (const s of [-1, 1]) a.boite(0.18, 0.18, 2.82, PIERRE_F, { x: PONT.x + uz * s * 1.42, y: yd + 0.08, z: PONT.z - ux * s * 1.42, ry: ang, teinte: tachee(96, 0.4) });
       monde.chemin([[PONT.x - ux * 1.4, PONT.z - uz * 1.4, yd + 0.02], [PONT.x + ux * 1.4, PONT.z + uz * 1.4, yd + 0.02]], 1.12, { sol: 'pierre', droits: true });
       for (const s of [-1, 1]) monde.mur(PONT.x + uz * s * 1.42 - ux * 1.1, PONT.z - ux * s * 1.42 - uz * 1.1, PONT.x + uz * s * 1.42 + ux * 1.1, PONT.z - ux * s * 1.42 + uz * 1.1, 0.3);
     }

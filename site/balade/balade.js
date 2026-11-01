@@ -120,12 +120,16 @@ if (!COMPAGNON_IMPOSE && !compagnonsDispo().includes(espece)) espece = null;
 const toile = $('#jeu');
 // l'anticrénelage se fait dans l'image de la scène (styles.js, passeFinale) ; sur un écran tactile, au plus
 // 1,6 pixel réel par pixel CSS (un téléphone a souvent 3 : l'image serait 3,5 fois plus lourde pour presque rien)
-const rendu = new THREE.WebGLRenderer({ canvas: toile, antialias: false, powerPreference: 'high-performance' });
+// (la profondeur inversée, là où le navigateur la connaît, EXT_clip_control : sa précision reste la même de près comme de loin. Avec le plan proche à 10 cm et
+// 24 bits, deux faces à moins de 2 mm l'une de l'autre scintillaient à 60 m, à moins de 6 mm à 100 m ; 2026-11-01. Sans elle : comme avant)
+const rendu = new THREE.WebGLRenderer({ canvas: toile, antialias: false, powerPreference: 'high-performance', reversedDepthBuffer: true });
 rendu.setPixelRatio(Math.min(devicePixelRatio, matchMedia('(pointer: coarse)').matches ? 1.6 : 2));
 rendu.shadowMap.enabled = true;
 rendu.shadowMap.type = THREE.PCFShadowMap;
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(48, 1, 0.1, 8000);
+// (le plan proche à 25 cm : sans la profondeur inversée, à 10 cm, la précision était 2,5 fois moindre ; rien ne s'y voit : le décor à moins de 42 cm de l'œil
+// est effacé, matière du décor, coupe, et la caméra reste à 45 cm au moins du sol)
+const camera = new THREE.PerspectiveCamera(48, 1, 0.25, 8000);
 
 // ---------------------------------------------------------------- Le monde
 let M = null; // { style, ctx, mats, lieu, groupe, voyageurs, joueur, autre, compagnons, kon (le compagnon choisi), passants, daims, eau, ciel, soleil, finale, sauvage, cadre }
@@ -371,7 +375,7 @@ function construire() {
   M = {
     carte, effets, lueurs, betes, mouilleJoueur, mouilleKon, feuillage: densiteFeuillage(lieu), bruitage: creerBruitage({ oiseaux: lieu.oiseaux || [], ambiances: lieu.ambiances || [], betes: [...(lieu.betes?.chats?.length ? ['miaou', 'ronron'] : []), ...(lieu.betes?.chiens?.length ? ['ouaf'] : [])], extras: lieu.sons || [] }), musique: creerMusique(lieu.id), focale: 800,
     marchand, feux, chutes, barque, miroir, sac: new Set(), trace: null, saison: 'ete', flash: { v: 0, c: new THREE.Color() }, hemiBase: { intensite: 0, couleur: new THREE.Color() },
-    style, jour, ctx, mats, lieu, groupe, decor, decorsDedans, traitsDecor, voyageurs, compagnons, kon: null, cadre: null, passants, daims, mouettes, eau, courants, ciel, soleil, hemi, etoiles, vapeurs, rais, touffes, finale: passeFinale(THREE, style, { echantillons: params.get('aa') === '0' ? 0 : 4, flou: params.get('flou') !== '0' }), cible: null, sauvage: null, nuit: { v: 0, cible: 0, fin: null } };
+    style, jour, ctx, mats, lieu, groupe, decor, decorsDedans, traitsDecor, voyageurs, compagnons, kon: null, cadre: null, passants, daims, mouettes, eau, courants, ciel, soleil, hemi, etoiles, vapeurs, rais, touffes, finale: passeFinale(THREE, style, { zInverse: rendu.capabilities.reversedDepthBuffer, echantillons: params.get('aa') === '0' ? 0 : 4, flou: params.get('flou') !== '0' }), cible: null, sauvage: null, nuit: { v: 0, cible: 0, fin: null } };
   // (lieu.flou : [début, fin] du lointain flou, en mètres ; 2026-10-29, Motonosumi : « le fond est un peu flou », ses falaises
   // à 50–150 m)
   if (lieu.flou) M.finale.reglerFlou(...lieu.flou);
@@ -1113,7 +1117,8 @@ function carteAbri(decor, lieu, u) {
         gl_FragColor = vec4(vY, 0.0, 0.0, 1.0);
       }`,
   });
-  const cam = new THREE.Camera();
+  const cam = new THREE.Camera(), zInverse = rendu.capabilities.reversedDepthBuffer;
+  cam._reversedDepth = zInverse;
   cam.layers.set(CALQUE_ABRI);
   const fond = new THREE.Color(), alpha = rendu.getClearAlpha();
   rendu.getClearColor(fond);
@@ -1132,7 +1137,8 @@ function carteAbri(decor, lieu, u) {
     cam.projectionMatrix.set(
       1 / hx, -tx / hx, 0, -cx / hx,
       0, -tz / hz, 1 / hz, -cz / hz,
-      0, -2 / (haut - bas), 0, 1 + (2 * bas) / (haut - bas),
+      // (le plus haut, le plus près : à -1 ; avec la profondeur inversée, à 1, et le plus bas à 0)
+      ...(zInverse ? [0, 1 / (haut - bas), 0, -bas / (haut - bas)] : [0, -2 / (haut - bas), 0, 1 + (2 * bas) / (haut - bas)]),
       0, 0, 0, 1,
     );
     cam.projectionMatrixInverse.copy(cam.projectionMatrix).invert();
@@ -1285,6 +1291,8 @@ function creerMiroir(m) {
   const cible = new THREE.WebGLRenderTarget(1, 1, { depthBuffer: true, generateMipmaps: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter });
   cible.texture.colorSpace = THREE.SRGBColorSpace;
   const virtuelle = new THREE.PerspectiveCamera();
+  // (sinon three.js la met à la profondeur inversée à son premier rendu, et recalcule sa projection sans le plan de l'eau)
+  virtuelle._reversedDepth = rendu.capabilities.reversedDepthBuffer;
   virtuelle.layers.set(0);
   // (le calque 2 : ce qu'un lieu peut ôter du reflet, le phénix du Pavillon d'or la nuit : contexteAnime.refleter)
   virtuelle.layers.enable(2);
@@ -1341,9 +1349,16 @@ function creerMiroir(m) {
       const n = v.set(0, 1, 0).transformDirection(virtuelle.matrixWorldInverse), p0 = f.set(0, m.y, 0).applyMatrix4(virtuelle.matrixWorldInverse);
       plan.set(n.x, n.y, n.z, -n.dot(p0));
       const e = virtuelle.projectionMatrix.elements;
-      q.set((Math.sign(plan.x) + e[8]) / e[0], (Math.sign(plan.y) + e[9]) / e[5], -1, (1 + e[10]) / e[14]);
-      plan.multiplyScalar(2 / plan.dot(q));
-      e[2] = plan.x; e[6] = plan.y; e[10] = plan.z + 1 - 0.003; e[14] = plan.w;
+      if (virtuelle.reversedDepth) {
+        // (la profondeur inversée : le plan proche est à z = w, le coin du fond à z = 0)
+        q.set((Math.sign(plan.x) + e[8]) / e[0], (Math.sign(plan.y) + e[9]) / e[5], -1, e[10] / e[14]);
+        plan.multiplyScalar(-1 / plan.dot(q));
+        e[2] = plan.x; e[6] = plan.y; e[10] = plan.z - 1 + 0.003; e[14] = plan.w;
+      } else {
+        q.set((Math.sign(plan.x) + e[8]) / e[0], (Math.sign(plan.y) + e[9]) / e[5], -1, (1 + e[10]) / e[14]);
+        plan.multiplyScalar(2 / plan.dot(q));
+        e[2] = plan.x; e[6] = plan.y; e[10] = plan.z + 1 - 0.003; e[14] = plan.w;
+      }
       virtuelle.projectionMatrixInverse.copy(virtuelle.projectionMatrix).invert();
       cible.viewport.set(0, 0, vw, vh);
       cible.scissor.set(0, 0, vw, vh);

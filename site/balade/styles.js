@@ -92,7 +92,7 @@ function repeindre(P) {
 
 /** La matière peinte (textures.js) de chaque couleur des objets du décor : le bois, les tuiles, la pierre… */
 function matieres(P) {
-  const M = MATIERES, t = {};
+  const M = MATIERES, t = { rangs: [M.tuiles, M.chaume] };
   const mettre = (m, ...noms) => { for (const n of noms) t[n.startsWith('#') ? n : P[n]] = m; };
   mettre(M.bois, 'bois', 'bois2', 'bois3', 'boisFonce', 'tronc');
   mettre(M.tuiles, 'toit', 'toitClair', 'toitBord', '#6a5e58');
@@ -543,24 +543,27 @@ const BRUIT_GLSL = `
  * descendent. La texture multiplie la couleur (0,5 : ×1), ou impose la sienne là où son alpha est à 0.
  * Les rangs de pose des tuiles (une bande sombre, puis une claire, en haut de chaque rang) sont peints ici, pas dans la
  * texture (2026-10-31) : chaque pixel prend la part de bande qu'il couvre, un trait net de près, qui s'estompe de loin
- * (dans la texture, 4 texels de large). Le crépitement du petit toit des panneaux (Udo : « sur le panneau, il y a des
- * espèces de… scintillements ») venait, lui, de la normale n : voir la matière du décor (vFaceExacte).
+ * (dans la texture, 4 texels de large). Le crépitement des toits (Udo : « sur le panneau, il y a des espèces de…
+ * scintillements ») venait, lui, de la normale n, celle de l'écran : les rangs suivent maintenant la direction de leur pan.
  */
 const PEINDRE_GLSL = `
   uniform highp sampler2DArray details;
   uniform float echelles[${ECHELLES.length}];
   // la part de [a, b] sous un pixel de largeur w (dans la même unité) centré en v
   float couvre(float v, float a, float b, float w) { return clamp((min(v + 0.5 * w, b) - max(v - 0.5 * w, a)) / w, 0.0, 1.0); }
-  vec3 peindre(vec3 base, float couche, vec3 p, vec3 n) {
+  vec3 peindre(vec3 base, float couche, vec3 p, vec3 n, vec2 pan) {
     if (couche < 0.5) return base;
     vec3 a = abs(n);
     vec2 uv;
-    if ((couche == ${MATIERES.tuiles}.0 || couche == ${MATIERES.chaume}.0) && a.y > 0.15 && length(n.xz) > 0.05) {
-      // le long de la pente (y de la texture) et en travers (x) ; la pente vraie : la distance à plat / cos
-      vec2 d = normalize(n.xz);
-      uv = vec2(dot(p.xz, vec2(-d.y, d.x)), dot(p.xz, d) / max(a.y, 0.3));
-    } else if (a.y > max(a.x, a.z)) uv = p.xz;
-    else if (a.x > a.z) uv = vec2(p.z, p.y);
+    if ((couche == ${MATIERES.tuiles}.0 || couche == ${MATIERES.chaume}.0) && dot(pan, pan) > 0.25) {
+      // le long de la pente (y de la texture) et en travers (x), d'après la direction du pan (modeles3d.js, pansDeRangs) ; la
+      // longueur le long de la pente sans sa pente : 0,96 à plat + 0,4 en hauteur, à 4 % près jusqu'à 45°, 17 % à 60°
+      vec2 d = normalize(pan);
+      uv = vec2(dot(p.xz, vec2(-d.y, d.x)), 0.96 * dot(p.xz, d) - 0.4 * p.y);
+    // (un rien de préférence : une face à 45° pile, la normale de l'écran qui tremble, passait d'une projection à l'autre d'un
+    // carré de 2 × 2 pixels au suivant)
+    } else if (a.y > max(a.x, a.z) + 0.01) uv = p.xz;
+    else if (a.x > a.z + 0.01) uv = vec2(p.z, p.y);
     else uv = vec2(p.x, p.y);
     uv /= echelles[int(couche)];
     vec4 t = texture(details, vec3(uv, couche));
@@ -783,31 +786,27 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
   corps.onBeforeCompile = (s) => {
     Object.assign(s.uniforms, uniformesCoupe(0.6, 0), communs, vent, abri, { lueur, saisons });
     s.vertexShader = s.vertexShader
-      .replace('#include <common>', `#include <common>\nattribute float matiere;\nattribute vec3 saison;\nattribute vec3 contour;\nuniform vec3 saisons;\nvarying float vMatiere;\nvarying float vLueur;\nvarying vec3 vCoupe;\nvarying vec3 vCoupeN;\nvarying vec3 vLisse;\nvarying vec3 vSaison;\nvarying float vFaceExacte;${VENT_GLSL}${CHUTE_GLSL}`)
+      .replace('#include <common>', `#include <common>\nattribute float matiere;\nattribute vec3 saison;\nattribute vec3 contour;\nuniform vec3 saisons;\nvarying float vMatiere;\nvarying float vLueur;\nvarying vec3 vCoupe;\nvarying vec3 vCoupeN;\nvarying vec3 vLisse;\nvarying vec3 vSaison;\nvarying vec2 vPan;${VENT_GLSL}${CHUTE_GLSL}`)
       // (les tuiles et le chaume : leur normale arrive telle qu'est leur face (balade.js, lisser ne la lisse pas) ; vCoupeN la
-      // garde pour peindre leurs rangs, et la lumière la lisse ici, comme lisser le fait pour le reste : même règle, même rendu.
-      // Les autres arrivent déjà lissées : vCoupeN, comme avant. vFaceExacte : peindre d'après la face (un pan plat, un angle
-      // net comme le petit toit des panneaux) ; pas sur un toit courbe (entre 0,5° et 25° de sa normale lissée) : là, chaque
-      // facette peinte d'après la sienne montrait ses raccords, que le tremblement de la normale de l'écran cachait (Himeji,
-      // Itsukushima, 2026-10-31). Un triangle n'est peint d'après sa face que si ses trois sommets le permettent (1 partout ; au
-      // faîte d'un toit courbe, deux sommets sur l'arête vive et le troisième sur la courbe : non)
+      // garde, et la lumière la lisse ici, comme lisser le fait pour le reste : même règle, même rendu. Les autres arrivent déjà
+      // lissées : vCoupeN, comme avant. vPan : la direction de son pan pour peindre leurs rangs (modeles3d.js, pansDeRangs)
       .replace('#include <beginnormal_vertex>', `#include <beginnormal_vertex>
         vCoupeN = normalize(mat3(modelMatrix) * objectNormal);
-        vFaceExacte = 0.0;
+        vPan = vec2(0.0);
         if (abs(matiere - ${MATIERES.tuiles}.0) < 0.5 || abs(matiere - ${MATIERES.chaume}.0) < 0.5) {
-          vFaceExacte = 1.0;
+          // (la sorte 0 et le chaume, les seules à qui l'atelier donne un pan : voir pansDeRangs ; une autre sorte y a sa graine)
+          if (saison.x < 0.5 || abs(saison.x - 13.0) < 0.5) vPan = (mat3(modelMatrix) * vec3(saison.y, 0.0, saison.z)).xz;
           float lc = length(contour);
           if (lc > 0.5) {
             float cl = dot(objectNormal, contour) / lc;
             if (cl > 0.74) objectNormal = contour / lc;
-            if (cl > 0.906 && cl < 0.99996) vFaceExacte = 0.0;
           }
         }`)
       .replace('#include <begin_vertex>', '#include <begin_vertex>\ntransformed += souffleObjet(transformed, saison);\nif (tombee(saison)) transformed = vec3(0.0);')
       .replace('#include <project_vertex>', '#include <project_vertex>\nvLisse = mat3(modelMatrix) * contour;\nvSaison = saison;\nvMatiere = matiere;\nvLueur = abs(saison.x - 8.0) < 0.5 ? 1.0 : abs(saison.x - 9.0) < 0.5 ? 2.0 : abs(saison.x - 10.0) < 0.5 ? 3.0 : abs(saison.x - 14.0) < 0.5 ? 4.0 : 0.0;\nvCoupe = (modelMatrix * vec4(transformed, 1.0)).xyz;');
     eclairerParLampes(s, lampes);
     s.fragmentShader = s.fragmentShader
-      .replace('#include <common>', `#include <common>\nvarying float vMatiere;\nvarying float vLueur;\nvarying vec3 vLisse;\nvarying vec3 vSaison;\nvarying float vFaceExacte;\nuniform float lueur;${COUPE_GLSL}${PEINDRE_GLSL}${SAISONS_GLSL}${ABRI_GLSL}`)
+      .replace('#include <common>', `#include <common>\nvarying float vMatiere;\nvarying float vLueur;\nvarying vec3 vLisse;\nvarying vec3 vSaison;\nvarying vec2 vPan;\nuniform float lueur;${COUPE_GLSL}${PEINDRE_GLSL}${SAISONS_GLSL}${ABRI_GLSL}`)
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
         // (les croisillons des shōji, la nuit : de loin, ils prennent un peu de la lumière du papier, la fenêtre devient
         // une vitre de papier allumée ; de près, ils restent sombres)
@@ -821,13 +820,8 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
         {
           vec3 nf = normalize(cross(dFdx(vCoupe), dFdy(vCoupe)));
           float couche = floor(vMatiere + 0.5);
-          // (les tuiles et le chaume d'un pan plat : la normale exacte de leur face (vCoupeN, les trois sommets la même). Celle
-          // des dérivées tremble d'un carré de 2 × 2 pixels à l'autre (à des dizaines de mètres de l'origine du lieu, les chiffres
-          // manquent), et les rangs de tuiles, placés d'après elle, tremblaient avec elle : sur le petit toit des panneaux, un
-          // trait en pointillés qui crépitait quand la caméra bougeait, 2026-10-31)
-          vec3 nPeinte = vFaceExacte > 0.999 ? normalize(vCoupeN) : nf;
           diffuseColor.rgb = feuillageSaison(diffuseColor.rgb, vSaison.x, vSaison.z, vSaison.y, vCoupe, true);
-          diffuseColor.rgb = neigeFeuillage(peindre(diffuseColor.rgb, couche, vCoupe, nPeinte), vSaison.x, nf, vLisse, vCoupe, saisons.z > 0.001 ? abrite(vCoupe) : 0.0);
+          diffuseColor.rgb = neigeFeuillage(peindre(diffuseColor.rgb, couche, vCoupe, nf, vPan), vSaison.x, nf, vLisse, vCoupe, saisons.z > 0.001 ? abrite(vCoupe) : 0.0);
         }`);
   };
   corps.customProgramCacheKey = () => 'corps-decor';
@@ -990,21 +984,30 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
  * l'écran : le lointain flou, un peu plus de couleur, un soupçon de vignette.
  * echantillons : l'anticrénelage (0 : aucun) ; flou : false pour s'en passer.
  */
-export function passeFinale(THREE, style, { echantillons = 4, flou = true } = {}) {
+export function passeFinale(THREE, style, { echantillons = 4, flou = true, zInverse = false } = {}) {
   const R = style.rendu;
-  const profondeur = new THREE.DepthTexture(1, 1);
+  const profondeur = new THREE.DepthTexture(1, 1, zInverse ? THREE.FloatType : THREE.UnsignedIntType);
   const image = new THREE.WebGLRenderTarget(1, 1, { samples: echantillons, depthTexture: profondeur });
   image.texture.colorSpace = THREE.SRGBColorSpace;
   const reduite = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, depthBuffer: false });
   const camera = new THREE.Camera();
+  // (three.js la mettrait à la profondeur inversée à son premier rendu, en recalculant une projection qu'elle n'a pas)
+  camera._reversedDepth = zInverse;
   const pres = { value: 0.1 }, loin = { value: 8000 }, debut = { value: R.flou.debut }, fin = { value: R.flou.fin };
   const texel = { value: new THREE.Vector2(1, 1) }, texelReduit = { value: new THREE.Vector2(1, 1) };
   const LINEAIRE = `
     uniform float pres, loin, debut, fin;
+    ${zInverse ? `
+    // (la profondeur inversée : 1 au plan proche, 0 au fond)
+    float metres(float d) { return pres * loin / (d * (loin - pres) + pres); }
+    bool leCiel(float d) { return d < 1e-7; }
+    float laPlusProche(float a, float b) { return max(a, b); }` : `
     float metres(float d) { float z = d * 2.0 - 1.0; return 2.0 * pres * loin / (loin + pres - z * (loin - pres)); }
+    bool leCiel(float d) { return d > 0.999999; }
+    float laPlusProche(float a, float b) { return min(a, b); }`}
     float lointain(float d) {
-      // le ciel (rien n'y est dessiné : la profondeur est restée à 1) reste net : les étoiles, les nuages
-      if (d > 0.999999) return 0.0;
+      // le ciel (rien n'y est dessiné : la profondeur est restée au fond) reste net : les étoiles, les nuages
+      if (leCiel(d)) return 0.0;
       return smoothstep(debut, fin, metres(d));
     }`;
   const SOMMET = `
@@ -1105,9 +1108,9 @@ export function passeFinale(THREE, style, { echantillons = 4, flou = true } = {}
       // celle du lointain : flouté ou embrumé comme lui, il se couvrait d'un trait clair, qui scintillait le long des troncs
       // fins, 2026-10-30, les Trente Bouddhas. Là où le flou ou la brume de la vallée commencent, on prend la plus proche des
       // profondeurs voisines)
-      if (dp < 0.999999 && (force > 0.0 || valleeForce > 0.0) && metres(dp) > min(debut, valleeForce > 0.0 ? valleeDebut : debut)) {
-        dp = min(dp, min(min(texture(profondeur, vUv + vec2(texel.x, 0.0)).r, texture(profondeur, vUv - vec2(texel.x, 0.0)).r),
-          min(texture(profondeur, vUv + vec2(0.0, texel.y)).r, texture(profondeur, vUv - vec2(0.0, texel.y)).r)));
+      if (!leCiel(dp) && (force > 0.0 || valleeForce > 0.0) && metres(dp) > min(debut, valleeForce > 0.0 ? valleeDebut : debut)) {
+        dp = laPlusProche(dp, laPlusProche(laPlusProche(texture(profondeur, vUv + vec2(texel.x, 0.0)).r, texture(profondeur, vUv - vec2(texel.x, 0.0)).r),
+          laPlusProche(texture(profondeur, vUv + vec2(0.0, texel.y)).r, texture(profondeur, vUv - vec2(0.0, texel.y)).r)));
       }
       float f = force > 0.0 ? lointain(dp) * force : 0.0;
       if (f > 0.002) {
@@ -1115,8 +1118,8 @@ export function passeFinale(THREE, style, { echantillons = 4, flou = true } = {}
           + texture(reduite, vUv + vec2(-0.7, 0.7) * texelReduit) + texture(reduite, vUv + vec2(0.7, 0.7) * texelReduit);
         c = mix(c, b.rgb / max(b.a, 1e-4), f * smoothstep(0.0, 0.4, b.a));
       }
-      if (valleeForce > 0.0 && dp < 0.999999) {
-        vec4 w = inverse * vec4(vUv * 2.0 - 1.0, dp * 2.0 - 1.0, 1.0);
+      if (valleeForce > 0.0 && !leCiel(dp)) {
+        vec4 w = inverse * vec4(vUv * 2.0 - 1.0, ${zInverse ? 'dp' : 'dp * 2.0 - 1.0'}, 1.0);
         vec3 p = w.xyz / w.w;
         float d = distance(p, oeil);
         float m = valleeForce * smoothstep(valleeDebut, valleeDebut * 3.0, d) * (1.0 - smoothstep(valleeBas, valleeHaut, p.y));

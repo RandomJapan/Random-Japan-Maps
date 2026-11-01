@@ -527,11 +527,11 @@ export function construire(ctx) {
       for (let k = 0; k <= nP; k++) {
         const z = -l2 + 0.05 + ((L - 0.1) * k) / nP;
         if (s === sP && z > dz0 - 0.2 && z < dz1 + 0.2) continue;
-        a.boite(0.2, hm, 0.2, '#3e2f25', { x: s * (w2 - 0.01), y: ym, z });
+        a.boite(0.2, hm - 0.02, 0.2, '#3e2f25', { x: s * (w2 - 0.01), y: ym - 0.01, z });
       }
       a.boite(0.07, 0.14, L + 0.1, '#3e2f25', { x: s * (w2 + 0.03), y: 2.25, z: 0 });
       // (les coins des pignons)
-      for (const sz of [-1, 1]) a.boite(0.2, hm, 0.2, '#3e2f25', { x: s * (w2 - 0.01), y: ym, z: sz * (l2 - 0.01) });
+      for (const sz of [-1, 1]) a.boite(0.2, hm - 0.02, 0.2, '#3e2f25', { x: s * (w2 - 0.01), y: ym - 0.01, z: sz * (l2 - 0.01) });
     }
     // les shōji du rez-de-chaussée : sur les murs longs (pas devant la porte), sur les pignons
     if (!petite) {
@@ -608,7 +608,7 @@ export function construire(ctx) {
         else y -= 0.1 * lisse(0.8, 1, u);
         return [x, y, z];
       };
-      a.piece(new THREE.BoxGeometry(S, ep, Lr, nS, 1, nL), P.chaume, { x: cx, y: cy, rz: -s * PI / 3, teinte, deformer: bosses });
+      a.piece(new THREE.BoxGeometry(S, ep, Lr + (s > 0 ? 0.02 : 0), nS, 1, nL), P.chaume, { x: cx, y: cy, rz: -s * PI / 3, teinte, deformer: bosses });
     }
     // le faîtage : le chaume serré, deux perches de bois et, tous les 1,5 m, une paire de bâtons croisés qui les tient
     a.boite(1.5, 0.75, Lr + 0.1, P.chaumeFonce, { y: yR + 0.12 });
@@ -792,7 +792,7 @@ export function construire(ctx) {
     for (let i = 0; i < nx; i++) {
       for (let j = 0; j < nz; j++) {
         a.boite(dx - 0.04, 0.06, dz - 0.04, '#cfc49a', { x: x0 + (i + 0.5) * dx, y: y - 0.03, z: z0 + (j + 0.5) * dz })
-          .boite(0.03, 0.055, dz - 0.02, '#2a2a28', { x: x0 + i * dx + 0.015, y: y - 0.03, z: z0 + (j + 0.5) * dz, trait: false });
+          .boite(0.03, 0.05, dz - 0.02, '#2a2a28', { x: x0 + i * dx + 0.015, y: y - 0.0325, z: z0 + (j + 0.5) * dz, trait: false });
       }
     }
   }
@@ -853,7 +853,7 @@ export function construire(ctx) {
     // le foyer, le crochet (jizai-kagi) et son poisson de bois, la bouilloire ; les ombles grillés au sel, plantés en rond
     // dans la cendre, la tête en haut (la queue et les nageoires blanches de sel) ; les coussins
     foyer(a, IR.x, yI, IR.z);
-    a.cylindre(0.03, 0.03, murH - yI - 1.2, 6, '#9a8a5a', { x: IR.x, y: (murH + yI + 1.2) / 2, z: IR.z })
+    a.cylindre(0.03, 0.03, murH - yI - 1.21, 6, '#9a8a5a', { x: IR.x, y: (murH + yI + 1.19) / 2, z: IR.z })
       .ovale(0.16, '#5a4433', { x: IR.x, y: yI + 1.35, z: IR.z, sx: 0.35, sy: 0.6, sz: 1.2 }, 8)
       .baton([IR.x, yI + 1.2, IR.z], [IR.x, yI + 0.78, IR.z], 0.012, '#2a2420', 4)
       .ovale(0.2, '#2a2826', { x: IR.x, y: yI + 0.6, z: IR.z, sy: 0.75 }, 12)
@@ -879,7 +879,7 @@ export function construire(ctx) {
       .baton([-w2 + 0.6, yD + 0.7, -l2 + 0.7], [-w2 + 0.85, yD + 0.78, -l2 + 0.85], 0.012, '#c9a87a', 4)
       .cylindre(0.05, 0.04, 0.06, 8, '#c9a87a', { x: -w2 + 0.85, y: yD + 0.78, z: -l2 + 0.85 });
     for (let k = 0; k < 3; k++) {
-      for (let j = 0; j < 5 - k; j++) a.cylindre(0.08, 0.08, 0.7, 7, j % 2 ? '#a07a52' : '#8a6644', { x: -2.95 + (j - (4 - k) / 2) * 0.17, y: yD + 0.1 + k * 0.15, z: -l2 + 0.45, rz: PI / 2 });
+      for (let j = 0; j < 5 - k; j++) a.cylindre(0.08, 0.08, 0.7, 7, j % 2 ? '#a07a52' : '#8a6644', { x: -2.95 + (j - (4 - k) / 2) * 0.17, y: yD + 0.1 + k * 0.15, z: -l2 + 0.45, rx: PI / 2 });
     }
     a.cylindre(0.12, 0.12, 0.45, 10, '#5a4436', { x: -w2 + 0.4, y: yD + 0.23, z: 1.45 });
     for (const [c, d] of [['#c8402c', -0.04], ['#3f5a8a', 0.05]]) a.cone(0.06, 0.95, 8, c, { x: -w2 + 0.4 + d, y: yD + 0.62, z: 1.45 + d, rx: PI, rz: d * 2 });
@@ -977,8 +977,8 @@ export function construire(ctx) {
     for (let k = 0; k < 4; k++) {
       const x = C.x0 + 0.35 + k * 0.24, z = C.z1 - 0.22;
       a.boite(0.16, 0.1, 0.12, '#f6f2e6', { x, y: hC + 0.05, z, ry: 0.1 * k })
-        .boite(0.165, 0.012, 0.125, '#c9a65a', { x, y: hC + 0.07, z, ry: 0.1 * k, trait: false })
-        .boite(0.012, 0.105, 0.128, '#c9a65a', { x, y: hC + 0.05, z, ry: 0.1 * k, trait: false })
+        .boite(0.176, 0.012, 0.136, '#c9a65a', { x, y: hC + 0.07, z, ry: 0.1 * k, trait: false })
+        .boite(0.012, 0.112, 0.136, '#c9a65a', { x, y: hC + 0.05, z, ry: 0.1 * k, trait: false })
         .baton([x, hC + 0.1, z], [x + 0.02, hC + 0.2, z], 0.006, '#c9a65a', 3, { trait: false });
     }
     for (let k = 0; k < 3; k++) {
@@ -1000,7 +1000,7 @@ export function construire(ctx) {
     }
     // les étagères du mur du nord, derrière la vendeuse : les bouteilles de saké, les pots, les serviettes pliées
     for (let k = 0; k < 3; k++) a.boite(3.2, 0.04, 0.32, '#6a5240', { x: -1.0, y: yD + 0.7 + k * 0.5, z: -l2 + 0.33 });
-    for (const x of [-2.6, 0.6]) a.boite(0.05, 1.8, 0.32, '#5a4436', { x, y: yD + 0.9, z: -l2 + 0.33 });
+    for (const x of [-2.6, 0.6]) a.boite(0.05, 1.8, 0.36, '#5a4436', { x, y: yD + 0.9, z: -l2 + 0.33 });
     for (let k = 0; k < 7; k++) {
       const x = -2.4 + k * 0.42;
       a.cylindre(0.05, 0.055, 0.28, 8, k % 2 ? '#3f5a3a' : '#6a4a2a', { x, y: yD + 0.86, z: -l2 + 0.33 })
@@ -1038,8 +1038,8 @@ export function construire(ctx) {
     for (const dx of [-0.35, 0.3]) {
       a.cylindre(0.1, 0.06, 0.08, 12, '#3a2c2a', { x: T.x + dx, y: yD + 0.785, z: T.z - 0.12 })
         .cylindre(0.085, 0.085, 0.006, 12, '#8a5a2a', { x: T.x + dx, y: yD + 0.815, z: T.z - 0.12, trait: false });
-      for (let k = 0; k < 6; k++) a.boite(0.1, 0.006, 0.008, '#c9b48a', { x: T.x + dx, y: yD + 0.82, z: T.z - 0.15 + k * 0.012, ry: 0.3 * Math.sin(k), trait: false });
-      a.boite(0.02, 0.008, 0.02, '#6aa84a', { x: T.x + dx + 0.03, y: yD + 0.824, z: T.z - 0.1, trait: false });
+      for (let k = 0; k < 6; k++) a.boite(0.1, 0.006, 0.008, '#c9b48a', { x: T.x + dx, y: yD + 0.83, z: T.z - 0.15 + k * 0.012, ry: 0.3 * Math.sin(k), trait: false });
+      a.boite(0.02, 0.008, 0.02, '#6aa84a', { x: T.x + dx + 0.03, y: yD + 0.836, z: T.z - 0.1, trait: false });
       for (const d of [-0.012, 0.012]) a.boite(0.012, 0.008, 0.21, '#a8402c', { x: T.x + dx + 0.13 + d, y: yD + 0.75, z: T.z - 0.08, trait: false });
     }
     a.cylindre(0.035, 0.03, 0.08, 10, '#5a6a5a', { x: T.x + 0.6, y: yD + 0.785, z: T.z + 0.1 });
@@ -1123,16 +1123,16 @@ export function construire(ctx) {
       for (let j = 0; j < 2; j++) {
         const x0 = -w2 + 0.16 + i * ((xA + w2 - 0.16) / 4), z0 = zT + j * ((l2 - 0.16 - zT) / 2), dx = (xA + w2 - 0.16) / 4, dz = (l2 - 0.16 - zT) / 2;
         a.boite(dx - 0.04, 0.06, dz - 0.04, '#cfc49a', { x: x0 + dx / 2, y: yT - 0.03, z: z0 + dz / 2 })
-          .boite(dx - 0.02, 0.055, 0.03, '#2a2a28', { x: x0 + dx / 2, y: yT - 0.03, z: z0 + 0.015, trait: false });
+          .boite(dx - 0.02, 0.05, 0.03, '#2a2a28', { x: x0 + dx / 2, y: yT - 0.0325, z: z0 + 0.015, trait: false });
       }
     }
     butsudan(a, -1.2, yT, l2 - 0.5);
     // les portes coulissantes (fusuma) entre le plancher et la chambre, ouvertes, peintes de montagnes
-    for (const x of [-w2 + 0.7, -w2 + 1.55]) a.boite(0.86, 1.78, 0.04, '#e8dfc6', { x, y: yT + 0.89, z: zT + 0.05 });
+    for (const x of [-w2 + 0.7, -w2 + 1.55]) a.boite(0.86, 1.78, x < -w2 + 1 ? 0.04 : 0.052, '#e8dfc6', { x, y: yT + 0.89, z: zT + 0.05 });
     // le foyer (irori) : le cadre de bois, la cendre, les braises, le crochet (jizai-kagi) et son poisson de bois, la
     // bouilloire de fonte ; les coussins autour
     foyer(a, IR.x, yI, IR.z);
-    a.cylindre(0.03, 0.03, murH - yI - 1.2, 6, '#9a8a5a', { x: IR.x, y: (murH + yI + 1.2) / 2, z: IR.z })
+    a.cylindre(0.03, 0.03, murH - yI - 1.21, 6, '#9a8a5a', { x: IR.x, y: (murH + yI + 1.19) / 2, z: IR.z })
       .ovale(0.16, '#5a4433', { x: IR.x, y: yI + 1.35, z: IR.z, sx: 0.35, sy: 0.6, sz: 1.2 }, 8)
       .baton([IR.x, yI + 1.2, IR.z], [IR.x, yI + 0.78, IR.z], 0.012, '#2a2420', 4)
       .ovale(0.2, '#2a2826', { x: IR.x, y: yI + 0.6, z: IR.z, sy: 0.75 }, 12)
@@ -1548,7 +1548,7 @@ export function construire(ctx) {
         // la tête : la grosse tête ronde, le museau carré, les yeux ronds, la crinière en boucles ; la queue en flamme
         .ovale(0.2, P.pierre, { x: kx + 0.1, y: y0 + 0.82, z: kz, sx: 1.05 }, 10)
         .boite(0.16, 0.13, 0.22, P.pierre, { x: kx + 0.27, y: y0 + 0.76, z: kz })
-        .boite(0.02, s > 0 ? 0.05 : 0.012, 0.16, '#5a5650', { x: kx + 0.355, y: y0 + 0.72, z: kz, trait: false });
+        .boite(0.02, s > 0 ? 0.05 : 0.012, 0.16, '#5a5650', { x: kx + 0.355, y: y0 + 0.725, z: kz, trait: false });
       for (const dz of [-0.08, 0.08]) a.boule(0.035, P.pierreFonce, { x: kx + 0.27, y: y0 + 0.9, z: kz + dz }, 0);
       for (let k = 0; k < 9; k++) {
         const t = (k / 8) * PI - PI / 2;
@@ -1938,7 +1938,7 @@ export function construire(ctx) {
     forme.boite(1.3, 1.9, 1.3, '#6a5040', { y: 0.95 })
       .boite(1.34, 0.12, 1.34, '#4a3626', { y: 0.06 })
       .pignon(1.9, 1.1, 1.9, P.chaume, { y: 1.9, ry: PI / 2 })
-      .boite(0.9, 1.4, 0.04, '#4a3626', { y: 0.82, z: 0.66, trait: false });
+      .boite(0.92, 1.4, 0.04, '#4a3626', { y: 0.82, z: 0.66, trait: false });
     const corps = forme.fin(0, peinture);
     // le canon : un tube de cuivre sur son pied, la buse ; il sort par le toit, levé vers le ciel
     const canon = atelier().cylindre(0.12, 0.14, 1.3, 8, '#8a8a90', { y: 0.65 }).cylindre(0.08, 0.05, 1.3, 8, '#c9883a', { y: 1.9 }).cylindre(0.1, 0.1, 0.08, 8, '#2a2a2e', { y: 1.28 }).fin(0, false);
@@ -2048,8 +2048,8 @@ export function construire(ctx) {
   {
     const a = atelier(), y = niveau(38, -64);
     // les places du parking : des lignes blanches (au-dessus du sol tel qu'il est dessiné, 3 cm sur le terrain)
-    for (const x of [39.8, 42.3, 44.8]) a.boite(0.12, 0.012, 4.2, '#f4f4f0', { x, y: y + 0.046, z: -67.4, trait: false });
-    a.boite(5.2, 0.012, 0.12, '#f4f4f0', { x: 42.3, y: y + 0.046, z: -65.3, trait: false });
+    for (const x of [39.8, 42.3, 44.8]) a.boite(0.12, 0.012, 4.2, '#f4f4f0', { x, y: y + 0.06, z: -67.4, trait: false });
+    a.boite(5.2, 0.012, 0.12, '#f4f4f0', { x: 42.3, y: y + 0.06, z: -65.3, trait: false });
     // le car : sa caisse blanche, le toit et la climatisation, ses vitres en bande (des montants blancs), le pare-brise,
     // la girouette (le bandeau lumineux de la destination), les phares, le pare-chocs, les rétroviseurs en oreilles de
     // lapin, la porte (à gauche, côté trottoir, comme au Japon), les roues et leurs passages, les bandes vertes et bleues
@@ -2059,8 +2059,8 @@ export function construire(ctx) {
         .boite(2.14, 0.14, 8.84, '#e8e6e0', { x: bx, y: by + 2.98, z: bz })
         .boite(1.5, 0.22, 2.2, '#d8d6d0', { x: bx, y: by + 3.16, z: bz - 1.2 });
       for (const sg of [-1, 1]) {
-        a.boite(0.02, 0.92, 7.2, VITRE, { x: bx + sg * 1.16, y: by + 2.32, z: bz - 0.65, trait: false });
-        for (let k = 0; k <= 6; k++) a.boite(0.03, 0.92, 0.1, BLANC, { x: bx + sg * 1.177, y: by + 2.32, z: bz - 4.2 + k * 1.19, trait: false });
+        a.boite(0.02, 0.92, 7.16, VITRE, { x: bx + sg * 1.16, y: by + 2.32, z: bz - 0.65, trait: false });
+        for (let k = 0; k <= 6; k++) a.boite(0.03, 0.94, 0.1, BLANC, { x: bx + sg * 1.177, y: by + 2.32, z: bz - 4.2 + k * 1.19, trait: false });
         a.boite(0.012, 0.26, 9.0, '#2f8a5a', { x: bx + sg * 1.157, y: by + 1.32, z: bz, trait: false })
           .boite(0.012, 0.07, 9.0, '#2f6a9a', { x: bx + sg * 1.157, y: by + 1.12, z: bz, trait: false });
         for (const wz of [3.05, -2.75]) {
@@ -2082,9 +2082,9 @@ export function construire(ctx) {
         .boite(0.02, 1.95, 0.9, VITRE, { x: bx + 1.165, y: by + 1.42, z: bz + 3.5, trait: false })
         .boite(0.03, 1.95, 0.05, BLANC, { x: bx + 1.18, y: by + 1.42, z: bz + 3.02, trait: false })
         .boite(0.03, 1.95, 0.05, BLANC, { x: bx + 1.18, y: by + 1.42, z: bz + 3.98, trait: false })
-        .boite(0.28, 0.08, 0.9, '#2a2a2e', { x: bx + 1.0, y: by + 0.36, z: bz + 3.5 });
+        .boite(0.26, 0.08, 0.9, '#2a2a2e', { x: bx + 1.0, y: by + 0.36, z: bz + 3.5 });
       const poseCar = { x: bx, y: by, z: bz, ry: 0 };
-      for (const sg of [-1, 1]) ecrire(poseCar, { texte: '世界遺産バス', fond: BLANC, encre: '#2f6a9a', x: sg * 1.168, y: 1.7, z: -0.8, ry: sg * PI / 2, l: 2.8, h: 0.36 });
+      for (const sg of [-1, 1]) ecrire(poseCar, { texte: '世界遺産バス', fond: BLANC, encre: '#2f6a9a', x: sg * 1.168, y: 1.67, z: -0.8, ry: sg * PI / 2, l: 2.8, h: 0.36 });
       ecrire(poseCar, { texte: '相倉口 ⇄ 高岡駅', fond: '#151515', encre: '#ffb03a', x: 0, y: 2.77, z: 4.522, l: 1.42, h: 0.2, lumineux: true });
       monde.surface(bx - 1.25, bx + 1.25, bz - 4.65, bz + 4.65, by + 3.4, { plein: true });
       monde.bloc(bx - 1.25, bx + 1.25, bz - 4.65, bz + 4.65, by - 1, by + 3.4);
@@ -2095,8 +2095,8 @@ export function construire(ctx) {
       const sx = 37.6, sz = -62.4, poseA = { x: sx, y, z: sz, ry: 0 };
       const bois = (x, yy) => (Math.floor(yy / 0.2 + 100) % 2 ? '#8a6a4a' : '#7a5c3e');
       a.boite(1.8, 0.12, 2.8, '#a8a49a', { x: sx, y: y + 0.03, z: sz })
-        .piece(new THREE.BoxGeometry(0.08, 2.1, 2.6, 1, 10, 1), '#8a6a4a', { x: sx + 0.78, y: y + 1.12, z: sz, teinte: bois });
-      for (const sg of [-1, 1]) a.piece(new THREE.BoxGeometry(1.5, 2.1, 0.08, 1, 10, 1), '#8a6a4a', { x: sx + 0.07, y: y + 1.12, z: sz + sg * 1.26, teinte: bois });
+        .piece(new THREE.BoxGeometry(0.08, 2.1, 2.58, 1, 10, 1), '#8a6a4a', { x: sx + 0.78, y: y + 1.12, z: sz, teinte: bois });
+      for (const sg of [-1, 1]) a.piece(new THREE.BoxGeometry(1.5, 2.1, 0.08, 1, 10, 1), '#8a6a4a', { x: sx + 0.06, y: y + 1.12, z: sz + sg * 1.26, teinte: bois });
       // dans les murs de côté, une fenêtre coulissante (deux vitres, leur cadre) ; les poteaux du côté ouvert ; sous le
       // toit, la planche du nom de l'arrêt ; une affiche du village dehors, sur le mur du fond, et une dedans
       const CADRE = '#6a4e36';
@@ -2138,7 +2138,7 @@ export function construire(ctx) {
       const ici = (lx, d) => duTunnel(lx, d), ryR = T_A;
       for (const [lx, c, l] of [[-3.45, '#f4f4f0', 0.14], [3.45, '#f4f4f0', 0.14], [0, '#e8c23a', 0.14]]) {
         const [x0, z0] = ici(lx, -15.2), [x1, z1] = ici(lx, -0.2), [mx, mz] = [(x0 + x1) / 2, (z0 + z1) / 2];
-        a.boite(l, 0.012, 15.0, c, { x: mx, y: routeY(-7.7) + 0.046, z: mz, ry: ryR, trait: false });
+        a.boite(l, 0.012, 15.0, c, { x: mx, y: routeY(-7.7) + 0.06, z: mz, ry: ryR, trait: false });
       }
       for (let d = -14; d < -1; d += 4) {
         for (const sg of [-1, 1]) {

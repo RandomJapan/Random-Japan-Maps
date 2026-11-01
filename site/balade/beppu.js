@@ -548,7 +548,7 @@ export function construire(ctx) {
     for (const [lf, pf, rf] of [[l, p, PI], [p, l, PI / 2], [p, l, -PI / 2]]) {
       const Rf = (u, yy, out, o2 = {}) => R(u * Math.cos(rf) + (pf / 2 + out) * Math.sin(rf), yy, -u * Math.sin(rf) + (pf / 2 + out) * Math.cos(rf), { ...o2, ry: rf + (o2.ry || 0) });
       const np = Math.max(1, Math.round(lf / 1.9)), travee = (k) => -lf / 2 + ((k + 0.5) * lf) / np;
-      for (let k = 1; k < np; k++) a.boite(0.14, h1, 0.06, B, Rf(-lf / 2 + (k * lf) / np, y + 0.2 + h1 / 2, 0.02));
+      for (let k = 1; k < np; k++) a.boite(0.14, h1 - 0.02, 0.06, B, Rf(-lf / 2 + (k * lf) / np, y + 0.19 + h1 / 2, 0.02));
       for (const k of lf > 5.5 && np > 1 ? [0, np - 1] : [Math.floor((np - 1) / 2)]) {
         const u = travee(k);
         a.boite(1.0, 0.8, 0.06, '#3a2c22', Rf(u, y + 0.2 + 1.55, 0.02));
@@ -573,12 +573,12 @@ export function construire(ctx) {
         for (let k = 0; k < 3; k++) {
           const f0 = coupes[k] / L, f1 = coupes[k + 1] / L, x0 = xa + (xb - xa) * f0, z0b = za + (zb - za) * f0, x1 = xa + (xb - xa) * f1, z1 = za + (zb - za) * f1;
           const h = Math.max(0.02, Math.min(sous(x0, z0b), sous(x1, z1), sous((x0 + x1) / 2, (z0b + z1) / 2)));
-          const cx = (x0 + x1) / 2 - ex * 0.05, cz = (z0b + z1) / 2 - ez * 0.05, lg = coupes[k + 1] - coupes[k];
+          const cx = (x0 + x1) / 2 - ex * 0.045, cz = (z0b + z1) / 2 - ez * 0.045, lg = coupes[k + 1] - coupes[k];
           a.boite(ex ? 0.12 : lg, h + 0.1, ex ? lg : 0.12, P.crepi, R(cx, yt + (h - 0.1) / 2, cz, { trait: false }));
         }
       };
-      bande(-ml - 0.01, z0 + mp, ml + 0.01, z0 + mp, 0, 1);
-      bande(-ml - 0.01, z0 - mp, ml + 0.01, z0 - mp, 0, -1);
+      bande(-ml - 0.005, z0 + mp, ml + 0.005, z0 + mp, 0, 1);
+      bande(-ml - 0.005, z0 - mp, ml + 0.005, z0 - mp, 0, -1);
       for (const u of [-1, 1]) bande(u * ml, z0 - mp + 0.12, u * ml, z0 + mp - 0.12, u, 0);
     }
     a.boite(l * 0.72, 0.9, p * 0.62, P.crepi, R(0, yt + 0.4, -0.1));
@@ -815,7 +815,7 @@ export function construire(ctx) {
     // l'arrêt de bus « 鉄輪 » (le départ) : l'abri, son banc, le poteau et son disque, l'horaire
     const a = atelier(), y = terrain(ARRET.x, ARRET.z), R = repere(ARRET.x, ARRET.z, PI);
     for (const u of [-1, 1]) a.boite(0.1, 2.4, 0.1, '#8a8784', R(u * 1.6, y + 1.2, -0.5));
-    a.boite(3.6, 2.2, 0.06, '#c9d4d2', R(0, y + 1.25, -0.52, { trait: false })).boite(3.6, 0.1, 1.5, '#5d8a86', R(0, y + 2.42, 0.1));
+    a.boite(3.6, 2.2, 0.06, '#c9d4d2', R(0, y + 1.25, -0.51, { trait: false })).boite(3.6, 0.1, 1.5, '#5d8a86', R(0, y + 2.42, 0.1));
     a.boite(2.8, 0.08, 0.45, P.bois, R(0, y + 0.45, -0.2)).boite(0.08, 0.45, 0.08, '#6a6764', R(-1.1, y + 0.22, -0.2)).boite(0.08, 0.45, 0.08, '#6a6764', R(1.1, y + 0.22, -0.2));
     bancs.push({ de: [R(-1.2, 0, -0.2).x, R(-1.2, 0, -0.2).z], a: [R(1.2, 0, -0.2).x, R(1.2, 0, -0.2).z], y: y + 0.49, cap: 0, vue: 0.35 });
     monde.mur(R(-1.45, 0, -0.25).x, R(-1.45, 0, -0.25).z, R(1.45, 0, -0.25).x, R(1.45, 0, -0.25).z, 0.5);
@@ -841,17 +841,17 @@ export function construire(ctx) {
           // là où une allée entre dans un enfer, le caniveau passe sous une grille de fonte, au ras du sol)
           const k = Math.round((s + d) / 2), entree = CHEMINS.some((ch) => !ch.rue && surLaLigne(ch.pts, x, z).d < ch.w + 0.6);
           if (entree) {
-            a.boite(2.02, 0.1, 0.44 - (k % 2) * 0.02, '#4a4542', { x, y: y - 0.03 + (k % 2) * 0.006, z, ry: -Math.atan2(uz, ux), trait: false });
-            for (let b = -0.85; b < 0.9; b += 0.17) a.boite(0.05, 0.02, 0.4, '#2e2a28', { x: x + ux * b, y: y + 0.03, z: z + uz * b, ry: -Math.atan2(uz, ux), trait: false });
+            a.boite(2.02, 0.1, 0.45 - (k % 2) * 0.02, '#4a4542', { x, y: y - 0.005 + (k % 2) * 0.006, z, ry: -Math.atan2(uz, ux), trait: false });
+            for (let b = -0.85; b < 0.9; b += 0.17) a.boite(0.05, 0.02, 0.4, '#2e2a28', { x: x + ux * b, y: y + 0.052, z: z + uz * b, ry: -Math.atan2(uz, ux), trait: false });
             continue;
           }
-          a.boite(2.02, 0.12, 0.42 - (k % 2) * 0.02, '#8f887c', { x, y: y - 0.02 + (k % 2) * 0.006, z, ry: -Math.atan2(uz, ux), nuance: 0.07 });
+          a.boite(2.02, 0.12, 0.42 - (k % 2) * 0.02, '#8f887c', { x, y: y - 0.01 + (k % 2) * 0.006 + (i % 3) * 0.003, z, ry: -Math.atan2(uz, ux), nuance: 0.07 });
           // une grille toutes les dix-huit mètres environ, la vapeur qui en sort ; (au coude de deux segments, le même numéro
           // revenait : deux lampadaires au même endroit)
           if (faits.has(`${cote},${k}`)) continue;
           faits.add(`${cote},${k}`);
           if (k % 9 === (cote > 0 ? 2 : 6)) {
-            a.boite(0.6, 0.02, 0.36, '#3a3634', { x, y: y + 0.05, z, ry: -Math.atan2(uz, ux), trait: false });
+            a.boite(0.6, 0.02, 0.36, '#3a3634', { x, y: y + 0.07, z, ry: -Math.atan2(uz, ux), trait: false });
             vapeurs.push({ x, z, y: y + 0.05, n: 14, haut: 3.4, large: 0.8, taille: 1.8, opacite: 0.4 });
           }
           // un lampadaire tous les seize mètres, d'un côté puis de l'autre, au bord de la rue, avant le caniveau ; jamais devant
@@ -1534,7 +1534,7 @@ export function construire(ctx) {
   const bambou = (a, x, z, h) => {
     const y = terrain(x, z), g = hasard(x * 3.1, z * 1.7), dx = (g - 0.5) * 0.12 * h, dz = (hasard(z, x) - 0.5) * 0.12 * h, r = 0.045 + 0.02 * g;
     a.fut([x, y - 0.2, z], [x + dx, y + h, z + dz], r, r * 0.7, '#7aa04a', 5);
-    for (let k = 1; k < 6; k++) a.cylindre(r * 1.15, r * 1.15, 0.04, 5, '#5f8a3a', { x: x + (dx * k) / 6, y: y + (h * k) / 6, z: z + (dz * k) / 6, trait: false });
+    for (let k = 1; k < 6; k++) a.cylindre(r * 1.15 + 0.005, r * 1.15 + 0.005, 0.04, 5, '#5f8a3a', { x: x + (dx * k) / 6, y: y + (h * k) / 6, z: z + (dz * k) / 6, trait: false });
     for (let k = 0; k < 3; k++) a.houppe(0.55 + 0.25 * hasard(k, x), '#6e9a48', { x: x + dx * (0.75 + k * 0.1) + Math.cos(k * 2.1 + g * 6) * 0.4, y: y + h * (0.72 + k * 0.1), z: z + dz * (0.75 + k * 0.1) + Math.sin(k * 2.1 + g * 6) * 0.4, sy: 0.6, sorte: 'persistant' }, 0);
   };
   {
@@ -1979,7 +1979,7 @@ export function construire(ctx) {
         const f0 = k / n, f1 = (k + 1) / n, xa = x0 + (x1 - x0) * f0, za = z0 + (z1 - z0) * f0, xb = x0 + (x1 - x0) * f1, zb = z0 + (z1 - z0) * f1, xm = (xa + xb) / 2, zm = (za + zb) / 2;
         const y = Math.min(terrain(xa, za), terrain(xb, zb)), lk = l / n, j = nPal++ % 2;
         a.boite(lk, 1.8 + j * 0.004, 0.05, P.planche, { x: xm, y: y + 0.85, z: zm, ry })
-          .boite(lk + 0.02, 0.07, 0.24 + j * 0.01, P.tuileShiro, { x: xm, y: y + 1.79 + j * 0.004, z: zm, ry })
+          .boite(lk + 0.01, 0.07, 0.24 + j * 0.01, P.tuileShiro, { x: xm, y: y + 1.79 + j * 0.004, z: zm, ry })
           .boite(lk + 0.01, 0.3, 0.12 + j * 0.01, P.pierreFonce, { x: xm, y: y - 0.02, z: zm, ry });
         // (le poteau finit dans le chaperon, sous son dessus)
         if (planter(xa, za)) a.boite(0.1, 1.83, 0.1, P.boisNoir, { x: xa, y: y + 0.865, z: za });

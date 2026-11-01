@@ -1266,7 +1266,7 @@ export function construire(ctx) {
     // la petite clôture rouge, ouverte devant ; le tronc des offrandes « 賽銭 » devant elle ; le panneau sur son poteau
     for (const [x0, z0, x1, z1] of [[-0.9, -0.65, 0.9, -0.65], [-0.9, -0.65, -0.9, 0.55], [0.9, -0.65, 0.9, 0.55], [-0.9, 0.55, -0.35, 0.55], [0.35, 0.55, 0.9, 0.55]]) {
       const l = Math.hypot(x1 - x0, z1 - z0), n = Math.max(1, Math.round(l / 0.3)), ang = Math.atan2(x1 - x0, z1 - z0);
-      for (let k = 0; k <= n; k++) a.boite(0.05, 0.42, 0.05, ROUGE, R(x0 + ((x1 - x0) * k) / n, y + 0.76, z0 + ((z1 - z0) * k) / n));
+      for (let k = 0; k <= n; k++) a.boite(0.06, 0.42, 0.06, ROUGE, R(x0 + ((x1 - x0) * k) / n, y + 0.76, z0 + ((z1 - z0) * k) / n));
       a.boite(0.05, 0.05, l, ROUGE, R((x0 + x1) / 2, y + 0.96, (z0 + z1) / 2, { ry: ang }));
     }
     a.boite(0.5, 0.3, 0.3, ROUGE, R(0, y + 0.15, 1.15)).boite(0.54, 0.04, 0.34, P.boisNoir, R(0, y + 0.32, 1.15));
@@ -1750,14 +1750,14 @@ export function construire(ctx) {
       for (const lz of [-D / 2 + 0.25, D / 2 - 0.25]) {
         a.boite(lb, 0.9, 0.08, BLANC_PIGNON, R(xm, y + 0.45, lz));
         if (lz > 0) a.boite(lb, 2.4, 0.04, LAQUE_BOIS, R(xm, y + 2.1, lz, { trait: false }));
-        for (let k = 1; k < 10; k++) a.boite(0.03, 2.38, 0.06, ROUGE, R(xm - lb / 2 + (k * lb) / 10, y + 2.1, lz));
+        for (let k = 1; k < 10; k++) a.boite(0.03, 2.38, 0.07, ROUGE, R(xm - lb / 2 + (k * lb) / 10, y + 2.1, lz));
         for (let k = 1; k < 7; k++) a.boite(lb, 0.03, 0.06, ROUGE, R(xm, y + 0.9 + k * 0.34, lz));
       }
       {
         const lxb = sg * (W / 2 - 0.25);
         for (const [zb, l] of [[-0.95, 1.54], [0.95, 1.54]]) {
           a.boite(0.08, 0.9, l, BLANC_PIGNON, R(lxb, y + 0.45, zb)).boite(0.04, 2.4, l, LAQUE_BOIS, R(lxb, y + 2.1, zb, { trait: false }));
-          for (let k = 1; k < 5; k++) a.boite(0.06, 2.38, 0.03, ROUGE, R(lxb, y + 2.1, zb - l / 2 + (k * l) / 5));
+          for (let k = 1; k < 5; k++) a.boite(0.07, 2.38, 0.03, ROUGE, R(lxb, y + 2.1, zb - l / 2 + (k * l) / 5));
           for (let k = 1; k < 7; k++) a.boite(0.06, 0.03, l, ROUGE, R(lxb, y + 0.9 + k * 0.34, zb));
         }
         // la balustrade basse, côté passage : ses lisses d'un poteau à l'autre, ses barreaux
@@ -2583,7 +2583,7 @@ export function construire(ctx) {
     const a = atelier(), y = Y_ROUTE, Pk = PARKING;
     // (trois places au sud, jusqu'au trottoir de l'arrêt du bus)
     for (let k = 0; k < 4; k++) a.boite(0.1, 0.01, 4.6, '#f4f2ea', { x: Pk.x0 + 2.0 + k * 2.6, y: y + 0.012, z: Pk.z1 - 2.6, trait: false });
-    a.boite(8.8, 0.01, 0.1, '#f4f2ea', { x: Pk.x0 + 5.9, y: y + 0.012, z: Pk.z1 - 4.9, trait: false });
+    a.boite(8.8, 0.01, 0.1, '#f4f2ea', { x: Pk.x0 + 5.9, y: y + 0.016, z: Pk.z1 - 4.9, trait: false });
     // le trottoir : une dalle de béton à bordure, la bande jaune pour les aveugles (点字ブロック) le long de l'arrêt
     {
       const T = TROTTOIR, yt = y + T.h, xm = (T.x0 + T.x1) / 2, zm = (T.z0 + T.z1) / 2;

@@ -356,6 +356,7 @@ export function construire(ctx) {
    * carrées, l'une après l'autre) tous les 1,8 m, sur la face qui regarde dehors (dehors : [x, z], la direction de
    * l'ennemi ; null : pas de meurtrières). Il arrête (sauf arrete: false).
    */
+  let nDobei = 0;
   function dobei(a, x0, z0, x1, z1, y, { h = 2.3, dehors = null, arrete = true, debut = true, fin = true } = {}) {
     const L = Math.hypot(x1 - x0, z1 - z0);
     if (L < 0.2) return;
@@ -363,12 +364,12 @@ export function construire(ctx) {
     const sama = dehors ? Math.sign(Math.sin(ry) * dehors[0] + Math.cos(ry) * dehors[1]) : 0;
     // (de combien une pièce dépasse aux bouts libres : d ; le décalage de son milieu, pour qu'elle ne dépasse que là)
     const long = (d) => L + d * ((debut ? 1 : 0) + (fin ? 1 : 0)), mil = (d) => (d * ((fin ? 1 : 0) - (debut ? 1 : 0))) / 2;
-    // (un mur en z un rien plus haut qu'un mur en x : là où deux murs se croisent, leurs soubassements, le dessous de leurs
-    // toits et leurs faîtes ne sont pas dans le même plan)
-    const k = Math.abs(x1 - x0) >= Math.abs(z1 - z0) ? 0 : 0.012;
-    a.boite(long(0.03), 0.42, 0.62, P.pierreFonce, R(mil(0.03), y + 0.13 + k, 0, { teinte: pierres }))
+    // (un mur en z un rien plus haut qu'un mur en x, et un mur sur deux de 4 mm : là où deux murs se croisent ou se suivent, leurs
+    // soubassements, le dessous de leurs toits et leurs faîtes ne sont pas dans le même plan)
+    const pair = nDobei++ % 2, k = (Math.abs(x1 - x0) >= Math.abs(z1 - z0) ? 0 : 0.012) + pair * 0.004;
+    a.boite(long(0.03) + 0.01, 0.42, 0.62 + pair * 0.012, P.pierreFonce, R(mil(0.03), y + 0.13 + k, 0, { teinte: pierres }))
       .boite(L, h - 0.34, 0.4, P.platre, R(0, y + 0.34 + (h - 0.34) / 2, 0))
-      .pignon(long(0.12), 0.34, 0.86, P.tuileShiro, R(mil(0.12), y + h - 0.02 + k, 0))
+      .pignon(long(0.12) + 0.01, 0.34, 0.86, P.tuileShiro, R(mil(0.12), y + h - 0.02 + k, 0))
       .boite(long(0.13), 0.09, 0.14, P.mortier, R(mil(0.13), y + h + 0.33 + k, 0, { trait: false }));
     if (sama) {
       const n = Math.floor((L - 0.8) / 1.8);
@@ -639,7 +640,8 @@ export function construire(ctx) {
           } else a.boite(l + 0.16, h + 0.16, 0.07, P.platre, R(lx, y, prof / 2 + 0.035, { trait: false }));
           a.boite(l + 0.3, 0.05, 0.13, P.platre, R(lx, y - h / 2 - 0.105, prof / 2 + 0.065, { trait: false }));
         }
-        if (!ouvert) a.boite(l, h, cadre ? 0.012 : 0.04, P.noir, R(lx, y, prof / 2 + (cadre ? e + 0.006 : 0.02), { trait: false }));
+        // (sans cadre, les barreaux à 12 mm devant le fond noir : à 2 mm, de loin, ils scintillaient)
+        if (!ouvert) a.boite(l, h, cadre ? 0.012 : 0.03, P.noir, R(lx, y, prof / 2 + (cadre ? e + 0.006 : 0.015), { trait: false }));
         for (let b = 0; b < nb; b++) a.boite(0.05, h - 0.04, 0.03, P.platre, R(lx - l / 2 + (b + 0.5) * (l / nb), y, prof / 2 + e + 0.027, { trait: false }));
       }
     }
@@ -746,7 +748,7 @@ export function construire(ctx) {
         a.boite(l, H1, pp, BOIS, { x: px, y: y + H1 / 2, z: pz })
           .boite(l + 0.3, 0.14, pp + 0.3, P.pierreFonce, { x: px, y: y + 0.05, z: pz })
           .boite(l + 0.03, 0.42, pp + 0.03, FER, { x: px, y: y + 0.33, z: pz, trait: false })
-          .boite(l + 0.036, 0.04, pp + 0.036, P.or, { x: px, y: y + 0.555, z: pz, trait: false });
+          .boite(l + 0.05, 0.04, pp + 0.05, P.or, { x: px, y: y + 0.555, z: pz, trait: false });
       }
       for (const s2 of [-1, 1]) {
         const xc = x + s2 * 4.35;
@@ -1047,7 +1049,7 @@ export function construire(ctx) {
         const xg = X - x1 + 0.2;
         ad.boite(0.04, 0.04, 1.15, '#3b3b40', { x: xg, y: yy, z: zc + 0.22 })
           .piece(new THREE.BoxGeometry(0.05, 0.08, 0.55, 1, 1, 2), '#7a4a2a', { x: xg, y: yy - 0.015, z: zc - 0.6, deformer: (px, py, pz) => [px, py + (pz < 0 ? (py < 0 ? -0.055 : -0.03) : 0), pz] })
-          .boite(0.055, 0.035, 0.09, LAITON, { x: xg + 0.004, y: yy + 0.005, z: zc - 0.3, trait: false });
+          .boite(0.055, 0.05, 0.09, LAITON, { x: xg + 0.004, y: yy + 0.005, z: zc - 0.3, trait: false });
         for (const zb of [zc + 0.1, zc + 0.55]) ad.boite(0.05, 0.05, 0.02, LAITON, { x: xg, y: yy, z: zb, trait: false });
         for (const zb of [zc - 0.45, zc + 0.45]) ad.cylindre(0.015, 0.015, 0.16, 5, '#2e2420', { x: X - x1 + 0.08, y: yy - 0.045, z: zb, rz: PI / 2, trait: false });
       };
@@ -1264,7 +1266,7 @@ export function construire(ctx) {
             .piece(new THREE.BoxGeometry(1.28, 0.05, 0.55, 8, 1, 1), CUIVRE, { x: X, y: yR - 0.17, z: zC - 0.21, rx: -0.68, teinte: rangs })
             .pignon(0.88, 0.3, 0.52, HINOKI, { x: X, y: yB + 0.7, z: zC })
             .boite(1.36, 0.07, 0.12, CUIVRE2, { x: X, y: yR + 0.01, z: zC });
-          for (const sx of [-1, 1]) for (const sr of [-1, 1]) adH.boite(0.022, 0.34, 0.035, FONCE, { x: X + sx * 0.63, y: yR + 0.06, z: zC, rx: sr * 0.62 });
+          for (const sx of [-1, 1]) for (const sr of [-1, 1]) adH.boite(0.022, 0.34, 0.035, FONCE, { x: X + sx * 0.65, y: yR + 0.06, z: zC, rx: sr * 0.62 });
           for (const kx of [-0.3, 0, 0.3]) adH.cylindre(0.028, 0.028, 0.17, 7, FONCE, { x: X + kx, y: yR + 0.075, z: zC, rx: PI / 2 });
           adH.shimenawa([[X - 0.55, yB + 0.66, zC + 0.46], [X, yB + 0.59, zC + 0.5], [X + 0.55, yB + 0.66, zC + 0.46]], 0.02, [[X - 0.27, yB + 0.6, zC + 0.5], [X + 0.27, yB + 0.6, zC + 0.5]]);
           adH.boite(0.08, 0.1, 0.05, LAQUE, { x: X, y: yB + 0.18, z: zA + 0.38 })
@@ -1440,7 +1442,7 @@ export function construire(ctx) {
         const yy = YM + 0.93 + k * 0.24 + 0.05;
         adM.boite(1.15, 0.04, 0.04, '#3b3b40', { x: xF + 0.22, y: yy, z: zFs })
           .piece(new THREE.BoxGeometry(0.55, 0.08, 0.05, 2, 1, 1), '#7a4a2a', { x: xF - 0.6, y: yy - 0.015, z: zFs, deformer: (px, py, pz) => [px, py + (px < 0 ? (py < 0 ? -0.055 : -0.03) : 0), pz] })
-          .boite(0.09, 0.035, 0.055, LAITON, { x: xF - 0.3, y: yy + 0.005, z: zFs + 0.004, trait: false });
+          .boite(0.09, 0.05, 0.055, LAITON, { x: xF - 0.3, y: yy + 0.005, z: zFs + 0.004, trait: false });
         for (const xb of [xF + 0.1, xF + 0.55]) adM.boite(0.02, 0.05, 0.05, LAITON, { x: xb, y: yy, z: zFs, trait: false });
       }
       // la plaque « 武具掛け », sur la cloison du sud, entre ses deux râteliers (comme dans la vidéo)
@@ -2160,8 +2162,8 @@ export function construire(ctx) {
     objet.name = 'assiette';
     const forme = () => {
       const a = atelier().cylindre(0.13, 0.09, 0.03, 18, '#f6f4ee', {});
-      a.piece(new THREE.RingGeometry(0.1, 0.125, 18), '#3b5ea8', { y: 0.016, rx: -PI / 2, trait: false })
-        .piece(new THREE.CircleGeometry(0.05, 12), '#5d7fc0', { y: 0.0165, rx: -PI / 2, trait: false });
+      a.piece(new THREE.RingGeometry(0.1, 0.125, 18), '#3b5ea8', { y: 0.019, rx: -PI / 2, trait: false })
+        .piece(new THREE.CircleGeometry(0.05, 12), '#5d7fc0', { y: 0.019, rx: -PI / 2, trait: false });
       return ctx.maillage(a.fin(0, false), true, true);
     };
     const parTerre = forme(), lueur = points(1, 0.55, '#8fc8ff');

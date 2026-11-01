@@ -1116,8 +1116,8 @@ export function construire(ctx) {
     for (const [x0, z0, x1, z1] of [[-l / 2, p / 2, l / 2, p / 2], [l / 2, -p / 2, l / 2, p / 2], [-l / 2, -p / 2, -l / 2, p / 2], [-l / 2, -p / 2, l / 2, -p / 2]]) {
       const lg = Math.hypot(x1 - x0, z1 - z0), ry = Math.abs(z1 - z0) > 0.1 ? PI / 2 : 0;
       a.boite(lg, h - 0.45, 0.25, P.platre, R((x0 + x1) / 2, 0.45 + (h - 0.45) / 2, (z0 + z1) / 2, { ry }));
-      for (let i = 0; i <= Math.round(lg / 1.8); i++) { const f = i / Math.round(lg / 1.8); a.boite(0.22, h - 0.45, 0.3, '#2e2622', R(x0 + (x1 - x0) * f, 0.45 + (h - 0.45) / 2, z0 + (z1 - z0) * f)); }
-      a.boite(lg + 0.2, 0.25, 0.3, '#2e2622', R((x0 + x1) / 2, 2.4, (z0 + z1) / 2, { ry }));
+      for (let i = 0; i <= Math.round(lg / 1.8); i++) { const f = i / Math.round(lg / 1.8); a.boite(0.22, h - 0.43, 0.3, '#2e2622', R(x0 + (x1 - x0) * f, 0.46 + (h - 0.45) / 2, z0 + (z1 - z0) * f)); }
+      a.boite(lg + 0.2, 0.25, 0.32, '#2e2622', R((x0 + x1) / 2, 2.4, (z0 + z1) / 2, { ry }));
     }
     // le grand pignon (vers l'entrée, au sud) : le triangle de plâtre blanc, la grille de poutres noires
     const hp = 5.6, yb = h;
@@ -1130,7 +1130,7 @@ export function construire(ctx) {
     }
     // le toit à deux pentes, ses bords de tuiles, le faîte et sa cheminée (煙出し)
     const ang = Math.atan2(hp, l / 2), long = Math.hypot(hp, l / 2) + 1.8;
-    for (const s of [-1, 1]) a.boite(long, 0.24, p + 2.6, s < 0 ? P.tuileShiro : P.tuileShiroClaire, R(s * (l / 4 + 0.45), h + hp / 2 - 0.5, 0, { rz: -s * ang }));
+    for (const s of [-1, 1]) a.boite(long, 0.24, p + 2.6 + (s < 0 ? 0.02 : 0), s < 0 ? P.tuileShiro : P.tuileShiroClaire, R(s * (l / 4 + 0.45), h + hp / 2 - 0.5, 0, { rz: -s * ang }));
     a.boite(0.6, 0.45, p + 2.8, '#5c6066', R(0, h + hp + 0.15, 0));
     a.boite(1.6, 0.9, 2.2, P.platre, R(0, h + hp + 0.7, 0)).pignon(2.2, 0.6, 2.8, P.tuileShiro, R(0, h + hp + 1.15, 0, { ry: PI / 2 }));
     // l'entrée : l'auvent, la grande porte de bois
@@ -1152,7 +1152,7 @@ export function construire(ctx) {
     const l = Math.hypot(x1 - x0, z1 - z0), ry = Math.atan2(x1 - x0, z1 - z0) + PI / 2, cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, y = terrain(cx, cz);
     a.boite(l, 0.45, 0.7, '#a49c8c', { x: cx, y: y + 0.12, z: cz, ry })
       .boite(l, h - 0.4, 0.56, P.platre, { x: cx, y: y + 0.35 + (h - 0.4) / 2, z: cz, ry });
-    for (let k = 0; k < 5; k++) a.boite(l, 0.035, 0.58, '#e6e2d8', { x: cx, y: y + h * 0.48 + k * 0.17, z: cz, ry, trait: false });
+    for (let k = 0; k < 5; k++) a.boite(l - 0.012, 0.035, 0.58, '#e6e2d8', { x: cx, y: y + h * 0.48 + k * 0.17, z: cz, ry, trait: false });
     a.pignon(l + 0.1, 0.42, 1.1, P.tuileShiro, { x: cx, y: y + h - 0.04, z: cz, ry });
     return a;
   };
@@ -1170,7 +1170,7 @@ export function construire(ctx) {
     for (let k = 0; k <= 12; k++) { const t = k / 12 - 0.5; pts.push([t * 4.4, 3.65 + 0.9 * Math.cos(t * PI) - 0.25 * Math.cos(t * PI * 3) * 0.3, 0]); }
     for (let k = 0; k < 12; k++) {
       const [x0, y0] = pts[k], [x1, y1] = pts[k + 1];
-      a.boite(Math.hypot(x1 - x0, y1 - y0) + 0.02, 0.18, 3.0, k % 2 ? P.tuileShiro : P.tuileShiroClaire, R((x0 + x1) / 2, y + (y0 + y1) / 2, -0.6, { rz: Math.atan2(y1 - y0, x1 - x0) }));
+      a.boite(Math.hypot(x1 - x0, y1 - y0) + 0.02, 0.18, 3.0 + (k % 2) * 0.016, k % 2 ? P.tuileShiro : P.tuileShiroClaire, R((x0 + x1) / 2, y + (y0 + y1) / 2, -0.6, { rz: Math.atan2(y1 - y0, x1 - x0) }));
     }
     // (sous l'arc, devant et derrière, sur les poutres : la planche de bois sombre jusqu'au toit, son ornement doré au milieu ;
     // avant le 2026-10-27, on voyait le vide entre les poutres et l'arc)
@@ -1209,7 +1209,7 @@ export function construire(ctx) {
       const dessous = (lz) => YR - (Math.abs(lz - Z) * (YR - YE)) / DEM - EP / cs;
       for (const s of [-1, 1]) {
         a.boite(6.6, EP, l, P.tuileShiro, R(0, (YR + YE) / 2 - cs * (EP / 2), Z + s * (DEM / 2 - sn * (EP / 2)), { rx: s * th, ordre: 'YXZ', teinte: (xx, yy, zz) => (Math.floor((xx + zz) * 3 + 99) % 2 ? P.tuileShiro : P.tuileShiroClaire) }));
-        for (const t of [-1, 1]) a.boite(0.08, 0.22, l, '#3a2e26', R(t * 3.33, (YR + YE) / 2 - cs * 0.08, Z + s * (DEM / 2 - sn * 0.08), { rx: s * th, ordre: 'YXZ' }));
+        for (const t of [-1, 1]) a.boite(0.08, 0.22, l + 0.02, '#3a2e26', R(t * 3.33, (YR + YE) / 2 - cs * 0.08, Z + s * (DEM / 2 - sn * 0.08), { rx: s * th, ordre: 'YXZ' }));
       }
       a.boite(6.9, 0.3, 0.34, '#5c6066', R(0, YR + 0.06, Z));
       for (const t of [-1, 1]) a.boite(0.36, 0.5, 0.4, '#5c6066', R(t * 3.3, YR + 0.14, Z));
@@ -1742,8 +1742,8 @@ export function construire(ctx) {
       for (const d of [-0.18, 0, 0.18]) a.boite(0.025, 2 * Math.sqrt(0.4 ** 2 - d * d), 0.02, '#a88a52', R(-1.3 + d, y + 1.5, -Pp - 0.075, { trait: false }));
       // la fenêtre de roseaux (下地窓), à l'est : des roseaux croisés devant le papier
       a.boite(0.9, 0.7, 0.02, P.shoji, R(L + 0.06, y + 1.45, 0.3, { ry: PI / 2 }));
-      for (let k = 0; k < 7; k++) a.boite(0.02, 0.7, 0.012, '#9a7a48', R(L + 0.075, y + 1.45, 0.3 - 0.39 + k * 0.13, { ry: PI / 2, trait: false }));
-      for (let k = 0; k < 4; k++) a.boite(0.9, 0.015, 0.012, '#9a7a48', R(L + 0.08, y + 1.15 + k * 0.2, 0.3, { ry: PI / 2, trait: false }));
+      for (let k = 0; k < 7; k++) a.boite(0.02, 0.7, 0.012, '#9a7a48', R(L + 0.085, y + 1.45, 0.3 - 0.39 + k * 0.13, { ry: PI / 2, trait: false }));
+      for (let k = 0; k < 4; k++) a.boite(0.9, 0.015, 0.012, '#9a7a48', R(L + 0.09, y + 1.15 + k * 0.2, 0.3, { ry: PI / 2, trait: false }));
     }
     // les shōji (le papier, ses baguettes), entre la poutre et le plancher : à l'ouest, et devant ceux des deux côtés (au
     // milieu, ouverts : glissés derrière ceux de droite)
@@ -1901,9 +1901,9 @@ export function construire(ctx) {
       const l = Math.hypot(EAVE, YR - YE) + 0.12, sn = Math.sin(th), cs = Math.cos(th);
       a.boite(l, EP, 4.4, P.tuileShiro, R(s * (EAVE / 2 - sn * (EP / 2)), (YR + YE) / 2 - cs * (EP / 2), 4.1, { rz: -s * th, teinte: (xx, yy, zz) => (Math.floor(zz * 4 + 99) % 2 ? P.tuileShiro : P.tuileShiroClaire) }));
       // la planche de rive, devant, le long du pan
-      a.boite(l, 0.2, 0.08, B, R(s * (EAVE / 2 - sn * 0.07), (YR + YE) / 2 - cs * 0.07, 6.32, { rz: -s * th }));
+      a.boite(l + 0.02, 0.2, 0.08, B, R(s * (EAVE / 2 - sn * 0.07), (YR + YE) / 2 - cs * 0.07, 6.32, { rz: -s * th }));
     }
-    a.boite(2 * PX + 0.5, 0.24, 0.26, B, R(0, y + 2.95, PZ)).boite(0.3, 0.22, 4.4, '#5c6066', R(0, YR + 0.06, 4.1));
+    a.boite(2 * PX + 0.5, 0.24, 0.26, B, R(0, y + 2.95, PZ)).boite(0.3, 0.22, 4.42, '#5c6066', R(0, YR + 0.06, 4.1));
     {
       // le pignon de l'auvent, de bois sombre, de la poutre de tête jusque sous le toit ; la planche dorée au nom de la salle
       const pos = [], cols = [], n = [0, 0, 1], P0 = [F.x - PX, y + 3.07, F.z + PZ + 0.02], P1 = [F.x + PX, y + 3.07, F.z + PZ + 0.02];
@@ -1985,7 +1985,7 @@ export function construire(ctx) {
     // les lignes ratissées du gravier blanc de la cour (le gravier : aspectSol)
     for (let k = -12; k <= 12; k++) {
       const z = R0.z + k * 0.31, lx = 6.9 * (1 - (Math.abs(k * 0.31) / 3.9) ** 4) ** 0.25;
-      if (lx > 0.5) a.ruban([[R0.x - lx, y + 0.025, z], [R0.x + lx, y + 0.025, z]], 0.05, '#c2bdb0');
+      if (lx > 0.5) a.ruban([[R0.x - lx, y + 0.05, z], [R0.x + lx, y + 0.05, z]], 0.05, '#c2bdb0');
     }
     // le tronc : du sol près de la poupe, tordu, jusqu'à 1,5 m ; les maîtresses branches, couchées vers la proue sous le
     // feuillage, et celle qui monte porter l'étage de la poupe
