@@ -2586,13 +2586,47 @@ function cibleProche() {
     if (d > (c.rayon || 1.6) || Math.abs(c.y - etat.y) > 1.3) continue;
     const devant = d > 0.01 ? (dx * fx + dz * fz) / d : 1;
     if (d > 0.9 && devant < 0.2) continue;
-    const s = d * (1.6 - devant) + (c.kon ? 1.2 : 0); // le compagnon passe après le reste
+    // (le compagnon passe après le reste ; un tampon qu'on n'a pas encore, avant : sinon un personnage à côté prend la bulle)
+    const s = d * (1.6 - devant) + (c.kon ? 1.2 : 0) - (c.tampon && !aLeTampon(L.id, c.tampon) ? 0.9 : 0);
     if (s < score) { score = s; meilleur = c; }
   }
   return meilleur;
 }
 
 let cible = null;
+/**
+ * Le sceau des tampons (2026-11-01, Yakushima ; le propriétaire : « donne une indication de où regarder ») : au-dessus de l'endroit d'une
+ * interaction qui a tampon (son id), tant qu'on n'a pas ce tampon, un petit sceau rouge qui flotte, à l'écran (rien à dessiner en plus) :
+ * vu à travers le décor jusqu'à 24 m ; il s'efface quand la bulle « A » prend sa place.
+ */
+const SCEAUX = new Map();
+const PORTEE_SCEAU = 24;
+function majSceaux() {
+  const L = M.lieu;
+  for (const i of L.interactions) {
+    if (!i.tampon) continue;
+    let el = SCEAUX.get(i);
+    const dx = i.x - etat.x, dz = i.z - etat.z, y = i.y ?? (i.yLu ??= L.monde.hauteur(i.x, i.z));
+    const voulu = etat.mode === 'jeu' && !PHOTO && cible?.id !== i.id && Math.hypot(dx, dz) < PORTEE_SCEAU && Math.abs(y - etat.y) < 12 && !aLeTampon(L.id, i.tampon);
+    let v = null;
+    if (voulu) { v = new THREE.Vector3(i.x, y + (i.haut || 1.6) + 0.5, i.z).project(camera); }
+    const voit = voulu && v.z < 1 && Math.abs(v.x) < 1.02 && Math.abs(v.y) < 1.02;
+    if (!el) {
+      if (!voit) continue;
+      el = document.createElement('div');
+      el.className = 'sceau-tampon';
+      el.innerHTML = '<span>印</span>';
+      document.body.append(el);
+      SCEAUX.set(i, el);
+    }
+    if (el.hidden === voit) el.hidden = !voit;
+    if (voit) {
+      // (seulement s'il a bougé d'au moins un demi-pixel)
+      const sx = ((v.x + 1) / 2) * innerWidth, sy = ((1 - v.y) / 2) * innerHeight;
+      if (Math.abs(sx - (el.sx ?? -1e4)) + Math.abs(sy - (el.sy ?? -1e4)) > 0.5) { el.sx = sx; el.sy = sy; el.style.transform = `translate(${sx - 20}px, ${sy - 52}px)`; }
+    }
+  }
+}
 async function agir() {
   const c = cible;
   if (!c || etat.mode !== 'jeu') return;
@@ -2675,6 +2709,8 @@ const jeu = {
   aTampon: (id) => aLeTampon(M.lieu.id, id),
   tampon, video, attendre,
   saluer: () => M.joueur.saluer(),
+  /** Le voyageur et son compagnon ne se dessinent plus (oui), ou de nouveau : le temps d'un regard où la caméra serait en eux. */
+  cacherVoyageur(oui) { M.joueur.objet.visible = !oui; M.kon.objet.visible = !oui; },
   /** Le compagnon choisi : 'kon', 'pon' ou 'chapu' (ce qu'il dit dans les lieux en dépend ; dire(…, 'compagnon')). */
   get compagnon() { return espece || 'kon'; },
   /**
@@ -4068,9 +4104,12 @@ function dessiner(dt, temps) {
     const v = new THREE.Vector3(cible.x, cible.y + cible.haut, cible.z).project(camera);
     bulle.hidden = v.z > 1;
     bulle.style.transform = `translate(${((v.x + 1) / 2) * innerWidth}px, ${((1 - v.y) / 2) * innerHeight}px) translate(-50%, -100%)`;
-    const verbe = t(cible.verbe);
+    // (quoi : ce que dit la bulle à la place du verbe ; un tampon qu'on n'a pas encore : le sceau rouge dans la bulle)
+    const verbe = cible.quoi?.[langue] ?? t(cible.verbe);
     if (bulle.dataset.verbe !== verbe) { bulle.querySelector('span').textContent = verbe; bulle.dataset.verbe = verbe; }
+    bulle.classList.toggle('pour-tampon', !!cible.tampon && !aLeTampon(M.lieu.id, cible.tampon));
   } else bulle.hidden = true;
+  majSceaux();
   $('.bouton-a').classList.toggle('pret', !!cible);
   document.body.classList.toggle('occupe', etat.mode !== 'jeu');
 

@@ -76,7 +76,7 @@ function auPoint(pts, s) {
 // les escaliers (des marches posées sur le sol, une surface pour y marcher) : le sentier de pierre de l'entrée au pont
 // suspendu, le long de la cascade ; les marches de pierre du Taiko-iwa ; les escaliers de bois du sentier d'Ōkabu (大株歩道), de la
 // voie du train à la souche de Wilson, puis jusqu'à la plateforme du Jōmon Sugi
-const ESC_PIERRE = { pts: rampe([[-44, 34.6], [-43.4, 38.6], [-42.4, 43.4], [-41.3, 48.2], [-40.2, 53.0], [-39.2, 57.6], [-38.6, 60.8], [-38.4, 62.5]], 11.0, 19.5), demi: 1.05, giron: 0.8, sol: 'pierre', bois: false };
+const ESC_PIERRE = { pts: rampe([[-44, 34.6], [-43.4, 38.6], [-42.4, 43.4], [-41.3, 48.2], [-40.2, 53.0], [-39.2, 57.6], [-38.7, 60.3]], 11.0, 19.5), demi: 1.05, giron: 0.8, sol: 'pierre', bois: false };
 const ESC_TAIKO = { pts: rampe([[22.8, 106.0], [23.9, 109.2], [25.0, 112.2], [26.2, 114.6]], 27.4, 32.9), demi: 0.95, giron: 0.38, sol: 'pierre', bois: false };
 const ESC_OKABU = { pts: rampe([[64.6, 72.0], [67.2, 70.6], [70.2, 69.2], [73.2, 68.0], [75.4, 67.4]], 24.88, 28.0), demi: 0.95, giron: 0.74, sol: 'bois', bois: true };
 const ESC_JOMON = { pts: rampe([[76.4, 70.2], [77.6, 73.8], [79.8, 77.0], [82.8, 79.6], [86.2, 81.4], [87.6, 82.2]], 28.0, 33.4), demi: 0.95, giron: 0.74, sol: 'bois', bois: true };
@@ -87,14 +87,19 @@ const marche = (E, k) => { const [x, z, y, tx, tz] = auPoint(E.pts, ((k + 0.5) *
 
 // le palier du Yayoi-sugi, à côté du sentier de pierre (à l'ouest), d'où on le regarde
 const YAYOI = { x: -48.2, z: 47.6, r: 1.32 };
-const PALIER_YAYOI = (() => { const k = Math.round(14.2 / ESC_PIERRE.giron), m = marche(ESC_PIERRE, k); return { x0: m.x - 3.3, x1: m.x - 0.85, z0: m.z - 1.15, z1: m.z + 1.15, y: m.y, k }; })();
+const PALIER_YAYOI = (() => { const k = Math.round(14.2 / ESC_PIERRE.giron), m = marche(ESC_PIERRE, k); return { x0: m.x - 3.3, x1: m.x - 1.02, z0: m.z - 1.15, z1: m.z + 1.15, y: m.y, k }; })();
 // le pont suspendu Satsuki (さつき吊橋), au-dessus de la gorge du Shiratani : son tablier, qui s'affaisse de 30 cm au milieu
-const PONT = { x0: -38.4, x1: -25.6, z: 62.5, demi: 0.62, y: 19.5, creux: 0.3 };
+const PONT = { x0: -36.6, x1: -25.6, z: 62.5, demi: 0.62, y: 19.5, creux: 0.3 };
+// le palier de pierre entre le haut du sentier et le pont (2026-11-01, le propriétaire : « il faut que tu donnes un espace entre la
+// fin de l'escalier et le pont » : l'escalier finissait contre le portique, à angle droit)
+const PALIER_PONT = { x0: -40.4, x1: PONT.x0, z0: 60.0, z1: 65.0, y: 19.5 };
 const yPont = (x) => PONT.y - PONT.creux * Math.sin(PI * Math.min(1, Math.max(0, (x - PONT.x0) / (PONT.x1 - PONT.x0))));
 // les sentiers de terre (on y marche sur le sol, taillé à leur hauteur) : [x, z, y]
 const SENTIER2 = [[-25.6, 62.5, 19.5], [-22, 64.6, 19.75], [-17.4, 68.6, 20.5], [-12.6, 72.6, 21.4], [-7.6, 76.6, 22.3], [-3.0, 80.2, 23.0], [1.0, 82.8, 23.45], [3.6, 84.4, 23.6]];
 // la forêt de mousse (苔むす森) : une clairière ovale, des rochers moussus et des racines tout autour (et quelques-uns dedans)
 const KOKE = { x: 8, z: 87.5, rx: 9.2, rz: 6.2, ry: 0, y: 23.6 };
+// l'arbre du singe, à l'est de la clairière : la branche où il s'assoit, le cerf dessous, d'où l'on regarde (le tampon)
+const ARBRE_SINGE = { x: 20.7, z: 84.4 }, BRANCHE = { x: 18.5, z: 87.0, y: KOKE.y + 2.2 }, CERF = { x: 18.9, z: 88.5 }, OBS = { x: 15.1, z: 87.4 };
 // le petit sentier caché (le secret) : de la forêt de mousse vers l'ouest, par-dessus le ruisseau, jusqu'au vieux cèdre creux
 const SENTIER_SECRET = [[0.4, 89.6, 23.6], [-3.5, 91.2, 23.42], [-7.5, 93.0, 23.22], [-11.0, 94.6, 23.05], [-12.8, 95.4, 22.98]];
 const CREUX = { x: -15.7, z: 96.4, r: 1.25 };
@@ -102,9 +107,17 @@ const CREUX = { x: -15.7, z: 96.4, r: 1.25 };
 const SENTIER3 = [[15.2, 90.2, 23.6], [18.2, 94.0, 24.4], [20.0, 97.6, 25.5], [21.0, 101.0, 26.7], [21.4, 103.2, 27.2]];
 const HUTTE = { x: 26.0, z: 95.3 };
 const DEVANT_HUTTE = { x0: 19.8, x1: 23.8, z0: 92.8, z1: 97.8, y: 24.95 };
+// (le sol plat sous le refuge et devant lui : le refuge et son banc étaient posés d'après le sol sous son milieu, 1 m plus haut que
+// devant lui ; 2026-11-01, « le banc… il flotte »)
+const SOL_HUTTE = { x0: 19.8, x1: 28.6, z0: 92.2, z1: 98.4, y: 24.95 };
+// (entre le sentier, le devant du refuge et le col, le sol s'arrêtait au ras de l'herbe : 2026-11-01, « bloqué par une sorte de mur
+// invisible, là où il y a de l'herbe… on doit faire le tour » ; on y marche, jusqu'à l'ourlet de fougères)
+const AUTOUR_HUTTE = [{ x0: 16.4, x1: 23.8, z0: 89.3, z1: 92.8 }, { x0: 20.0, x1: 23.8, z0: 97.8, z1: 101.6 }];
 // le col de Tsuji (辻峠) : le carrefour des sentiers ; le haut du rocher Taiko-iwa (太鼓岩)
 const TSUJI = { x0: 18.6, x1: 25.6, z0: 101.6, z1: 106.2, y: 27.4 };
 const TAIKO = { x: 27.7, z: 117.2, rx: 3.9, rz: 3.1, ry: 0.4, y: 33.0 };
+// le bloc d'orientation en haut du rocher, au bord sud, face aux sommets
+const VUE_TAIKO = { x: 28.3, z: 119.2 };
 // du col à la voie du train ; la voie (le sol du ballast : les planches où l'on marche, 13 cm au-dessus)
 const DESCENTE = [[24.8, 103.2, 27.2], [28.6, 102.2, 26.6], [32.4, 100.6, 25.95], [36.0, 98.6, 25.45]];
 const VOIE = [[36.0, 98.6, 25.45], [41.0, 94.5, 25.33], [45.5, 90.5, 25.22], [50.0, 86.5, 25.1], [55.0, 81.5, 24.98], [60.0, 76.5, 24.86], [64.6, 72.0, 24.75]];
@@ -136,24 +149,98 @@ const SENTIERS = [
   { pts: ROUTE, demi: 3.0, talus: 4.5 },
   { pts: SENTIER2, demi: 1.25, talus: 3.2 },
   // (là où il passe le ruisseau, sur une planche : le sol reste celui du lit)
-  { pts: SENTIER_SECRET, demi: 0.85, talus: 2.4, sauf: (x, z) => surLaLigne(RUISSEAU, x, z).d < 1.25 },
+  { pts: SENTIER_SECRET, demi: 0.85, talus: 2.4, sauf: (x, z) => surRuisseau(x, z).d < 0.95 },
   { pts: SENTIER3, demi: 1.2, talus: 3.0 },
   { pts: DESCENTE, demi: 1.15, talus: 3.0 },
   // (sur son pont, au-dessus du ravin : le sol reste celui du ravin)
   { pts: VOIE, demi: 1.25, talus: 3.2, sauf: (x, z) => { const l = surLaLigne(VOIE, x, z); return l.s > PONT_VOIE.s0 - 0.6 && l.s < PONT_VOIE.s1 + 0.6; } },
 ];
-// la rivière de Shiratani (白谷川) et sa suite jusqu'à la mer : [x, z, le niveau de l'eau] ; la cascade Hiryū-otoshi glisse
-// sur une dalle de granite, de son haut (14,7 m) au bassin sous l'entrée (7,4 m)
+/**
+ * Une ligne douce (Catmull-Rom) par les points [x, z, y], un point tous les pas mètres (dans l'espace : une chute a ses points) ; les
+ * points donnés sont sur elle. (Les rubans d'eau suivaient des lignes brisées : ils se déchiraient à chaque coude.)
+ */
+function ligneDouce(pts, pas = 0.5) {
+  const sortie = [];
+  for (let i = 0; i + 1 < pts.length; i++) {
+    const a = pts[Math.max(0, i - 1)], b = pts[i], c = pts[i + 1], d = pts[Math.min(pts.length - 1, i + 2)];
+    const n = Math.max(1, Math.round(Math.hypot(c[0] - b[0], c[1] - b[1], c[2] - b[2]) / pas));
+    for (let k = 0; k < n; k++) {
+      const u = k / n, u2 = u * u, u3 = u2 * u, q = (j) => 0.5 * (2 * b[j] + (c[j] - a[j]) * u + (2 * a[j] - 5 * b[j] + 4 * c[j] - d[j]) * u2 + (3 * b[j] - a[j] - 3 * c[j] + d[j]) * u3);
+      // (le niveau, entre deux points : sans remontée)
+      sortie.push([q(0), q(1), Math.min(b[2], Math.max(c[2], b[2] + (c[2] - b[2]) * u))]);
+    }
+  }
+  sortie.push([...pts[pts.length - 1]]);
+  return sortie;
+}
+/**
+ * Le niveau d'une ligne dense en marches, comme un vrai ruisseau de montagne : à plat sur 1,6 à 3,4 m (une mare), puis une petite chute
+ * (70 cm au plus) d'un demi-mètre de long ; une vraie chute (plus raide que 1 pour 1) reste telle quelle.
+ */
+function enMarches(L, graine = 0) {
+  const S = [0], N = L.length;
+  for (let i = 1; i < N; i++) S.push(S[i - 1] + Math.hypot(L[i][0] - L[i - 1][0], L[i][1] - L[i - 1][1]));
+  const Y = L.map((p) => p[2]);
+  let i0 = 0;
+  while (i0 < N - 1) {
+    if (L[i0][2] - L[i0 + 1][2] > S[i0 + 1] - S[i0]) { i0++; continue; }
+    const j = Math.min(N - 1, i0 + 8), g = (L[i0][2] - L[j][2]) / Math.max(0.1, S[j] - S[i0]), p = Math.min(1.6 + 1.8 * hasard(i0 * 0.37, graine), 0.7 / Math.max(g, 0.03));
+    let i1 = i0 + 1;
+    while (i1 < N - 1 && S[i1] - S[i0] < p && L[i1][2] - L[i1 + 1][2] <= S[i1 + 1] - S[i1]) i1++;
+    const ym = L[Math.floor((i0 + i1) / 2)][2];
+    for (let k = i0; k < i1; k++) Y[k] = ym;
+    i0 = i1;
+  }
+  return L.map((p, i) => [p[0], p[1], Y[i]]);
+}
+// la rivière de Shiratani (白谷川) et sa suite jusqu'à la mer : [x, z, le niveau de l'eau] ; elle sort de sous un rocher (SOURCES) ; la
+// cascade Hiryū-otoshi glisse sur une dalle de granite, de son haut (14,7 m) au bassin sous l'entrée (7,4 m)
 const RIVIERE = [[-29, 100, 25.0], [-30.5, 86, 20.6], [-31.5, 74, 16.8], [-32, 62.5, 15.0], [-32.3, 56, 14.8], [-32.6, 53.5, 14.7], [-33.2, 46, 11.2],
   [-33.8, 38.5, 7.4], [-31.8, 31, 6.3], [-27.5, 24, 5.4], [-21, 17, 4.6], [-12, 10, 3.4], [-2, 0, 2.4], [6, -14, 1.5], [14, -30, 0.8], [18, -46, 0.2], [19, -58, 0]];
 const CASCADE = { haut: 5, bas: 7 }; // (les points de RIVIERE du haut et du bas de la dalle)
 /** La longueur le long de la rivière (depuis sa source) du haut et du bas de la dalle de la cascade. */
 const S_CASCADE = [CASCADE.haut, CASCADE.bas].map((i) => longueur(RIVIERE.slice(0, i + 1)));
-// le ruisseau de la forêt de mousse, qui descend vers la rivière (le sentier caché le passe sur une planche)
-const RUISSEAU = [[19.5, 110, 27.2], [16, 103, 25.4], [12.5, 97.5, 24.25], [8, 96.0, 23.75], [2, 94.6, 23.3], [-3.2, 92.2, 22.95], [-9, 88, 22.4], [-14, 82, 21.5],
-  [-20, 76, 20.1], [-25.5, 73.5, 18.6], [-30.8, 72.6, 16.9]];
-// le ravin que la voie du train passe sur son pont
-const RAVIN = [[56, 102, 28.6], [51, 95.5, 24.4], [45.5, 90.5, 21.3], [41.5, 87.0, 19.8], [37, 82.5, 18.3], [32, 77, 17.0]];
+// (2026-11-01, le propriétaire : « l'eau, elle flotte au-dessus du sol et elle démarre au milieu de rien… fais vraiment un vrai cours
+// d'eau, que ça se jette quelque part et que ça démarre à un endroit ». Chaque eau part maintenant d'une petite chute au pied d'un
+// rocher (SOURCES) et rejoint une autre eau, jusqu'à la mer. Le sol passe au niveau de l'eau à son bord (rive) : avant, le lit était
+// plus étroit que le ruban, et le bord du ruban restait en l'air, 38 cm au-dessus du sol.)
+// le ruisseau de la forêt de mousse : il tombe d'un rocher au sud du col, passe au sud de la clairière, sous la planche du sentier
+// caché (-4.17, 91.5), et se jette dans la rivière
+const RUISSEAU = enMarches(ligneDouce([[19.25, 109.75, 28.3], [19.0, 109.3, 27.9], [18.85, 109.05, 26.9], [18.3, 108.3, 26.85], [17.5, 107.4, 26.8], [16.2, 104.0, 26.1], [14.0, 100.6, 25.25], [10.4, 98.4, 24.5],
+  [6.0, 97.7, 24.0], [1.6, 95.4, 23.45], [-4.17, 91.5, 22.95], [-9.2, 88.2, 22.4], [-14.6, 83.2, 21.5], [-20.6, 77.4, 20.1], [-25.8, 73.9, 18.6], [-31.4, 73.6, 16.85]]), 1);
+// le ravin que la voie du train passe sur son pont ; il part d'un rocher au-dessus de la voie, et rejoint la rivière en bas
+const RAVIN = enMarches(ligneDouce([[56.5, 102.6, 27.9], [56.2, 102.2, 27.5], [56.05, 101.95, 26.45], [55.2, 101.0, 26.4], [51, 95.5, 24.4], [45.5, 90.5, 21.3], [41.5, 87.0, 19.8], [37, 82.5, 18.3], [32, 77, 17.0],
+  [30, 70, 15.6], [28, 60, 13.6], [24, 48, 11.4], [20, 36, 9.2], [14, 24, 7.2], [8, 12, 5.2], [3.4, 2, 3.2], [1.4, -6.0, 1.98]]), 2);
+// l'eau de la souche de Wilson : elle passe sous le bord nord de son palier, descend la pente et rejoint le ravin
+const EAU_WILSON = enMarches(ligneDouce([[77.7, 62.95, 27.9], [77.65, 62.2, 27.0], [77.45, 61.2, 26.1], [76.5, 58.4, 24.7], [74, 54, 22.9], [68, 50, 19.6], [60, 47, 16.9], [50, 44, 14.6], [40, 40, 12.6], [30, 38, 10.6], [20.4, 36.6, 9.25]]), 3);
+/**
+ * surLaLigne pour une longue ligne dense : seulement les segments à moins de 8 m (une grille de 8 m), d = Infinity au-delà. (Tous ses
+ * segments à chaque question : le sol, l'aspect du sol et leur grille prenaient 3,5 fois plus de temps ; 6 s de chargement sur un téléphone.)
+ */
+function ligneIndexee(pts) {
+  const C = 8, P = 8, cum = [0], cases = new Map(), cle = (i, j) => i * 4099 + j;
+  for (let k = 0; k + 1 < pts.length; k++) {
+    const [x0, z0] = pts[k], [x1, z1] = pts[k + 1];
+    cum.push(cum[k] + Math.hypot(x1 - x0, z1 - z0));
+    for (let i = Math.floor((Math.min(x0, x1) - P) / C); i <= Math.floor((Math.max(x0, x1) + P) / C); i++) for (let j = Math.floor((Math.min(z0, z1) - P) / C); j <= Math.floor((Math.max(z0, z1) + P) / C); j++) {
+      const c = cle(i, j);
+      if (!cases.has(c)) cases.set(c, []);
+      cases.get(c).push(k);
+    }
+  }
+  return (x, z) => {
+    let d = Infinity, h = 0, s = 0;
+    const liste = cases.get(cle(Math.floor(x / C), Math.floor(z / C)));
+    if (liste) for (const k of liste) {
+      const [x0, z0, h0] = pts[k], [x1, z1, h1] = pts[k + 1], dx = x1 - x0, dz = z1 - z0, l2 = dx * dx + dz * dz || 1, f = Math.min(1, Math.max(0, ((x - x0) * dx + (z - z0) * dz) / l2)), ex = x - x0 - f * dx, ez = z - z0 - f * dz, e = ex * ex + ez * ez;
+      if (e < d) { d = e; h = h0 + (h1 - h0) * f; s = cum[k] + f * Math.sqrt(l2); }
+    }
+    return { d: Math.sqrt(d), h, s };
+  };
+}
+const surRuisseau = ligneIndexee(RUISSEAU), surRavin = ligneIndexee(RAVIN), surEauWilson = ligneIndexee(EAU_WILSON);
+/** Les sources : d'où tombe l'eau (x, z, y le haut de la chute), de quel côté elle part. */
+const SOURCES = [{ x: 19.25, z: 109.75, y: 28.3, vers: [18.3, 108.3] }, { x: 56.5, z: 102.6, y: 27.9, vers: [55.2, 101.0] }];
 
 // ---------------------------------------------------------------- La géométrie du plan
 const dansRect = (r, x, z, m = 0) => x >= r.x0 - m && x <= r.x1 + m && z >= r.z0 - m && z <= r.z1 + m;
@@ -252,9 +339,17 @@ function versChemin(x, z) {
 const lit = (pts, x, z) => surLaLigne(pts, x, z);
 // (une boîte autour de chaque eau : loin d'elles, on ne les regarde pas)
 const boite = (pts, m) => { const xs = pts.map((p) => p[0]), zs = pts.map((p) => p[1]); return { x0: Math.min(...xs) - m, x1: Math.max(...xs) + m, z0: Math.min(...zs) - m, z1: Math.max(...zs) + m }; };
-const B_RIVIERE = boite(RIVIERE, 12), B_RUISSEAU = boite(RUISSEAU, 6), B_RAVIN = boite(RAVIN, 7);
+const B_RIVIERE = boite(RIVIERE, 12), B_RUISSEAU = boite(RUISSEAU, 7), B_RAVIN = boite(RAVIN, 7), B_WILSON = boite(EAU_WILSON, 7);
 /** La demi-largeur de la rivière (son eau) à la longueur s depuis sa source : étroite dans la gorge, plus large en bas. */
-const largeRiviere = (s) => 1.6 + 1.2 * lisse(120, 200, s);
+const largeRiviere = (s) => 0.6 + 1.0 * lisse(0, 42, s) + 1.2 * lisse(120, 200, s);
+/** Le lit d'un ruisseau : l (surLaLigne : d, la distance à sa ligne ; h, le niveau de l'eau) ; w, la demi-largeur de l'eau. Le sol passe au
+ *  niveau de l'eau à son bord ; dedans, le fond, 28 cm plus bas au milieu ; dehors, la rive, de plus en plus raide. */
+const rive = (l, w) => (l.d < w ? l.h - 0.28 * (1 - (l.d / w) ** 2) : l.h + (l.d - w) * 0.85 * (1 + 0.35 * Math.max(0, l.d - w - 0.8)));
+/** Le sol h creusé par le lit ; là où il passe plus bas que la rive, relevé jusqu'à elle (sans quoi l'eau coulerait en l'air). */
+const creuser = (h, l, w) => { const b = rive(l, w); return b < h ? b : h + (b - h) * (1 - lisse(w + 0.6, w + 2.6, l.d)); };
+/** La demi-largeur de l'eau du ruisseau, du ravin, à la longueur s de leur ligne : la vasque au pied de la chute, puis un peu de bruit. */
+const largeRuisseau = (s) => 0.5 + 0.09 * Math.sin(s * 0.7) + 0.05 * Math.sin(s * 1.9 + 1) + 0.55 * (1 - lisse(2.2, 4.2, s)) * lisse(0.6, 1.4, s);
+const largeRavin = (s) => (s < 60 ? 0.42 : 0.7) + 0.06 * Math.sin(s * 0.8) + 0.45 * (1 - lisse(2.2, 4.0, s)) * lisse(0.6, 1.4, s);
 
 function terrain(x, z) {
   const d = z - zBord(x);
@@ -279,14 +374,9 @@ function terrain(x, z) {
     const pente = dalle ? 0.32 : 0.9 + 2.2 * gorge, bord = l.h - (dalle ? 0.12 : 0.6) + Math.max(0, l.d - w * 0.55) * pente * (1 + (dalle ? 0.06 : 0.25) * Math.max(0, l.d - w - (dalle ? 4.5 : 2)));
     if (bord < h) h = bord;
   }
-  if (dansRect(B_RUISSEAU, x, z)) {
-    const l = lit(RUISSEAU, x, z), bord = l.h - 0.38 + Math.max(0, l.d - 0.45) * 0.9 * (1 + 0.4 * Math.max(0, l.d - 1.2));
-    if (bord < h) h = bord;
-  }
-  if (dansRect(B_RAVIN, x, z)) {
-    const l = lit(RAVIN, x, z), bord = l.h - 0.3 + Math.max(0, l.d - 0.5) * 1.55 * (1 + 0.15 * Math.max(0, l.d - 2));
-    if (bord < h) h = bord;
-  }
+  if (dansRect(B_RUISSEAU, x, z)) { const l = surRuisseau(x, z); if (l.d < 7) h = creuser(h, l, largeRuisseau(l.s)); }
+  if (dansRect(B_RAVIN, x, z)) { const l = surRavin(x, z); if (l.d < 7) h = creuser(h, l, largeRavin(l.s)); }
+  if (dansRect(B_WILSON, x, z)) { const l = surEauWilson(x, z); if (l.d < 7) h = creuser(h, l, 0.26); }
 
   // ---- les retouches : ce qui est bâti, plat
   // le quai, la rue et ses maisons : plats (la rue monte, chaque maison sur son palier) ; l'enceinte du sanctuaire
@@ -310,7 +400,7 @@ function terrain(x, z) {
   }
   // les places : l'entrée de Shiratani, le palier du Yayoi-sugi, la forêt de mousse (un peu bosselée), le devant du refuge, le col,
   // l'abri de Kosugidani, le palier de la souche de Wilson
-  for (const [r, t] of [[ENTREE, 3.2], [DEVANT_HUTTE, 2.2], [TSUJI, 2.4], [PALIER_WILSON, 2.0]]) {
+  for (const [r, t] of [[ENTREE, 3.2], [SOL_HUTTE, 2.2], [TSUJI, 2.4], [PALIER_WILSON, 2.0], [PALIER_PONT, 2.4]]) {
     const dr = versRect(r, x, z);
     if (dr < t) h = r.y - 0.03 + (h - r.y + 0.03) * lisse(0.2, t, dr);
   }
@@ -350,7 +440,9 @@ const solDetaille = (x0, z0, x1, z1) => {
   if (ESCALIERS.some((E) => surEsc(E, cx, cz, 1.2))) return true;
   if (cz > 34 && cz < 80) { const l = surLaLigne(RIVIERE, cx, cz); if (l.d < 6.5) return true; }
   if (cx > 34 && cx < 56 && cz > 80 && cz < 102) { const l = surLaLigne(VOIE, cx, cz); if (l.d < 4.5 && l.s > PONT_VOIE.s0 - 3.5 && l.s < PONT_VOIE.s1 + 3.5) return true; }
-  if (cx > -16 && cx < 3 && cz > 86 && cz < 99 && surLaLigne(SENTIER_SECRET, cx, cz).d < 3 && surLaLigne(RUISSEAU, cx, cz).d < 4) return true;
+  if (dansRect(B_RUISSEAU, cx, cz) && surRuisseau(cx, cz).d < 3.2) return true;
+  if (cz > 74 && dansRect(B_RAVIN, cx, cz) && surRavin(cx, cz).d < 3) return true;
+  if (cz > 54 && dansRect(B_WILSON, cx, cz) && surEauWilson(cx, cz).d < 2) return true;
   return false;
 };
 
@@ -363,7 +455,8 @@ const solDetaille = (x0, z0, x1, z1) => {
  */
 function dansLeCadre(x, z) {
   if (dansRect(QUAI, x, z) || dansRect(RUE, x, z) || dansRect(SALLE, x, z) || dansRect(JINJA, x, z) || dansRect(ENTREE, x, z)) return true;
-  if (dansRect(PALIER_YAYOI, x, z) || dansRect(DEVANT_HUTTE, x, z) || dansRect(TSUJI, x, z) || dansRect(PALIER_WILSON, x, z) || dansRect(DECK, x, z)) return true;
+  if (dansRect(PALIER_YAYOI, x, z) || dansRect(DEVANT_HUTTE, x, z) || dansRect(TSUJI, x, z) || dansRect(PALIER_WILSON, x, z) || dansRect(DECK, x, z) || dansRect(PALIER_PONT, x, z)) return true;
+  if (AUTOUR_HUTTE.some((r) => dansRect(r, x, z))) return true;
   if (aLaPlace(KOKE, x, z) < 0 || aLaPlace(TAIKO, x, z) < 0 || aLaPlace(RECOIN, x, z) < 0) return true;
   if (surPont(x, z)) return true;
   if (Math.hypot(x - WILSON.x, z - WILSON.z) < WILSON.rIn || dansRect(PORTE_WILSON, x, z)) return true;
@@ -490,19 +583,23 @@ export function construire(ctx) {
   /**
    * La rambarde de rondins (丸太柵), celle des sentiers de la forêt : des poteaux ronds tous les 1,8 m au plus, une lisse ronde en
    * haut (90 cm) et une au milieu, le bois gris et un peu moussu. pts [[x, z, y?]…] (y : le sol au point, sinon le sol dessiné).
-   * Le mur qui arrête le voyageur suit sa ligne, 30 cm de chaque côté ; finir : un poteau au dernier point.
+   * Le mur qui arrête le voyageur suit sa ligne, 30 cm de chaque côté ; finir, partir : un poteau au dernier point, au premier (deux
+   * barrières qui se rejoignent ont un seul poteau).
    */
   const RONDIN = '#8a7a66', RONDIN_F = '#6f604f';
-  const rambarde = (pts, { haut = 0.9, mur = true, finir = true, yAt = null } = {}) => {
+  const rambarde = (pts, { haut = 0.9, mur = true, finir = true, partir = true, yAt = null } = {}) => {
     const Y = (p) => (p[2] ?? (yAt ? yAt(p[0], p[1]) : solDessine(p[0], p[1])));
     for (let i = 0; i + 1 < pts.length; i++) {
       const [xa, za] = pts[i], [xb, zb] = pts[i + 1], ya = Y(pts[i]), yb = Y(pts[i + 1]), l = Math.hypot(xb - xa, zb - za);
       if (l < 0.05) continue;
       const n = Math.max(1, Math.ceil(l / 1.8)), a = morceau((xa + xb) / 2, (za + zb) / 2, 40);
       for (let k = 0; k <= n; k++) {
-        if (k === n && (i + 2 < pts.length || !finir)) continue;
+        if ((k === n && (i + 2 < pts.length || !finir)) || (k === 0 && i === 0 && !partir)) continue;
         const f = k / n, x = xa + (xb - xa) * f, z = za + (zb - za) * f, y = ya + (yb - ya) * f, pied = Math.min(y, solDessine(x, z)) - 0.25;
-        a.cylindre(0.065, 0.075, y + haut + 0.05 - pied, 7, RONDIN, { x, y: (y + haut + 0.05 + pied) / 2, z, teinte: (wx, wy) => (wy < y + 0.25 ? MOUSSE_F : RONDIN) });
+        // (la mousse au pied, un anneau à part : peints selon leur centre, les longs triangles d'un poteau faisaient des rayures vertes
+        // jusqu'en haut ; 2026-11-01)
+        a.cylindre(0.065, 0.075, y + haut + 0.05 - pied, 7, RONDIN, { x, y: (y + haut + 0.05 + pied) / 2, z });
+        a.cylindre(0.083, 0.098, 0.3, 7, MOUSSE_F, { x, y: pied + 0.25 + 0.09, z });
       }
       a.baton([xa, ya + haut - 0.05, za], [xb, yb + haut - 0.05, zb], 0.05, RONDIN, 7).baton([xa, ya + 0.45, za], [xb, yb + 0.45, zb], 0.042, RONDIN_F, 6);
       if (mur) monde.mur(xa, za, xb, zb, 0.3);
@@ -823,8 +920,13 @@ export function construire(ctx) {
     // la rue : ses caniveaux couverts de grilles, deux poteaux électriques et leurs fils ; l'arrêt du bus au bout de la rue
     {
       const a = atelier();
-      for (const x of [RUE.x0 + 0.25, RUE.x1 - 0.25]) {
-        for (let z = RUE.z0 + 0.5; z < RUE.z1 - 0.3; z += 1.0) a.boite(0.36, 0.02, 0.96, '#8a8c8e', { x, y: yRue(z) + 0.05, z, trait: false, rx: 0.058 });
+      // (2026-11-01, « des dalles qui flottent » : posées sur la pente de la rue, alors que devant chaque maison le sol suit son palier, et
+      // penchées à l'envers ; chacune suit maintenant le sol dessiné sous elle)
+      for (const x of [RUE.x0 + 0.5, RUE.x1 - 0.5]) {
+        for (let z = RUE.z0 + 0.5; z < RUE.z1 - 0.3; z += 1.0) {
+          const ya = solDessine(x, z - 0.48), yb = solDessine(x, z + 0.48);
+          a.boite(0.36, 0.03, 0.96, '#8a8c8e', { x, y: (ya + yb) / 2 + 0.012, z, trait: false, rx: -Math.atan2(yb - ya, 0.96) });
+        }
       }
       for (const [x, z] of [[RUE.x1 - 0.45, -38.6], [RUE.x0 + 0.45, -27.4]]) {
         const y = yRue(z);
@@ -1094,17 +1196,48 @@ export function construire(ctx) {
         // (un bloc sur deux 1,2 cm plus épais : bout à bout, ils ne sont pas dans le même plan)
         a.piece(new THREE.BoxGeometry(l + 0.04, 1, 0.5 + (i % 2) * 0.012, 3, 3, 1), '#8f8a7e', {
           x: (q.x + u.x) / 2 + q.nx * 0.32, y: (q.y + u.y) / 2 + 0.35, z: (q.z + u.z) / 2 + q.nz * 0.32, ry: ang + PI / 2, sy: 1.6, nuance: 0.08,
-          teinte: (wx, wy) => (wy > (q.y + u.y) / 2 + 0.95 ? MOUSSE : GRANITES[Math.floor(hasard(Math.floor(wx * 2), Math.floor(wy * 3)) * GRANITES.length)]),
+          teinte: (wx, wy) => GRANITES[Math.floor(hasard(Math.floor(wx * 2), Math.floor(wy * 3)) * GRANITES.length)],
         });
+        // (la mousse, sur le dessus : un boudin à part ; peinte par triangle, elle faisait de grandes dents vertes sur le mur)
+        a.boite(l + 0.1, 0.14, 0.56 + (i % 2) * 0.012, i % 3 ? MOUSSE : MOUSSE_F, { x: (q.x + u.x) / 2 + q.nx * 0.32, y: (q.y + u.y) / 2 + 1.17, z: (q.z + u.z) / 2 + q.nz * 0.32, ry: ang + PI / 2, nuance: 0.08 });
         monde.mur(q.x + q.nx * 0.32, q.z + q.nz * 0.32, u.x + u.nx * 0.32, u.z + u.nz * 0.32, 0.55);
       }
     }
-    // les panneaux jaunes (警戒標識) : un singe, un cerf, en silhouette sur un losange
+    // les panneaux jaunes (警戒標識) : un singe, un cerf, en silhouette sur un losange, tournés vers qui monte
+    // (2026-11-01, « traversé par le poteau » : le losange, 3 cm d'épaisseur, était au milieu d'un poteau de 7 cm ; il est devant lui,
+    // tenu par deux colliers)
+    const SILHOUETTES = {
+      // (le singe assis, de profil : la tête, le dos rond, le bras, la queue courte)
+      singe: (c, W, H) => {
+        c.fillStyle = '#1e1e22'; c.scale(W / 100, H / 100);
+        c.beginPath(); c.ellipse(50, 62, 19, 23, 0.15, 0, 2 * PI); c.fill();
+        c.beginPath(); c.arc(62, 30, 13, 0, 2 * PI); c.fill();
+        c.beginPath(); c.arc(50, 25, 4.5, 0, 2 * PI); c.fill();
+        c.lineCap = 'round'; c.strokeStyle = '#1e1e22'; c.lineWidth = 8;
+        c.beginPath(); c.moveTo(60, 50); c.quadraticCurveTo(72, 62, 66, 80); c.stroke();
+        c.beginPath(); c.moveTo(46, 80); c.lineTo(68, 86); c.stroke();
+        c.lineWidth = 6; c.beginPath(); c.moveTo(33, 78); c.quadraticCurveTo(22, 80, 24, 68); c.stroke();
+      },
+      // (le cerf qui saute, comme sur les vrais panneaux : le corps en biais, l'encolure, les bois, quatre pattes)
+      cerf: (c, W, H) => {
+        c.fillStyle = '#1e1e22'; c.strokeStyle = '#1e1e22'; c.lineCap = 'round'; c.scale(W / 100, H / 100);
+        c.beginPath(); c.ellipse(46, 54, 24, 11, -0.22, 0, 2 * PI); c.fill();
+        c.lineWidth = 9; c.beginPath(); c.moveTo(62, 46); c.lineTo(72, 30); c.stroke();
+        c.beginPath(); c.ellipse(76, 26, 9, 5.5, 0.35, 0, 2 * PI); c.fill();
+        c.lineWidth = 4; for (const [ax, ay, bx, by] of [[70, 22, 64, 6], [67, 14, 58, 11], [74, 21, 76, 6], [75, 13, 83, 9]]) { c.beginPath(); c.moveTo(ax, ay); c.lineTo(bx, by); c.stroke(); }
+        c.lineWidth = 5.5; for (const [ax, ay, bx, by] of [[60, 56, 74, 76], [52, 60, 62, 82], [32, 60, 20, 78], [28, 54, 10, 66]]) { c.beginPath(); c.moveTo(ax, ay); c.lineTo(bx, by); c.stroke(); }
+        c.lineWidth = 4; c.beginPath(); c.moveTo(24, 50); c.lineTo(16, 44); c.stroke();
+      },
+    };
     for (const [s, sg, bete] of [[14, -1, 'singe'], [33, 1, 'cerf']]) {
-      const [x, z, y, tx, tz] = auPoint(ROUTE, s), nx = tz * sg, nz = -tx * sg, px = x + nx * (C.demi + 0.6), pz = z + nz * (C.demi + 0.6), ry = Math.atan2(-tx, -tz);
-      a.cylindre(0.035, 0.035, 2.3, 6, '#9aa0a6', { x: px, y: terrain(px, pz) + 1.15, z: pz });
-      a.boite(0.62, 0.62, 0.03, '#f2c443', { x: px, y: terrain(px, pz) + 2.15, z: pz, ry, rz: PI / 4, ordre: 'YXZ' });
-      ecrire({ x: px - Math.sin(ry) * 0.02, y: terrain(px, pz), z: pz - Math.cos(ry) * 0.02, ry: ry + PI }, { texte: bete === 'singe' ? '🐒' : '🦌', x: 0, y: 2.15, z: 0, l: 0.36, h: 0.36, fond: null, encre: '#1e1e22' });
+      const [x, z, , tx, tz] = auPoint(ROUTE, s), nx = tz * sg, nz = -tx * sg, px = x + nx * (C.demi + 0.6), pz = z + nz * (C.demi + 0.6), yp = solDessine(px, pz), ry = Math.atan2(tx, tz);
+      // (fx, fz : d'où vient celui qui monte ; le losange 5,5 cm devant l'axe du poteau, ses faces de part et d'autre)
+      const fx = -tx, fz = -tz, dv = 0.055;
+      a.cylindre(0.035, 0.035, 2.9, 7, '#9aa0a6', { x: px, y: yp + 1.25 - 0.1, z: pz });
+      for (const dy of [-0.2, 0.2]) a.boite(0.09, 0.03, 0.05, '#7c8288', { x: px + fx * 0.03, y: yp + 2.15 + dy, z: pz + fz * 0.03, ry, trait: false });
+      a.boite(0.64, 0.64, 0.02, '#2a2a2e', { x: px + fx * (dv - 0.006), y: yp + 2.15, z: pz + fz * (dv - 0.006), ry, rz: PI / 4, ordre: 'YXZ', trait: false });
+      a.boite(0.6, 0.6, 0.02, '#f2c443', { x: px + fx * (dv + 0.012), y: yp + 2.15, z: pz + fz * (dv + 0.012), ry, rz: PI / 4, ordre: 'YXZ', trait: false });
+      ecrire({ x: px + fx * (dv + 0.03), y: yp, z: pz + fz * (dv + 0.03), ry: ry + PI }, { dessin: SILHOUETTES[bete], x: 0, y: 2.15, z: 0, l: 0.44, h: 0.44, fond: null });
       monde.cercle(px, pz, 0.3);
     }
     poser(a.fin(), 0, 0, { y: 0 });
@@ -1137,13 +1270,23 @@ export function construire(ctx) {
     monde.surface(R(Wd / 2 + 0.27, 0, 0).x, R(-Wd / 2 - 0.27, 0, 0).x, R(0, 0, -Dd / 2 - 0.27).z, R(0, 0, Dd / 2 + 0.47).z, y + HW + 1.6, { plein: true });
     murRect(R, Wd / 2, Dd / 2 + 0.2);
     monde.bloc(ACCUEIL.x - Dd / 2, ACCUEIL.x + Dd / 2, ACCUEIL.z - Wd / 2, ACCUEIL.z + Wd / 2, y - 1, y + HW + 1.5);
-    // le grand panneau du nom, au départ du sentier : deux poteaux, une planche, le nom gravé
+    // le portique du nom, à l'entrée du sentier : deux gros poteaux de part et d'autre des marches, la poutre, le petit toit, la planche où
+    // le nom est gravé ; on passe dessous (2026-11-01, « il est décalé, il n'est pas au milieu du chemin » : il était 1,4 m à côté, un
+    // poteau devant les marches)
     {
-      const x = -45.4, z = 33.4, yp = terrain(x, z);
-      for (const dx of [-1.25, 1.25]) a.cylindre(0.11, 0.12, 2.6, 8, '#6a5240', { x: x + dx, y: yp + 1.3, z });
-      a.boite(2.9, 0.62, 0.1, '#8a6a4a', { x, y: yp + 2.2, z, nuance: 0.04 }).boite(3.1, 0.12, 0.3, '#5a4434', { x, y: yp + 2.58, z });
-      ecrire({ x, y: yp, z: z - 0.06, ry: PI }, { texte: '白谷雲水峡', x: 0, y: 2.2, z: 0, l: 2.5, h: 0.46, fond: null, encre: '#f4ead8' });
-      for (const dx of [-1.25, 1.25]) monde.cercle(x + dx, z, 0.38);
+      const [xe, ze, , tx, tz] = auPoint(ESC_PIERRE.pts, 0), ang = Math.atan2(tx, tz), R = repere(xe, ze, ang), yp = y, HP = 3.25, D = ESC_PIERRE.demi + 0.37;
+      for (const u of [-1, 1]) {
+        a.cylindre(0.15, 0.17, HP + 0.3, 9, '#6a5240', R(u * D, yp + (HP - 0.3) / 2, 0));
+        a.cylindre(0.2, 0.23, 0.24, 9, BETON_FONCE, R(u * D, yp + 0.1, 0));
+        const q = R(u * D, 0, 0);
+        monde.cercle(q.x, q.z, 0.42);
+      }
+      a.boite(2 * D + 0.9, 0.2, 0.26, '#5a4434', R(0, yp + HP - 0.1, 0, { nuance: 0.04 }));
+      a.boite(2 * D + 1.3, 0.09, 0.62, '#4a3a2e', R(0, yp + HP + 0.05, 0, { nuance: 0.04 }));
+      a.boite(2 * D + 1.2, 0.12, 0.09, '#4a3a2e', R(0, yp + HP + 0.15, 0));
+      // (la planche, sous la poutre, tournée vers qui arrive ; deux tiges la tiennent)
+      a.boite(2.75, 0.56, 0.08, '#8a6a4a', R(0, yp + HP - 0.56, -0.06, { nuance: 0.04 }));
+      ecrire({ ...R(0, yp, -0.112), ry: ang + PI }, { texte: '白谷雲水峡', x: 0, y: HP - 0.56, z: 0, l: 2.45, h: 0.44, fond: null, encre: '#f4ead8' });
     }
     // la carte des sentiers (案内図), sous son petit toit
     {
@@ -1173,24 +1316,38 @@ export function construire(ctx) {
 
   // ---------------------------------------------------------------- L'eau : la rivière de Shiratani, sa cascade, le ruisseau, le ravin
   /**
-   * Un ruban d'eau qui coule le long de pts [[x, z, niveau]…] (balade.js : lieu.courants) : échantillonné tous les 40 cm, sa
-   * demi-largeur large(s), son écume selon la pente (blanche là où elle dévale) ; s0 : d'où commence le motif.
+   * Un ruban d'eau qui coule le long d'une ligne dense pts [[x, z, niveau]…] (ligneDouce ; balade.js : lieu.courants), un rang tous les
+   * pas mètres : sa demi-largeur large(s), s la longueur au sol (décalée de decale) ; l'écume selon la pente, blanche là où l'eau tombe.
    */
-  const ruban = (pts, large, { de = 0, a = Infinity, ecumeMin = 0.08 } = {}) => {
-    const L = Math.min(longueur(pts), a), pos = [], uv = [], ec = [], sens = [], idx = [];
-    let n = 0, prec = null;
-    for (let s = de; s <= L + 1e-6; s += 0.4) {
-      const [x, z, y, tx, tz] = auPoint(pts, s), [, , y2] = auPoint(pts, Math.min(L, s + 0.8)), [, , y0] = auPoint(pts, Math.max(0, s - 0.8));
-      const pente = Math.abs(y0 - y2) / 1.6, e = Math.min(0.95, ecumeMin + pente * 1.6), w = large(s);
+  const ruban = (pts, large, { pas = 0.3, decale = 0, ecumeMin = 0.05, ecumeK = 1.3, ecumeMax = 0.92, couleur = '#4f8d7e', largeur = null, vif = false } = {}) => {
+    // la ligne, à pas réguliers (dans l'espace)
+    const P3 = [[pts[0][0], pts[0][1], pts[0][2], 0]];
+    let reste = pas, s2 = 0;
+    for (let i = 0; i + 1 < pts.length; i++) {
+      const [ax, az, ay] = pts[i], [bx, bz, by] = pts[i + 1], l = Math.hypot(bx - ax, bz - az, by - ay), l2 = Math.hypot(bx - ax, bz - az);
+      let f = reste / (l || 1);
+      for (; f < 1; f += pas / (l || 1)) P3.push([ax + (bx - ax) * f, az + (bz - az) * f, ay + (by - ay) * f, s2 + l2 * f]);
+      reste = (f - 1) * l;
+      s2 += l2;
+    }
+    const lastP = pts[pts.length - 1];
+    P3.push([lastP[0], lastP[1], lastP[2], s2]);
+    const N = P3.length, Y = P3.map((q) => q[2]);
+    const pos = [], uv = [], ec = [], sens = [], idx = [];
+    let s3 = 0;
+    for (let i = 0; i < N; i++) {
+      const a0 = P3[Math.max(0, i - 2)], a1 = P3[Math.min(N - 1, i + 2)], dx = a1[0] - a0[0], dz = a1[1] - a0[1], l2 = Math.hypot(dx, dz) || 1, tx = dx / l2, tz = dz / l2;
+      const [x, z, , s] = P3[i], yA = Y[Math.max(0, i - 1)], yB = Y[Math.min(N - 1, i + 1)], dd = Math.hypot(P3[Math.min(N - 1, i + 1)][0] - P3[Math.max(0, i - 1)][0], P3[Math.min(N - 1, i + 1)][1] - P3[Math.max(0, i - 1)][1], yA - yB) || 1;
+      if (i > 0) s3 += Math.hypot(x - P3[i - 1][0], z - P3[i - 1][1], Y[i] - Y[i - 1]);
+      const e = Math.min(ecumeMax, ecumeMin + (Math.abs(yA - yB) / dd) * ecumeK), w = large(s - decale);
       for (const t of [0, 1]) {
         const o = (t - 0.5) * 2 * w;
-        pos.push(x + tz * o, y, z - tx * o);
-        uv.push(s, t);
+        pos.push(x + tz * o, Y[i], z - tx * o);
+        uv.push(s3, t);
         ec.push(e);
         sens.push(tx, tz);
       }
-      if (prec !== null) { const a0 = (n - 1) * 2; idx.push(a0, a0 + 1, a0 + 2, a0 + 1, a0 + 3, a0 + 2); }
-      prec = s; n++;
+      if (i > 0) { const k = (i - 1) * 2; idx.push(k, k + 1, k + 2, k + 1, k + 3, k + 2); }
     }
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
@@ -1198,11 +1355,60 @@ export function construire(ctx) {
     g.setAttribute('ecume', new THREE.Float32BufferAttribute(ec, 1));
     g.setAttribute('sens', new THREE.Float32BufferAttribute(sens, 2));
     g.setIndex(idx);
+    g.userData = { couleur, largeur: largeur ?? 2 * large(10), vif };
     courants.push(g);
   };
-  ruban(RIVIERE, (s) => largeRiviere(s) * (s > S_CASCADE[0] && s < S_CASCADE[1] ? 0.7 + 0.15 * Math.sin(s * 1.3) : 1));
-  ruban(RUISSEAU, () => 0.42, { ecumeMin: 0.12 });
-  ruban(RAVIN, () => 0.28, { ecumeMin: 0.2 });
+  // (le bord du ruban 22 cm au-delà du bord de l'eau : enfoui dans la rive, où le sol passe au niveau de l'eau)
+  {
+    const R0 = [[-28.75, 101.5, 26.5], [-28.85, 101.15, 26.15], [-28.95, 100.85, 25.1], ...RIVIERE.slice(0)], D0 = Math.hypot(R0[0][0] - RIVIERE[0][0], R0[0][1] - RIVIERE[0][1]);
+    ruban(ligneDouce(R0, 0.5), (s) => (s < 0 ? 0.42 : largeRiviere(s) * (s > S_CASCADE[0] && s < S_CASCADE[1] ? 0.7 + 0.15 * Math.sin(s * 1.3) : 1)), { pas: 0.4, decale: D0, ecumeK: 1.5, largeur: 2.4 });
+    ruban(RUISSEAU, (s) => largeRuisseau(s) + 0.22, { largeur: 1.2 });
+    ruban(RAVIN, (s) => largeRavin(s) + 0.22, { largeur: 1.0 });
+    ruban(EAU_WILSON, () => 0.26 + 0.14, { largeur: 0.6, pas: 0.25 });
+  }
+  // les sources : un petit amas de granite d'où l'eau tombe, dans sa vasque ; des rochers de part et d'autre, de la mousse dessus
+  // (et celle de la rivière, dans la forêt au-dessus du sentier caché)
+  for (const S of [...SOURCES, { x: -28.75, z: 101.5, y: 26.5, vers: [-29, 100] }]) {
+    const dx = S.x - S.vers[0], dz = S.z - S.vers[1], l = Math.hypot(dx, dz), ux = dx / l, uz = dz / l, vx = -uz, vz = ux, a = morceau(S.x, S.z);
+    // (u : vers l'amont, derrière la chute ; v : de côté)
+    for (const [du, dv, r, h, g] of [[0.55, 0, 1.15, 1.25, 1], [1.5, -0.9, 1.3, 1.3, 2], [1.4, 1.05, 1.25, 1.2, 3], [-0.1, -1.55, 0.85, 0.95, 4], [-0.15, 1.6, 0.9, 1.0, 5], [-1.3, -1.75, 0.55, 0.5, 6], [-1.2, 1.8, 0.6, 0.55, 7], [2.3, 0.1, 1.3, 1.4, 8]]) {
+      const x = S.x + ux * du + vx * dv, z = S.z + uz * du + vz * dv, yb = S.y - 1.35 + 0.05 * du;
+      rocher(a, x, Math.max(yb, Math.min(yb + 0.9, terrain(x, z) - 0.2)) + (h - 0.8) * 0.5, z, r, h, r * 0.95, g * 1.3 + S.x, { mousse: 0.42, mouille: S.y - 1.2 });
+    }
+    // (le bord d'où l'eau tombe : une pierre plate, plus sombre)
+    rocher(a, S.x + ux * 0.1, S.y - 0.22, S.z + uz * 0.1, 0.55, 0.2, 0.42, 0.4, { mousse: 0.1, finesse: 1 });
+  }
+  // des pierres le long du ruisseau et du ravin : sur les rives, quelques-unes dans le courant, plus grosses là où l'eau tombe
+  for (const [LIGNE, largeE, s0, s1] of [[RUISSEAU, largeRuisseau, 4.5, Infinity], [RAVIN, largeRavin, 4.5, 56]]) {
+    const L = Math.min(longueur(LIGNE), s1);
+    for (let s = s0; s < L; s += 0.85) {
+      const [x, z, y, tx, tz] = auPoint(LIGNE, s), w = largeE(s), a = morceau(x, z), t = hasard(s * 2.3, x), sg = hasard(s, z * 1.7) > 0.5 ? 1 : -1, u = hasard(x * 1.3, s);
+      if (surLaLigne(SENTIER_SECRET, x, z).d < 2.2) continue;
+      // (sur la rive)
+      if (t < 0.72) {
+        const d = w + 0.05 + 0.5 * u, r = 0.14 + 0.26 * hasard(s, 3.1), px = x + tz * sg * d, pz = z - tx * sg * d;
+        rocher(a, px, Math.max(y - 0.05, solDessine(px, pz) - r * 0.25), pz, r * 1.2, r * 0.8, r, s, { finesse: 0, mousse: u > 0.45 ? 0.55 : 0, mouille: y + 0.06, trait: false });
+      }
+      // (dans le courant)
+      if (hasard(z, s * 1.3) > 0.86) {
+        const o = (u - 0.5) * w * 0.9, r = 0.13 + 0.14 * t;
+        rocher(a, x + tz * o, y - 0.06, z - tx * o, r * 1.2, r * 0.75, r, s + 1, { finesse: 0, mousse: 0, mouille: y + 0.2, trait: false });
+      }
+    }
+    // (à chaque petite chute, deux grosses pierres de part et d'autre, la mare au-dessus d'elles)
+    let vu = -9, sC = 0;
+    for (let i = 0; i + 1 < LIGNE.length && sC < L; i++) {
+      const [x, z, y] = LIGNE[i], [x2, z2, y2] = LIGNE[i + 1], l = Math.hypot(x2 - x, z2 - z) || 1, dy = y - y2;
+      sC += l;
+      if (sC < s0 || dy < 0.14 || dy > l * 1.6 || sC - vu < 1) continue;
+      vu = sC;
+      const tx = (x2 - x) / l, tz = (z2 - z) / l, w = largeE(sC), a = morceau(x, z);
+      for (const sg of [-1, 1]) {
+        const r = 0.28 + 0.2 * hasard(sC, sg), d = w * (0.75 + 0.4 * hasard(sg, sC)) + r * 0.3;
+        rocher(a, x + tz * sg * d, y - 0.12, z - tx * sg * d, r * 1.25, r * 0.85, r, sC + sg, { finesse: 1, mousse: 0.4, mouille: y + 0.05 });
+      }
+    }
+  }
   {
     // les rochers de granite le long de la rivière (moussus dans la forêt), quelques-uns dans le courant ; sur la cascade, la dalle
     // de granite lisse, plus claire, sous l'eau qui glisse
@@ -1260,7 +1466,7 @@ export function construire(ctx) {
       } else {
         a.boite(2 * E.demi - (k % 2) * 0.04, 0.5, prof + (k % 2) * 0.012, GRANITES[k % GRANITES.length], {
           x: m.x + (hasard(k, 3) - 0.5) * 0.04, y: m.y - 0.25, z: m.z, ry: ang + (hasard(k, 7) - 0.5) * 0.05, nuance: 0.07,
-          teinte: (wx, wy, wz) => (wy > m.y - 0.03 && hasard(Math.floor(wx * 4), Math.floor(wz * 4)) > 0.82 ? MOUSSE_C : GRANITES[(k + Math.floor(wx * 2)) % GRANITES.length]),
+          teinte: (wx, wy, wz) => (wy > m.y - 0.03 && hasard(Math.floor(wx * 4), Math.floor(wz * 4)) > 0.82 ? MOUSSE_C : GRANITES[(((k + Math.floor(wx * 2)) % GRANITES.length) + GRANITES.length) % GRANITES.length]),
         });
       }
     }
@@ -1268,9 +1474,14 @@ export function construire(ctx) {
   rangsDeMarches(ESC_PIERRE);
   {
     const E = ESC_PIERRE, pts = [];
-    // (la rambarde côté rivière : à droite en montant, jusqu'au pied du pont ; elle continue celle du bord est de l'entrée, d'un seul
-    // tenant : au-dessus du bassin de la cascade)
-    for (let s = 0.0; s <= E.L - 0.6; s += 1.6) { const [x, z, y, tx, tz] = auPoint(E.pts, s); pts.push([x + tz * (E.demi + 0.32), z - tx * (E.demi + 0.32), y]); }
+    // (la rambarde côté rivière : à droite en montant, jusqu'au palier du pont ; elle continue celle du bord est de l'entrée, d'un seul
+    // tenant : au-dessus du bassin de la cascade ; elle tourne au palier et finit au portique du pont)
+    for (let s = 0.0; s < E.L - 0.8; s += 1.6) { const [x, z, y, tx, tz] = auPoint(E.pts, s); pts.push([x + tz * (E.demi + 0.32), z - tx * (E.demi + 0.32), y]); }
+    const Pp = PALIER_PONT, xpe = Pp.x1 + 0.28, zpn = Pp.z0 - 0.3, zps = Pp.z1 + 0.3, xpo = Pp.x0 - 0.3, xp = PONT.x0 - 0.15;
+    { const [x, , y, tx, tz] = auPoint(E.pts, E.L); pts.push([x + tz * (E.demi + 0.32), zpn, y]); }
+    pts.push([xpe, zpn, Pp.y], [xpe, PONT.z - 1.0 - 0.3, Pp.y]);
+    // (le palier : à l'ouest et au sud, une rambarde, du haut du sentier jusqu'au portique du pont)
+    { const [x, , , tx, tz] = auPoint(E.pts, E.L); rambarde([[x - tz * (E.demi + 0.32), zpn, Pp.y], [xpo, zpn, Pp.y], [xpo, zps, Pp.y], [xp, zps, Pp.y], [xp, PONT.z + 1.0 + 0.3, Pp.y]]); }
     rambarde([[ENTREE.x0 + 6.4, ENTREE.z0 - 0.3, ENTREE.y], [ENTREE.x0 - 0.3, ENTREE.z0 - 0.3, ENTREE.y], [ENTREE.x0 - 0.3, ENTREE.z0 + 1.7, ENTREE.y]]);
     rambarde([[ENTREE.x0 - 0.3, ENTREE.z1 - 1.5, ENTREE.y], [ENTREE.x0 - 0.3, ENTREE.z1 + 0.3, ENTREE.y], [ESC_PIERRE.pts[0][0] - ESC_PIERRE.demi - 0.32, ENTREE.z1 + 0.3, ENTREE.y]]);
     rambarde([[ENTREE.x1 - 3.6, ENTREE.z0 - 0.3, ENTREE.y], [ENTREE.x1 + 0.3, ENTREE.z0 - 0.3, ENTREE.y], [ENTREE.x1 + 0.3, ENTREE.z1 - 0.6, ENTREE.y], ...pts]);
@@ -1280,7 +1491,7 @@ export function construire(ctx) {
     a.boite(Y.x1 - Y.x0 + 0.02, 0.08, Y.z1 - Y.z0, '#8a7058', { x: (Y.x0 + Y.x1) / 2, y: Y.y - 0.055, z: (Y.z0 + Y.z1) / 2, nuance: 0.04 });
     for (let x = Y.x0 + 0.15; x < Y.x1; x += 0.3) a.boite(0.02, 0.012, Y.z1 - Y.z0 - 0.04, '#6a5440', { x, y: Y.y - 0.013, z: (Y.z0 + Y.z1) / 2, trait: false });
     for (const [x, z] of [[Y.x0 + 0.2, Y.z0 + 0.2], [Y.x0 + 0.2, Y.z1 - 0.2], [Y.x1 - 0.2, Y.z0 + 0.2], [Y.x1 - 0.2, Y.z1 - 0.2]]) a.cylindre(0.08, 0.08, 1.2, 6, RONDIN, { x, y: Y.y - 0.7, z });
-    rambarde([[Y.x1 - 0.1, Y.z0 - 0.3, Y.y], [Y.x0 - 0.3, Y.z0 - 0.3, Y.y], [Y.x0 - 0.3, Y.z1 + 0.3, Y.y], [Y.x1 - 0.1, Y.z1 + 0.3, Y.y]]);
+    rambarde([[Y.x1 - 0.2, Y.z0 - 0.3, Y.y], [Y.x0 - 0.3, Y.z0 - 0.3, Y.y], [Y.x0 - 0.3, Y.z1 + 0.3, Y.y], [Y.x1 - 0.2, Y.z1 + 0.3, Y.y]]);
     // (la rambarde de l'escalier, côté ouest, de part et d'autre du palier : pas besoin, l'ourlet de la forêt borde le reste)
   }
 
@@ -1294,9 +1505,9 @@ export function construire(ctx) {
       for (const sg of [-1, 1]) a.boite(0.16, 2.6 + (PONT.y - ys), 0.16, VERT, { x, y: (ys + PONT.y + 2.6) / 2 - 0.3, z: z0 + sg * (W + 0.1) });
       a.boite(0.16, 0.16, 2 * W + 0.36, VERT, { x, y: PONT.y + 2.45, z: z0 });
       for (const sg of [-1, 1]) {
-        // (à l'ouest, l'escalier de pierre arrive du nord au pied du portique : les ancrages 3,6 m derrière ses poteaux, le câble à
-        // plus de 1,8 m au-dessus du bout de l'escalier ; à l'est, le sentier part vers le sud-est : l'ancrage du sud au sud)
-        const [ax, az] = sens < 0 ? [x - 3.6, z0 + sg * (W + 0.1)] : sg > 0 ? [x + 0.3, z0 + 4.2] : [x + 1.2, z0 - 2.7], ya = terrain(ax, az);
+        // (à l'ouest, le palier devant le pont : les ancrages de côté, au nord le long du sentier de pierre, au sud derrière le palier ; à
+        // l'est, le sentier part vers le sud-est : l'ancrage du sud au sud)
+        const [ax, az] = sens < 0 ? [x + 1.3, z0 + sg * 7.2] : sg > 0 ? [x + 0.3, z0 + 4.2] : [x + 1.2, z0 - 2.7], ya = terrain(ax, az);
         a.boite(0.7, 0.5, 0.7, BETON, { x: ax, y: ya + 0.1, z: az });
         a.baton([x, PONT.y + 2.4, z0 + sg * (W + 0.1)], [ax, ya + 0.32, az], 0.02, '#5a5f62', 4);
         monde.cercle(x, z0 + sg * (W + 0.1), 0.35);
@@ -1350,23 +1561,25 @@ export function construire(ctx) {
     const rayon = (th, t) => {
       let k = 0;
       for (const L of lobes) { const c = Math.cos(th - L.a); if (c > 0) k += L.f * c ** 6; }
-      const contreforts = 1 + k * 2.0 * (1 - t) ** 3 + k * 0.45 * (1 - t);
+      const contreforts = 1 + (o.contreforts ?? 1) * (k * 2.0 * (1 - t) ** 3 + k * 0.45 * (1 - t));
       const cannelures = 1 + rug * (0.055 * Math.sin(th * 11 + t * 4 + g * 9) + 0.035 * Math.sin(th * 23 - t * 9 + g * 3) + 0.03 * Math.sin(th * 5 + t * 15));
-      return r0 * (1 - (o.affine ?? 0.42) * t) * contreforts * cannelures * (t < 0.06 ? 1 + (0.06 - t) * 2.5 : 1);
+      return r0 * (1 - (o.affine ?? 0.42) * t) * contreforts * cannelures * (!o.ferme && t < 0.06 ? 1 + (0.06 - t) * 2.5 : 1);
     };
+    // (une souche cassée : son bord du haut en dents)
+    const bord = (th) => (o.sans ? H * (1 - 0.18 * Math.max(0, Math.sin(th * 3 + g * 7)) - 0.1 * Math.max(0, Math.sin(th * 7 + g))) : H);
     const NT = o.cotes ?? 30, NH = o.anneaux ?? 16;
-    a.piece(new THREE.CylinderGeometry(1, 1, 1, NT, NH, !o.sans), ECORCES[0], {
+    // (ferme : un fond ; un tronc posé en l'air, sur une arche, se voyait creux par en dessous)
+    a.piece(new THREE.CylinderGeometry(1, 1, 1, NT, NH, !o.sans && !o.ferme), ECORCES[0], {
       nuance: 0.05,
       deformer: (px, py, pz) => {
-        const t = py + 0.5, th = Math.atan2(pz, px), [ax, az] = axe(t), rr = Math.hypot(px, pz) < 0.01 ? 0 : rayon(th, t);
-        // (une souche cassée : son bord du haut en dents)
-        const haut = o.sans ? H * (1 - 0.18 * Math.max(0, Math.sin(th * 3 + g * 7)) - 0.1 * Math.max(0, Math.sin(th * 7 + g))) : H;
-        return [ax + Math.cos(th) * rr, y - 0.7 + t * (haut + 0.7), az + Math.sin(th) * rr];
+        // (o.forme(th, h) : son rayon à lui, h la hauteur au-dessus du pied ; ses anneaux serrés en bas)
+        const t = o.forme ? (py + 0.5) ** 2.2 : py + 0.5, th = Math.atan2(pz, px), [ax, az] = axe(t), hh = -0.7 + t * (bord(th) + 0.7), rr = Math.hypot(px, pz) < 0.01 ? 0 : o.forme ? o.forme(th, hh) : rayon(th, t);
+        return [ax + Math.cos(th) * rr, y + hh, az + Math.sin(th) * rr];
       },
-      teinte: (wx, wy, wz) => ecorce(wx, wy, wz, y, z, o.mousse ?? 0),
+      teinte: o.teinte ?? ((wx, wy, wz) => ecorce(wx, wy, wz, y, z, o.mousse ?? 0)),
     });
     const [tx, tz] = axe(1), rh = r0 * (1 - (o.affine ?? 0.42));
-    if (o.sans) return { haut: [tx, y + H, tz], r: rh };
+    if (o.sans) return { haut: [tx, y + H, tz], r: rh, rayon, axe, bord };
     // les grosses branches : elles partent du haut du tronc, s'écartent et montent en se tordant ; une touffe sombre au bout et une
     // au coude ; de petites plantes accrochées
     const nb = o.branches ?? 4, cime = [];
@@ -1387,7 +1600,7 @@ export function construire(ctx) {
       // (une grande cime : une seconde touffe à côté de chaque bout de branche)
       if (o.cime && k < cime.length - 1) a.houppe(R * 0.75, VERTS_SUGI[(k + 1) % VERTS_SUGI.length], { x: p[0] + (hasard(k, g) - 0.5) * R, y: p[1] + R * 0.6, z: p[2] + (hasard(g, k) - 0.5) * R, sy: 0.6, sorte: 'conifere', graine: g });
     }
-    return { haut: [tx, y + H, tz], r: rh };
+    return { haut: [tx, y + H, tz], r: rh, rayon, axe, bord };
   };
 
   // ---------------------------------------------------------------- Le Yayoi-sugi (弥生杉), au bord du sentier de pierre
@@ -1413,16 +1626,35 @@ export function construire(ctx) {
   }
   const NIDAI = { x: -14.6, z: 75.6 };
   {
-    const a = morceau(NIDAI.x, NIDAI.z), y = terrain(NIDAI.x, NIDAI.z);
-    // la souche de l'ancien (1re génération), haute de 3 m, cassée en dents ; le jeune cèdre (2e génération) qui pousse dessus, et
-    // ses racines qui descendent le long d'elle jusqu'au sol
-    yakusugi(a, NIDAI.x, NIDAI.z, y, { r: 1.45, fut: 3.0, h: 3.0, sans: true, lobes: 5, rugueux: 1.3, affine: 0.15, graine: 0.31 });
-    yakusugi(a, NIDAI.x + 0.1, NIDAI.z - 0.05, y + 2.6, { r: 0.72, fut: 20, h: 31, lobes: 4, branches: 4, graine: 0.77, mousse: -0.4 });
-    for (let k = 0; k < 7; k++) {
-      const t = (k / 7) * 2 * PI + 0.4, r1 = 0.75, r2 = 1.55 + 0.2 * hasard(k, 1);
-      a.tube([[NIDAI.x + Math.cos(t) * 0.4, y + 2.9, NIDAI.z + Math.sin(t) * 0.4], [NIDAI.x + Math.cos(t) * r1 * 1.4, y + 2.4, NIDAI.z + Math.sin(t) * r1 * 1.4], [NIDAI.x + Math.cos(t) * r2, y + 1.2, NIDAI.z + Math.sin(t) * r2], [NIDAI.x + Math.cos(t) * (r2 + 0.3), y - 0.2, NIDAI.z + Math.sin(t) * (r2 + 0.3)]], 0.09, '#6e5040', { cotes: 5, pas: 9, teinte: (wx, wy) => (wy < y + 0.8 ? MOUSSE_F : '#6e5040') });
-    }
-    monde.cercle(NIDAI.x, NIDAI.z, 1.45 * 1.4 + 0.27);
+    const a = morceau(NIDAI.x, NIDAI.z), y = solDessine(NIDAI.x, NIDAI.z);
+    // le Nidai-ōsugi : une souche d'ancien, grosse et grise, cassée à 3 m ; de son haut sort le jeune cèdre, et ses racines descendent le long de la
+    // souche jusqu'au sol, d'un seul tenant avec lui (2026-11-01, « les racines et tout, elles sont bizarres » : le pied du jeune cèdre, plus large
+    // que la souche, lui pendait autour comme une jupe, et de fines racines passaient dans le vide). Une seule surface, de bas en haut :
+    // le rayon de la souche, puis celui du tronc au-dessus d'un bord cassé en dents ; des côtes (les racines), qui serpentent un peu, du tronc au sol.
+    const NR = 8, RAC = Array.from({ length: NR }, (_, k) => ({ a: (k / NR) * 2 * PI + 0.35 + 0.3 * hasard(k, 7), b: 0.32 * (hasard(k, 2) - 0.5), f: 0.8 + 0.4 * hasard(k, 3) }));
+    /** La hauteur du bord cassé de la souche, à l'angle th. */
+    const bordS = (th) => 3.05 - 0.55 * Math.max(0, Math.sin(th * 3 + 2.17)) - 0.28 * Math.max(0, Math.sin(th * 7 + 0.31));
+    /** Combien on est sur une racine (0 : entre elles ; 1 : sur son dos), à l'angle th et à la hauteur h. */
+    const surRacine = (th, h) => { let q = 0; for (const R of RAC) { const d = Math.atan2(Math.sin(th - R.a - R.b * Math.sin(h * 0.9 + R.a)), Math.cos(th - R.a - R.b * Math.sin(h * 0.9 + R.a))); q = Math.max(q, R.f * Math.exp(-(d * d) / (0.0225 + 0.012 * Math.max(0, 2 - h)))); } return q; };
+    const forme = (th, h) => {
+      const s = lisse(-0.12, 0.42, h - bordS(th)), hh = Math.max(0, h);
+      // (la souche : un peu plus large en bas ; le tronc : il s'affine)
+      const Rs = 1.42 - 0.05 * hh + 0.42 * (1 - lisse(0, 1.1, hh)) ** 2 + 0.05 * Math.sin(th * 9 + 1.1) + 0.035 * Math.sin(th * 17 + hh * 2), Rt = 0.78 * (1 - 0.4 * Math.max(0, hh - 3) / 20) * (1 + 0.04 * Math.sin(th * 11 + hh * 1.6) + 0.03 * Math.sin(th * 5 - hh));
+      // (sur le dos d'une racine : 16 à 20 cm en plus, moins sur le tronc ; elle s'élargit en arrivant au sol)
+      const dos = surRacine(th, h) * (0.19 * (1 - lisse(3, 6.5, hh)) + 0.025 + 0.22 * (1 - lisse(0, 0.7, hh)));
+      return Rs + (Rt - Rs) * s + dos;
+    };
+    const couleur = (wx, wy, wz) => {
+      const th = Math.atan2(wz - NIDAI.z, wx - NIDAI.x), h = wy - y, n = bruitDoux(wx * 1.1 + wz * 0.5, wy * 0.6, 2), rac = surRacine(th, h);
+      if (h < 0.55 + 0.9 * bruitDoux(wx * 1.4, wz * 1.4, 2) + Math.max(0, NIDAI.z - wz) * 0.25) return n > 0.5 ? MOUSSE : MOUSSE_F;
+      if (rac > 0.45) return n > 0.55 ? '#7a5a44' : '#6e5040';
+      if (h > bordS(th) + 0.3) return ecorce(wx, wy, wz, y + 3, NIDAI.z, -9);
+      // (la vieille souche, grise ; de la mousse sur son bord cassé)
+      if (h > bordS(th) - 0.18) return n > 0.42 ? MOUSSE : MOUSSE_F;
+      return n > 0.62 ? LICHEN : n > 0.3 ? '#83766a' : '#6f6458';
+    };
+    yakusugi(a, NIDAI.x, NIDAI.z, y, { r: 0.74, fut: 23, h: 33, lobes: 4, branches: 4, graine: 0.77, cotes: 56, anneaux: 34, forme, teinte: couleur, affine: 0.4 });
+    monde.cercle(NIDAI.x, NIDAI.z, 1.5 * 1.45 + 0.27);
   }
   // le Kuguri-sugi : ses deux jambes de racines de part et d'autre du sentier, qui se rejoignent à 2,8 m au-dessus de lui ; le tronc
   // monte de là
@@ -1431,18 +1663,46 @@ export function construire(ctx) {
     return { x, z, y, tx, tz, s };
   })();
   {
-    const K = KUGURI, a = morceau(K.x, K.z), nx = K.tz, nz = -K.tx, yJ = K.y + 2.75;
-    for (const sg of [-1, 1]) {
-      const px = K.x + nx * sg * 1.85, pz = K.z + nz * sg * 1.85, yp = terrain(px, pz);
-      // (la jambe : plusieurs grosses racines serrées, qui montent en se courbant au-dessus du sentier)
-      for (let k = 0; k < 3; k++) {
-        const o = (k - 1) * 0.32, ox = K.tx * o, oz = K.tz * o;
-        a.tube([[px + ox + nx * sg * 0.25, yp - 0.3, pz + oz + nz * sg * 0.25], [px + ox, yp + 0.9, pz + oz], [K.x + nx * sg * 1.35 + ox * 0.7, K.y + 2.2, K.z + nz * sg * 1.35 + oz * 0.7], [K.x + nx * sg * 0.55 + ox * 0.4, yJ + 0.15, K.z + nz * sg * 0.55 + oz * 0.4]],
-          0.26 - Math.abs(o) * 0.12, '#6e5040', { cotes: 7, pas: 12, teinte: (wx, wy) => (wy < yp + 1.0 + 0.6 * hasard(Math.floor(wx * 3), Math.floor(wy * 2)) ? MOUSSE : '#6e5040') });
+    // (2026-11-01, « c'est un peu mal fait parce que le tronc il est creux » : un tronc ouvert par en bas, posé en l'air sur trois fines racines
+    // par côté. Maintenant : une arche d'un seul tenant, épaisse, de bois cannelé, d'un pied à l'autre ; le tronc en sort, fermé, posé au
+    // milieu de son épaisseur.)
+    const K = KUGURI, a = morceau(K.x, K.z), nx = K.tz, nz = -K.tx, yC = K.y + 3.5, U = 2.15, NS = 40, NP = 18, pos = [], cols = [];
+    const centre = (f) => { const phi = PI * f; return [U * Math.cos(phi), K.y - 0.55 + (yC - K.y + 0.55) * Math.sin(phi) ** 0.62]; };
+    const anneaux = [];
+    for (let i = 0; i <= NS; i++) {
+      const f = i / NS, [cu, cy] = centre(f), [u0, y0] = centre(Math.max(0, f - 0.01)), [u1, y1] = centre(Math.min(1, f + 0.01)), lt = Math.hypot(u1 - u0, y1 - y0) || 1, Nu = -(y1 - y0) / lt, Ny = (u1 - u0) / lt;
+      const pied = Math.abs(2 * f - 1), A = 0.62 - 0.1 * pied + 0.28 * pied ** 8, B = 1.28 - 0.52 * pied + 0.55 * pied ** 8, an = [];
+      for (let j = 0; j < NP; j++) {
+        const th = (j / NP) * 2 * PI, k = 1 + 0.075 * Math.sin(5 * th + f * 9) + 0.045 * Math.sin(11 * th - f * 14), pa = Math.cos(th) * A * k, pb = Math.sin(th) * B * k;
+        const u = cu + Nu * pa, yy = cy + Ny * pa;
+        an.push([K.x + nx * u + K.tx * pb, yy, K.z + nz * u + K.tz * pb]);
       }
-      monde.cercle(px, pz, 0.62);
+      anneaux.push({ an, cu, cy });
     }
-    yakusugi(a, K.x, K.z, yJ - 0.4, { r: 0.92, fut: 13, h: 23, lobes: 3, branches: 4, graine: 0.53, affine: 0.38, mousse: -0.6 });
+    for (let i = 0; i < NS; i++) for (let j = 0; j < NP; j++) {
+      const A0 = anneaux[i].an[j], B0 = anneaux[i + 1].an[j], C0 = anneaux[i + 1].an[(j + 1) % NP], D0 = anneaux[i].an[(j + 1) % NP];
+      const mx = (A0[0] + C0[0]) / 2, my = (A0[1] + C0[1]) / 2, mz = (A0[2] + C0[2]) / 2, cu = (anneaux[i].cu + anneaux[i + 1].cu) / 2, cy = (anneaux[i].cy + anneaux[i + 1].cy) / 2;
+      const n = [mx - (K.x + nx * cu), my - cy, mz - (K.z + nz * cu)];
+      tri(pos, A0, B0, C0, n); tri(pos, A0, C0, D0, n);
+      const c = ecorce(mx, my, mz, K.y, K.z, 0.5);
+      cols.push(c, c);
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    a.piece(g, ECORCES[0], { couleurs: cols, nuance: 0.05 });
+    // le tronc, qui monte du haut de l'arche
+    yakusugi(a, K.x, K.z, yC + 0.7, { r: 0.95, fut: 12.5, h: 22.5, lobes: 3, branches: 4, graine: 0.53, affine: 0.38, mousse: -3, contreforts: 0.3, ferme: true });
+    for (const sg of [-1, 1]) {
+      const px = K.x + nx * sg * U, pz = K.z + nz * sg * U;
+      monde.cercle(px, pz, 0.86);
+      // (ses racines : de gros contreforts qui partent du pied, vers l'extérieur et le long du sentier, et s'enfoncent dans le sol)
+      for (const [ang, L] of [[0, 1.9], [0.75, 1.5], [-0.8, 1.5]]) {
+        const dx = nx * sg * Math.cos(ang) + K.tx * Math.sin(ang), dz = nz * sg * Math.cos(ang) + K.tz * Math.sin(ang);
+        const q = (d) => { const x = px + dx * d, z = pz + dz * d; return [x, solDessine(x, z), z]; };
+        const [x1, y1, z1] = q(0.4), [x2, y2, z2] = q(0.95), [x3, y3, z3] = q(L * 0.8), [x4, y4, z4] = q(L + 0.3);
+        a.tronc([[x1, y1 + 0.75, z1], [x2, y2 + 0.32, z2], [x3, y3 + 0.05, z3], [x4, y4 - 0.18, z4]], [0.34, 0.25, 0.13, 0.04], ECORCES[1], 7, { teinte: (wx, wy, wz) => ecorce(wx, wy, wz, K.y, K.z, 1) });
+      }
+    }
   }
   // d'autres vieux cèdres le long des sentiers (moussus, leurs racines)
   const VIEUX = [[-22.6, 57.6, 1.25, 12], [-5.0, 70.8, 1.15, 11], [18.6, 81.6, 1.4, 12], [-1.0, 97.0, 1.2, 12], [39.6, 101.6, 1.25, 12], [47.0, 82.2, 1.35, 14], [63.4, 80.8, 1.2, 12], [70.0, 63.4, 1.3, 12], [87.5, 59.5, 1.5, 13]];
@@ -1456,6 +1716,9 @@ export function construire(ctx) {
   // Tout y est couvert de mousse : les rochers, les troncs tombés, les racines. Des rochers et des racines autour de la clairière
   // (ce qui l'arrête), et quelques-uns dedans.
   const ROCHERS_KOKE = [];
+  /** La ligne d'un tronc tombé ; en dessous, le dessus du bois au point x de sa longueur (les champignons y poussent). */
+  const ligneTombe = (x0, z0, x1, z1, r) => { const y0 = terrain(x0, z0), y1 = terrain(x1, z1); return [[x0, y0 + r * 0.6, z0], [(x0 + x1) / 2, (y0 + y1) / 2 + r * 0.75, (z0 + z1) / 2], [x1, y1 + r * 0.55, z1]]; };
+  const surTombe = (x0, z0, x1, z1, r, f) => { const q = new THREE.CatmullRomCurve3(ligneTombe(x0, z0, x1, z1, r).map((p) => new THREE.Vector3(...p))).getPoint(f); return [q.x, q.z, q.y + r * 0.9]; };
   {
     const a = atelier(), K = KOKE;
     // (autour : tous les 1,3 m du bord, un rocher moussu, sauf aux sorties des sentiers)
@@ -1464,7 +1727,7 @@ export function construire(ctx) {
       const t = (k / 40) * 2 * PI, ex = K.x + Math.cos(t) * (K.rx + 0.9), ez = K.z + Math.sin(t) * (K.rz + 0.9);
       const r = 0.55 + 0.6 * hasard(k, 5);
       // (pas sur les sentiers qui entrent dans la clairière : avec ce qui arrête autour d'eux, ils la fermaient)
-      if (sorties.some(([sx, sz]) => Math.hypot(ex - sx, ez - sz) < 2.6) || versChemin(ex, ez) < r * 1.3 + 0.35) continue;
+      if (sorties.some(([sx, sz]) => Math.hypot(ex - sx, ez - sz) < 2.6) || versChemin(ex, ez) < r * 1.3 + 0.35 || AUTOUR_HUTTE.some((q) => dansRect(q, ex, ez, r * 1.3 + 0.35))) continue;
       rocher(a, ex, terrain(ex, ez) - 0.25, ez, r * 1.2, r * 0.8, r, k, { mousse: 0.92 });
       ROCHERS_KOKE.push([ex, ez, r]);
       monde.cercle(ex, ez, r * 1.15 + 0.27);
@@ -1477,7 +1740,7 @@ export function construire(ctx) {
     // les troncs tombés, couverts de mousse : un dans la clairière (le long de son bord nord), d'autres autour
     const tombe = (x0, z0, x1, z1, r) => {
       const y0 = terrain(x0, z0), y1 = terrain(x1, z1);
-      a.tube([[x0, y0 + r * 0.6, z0], [(x0 + x1) / 2, (y0 + y1) / 2 + r * 0.75, (z0 + z1) / 2], [x1, y1 + r * 0.55, z1]], r, ECORCES[2], { cotes: 8, pas: 8, teinte: (wx, wy, wz) => (wy > (y0 + y1) / 2 + r * 0.9 - 0.1 * hasard(Math.floor(wx * 3), Math.floor(wz * 3)) ? MOUSSE_C : MOUSSE_F) });
+      a.tube(ligneTombe(x0, z0, x1, z1, r), r, ECORCES[2], { cotes: 8, pas: 8, teinte: (wx, wy, wz) => (wy > (y0 + y1) / 2 + r * 0.9 - 0.1 * hasard(Math.floor(wx * 3), Math.floor(wz * 3)) ? MOUSSE_C : MOUSSE_F) });
       a.cylindre(r, r, 0.03, 10, '#a07a54', { x: x1, y: y1 + r * 0.55, z: z1, rz: PI / 2, ry: Math.atan2(x1 - x0, z1 - z0) + PI / 2, ordre: 'YXZ', trait: false });
     };
     // (ce qui les arrête : 25 cm plus court à chaque bout, son bout arrondi ne dépasse pas le bois de plus de 42 cm)
@@ -1490,7 +1753,7 @@ export function construire(ctx) {
     murTronc(4.4, 92.2, 8.2, 92.4, 0.4);
     tombe(-9.5, 97.2, -4.2, 95.8, 0.35);
     // les racines des vieux arbres qui courent sur les rochers
-    for (const [x, z, t] of [[2.2, 82.6, 0.3], [14.6, 83.2, 2.2], [16.4, 92.0, 3.6], [4.6, 94.0, 4.8]]) {
+    for (const [x, z, t] of [[2.2, 82.6, 0.3], [14.6, 83.2, 2.2], [4.6, 94.0, 4.8]]) {
       const y = terrain(x, z);
       for (let k = 0; k < 3; k++) {
         const ang = t + (k - 1) * 0.6;
@@ -1501,11 +1764,15 @@ export function construire(ctx) {
   }
   // le panneau de la forêt de mousse (苔むす森), au bord de la clairière
   // (chaque panneau au bord de son sentier, tourné vers lui : vers, le point du sentier en face ; on le lit 1,2 m devant)
+  // (2026-11-01, « des panneaux soit dans des barrières, soit dans le vide » : celui de la souche et celui du palier du Yayoi-sugi derrière leur
+  // rambarde, celui du Jōmon Sugi à cheval sur la sienne, celui du Kuguri-sugi contre sa racine ; ils sont du bon côté, et leurs poteaux
+  // vont jusqu'au sol)
   const PANNEAUX = Object.fromEntries(Object.entries({
-    koke: { x: 2.6, z: 82.3, vers: [5.5, 85.5] }, nidai: { x: -16.58, z: 71.89, vers: [-15.3, 70.35] }, kuguri: { x: -9.02, z: 72.9, vers: [-10.27, 74.46] },
-    yayoi: { x: PALIER_YAYOI.x0 + 0.6, z: PALIER_YAYOI.z0 - 0.55, vers: [(PALIER_YAYOI.x0 + PALIER_YAYOI.x1) / 2, (PALIER_YAYOI.z0 + PALIER_YAYOI.z1) / 2] },
+    koke: { x: 2.6, z: 82.3, vers: [5.5, 85.5] }, nidai: { x: -16.58, z: 71.89, vers: [-15.3, 70.35] },
+    kuguri: (() => { const [x, z, , tx, tz] = auPoint(SENTIER2, 16.6); return { x: x + tz * 2.05, z: z - tx * 2.05, vers: [x, z] }; })(),
+    yayoi: { x: (PALIER_YAYOI.x0 + PALIER_YAYOI.x1) / 2 - 0.5, z: PALIER_YAYOI.z0 + 0.06, vers: [(PALIER_YAYOI.x0 + PALIER_YAYOI.x1) / 2 - 0.5, PALIER_YAYOI.z1] },
     taiko: { x: 24.6, z: 106.6, vers: [22.1, 103.9] }, voie: { x: 37.9, z: 100.2, vers: [36.0, 98.6] }, kosugi: { x: 52.72, z: 89.64, vers: [RECOIN.x, RECOIN.z] },
-    wilson: { x: 74.1, z: 62.7, vers: [76.15, 66.9] }, jomon: { x: 87.2, z: 86.8, vers: [91.5, 84.4] }, jinja: { x: 1.6, z: -52.4, vers: [3.0, -49.5] },
+    wilson: { x: 76.95, z: 64.1, vers: [75.2, 64.1] }, jomon: { x: 87.05, z: 85.3, vers: [90.0, 85.3] }, jinja: { x: 1.6, z: -52.4, vers: [3.0, -49.5] },
   }).map(([id, q]) => [id, { ...q, ry: Math.atan2(q.x - q.vers[0], q.z - q.vers[1]) }]));
 
   // ---------------------------------------------------------------- Le petit sentier caché et le vieux cèdre creux (le secret)
@@ -1581,13 +1848,15 @@ export function construire(ctx) {
   // Une petite cabane de montagne au bord du sentier : le soubassement de pierre, les murs de planches, le toit de tôle, la porte,
   // une fenêtre ; la lanterne de la porte ; un banc devant ; le randonneur qui y passe la nuit (il fait venir le soir).
   {
-    const a = atelier(), R = repere(HUTTE.x, HUTTE.z, -PI / 2), y = terrain(HUTTE.x, HUTTE.z), W = 5.0, D = 3.8, HW = 2.4;
+    const a = atelier(), R = repere(HUTTE.x, HUTTE.z, -PI / 2), y = SOL_HUTTE.y, W = 5.0, D = 3.8, HW = 2.4;
     a.boite(W + 0.2, 0.6, D + 0.2, '#8f8a7e', R(0, y + 0.0, 0, { nuance: 0.08, teinte: (wx, wy) => (wy > y + 0.22 ? MOUSSE_F : '#8f8a7e') }));
     const F = y + 0.3;
     for (const u of [-1, 1]) a.boite(0.14, HW, D, '#8a6a4e', R(u * (W / 2 - 0.07), F + HW / 2, 0, { nuance: 0.04 }));
     a.boite(W - 0.28, HW, 0.14, '#8a6a4e', R(0, F + HW / 2, -D / 2 + 0.07, { nuance: 0.04 })).boite(W - 0.28, HW, 0.14, '#8a6a4e', R(0, F + HW / 2, D / 2 - 0.07, { nuance: 0.04 }));
     for (let k = 0; k < 9; k++) a.boite(W - 0.26, 0.02, 0.02, '#6a5240', R(0, F + 0.2 + k * 0.26, D / 2 + 0.005, { trait: false }));
     a.boite(0.9, 1.85, 0.04, '#5a4434', R(-1.0, F + 0.925, D / 2 + 0.01)).boite(0.04, 0.12, 0.04, '#c9ccce', R(-0.65, F + 1.0, D / 2 + 0.04, { trait: false }));
+    // (la marche de pierre devant la porte)
+    a.boite(1.3, 0.16, 0.5, '#8f8a7e', R(-1.0, y + 0.08, D / 2 + 0.34, { nuance: 0.06 }));
     a.boite(0.9, 0.6, 0.03, '#2b3640', R(1.1, F + 1.45, D / 2 + 0.005, { trait: false })).boite(1.0, 0.06, 0.08, '#5a4434', R(1.1, F + 1.12, D / 2 + 0.03));
     a.pignon(W + 0.7, 1.1, D + 0.9, '#6f7a80', R(0, F + HW, 0));
     for (const u of [-1, 1]) a.pignon(0.14, 1.06, D - 0.04, '#8a6a4e', R(u * (W / 2 - 0.07), F + HW, 0));
@@ -1634,6 +1903,16 @@ export function construire(ctx) {
         const yt = terrain(px, pz), ys = Math.max(ym, yt);
         rocher(a, px, (ys + yt) / 2, pz, r * 1.1, (ys - yt) / 2 + 0.5, r, g * 7 + sg, { mousse: 0.2, finesse: 1 });
       }
+    }
+    // le bloc d'orientation (方位盤), au bord sud du haut : là d'où l'on regarde les sommets (le tampon ; 2026-11-01, « donne une indication de
+    // où regarder » : c'était un point vide au milieu du rocher, à côté d'un randonneur)
+    {
+      const R = repere(VUE_TAIKO.x, VUE_TAIKO.z, 0.2), yt = terrain(VUE_TAIKO.x, VUE_TAIKO.z);
+      a.cylindre(0.3, 0.36, 0.95, 10, '#a39d90', R(0, yt + 0.42, 0, { nuance: 0.06 })).cylindre(0.4, 0.34, 0.08, 14, '#8f8a7e', R(0, yt + 0.92, 0));
+      a.cylindre(0.36, 0.36, 0.02, 20, '#b88a3a', R(0, yt + 0.97, 0, { rx: -0.14, nuance: 0.03 }));
+      for (let k = 0; k < 8; k++) { const th = (k / 8) * 2 * PI; a.boite(0.012, 0.006, 0.28, '#6a4a22', { ...R(Math.sin(th) * 0.17, yt + 0.985 - Math.cos(th) * 0.024, Math.cos(th) * 0.17), rx: -0.14, ry: 0.2 + th, ordre: 'YXZ', trait: false }); }
+      a.cylindre(0.03, 0.03, 0.01, 10, '#6a4a22', R(0, yt + 0.99, 0, { rx: -0.14, trait: false }));
+      { const q = R(0, 0, 0); monde.cercle(q.x, q.z, 0.68); }
     }
     // la corde basse sur ses piquets (トラロープ), tout autour du haut, ouverte au haut des marches
     const fin = ESC_TAIKO.pts[ESC_TAIKO.pts.length - 1], piquets = [];
@@ -1744,12 +2023,24 @@ export function construire(ctx) {
   // De la fin de la voie à la souche de Wilson, puis jusqu'à la plateforme du Jōmon Sugi : des marches de bois (un rondin au nez,
   // des planches), une main courante de rondins de chaque côté.
   // (les mains courantes s'arrêtent là où l'escalier entre sur un palier, la voie ou la plateforme : sur eux, elles barraient le passage)
-  for (const [E, s0, s1] of [[ESC_OKABU, 0.8, ESC_OKABU.L - 0.95], [ESC_JOMON, 0.55, ESC_JOMON.L - 1.3]]) {
+  // (2026-11-01, « des barrières aussi qui se chevauchent » : là où l'escalier arrive sur un palier, sa main courante et la rambarde du palier
+  // passaient l'une à côté de l'autre, deux poteaux côte à côte. Elles se rejoignent sur un seul poteau : jonctions, les points où finissent
+  // les mains courantes, de chaque côté (sg) ; les rambardes des paliers partent de là)
+  const Jw = (() => { const Pw = PALIER_WILSON, xo = Pw.x0 - 0.3, xe = Pw.x1 + 0.25, zs = Pw.z1 + 0.3, y = Pw.y; return { nord: [xo, 66.45, y], sud: [xo, 68.95, y], est: [xe, zs, y], ouest: [75.3, zs, y] }; })();
+  const Jd = { nord: [DECK.x0 + 2.2, DECK.z0 - 0.05, DECK.y], sud: [DECK.x0 - 0.05, DECK.z0 + 1.3, DECK.y] };
+  for (const [E, s0, s1, debut, fin] of [[ESC_OKABU, 0.8, ESC_OKABU.L - 1.5, {}, { 1: Jw.nord, [-1]: Jw.sud }], [ESC_JOMON, 1.0, ESC_JOMON.L - 1.7, { 1: Jw.est, [-1]: Jw.ouest }, { 1: Jd.nord, [-1]: Jd.sud }]]) {
     rangsDeMarches(E);
     for (const sg of [-1, 1]) {
       const pts = [], n = Math.max(1, Math.ceil((s1 - s0) / 1.7));
-      for (let k = 0; k <= n; k++) { const [x, z, y, tx, tz] = auPoint(E.pts, s0 + ((s1 - s0) * k) / n); pts.push([x + tz * sg * (E.demi + 0.3), z - tx * sg * (E.demi + 0.3), y]); }
-      rambarde(pts);
+      if (debut[sg]) pts.push(debut[sg]);
+      for (let k = 0; k <= n; k++) {
+        const [x, z, y, tx, tz] = auPoint(E.pts, s0 + ((s1 - s0) * k) / n), px = x + tz * sg * (E.demi + 0.3), pz = z - tx * sg * (E.demi + 0.3);
+        // (pas un poteau à côté de celui de la jonction)
+        if ([debut[sg], fin[sg]].some((J) => J && Math.hypot(px - J[0], pz - J[1]) < 0.6)) continue;
+        pts.push([px, pz, y]);
+      }
+      if (fin[sg]) pts.push(fin[sg]);
+      rambarde(pts, { finir: !fin[sg] });
     }
   }
 
@@ -1776,7 +2067,7 @@ export function construire(ctx) {
     return best;
   };
   {
-    const a = morceau(WILSON.x, WILSON.z), W = WILSON, y = W.y, NT = 64, NH = 10, pos = [], cols = [];
+    const a = morceau(WILSON.x, WILSON.z), W = WILSON, y = W.y, NT = 64, NH = 18, pos = [], cols = [];
     const BOUCHE = PI, demiB = W.porte / W.rIn, H_PORTE = 1.75;
     // (le haut du bord dehors : de 3 à 4,1 m, cassé en dents ; plus bas au-dessus de la porte)
     const hautDe = (th) => W.haut * (0.92 + 0.12 * Math.sin(th * 2 + 0.7) + 0.06 * Math.sin(th * 5 + 1.3)) - 0.35 * Math.max(0, Math.cos(th - BOUCHE)) ** 3;
@@ -1805,12 +2096,12 @@ export function construire(ctx) {
       for (let i = 0; i < 4; i++) {
         const h0 = (PLAFOND * i) / 4, h1 = (PLAFOND * (i + 1)) / 4;
         if (ouv && h1 <= H_PORTE + 0.05) continue;
-        const c = h0 < 0.3 ? '#4a3e34' : bruitDoux(c0x * 1.3, h0 + c0z, 1) > 0.6 ? '#6e5644' : '#5a4636';
+        const c = h0 < 0.3 ? '#66543f' : bruitDoux(c0x * 1.3, h0 + c0z, 1) > 0.6 ? '#8a6e56' : '#76604a';
         quad([c0x, y + h0, c0z], [c1x, y + h0, c1z], [c1x, y + h1, c1z], [c0x, y + h1, c0z], ni, c);
       }
       // le plafond (vu d'en dessous) : du cylindre au bord du cœur ; puis la paroi du trou en cœur, droite, jusqu'en haut
       const [h0x, h0z] = auCoeur(th0), [h1x, h1z] = auCoeur(th1);
-      quad([c0x, y + PLAFOND, c0z], [c1x, y + PLAFOND, c1z], [h1x, y + PLAFOND, h1z], [h0x, y + PLAFOND, h0z], [0, -1, 0], '#4f3e30');
+      quad([c0x, y + PLAFOND, c0z], [c1x, y + PLAFOND, c1z], [h1x, y + PLAFOND, h1z], [h0x, y + PLAFOND, h0z], [0, -1, 0], '#6a5440');
       const nc = [COEUR.x - (h0x + h1x) / 2, 0, COEUR.z - (h0z + h1z) / 2];
       quad([h0x, y + PLAFOND, h0z], [h1x, y + PLAFOND, h1z], [h1x, y + HAUT_COEUR, h1z], [h0x, y + HAUT_COEUR, h0z], nc, '#5a4636');
       // le bord cassé, du trou en cœur au dehors (la mousse dessus)
@@ -1830,20 +2121,97 @@ export function construire(ctx) {
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
     a.piece(g, '#5a4636', { couleurs: cols, nuance: 0.04 });
-    // dedans : le sol de terre et de feuilles, des pierres plates, la source qui coule de la paroi nord-est jusqu'à la porte
-    a.cylindre(W.rIn - 0.02, W.rIn - 0.02, 0.03, 24, '#4a4034', { x: W.x, y: y + 0.0, z: W.z, trait: false });
-    for (const [dx, dz, r] of [[0.6, -0.9, 0.22], [-0.2, -1.1, 0.18], [0.9, 0.4, 0.2], [-1.0, 0.8, 0.16]]) rocher(a, W.x + dx, y - 0.05, W.z + dz, r * 1.3, r * 0.5, r, dx, { mousse: 0.5, finesse: 0 });
-    // le petit sanctuaire (木魂神社) au fond, à l'est : son socle de pierre, la petite maison de bois au toit pointu, les offrandes
+    // dedans : le sol de terre et de feuilles, quelques pierres plates
+    a.cylindre(W.rIn - 0.02, W.rIn - 0.02, 0.03, 24, '#6a5a46', { x: W.x, y: y + 0.0, z: W.z, trait: false });
+    for (const [dx, dz, r] of [[-1.0, 0.95, 0.16], [0.55, 1.35, 0.2], [-0.25, 1.45, 0.14]]) rocher(a, W.x + dx, y - 0.05, W.z + dz, r * 1.3, r * 0.5, r, dx, { mousse: 0.5, finesse: 0 });
+    // l'endroit d'où l'on voit le cœur : une pierre plate au sol, deux empreintes dessus (le tampon)
     {
-      const xs = W.x + 1.15, zs = W.z + 0.05, R = repere(xs, zs, -PI / 2);
-      a.boite(0.62, 0.32, 0.5, '#8f8a7e', R(0, y + 0.16, 0)).boite(0.42, 0.4, 0.34, '#8a6a4e', R(0, y + 0.52, 0)).boite(0.3, 0.3, 0.02, '#c9a878', R(0, y + 0.52, 0.175, { trait: false }));
-      a.pignon(0.56, 0.22, 0.5, '#6a5240', R(0, y + 0.72, 0));
-      for (let k = 0; k < 6; k++) a.cylindre(0.012, 0.012, 0.004, 8, k % 2 ? '#c8a050' : '#a8a8a0', R(-0.18 + k * 0.07, y + 0.325, 0.2 + (k % 2) * 0.03, { trait: false }));
-      a.cylindre(0.035, 0.03, 0.06, 8, '#f4efe2', R(0.2, y + 0.35, 0.18));
-      monde.cercle(xs, zs, 0.52);
+      const R = repere(COEUR.x, COEUR.z, PI);
+      a.boite(0.66, 0.012, 0.5, '#a8a294', R(0, y + 0.025, 0, { trait: false, nuance: 0.04 }));
+      for (const s of [-1, 1]) a.ovale(0.075, '#e8e0cc', { ...R(s * 0.13, y + 0.036, 0.02), sx: 0.85, sy: 0.04, sz: 1.5, trait: false }, 8).ovale(0.05, '#e8e0cc', { ...R(s * 0.13, y + 0.036, 0.145), sx: 0.85, sy: 0.04, sz: 0.55, trait: false }, 8);
     }
-    // la source : un filet d'eau dans un petit lit de pierres, de la paroi nord-est jusqu'à la porte
-    ruban([[W.x + 0.9, W.z - 1.35, y + 0.025], [W.x + 0.2, W.z - 0.9, y + 0.022], [W.x - 0.8, W.z - 0.55, y + 0.02], [W.x - 1.8, W.z - 0.35, y + 0.015], [W.x - 3.0, W.z - 0.5, y - 0.02]], () => 0.12, { ecumeMin: 0.25 });
+    // le petit sanctuaire Tamashiro (木魂神社) au fond, à l'est (2026-11-01, « le petit [autel] dans le tronc creux, il faudrait le refaire
+    // mieux que ça » : une boîte sous un toit). Le socle de pierre à deux degrés, moussu, sa marche ; le sanctuaire de bois clair : ses
+    // quatre poteaux, ses murs de planches, ses deux portes à claire-voie et leurs ferrures dorées, sa petite galerie ; le toit de cuivre
+    // vert-de-gris, les planches croisées du faîte (千木) et ses rondins (鰹木) ; la corde sacrée et ses papiers ; les vases de sakaki, le
+    // saké ; les pièces des visiteurs ; la plaque du nom ; la lampe de la nuit
+    {
+      const xs = W.x + 1.08, zs = W.z + 0.12, R = repere(xs, zs, -PI / 2), BOIS = '#b08a5c', BOIS_F = '#6a4c32', VERDI = '#5f9c8c', VERDI2 = '#6eab9a', VERDI_F = '#3f7366', OR = '#d8b04a';
+      const T3 = (lx, ly, lz) => { const q = R(lx, ly, lz); return [q.x, q.y, q.z]; };
+      a.boite(0.94, 0.17, 0.74, '#8f8a7e', R(0, y + 0.085, 0, { nuance: 0.07, teinte: (wx, wy, wz) => (wy > y + 0.13 && hasard(Math.floor(wx * 7), Math.floor(wz * 7)) > 0.6 ? MOUSSE : '#8f8a7e') }));
+      a.boite(0.78, 0.13, 0.6, '#a39d90', R(0, y + 0.235, 0, { nuance: 0.05 }));
+      a.boite(0.42, 0.085, 0.2, '#a39d90', R(0, y + 0.0425 + 0.17, 0.41, { nuance: 0.05 }));
+      const y1 = y + 0.3;
+      // (le plancher et sa galerie ; les poteaux ; les murs du fond et des côtés, leurs planches)
+      a.boite(0.66, 0.035, 0.52, BOIS_F, R(0, y1 + 0.0175, 0));
+      for (const [u, v] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) a.boite(0.05, 0.52, 0.05, BOIS_F, R(u * 0.25, y1 + 0.295, v * 0.19));
+      a.boite(0.46, 0.48, 0.02, BOIS, R(0, y1 + 0.275, -0.19)).boite(0.02, 0.48, 0.34, BOIS, R(-0.25, y1 + 0.275, 0)).boite(0.02, 0.48, 0.34, BOIS, R(0.25, y1 + 0.275, 0));
+      // (les portes : un fond sombre, le cadre, la claire-voie ; deux ferrures dorées)
+      a.boite(0.46, 0.46, 0.012, '#2a2018', R(0, y1 + 0.27, 0.185, { trait: false }));
+      a.boite(0.48, 0.03, 0.03, BOIS_F, R(0, y1 + 0.5, 0.2)).boite(0.48, 0.03, 0.03, BOIS_F, R(0, y1 + 0.05, 0.2)).boite(0.025, 0.46, 0.03, BOIS_F, R(0, y1 + 0.275, 0.2));
+      for (const u of [-1, 1]) {
+        for (let k = 0; k < 3; k++) a.boite(0.012, 0.42, 0.012, BOIS, R(u * (0.06 + k * 0.06), y1 + 0.275, 0.205, { trait: false }));
+        for (let k = 0; k < 4; k++) a.boite(0.2, 0.012, 0.012, BOIS, R(u * 0.12, y1 + 0.12 + k * 0.1, 0.208, { trait: false }));
+        a.boite(0.03, 0.03, 0.012, OR, R(u * 0.03, y1 + 0.27, 0.218, { trait: false }));
+        a.boite(0.05, 0.015, 0.01, OR, R(u * 0.22, y1 + 0.42, 0.226, { trait: false })).boite(0.05, 0.015, 0.01, OR, R(u * 0.22, y1 + 0.13, 0.226, { trait: false }));
+      }
+      // (le toit, ses bouts, le faîte)
+      a.toitJapon(0.92, 0.86, 0.3, 0.08, { ...R(0, y1 + 0.55, 0.01), tuile: VERDI, tuile2: VERDI2, bord: VERDI_F, avant: VERDI_F, rangs: 6, releve: 0.03, epaisseur: 0.025, murs: { l: 0.27, p: 0.21, y: -0.02, c: BOIS_F } });
+      a.cylindre(0.022, 0.022, 0.82, 8, VERDI_F, R(0, y1 + 0.875, 0.01, { rz: PI / 2 }));
+      for (const u of [-1, 1]) for (const s of [-1, 1]) a.boite(0.018, 0.2, 0.035, OR, R(u * 0.39, y1 + 0.93, 0.01 + s * 0.03, { rx: s * 0.6 }));
+      for (const u of [-0.2, 0, 0.2]) a.cylindre(0.018, 0.018, 0.12, 7, OR, R(u, y1 + 0.905, 0.01, { rx: PI / 2 }));
+      // (la corde sacrée entre les poteaux de devant, ses trois papiers en zigzag)
+      a.tube([T3(-0.25, y1 + 0.47, 0.235), T3(0, y1 + 0.42, 0.25), T3(0.25, y1 + 0.47, 0.235)], 0.013, '#e8d8a8', { cotes: 5, pas: 8, trait: false });
+      for (const u of [-0.13, 0, 0.13]) for (let k = 0; k < 3; k++) a.boite(0.032, 0.035, 0.004, '#f8f6ee', R(u + (k % 2 ? 0.012 : -0.012), y1 + 0.4 - k * 0.032, 0.255, { trait: false }));
+      // (les offrandes : deux vases et leurs branches, le petit flacon de saké, l'assiette de riz ; des pièces sur la marche)
+      for (const u of [-1, 1]) {
+        a.cylindre(0.028, 0.02, 0.09, 8, '#f4f2ea', R(u * 0.31, y + 0.345, 0.2));
+        a.houppe(0.05, '#3f7a3a', { ...R(u * 0.31, y + 0.42, 0.2), sy: 1.2, sorte: 'persistant' }, 0);
+      }
+      a.cylindre(0.018, 0.024, 0.07, 8, '#f4f2ea', R(-0.15, y + 0.335, 0.26)).cylindre(0.03, 0.022, 0.012, 8, '#f4f2ea', R(0.15, y + 0.307, 0.26));
+      for (let k = 0; k < 9; k++) a.cylindre(0.014, 0.014, 0.004, 8, k % 3 ? '#c8a050' : '#a8a8a0', R(-0.16 + k * 0.04, y + 0.2575, 0.37 + (k % 2) * 0.05, { trait: false }));
+      // (la plaque du nom, sur son piquet, à côté)
+      a.boite(0.032, 0.72, 0.032, BOIS_F, R(0.53, y + 0.36, 0.3)).boite(0.13, 0.42, 0.016, '#e8dcc0', R(0.53, y + 0.5, 0.325));
+      ecrire({ ...R(0.53, y, 0.336) }, { texte: '木魂神社', vertical: true, x: 0, y: 0.5, z: 0, l: 0.09, h: 0.38, fond: null, encre: '#2a2420' });
+      // (une lampe de la nuit, posée à côté des vases, ses reflets sur le bois)
+      a.cylindre(0.03, 0.035, 0.09, 8, '#fff2c8', R(-0.5, y + 0.27, 0.42, { sorte: 'lumiere', trait: false })).cylindre(0.045, 0.05, 0.1, 8, '#6a6a60', R(-0.5, y + 0.05, 0.42, { trait: false })).boite(0.1, 0.012, 0.1, '#4a4a44', R(-0.5, y + 0.32, 0.42, { trait: false }));
+      a.cylindre(0.012, 0.016, 0.14, 6, '#6a6a60', R(-0.5, y + 0.165, 0.42, { trait: false }));
+      { const q = R(-0.5, y + 0.27, 0.42); lumieres.push({ x: q.x, y: q.y, z: q.z, halo: 0.16, sol: y, r: 2.4, c: '#ffe0a8' }); }
+      murRect(R, 0.47, 0.37);
+      { const q = R(0, 0, 0.41); murRect(repere(q.x, q.z, R(0, 0, 0).ry), 0.21, 0.1, 0.2); }
+    }
+    // la source (2026-11-01, « il y a de l'eau qui passe au milieu du tronc, mais c'est un peu mal fait… que ça démarre à un endroit et que
+    // ça se jette quelque part ») : l'eau sort d'une fente de la paroi nord-est, entre des pierres mouillées, tombe dans une vasque de
+    // pierre, longe la paroi dans un petit lit de galets, sort par la porte, longe le palier et passe sous sa rambarde nord : là, elle
+    // descend la pente (EAU_WILSON) jusqu'au ravin
+    {
+      const yb = y + 0.04, B = [W.x + 0.62, W.z - 1.02];
+      const L = ligneDouce([[W.x + 1.02, W.z - 1.42, y + 0.62], [W.x + 0.92, W.z - 1.3, y + 0.32], [W.x + 0.8, W.z - 1.16, yb + 0.012], [B[0], B[1], yb + 0.012], [W.x + 0.2, W.z - 1.02, yb + 0.008], [W.x - 0.55, W.z - 1.08, yb + 0.006], [W.x - 1.2, W.z - 0.78, yb + 0.004],
+        [W.x - 1.85, W.z - 0.42, yb], [W.x - 2.3, W.z - 0.45, yb - 0.005], [W.x - 2.72, W.z - 0.85, yb - 0.008], [W.x - 2.9, W.z - 1.7, yb - 0.01], [W.x - 2.9, W.z - 2.7, yb - 0.012], [EAU_WILSON[0][0], EAU_WILSON[0][1], EAU_WILSON[0][2]]], 0.2);
+      // (s, la longueur au sol, depuis la fente : la vasque, entre 0,4 et 1,0 m)
+      ruban(L, (s) => 0.085 + 0.2 * lisse(0.25, 0.48, s) * (1 - lisse(0.75, 1.05, s)), { pas: 0.12, ecumeMin: 0.1, ecumeK: 1.1, largeur: 0.18, vif: true, couleur: '#6aa89a' });
+      // (les pierres de la fente, luisantes ; celles de la vasque, en cercle ; les galets du lit, des deux côtés)
+      for (const [dx, dz, ry, r, h] of [[1.2, -1.28, 0.8, 0.3, 0.32], [0.86, -1.58, 0.2, 0.28, 0.36], [1.05, -1.46, 0.5, 0.26, 0.2]]) rocher(a, W.x + dx, y + (h > 0.3 ? h * 0.7 : 0.72), W.z + dz, r, h, r * 0.85, ry, { finesse: 1, mousse: 0.3, mouille: y + 1.05 });
+      monde.cercle(W.x + 1.03, W.z - 1.4, 0.62);
+      for (let k = 0; k < 10; k++) {
+        const th = (k / 10) * 2 * PI + 0.2;
+        if (Math.abs(Math.atan2(Math.sin(th - PI), Math.cos(th - PI))) < 0.32) continue;
+        const r = 0.05 + 0.03 * hasard(k, 2);
+        rocher(a, B[0] + Math.cos(th) * 0.3, y + 0.02, B[1] + Math.sin(th) * 0.3, r * 1.2, r * 0.9, r, k, { finesse: 0, mousse: k % 3 ? 0 : 0.5, trait: false });
+      }
+      let s = 0;
+      for (let i = 12; i + 1 < L.length; i++) {
+        const [x, z] = L[i], [x2, z2] = L[i + 1], l = Math.hypot(x2 - x, z2 - z) || 1;
+        s += l;
+        if (s < 0.24) continue;
+        s = 0;
+        const tx = (x2 - x) / l, tz = (z2 - z) / l, g = hasard(x * 3, z * 3);
+        for (const sg of [-1, 1]) {
+          const d = 0.12 + 0.05 * hasard(g, sg), r = 0.032 + 0.03 * hasard(sg, g);
+          rocher(a, x + tz * sg * d, y + 0.015, z - tx * sg * d, r * 1.25, r * 0.8, r, g * 5 + sg, { finesse: 0, mousse: 0, trait: false });
+        }
+      }
+    }
     // les trois jeunes cèdres nés de ses graines, tout autour
     // (pas au pied de l'escalier du Jōmon Sugi, au sud-ouest : le 2026-10-31, l'un d'eux le bouchait ; 15 à 17 m, de jeunes cèdres :
     // plus grands, vus d'en bas par le cœur, leur cime en bouchait un lobe)
@@ -1869,9 +2237,9 @@ export function construire(ctx) {
 
   {
     const Pw = PALIER_WILSON, y = Pw.y, xo = Pw.x0 - 0.3, xe = Pw.x1 + 0.25, zn = Pw.z0 - 0.3, zs = Pw.z1 + 0.3;
-    rambarde([[xo, 66.9, y], [xo, zn, y], [xe, zn, y], [xe, 64.9, y]]);
-    rambarde([[xe, 67.6, y], [xe, zs, y], [77.3, zs, y]]);
-    rambarde([[75.2, zs, y], [xo, zs, y], [xo, 68.5, y]]);
+    rambarde([Jw.nord, [xo, zn, y], [xe, zn, y], [xe, 64.9, y]]);
+    rambarde([[xe, 67.6, y], Jw.est], { finir: false });
+    rambarde([Jw.sud, [xo, zs, y], Jw.ouest], { finir: false });
   }
 
   // ---------------------------------------------------------------- La plateforme du Jōmon Sugi et l'arbre (縄文杉)
@@ -1933,6 +2301,7 @@ export function construire(ctx) {
     if (i < 0 || j < 0 || i >= DNX || j >= DNZ) return 99;
     return DIST[j * DNX + i];
   };
+  const PANNEAUX_POSES = Object.values(PANNEAUX).map((q) => [q.x, q.z]);
   // ce qui est déjà là (on n'y plante pas) : les cercles du monde (troncs, rochers, poteaux), les bâtiments, les eaux
   const occupe = (x, z, m) => {
     if (monde.cercles.some(([cx, cz, r]) => Math.abs(cx - x) < r + m && Math.abs(cz - z) < r + m && Math.hypot(cx - x, cz - z) < r + m)) return true;
@@ -1940,8 +2309,14 @@ export function construire(ctx) {
     if (versRect({ x0: HUTTE.x - 2.2, x1: HUTTE.x + 2.2, z0: HUTTE.z - 2.8, z1: HUTTE.z + 2.8 }, x, z) < m + 0.5 || versRect(DECK, x, z) < m + 1.5) return true;
     if (aLaPlace(TAIKO, x, z) < m + 2.5 || versRect({ x0: ACCUEIL.x - 2.6, x1: ACCUEIL.x + 2.6, z0: ACCUEIL.z - 4, z1: ACCUEIL.z + 4 }, x, z) < m) return true;
     if (dansRect(B_RIVIERE, x, z) && surLaLigne(RIVIERE, x, z).d < 2.4 + m + (surLaLigne(RIVIERE, x, z).s > S_CASCADE[0] - 3 && surLaLigne(RIVIERE, x, z).s < S_CASCADE[1] + 4 ? 3 : 0)) return true;
-    if (dansRect(B_RUISSEAU, x, z) && surLaLigne(RUISSEAU, x, z).d < 1.1 + m) return true;
-    if (dansRect(B_RAVIN, x, z) && surLaLigne(RAVIN, x, z).d < 1.0 + m) return true;
+    if (dansRect(B_RUISSEAU, x, z) && surRuisseau(x, z).d < 0.95 + m) return true;
+    if (dansRect(B_RAVIN, x, z) && surRavin(x, z).d < 0.9 + m) return true;
+    if (dansRect(B_WILSON, x, z) && surEauWilson(x, z).d < 0.9 + m) return true;
+    if ([...SOURCES, { x: -28.75, z: 101.5 }].some((S) => Math.hypot(x - S.x, z - S.z) < 3.8 + m)) return true;
+    // (entre le point de vue et le singe : rien)
+    if (surLaLigne([[OBS.x, OBS.z], [BRANCHE.x + 0.4, BRANCHE.z]], x, z).d < 1.3 + m || Math.hypot(x - CERF.x, z - CERF.z) < 1.0 + m) return true;
+    // (ni sur les panneaux)
+    if (PANNEAUX_POSES.some(([px, pz]) => Math.hypot(x - px, z - pz) < 1.0 + m)) return true;
     return false;
   };
   /**
@@ -1951,7 +2326,8 @@ export function construire(ctx) {
    */
   function cedre(a, x, z, h, y = terrain(x, z), o = {}) {
     const rb = o.rb ?? 0.15 + h * 0.0055, rot = hasard(x, z) * 6.28;
-    a.fut([x, y - 0.45, z], [x, y + h * 0.97, z], rb, rb * 0.2, '#5c4130', o.loin ? 5 : 6, o.loin ? { trait: false } : { teinte: (wx, wy) => (wy < y + 0.9 ? MOUSSE_F : '#5c4130') });
+    // (la mousse au pied : son anneau à part ; peints selon leur centre, les longs triangles du tronc faisaient des rayures vertes)
+    a.fut([x, y - 0.45, z], [x, y + h * 0.97, z], rb, rb * 0.2, '#5c4130', o.loin ? 5 : 6, o.loin ? { trait: false } : {});
     if (!o.loin) a.fut([x, y - 0.5, z], [x, y + 0.35, z], rb * 1.55, rb * 1.02, MOUSSE_F, 6);
     if (o.pres) for (let k = 0; k < 2; k++) {
       const yb = y + h * (0.24 + 0.14 * k + 0.05 * hasard(x, k)), t = rot + k * 2.3, L = 0.35 + 0.3 * hasard(z, k);
@@ -1992,11 +2368,20 @@ export function construire(ctx) {
         else a.arbreTouffu(x, z, 10 + 6 * hasard(x, z), VERTS_FEUILLUS[Math.floor(hasard(z, x * 3) * 2)], { y, bas: y - 0.4, sorte: 'persistant', loin, tronc: '#6a5a48', large: 1.1, graine: hasard(x, z * 3) });
       }
     }
+    // au sud et à l'est du belvédère, hors de l'étendue fine : la forêt continue (2026-11-01 : la pente nue, à 10 m du rocher, faisait « des
+    // formes un peu étranges, des espèces de stries ») ; sans trait, par morceaux de 100 m
+    for (let gz = 125; gz <= 232; gz += gz < 170 ? 5.5 : 8) {
+      for (let gx = -64; gx <= 128; gx += gz < 170 ? 5.5 : 8) {
+        const x = gx + (hasard(gx * 0.31, gz * 0.47) - 0.5) * 3.6, z = gz + (hasard(gz * 0.43, gx * 0.23) - 0.5) * 3.6, y = terrain(x, z), u = hasard(x * 1.3, z * 0.7);
+        if (u < 0.74) cedre(morceau(x, z, 100), x, z, 15 + 8 * hasard(z, x), y, { loin: true });
+        else morceau(x, z, 100).arbreTouffu(x, z, 9 + 5 * hasard(x, z), VERTS_FEUILLUS[Math.floor(hasard(z, x * 3) * 2)], { y, bas: y - 0.4, sorte: 'persistant', loin: true, tronc: '#6a5a48', large: 1.1, graine: hasard(x, z * 3) });
+      }
+    }
     // au loin : la forêt des montagnes (des cônes de cèdres et des boules de feuillus, sans trait, par morceaux de 200 m)
     const lots = new Map();
     for (let k = 0; k < 3200; k++) {
       const ang = hasard(k, 0.31) * 2 * PI, d = 110 + 330 * Math.sqrt(hasard(0.77, k)), x = 20 + Math.cos(ang) * d, z = 40 + Math.sin(ang) * d, y = terrain(x, z);
-      if (y < 2.5 || (x > -64 && x < 104 && z > -64 && z < 124)) continue;
+      if (y < 2.5 || (x > -64 && x < 104 && z > -64 && z < 124) || (x > -68 && x < 132 && z > 120 && z < 236)) continue;
       const h = 14 + 10 * hasard(k, 3), c = k % 3 ? '#3a5638' : '#33503a', cle = `${Math.floor(x / 200)},${Math.floor(z / 200)}`;
       if (!lots.has(cle)) lots.set(cle, { pos: [], cols: [], x, z });
       const q = lots.get(cle), tourne = k * 1.7;
@@ -2106,15 +2491,54 @@ export function construire(ctx) {
       if (occupe(x, z, 0.5)) continue;
       a.arbreTouffu(x, z, h, VERTS_FEUILLUS[0], { y: terrain(x, z), bas: terrain(x, z) - 0.4, sorte: 'persistant', tronc: '#6a5a48', large: 1.2 });
     }
-    for (const [x, z, h] of [[-50.0, -50.4, 8.5], [16.2, -50.0, 9.5], [-20.6, -49.4, 7.5]]) {
-      const y = terrain(x, z);
-      a.tronc([[x, y - 0.3, z], [x + 0.2, y + h * 0.5, z + 0.1], [x + 0.35, y + h, z + 0.15]], [0.2, 0.17, 0.14], '#8a7a62', 7);
-      for (let k = 0; k < 12; k++) {
-        const t = (k / 12) * 2 * PI, top = [x + 0.35, y + h, z + 0.15];
-        a.piece(new THREE.CircleGeometry(1.1, 9, -0.5, 1.0), '#4f8a3a', { x: top[0] + Math.cos(t) * 0.9, y: top[1] + 0.1, z: top[2] + Math.sin(t) * 0.9, rx: -PI / 2 + 0.5, ry: -t + PI / 2, ordre: 'YXZ', sorte: 'persistant', trait: false });
+    // (le palmier du sud, la ビロウ (Livistona) : 2026-11-01, « le feuillage est un peu mal fait » : une couronne de disques plats. Un
+    // tronc annelé, à son sommet les vieilles gaines brunes, puis une quinzaine de grandes feuilles en éventail : chacune au bout de
+    // son pétiole, ses plis qui rayonnent, ses pointes qui retombent ; les plus basses, plus pâles, pendent)
+    const VERTS_PALME = ['#4f8a3a', '#5d9a48', '#477f35', '#568f40'];
+    const palmier = (x, z, h, y = solDessine(x, z)) => {
+      const dx = (hasard(x, z) - 0.5) * 0.8, dz = (hasard(z, x) - 0.5) * 0.8, top = [x + dx, y + h, z + dz];
+      a.tronc([[x, y - 0.4, z], [x + dx * 0.35, y + h * 0.5, z + dz * 0.35], top], [0.21, 0.175, 0.15], '#8a7a62', 9);
+      for (let k = 1; k < h / 0.42; k++) {
+        const f = (k * 0.42) / h, cx = x + dx * f * f, cz = z + dz * f * f, r = 0.21 - 0.06 * f;
+        a.cylindre(r + 0.012, r + 0.018, 0.06, 9, '#756650', { x: cx, y: y + k * 0.42, z: cz, trait: false });
       }
+      // (les vieilles gaines : de courtes lames brunes, en jupe sous la couronne)
+      for (let k = 0; k < 9; k++) {
+        const t = (k / 9) * 2 * PI + 0.3;
+        a.fut([top[0], top[1] - 0.05, top[2]], [top[0] + Math.cos(t) * 0.42, top[1] - 0.55 - 0.15 * hasard(k, x), top[2] + Math.sin(t) * 0.42], 0.1, 0.03, '#7a6448', 4, { trait: false });
+      }
+      a.boule(0.26, '#6a6a3c', { x: top[0], y: top[1] + 0.02, z: top[2], sy: 0.9 }, 1);
+      // les feuilles
+      const pos = [], cols = [], NF = 20;
+      for (let k = 0; k < NF; k++) {
+        const t = k * 2.399 + hasard(x, k), rang = k / (NF - 1), leve = 1.15 - 1.65 * rang, Lp = 0.32 + 0.5 * rang + 0.15 * hasard(k, z), R = 1.05 + 0.5 * rang + 0.2 * hasard(z, k), cu = Math.cos(t), su = Math.sin(t), ce = Math.cos(leve), se = Math.sin(leve);
+        // (le pétiole : de la couronne au bout, il s'arque)
+        const P = [top[0] + cu * ce * Lp, top[1] + 0.12 + se * Lp - 0.1 * Lp * Lp, top[2] + su * ce * Lp];
+        a.baton([top[0], top[1] + 0.1, top[2]], P, 0.025, '#7d8a48', 4, { trait: false });
+        // (l'éventail : N plis autour de la direction t ; ix : en travers, dans le plan de la feuille)
+        const N = 11, ouv = 1.25, c = VERTS_PALME[k % 4], cDessous = '#3f7230', Plis = [];
+        for (let i = 0; i < N; i++) {
+          const phi = ((i / (N - 1)) * 2 - 1) * ouv, cp = Math.cos(phi), sp = Math.sin(phi), Lr = R * (0.78 + 0.22 * cp);
+          // (un point du pli à la distance d : en avant et de côté, plus bas à mesure, de plus en plus)
+          const q = (d, lev = 0) => { const av = cp * d, lat = sp * d, chute = 0.55 * (d / R) ** 2.2 * R; return [P[0] + cu * ce * av - su * lat, P[1] + se * av * 0.75 - chute + lev, P[2] + su * ce * av + cu * lat]; };
+          Plis.push({ A: q(Lr * 0.58, i % 2 ? 0.035 : -0.035), T: q(Lr), Lr, phi, q });
+        }
+        const face = (X, Y, Z, teinte) => { pos.push(...X, ...Y, ...Z); cols.push(teinte); pos.push(...X, ...Z, ...Y); cols.push(cDessous); };
+        for (let i = 0; i < N; i++) {
+          const pl = Plis[i];
+          if (i + 1 < N) {
+            const pl2 = Plis[i + 1], V = (() => { const phi = (pl.phi + pl2.phi) / 2, cp = Math.cos(phi), sp = Math.sin(phi), d = R * 0.6; const chute = 0.55 * (d / R) ** 2.2 * R; return [P[0] + cu * ce * cp * d - su * sp * d, P[1] + se * cp * d * 0.75 - chute - 0.02, P[2] + su * ce * cp * d + cu * sp * d]; })();
+            face(P, pl.A, V, c); face(P, V, pl2.A, c);
+            face(pl.A, pl.T, V, c); face(pl2.A, V, pl2.T, c);
+          }
+        }
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      a.piece(g, VERTS_PALME[0], { couleurs: cols, trait: false, nuance: 0.05, sorte: 'persistant' });
       monde.cercle(x, z, 0.47);
-    }
+    };
+    for (const [x, z, h] of [[-50.0, -50.4, 8.5], [16.2, -50.0, 9.5], [-20.6, -49.4, 7.5]]) palmier(x, z, h);
     poser(a.fin(), 0, 0, { y: 0 });
   }
 
@@ -2138,21 +2562,22 @@ export function construire(ctx) {
     const L = longueur(SENTIER_SECRET);
     for (let k = 0; k < 7; k++) {
       const s = 0.8 + (k * (L - 1.6)) / 6, [x, z, y, tx, tz] = auPoint(SENTIER_SECRET, s), sg = k % 2 ? 1 : -1, d = 1.15 + 0.2 * hasard(k, 2), px = x + tz * sg * d, pz = z - tx * sg * d;
-      if (surLaLigne(RUISSEAU, px, pz).d < 0.9) continue;
-      const yb = terrain(px, pz);
+      if (surRuisseau(px, pz).d < 0.9) continue;
+      const yb = solDessine(px, pz);
       // (un bout de bois mort sous eux, moussu)
       a.cylindre(0.09, 0.1, 0.7, 7, '#6a5440', { x: px, y: yb + 0.06, z: pz, ry: Math.atan2(tx, tz) + 0.4, rz: PI / 2, ordre: 'YXZ', teinte: (wx, wy) => (wy > yb + 0.12 ? MOUSSE : '#6a5440') });
       touffe(px, pz, yb + 0.14, 5, 1.25, k * 7.1);
     }
     // au bord de la clairière, sur le tronc tombé (le premier qu'on voit, la nuit, de la clairière)
-    touffe(-1.6, 86.6, terrain(-1.6, 86.6) + 0.88, 6, 1.3, 3.3);
-    touffe(0.2, 87.1, terrain(0.2, 87.1) + 0.86, 4, 1.2, 4.4);
+    // (2026-11-01, « ils flottent au-dessus du tronc » : posés à une hauteur fixe au-dessus du sol ; le tronc passait 10 à 20 cm plus bas)
+    touffe(...surTombe(-4.6, 86.0, 1.0, 87.4, 0.45, 0.54), 6, 1.3, 3.3);
+    touffe(...surTombe(-4.6, 86.0, 1.0, 87.4, 0.45, 0.86), 4, 1.2, 4.4);
     // et quelques autres dans la forêt de mousse, pour le décor (sur les racines, au pied des rochers)
-    for (const [x, z, g] of [[14.4, 83.8, 1.1], [17.3, 90.6, 2.2], [3.0, 93.2, 5.5], [-12.4, 79.2, 6.6], [24.2, 98.6, 7.7]]) touffe(x, z, terrain(x, z) + 0.02, 4, 1.1, g);
+    for (const [x, z, g] of [[14.4, 83.8, 1.1], [17.3, 90.6, 2.2], [3.0, 93.2, 5.5], [-12.4, 79.2, 6.6], [17.0, 100.6, 7.7]]) touffe(x, z, solDessine(x, z), 4, 1.1, g);
     // dans le creux du vieux cèdre : un cercle de champignons sur le bois du fond
     for (let k = 0; k < 8; k++) {
       const t = BOUCHE_CREUX + PI + (k - 3.5) * 0.36, x = CREUX.x + Math.cos(t) * 0.58, z = CREUX.z + Math.sin(t) * 0.58;
-      touffe(x, z, terrain(CREUX.x, CREUX.z) + 0.04, 3, 1.15, 10 + k);
+      touffe(x, z, terrain(CREUX.x, CREUX.z) + 0.015, 3, 1.15, 10 + k);
     }
     poser(a.fin(), 0, 0, { y: 0 });
   }
@@ -2160,14 +2585,17 @@ export function construire(ctx) {
   // ---------------------------------------------------------------- L'arbre du singe, au bord de la forêt de mousse (le tampon)
   // Un vieil arbre feuillu à l'est de la clairière : une branche basse tendue vers elle, où un singe s'assoit ; dessous, un cerf
   // mange ce qu'il fait tomber (à Yakushima, les cerfs suivent les singes pour les feuilles et les fruits qui tombent).
-  const ARBRE_SINGE = { x: 21.0, z: 85.2 }, BRANCHE = { x: 19.2, z: 85.6, y: KOKE.y + 2.7 }, CERF = { x: 19.4, z: 87.6 }, OBS = { x: 15.2, z: 86.6 };
+  // (2026-11-01, « le singe aussi qui est dans l'arbre, qu'on voit pas, qui est caché par les feuillages » : une touffe juste devant lui,
+  // sa branche à 2,7 m, plus loin. Plus bas, plus près, à découvert : la cime commence 3 m au-dessus de lui, rien n'est planté devant)
   {
     const a = morceau(ARBRE_SINGE.x, ARBRE_SINGE.z), y = terrain(ARBRE_SINGE.x, ARBRE_SINGE.z);
-    a.tronc([[ARBRE_SINGE.x, y - 0.4, ARBRE_SINGE.z], [ARBRE_SINGE.x - 0.2, y + 3.0, ARBRE_SINGE.z + 0.1], [ARBRE_SINGE.x + 0.3, y + 7.5, ARBRE_SINGE.z - 0.2]], [0.42, 0.32, 0.18], '#5f5244', 8, { teinte: (wx, wy) => (wy < y + 1.6 ? MOUSSE : '#5f5244') });
-    a.tronc([[ARBRE_SINGE.x - 0.25, y + 2.4, ARBRE_SINGE.z + 0.1], [BRANCHE.x + 0.8, BRANCHE.y - 0.1, BRANCHE.z + 0.1], [BRANCHE.x - 0.3, BRANCHE.y + 0.05, BRANCHE.z]], [0.17, 0.12, 0.07], '#5f5244', 7, { teinte: (wx, wy) => (hasard(Math.floor(wx * 3), Math.floor(wy * 3)) > 0.6 ? MOUSSE_F : '#5f5244') });
-    for (let k = 0; k < 7; k++) { const t = (k / 7) * 2 * PI; a.houppe(1.9 + 0.5 * hasard(k, 2), VERTS_FEUILLUS[0][k % 4], { x: ARBRE_SINGE.x + 0.2 + Math.cos(t) * 2.0, y: y + 6.8 + hasard(k, 1) * 1.2, z: ARBRE_SINGE.z + Math.sin(t) * 2.0, sy: 0.75, sorte: 'persistant' }); }
-    a.houppe(1.0, VERTS_FEUILLUS[0][1], { x: BRANCHE.x - 0.1, y: BRANCHE.y + 0.75, z: BRANCHE.z + 0.4, sy: 0.7, sorte: 'persistant' });
+    a.tronc([[ARBRE_SINGE.x, y - 0.4, ARBRE_SINGE.z], [ARBRE_SINGE.x - 0.2, y + 3.0, ARBRE_SINGE.z + 0.1], [ARBRE_SINGE.x + 0.3, y + 8.5, ARBRE_SINGE.z - 0.2]], [0.42, 0.32, 0.18], '#5f5244', 8);
+    a.fut([ARBRE_SINGE.x, y - 0.3, ARBRE_SINGE.z], [ARBRE_SINGE.x - 0.05, y + 0.9, ARBRE_SINGE.z], 0.6, 0.4, MOUSSE_F, 8);
+    a.tronc([[ARBRE_SINGE.x - 0.1, BRANCHE.y - 0.6, ARBRE_SINGE.z + 0.05], [(ARBRE_SINGE.x + BRANCHE.x) / 2 + 0.2, BRANCHE.y - 0.32, (ARBRE_SINGE.z + BRANCHE.z) / 2 - 0.2], [BRANCHE.x, BRANCHE.y - 0.12, BRANCHE.z], [BRANCHE.x - 0.5, BRANCHE.y - 0.02, BRANCHE.z + 0.45]], [0.22, 0.17, 0.12, 0.05], '#5f5244', 7);
+    for (let k = 0; k < 7; k++) { const t = (k / 7) * 2 * PI; a.houppe(1.9 + 0.5 * hasard(k, 2), VERTS_FEUILLUS[0][k % 4], { x: ARBRE_SINGE.x + 0.5 + Math.cos(t) * 2.0, y: y + 7.8 + hasard(k, 1) * 1.2, z: ARBRE_SINGE.z - 0.3 + Math.sin(t) * 2.0, sy: 0.75, sorte: 'persistant' }); }
     monde.cercle(ARBRE_SINGE.x, ARBRE_SINGE.z, 0.7);
+    // (au pied, ce qui arrête sans cacher le cerf : des pierres basses et moussues, le long du bord)
+    for (const [x, z, r, g] of [[17.65, 88.82, 0.5, 1], [18.65, 89.0, 0.42, 2], [19.6, 88.95, 0.48, 3], [20.55, 89.0, 0.42, 4], [17.55, 85.2, 0.46, 5], [17.85, 86.05, 0.36, 6]]) rocher(a, x, solDessine(x, z) - 0.08, z, r * 1.2, r * 0.62, r, g, { mousse: 0.9, finesse: 1 });
   }
 
   // ---------------------------------------------------------------- Les singes de Yakushima (ヤクシマザル)
@@ -2305,7 +2733,7 @@ export function construire(ctx) {
     { id: 'touriste', x: -24.6, z: -51.4, cap: PI - 0.4, tenue: { taille: 0.95, peau: '#f2c9a8', cheveux: '#3a2a22', coiffure: 'queue', chapeau: { sorte: 'bob', c: '#e8a42a' }, haut: '#d8402c', manches: 'longues', bas: { sorte: 'pantalon', c: '#3a3a44' }, chaussures: '#5a4a3a', semelle: '#3a3236', sac: { sorte: 'dos', c: '#2f6ab0', c2: '#1f4a80' } }, quand: 'jour' },
     { id: 'touriste2', x: -23.3, z: -52.1, cap: -2.5, tenue: { taille: 1.06, peau: PEAU, cheveux: NOIR, coiffure: 'court', chapeau: { sorte: 'casquette', c: '#3a6a4a', c2: '#3a6a4a' }, haut: '#2f6ab0', manches: 'longues', bas: { sorte: 'pantalon', c: '#5a5a4a' }, chaussures: '#5a4a3a', semelle: '#3a3236', sac: { sorte: 'dos', c: '#c8783a', c2: '#8a4a2a' } }, quand: 'jour' },
     // le prêtre du Yaku-jinja
-    { id: 'pretre', x: 6.4, z: -47.6, cap: -PI / 2 - 0.4, tenue: { taille: 1.0, peau: '#e8bf98', cheveux: '#3a3a3a', coiffure: 'court', chapeau: { sorte: 'eboshi', c: '#1e1e22' }, haut: '#f4f0e6', manches: 'kimono', col: '#f4f0e6', bas: { sorte: 'hakama', c: '#6a4a7a' }, chaussures: '#1e1e22', semelle: '#1e1e22', yeux: 'plisses' }, quand: 'jour' },
+    { id: 'pretre', x: 5.9, z: -44.4, cap: -PI / 2 - 0.5, tenue: { taille: 1.0, peau: '#e8bf98', cheveux: '#3a3a3a', coiffure: 'court', chapeau: { sorte: 'eboshi', c: '#1e1e22' }, haut: '#f4f0e6', manches: 'kimono', col: '#f4f0e6', bas: { sorte: 'hakama', c: '#6a4a7a' }, chaussures: '#1e1e22', semelle: '#1e1e22', yeux: 'plisses' }, quand: 'jour' },
     // les boutiques : l'artisan du bois de yakusugi, la loueuse de matériel, la marchande de thé (derrière leur comptoir)
     { id: 'artisan', x: xMaison(-1) + 2.7, z: -32.55, cap: PI / 2, tenue: { taille: 1.02, peau: '#e0b48c', cheveux: '#8a8478', coiffure: 'court', chapeau: { sorte: 'bandeau', c: '#3a3a44' }, haut: '#5a4a3a', manches: 'longues', tablier: '#8a6a4a', bas: { sorte: 'pantalon', c: '#3a3a44' }, chaussures: '#3a3236', semelle: '#3a3236', yeux: 'plisses' }, quand: 'jour' },
     { id: 'loueuse', x: xMaison(1) - 2.7, z: -32.55, cap: -PI / 2, tenue: { taille: 0.94, peau: '#f2c9a8', cheveux: '#3a2a22', coiffure: 'queue', chapeau: { sorte: 'casquette', c: '#3a6a4a', c2: '#f4f0e6' }, haut: '#3a6a4a', manches: 'courtes', bas: { sorte: 'pantalon', c: '#5a5a4a' }, chaussures: '#5a4a3a', semelle: '#3a3236' }, quand: 'jour' },
@@ -2331,17 +2759,17 @@ export function construire(ctx) {
     // il fait venir le soir, et rend le matin
     { id: 'refuge', x: HUTTE.x - 3.2, z: HUTTE.z - 1.3, cap: -PI / 2 - 0.3, tenue: { taille: 1.04, peau: '#e0b48c', cheveux: '#3a3a3a', coiffure: 'court', chapeau: { sorte: 'bandeau', c: '#c8402c' }, haut: '#5a6a4a', manches: 'longues', bas: { sorte: 'pantalon', c: '#3a3a44' }, chaussures: '#5a4a3a', semelle: '#3a3236', sac: { sorte: 'dos', c: '#3a5a8a', c2: '#2a3a6a' } } },
     // en haut du Taiko-iwa, un randonneur qui regarde les sommets
-    { id: 'sommets', x: 28.8, z: 118.2, cap: 0.35, tenue: { taille: 1.04, peau: PEAU, cheveux: NOIR, coiffure: 'court', chapeau: { sorte: 'casquette', c: '#2f3440', c2: '#2f3440' }, haut: '#c8402c', manches: 'longues', bas: { sorte: 'pantalon', c: '#3a3a44' }, chaussures: '#5a4a3a', semelle: '#3a3236', sac: { sorte: 'dos', c: '#e8a42a', c2: '#a8742a' } }, quand: 'jour' },
+    { id: 'sommets', x: 25.2, z: 116.4, cap: -2.2, tenue: { taille: 1.04, peau: PEAU, cheveux: NOIR, coiffure: 'court', chapeau: { sorte: 'casquette', c: '#2f3440', c2: '#2f3440' }, haut: '#c8402c', manches: 'longues', bas: { sorte: 'pantalon', c: '#3a3a44' }, chaussures: '#5a4a3a', semelle: '#3a3236', sac: { sorte: 'dos', c: '#e8a42a', c2: '#a8742a' } }, quand: 'jour' },
     // sur la voie du train : l'agent qui entretient les sentiers ; deux marcheurs
     { id: 'agent', x: 57.6, z: 79.0, cap: -2.3, tenue: { taille: 1.02, peau: '#d8a07a', cheveux: '#3a3a3a', coiffure: 'court', chapeau: { sorte: 'casquette', c: '#f4f2ea', c2: '#f4f2ea' }, haut: '#4a5a6a', manches: 'longues', bas: { sorte: 'pantalon', c: '#4a5a6a' }, chaussures: '#3a3236', semelle: '#3a3236', yeux: 'plisses' }, quand: 'jour' },
     { id: 'marcheur', x: 39.0, z: 96.0, cap: 2.4, ronde: [[39.0, 96.0], [61.6, 75.0], [39.0, 96.0], [37.4, 97.4]], vitesse: 0.6, attente: [4, 9], tenue: { taille: 1.0, peau: '#f2c9a8', cheveux: '#3a2a22', coiffure: 'queue', chapeau: { sorte: 'bob', c: '#8a3a4a' }, haut: '#f2c443', manches: 'longues', bas: { sorte: 'pantalon', c: '#3a3a44' }, chaussures: '#5a4a3a', semelle: '#3a3236', sac: { sorte: 'dos', c: '#8a3a4a', c2: '#5a2a3a' } }, quand: 'jour' },
     // devant la souche de Wilson : deux amoureux qui cherchent le cœur
-    { id: 'amoureuse', x: 76.2, z: 64.4, cap: PI / 2 + 0.3, tenue: { taille: 0.95, peau: '#f2c9a8', cheveux: '#3a2a22', coiffure: 'chignon', chapeau: { sorte: 'soleil', c: '#f4efe2' }, haut: '#e88aa0', manches: 'courtes', bas: { sorte: 'pantalon', c: '#3a4a6a' }, chaussures: '#f4f0e6', semelle: '#3a3236', sac: { sorte: 'dos', c: '#e88aa0', c2: '#a85a6a' } }, quand: 'jour' },
-    { id: 'amoureux', x: 76.0, z: 68.6, cap: PI / 2 - 0.4, tenue: { taille: 1.06, peau: PEAU, cheveux: NOIR, coiffure: 'court', haut: '#3a5a8a', manches: 'longues', bas: { sorte: 'pantalon', c: '#5a5a4a' }, chaussures: '#5a4a3a', semelle: '#3a3236', sac: { sorte: 'dos', c: '#3a5a8a', c2: '#2a3a5a' } }, quand: 'jour' },
+    { id: 'amoureuse', x: 75.6, z: 69.2, cap: 0.9, tenue: { taille: 0.95, peau: '#f2c9a8', cheveux: '#3a2a22', coiffure: 'chignon', chapeau: { sorte: 'soleil', c: '#f4efe2' }, haut: '#e88aa0', manches: 'courtes', bas: { sorte: 'pantalon', c: '#3a4a6a' }, chaussures: '#f4f0e6', semelle: '#3a3236', sac: { sorte: 'dos', c: '#e88aa0', c2: '#a85a6a' } }, quand: 'jour' },
+    { id: 'amoureux', x: 76.6, z: 69.6, cap: -0.7, tenue: { taille: 1.06, peau: PEAU, cheveux: NOIR, coiffure: 'court', haut: '#3a5a8a', manches: 'longues', bas: { sorte: 'pantalon', c: '#5a5a4a' }, chaussures: '#5a4a3a', semelle: '#3a3236', sac: { sorte: 'dos', c: '#3a5a8a', c2: '#2a3a5a' } }, quand: 'jour' },
     // sur la plateforme du Jōmon Sugi : la guide qui raconte, un randonneur qui mange ses onigiri sur le banc, un vieux monsieur
-    { id: 'guideJomon', x: 89.4, z: 85.2, cap: 0.5, tenue: { taille: 0.96, peau: '#e8bf98', cheveux: '#3a2a22', coiffure: 'queue', chapeau: { sorte: 'bob', c: '#5a6a4a' }, haut: '#3a6a4a', manches: 'longues', bas: { sorte: 'pantalon', c: '#3a3a44' }, chaussures: '#5a4a3a', semelle: '#3a3236', sac: { sorte: 'dos', c: '#e8a42a', c2: '#a8742a' } }, quand: 'jour' },
+    { id: 'guideJomon', x: 95.2, z: 86.2, cap: -0.35, tenue: { taille: 0.96, peau: '#e8bf98', cheveux: '#3a2a22', coiffure: 'queue', chapeau: { sorte: 'bob', c: '#5a6a4a' }, haut: '#3a6a4a', manches: 'longues', bas: { sorte: 'pantalon', c: '#3a3a44' }, chaussures: '#5a4a3a', semelle: '#3a3236', sac: { sorte: 'dos', c: '#e8a42a', c2: '#a8742a' } }, quand: 'jour' },
     { id: 'onigiri', x: 91.4, z: DECK.z0 + 0.55, cap: 0, assis: DECK.y + 0.47, tenue: { taille: 1.04, peau: PEAU, cheveux: '#3a2a20', coiffure: 'court', chapeau: { sorte: 'casquette', c: '#3a6a8a', c2: '#3a6a8a' }, haut: '#5a7a4a', manches: 'longues', bas: { sorte: 'pantalon', c: '#3a3a44' }, chaussures: '#5a4a3a', semelle: '#3a3236' }, quand: 'jour' },
-    { id: 'ancien', x: 94.8, z: 85.8, cap: 0.15, tenue: { taille: 0.98, peau: '#e0b48c', cheveux: '#d8d4cc', coiffure: 'court', chapeau: { sorte: 'bob', c: '#8a7a5a' }, haut: '#6a5a4a', manches: 'longues', bas: { sorte: 'pantalon', c: '#4a4a56' }, chaussures: '#5a4a3a', semelle: '#3a3236', yeux: 'plisses', canne: true }, quand: 'jour' },
+    { id: 'ancien', x: 95.7, z: 83.2, cap: -0.5, tenue: { taille: 0.98, peau: '#e0b48c', cheveux: '#d8d4cc', coiffure: 'court', chapeau: { sorte: 'bob', c: '#8a7a5a' }, haut: '#6a5a4a', manches: 'longues', bas: { sorte: 'pantalon', c: '#4a4a56' }, chaussures: '#5a4a3a', semelle: '#3a3236', yeux: 'plisses', canne: true }, quand: 'jour' },
   ];
   // les cerfs de Yakushima (ヤクシカ), plus petits : sur la route, sous l'arbre du singe (le tampon), le long de la voie, près de la
   // souche de Wilson. On les regarde ; la nuit, ils se couchent.
@@ -2359,6 +2787,13 @@ export function construire(ctx) {
   const parler = (id) => ({ id, passant: id, verbe: 'parler', action: (jeu) => jeu.dire(jeu.txn(id), id) });
   const lire = (id, x, z, ry) => ({ id: `panneau-${id}`, x: x - Math.sin(ry) * 1.2, z: z - Math.cos(ry) * 1.2, rayon: 1.8, verbe: 'lire', vers: [x, z], action: (jeu) => jeu.dire(jeu.tx(`panneau-${id}`)) });
   const HAIDEN = RJ(0, 0, 2.0 + 1.55);
+  // (2026-11-01, le propriétaire : « pour les tampons… place mieux et donne une indication de où regarder » : souvent un personnage juste à
+  // côté, et c'est « Parler » qui s'offrait. Un tampon : tampon (son id : tant qu'on ne l'a pas, un sceau rouge au-dessus de l'endroit, vu
+  // de loin, balade.js, et il passe avant ce qui est à côté), quoi (ce que dit la bulle))
+  const QUOI = {
+    yakujinja: { fr: 'Prier', en: 'Pray', ja: 'おまいりする' }, sarushika: { fr: 'Regarder le singe', en: 'Watch the monkey', ja: 'サルを見る' }, taikoiwa: { fr: 'Regarder les sommets', en: 'Look at the peaks', ja: 'やまやまを見る' },
+    wilson: { fr: 'Lever les yeux', en: 'Look up', ja: '上を見る' }, jomonsugi: { fr: 'Regarder le Jōmon Sugi', en: 'Look at Jōmon Sugi', ja: '縄文杉を見る' },
+  };
   const interactions = [
     {
       // le batelier : il ramène à Udo (le même bateau)
@@ -2374,7 +2809,7 @@ export function construire(ctx) {
     { id: 'bateau', x: BATEAU.x - 2.4, z: QUAI.z0 + 0.6, rayon: 1.6, haut: 1.6, verbe: 'regarder', vers: [BATEAU.x, BATEAU.z], action: (jeu) => jeu.dire(jeu.txn('bateau')) },
     {
       // le Yaku-jinja : la cloche, deux battements de mains (le tampon) ; son dieu est le père de celui d'Udo
-      id: 'yakujinja', x: HAIDEN.x, z: HAIDEN.z, rayon: 1.8, haut: 1.4, verbe: 'prier', vers: [RJ(0, 0, 0).x, RJ(0, 0, 0).z],
+      id: 'yakujinja', tampon: 'yakujinja', quoi: QUOI.yakujinja, x: HAIDEN.x, z: HAIDEN.z, rayon: 1.8, haut: 1.4, verbe: 'prier', vers: [RJ(0, 0, 0).x, RJ(0, 0, 0).z],
       async action(jeu) {
         jeu.cadrer({ de: [HAIDEN.x - 3.0, JINJA.y + 2.0, HAIDEN.z + 2.4], vers: [RJ(0, 0, 1).x, JINJA.y + 1.6, RJ(0, 0, 1).z], champ: 56 });
         jeu.son('cloche'); jeu.geste('prier');
@@ -2386,10 +2821,10 @@ export function construire(ctx) {
     },
     {
       // la forêt de mousse : regarder le singe sur sa branche, et le cerf qui mange dessous ce qu'il fait tomber (le tampon)
-      id: 'sarushika', x: OBS.x, z: OBS.z, rayon: 1.9, haut: 1.5, verbe: 'regarder', vers: [BRANCHE.x, BRANCHE.z],
+      id: 'sarushika', tampon: 'sarushika', quoi: QUOI.sarushika, x: OBS.x, z: OBS.z, rayon: 1.9, haut: 1.5, verbe: 'regarder', vers: [BRANCHE.x, BRANCHE.z],
       async action(jeu) {
         if (jeu.estNuit) { await jeu.dire(jeu.tx('sarushikaNuit')); return; }
-        jeu.cadrer({ de: [OBS.x - 1.2, KOKE.y + 1.8, OBS.z + 1.6], vers: [(BRANCHE.x + CERF.x) / 2, KOKE.y + 1.6, (BRANCHE.z + CERF.z) / 2], champ: 50 });
+        jeu.cadrer({ de: [OBS.x - 0.9, KOKE.y + 1.25, OBS.z + 0.7], vers: [(BRANCHE.x + CERF.x) / 2, KOKE.y + 1.25, (BRANCHE.z + CERF.z) / 2], champ: 46 });
         await jeu.attendre(1200);
         await jeu.dire(jeu.tx('sarushika'));
         jeu.cadrer(null);
@@ -2398,10 +2833,10 @@ export function construire(ctx) {
     },
     {
       // le Taiko-iwa : la vue sur les sommets de l'île (le tampon)
-      id: 'taikoiwa', x: TAIKO.x + 0.6, z: TAIKO.z + 0.6, rayon: 2.6, haut: 1.4, verbe: 'regarder', vers: [TAIKO.x + 4, TAIKO.z + 10],
+      id: 'taikoiwa', tampon: 'taikoiwa', quoi: QUOI.taikoiwa, x: VUE_TAIKO.x - 0.25, z: VUE_TAIKO.z - 1.05, rayon: 1.7, haut: 1.5, verbe: 'regarder', vers: [VUE_TAIKO.x, VUE_TAIKO.z],
       async action(jeu) {
         const y = TAIKO.y + 0.4;
-        jeu.cadrer({ de: [TAIKO.x - 1.2, y + 1.9, TAIKO.z - 1.4], vers: [TAIKO.x + 60, y + 30, TAIKO.z + 260], champ: 62 });
+        jeu.cadrer({ de: [VUE_TAIKO.x - 0.8, y + 1.5, VUE_TAIKO.z - 2.6], vers: [TAIKO.x + 60, y + 30, TAIKO.z + 260], champ: 62 });
         await jeu.attendre(1500);
         await jeu.dire(jeu.txn('taikoiwa'));
         jeu.cadrer(null);
@@ -2410,21 +2845,25 @@ export function construire(ctx) {
     },
     {
       // la souche de Wilson : lever les yeux, là où il faut ; le ciel fait un cœur (le tampon)
-      id: 'wilson', x: COEUR.x, z: COEUR.z, y: WILSON.y, rayon: 1.2, haut: 1.3, verbe: 'regarder',
+      id: 'wilson', tampon: 'wilson', quoi: QUOI.wilson, x: COEUR.x, z: COEUR.z, y: WILSON.y, rayon: 1.05, haut: 1.3, verbe: 'regarder',
       async action(jeu) {
+        // (2026-11-01, « on lève les yeux en hauteur et on voit rien » : la caméra était dans le voyageur, posé juste là, à 90 cm du sol : on voyait
+        // le dedans de sa tête et de son chapeau. Le temps de ce regard, le voyageur et le compagnon ne se dessinent plus)
         jeu.placer(COEUR.x, COEUR.z, PI);
-        jeu.cadrer({ de: [COEUR.x, WILSON.y + 0.9, COEUR.z], vers: [COEUR.x, WILSON.y + 12, COEUR.z - 0.75], champ: 70 });
+        jeu.cacherVoyageur(true);
+        jeu.cadrer({ de: [COEUR.x, WILSON.y + 0.9, COEUR.z], vers: [COEUR.x, WILSON.y + 12, COEUR.z - 0.75], champ: 58 });
         await jeu.attendre(1600);
         jeu.son('magie');
         await jeu.dire(jeu.txn('wilson'));
         jeu.cadrer(null);
+        jeu.cacherVoyageur(false);
         await gagner(jeu, 'wilson', 'wilsonCompagnon');
       },
     },
-    { id: 'hokora', x: WILSON.x + 0.45, z: WILSON.z + 0.05, y: WILSON.y, rayon: 1.0, haut: 1.0, verbe: 'prier', vers: [WILSON.x + 1.15, WILSON.z + 0.05], async action(jeu) { jeu.geste('prier'); jeu.son('claque'); await jeu.attendre(2200); jeu.geste(null); await jeu.dire(jeu.tx('hokora')); } },
+    { id: 'hokora', x: WILSON.x + 0.28, z: WILSON.z + 0.12, y: WILSON.y, rayon: 0.72, haut: 1.05, verbe: 'prier', vers: [WILSON.x + 1.08, WILSON.z + 0.12], async action(jeu) { jeu.geste('prier'); jeu.son('claque'); await jeu.attendre(2200); jeu.geste(null); await jeu.dire(jeu.tx('hokora')); } },
     {
       // le Jōmon Sugi, de sa plateforme : la caméra monte le long du tronc (le tampon)
-      id: 'jomonsugi', x: JOMON.x, z: DECK.z1 - 0.5, rayon: 2.6, haut: 1.5, verbe: 'regarder', vers: [JOMON.x, JOMON.z],
+      id: 'jomonsugi', tampon: 'jomonsugi', quoi: QUOI.jomonsugi, x: JOMON.x, z: DECK.z1 - 0.5, rayon: 2.0, haut: 1.5, verbe: 'regarder', vers: [JOMON.x, JOMON.z],
       async action(jeu) {
         jeu.cadrer({ de: [JOMON.x - 2.6, DECK.y + 1.5, DECK.z1 - 0.4], vers: [JOMON.x, DECK.y + 9, JOMON.z], champ: 64 });
         await jeu.attendre(1400);
@@ -2437,7 +2876,7 @@ export function construire(ctx) {
     },
     // la cascade Hiryū-otoshi, de la rambarde de l'entrée ; le pont suspendu ; le Kuguri-sugi (on passe dessous)
     { id: 'cascade', x: ENTREE.x1 - 0.6, z: 32.6, rayon: 1.8, haut: 1.4, verbe: 'regarder', vers: [-33.4, 44], async action(jeu) { jeu.cadrer({ de: [ENTREE.x1 - 0.2, ENTREE.y + 2.2, 32.0], vers: [-33.2, 11, 47], champ: 56 }); await jeu.attendre(700); await jeu.dire(jeu.txn('cascade')); jeu.cadrer(null); } },
-    { id: 'pont', x: PONT.x0 - 0.2, z: PONT.z - 0.6, y: ESC_PIERRE.pts[ESC_PIERRE.pts.length - 1][2], rayon: 1.5, haut: 1.6, verbe: 'regarder', vers: [PONT.x1, PONT.z], action: (jeu) => jeu.dire(jeu.txn('pont')) },
+    { id: 'pont', x: PONT.x0 - 0.5, z: PONT.z, y: PONT.y, rayon: 1.5, haut: 1.6, verbe: 'regarder', vers: [PONT.x1, PONT.z], action: (jeu) => jeu.dire(jeu.txn('pont')) },
     // les champignons du bord de la clairière : de jour, à peine visibles ; la nuit, ils brillent
     { id: 'champignons', x: -0.2, z: 87.9, rayon: 1.6, haut: 1.0, verbe: 'regarder', vers: [-1.0, 86.9], action: async (jeu) => { await jeu.dire(jeu.txn('champignons')); if (!jeu.estNuit && !secretTrouve('champignons')) jeu.voirIndice('champignons'); } },
     {
@@ -2482,7 +2921,7 @@ export function construire(ctx) {
     },
     { id: 'guide', passant: 'guide', verbe: 'parler', async action(jeu) { await jeu.dire(jeu.txn('guide'), 'guide'); if (!jeu.estNuit && !secretTrouve('champignons')) { await jeu.dire(jeu.tx('guideChampignons'), 'guide'); jeu.voirIndice('champignons'); } } },
     { id: 'videaste', passant: 'videaste', verbe: 'parler', async action(jeu) { await jeu.dire(jeu.tx('videaste'), 'videaste'); await jeu.video(); } },
-    lire('entree', -45.4, 33.4, 0), lire('carte', -49.8, 33.9, 0), lire('yayoi', PANNEAUX.yayoi.x, PANNEAUX.yayoi.z, PANNEAUX.yayoi.ry), lire('nidai', PANNEAUX.nidai.x, PANNEAUX.nidai.z, PANNEAUX.nidai.ry),
+    lire('entree', ESC_PIERRE.pts[0][0], ESC_PIERRE.pts[0][1] - 0.2, 0), lire('carte', -49.8, 33.9, 0), lire('yayoi', PANNEAUX.yayoi.x, PANNEAUX.yayoi.z, PANNEAUX.yayoi.ry), lire('nidai', PANNEAUX.nidai.x, PANNEAUX.nidai.z, PANNEAUX.nidai.ry),
     lire('kuguri', PANNEAUX.kuguri.x, PANNEAUX.kuguri.z, PANNEAUX.kuguri.ry), lire('koke', PANNEAUX.koke.x, PANNEAUX.koke.z, PANNEAUX.koke.ry), lire('tsuji', TSUJI.x0 + 1.0, TSUJI.z1 - 0.8, -PI / 2),
     lire('taiko', PANNEAUX.taiko.x, PANNEAUX.taiko.z, PANNEAUX.taiko.ry), lire('voie', PANNEAUX.voie.x, PANNEAUX.voie.z, PANNEAUX.voie.ry), lire('kosugi', PANNEAUX.kosugi.x, PANNEAUX.kosugi.z, PANNEAUX.kosugi.ry),
     lire('wilson', PANNEAUX.wilson.x, PANNEAUX.wilson.z, PANNEAUX.wilson.ry), lire('jomon', PANNEAUX.jomon.x, PANNEAUX.jomon.z, PANNEAUX.jomon.ry), lire('jinja', PANNEAUX.jinja.x, PANNEAUX.jinja.z, PANNEAUX.jinja.ry),
@@ -2498,13 +2937,16 @@ export function construire(ctx) {
   // les panneaux de lecture (bois, écrits) : le nom, et deux lignes
   const TITRES = { yayoi: '弥生杉', nidai: '二代大杉', kuguri: 'くぐり杉', koke: '苔むす森', taiko: '太鼓岩', voie: '安房森林軌道', kosugi: '小杉谷', wilson: 'ウィルソン株', jomon: '縄文杉', jinja: '益救神社' };
   for (const [id, titre] of Object.entries(TITRES)) {
-    const { x, z, ry } = PANNEAUX[id], y = monde.hauteur(x, z), b = panneau(atelier(), P, { ecrit: true });
+    // (sur le sol dessiné ou sur le plancher ; ses poteaux 70 cm plus bas : sur une pente, ils vont jusqu'au sol)
+    const { x, z, ry } = PANNEAUX[id], y = Math.max(solDessine(x, z), monde.hauteur(x, z)), b = panneau(atelier(), P, { ecrit: true, pied: 0.7 });
     poser(b.fin(), x, z, { y, ry });
     ecrire({ x, y, z, ry }, { ...PAPIER_PANNEAU, texte: titre, fond: '#fff8e8', encre: '#2a2420', lignes: 2 });
     const cx = Math.cos(ry) * 0.6, cz = -Math.sin(ry) * 0.6;
     monde.mur(x - cx, z - cz, x + cx, z + cz, 0.5);
   }
   const actionDaim = (jeu) => jeu.dire(jeu.txn('cerf'));
+  /** Une grenouille à la longueur s du ruisseau, sur sa rive sud : sa place, son eau. */
+  const auBordDuRuisseau = (s) => { const [x, z, , tx, tz] = auPoint(RUISSEAU, s), w = largeRuisseau(s) + 0.3; return { x: x - tz * w, z: z + tx * w, eau: [x, z] }; };
   const depart = { x: DEPART.x, z: DEPART.z, cap: DEPART.cap };
   // les morceaux du décor : près, avec leur trait et leur ombre ; au loin (la forêt des montagnes), sans
   for (const [k, a] of morceaux) poser(a.fin(), 0, 0, { y: 0, ...(Number(k.split(':')[0]) >= 100 ? { trait: false, ombre: false } : {}) });
@@ -2530,7 +2972,7 @@ export function construire(ctx) {
     betes: {
       papillons: [[-20, -20], [-44, 30], [8, 86], [-14, 72], [56, 84]], libellules: [[-28, 10], [-33, 36], [6, 94]],
       milans: [{ x: -20, z: -40, r: 50, h: 46, sens: 1 }],
-      grenouilles: [{ x: 3.0, z: 95.6, eau: [2.6, 94.8] }, { x: -8.0, z: 89.4, eau: [-8.7, 88.5] }, { x: -13.4, z: 82.6, eau: [-14.1, 81.9] }],
+      grenouilles: [auBordDuRuisseau(26), auBordDuRuisseau(38), auBordDuRuisseau(46)],
     },
     aspectSol: (x, z, h) => aspectSol(P, x, z, h),
     solDetaille,
@@ -2538,8 +2980,8 @@ export function construire(ctx) {
     courants,
     // (le bruit de la cascade : sans voile, l'eau glisse sur la dalle)
     cascades: [{ x: BRUIT_CASCADE.x, z: BRUIT_CASCADE.z, y0: 14.7, y1: 7.4, voile: false }],
-    ruisseaux: [RUISSEAU, RIVIERE.slice(0, 11), RAVIN],
-    mares: [[2, 95], [-9, 88], [WILSON.x, WILSON.z]], sonGrenouilles: 'grenouilles',
+    ruisseaux: [RUISSEAU, RIVIERE.slice(0, 11), RAVIN.slice(0, 120), EAU_WILSON.slice(0, 30)],
+    mares: [[1.6, 95.4], [-9.2, 88.2], [WILSON.x, WILSON.z]], sonGrenouilles: 'grenouilles',
     eau: { x0: -1400, x1: 1400, z0: -1400, z1: 1400, niveau: 0, clair: '#58c6c2', profond: '#1b5b9e' },
     centreRive: [-20, -54],
     vent: { dir: [0.4, 0.9], force: 0.7 }, oiseaux: ['milan', 'uguisu'], ambiances: ['vagues', 'insectes', 'ruisseau', 'grenouilles', 'cascade'],
@@ -2694,7 +3136,7 @@ function aspectSol(P, x, z, h) {
   if (h < -0.4) return [h < -4 ? '#3e4a52' : bruit > 0.5 ? '#5a6460' : '#4e5a5c', M.roche];
   // le quai : le béton ; la rue et la route : le goudron ; l'entrée de Shiratani : le goudron du parking
   if (dansRect(QUAI, x, z, 0.1) && h > Y_PORT - 0.3) return [bruit > 0.5 ? '#bdb8ad' : '#b3aea2', M.dalles];
-  if (dansRect(RUE, x, z, 0.05) || dansRect(ENTREE, x, z, 0.05)) return [bruit > 0.5 ? '#77746f' : '#6f6c67', M.route];
+  if (dansRect(RUE, x, z, 0.42) || dansRect(ENTREE, x, z, 0.05)) return [bruit > 0.5 ? '#77746f' : '#6f6c67', M.route];
   { const l = surLaLigne(ROUTE, x, z); if (l.d < 3.05) return [bruit > 0.5 ? '#6e6c69' : '#666461', M.route]; }
   // l'enceinte du sanctuaire : le gravier clair (玉砂利)
   if (dansRect(JINJA, x, z, 0.1)) return [bruit > 0.5 ? '#d6cfbf' : '#cdc6b5', M.terre];
@@ -2702,8 +3144,10 @@ function aspectSol(P, x, z, h) {
   const d = z - zBord(x);
   if (d < 2.6 || h < 0.8) return [h < 0.6 ? '#4d4a43' : bruit > 0.5 ? '#9a948a' : '#8a847a', M.roche];
   if (dansRect(B_RIVIERE, x, z)) { const l = surLaLigne(RIVIERE, x, z); if (l.d < largeRiviere(l.s) + 1.4 + 0.6 * bruit) return [l.d < largeRiviere(l.s) ? '#7f7a70' : bruit > 0.5 ? '#aaa49a' : '#9d978d', M.roche]; }
-  if (dansRect(B_RUISSEAU, x, z) && surLaLigne(RUISSEAU, x, z).d < 0.75) return [bruit > 0.5 ? '#5f5c52' : '#55524a', M.roche];
-  if (dansRect(B_RAVIN, x, z) && surLaLigne(RAVIN, x, z).d < 0.7) return [bruit > 0.5 ? '#5f5c52' : '#55524a', M.roche];
+  // (le lit des ruisseaux : le fond sombre sous l'eau, les galets clairs sur la rive, sur une largeur qui varie)
+  if (dansRect(B_RUISSEAU, x, z)) { const l = surRuisseau(x, z), w = largeRuisseau(l.s); if (l.d < w + 0.45 + 0.5 * bruit) return l.d < w ? ['#5a5e54', M.roche] : [bruit > 0.5 ? '#8f8a7c' : '#7f7a6c', M.terre]; }
+  if (dansRect(B_RAVIN, x, z)) { const l = surRavin(x, z), w = largeRavin(l.s); if (l.d < w + 0.4 + 0.5 * bruit) return l.d < w ? ['#5a5e54', M.roche] : [bruit > 0.5 ? '#8f8a7c' : '#7f7a6c', M.terre]; }
+  if (dansRect(B_WILSON, x, z)) { const l = surEauWilson(x, z); if (l.d < 0.26 + 0.25 + 0.3 * bruit) return l.d < 0.26 ? ['#5a5e54', M.roche] : ['#7f7a6c', M.terre]; }
   // le haut du Taiko-iwa : le granite nu, un peu de lichen
   if (aLaPlace(TAIKO, x, z) < 1.2) return [b2 > 0.7 ? '#8f9a7a' : bruit > 0.5 ? '#b4aea2' : '#a9a397', M.roche];
   // les escaliers de pierre : la pierre ; le palier et le dedans de la souche de Wilson : la terre sombre
@@ -2713,13 +3157,18 @@ function aspectSol(P, x, z, h) {
   { const l = surLaLigne(VOIE, x, z); if (l.d < 1.0) return [bruit > 0.5 ? '#6e655a' : '#655d53', M.terre]; }
   // les sentiers de terre : la terre et les racines
   for (const c of SENTIERS) { if (c.pts === ROUTE || c.pts === VOIE) continue; const l = surLaLigne(c.pts, x, z); if (l.d < c.demi + 0.15 * bruit) return [bruit > 0.55 ? '#7a5e44' : '#6e543d', M.terre]; }
-  if (dansRect(DEVANT_HUTTE, x, z, 0.1) || dansRect(TSUJI, x, z, 0.1) || aLaPlace(RECOIN, x, z) < 0.1) return [bruit > 0.55 ? '#7a5e44' : '#6e543d', M.terre];
+  // (le palier du pont : de la pierre, des dalles ; le devant du refuge, le col, l'abri : la terre)
+  if (dansRect(PALIER_PONT, x, z, 0.15)) return [bruit > 0.5 ? '#a8a297' : '#9d978d', M.dalles];
+  if (dansRect(DEVANT_HUTTE, x, z, 0.1) || AUTOUR_HUTTE.some((r) => dansRect(r, x, z, 0.1)) || dansRect(TSUJI, x, z, 0.1) || aLaPlace(RECOIN, x, z) < 0.1) return [bruit > 0.55 ? '#7a5e44' : '#6e543d', M.terre];
   // la forêt de mousse : la mousse partout (la clairière et tout autour)
   if (aLaPlace(KOKE, x, z) < 6 || Math.hypot(x - CREUX.x, z - CREUX.z) < 7) return [bruit > 0.6 ? '#7aa648' : bruit > 0.3 ? '#6a9a40' : '#5f8a3a', M.mousse];
   // le village : les jardins (l'herbe), entre la mer et la forêt
   if (z < -14) return [bruit > 0.6 ? '#7fae57' : bruit > 0.3 ? '#74a24e' : '#689647', M.herbe];
   // la forêt : les aiguilles rousses des cèdres, des plaques de mousse ; au loin, la forêt sombre
-  if (Math.hypot(x - 20, z - 40) > 150) return [bruit > 0.6 ? '#3e5636' : '#44603a', M.sousBois];
+  // (2026-11-01, du belvédère : « des formes un peu étranges, des espèces de stries, comme si ça scintillait ». Le sol hors de l'étendue
+  // fine, en triangles de 4 m, tirait une matière par triangle entre la mousse verte et les aiguilles rousses : des losanges, des bandes
+  // de triangles. Au-delà des sentiers, une seule teinte, celle du sous-bois)
+  if (Math.hypot(x - 20, z - 40) > 150 || x < ETENDUE.fin.x0 + 1 || x > ETENDUE.fin.x1 - 1 || z > ETENDUE.fin.z1 - 1) return [bruit > 0.6 ? '#3e5636' : '#44603a', M.sousBois];
   return [b2 > 0.45 ? (bruit > 0.5 ? '#5f8a3a' : '#557f34') : bruit > 0.6 ? '#7a5a40' : bruit > 0.3 ? '#6e543a' : '#654c34', b2 > 0.45 ? M.mousse : M.sousBois];
 }
 
@@ -2731,9 +3180,9 @@ const TEXTES = {
     noms: { batelier: 'Le batelier', pecheur: 'Le pêcheur', touriste: 'La randonneuse', touriste2: 'Le randonneur', pretre: 'Le prêtre', artisan: 'L’artisan', loueuse: 'La loueuse', theiere: 'La marchande de thé', serveuse: 'La serveuse', cuisinier: 'Le cuisinier', mangeur: 'Le client', dineuse: 'La cliente', dineur: 'Le client', mamie: 'La grand-mère', chauffeur: 'Le chauffeur du bus', guichet: 'La dame du guichet', guide: 'La guide', randonneur: 'Le randonneur', photographe: 'La photographe', videaste: '@random_japan_place', refuge: 'Le randonneur du refuge', sommets: 'Le randonneur', agent: 'L’agent des sentiers', marcheur: 'La marcheuse', amoureuse: 'L’amoureuse', amoureux: 'L’amoureux', guideJomon: 'La guide', onigiri: 'Le randonneur', ancien: 'Le vieux monsieur' },
     tampons: {
       yakujinja: ['Le sanctuaire de l’île', 'au bout du quai, à l’est : prier au sanctuaire Yaku-jinja'],
-      sarushika: ['Le singe et le cerf', 'dans la forêt de mousse, côté est : regarder le singe sur sa branche, et le cerf dessous'],
-      taikoiwa: ['Le rocher Taiko-iwa', 'en haut des marches de pierre, après le col de Tsuji : regarder les sommets de l’île'],
-      wilson: ['Le cœur de la souche', 'dans la souche de Wilson, sur le sentier d’Ōkabu : lever les yeux au bon endroit'],
+      sarushika: ['Le singe et le cerf', 'au bout est de la forêt de mousse : regarder le singe sur sa branche basse, et le cerf dessous'],
+      taikoiwa: ['Le rocher Taiko-iwa', 'en haut des marches de pierre, après le col de Tsuji : au bloc d’orientation, regarder les sommets de l’île'],
+      wilson: ['Le cœur de la souche', 'dans la souche de Wilson, sur le sentier d’Ōkabu : entrer, se placer sur les deux empreintes et lever les yeux'],
       jomonsugi: ['Le Jōmon Sugi', 'au bout du sentier, sur la plateforme de bois : regarder le plus vieux cèdre de l’île'],
     },
     batelier: ['Nous y voilà : Yakushima ! L’île des cèdres millénaires, et de la pluie.', 'Prends ton temps : je t’attends ici, au port de Miyanoura.'],
@@ -2838,9 +3287,9 @@ const TEXTES = {
     noms: { batelier: 'The boatman', pecheur: 'The fisherman', touriste: 'The hiker', touriste2: 'The hiker', pretre: 'The priest', artisan: 'The craftsman', loueuse: 'The rental clerk', theiere: 'The tea seller', serveuse: 'The waitress', cuisinier: 'The cook', mangeur: 'The customer', dineuse: 'The customer', dineur: 'The customer', mamie: 'The grandmother', chauffeur: 'The bus driver', guichet: 'The ticket lady', guide: 'The guide', randonneur: 'The hiker', photographe: 'The photographer', videaste: '@random_japan_place', refuge: 'The hut hiker', sommets: 'The hiker', agent: 'The trail warden', marcheur: 'The walker', amoureuse: 'The girlfriend', amoureux: 'The boyfriend', guideJomon: 'The guide', onigiri: 'The hiker', ancien: 'The old man' },
     tampons: {
       yakujinja: ['The island’s shrine', 'at the east end of the quay: pray at Yaku Shrine'],
-      sarushika: ['The monkey and the deer', 'in the moss forest, on its east side: watch the monkey on its branch, and the deer below'],
-      taikoiwa: ['Taiko-iwa Rock', 'up the stone steps, past Tsuji Pass: look at the island’s peaks'],
-      wilson: ['The heart in the stump', 'inside Wilson’s Stump, on the Ōkabu trail: look up from the right spot'],
+      sarushika: ['The monkey and the deer', 'at the east end of the moss forest: watch the monkey on its low branch, and the deer below'],
+      taikoiwa: ['Taiko-iwa Rock', 'up the stone steps, past Tsuji Pass: at the viewpoint table, look at the island’s peaks'],
+      wilson: ['The heart in the stump', 'inside Wilson’s Stump, on the Ōkabu trail: go in, stand on the two footprints and look up'],
       jomonsugi: ['Jōmon Sugi', 'at the end of the trail, on the wooden deck: look at the island’s oldest cedar'],
     },
     batelier: ['Here we are: Yakushima! The island of thousand-year-old cedars, and of rain.', 'Take your time: I’ll wait for you here, at Miyanoura harbour.'],
@@ -2946,8 +3395,8 @@ const TEXTES = {
     tampons: {
       yakujinja: ['しまの　じんじゃ', 'みなとの　ひがしの　はし：益救神社に　おまいりする'],
       sarushika: ['サルと　シカ', '苔むす森の　ひがしがわ：えだの　サルと、その下の　シカを　見る'],
-      taikoiwa: ['太鼓岩', '辻峠の　先の　いしだんを　のぼって：しまの　やまやまを　見る'],
-      wilson: ['かぶの　ハート', '大株歩道の　ウィルソン株の　中：ちょうど　いい　ばしょで　上を　見る'],
+      taikoiwa: ['太鼓岩', '辻峠の　先の　いしだんを　のぼって：ほういばんから　しまの　やまやまを　見る'],
+      wilson: ['かぶの　ハート', '大株歩道の　ウィルソン株の　中：ふたつの　あしあとの　上に　立って　上を　見る'],
       jomonsugi: ['縄文杉', 'みちの　おわりの　きの　デッキ：しまで　いちばん　ふるい　スギを　見る'],
     },
     batelier: ['ついたぞ、屋久島だ！　千年の　スギと、雨の　しま。', 'ゆっくり　しておいで。宮之浦港で　まってるからな。'],

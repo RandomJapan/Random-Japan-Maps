@@ -5,11 +5,11 @@
 
 /**
  * Un panneau de bois sous son petit toit, le papier tourné vers −z ; environ 1,8 m. ecrit : son texte est une
- * étiquette (etiquettes.js, PAPIER_PANNEAU), pas des barres d'encre.
+ * étiquette (etiquettes.js, PAPIER_PANNEAU), pas des barres d'encre. pied : ses poteaux descendent d'autant sous le sol (sur une pente).
  */
-export function panneau(a, P, { ecrit = false } = {}) {
-  a.boite(0.14, 1.6, 0.14, P.boisFonce, { x: -0.6, y: 0.8 })
-    .boite(0.14, 1.6, 0.14, P.boisFonce, { x: 0.6, y: 0.8 })
+export function panneau(a, P, { ecrit = false, pied = 0 } = {}) {
+  a.boite(0.14, 1.6 + pied, 0.14, P.boisFonce, { x: -0.6, y: 0.8 - pied / 2 })
+    .boite(0.14, 1.6 + pied, 0.14, P.boisFonce, { x: 0.6, y: 0.8 - pied / 2 })
     .boite(1.5, 0.9, 0.08, P.bois, { y: 1.2 })
     .boite(1.2, 0.6, 0.02, P.papier, { y: 1.2, z: -0.05, trait: false })
     .pignon(1.8, 0.28, 0.42, P.toit, { y: 1.67 });
