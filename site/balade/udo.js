@@ -91,7 +91,10 @@ const TROTTOIR = { x0: -93.2, x1: -84.05, z0: 6.9, z1: 9.28, h: 0.15 };
 const CHOZUYA = { x: -33.8, z: -5.4 };
 // le bureau des porte-bonheur et ses murs blancs, au sud de la place : le sol à plat sous eux (2026-11-01 : il y montait jusqu'au dessus
 // de son socle, en scintillant) et le gravier jusqu'à leur pied
-const BUREAU = { x0: -46, x1: -26.7, z0: PLACE.z1, z1: PLACE.z1 + 5.7 };
+// (2026-11-01 : un rectangle de −46 à −26,7, jusqu'à 14,7, avançait le sol plat dans la mer sur 8 m : la paroi de la falaise s'y interrompait. Le
+// bâtiment seul, et le pied des murs ; la côte passe 2,5 m derrière lui, et le sol retrouve sa pente en 1 m.)
+const BUREAU = { x0: -41.8, x1: -33.2, z0: PLACE.z1, z1: 14.85 };
+const MURS_BUREAU = { x0: -46.3, x1: -26.5, z0: PLACE.z1, z1: PLACE.z1 + 1.2 };
 const PIED_MURS = { x0: PLACE.x0, x1: PLACE.x1, z0: PLACE.z0, z1: PLACE.z1 + 0.95 };
 const DEPART = { x: -90.4, z: 2.6, cap: PI / 2 };
 
@@ -221,7 +224,7 @@ const COTE = [
   [47.4, -46.6], [47.5, -36], [47.4, -28], [47.4, -23.4],
   [47.6, -16], [49.2, -8], [50, 0], [49, 6.6], [46, 10.8], [40, 12.6], [32, 13.2], [26.6, 12.4],
   [25.0, 8], [23.4, 2.4], [23.4, -1.6], [22.0, -3.2], [20.6, -3.0], [19.6, -1.0], [19.2, 2.0], [18.9, 5.4], [18.0, 6.6],
-  [10, 6.6], [2, 6.9], [-6, 7.6], [-14, 9.8], [-24, 12.2], [-36, 16], [-46, 19.6], [-60, 23.6], [-76, 25.8], [-92, 27.6], [-104, 33], [-114, 52],
+  [10, 6.6], [2, 6.9], [-6, 7.6], [-14, 10.4], [-24, 14.2], [-36, 18.4], [-46, 20.6], [-60, 23.6], [-76, 25.8], [-92, 27.6], [-104, 33], [-114, 52],
   [-124, 110], [-136, 260], [-148, 720], [-720, 720],
 ];
 /** Dans le polygone pts ([[x, z]…]) ? */
@@ -247,7 +250,9 @@ function auBordPoly(pts, x, z) {
 const cote = (x, z) => (dansPoly(COTE, x, z) ? 1 : -1) * auBordPoly(COTE, x, z);
 // le platier (千畳敷), au pied de la falaise sud : une table de roche à fleur d'eau, rayée de crêtes parallèles (le « planche à
 // laver des oni », 鬼の洗濯板 : des couches de grès dur et de schiste tendre que la mer a usées)
-const PLATIER = [[-46, 21.4], [-34, 16.6], [-22, 12.6], [-12, 10.2], [-2, 8.4], [10, 7.8], [17.8, 7.8], [18.6, 13], [15.6, 22], [8, 28.6], [-6, 31.6],
+// (son bord nord derrière le pied de la paroi, 2026-11-01 : à 1,5 m de la côte, il laissait au pied de la falaise un filet d'eau d'un mètre, de
+// l'écume en morceaux qui bougeait entre les rochers)
+const PLATIER = [[-46, 20], [-36, 17.6], [-24, 13.4], [-14, 9.6], [-6, 6.8], [2, 6.1], [10, 6], [17.6, 6], [18.6, 13], [15.6, 22], [8, 28.6], [-6, 31.6],
   [-22, 31], [-36, 28.6], [-48, 25]];
 // des rochers plats au large, où la mer brise ; ceux autour du rocher de la tortue
 const RECIFS = [
@@ -327,8 +332,9 @@ function terrain(x, z) {
   }
   // au pied des falaises, des rochers qui sortent de l'eau ; les récifs plats au large (pas dans la crique sous le pont, large
   // de 4 m : ses rochers, à 1,5 m au-dessus de l'eau au milieu, la bouchaient, et la paroi de roche passait par-dessus)
-  if (d > -7 && d < 1.2 && !dansRect(QUAI, x, z, 4) && !(x > 17.4 && x < 26.4 && z > -4.6 && z < 9)) {
-    const r = Math.max(0, bruitDoux(x * 0.55 + 7, z * 0.55, 2) - 0.56) * 5.5;
+  // (pas contre la falaise, 2026-11-01 : leurs bosses, jusqu'à 1,5 m, perçaient sa paroi en taches de sol et faisaient comme des trous dans la roche)
+  if (d > -7 && d < -1 && !dansRect(QUAI, x, z, 4) && !(x > 17.4 && x < 26.4 && z > -4.6 && z < 9)) {
+    const r = Math.max(0, bruitDoux(x * 0.55 + 7, z * 0.55, 2) - 0.56) * 5.5 * lisse(-1, -2.4, d);
     if (r > 0) h = Math.max(h, -0.9 + r);
   }
   for (const r of RECIFS) {
@@ -346,8 +352,10 @@ function terrain(x, z) {
   // ---- les retouches : ce qui est bâti, plat
   // le parking, la rue, la place, l'allée : plats, à la hauteur de la route ; le sol revient à la pente en 2 m
   {
-    const dh = Math.min(versRect(PARKING, x, z), versRect(RUE, x, z), versRect(BOUTIQUES, x, z), versRect(PLACE, x, z), versRect(BUREAU, x, z), versRect(ALLEE, x, z), aLaPlace(RECOIN, x, z) < 0 ? 0 : Math.max(0, aLaPlace(RECOIN, x, z)));
+    const dh = Math.min(versRect(PARKING, x, z), versRect(RUE, x, z), versRect(BOUTIQUES, x, z), versRect(PLACE, x, z), versRect(ALLEE, x, z), aLaPlace(RECOIN, x, z) < 0 ? 0 : Math.max(0, aLaPlace(RECOIN, x, z)));
     if (dh < 2.2) h = Y_ROUTE - 0.03 + (h - Y_ROUTE + 0.03) * lisse(0.25, 2.2, dh);
+    const db = Math.min(versRect(BUREAU, x, z), versRect(MURS_BUREAU, x, z));
+    if (db < 1) h = Y_ROUTE - 0.03 + (h - Y_ROUTE + 0.03) * lisse(0, 1, db);
   }
   // les marches du Rōmon et le dessous du Rōmon : à la hauteur de chaque marche ; le chemin des lanternes
   {
@@ -702,7 +710,8 @@ export function construire(ctx) {
         // (son pied plus près là où il y a peu d'eau devant : dans la crique sous le pont, il n'en laissait presque rien)
         let eau = 0.5;
         while (eau < 6 && cote(x + nx * eau, z + nz * eau) < 0.3) eau += 0.5;
-        const sorti = 0.5 + 1.1 * bruitDoux(x * 0.4, z * 0.4, 2), w = (0.6 + 0.9 * hasard(x, z)) * lisse(1, 6, eau) + 0.8 * lisse(2, 6, eau);
+        // (sur le platier, au sec, un simple liseré au pied de la paroi : jusqu'à 1,6 m de haut, de grandes taches sombres)
+        const sorti = (dansPoly(PLATIER, x, z) ? 0.38 + 0.25 * bruitDoux(x * 0.4, z * 0.4, 2) : 0.5 + 1.1 * bruitDoux(x * 0.4, z * 0.4, 2)), w = (0.6 + 0.9 * hasard(x, z)) * lisse(1, 6, eau) + 0.8 * lisse(2, 6, eau);
         const bas = [x + nx * w, -1.6, z + nz * w], haut = [x - nx * 0.4, sorti, z - nz * 0.4];
         if (prev) {
           const c = bruitDoux(x * 0.6, z * 0.6, 1.5) > 0.5 ? '#4a4741' : '#55514a';
@@ -726,14 +735,19 @@ export function construire(ctx) {
   //    saillie : le sol, qui tombe en 1,4 m, reste derrière la paroi sans qu'il faille la pousser ;
   //  - au-dessus du dernier rang, un rang de fermeture, enterré 12 cm sous le sol dessiné, en arrière du bord : la paroi sort du sol.
   // Vu d'en haut, ce qu'on voit est toujours le plus haut des deux (le sol, la paroi), et les deux sont continus : il n'y a plus de vide
-  // possible entre eux. Aux bouts de la paroi (où la falaise cesse), un bouchon va du dernier rang au rang de fermeture.
+  // possible entre eux. Aux bouts de la paroi (où la falaise cesse), un bouchon, dans le plan de la dernière colonne.
+  // (2026-11-01, « trois endroits avec des scintillements… un sur la falaise ». Ce bouchon était un éventail, de chaque rang à un seul point :
+  // sur une paroi creuse, ses triangles, tous dans un même plan, se recouvraient, de couleurs différentes ; et à côté du Rōmon, il y en avait
+  // deux, face à face : la paroi proche s'arrêtait une colonne avant le coin de la côte, la paroi lointaine commençait à ce coin, et l'on voyait
+  // l'eau par la fente de 1,6 m entre les deux. Elles ont maintenant le même nombre de rangs, et la lointaine continue la proche.)
   {
     const strate = (y, x, z) => (y < 0.7 ? MOUILLE : ROCHES[((Math.floor((y + 1.6 * bruitDoux(x * 0.07, z * 0.07, 2)) / 1.2) % ROCHES.length) + ROCHES.length) % ROCHES.length]);
     const sol = (x, z) => solDessine(x, z).h;
     // (au loin, les falaises montent haut, jusqu'au haut des collines : plus de rangs, et leur bord cherché jusqu'à 16 m)
-    for (const [i0, i1, pas, ombre] of [[13, 47, 1.6, true], [2, 12, 3.2, false], [47, 59, 3.2, false]]) {
-      const loin = pas > 2, RANGS = loin ? Array.from({ length: 11 }, (_, r) => r / 10) : [0, 0.24, 0.46, 0.66, 0.84, 1], dMax = loin ? 16 : 4.4, H = RANGS.length - 1;
-      const ap = atelier(), pp = [], cp = [], colonnes = [];
+    let bout = null;
+    for (const [i0, i1, pas, ombre, suite] of [[13, 47, 1.6, true, 'attend'], [2, 12, 3.2, false], [47, 59, 3.2, false, 'continue']]) {
+      const loin = pas > 2, RANGS = Array.from({ length: 11 }, (_, r) => r / 10), dMax = loin ? 16 : 4.4, H = RANGS.length - 1;
+      const ap = atelier(), pp = [], cp = [], colonnes = suite === 'continue' ? [bout] : [];
       let nPrec = null;
       for (let i = i0; i < i1; i++) {
         const [xa, za] = COTE[i], [xb, zb] = COTE[i + 1], l = Math.hypot(xb - xa, zb - za), n = Math.max(1, Math.round(l / (l > 60 ? pas * 2 : pas)));
@@ -763,7 +777,8 @@ export function construire(ctx) {
             // couches restent à niveau d'une colonne à l'autre)
             const y = r === H ? yHaut : r === 0 ? -2.2 : 0.6 + (yHaut - 0.6) * ((fr - RANGS[1]) / (1 - RANGS[1])) - (hasard(r * 7.3 + px, pz) - 0.5) * 0.12, d0 = quitte(COUPES[0], y);
             const d = Math.min(d0, Math.max(d0 - 1.1, quitte(COUPES[1], y)), Math.max(d0 - 1.1, quitte(COUPES[2], y)));
-            return { y, d: d - marge - (r === H ? 0 : 0.1 + 0.3 * hasard(px * 3.1 + r, pz * 1.7)) };
+            // (une falaise basse a les mêmes rangs, plus serrés : ils avancent moins)
+            return { y, d: d - marge - (r === H ? 0 : (0.1 + 0.3 * hasard(px * 3.1 + r, pz * 1.7)) * Math.min(1, (yHaut - 0.6) / 6)) };
           });
           // le rang de fermeture : dans le sol, en arrière du bord
           const dF = Math.max(dS, col[H].d) + 0.35, yF = Math.min(sol(ptx(dF), ptz(dF)), sol(ptx(dF, -pas / 2), ptz(dF, -pas / 2)), sol(ptx(dF, pas / 2), ptz(dF, pas / 2))) - 0.12;
@@ -776,7 +791,7 @@ export function construire(ctx) {
       for (let tour = 0; tour < 2; tour++) {
         for (let c = 0; c < colonnes.length; c++) {
           const Q = colonnes[c];
-          if (!Q) continue;
+          if (!Q || Q.fige) continue;
           const voisins = [c > 0 && Q.lie ? colonnes[c - 1] : null, colonnes[c + 1]?.lie ? colonnes[c + 1] : null].filter(Boolean);
           Q.col.forEach((V, r) => {
             for (const W of voisins) V.d = Math.min(V.d, W.col[r].d + 0.45);
@@ -786,7 +801,7 @@ export function construire(ctx) {
       }
       // (pas de surplomb : un rang n'est jamais en retrait de celui du dessus ; le pied sous l'eau, un peu en avant)
       for (const Q of colonnes) {
-        if (!Q) continue;
+        if (!Q || Q.fige) continue;
         for (let r = H - 1; r >= 0; r--) Q.col[r].d = Math.min(Q.col[r].d, Q.col[r + 1].d);
         Q.col[0].d = Q.col[1].d - 0.5;
       }
@@ -794,7 +809,7 @@ export function construire(ctx) {
       for (let c = 0; c < colonnes.length; c++) {
         const Q = colonnes[c], P0 = colonnes[c - 1];
         if (!Q) continue;
-        const relie = !!P0 && Q.lie, n = [Q.nx, 0.35, Q.nz];
+        const relie = !!P0 && Q.lie, apres = colonnes[c + 1], suit = !!apres?.lie, n = [Q.nx, 0.35, Q.nz];
         if (relie) {
           for (let r = 0; r <= H; r++) {
             const A = place(P0, r), B = place(Q, r), C = place(Q, r + 1), D = place(P0, r + 1), c2 = strate((A[1] + B[1] + C[1] + D[1]) / 4, Q.px, Q.pz);
@@ -803,12 +818,20 @@ export function construire(ctx) {
             tri(pp, cp, A, C, D, c2, n);
           }
         }
-        // (les bouts de la paroi : un bouchon, de chaque rang au rang de fermeture)
-        if (!relie || !colonnes[c + 1]?.lie) {
-          const F = place(Q, H + 1);
-          for (let r = 0; r < H; r++) { const A = place(Q, r), B = place(Q, r + 1); tri(pp, cp, A, B, F, strate((A[1] + B[1]) / 2, Q.px, Q.pz), n); }
+        // (les bouts de la paroi : un bouchon, tourné vers ce qui n'est plus la paroi ; chaque rang, de sa saillie à une ligne droite derrière,
+        // sous le rang de fermeture : ses morceaux, chacun à sa hauteur, ne se recouvrent pas)
+        if (relie !== suit && !Q.fige && !(suite === 'attend' && c === colonnes.length - 1)) {
+          const V = relie ? P0 : apres, dehors = [Q.px - V.px, 0, Q.pz - V.pz], F = place(Q, H + 1);
+          const dos = (r) => [Q.px - Q.nx * Q.dF, Math.min(place(Q, r)[1], F[1]), Q.pz - Q.nz * Q.dF];
+          for (let r = 0; r < H; r++) {
+            const A = place(Q, r), B = place(Q, r + 1), DA = dos(r), DB = dos(r + 1), c2 = strate((A[1] + B[1]) / 2, Q.px, Q.pz);
+            tri(pp, cp, A, B, DB, c2, dehors);
+            if (DB[1] > DA[1]) tri(pp, cp, A, DB, DA, c2, dehors);
+          }
+          if (F[1] > dos(H)[1]) tri(pp, cp, place(Q, H), F, dos(H), strate(F[1], Q.px, Q.pz), dehors);
         }
       }
+      if (suite === 'attend') { bout = colonnes[colonnes.length - 1]; bout.fige = true; }
       const gp = new THREE.BufferGeometry();
       gp.setAttribute('position', new THREE.Float32BufferAttribute(pp, 3));
       ap.piece(gp, ROCHES[0], { couleurs: cp, nuance: 0.05 });
@@ -853,7 +876,8 @@ export function construire(ctx) {
       };
       for (let s = -60; s <= 60; s += 0.5) {
         const x = -14 + cx * s - cz * o, z = 20 + cz * s + cx * o;
-        const dans = dansPoly(PLATIER, x, z) && auBordPoly(PLATIER, x, z) > 0.6 && cote(x, z) < -1.2 && hasard(Math.floor(s / 2.5) + j * 7, j) > 0.18;
+        // (pas sur les bosses de roche : une crête prenait toute la hauteur de la bosse sous elle, une plaque de roche debout sur le platier)
+        const dans = dansPoly(PLATIER, x, z) && auBordPoly(PLATIER, x, z) > 0.6 && cote(x, z) < -1.2 && terrain(x, z) < 0.5 && hasard(Math.floor(s / 2.5) + j * 7, j) > 0.18;
         if (dans) (tr ||= []).push([x, z]);
         else fini();
       }
@@ -907,7 +931,7 @@ export function construire(ctx) {
         // (chaque tronçon de 90 cm : posé au plus bas du sol sous lui ; un sur deux 1 cm plus épais : bout à bout, pas dans le même plan)
         const f0 = k / n, f1 = (k + 1) / n, xm = xa + (xb - xa) * (f0 + f1) / 2, zm = za + (zb - za) * (f0 + f1) / 2;
         const sol = (f) => (yAt ? yAt(xa + (xb - xa) * f, za + (zb - za) * f) : terrain(xa + (xb - xa) * f, za + (zb - za) * f));
-        const bas = Math.min(sol(f0), sol(f1), sol((f0 + f1) / 2)) - 0.25, haut = Math.max(sol(f0), sol(f1), sol((f0 + f1) / 2)) + h + (k % 2) * 0.012;
+        const bas = Math.min(sol(f0), sol(f1), sol((f0 + f1) / 2)) - 0.25, haut = Math.max(sol(f0), sol(f1), sol((f0 + f1) / 2)) + h + (k % 2) * 0.012 + (i % 2) * 0.005;
         a.piece(new THREE.BoxGeometry(l / n + 0.02, 1, ep + (k % 2) * 0.012, 2, 3, 1), PIERRES[0], {
           x: xm, y: (bas + haut) / 2, z: zm, ry: ang + PI / 2, sy: haut - bas, nuance: 0.07,
           teinte: (wx, wy, wz) => (mousse && wy > haut - 0.08 ? '#7d8a5a' : PIERRES[Math.floor(hasard(Math.floor(wx * 1.4 + wz * 1.4), Math.floor((wy - bas) * 3.2)) * PIERRES.length)]),
@@ -947,6 +971,22 @@ export function construire(ctx) {
   const CUIVRE = '#5f9c8c', CUIVRE2 = '#6eab9a', CUIVRE_F = '#3f7366', OR = '#e2b546', BLANC_PIGNON = '#f3eee2', LAQUE_BOIS = '#7a2c22';
 
   // ---------------------------------------------------------------- Le sanctuaire (本殿) dans la grotte
+  /**
+   * Un tronc des offrandes (賽銭箱) en lz, dans le repère R, sur le sol y : la caisse (L de large, H de haut, Pr de profondeur), son cadre sombre,
+   * et dans le cadre, sur le noir de la fente, des barreaux en dos d'âne, l'arête en haut. (2026-11-01, « sur l'espèce d'autel juste devant
+   * le sanctuaire » : des barreaux à l'envers, leur dos plat dans le plan du dessus du cadre : ils scintillaient avec lui.)
+   */
+  const troncOffrandes = (a, R, y, lz, L, H, Pr, c, barreau) => {
+    const f = 0.06, e = 0.09, Lc = L + 0.08, Pc = Pr + 0.08, yc = y + H + f / 2;
+    a.boite(L, H, Pr, c, R(0, y + H / 2, lz, { nuance: 0.03 }));
+    // le cadre : devant et derrière d'un bout à l'autre, les côtés entre eux, 1 cm plus bas et 1 cm en retrait
+    for (const v of [-1, 1]) a.boite(Lc, f, e, P.boisNoir, R(0, yc, lz + (v * (Pc - e)) / 2));
+    for (const u of [-1, 1]) a.boite(e, f - 0.01, Pc - 2 * e + 0.02, P.boisNoir, R((u * (Lc - e - 0.02)) / 2, yc - 0.005, lz));
+    // la fente, noire ; les barreaux, leurs bouts dans le cadre, leur arête 1,3 cm sous son dessus
+    a.boite(Lc - 2 * e + 0.02, 0.012, Pc - 2 * e + 0.02, '#1e1612', R(0, y + H + 0.012, lz, { trait: false }));
+    const n = Math.floor((Pc - 2 * e) / 0.075);
+    for (let k = 0; k < n; k++) a.pignon(Lc - 2 * e + 0.02, 0.035, 0.065, barreau, R(0, y + H + 0.012, lz + (k - (n - 1) / 2) * 0.075, { trait: false }));
+  };
   // Le grand sanctuaire vermillon d'Udo (八棟造, « aux huit faîtes ») : un socle de pierre, un plancher sur pilotis et sa galerie
   // tout autour, une balustrade rouge aux boutons dorés ; le corps aux portes à treillis, le bandeau blanc des sculptures peintes ;
   // le grand toit de cuivre vert (入母屋), son pignon triangulaire (千鳥破風) sur le devant, le porche au toit ondulé (唐破風) sur
@@ -999,7 +1039,7 @@ export function construire(ctx) {
     for (const u of [-0.7, 0.7]) { a.cylindre(0.06, 0.08, 0.5, 8, OR, R(u, F + 0.25, db / 2 - 0.8, { trait: false })); lumieres.push({ ...R(u, F + 0.6, db / 2 - 0.8), halo: 0, sol: F, r: 1.6, c: '#ffd890', jour: true }); }
     // la poutre du haut, vermillon ; le bandeau des consoles (組物) : des blocs verts, bleus et or sous l'avant-toit
     a.boite(wb + 0.4, 0.22, 0.3, ROUGE, R(0, F + HB + 0.02, db / 2)).boite(wb + 0.4, 0.22, 0.3, ROUGE, R(0, F + HB + 0.02, -db / 2))
-      .boite(0.3, 0.22, db + 0.4, ROUGE, R(wb / 2, F + HB + 0.02, 0)).boite(0.3, 0.22, db + 0.4, ROUGE, R(-wb / 2, F + HB + 0.02, 0));
+      .boite(0.3, 0.2, db + 0.4, ROUGE, R(wb / 2, F + HB + 0.02, 0)).boite(0.3, 0.2, db + 0.4, ROUGE, R(-wb / 2, F + HB + 0.02, 0));
     for (let k = 0; k <= 14; k++) for (const v of [-1, 1]) {
       const lx = -wb / 2 + (k * wb) / 14;
       a.boite(0.2, 0.18, 0.34, k % 2 ? '#3f8a6a' : '#3a6aa8', R(lx, F + HB + 0.22, v * (db / 2 + 0.1))).boite(0.24, 0.06, 0.4, OR, R(lx, F + HB + 0.34, v * (db / 2 + 0.12), { trait: false }));
@@ -1023,7 +1063,7 @@ export function construire(ctx) {
       const n = 6, lz0 = D / 2, prof = 1.7, larg = 2.3;
       for (let k = 0; k < n; k++) {
         const yy = y + ((F - y) * (k + 1)) / (n + 1), lz = lz0 + prof - ((k + 0.5) * prof) / n;
-        a.boite(larg, 0.06, prof / n + 0.04, '#8a6248', R(0, yy - 0.03, lz)).boite(larg, yy - y - 0.06, 0.03, '#5a3a2c', R(0, (yy + y) / 2 - 0.03, lz + prof / n / 2, { trait: false }));
+        a.boite(larg, 0.06, prof / n + 0.04, '#8a6248', R(0, yy - 0.03, lz)).boite(larg - 0.02, yy - y - 0.06, 0.03, '#5a3a2c', R(0, (yy + y) / 2 - 0.03, lz + prof / n / 2, { trait: false }));
       }
       for (const u of [-1, 1]) {
         const q0 = R(u * (larg / 2 + 0.06), y + 0.05, lz0 + prof + 0.05), q1 = R(u * (larg / 2 + 0.06), F, lz0);
@@ -1037,7 +1077,7 @@ export function construire(ctx) {
     {
       const pz = D / 2 + 1.55, PX = 1.35, HP = F - y + HB - 0.2;
       for (const u of [-1, 1]) a.cylindre(0.12, 0.13, HP, 10, ROUGE, R(u * PX, y + HP / 2, pz)).boite(0.3, 0.12, 0.3, P.pierreFonce, R(u * PX, y + 0.06, pz));
-      a.boite(2 * PX + 0.5, 0.26, 0.3, ROUGE, R(0, y + HP - 0.05, pz)).boite(0.24, 0.26, pz - db / 2, ROUGE, R(-PX, y + HP - 0.05, (pz + db / 2) / 2)).boite(0.24, 0.26, pz - db / 2, ROUGE, R(PX, y + HP - 0.05, (pz + db / 2) / 2));
+      a.boite(2 * PX + 0.5, 0.26, 0.3, ROUGE, R(0, y + HP - 0.05, pz)).boite(0.24, 0.24, pz - db / 2, ROUGE, R(-PX, y + HP - 0.05, (pz + db / 2) / 2)).boite(0.24, 0.24, pz - db / 2, ROUGE, R(PX, y + HP - 0.05, (pz + db / 2) / 2));
       // (le toit : un pan bombé de l'avant vers le grand toit ; sa face avant ondule, haute au milieu, creuse vers les bouts)
       const L2 = 2 * PX + 1.1, prof = pz - db / 2 + 1.0, onde = (u) => 0.5 * Math.max(0, 1 - u * u) ** 1.6 - 0.06 * u * u;
       a.piece(new THREE.BoxGeometry(1, 1, 1, 16, 1, 6), CUIVRE, {
@@ -1062,8 +1102,7 @@ export function construire(ctx) {
       }
       // le tronc des offrandes (賽銭箱) au pied de l'escalier : la caisse vermillon, le blason d'or, la grille du dessus
       const zt = D / 2 + 2.15;
-      a.boite(1.6, 0.62, 0.62, ROUGE, R(0, y + 0.31, zt, { nuance: 0.03 })).boite(1.68, 0.06, 0.7, P.boisNoir, R(0, y + 0.65, zt));
-      for (let k = -3; k <= 3; k++) a.pignon(1.5, 0.06, 0.07, '#5a3a2c', R(0, y + 0.68, zt + k * 0.085, { rx: PI, trait: false }));
+      troncOffrandes(a, R, y, zt, 1.6, 0.62, 0.62, ROUGE, '#5a3a2c');
       a.cylindre(0.16, 0.16, 0.02, 20, OR, R(0, y + 0.34, zt + 0.32, { rx: PI / 2, trait: false }));
       murRect(repere(R(0, 0, zt).x, R(0, 0, zt).z, ry), 0.8, 0.31);
     }
@@ -1514,13 +1553,13 @@ export function construire(ctx) {
   // l'échoppe des boules de chance (運玉) : un petit pavillon au toit de cuivre, son comptoir, les plateaux de boules, l'écriteau
   {
     const a = atelier(), E = ECHOPPE, R = repere(E.x, E.z, PI), y = Y_T;
-    for (const [u, v] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) a.boite(0.14, 2.4, 0.14, P.boisFonce, R(u * 1.5, y + 1.2, v * 1.0));
+    for (const [u, v] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) a.boite(0.14, 2.35, 0.14, P.boisFonce, R(u * 1.5, y + 1.175, v * 1.0));
     a.boite(3.2, 0.9, 0.6, P.bois, R(0, y + 0.45, 0.8, { nuance: 0.05 })).boite(3.3, 0.06, 0.7, P.boisFonce, R(0, y + 0.93, 0.8));
     a.boite(3.0, 2.2, 0.08, '#8a6a4e', R(0, y + 1.1, -0.95));
     for (const u of [-1, 1]) a.boite(0.06, 0.95, 1.86, P.bois, R(u * 1.5, y + 0.475, -0.05, { nuance: 0.05 }));
     // (les poutres sur les poteaux, le bandeau de bois sous le toit)
     a.boite(3.3, 0.16, 0.16, P.boisFonce, R(0, y + 2.32, -1.0)).boite(3.3, 0.16, 0.16, P.boisFonce, R(0, y + 2.32, 1.0))
-      .boite(0.15, 0.15, 2.16, P.boisFonce, R(-1.5, y + 2.325, 0)).boite(0.15, 0.15, 2.16, P.boisFonce, R(1.5, y + 2.325, 0));
+      .boite(0.15, 0.15, 2.0, P.boisFonce, R(-1.5, y + 2.32, 0)).boite(0.15, 0.15, 2.0, P.boisFonce, R(1.5, y + 2.32, 0));
     a.toitJapon(4.0, 3.0, 0.75, 0.25, { ...R(0, y + 2.4, 0), tuile: CUIVRE, tuile2: CUIVRE2, bord: CUIVRE_F, rangs: 10, releve: 0.1, murs: { l: 1.56, p: 1.06, y: 0, c: P.boisFonce } });
     // les boules de terre, rangées par cinq dans des plateaux de bois ; une à part, avec le caractère 運
     for (let k = 0; k < 4; k++) {
@@ -1711,14 +1750,14 @@ export function construire(ctx) {
       for (const lz of [-D / 2 + 0.25, D / 2 - 0.25]) {
         a.boite(lb, 0.9, 0.08, BLANC_PIGNON, R(xm, y + 0.45, lz));
         if (lz > 0) a.boite(lb, 2.4, 0.04, LAQUE_BOIS, R(xm, y + 2.1, lz, { trait: false }));
-        for (let k = 1; k < 10; k++) a.boite(0.03, 2.4, 0.06, ROUGE, R(xm - lb / 2 + (k * lb) / 10, y + 2.1, lz));
+        for (let k = 1; k < 10; k++) a.boite(0.03, 2.38, 0.06, ROUGE, R(xm - lb / 2 + (k * lb) / 10, y + 2.1, lz));
         for (let k = 1; k < 7; k++) a.boite(lb, 0.03, 0.06, ROUGE, R(xm, y + 0.9 + k * 0.34, lz));
       }
       {
         const lxb = sg * (W / 2 - 0.25);
         for (const [zb, l] of [[-0.95, 1.54], [0.95, 1.54]]) {
           a.boite(0.08, 0.9, l, BLANC_PIGNON, R(lxb, y + 0.45, zb)).boite(0.04, 2.4, l, LAQUE_BOIS, R(lxb, y + 2.1, zb, { trait: false }));
-          for (let k = 1; k < 5; k++) a.boite(0.06, 2.4, 0.03, ROUGE, R(lxb, y + 2.1, zb - l / 2 + (k * l) / 5));
+          for (let k = 1; k < 5; k++) a.boite(0.06, 2.38, 0.03, ROUGE, R(lxb, y + 2.1, zb - l / 2 + (k * l) / 5));
           for (let k = 1; k < 7; k++) a.boite(0.06, 0.03, l, ROUGE, R(lxb, y + 0.9 + k * 0.34, zb));
         }
         // la balustrade basse, côté passage : ses lisses d'un poteau à l'autre, ses barreaux
@@ -1748,12 +1787,12 @@ export function construire(ctx) {
       for (const [u, v] of [[-ex, ez], [ex, ez], [-ex, -ez], [ex, -ez]]) a.boule(0.07, OR, R(u, yE + 0.84, v), 1);
     }
     a.boite(W2, H2, D2, BLANC_PIGNON, R(0, yE + H2 / 2, 0, { nuance: 0.02 }));
-    for (const lx of [-W2 / 2, -W2 / 6, W2 / 6, W2 / 2]) for (const v of [-1, 1]) a.cylindre(0.14, 0.15, H2, 10, ROUGE, R(lx, yE + H2 / 2, v * D2 / 2));
+    for (const lx of [-W2 / 2, -W2 / 6, W2 / 6, W2 / 2]) for (const v of [-1, 1]) a.cylindre(0.14, 0.15, H2 - 0.01, 10, ROUGE, R(lx, yE + H2 / 2 - 0.005, v * D2 / 2));
     for (const sg of [-1, 1]) for (const v of [-1, 1]) {
       // (les fenêtres à barreaux de bois vert, de chaque côté du tableau, devant et derrière)
       const lx = sg * W2 / 3;
       a.boite(1.1, 1.0, 0.04, '#2f4a42', R(lx, yE + 1.4, v * (D2 / 2 + 0.02), { trait: false }));
-      for (let k = 0; k < 7; k++) a.boite(0.04, 1.0, 0.05, '#4f8a6a', R(lx - 0.45 + k * 0.15, yE + 1.4, v * (D2 / 2 + 0.04), { trait: false }));
+      for (let k = 0; k < 7; k++) a.boite(0.04, 0.98, 0.05, '#4f8a6a', R(lx - 0.45 + k * 0.15, yE + 1.4, v * (D2 / 2 + 0.04), { trait: false }));
     }
     // le tableau peint au milieu de la façade (vers l'allée, l'ouest) : son cadre doré, une vague et un soleil
     {
@@ -1763,10 +1802,11 @@ export function construire(ctx) {
       for (let k = 0; k < 4; k++) a.boite(0.3, 0.06, 0.012, '#f4efe6', { ...q(-0.45 + k * 0.28, 1.32 + 0.05 * Math.sin(k * 2), 0.092), rz: 0.3 * Math.sin(k * 1.7), trait: false });
     }
     // le grand toit : quatre pans de tuiles grises, ses pignons blancs (入母屋), le faîtage et ses bouts ; les consoles vertes dessous
-    for (let k = 0; k <= 10; k++) for (const v of [-1, 1]) a.boite(0.2, 0.24, 0.38, k % 2 ? '#3f8a6a' : OR, R(-W2 / 2 + k * (W2 / 10), yE + H2 + 0.12, v * (D2 / 2 + 0.12)));
+    // (2 cm sous le bandeau du toit, 2 cm au-delà de ses bouts : leurs dessous et leurs bouts étaient dans ses plans, l'or et le vert sur le blanc)
+    for (let k = 0; k <= 10; k++) for (const v of [-1, 1]) a.boite(0.2, 0.24, 0.38, k % 2 ? '#3f8a6a' : OR, R(-W2 / 2 + k * (W2 / 10), yE + H2 + 0.1, v * (D2 / 2 + 0.12)));
     {
       const yt = yE + H2 + 0.3;
-      a.toitJapon(W + 2.2, D + 2.4, 2.0, 0.42, { ...R(0, yt, 0), tuile: P.tuileShiro, tuile2: P.tuileShiroClaire, bord: '#4a4a4e', avant: '#f4efe6', rangs: 26, releve: 0.36, epaisseur: 0.08, murs: { l: W2 / 2 + 0.1, p: D2 / 2 + 0.1, y: -0.3, c: BLANC_PIGNON } });
+      a.toitJapon(W + 2.2, D + 2.4, 2.0, 0.42, { ...R(0, yt, 0), tuile: P.tuileShiro, tuile2: P.tuileShiroClaire, bord: '#4a4a4e', avant: '#f4efe6', rangs: 26, releve: 0.36, epaisseur: 0.08, murs: { l: W2 / 2 + 0.08, p: D2 / 2 + 0.1, y: -0.3, c: BLANC_PIGNON } });
       const lt = (W + 2.2) * 0.42, pt = (D + 2.4) * 0.42, hg = 1.0, ang = Math.atan2(hg, pt / 2), Lp = Math.hypot(hg, pt / 2) + 0.22, yh = yt + 1.96;
       for (const sens of [1, -1]) a.boite(lt + 0.44, 0.1, Lp, P.tuileShiro, R(0, yh + hg / 2 + 0.02, sens * (pt / 4 + 0.05), { rx: sens * ang, nuance: 0.03 }));
       for (const u of [-1, 1]) a.pignon(0.05, hg - 0.06, pt - 0.1, BLANC_PIGNON, R(u * (lt / 2 - 0.04), yh, 0));
@@ -1809,7 +1849,7 @@ export function construire(ctx) {
     const a = atelier(), DEMI = 1.15, n = 12;
     for (let k = 0; k < n; k++) {
       const x0 = PONT.x0 + ((PONT.x1 - PONT.x0) * k) / n, x1 = PONT.x0 + ((PONT.x1 - PONT.x0) * (k + 1)) / n, y0 = yPont(x0), y1 = yPont(x1), xm = (x0 + x1) / 2, ym = (y0 + y1) / 2, l = Math.hypot(x1 - x0, y1 - y0), rz = Math.atan2(y1 - y0, x1 - x0);
-      a.boite(l + 0.02, 0.07, 2 * DEMI, k % 2 ? '#c9b08c' : '#c2a884', { x: xm, y: ym - 0.035, z: PONT.z, rz, nuance: 0.03 });
+      a.boite(l + 0.02, 0.07, 2 * DEMI + (k % 2) * 0.012, k % 2 ? '#c9b08c' : '#c2a884', { x: xm, y: ym - 0.035, z: PONT.z, rz, nuance: 0.03 });
       for (const sg of [-1, 1]) a.boite(l + 0.03, 0.42, 0.16 + (k % 2) * 0.012, ROUGE, { x: xm, y: ym - 0.28, z: PONT.z + sg * (DEMI - 0.02), rz });
     }
     // la rambarde : des poteaux tous les 52 cm, la main courante, la lisse du bas ; les boutons dorés (擬宝珠) aux quatre bouts
@@ -1962,7 +2002,7 @@ export function construire(ctx) {
       a.boite(1.2, 1.9, 0.04, '#2a1e18', R(0, y + 1.25, D / 2 - 0.13, { trait: false })).cylindre(0.15, 0.15, 0.03, 16, OR, R(0, y + 1.4, D / 2 - 0.4, { rx: PI / 2, trait: false }));
       for (const u of [-1, 1]) {
         a.boite(1.0, 1.9, 0.04, LAQUE_BOIS, R(u * 1.15, y + 1.25, D / 2 - 0.12));
-        for (let k = 1; k < 5; k++) a.boite(0.03, 1.9, 0.05, '#3a1a14', R(u * 1.15 - 0.5 + k * 0.2, y + 1.25, D / 2 - 0.1, { trait: false }));
+        for (let k = 1; k < 5; k++) a.boite(0.03, 1.88, 0.05, '#3a1a14', R(u * 1.15 - 0.5 + k * 0.2, y + 1.25, D / 2 - 0.1, { trait: false }));
       }
       a.boite(W + 0.2, 0.22, 0.25, ROUGE, R(0, y + HP + 0.15, D / 2 - 0.12)).boite(W + 0.2, 0.22, 0.25, ROUGE, R(0, y + HP + 0.15, -D / 2 + 0.12));
       a.toitJapon(W + 1.6, D + 1.7, 1.5, 0.35, { ...R(0, y + HP + 0.25, 0), tuile: P.tuileShiro, tuile2: P.tuileShiroClaire, bord: '#4a4a4e', avant: '#f4efe6', rangs: 14, releve: 0.2, murs: { l: 2.0, p: 1.55, y: -0.1, c: BLANC_PIGNON } });
@@ -1976,8 +2016,7 @@ export function construire(ctx) {
       const zc = D / 2 + 0.25;
       a.boule(0.11, OR, R(0, y + HP - 0.15, zc), 1);
       { const c0 = R(0, y + HP - 0.25, zc), c1 = R(0, y + 0.9, zc); a.baton([c0.x, c0.y, c0.z], [c1.x, c1.y, c1.z], 0.03, '#c8302c', 6); }
-      a.boite(0.9, 0.42, 0.42, P.boisFonce, R(0, y + 0.21, D / 2 + 0.7)).boite(0.95, 0.05, 0.47, P.boisNoir, R(0, y + 0.44, D / 2 + 0.7));
-      for (let k = -2; k <= 2; k++) a.pignon(0.85, 0.05, 0.06, P.bois, R(0, y + 0.47, D / 2 + 0.7 + k * 0.08, { rx: PI, trait: false }));
+      troncOffrandes(a, R, y, D / 2 + 0.7, 0.9, 0.42, 0.42, P.boisFonce, P.bois);
       {
         const T3 = (lx, ly) => { const p = R(lx, ly, D / 2 + 0.05); return [p.x, p.y, p.z]; };
         a.tube([T3(-W / 2 + 0.2, y + HP - 0.05), T3(0, y + HP - 0.22), T3(W / 2 - 0.2, y + HP - 0.05)], 0.05, '#d8c48a', { cotes: 7, pas: 12 });
@@ -2059,7 +2098,8 @@ export function construire(ctx) {
     // les murs blancs (築地塀), de la porte aux bords de la place : le bas de pierre, le mur blanc, le chaperon de tuiles
     for (const sg of [-1, 1]) {
       const z0 = sg * (W / 2 + 0.05), z1 = sg * (PLACE.z1 + 0.6), l = Math.abs(z1 - z0), zm = (z0 + z1) / 2;
-      a.boite(0.7, 0.4, l, PIERRES[1], { x: S.x, y: y + 0.1, z: zm }).boite(0.5, 1.9, l, BLANC_PIGNON, { x: S.x, y: y + 1.15, z: zm, nuance: 0.02 })
+      // (le mur blanc 3 cm plus court que son pied, au bout : les deux bouts étaient dans le même plan)
+      a.boite(0.7, 0.4, l, PIERRES[1], { x: S.x, y: y + 0.1, z: zm }).boite(0.5, 1.9, l - 0.03, BLANC_PIGNON, { x: S.x, y: y + 1.15, z: zm - sg * 0.015, nuance: 0.02 })
         .pignon(l + 0.1, 0.36, 0.9, P.tuileShiro, { x: S.x, y: y + 2.1, z: zm, ry: PI / 2 });
       monde.mur(S.x, z0, S.x, z1, 0.52);
       monde.bloc(S.x - 0.45, S.x + 0.45, Math.min(z0, z1), Math.max(z0, z1), y - 1, y + 2.5);
@@ -2159,10 +2199,12 @@ export function construire(ctx) {
     // elle était dans la grande lanterne nord de la porte : un poteau dans son socle, la lanterne à travers le toit)
     {
       const R = repere(CHOZUYA.x, CHOZUYA.z, PI / 2);
-      for (const [u, v] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) a.boite(0.14, 2.3, 0.14, ROUGE, R(u * 1.0, y + 1.15, v * 0.75));
+      for (const [u, v] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) a.boite(0.14, 2.25, 0.14, ROUGE, R(u * 1.0, y + 1.125, v * 0.75));
       // (les poutres sur les poteaux, le bandeau rouge sous le toit : il ne tient plus sur quatre pointes)
+      // (2026-11-01, « un sur l'espèce de montant de l'abri » : les bouts des poutres courtes, plus sombres, étaient dans le plan de la face
+      // des poutres longues : des carrés sombres qui scintillaient en haut des poteaux. Ils finissent au milieu des poutres longues.)
       a.boite(2.2, 0.16, 0.16, ROUGE, R(0, y + 2.22, -0.75)).boite(2.2, 0.16, 0.16, ROUGE, R(0, y + 2.22, 0.75))
-        .boite(0.15, 0.15, 1.66, ROUGE_F, R(-1.0, y + 2.225, 0)).boite(0.15, 0.15, 1.66, ROUGE_F, R(1.0, y + 2.225, 0));
+        .boite(0.15, 0.15, 1.5, ROUGE_F, R(-1.0, y + 2.22, 0)).boite(0.15, 0.15, 1.5, ROUGE_F, R(1.0, y + 2.22, 0));
       a.toitJapon(2.8, 2.3, 0.75, 0.3, { ...R(0, y + 2.3, 0), tuile: CUIVRE, tuile2: CUIVRE2, bord: CUIVRE_F, rangs: 10, releve: 0.1, murs: { l: 1.06, p: 0.81, y: 0, c: ROUGE } });
       // (l'eau 1,2 cm au-dessus du bassin : 1 cm dessous, on ne la voyait pas)
       a.boite(1.4, 0.65, 0.75, P.pierre, R(0, y + 0.33, 0, { nuance: 0.07 })).boite(1.2, 0.03, 0.55, '#5aa0a8', R(0, y + 0.652, 0, { trait: false, nuance: 0 }));
@@ -2263,7 +2305,7 @@ export function construire(ctx) {
             a.boite(xm - x0, 1.92, 0.02, VITRE, R(xc, F + 0.96, zv + dz, { trait: false }));
             for (const xs of [xc - (xm - x0) / 2 + 0.03, xc + (xm - x0) / 2 - 0.03]) a.boite(0.05, 1.92, 0.05, ALU, R(xs, F + 0.975, zv + dz + 0.012, { trait: false }));
           }
-          a.boite(l + 0.02, 0.06, 0.1, ALU, R(xm, F + 1.92, zv - 0.01, { trait: false })).boite(l + 0.02, 0.02, 0.1, ALU, R(xm, F + 0.01, zv - 0.01, { trait: false }));
+          a.boite(l + 0.02, 0.06, 0.1, ALU, R(xm, F + 1.92, zv - 0.01, { trait: false })).boite(l + 0.02, 0.03, 0.1, ALU, R(xm, F + 0.015, zv - 0.01, { trait: false }));
           a.boite(0.05, 1.92, 0.05, ALU, R(x1 - 0.03, F + 0.975, zv + 0.01, { trait: false }));
         } else {
           a.boite(l + 0.02, 1.92, 0.02, VITRE, R(xm, F + 0.96, zv, { trait: false }));
@@ -2372,7 +2414,7 @@ export function construire(ctx) {
         tenir(lx - 0.84, lz - 0.4, lx + 0.84, lz + 0.4);
       };
       // (un bol : sa coupe, ce qu'il y a dedans ; une assiette, son plat)
-      const bol = (lx, yy, lz, c = '#f4efe2', dedans = '#c89a5a', r = 0.08) => a.cylindre(r, r * 0.65, r * 0.75, 12, c, R(lx, yy + r * 0.37, lz)).cylindre(r * 0.92, r * 0.92, 0.008, 12, dedans, R(lx, yy + r * 0.72, lz, { trait: false }));
+      const bol = (lx, yy, lz, c = '#f4efe2', dedans = '#c89a5a', r = 0.08) => a.cylindre(r, r * 0.65, r * 0.75, 12, c, R(lx, yy + r * 0.37, lz)).cylindre(r * 0.92, r * 0.92, 0.008, 12, dedans, R(lx, yy + r * 0.72 + 0.006, lz, { trait: false }));
       const assiette = (lx, yy, lz, plat) => { a.cylindre(0.13, 0.1, 0.02, 14, '#f4efe2', R(lx, yy + 0.01, lz)); plat(lx, yy + 0.02, lz); };
       // (des baguettes posées)
       const baguettes = (lx, yy, lz) => { a.baton(T3(lx - 0.1, yy + 0.008, lz + 0.12), T3(lx + 0.12, yy + 0.008, lz + 0.14), 0.005, '#8a5a3a', 3, { trait: false }); };
@@ -2620,7 +2662,7 @@ export function construire(ctx) {
     const a = atelier(), Q = QUAI, y = Y_PORT;
     // le bord du quai : sa face de béton dans l'eau, la bordure, les pneus pendus (les défenses), les bittes et la corde
     a.boite(Q.x1 - Q.x0, y + 2.6, 0.7, BETON, { x: (Q.x0 + Q.x1) / 2, y: (y - 2.6) / 2, z: Q.z0 - 0.3, nuance: 0.05 });
-    a.boite(Q.x1 - Q.x0, 0.22, 0.42, '#c9c4b8', { x: (Q.x0 + Q.x1) / 2, y: y + 0.08, z: Q.z0 + 0.2, nuance: 0.04 });
+    a.boite(Q.x1 - Q.x0 + 0.04, 0.22, 0.42, '#c9c4b8', { x: (Q.x0 + Q.x1) / 2, y: y + 0.08, z: Q.z0 + 0.2, nuance: 0.04 });
     const bittes = [];
     for (let x = Q.x0 + 1.2; x <= Q.x1 - 1.0; x += 3.6) {
       a.cylindre(0.16, 0.2, 0.42, 10, '#2e2e32', { x, y: y + 0.4, z: Q.z0 + 0.2 }).cylindre(0.24, 0.24, 0.08, 10, '#2e2e32', { x, y: y + 0.62, z: Q.z0 + 0.2 });
@@ -3485,8 +3527,8 @@ function voiture(THREE, a, R, y, c, sorte) {
   }
   a.boite(Math.min(0.62, W - 0.95), 0.12, 0.02, SOMBRE, R(0, y + yb - 0.29, zf + 0.04 + 0.002, { trait: false }));
   for (const [zp, sens] of [[zf, 1], [zr, -1]]) {
-    a.boite(0.33, 0.165, 0.014, V.plaque, R(0, y + g + 0.26, zp + sens * (0.04 + 0.006), { trait: false }))
-      .boite(0.2, 0.03, 0.006, sorte === 'kei' ? '#2a2a2a' : '#2f6a4a', R(0, y + g + 0.28, zp + sens * (0.04 + 0.015), { trait: false }));
+    a.boite(0.33, 0.165, 0.014, V.plaque, R(0, y + g + 0.26, zp + sens * (0.04 + 0.01), { trait: false }))
+      .boite(0.2, 0.03, 0.006, sorte === 'kei' ? '#2a2a2a' : '#2f6a4a', R(0, y + g + 0.28, zp + sens * (0.04 + 0.019), { trait: false }));
   }
   // les rétroviseurs, les poignées des portes
   for (const u of [-1, 1]) {
