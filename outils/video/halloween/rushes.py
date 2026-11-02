@@ -77,6 +77,7 @@ def tourner(nav, nom, reglages, vertical=False, facteur=0.1, ips=30):
         localStorage.setItem('modeDev', 'non');
         localStorage.setItem('qualite', JSON.stringify({{ niveau: 'fine', impose: 'fine' }}));
         localStorage.setItem('yokaiTrouves', '{str(trouves).replace("'", '"')}');
+        {''.join(f"localStorage.setItem({k!r}, {v!r});" for k, v in reglages.get('stockage', {}).items())}
     }} catch {{}}
     window.__FACTEUR_RALENTI = {facteur};
     window.__VERTICAL = {'true' if vertical else 'false'};""")
