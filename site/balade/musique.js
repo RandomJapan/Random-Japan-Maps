@@ -417,6 +417,41 @@ const AIRS = {
     jour: { tempo: 92, lead: 'shakuhachi', arpege: 'koto', basse: 'pizzDoux', nappe: true, batterie: 'legere' },
     nuit: { tempo: 70, lead: 'boite', arpege: 'kotoDoux', basse: 'pizzDoux', nappe: true, batterie: null },
   },
+  // La mineur, avec un sol dièse de temps en temps (2026-11-02) : les dunes de Tottori, le vent et le sable, un pas lent de chameau ; un air
+  // qui ondule, un peu lointain. Le jour, la flûte sur le koto, à 88 battements ; la nuit, la boîte à musique, à 64
+  tottori: {
+    gamme: [9, 11, 0, 2, 4, 5, 7], // la mineur (pour la seconde voix)
+    intro: ['Am', 'E'],
+    A: {
+      accords: ['Am', 'Am', 'F', 'E', 'Am', 'G', 'F E', 'Am'],
+      melodie: [
+        [69, 6], [71, 2], [72, 4], [71, 2], [69, 2],
+        [68, 4], [69, 4], [71, 8],
+        [72, 6], [74, 2], [76, 4], [74, 2], [72, 2],
+        [71, 12], [null, 4],
+        [76, 6], [77, 2], [76, 4], [74, 2], [72, 2],
+        [74, 6], [72, 2], [71, 4], [67, 4],
+        [69, 4], [71, 2], [72, 2], [71, 4], [68, 4],
+        [69, 12], [null, 4],
+      ],
+      fin2: [[69, 8], [72, 4], [76, 4]],
+    },
+    B: {
+      accords: ['F', 'C', 'G', 'Am', 'F', 'C', 'Dm E', 'Am'],
+      melodie: [
+        [81, 6], [79, 2], [77, 4], [76, 4],
+        [79, 6], [76, 2], [72, 8],
+        [74, 4], [76, 2], [74, 2], [71, 4], [67, 4],
+        [69, 12], [null, 4],
+        [77, 4], [76, 2], [74, 2], [72, 4], [74, 4],
+        [76, 6], [72, 2], [67, 8],
+        [69, 4], [71, 4], [72, 2], [71, 2], [68, 4],
+        [69, 12], [null, 4],
+      ],
+    },
+    jour: { tempo: 88, lead: 'flute', arpege: 'koto', basse: 'pizzDoux', nappe: true, batterie: 'legere' },
+    nuit: { tempo: 64, lead: 'boite', arpege: 'kotoDoux', basse: 'pizzDoux', nappe: true, batterie: null },
+  },
   // Ré majeur, la gamme yo (ré mi sol la si) : l'air de la danse des fêtes d'été, sautillant (112 battements : la
   // danse du voyageur est réglée dessus, personnages.js)
   odori: {

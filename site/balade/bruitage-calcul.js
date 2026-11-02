@@ -897,6 +897,35 @@ const OISEAUX = {
       .ton(0.52, 0.24, (t) => 700 + 420 * Math.sin(Math.PI * Math.min(1, t / 0.24) * 0.85), ad(0.03, 0.09, 0.24));
     return cadrer([echo(c.b, sr)], sr, 0.25);
   },
+  // (Tottori, 2026-11-02) le chameau : un long grognement du fond de la gorge, rauque, qui monte puis retombe, son souffle
+  chameau(sr, r) {
+    const c = composer(sr, r, 1.5);
+    c.cri(0.02, 0.95, (t) => 118 + 60 * Math.sin(Math.PI * Math.min(1, t / 0.95)) + 8 * Math.sin(TAU * 7 * t), ad(0.09, 0.3, 0.95), { fc: 620, bw: 420, rauque: 1 });
+    c.bruit(0.02, { f: 480, q: 0.8, duree: 1.0, forme: ad(0.1, 0.4, 1.0), gain: 0.12 });
+    return cadrer([echo(c.b, sr)], sr, 0.25);
+  },
+  // les grelots de la caravane : trois petites sonnailles de bronze, loin, qui se répondent, chacune ses partiels pas tout à fait justes
+  grelots(sr, r) {
+    const c = composer(sr, r, 1.3);
+    const f0 = 1180 + 110 * r();
+    for (const [t0, k, g] of [[0.01, 1, 0.9], [0.17, 1.26, 0.6], [0.38, 0.94, 0.75], [0.62, 1.12, 0.45]]) c.modes(t0, [[f0 * k, g, 0.28], [f0 * k * 2.42, 0.42 * g, 0.16], [f0 * k * 3.87, 0.2 * g, 0.08], [f0 * k * 5.3, 0.08 * g, 0.05]]);
+    return cadrer([echo(c.b, sr)], sr, 0.3);
+  },
+  // le sable sous la planche : un chuintement qui passe, quelques grains
+  glisse(sr, r) {
+    const c = composer(sr, r, 0.55);
+    c.bruit(0.0, { f: 2600, q: 0.7, duree: 0.5, forme: ad(0.06, 0.18, 0.5), gain: 0.5 });
+    c.bruit(0.0, { f: 900, q: 0.6, duree: 0.5, forme: ad(0.08, 0.2, 0.5), gain: 0.22 });
+    return cadrer([c.b], sr, 0.2);
+  },
+  // la caravane qui s'effrite : un long souffle de sable qui file, de plus en plus fin
+  poudre(sr, r) {
+    const c = composer(sr, r, 5.2);
+    c.bruit(0.0, { f: 2100, q: 0.5, duree: 5.0, forme: ad(0.8, 2.4, 5.0), gain: 0.5 });
+    c.bruit(0.2, { f: 5200, q: 0.8, duree: 4.4, forme: ad(1.2, 1.8, 4.4), gain: 0.3 });
+    c.bruit(0.0, { f: 420, q: 0.6, duree: 3.0, forme: ad(0.6, 1.4, 3.0), gain: 0.16 });
+    return cadrer([echo(c.b, sr)], sr, 0.3);
+  },
   // (Yakushima, 2026-11-01) les petits esprits : du tout petit bois creux qu'on frappe, « tok, tok », un rien plus aigu que Saya, leur cousin
   esprit(sr, r) {
     const c = composer(sr, r, 0.5);

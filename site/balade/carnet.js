@@ -295,6 +295,19 @@ const MOTIFS = {
     <circle cx="40" cy="66" r="3.4" class="vide"/><circle cx="80" cy="66" r="3.4" class="vide"/>
     <path d="M40 74 Q36 82 40 86 Q44 82 40 74 Z M80 78 Q76 86 80 90 Q84 86 80 78 Z"/>
     <path d="M28 98 H92 L86 112 H34 Z"/><path d="M36 102 Q60 98 84 102" class="vide" fill="none" stroke-width="2.2"/>`,
+  // Tottori (2026-11-02) : le Dos de cheval et la mer ; le chameau à deux bosses ; la planche qui descend la pente ; la Sagrada Família de sable ; l'oasis
+  crete: `<circle cx="88" cy="24" r="11" opacity="0.5"/><path d="M2 60 H118" fill="none" stroke-width="2.4" opacity="0.5"/><path d="M2 72 H118 M2 84 H60" fill="none" stroke-width="2" opacity="0.35"/>
+    <path d="M2 112 Q26 86 56 64 Q70 54 76 52 Q88 66 118 92 L118 116 L2 116 Z"/>
+    <path d="M20 106 Q40 94 58 92 M34 112 Q56 100 78 100 M60 112 Q78 106 96 108" fill="none" class="vide" stroke-width="2.2"/>
+    <rect x="71" y="30" width="4" height="24"/><rect x="62" y="30" width="22" height="8" rx="1"/>`,
+  chameau: `<path d="M12 112 L14 78 Q12 64 22 56 Q30 40 40 40 Q48 40 52 52 Q58 58 64 52 Q68 38 78 38 Q86 40 88 54 L90 62 Q96 62 100 54 Q98 40 102 30 L100 26 L110 22 L116 28 L112 34 Q110 54 104 68 Q98 78 88 78 L90 112 L82 112 L78 84 Q58 90 40 84 L34 112 L26 112 L26 86 L20 112 Z"/>
+    <path d="M44 62 Q58 70 74 62 L74 74 Q58 80 44 74 Z" class="vide"/><path d="M50 62 V76 M59 66 V78 M68 64 V76" fill="none" stroke-width="2.6"/>`,
+  planche: `<path d="M2 40 L118 112 L2 112 Z" opacity="0.35"/><path d="M26 62 L84 98 L80 104 L22 68 Z"/><circle cx="50" cy="34" r="9"/><path d="M50 44 L56 66 L66 74 M54 54 L72 46 M54 54 L34 48 M56 66 L44 74" fill="none" stroke-width="5.5" stroke-linecap="round"/>
+    <path d="M24 56 l-8 -8 M16 64 l-9 -4 M30 52 l-5 -9" fill="none" stroke-width="2.6" stroke-linecap="round"/>`,
+  sculpture: `<path d="M16 112 V70 L24 62 V112 Z M96 112 V62 L104 70 V112 Z"/><path d="M34 112 L38 26 L44 8 L50 26 L52 112 Z M68 112 L70 26 L76 8 L82 26 L86 112 Z"/><path d="M52 112 V60 L60 44 L68 60 V112 Z"/><path d="M54 112 V76 Q60 62 66 76 V112 Z" class="vide"/>
+    <path d="M40 40 h6 M40 54 h7 M73 40 h6 M73 54 h7 M40 68 h8 M72 68 h8" class="vide" fill="none" stroke-width="2.6"/><path d="M6 112 H114 V117 H6 Z"/>`,
+  oasis: `<path d="M2 62 Q34 30 66 22 Q86 40 118 62 L118 70 L2 70 Z" opacity="0.4"/><ellipse cx="60" cy="88" rx="50" ry="19"/><path d="M26 86 Q44 80 62 86 M60 94 Q76 90 92 94" class="vide" fill="none" stroke-width="2.4"/>
+    <path d="M12 70 l-4 -18 M16 70 l1 -22 M20 70 l5 -16 M100 74 l-4 -18 M104 74 l1 -22 M108 74 l5 -16" fill="none" stroke-width="2.8" stroke-linecap="round"/>`,
   // Yakushima (2026-10-31) : le torii de pierre du Yaku-jinja devant les montagnes ; le singe sur sa branche et le cerf dessous ; le
   // rocher Taiko-iwa et les sommets ; la souche de Wilson et son cœur de ciel ; le Jōmon Sugi, son tronc énorme et sa cime
   yakujinja: `<path d="M4 84 L30 44 L46 62 L66 30 L92 66 L104 54 L116 84 Z" opacity="0.35"/>

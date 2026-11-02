@@ -49,6 +49,8 @@ const V = {
   singe: 0.045, corne: 0.05,
   // (Yakushima) les petits esprits, le grand cerf (oiseau())
   esprit: 0.075, cerf: 0.11,
+  // (Tottori) le grognement du chameau, les grelots de la caravane, le sable qui chuinte sous la planche, la caravane qui s'effrite (oiseau())
+  chameau: 0.1, grelots: 0.05, glisse: 0.07, poudre: 0.1,
 };
 const lisse = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
 
@@ -76,7 +78,7 @@ export function creerBruitage({ oiseaux = [], ambiances = [], betes = [], extras
     // (les cris d'abord : le choix du compagnon les fait entendre dès le départ)
     const sr = ctx.sampleRate, liste = ['cri/kon', 'cri/pon', 'cri/chapu', 'cri/gao', 'cri/fuwa', 'cri/saya', 'pouf', 'tambour'];
     for (const sol of Object.keys(SOLS)) for (let v = 0; v < VARIANTES; v++) liste.push(`pas/${sol}/${v}`);
-    liste.push('boucle/ventDoux', 'boucle/ventFort', 'boucle/feuilles', 'ebrouer', ...ambiances.map((a) => `boucle/${a}`), ...oiseaux.map((o) => `oiseau/${o}`), ...betes.map((b) => `bete/${b}`), ...extras, ...enAttente.splice(0));
+    liste.push('boucle/ventDoux', 'boucle/ventFort', 'boucle/feuilles', 'ebrouer', 'oiseau/grelots', ...ambiances.map((a) => `boucle/${a}`), ...oiseaux.map((o) => `oiseau/${o}`), ...betes.map((b) => `bete/${b}`), ...extras, ...enAttente.splice(0));
     recevoir = ({ quoi, canaux }) => {
       if (!canaux) return;
       const b = ctx.createBuffer(canaux.length, canaux[0].length, sr);

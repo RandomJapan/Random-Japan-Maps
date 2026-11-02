@@ -659,6 +659,42 @@ const CARTE_SOL_GLSL = `
   }`;
 
 /**
+ * Le sable d'une dune (lieu.dunes ; 2026-11-02, les dunes de Tottori) : les rides du vent (風紋), de petites vagues travers au vent,
+ * en deux tailles, qui se resserrent et s'effacent par endroits ; plus de rides dans une pente raide, où le sable coule : de longues
+ * traînées sombres dans le sens de la pente (砂簾, les « rideaux de sable »), plus marquées du côté de la mer, où le sable est
+ * humide. Rien qu'un bruit lisse de plus par pixel, et un autre sur les pentes ; là où une ride ferait moins de deux pixels
+ * (fwidth), elle s'efface : pas de moiré au loin. dunes : x, 1 si le lieu en a ; y, z : le sens du vent, dans le plan.
+ */
+const DUNES_GLSL = `
+  uniform vec4 dunes;
+  vec3 sableDunes(vec3 c, vec3 p, vec3 n) {
+    vec2 d = dunes.yz;
+    float le = dot(p.xz, d), tr = dot(p.xz, vec2(-d.y, d.x));
+    float plat = smoothstep(0.84, 0.94, n.y);
+    if (plat > 0.01) {
+      // la ride ondule le long de sa crête ; le creux à l'abri du vent, juste derrière elle, plus sombre
+      float o = bruitLisse(vec2(le * 0.06, tr * 0.045)), o2 = bruitLisse(vec2(le * 0.31, tr * 0.2) + 3.7);
+      float phase = le * 2.1 + o * 18.0 + o2 * 1.3;
+      float l = fwidth(phase), v = fract(phase);
+      float vague = smoothstep(0.0, 0.78, v) - smoothstep(0.78, 1.0, v);
+      float force = 0.35 + 0.65 * smoothstep(0.35, 0.68, bruitLisse(vec2(le * 0.022 + 9.0, tr * 0.017)));
+      c *= 1.0 + (vague - 0.55) * 0.25 * force * plat * (1.0 - smoothstep(0.22, 0.6, l));
+      // et de plus fines, tout près
+      float phase2 = le * 7.3 + o * 44.0 + o2 * 3.1, l2 = fwidth(phase2), v2 = fract(phase2);
+      c *= 1.0 + (smoothstep(0.0, 0.7, v2) - smoothstep(0.7, 1.0, v2) - 0.5) * 0.13 * plat * (1.0 - smoothstep(0.2, 0.55, l2));
+    }
+    float raide = 1.0 - smoothstep(0.86, 0.95, n.y);
+    if (raide > 0.01) {
+      // (x + y : les traînées descendent en biais, comme sur la pente du vrai Dos de cheval, vue de la mer)
+      float u = p.x + p.y * 0.55 + 3.0 * bruitLisse(p.xz * 0.04);
+      float t = bruitLisse(vec2(u * 0.55, p.y * 0.05)), t2 = bruitLisse(vec2(u * 2.1 + 5.0, p.y * 0.12));
+      float mer = 0.2 + 0.8 * smoothstep(0.0, 0.5, -n.z);
+      c *= 1.0 - raide * mer * (0.34 * smoothstep(0.48, 0.74, t) + 0.2 * smoothstep(0.55, 0.8, t2));
+    }
+    return c;
+  }`;
+
+/**
  * Le sol selon la saison (après la peinture ; couche : la matière, textures.js) : au printemps, l'herbe plus tendre et
  * des pétales tombés sous les cerisiers ; à l'automne, l'herbe dorée et les feuilles mortes sous les arbres (jaunes,
  * orangées, rouges comme leur arbre ; des étoiles d'érable sous les érables) ; l'hiver, la neige partout où c'est
@@ -849,15 +885,17 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
   const ombreSol = { ombreSol: { value: null }, zoneOmbre: { value: new THREE.Vector4(0, 0, 1, 0) }, tailleOmbre: { value: new THREE.Vector2(1, 1) } };
   const eauSol = { value: new THREE.Vector4(0, 0, 0, 0) };
   const sol = new THREE.MeshToonMaterial({ vertexColors: true, gradientMap: douce });
+  // (le sable d'une dune, lieu.dunes : DUNES_GLSL)
+  const dunes = { value: new THREE.Vector4(0, 0.7, 0.7, 0) };
   sol.onBeforeCompile = (s) => {
     Object.assign(s.uniforms, communs, carte, { saisons });
     eclairerParLampes(s, lampes);
-    Object.assign(s.uniforms, canopee, ombreSol, abri, { eauSol });
+    Object.assign(s.uniforms, canopee, ombreSol, abri, { eauSol, dunes });
     s.vertexShader = s.vertexShader
       .replace('#include <common>', '#include <common>\nattribute float motif;\nvarying float vMotif;\nvarying vec3 vMonde;\nvarying vec3 vMondeN;')
       .replace('#include <project_vertex>', '#include <project_vertex>\nvMotif = motif;\nvMonde = (modelMatrix * vec4(transformed, 1.0)).xyz;\nvMondeN = mat3(modelMatrix) * objectNormal;');
     s.fragmentShader = s.fragmentShader
-      .replace('#include <common>', `#include <common>\nvarying float vMotif;\nvarying vec3 vMonde;\nvarying vec3 vMondeN;${BRUIT_GLSL}${PEINDRE_GLSL}${PEINDRE_SOL_GLSL}${CARTE_SOL_GLSL}${ABRI_GLSL}${SOL_SAISON_GLSL}${CAUSTIQUES_GLSL}${OMBRE_SOL_GLSL}`)
+      .replace('#include <common>', `#include <common>\nvarying float vMotif;\nvarying vec3 vMonde;\nvarying vec3 vMondeN;${BRUIT_GLSL}${PEINDRE_GLSL}${PEINDRE_SOL_GLSL}${CARTE_SOL_GLSL}${ABRI_GLSL}${SOL_SAISON_GLSL}${CAUSTIQUES_GLSL}${OMBRE_SOL_GLSL}${DUNES_GLSL}`)
       .replace('#include <color_fragment>', `#include <color_fragment>
         {
           float couche = floor(vMotif + 0.5);
@@ -867,7 +905,9 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
           diffuseColor.rgb *= 0.94 + 0.12 * bruitLisse(vMonde.xz * 0.13);
           // (la normale lissée du terrain, pas celle de chaque triangle : pas de facettes)
           vec3 nl = normalize(vMondeN);
-          diffuseColor.rgb = solSaison(peindreSol(diffuseColor.rgb, couche, vMonde, nl), couche, vMonde, nl);
+          vec3 peint = peindreSol(diffuseColor.rgb, couche, vMonde, nl);
+          if (dunes.x > 0.5 && couche > 0.5 && couche < 1.5) peint = sableDunes(peint, vMonde, nl);
+          diffuseColor.rgb = solSaison(peint, couche, vMonde, nl);
           diffuseColor.rgb *= lireOmbreSol(vMonde.xz);
         }`)
       .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += caustiques(vMonde);');
@@ -974,7 +1014,7 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
   };
   return {
     corps, corpsPerso, sol, trait: creerTrait(true, epaisseurs.decor), traitPerso: creerTrait(false, epaisseurs.perso),
-    brume, coupe, ecran, epaisseurs, carte, canopee, ombreSol, abri, eauSol, details, vent, profondeur, persoMouille, lueur, lampes, saisons,
+    brume, coupe, ecran, epaisseurs, carte, canopee, ombreSol, abri, eauSol, dunes, details, vent, profondeur, persoMouille, lueur, lampes, saisons,
   };
 }
 

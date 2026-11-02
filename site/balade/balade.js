@@ -21,7 +21,7 @@
 //  donne un koban, la monnaie de Bunbuku, le marchand ambulant (tresors.js), qui vend des objets précieux : la danse des
 //  fêtes, la traînée sous les pas, les accessoires du compagnon, les feux d'artifice (feux.js), des tenues entières,
 //  l'appareil photo (photo.js), trois compagnons secrets et le calendrier magique (calendrier.js : les saisons).
-//  ?lieu=itsukushima|aogashima|gokayama|himeji|takachiho|kinkakuji|beppu|motonosumi|sanjubutsu|udo|yakushima ; ?perso=garcon|fille ; ?compagnon=kon|pon|chapu ; ?langue=en|fr|ja ;
+//  ?lieu=itsukushima|aogashima|gokayama|himeji|takachiho|kinkakuji|beppu|motonosumi|sanjubutsu|udo|yakushima|tottori ; ?perso=garcon|fille ; ?compagnon=kon|pon|chapu ; ?langue=en|fr|ja ;
 //  ?arrivee=bateau : on arrive au quai par le bateau d'un autre lieu (jeu.partir : sans le choix du compagnon) ;
 //  ?photo=heros|perso : une image fixe (captures) ; ?demo : une partie jouée image par image (vidéos) ;
 //  ?ciel=parchemin : un essai du style (styles.js) ; ?flou=0 : sans le flou du lointain ; ?aa=0 : sans anticrénelage.
@@ -60,6 +60,7 @@ import * as motonosumi from './motonosumi.js';
 import * as sanjubutsu from './sanjubutsu.js';
 import * as udo from './udo.js';
 import * as yakushima from './yakushima.js';
+import * as tottori from './tottori.js';
 
 // chaque lieu : { infos (noms, tampons, textes : sans rien construire), construire(ctx) }
 // (EN_ESSAI : les lieux en cours, qu'on ne voit qu'en mode développeur, localStorage.modeDev = 'oui', celui de la carte ; le
@@ -72,7 +73,8 @@ import * as yakushima from './yakushima.js';
 // essai depuis le 2026-10-28, sorti le 2026-10-29 : « met en ligne Motonosumi pour tout le monde » ; les Trente Bouddhas, en
 // essai depuis le 2026-10-29, sortis le 2026-10-30 : « envoie les trente Bouddhas pour tout le monde » ; Udo, en essai depuis le
 // 2026-10-30, et Yakushima, en essai depuis le 2026-10-31, sortis le 2026-11-02 : « tu peux mettre en ligne Udo et Yakushima »)
-const EN_ESSAI = [];
+// (les dunes de Tottori, en essai depuis le 2026-11-02)
+const EN_ESSAI = ['tottori'];
 // (les îles où l'on n'arrive qu'en bateau : Yakushima, depuis Udo, une fois ses cinq tampons pris ; le propriétaire, le 2026-10-30 :
 // « On peut pas débloquer Yakushima sans avoir fait ce lieu-là… à partir du moment où tu as pris le bateau… la petite icône visiter
 // en 3D… elle apparaît ». Prendre le bateau (jeu.partir) écrit localStorage.baladeYakushima = 'oui', que lit aussi la carte, app.js)
@@ -80,7 +82,7 @@ const ILES = { yakushima: 'baladeYakushima' };
 const ileOuverte = (id) => { try { return !ILES[id] || localStorage.getItem(ILES[id]) === 'oui'; } catch { return false; } };
 /** Peut-on aller à ce lieu (en bateau) ? Pas s'il est en essai et qu'on n'est pas en mode développeur. */
 const peutPartir = (id) => !EN_ESSAI.includes(id) || modeDev();
-const LIEUX = Object.fromEntries(Object.entries({ itsukushima, aogashima, gokayama, himeji, takachiho, kinkakuji, beppu, motonosumi, sanjubutsu, udo, yakushima }).filter(([id]) => (!EN_ESSAI.includes(id) || modeDev()) && ileOuverte(id)));
+const LIEUX = Object.fromEntries(Object.entries({ itsukushima, aogashima, gokayama, himeji, takachiho, kinkakuji, beppu, motonosumi, sanjubutsu, udo, yakushima, tottori }).filter(([id]) => (!EN_ESSAI.includes(id) || modeDev()) && ileOuverte(id)));
 const params = new URLSearchParams(location.search);
 const PHOTO = params.get('photo');
 const DEMO = params.has('demo');
@@ -242,6 +244,8 @@ function construire() {
   mats.ombreSol.tailleOmbre.value.set(ombreSol.nx, ombreSol.nz);
   // (les reflets du soleil au fond de l'eau : jusqu'au niveau de la mer ou de la rivière)
   mats.eauSol.value.set(lieu.eau?.niveau || 0, lieu.eau ? 1 : 0, 0, 0);
+  // (le sable d'une dune : ses rides, styles.js, sableDunes ; le sens du vent qui les dessine)
+  if (lieu.dunes) mats.dunes.value.set(1, ...lieu.dunes.vent, 0);
   groupe.add(terrain(lieu, mats, lieu.etendue, 0, lieu.etendue.fin), terrain(lieu, mats, lieu.etendue.fin, 0.03, null, carte));
   const touffes = creerTouffes(lieu, carte, mats);
   groupe.add(touffes.groupe);
@@ -860,6 +864,8 @@ function creerEau(lieu, P, lampes, ciel, contact) {
     // d'eau descendent vers +z, le courant d'une rivière, plutôt que de monter vers la plage)
     uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
       clair: { value: new THREE.Color(e.clair || P.eauClaire) }, profond: { value: new THREE.Color(e.profond || P.eauProfonde) }, sensLignes: { value: e.sensLignes ?? -1 },
+      // (houle : les rangs de vagues qui déferlent ; fond : la profondeur où l'eau a pris sa couleur du large ; 2026-11-02, les dunes de Tottori)
+      houle: { value: e.houle ?? 0 }, fond: { value: e.fond ?? 1.6 },
       ecume: { value: new THREE.Color(P.ecume) }, temps: { value: 0 }, rive: { value: lieu.rive ?? 0 },
       centre: { value: new THREE.Vector3(...(lieu.centreRive || [0, 0]), lieu.centreRive ? 1 : 0) }, nuit: { value: 0 },
       zoneContact: { value: new THREE.Vector4(0, 0, 1, 0) }, tailleContact: { value: new THREE.Vector2(1, 1) },
@@ -879,7 +885,7 @@ function creerEau(lieu, P, lampes, ciel, contact) {
       }`,
     fragmentShader: `
       uniform vec3 clair, profond, ecume, centre;
-      uniform float temps, rive, nuit, sensLignes;
+      uniform float temps, rive, nuit, sensLignes, houle, fond;
       uniform sampler2D contact;
       uniform vec4 zoneContact;
       uniform vec2 tailleContact;
@@ -896,7 +902,7 @@ function creerEau(lieu, P, lampes, ciel, contact) {
         return texture2D(contact, st).r * 2.0;
       }
       void main() {
-        float t = smoothstep(0.05, 1.6, vProf);
+        float t = smoothstep(0.05, fond, vProf);
         vec3 c = mix(clair, profond, t);
         vec3 lampe = c * lumiereLampes(vMonde, vec3(0.0, 1.0, 0.0));
         float a = mix(0.42, 0.88, smoothstep(0.0, 0.45, vProf));
@@ -926,6 +932,17 @@ function creerEau(lieu, P, lampes, ciel, contact) {
         float onde = fract(dc * 1.4 - temps * 0.45);
         float anneaux = smoothstep(0.0, 0.06, onde) * (1.0 - smoothstep(0.06, 0.16, onde)) * (1.0 - smoothstep(0.25, 1.4, dc)) * 0.55 * rides;
         float mousse = clamp(max(max(bord * 0.85, vague * 0.8), max(collier, anneaux)), 0.0, 1.0);
+        // la houle : des rangs de vagues qui arrivent du large (la phase suit la profondeur) et se brisent à l'approche du bord, chacun une
+        // crête blanche rompue par le bruit, son écume qui traîne derrière elle, et devant elle le creux, plus sombre
+        if (houle > 0.0) {
+          float zone = smoothstep(0.1, 0.55, vProf) * (1.0 - smoothstep(2.2, 4.2, vProf));
+          float rang = vProf * 0.92 + temps * 0.15 + bruitE(vMonde.xz * vec2(0.012, 0.03)).x * 1.3;
+          float vh = fract(rang), rupt = bruitE(vMonde.xz * vec2(0.085, 0.2) + vec2(temps * 0.04, 0.0)).x, fin = bruitE(vMonde.xz * vec2(0.55, 0.9) + vec2(temps * 0.1, temps * 0.05)).x;
+          float crete = (1.0 - smoothstep(0.015, 0.08 + 0.1 * rupt, vh)) * smoothstep(0.22, 0.46, rupt);
+          float trainee = (1.0 - smoothstep(0.03, 0.46, vh)) * smoothstep(0.36, 0.7, rupt * 0.6 + fin * 0.55);
+          c *= 1.0 - 0.2 * smoothstep(0.82, 1.0, vh) * zone * houle;
+          mousse = max(mousse, max(crete, trainee * 0.85) * zone * houle);
+        }
         c = mix(c, ecume * mix(1.0, 0.32, nuit), mousse);
         a = max(a, mousse * 0.92);
         // (les lampes de la rive, la lanterne de la barque : leur lumière sur l'eau)
@@ -2021,18 +2038,18 @@ function creerVapeurs(lieu) {
 const NUIT = { ciel: '#3c4c8c', sol: '#2a2838', ambiance: 0.75, lune: '#9fb2ff', force: 0.45, haut: '#0b1130', horizon: '#223061' };
 const couleursNuit = { a: new THREE.Color(), b: new THREE.Color() };
 function appliquerNuit(v) {
-  const L = M.jour.lumiere, P = M.jour, { a, b } = couleursNuit;
+  const L = M.jour.lumiere, P = M.jour, { a, b } = couleursNuit, N = M.lieu.nuit ? { ...NUIT, ...M.lieu.nuit } : NUIT; // (lieu.nuit : le sable des dunes, sous la lune ; 2026-11-02)
   const melange = (cible, jour, nuit) => cible.copy(a.set(jour)).lerp(b.set(nuit), v);
-  M.hemi.intensity = L.ambiance + (NUIT.ambiance - L.ambiance) * v;
-  melange(M.hemi.color, L.ciel, NUIT.ciel);
+  M.hemi.intensity = L.ambiance + (N.ambiance - L.ambiance) * v;
+  melange(M.hemi.color, L.ciel, N.ciel);
   M.hemiBase.intensite = M.hemi.intensity;
   M.hemiBase.couleur.copy(M.hemi.color);
-  melange(M.hemi.groundColor, L.sol, NUIT.sol);
-  M.soleil.intensity = L.force + (NUIT.force - L.force) * v;
-  melange(M.soleil.color, L.soleil, NUIT.lune);
+  melange(M.hemi.groundColor, L.sol, N.sol);
+  M.soleil.intensity = L.force + (N.force - L.force) * v;
+  melange(M.soleil.color, L.soleil, N.lune);
   const u = M.ciel.material.uniforms;
-  melange(u.haut.value, P.cielHaut, NUIT.haut);
-  melange(u.horizon.value, P.horizon, NUIT.horizon);
+  melange(u.haut.value, P.cielHaut, N.haut);
+  melange(u.horizon.value, P.horizon, N.horizon);
   u.nuit.value = v;
   scene.fog.color.copy(u.horizon.value);
   M.mats.brume.couleur.value.copy(u.horizon.value);
@@ -2578,6 +2595,7 @@ function video() {
 const absent = (p) => !!p.quand && (p.quand === 'nuit') !== (M.nuit.v > 0.5);
 function cibleProche() {
   const L = M.lieu;
+  if (L.conduite?.actif) return null;
   if (siege?.libre) return { x: etat.x, z: etat.z, y: etat.y, haut: 1.55, verbe: 'lever', lever: true };
   const cands = [];
   // (dans la barque : seulement ce qu'on fait depuis l'eau, accoster, prendre ce qui est sous la falaise)
@@ -2920,7 +2938,7 @@ const jeu = {
   /** Est-on dans la barque ? */
   get enBarque() { return !!M.barque?.actif; },
   /** Un son : 'magie' (son.js), ou un son du bruitage ('pelle', 'boite'). */
-  son: (nom) => { if (nom === 'magie') son.magie(); else M.bruitage.jouerSon(nom); },
+  son: (nom) => { if (nom === 'magie') son.magie(); else if (nom.startsWith('oiseau/')) M.bruitage.oiseau(nom.slice(7)); else M.bruitage.jouerSon(nom); },
   /** Des mottes de terre jetées en (x, y, z), qui retombent à la hauteur sol. */
   terre: (x, y, z, sol, n) => M.effets.terre(x, y, z, sol, n),
   /** Un petit nuage « pouf » en x, y, z (taille s), et son bruit (2026-10-28 : le renard blanc de Motonosumi). */
@@ -3423,6 +3441,12 @@ function avancer(dt) {
     for (const p of M.passants) avancerPassant(p.etat, dt, monde, { x: etat.x, z: etat.z }, M.passants.filter((q) => q !== p).map((q) => [q.etat.x, q.etat.z, 0.6]));
     return;
   }
+  // (lieu.conduite : le lieu fait bouger le voyageur, avant et côtés ; 2026-11-02, Tottori : la descente en planche)
+  if (L.conduite?.actif) {
+    L.conduite.maj(dt, Math.max(-1, Math.min(1, avant)), Math.max(-1, Math.min(1, cote)), etat, cam, renard);
+    for (const p of M.passants) avancerPassant(p.etat, dt, monde, { x: etat.x, z: etat.z }, M.passants.filter((q) => q !== p).map((q) => [q.etat.x, q.etat.z, 0.6]));
+    return;
+  }
   if (siege?.libre && m > 0.3) seLever(); // assis sur un banc : on se lève dès qu'on veut marcher
   const ne = niveauEau(etat.x, etat.z), dansLEau = ne != null && L.terrain(etat.x, etat.z) < ne - 0.05 && etat.y < ne + 0.5;
   // les guides du lieu (lieu.guides : [{ points: [[x, z], …], r }]) : sur un passage étroit (des pierres de gué), qui avance le
@@ -3444,7 +3468,8 @@ function avancer(dt) {
     }
   }
   const course = appuye('ShiftLeft', 'ShiftRight') || Math.hypot(joy.x, joy.y) > 0.92;
-  const vmax = (course ? COURSE : MARCHE) * (dansLEau ? 0.62 : 1);
+  // (lieu.allure : monter une dune, le sable se dérobe, on va moins vite ; 2026-11-02, Tottori)
+  const vmax = (course ? COURSE : MARCHE) * (dansLEau ? 0.62 : 1) * (L.allure && m > 0.05 ? L.allure(etat.x, etat.z, dx / m, dz / m) : 1);
   const k = Math.min(1, dt * 10);
   etat.vx += (dx * vmax - etat.vx) * k;
   etat.vz += (dz * vmax - etat.vz) * k;
@@ -3798,8 +3823,11 @@ const dansLaCarte = (x, z) => { const f = M.lieu.etendue.fin; return x > f.x0 + 
  * terrain s'y enfonçait).
  */
 function solDessine(x, z) {
-  const f = M.lieu.etendue.fin, T = M.lieu.terrain, p = f.pas;
-  const x0 = f.x0 + Math.floor((x - f.x0) / p) * p, z0 = f.z0 + Math.floor((z - f.z0) / p) * p, u = (x - x0) / p, v = (z - z0) / p;
+  const f = M.lieu.etendue.fin, T = M.lieu.terrain;
+  let p = f.pas, x0 = f.x0 + Math.floor((x - f.x0) / p) * p, z0 = f.z0 + Math.floor((z - f.z0) / p) * p;
+  // (une case plus fine, lieu.solDetaille : ses quatre sur quatre petites cases)
+  if (M.lieu.solDetaille?.(x0, z0, x0 + p, z0 + p)) { p /= 4; x0 += Math.floor((x - x0) / p) * p; z0 += Math.floor((z - z0) / p) * p; }
+  const u = (x - x0) / p, v = (z - z0) / p;
   const ha = T(x0, z0), hb = T(x0 + p, z0), hd = T(x0, z0 + p), hf = T(x0 + p, z0 + p);
   // (les deux triangles de la case : a, d, b puis b, d, f ; leur diagonale va de b à d)
   return (u + v <= 1 ? ha + (hb - ha) * u + (hd - ha) * v : hf + (hd - hf) * (1 - u) + (hb - hf) * (1 - v)) + 0.03;
@@ -3822,6 +3850,8 @@ function unPas(qui, cote) {
     });
   }
   const sorte = kon ? 2 : cote > 0 ? 0 : 1;
+  // (les grelots de l'ombrelle de Shan-shan : un pas sur deux)
+  if (!kon && M.joueur.aOmbrelle && cote > 0) M.bruitage.oiseau('grelots', { force: course ? 0.34 : 0.22, pan: -0.1 });
   // la traînée achetée au marchand : des pétales, des étoiles ou des feuilles à chaque pas
   if (!kon && M.trace) E.trace(M.trace, x, p.y, z, course);
   if (sol === 'eau') {
@@ -3836,7 +3866,7 @@ function unPas(qui, cote) {
     // seulement des traces mouillées en sortant de l'eau
     const n = normaleDuSol(x, z), y = solDessine(x, z);
     if (sol === 'neige') E.empreinte(x, y, z, p.cap, n, sorte, { teinte: -1, force: 1, duree: 420 });
-    else if (sol === 'sable') E.empreinte(x, y, z, p.cap, n, sorte, { teinte: 0.58, force: 0.9, duree: 30 });
+    else if (sol === 'sable') E.empreinte(x, y, z, p.cap, n, sorte, { teinte: 0.58, force: 0.9, duree: M.lieu.dureePas ?? 30 });
     else if (sol === 'estran') E.empreinte(x, y, z, p.cap, n, sorte, { teinte: 0.5, force: 1, duree: 26 });
     else if (o.v > 0.12) E.empreinte(x, y, z, p.cap, n, sorte, { teinte: 0.45, force: o.v * (sol === 'herbe' || sol === 'sousBois' ? 0.5 : 1), duree: 7 });
   }
@@ -4141,6 +4171,13 @@ function dessiner(dt, temps) {
   const voulu = vise.clone().addScaledVector(dir, vue.distance);
   const plancher = Math.max(monde.hauteur(voulu.x, voulu.z, etat.y + 1), lieu.eau ? lieu.eau.niveau || 0 : -Infinity);
   voulu.y = Math.max(voulu.y, plancher + 0.45);
+  // (lieu.dunes : passer une crête vers le bas, le sable cachait le voyageur à la caméra restée de l'autre côté : elle monte juste assez pour le voir ; 2026-11-02, Tottori)
+  if (lieu.dunes) {
+    for (const t of [0.25, 0.5, 0.75]) {
+      const sol = lieu.terrain(voulu.x + (vise.x - voulu.x) * t, voulu.z + (vise.z - voulu.z) * t) + 0.4;
+      voulu.y = Math.max(voulu.y, (sol - vise.y * t) / (1 - t));
+    }
+  }
   if (saut) { camera.position.copy(voulu); camera.userData.place = true; } else camera.position.lerp(voulu, 1 - Math.exp(-dt * 12));
   camera.lookAt(vise);
   // (les feux d'artifice : elle lève les yeux vers le spectacle, le voyageur en bas de l'image ; s'il est devant)

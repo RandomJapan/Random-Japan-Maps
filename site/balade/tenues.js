@@ -44,6 +44,7 @@ export const PIECES = [
   { id: 'cormoran', place: 'dos', lieu: 'udo' },
   // (avec : la capuche ne se lève que sans chapeau ni masque : la mettre enlève le chapeau, qu'on peut remettre ; la capuche retombe alors dans le dos)
   { id: 'loup', place: 'dos', lieu: 'yakushima', avec: ['nue'] },
+  { id: 'ombrelle', place: 'dos', lieu: 'tottori' },
   { id: 'cou-rien', place: 'cou' },
   { id: 'magatama', place: 'cou', lieu: 'takachiho' },
   { id: 'yamabushi', place: 'cou', lieu: 'sanjubutsu' },
@@ -134,6 +135,12 @@ const DESSINS = {
     <ellipse cx="10.5" cy="27" rx="6" ry="3" transform="rotate(-28 10.5 27)" fill="#b98250" stroke="${ENCRE}" stroke-width="1.8"/>
     <ellipse cx="37.5" cy="27" rx="6" ry="3" transform="rotate(28 37.5 27)" fill="#b98250" stroke="${ENCRE}" stroke-width="1.8"/>
     ${trait(BOIS_D, '#e2c596', 3)}<g transform="translate(48 0) scale(-1 1)">${trait(BOIS_D, '#e2c596', 3)}</g>`,
+  // l'ombrelle de Shan-shan (Tottori) : la toile rouge et or, ses baleines, ses grelots tout autour, le manche de bambou
+  ombrelle: `<path d="M7 25 Q24 3 41 25 Z" fill="#d8402c" stroke="${ENCRE}" stroke-width="2.4" stroke-linejoin="round"/>
+    <path d="M14.5 25 Q24 9 33.5 25 Z" fill="#f2c443"/><path d="M19.5 25 Q24 14.5 28.5 25 Z" fill="#f4efe2"/>
+    <path d="M24 5 V25 M16 11 L14.5 25 M32 11 L33.5 25 M10.8 18 L9 25 M37.2 18 L39 25" fill="none" stroke="${ENCRE}" stroke-width="1.2"/>
+    <circle cx="9" cy="28" r="2.1" fill="#f2c443" stroke="${ENCRE}" stroke-width="1.3"/><circle cx="16.5" cy="28" r="2.1" fill="#f2c443" stroke="${ENCRE}" stroke-width="1.3"/><circle cx="31.5" cy="28" r="2.1" fill="#f2c443" stroke="${ENCRE}" stroke-width="1.3"/><circle cx="39" cy="28" r="2.1" fill="#f2c443" stroke="${ENCRE}" stroke-width="1.3"/>
+    <path d="M24 25 V44 Q24 46.5 21 46.5" fill="none" stroke="${ENCRE}" stroke-width="4.4" stroke-linecap="round"/><path d="M24 25 V44 Q24 46.5 21 46.5" fill="none" stroke="#c8a860" stroke-width="2.2" stroke-linecap="round"/>`,
   // la cape du loup (Yakushima) : la peau grise au bas effiloché, la queue au bout noir, la tête du loup endormi et ses oreilles
   loup: `<path d="M37 34 Q45 36 44 43 Q43.5 46 41 47 Q39.5 43 36 41 Z" fill="#a9a9a6" stroke="${ENCRE}" stroke-width="2" stroke-linejoin="round"/>
     <path d="M41 47 Q39.8 44.2 37.8 42.8 L42.8 44.2 Q42.6 46 41 47 Z" fill="${ENCRE}"/>

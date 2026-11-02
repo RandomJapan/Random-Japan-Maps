@@ -120,6 +120,43 @@ export function plumeCormoran(THREE, a, { base, pointe, normale, large, epais = 
  * haut (un atelier). Les angles : t depuis l'avant (x = r sin t, z = r cos t), la cape de t0 à t1, le dos en π. (Sans tige
  * blanche sur chaque plume : soixante tiges faisaient des rayures, comme une pomme de pin, 2026-10-31.)
  */
+/**
+ * L'ombrelle de Shan-shan (Tottori, 2026-11-02 : la récompense de ses tampons, choisie par le propriétaire) : le parapluie à grelots de la grande fête
+ * d'été de Tottori. Une toile de papier en cône bas, rouge, une couronne d'or et une de blanc vers la pointe, ses baleines de bambou dessus et dessous,
+ * un anneau de grelots tout autour (ils pendent à part, pour se balancer), le manche de bambou. Son axe est y ; y = 0 : la main.
+ * Renvoie { toile, grelots, manche } : trois ateliers.
+ */
+export function ombrelleShanshan(THREE, atelier) {
+  const PI = Math.PI, toile = atelier(), grelots = atelier(), manche = atelier(), H = 1.06, R = 0.66, N = 20, BAMBOU = '#c8a860', ROUGE = '#d8402c', ROUGE2 = '#c4382a', OR = '#f2c443', BLANC = '#f4efe2';
+  // le dessus et le dessous : un cône un peu bombé, secteur par secteur ; rouge au bord, puis or, rouge, blanc vers la pointe
+  const bombe = (r) => 0.3 * (1 - (r / R) ** 1.45), pos = [], cols = [];
+  const anneaux = [[0.02, BLANC], [0.14, ROUGE], [0.32, OR], [0.42, ROUGE], [0.6, ROUGE2], [R, ROUGE]];
+  for (let k = 0; k < N; k++) {
+    const a0 = (k / N) * 2 * PI, a1 = ((k + 1) / N) * 2 * PI, am = (a0 + a1) / 2;
+    for (let i = 0; i + 1 < anneaux.length; i++) {
+      const [r0] = anneaux[i], [r1, c] = anneaux[i + 1], y0 = H + bombe(r0), y1 = H + bombe(r1), rm = r1 * 0.985;
+      // (la toile se creuse entre deux baleines : le bord festonne)
+      const p00 = [Math.cos(a0) * r0, y0, Math.sin(a0) * r0], p01 = [Math.cos(a1) * r0, y0, Math.sin(a1) * r0], p10 = [Math.cos(a0) * r1, y1, Math.sin(a0) * r1], p11 = [Math.cos(a1) * r1, y1, Math.sin(a1) * r1], m1 = [Math.cos(am) * rm, y1 - 0.012, Math.sin(am) * rm];
+      for (const [q, couleur] of [[[p00, p01, p10], c], [[p01, m1, p10], c], [[p01, p11, m1], c]]) { pos.push(...q[0], ...q[1], ...q[2]); cols.push(couleur); pos.push(q[0][0], q[0][1] - 0.006, q[0][2], q[2][0], q[2][1] - 0.006, q[2][2], q[1][0], q[1][1] - 0.006, q[1][2]); cols.push(c === ROUGE || c === ROUGE2 ? '#b8862a' : c); }
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  toile.piece(g, ROUGE, { couleurs: cols, nuance: 0.012 });
+  for (let k = 0; k < N; k++) {
+    const a = (k / N) * 2 * PI, c = Math.cos(a), s = Math.sin(a);
+    // les baleines, dessus (une fine ligne d'encre brune) et dessous, les petites jambes qui rejoignent le manche
+    for (let i = 0; i < 3; i++) { const r0 = 0.02 + (i / 3) * (R - 0.02), r1 = 0.02 + ((i + 1) / 3) * (R - 0.02); toile.baton([c * r0, H + bombe(r0) + 0.006, s * r0], [c * r1, H + bombe(r1) + 0.006, s * r1], 0.0055, '#6a3a22', 3, { trait: false }); toile.baton([c * r0, H + bombe(r0) - 0.014, s * r0], [c * r1, H + bombe(r1) - 0.014, s * r1], 0.007, BAMBOU, 3, { trait: false }); }
+    if (k % 2 === 0) toile.baton([0, H - 0.08, 0], [c * R * 0.44, H + bombe(R * 0.44) - 0.016, s * R * 0.44], 0.006, BAMBOU, 3, { trait: false });
+    grelots.ovale(0.024, OR, { x: c * R, y: H + bombe(R) - 0.052, z: s * R }, 6).baton([c * R, H + bombe(R) - 0.006, s * R], [c * R, H + bombe(R) - 0.036, s * R], 0.003, '#6a3a22', 3, { trait: false });
+  }
+  toile.cylindre(0.03, 0.035, 0.05, 8, '#3a2a22', { y: H + 0.31 }).ovale(0.03, OR, { y: H + 0.36 }, 7);
+  manche.cylindre(0.016, 0.018, H + 0.42, 8, BAMBOU, { y: (H + 0.42) / 2 - 0.12 });
+  for (const y of [0.18, 0.5, 0.82]) manche.cylindre(0.02, 0.02, 0.018, 8, '#a88a48', { y, trait: false });
+  manche.cylindre(0.021, 0.021, 0.14, 8, '#7a3a26', { y: -0.04, trait: false });
+  return { toile, grelots, manche };
+}
+
 export function capeCormoran(THREE, atelier, { y = 0.8, k = 1 } = {}) {
   const PI = Math.PI, t0 = PI - 1.95, t1 = PI + 1.95;
   const BRONZE = ['#6b5a3a', '#5e5034', '#73603e', '#52492f'], NOIR = '#29271f', BLANC = '#f3f0e6', BLANC2 = '#dcd6c6';
@@ -1311,7 +1348,7 @@ export function creerHeros(ctx, sorte = 'garcon') {
   // en marchant, plus en courant, grand ouvert quand on saute, qu'on danse ou qu'on fait « Ouais ! »), plus au dos que sur les
   // côtés, et qui battent chacun à son tour (la phase avance à chaque image)
   // (la cape du loup, Yakushima : pareil ; capeL, sa capuche à part : capuche, couchée dans le dos ou levée sur la tête)
-  let cape = null, capeL = null, ecartCape = 0, phaseCape = 0, leveQueue = 0;
+  let cape = null, capeL = null, ecartCape = 0, phaseCape = 0, leveQueue = 0, ombrelle = null;
   const animerCape = (dt, vitesse, fete) => {
     const C = cape?.objet.visible ? cape : capeL?.objet.visible ? capeL : null;
     if (!C) return;
@@ -1715,6 +1752,12 @@ export function creerHeros(ctx, sorte = 'garcon') {
       jambes[0].rotation.x = 0.28 * Math.max(0, d); jambes[1].rotation.x = 0.28 * Math.max(0, -d);
       danseur.position.y = 0.03 * Math.abs(Math.sin(b));
       tete.rotation.z = 0.07 * d;
+    } else if (g === 'planche') {
+      // debout sur la planche de sable (Tottori) : les genoux pliés, le corps de côté, les bras écartés pour tenir l'équilibre
+      const o = Math.sin(t * 2.1);
+      B.rotation.x = -0.25 + 0.08 * o; G.rotation.x = -0.25 - 0.08 * o; B.rotation.z = 1.05 + 0.1 * o; G.rotation.z = -1.05 + 0.1 * o;
+      jambes[0].rotation.x = -0.35; jambes[1].rotation.x = 0.28;
+      corps.rotation.x = 0.1; tete.rotation.x = -0.06; danseur.position.y = -0.05 + 0.012 * o;
     } else if (g === 'grimper') {
       // monter à une échelle : les mains l'une au-dessus de l'autre, devant le visage (pas dedans : la tête est
       // grosse), les genoux qui montent tour à tour
@@ -1740,6 +1783,8 @@ export function creerHeros(ctx, sorte = 'garcon') {
   let phase = 0, salut = 0, foulee = 0, assis = false, danse = false, tDanse = 0, geste = null, tGeste = 0, rame = null;
   return {
     objet: racine,
+    /** Porte-t-il l'ombrelle de Shan-shan ? (ses grelots, à chaque pas : balade.js, unPas) */
+    get aOmbrelle() { return !!ombrelle?.objet.visible; },
     /** Une petite courbette (on lui parle, il remercie…). */
     saluer() { salut = 1; },
     /**
@@ -1783,6 +1828,21 @@ export function creerHeros(ctx, sorte = 'garcon') {
           }
           ailes.objet.visible = true;
           dosPorte = ailes.objet;
+        }
+        // l'ombrelle de Shan-shan (Tottori) : dans la main droite, le bras levé, le manche posé contre l'épaule ; elle tourne doucement, ses grelots se balancent
+        if (id === 'ombrelle') {
+          if (!ombrelle) {
+            const o = ombrelleShanshan(THREE, atelier), objet = new THREE.Group(), tourne = new THREE.Group(), gr = maillage(o.grelots.fin(0, false));
+            objet.add(maillage(o.manche.fin(0, false)), tourne);
+            tourne.add(maillage(o.toile.fin(0, false)), gr);
+            objet.position.set(0, -0.2, 0);
+            // (l'axe, dans le repère du bras levé à −1 rad : vers le haut, un peu en arrière et vers l'extérieur)
+            objet.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(-0.24, 0.76, 0.6).normalize());
+            ombrelle = { objet, tourne, gr };
+            bras[0].add(objet);
+          }
+          ombrelle.objet.visible = true;
+          dosPorte = ombrelle.objet;
         }
         // la cape en plumes de cormoran (Udo) : le haut sur les épaules, l'ourlet en six morceaux, chacun sur son pivot
         if (id === 'cormoran') {
@@ -1870,6 +1930,14 @@ export function creerHeros(ctx, sorte = 'garcon') {
       bras[1].rotation.x = sw * 0.85;
       bras[0].rotation.z = -0.12;
       bras[1].rotation.z = 0.12;
+      // (l'ombrelle : le bras droit levé, immobile ; la toile tourne, plus vite quand on marche ; les grelots se balancent en retard)
+      if (ombrelle?.objet.visible) {
+        bras[0].rotation.x = -1.0 + Math.sin(phase * 2) * 0.03 * marche;
+        bras[0].rotation.z = 0.05;
+        ombrelle.tourne.rotation.y += dt * (0.25 + 0.5 * marche);
+        ombrelle.gr.rotation.x = Math.sin(phase * 2 - 0.6) * 0.02 * marche;
+        ombrelle.gr.rotation.z = Math.cos(phase * 2 - 0.6) * 0.02 * marche;
+      }
       danseur.position.y = 0;
       danseur.rotation.set(0, 0, 0);
       corps.rotation.y = 0;

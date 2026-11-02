@@ -2277,7 +2277,7 @@ async function remplirFiche(l) {
  * Les lieux qu'on peut visiter dans la balade 3D (site/balade/) : id du lieu sur la carte → id du lieu de la
  * balade (?lieu=). À compléter quand la balade gagne un lieu.
  */
-const BALADES = { yakushima: 'yakushima', 'itsukushima-jinja': 'itsukushima', aogashima: 'aogashima', gokayama: 'gokayama', 'himeji-castle': 'himeji', 'takachiho-gorge': 'takachiho', 'amanoiwato-jinja': 'takachiho', 'kinkaku-ji': 'kinkakuji', 'the-hells-of-beppu': 'beppu', 'motonosumi-shrine': 'motonosumi', 'thirty-buddhas-nio-statues': 'sanjubutsu', 'udo-inari-shrine': 'udo' };
+const BALADES = { 'tottori-sand-dunes': 'tottori', yakushima: 'yakushima', 'itsukushima-jinja': 'itsukushima', aogashima: 'aogashima', gokayama: 'gokayama', 'himeji-castle': 'himeji', 'takachiho-gorge': 'takachiho', 'amanoiwato-jinja': 'takachiho', 'kinkaku-ji': 'kinkakuji', 'the-hells-of-beppu': 'beppu', 'motonosumi-shrine': 'motonosumi', 'thirty-buddhas-nio-statues': 'sanjubutsu', 'udo-inari-shrine': 'udo' };
 /**
  * Les lieux de la balade encore en essai : leur bouton « Visiter en 3D » n'existe qu'en mode développeur (la classe dev). Le
  * propriétaire, 2026-10-26 : chaque nouveau lieu arrive d'abord en mode développeur, et sort quand il le dit (l'ôter d'ici, et
@@ -2286,7 +2286,8 @@ const BALADES = { yakushima: 'yakushima', 'itsukushima-jinja': 'itsukushima', ao
 // (Kinkaku-ji, en essai depuis le 2026-10-26, sorti le 2026-10-27 ; Beppu, en essai depuis le 2026-10-27, sorti le 2026-10-28 ;
 // Motonosumi, en essai depuis le 2026-10-28, sorti le 2026-10-29 ; les Trente Bouddhas, en essai depuis le 2026-10-29, sortis
 // le 2026-10-30 ; Udo, en essai depuis le 2026-10-30, et Yakushima, en essai depuis le 2026-10-31, sortis le 2026-11-02)
-const BALADES_ESSAI = new Set([]);
+// (les dunes de Tottori, en essai depuis le 2026-11-02)
+const BALADES_ESSAI = new Set(['tottori']);
 /**
  * Les balades où l'on n'arrive qu'en bateau : Yakushima, depuis Udo (le propriétaire, 2026-10-30 : son « Visiter en 3D » n'apparaît
  * qu'à partir du moment où l'on a pris le bateau ; la balade l'écrit dans localStorage.baladeYakushima). Avant, ni le bouton de
