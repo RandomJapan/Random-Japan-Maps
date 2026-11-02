@@ -305,17 +305,23 @@ export function avancerPassant(p, dt, monde, joueur, autres) {
   } else if (p.ronde && p.ronde.length) {
     if (p.pause > 0) p.pause -= dt;
     else {
-      const [tx, tz] = p.ronde[p.etape];
+      // (passe, le 3e élément d'un point : il y passe sans s'y arrêter)
+      const [tx, tz, passe] = p.ronde[p.etape];
       const dx = tx - p.x, dz = tz - p.z, d = Math.hypot(dx, dz);
       if (d < 0.25) {
         p.etape = (p.etape + 1) % p.ronde.length;
-        p.pause = p.attente[0] + Math.random() * (p.attente[1] - p.attente[0]);
+        if (!passe) p.pause = p.attente[0] + Math.random() * (p.attente[1] - p.attente[0]);
       } else {
         voulu = p.vitesse;
         p.cap = tourner(p.cap, Math.atan2(dx, dz), dt * 5);
         const nx = p.x + Math.sin(p.cap) * p.v * dt, nz = p.z + Math.cos(p.cap) * p.v * dt;
-        // il attend que le joueur (ou un autre) s'écarte
-        if (monde.libre(nx, nz, p.y, autres)) { p.x = nx; p.z = nz; } else voulu = 0;
+        // il attend que le joueur (ou un autre) s'écarte ; au bout de 4 s, il repart vers le point suivant de sa ronde (2026-11-02, Yakushima : un marcheur
+        // restait pour toujours le nez sur un personnage debout sur sa ligne)
+        if (monde.libre(nx, nz, p.y, autres)) { p.x = nx; p.z = nz; p.gene = 0; }
+        else {
+          voulu = 0;
+          if ((p.gene = (p.gene || 0) + dt) > 4) { p.gene = 0; p.etape = (p.etape + 1) % p.ronde.length; }
+        }
       }
     }
   }

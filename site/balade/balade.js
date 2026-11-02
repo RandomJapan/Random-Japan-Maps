@@ -135,7 +135,37 @@ const camera = new THREE.PerspectiveCamera(48, 1, 0.25, 8000);
 let M = null; // { style, ctx, mats, lieu, groupe, voyageurs, joueur, autre, compagnons, kon (le compagnon choisi), passants, daims, eau, ciel, soleil, finale, sauvage, cadre }
 const etat = { x: 0, z: 0, y: 0, cap: 0, vitesse: 0, vx: 0, vz: 0, mode: 'depart' };
 // le compagnon (nage : la loutre dans l'eau ; banc : sa place sur le banc où le voyageur est assis, à côté de lui)
-const renard = { x: 0, z: 0, y: 0, cap: 0, vitesse: 0, nage: false, banc: null };
+const renard = { x: 0, z: 0, y: 0, cap: 0, vitesse: 0, nage: false, banc: null, cote: 1, placeLibre: true, verif: 0, essai: false, surPiste: false, bute: 0, tBute: 0, rx: 0, rz: 0 };
+// où le joueur vient de marcher : un point tous les 30 cm, les 15 derniers mètres (tete : le dernier ; compte). Tout y est praticable : le compagnon la suit quand le
+// chemin droit vers sa place est bouché (2026-11-02, Yakushima : « le compagnon, il reste coincé souvent »)
+const PISTE = { n: 50, pas: 0.3, x: new Float32Array(50), z: new Float32Array(50), tete: 0, compte: 0 };
+function majPiste() {
+  const P = PISTE, lx = P.x[P.tete], lz = P.z[P.tete], d = P.compte ? Math.hypot(etat.x - lx, etat.z - lz) : Infinity;
+  // (un saut : une scène, une échelle, une arrivée ; elle repart de là)
+  if (d > 3) { P.compte = 1; P.x[P.tete] = etat.x; P.z[P.tete] = etat.z; return; }
+  for (let k = 1; k * P.pas <= d; k++) {
+    const f = (k * P.pas) / d;
+    P.tete = (P.tete + 1) % P.n;
+    P.x[P.tete] = lx + (etat.x - lx) * f;
+    P.z[P.tete] = lz + (etat.z - lz) * f;
+    P.compte = Math.min(P.n, P.compte + 1);
+  }
+}
+/** Le point de la piste à s mètres derrière le joueur ([x, z]), ou null si elle est plus courte. */
+function dansLaPiste(s) {
+  const P = PISTE, i = Math.round(s / P.pas);
+  if (i >= P.compte) return null;
+  const k = (P.tete - i + P.n) % P.n;
+  return [P.x[k], P.z[k]];
+}
+/** Où aller, le long de la piste, depuis x, z : le plus proche de ses points ; déjà dessus, 60 cm plus loin vers le joueur. [x, z, ce qui reste jusqu'au joueur]. */
+function suiteDePiste(x, z) {
+  const P = PISTE;
+  let i0 = 0, m = Infinity;
+  for (let i = 0; i < P.compte; i++) { const k = (P.tete - i + P.n) % P.n, e = (P.x[k] - x) ** 2 + (P.z[k] - z) ** 2; if (e < m) { m = e; i0 = i; } }
+  const i = m < 0.36 ? Math.max(0, i0 - 2) : i0, k = (P.tete - i + P.n) % P.n;
+  return [P.x[k], P.z[k], i * P.pas];
+}
 // la caméra voulue (le joueur la tourne) ; vue : celle qu'on a, rapprochée sous un toit ou devant un bâtiment
 const cam = { lacet: 0, tangage: 0.24, distance: 6.4 };
 const vue = { tangage: 0.24, distance: 6.4, leve: 0 };
@@ -3464,6 +3494,13 @@ function avancer(dt) {
   if (m > 0.05 && libre) $('.aide').classList.add('vue');
 
   // le compagnon suit, un peu en arrière et sur le côté ; il s'assoit quand il est arrivé
+  majPiste();
+  /** Peut-on aller droit de x0, z0 à x1, z1 (un point tous les 35 cm) ? */
+  const cheminLibre = (x0, z0, x1, z1, y) => {
+    const n = Math.ceil(Math.hypot(x1 - x0, z1 - z0) / 0.35);
+    for (let k = 1; k <= n; k++) if (!monde.libre(x0 + ((x1 - x0) * k) / n, z0 + ((z1 - z0) * k) / n, y)) return false;
+    return true;
+  };
   const banc = siege?.cote;
   if (renard.banc && renard.banc !== banc) {
     // le voyageur s'est levé : le compagnon saute du banc, devant lui
@@ -3485,18 +3522,60 @@ function avancer(dt) {
     // (le joueur assis : le compagnon vient devant lui, un peu de côté ; derrière, c'est le banc ; ou vers sa place sur le banc)
     // (pendant l'essayage, à côté du voyageur, un peu devant, à droite sur l'écran : il ne le cache pas)
     const essai = etat.mode === 'tenue' || etat.mode === 'danse' || etat.mode === 'photo', recul = siege ? -0.9 : essai ? -0.3 : 1.3, cote = essai ? 0.8 : 0.75;
-    const cx = banc ? banc.x : etat.x - Math.sin(etat.cap) * recul + Math.cos(etat.cap) * cote, cz = banc ? banc.z : etat.z - Math.cos(etat.cap) * recul - Math.sin(etat.cap) * cote;
-    const ex = cx - renard.x, ez = cz - renard.z, d = Math.hypot(ex, ez);
-    const vr = d > 0.35 ? Math.min(COURSE * 1.15, d * 2.8) : 0;
+    if (essai && !renard.essai) renard.cote = 1;
+    renard.essai = essai;
+    // sa place, à côté du joueur, un peu en arrière. Sur un sentier étroit, elle tombe souvent dans les fougères, hors de là où l'on marche : il prend celle de l'autre côté ;
+    // si elle ne va pas non plus, juste derrière le joueur, sur la piste (une fois tous les 150 ms : le cadre et tout ce qui arrête, ce n'est pas rien)
+    const place = (sg) => [etat.x - Math.sin(etat.cap) * recul + Math.cos(etat.cap) * cote * sg, etat.z - Math.cos(etat.cap) * recul - Math.sin(etat.cap) * cote * sg];
+    let [cx, cz] = banc ? [banc.x, banc.z] : place(renard.cote);
+    if (!banc) {
+      if ((renard.verif -= dt) <= 0) {
+        renard.verif = 0.15;
+        renard.placeLibre = monde.libre(cx, cz, etat.y);
+        if (!renard.placeLibre) {
+          const q = place(-renard.cote);
+          if (monde.libre(q[0], q[1], etat.y)) { renard.cote = -renard.cote; [cx, cz] = q; renard.placeLibre = true; }
+        }
+      }
+      if (!renard.placeLibre) { const q = dansLaPiste(Math.max(0.6, recul)); if (q) [cx, cz] = q; }
+    }
+    const d = Math.hypot(cx - renard.x, cz - renard.z);
+    // (il va droit à sa place ; bloqué, le long de la piste)
+    let vx = cx, vz = cz, reste = d;
+    if (renard.surPiste) { const q = suiteDePiste(renard.x, renard.z); vx = q[0]; vz = q[1]; reste = Math.max(d, q[2]); }
+    const ex = vx - renard.x, ez = vz - renard.z, dv = Math.hypot(ex, ez), vr = reste > 0.35 ? Math.min(COURSE * 1.15, reste * 2.8) : 0;
     renard.vitesse += (vr - renard.vitesse) * Math.min(1, dt * 6);
-    if (d > 0.01 && renard.vitesse > 0.05) {
-      const rxn = renard.x + (ex / d) * renard.vitesse * dt, rzn = renard.z + (ez / d) * renard.vitesse * dt;
-      if (monde.libre(rxn, rzn, renard.y)) { renard.x = rxn; renard.z = rzn; }
-      renard.cap = tourner(renard.cap, Math.atan2(ex, ez), dt * 8);
+    if (dv > 0.01 && renard.vitesse > 0.05) {
+      // (comme le joueur : le pas entier, sinon tourné de plus en plus d'un côté puis de l'autre, moins vite : il longe ce qui le gêne)
+      const ux = ex / dv, uz = ez / dv, pas = renard.vitesse * dt, de = [renard.x, renard.z];
+      let cap = Math.atan2(ex, ez);
+      if (monde.libre(renard.x + ux * pas, renard.z + uz * pas, renard.y, [], de)) { renard.x += ux * pas; renard.z += uz * pas; }
+      else {
+        for (let i = 1; i <= 6; i++) {
+          const a = Math.ceil(i / 2) * 0.45 * (i % 2 ? 1 : -1), c = Math.cos(a), s = Math.sin(a), wx = ux * c + uz * s, wz = uz * c - ux * s;
+          if (monde.libre(renard.x + wx * pas * c, renard.z + wz * pas * c, renard.y, [], de)) { renard.x += wx * pas * c; renard.z += wz * pas * c; cap = Math.atan2(wx, wz); break; }
+        }
+      }
+      renard.cap = tourner(renard.cap, cap, dt * 8);
     } else renard.cap = tourner(renard.cap, Math.atan2(etat.x - renard.x, etat.z - renard.z), dt * 3);
+    // n'avance plus alors qu'il est loin de sa place (tous les 0,4 s) : d'abord le long de la piste ; au bout de 1,6 s, il saute près du joueur. La piste quittée dès que le
+    // chemin droit est dégagé
+    if ((renard.tBute += dt) >= 0.4) {
+      const fait = Math.hypot(renard.x - renard.rx, renard.z - renard.rz);
+      renard.rx = renard.x; renard.rz = renard.z; renard.tBute = 0;
+      renard.bute = d > 1.2 && fait < 0.3 ? renard.bute + 0.4 : 0;
+      if (renard.bute > 0) renard.surPiste = true;
+      else if (renard.surPiste && (d < 1.2 || cheminLibre(renard.x, renard.z, cx, cz, renard.y))) renard.surPiste = false;
+    }
     // resté coincé (un escalier, un coin), ou en bas d'une échelle : il rejoint
-    if (d > 8 || (!grimpe && Math.abs(renard.y - etat.y) > 2.2)) { renard.x = cx; renard.z = cz; renard.y = etat.y; }
-    renard.y += (monde.hauteur(renard.x, renard.z, renard.y) - renard.y) * Math.min(1, dt * 14);
+    if (d > 8 || (!grimpe && Math.abs(renard.y - etat.y) > 2.2) || renard.bute >= 1.6) {
+      const q = renard.placeLibre ? [cx, cz] : dansLaPiste(1.2) || [etat.x, etat.z];
+      if (renard.bute >= 1.6) M.kon.sauter();
+      renard.x = q[0]; renard.z = q[1]; renard.y = etat.y;
+      renard.bute = 0; renard.surPiste = false;
+    }
+    // (plus vite quand ça monte : à la traîne, ses pattes passaient sous les marches, et ce qu'il y a devant lui lui semblait trop haut)
+    { const h = monde.hauteur(renard.x, renard.z, renard.y); renard.y += (h - renard.y) * Math.min(1, dt * (h > renard.y ? 28 : 14)); }
     // la loutre nage là où l'eau lui monte au-dessus des pattes : elle flotte, la tête hors de l'eau
     renard.nage = false;
     if (espece === 'chapu' && L.eau) {
