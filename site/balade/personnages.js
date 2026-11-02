@@ -193,7 +193,8 @@ export function capeLoup(THREE, atelier, { y = 0.8, k = 1, cy = 0.25, r: rt = 0.
     haut.piece(new THREE.CylinderGeometry(r(yb) - d - 0.008, r(ya) - d - 0.008, h, 26, 1, true, t0, t1 - t0), '#b4afa2', { y: (ya + yb) / 2, sx: -1, trait: false });
   }
   // les rangs de mèches, du bas vers le haut : [pointe, base, largeur, nombre] ; les deux du bas en six morceaux (ils s'écartent quand on court)
-  const RANGS = [[y - 0.52, y - 0.28, 0.135, 15], [y - 0.42, y - 0.2, 0.128, 15], [y - 0.3, y - 0.11, 0.118, 14], [y - 0.2, y - 0.03, 0.108, 13]];
+  // (le rang du haut part de sous le col : plus bas, le haut de la manche passait entre deux mèches)
+  const RANGS = [[y - 0.52, y - 0.28, 0.135, 15], [y - 0.42, y - 0.2, 0.128, 15], [y - 0.3, y - 0.11, 0.118, 14], [y - 0.2, y, 0.108, 13]];
   const [yt1, yb1] = RANGS[1], yp = RANGS[2][0] + 0.012, rp = r(yb1) + 0.014 + (r(yt1) + 0.012 - r(yb1)) * ((yb1 - yp) / (yb1 - yt1));
   RANGS.forEach(([yt, yb, large, n], i) => {
     const dr = 0.014 * i, morceaux = i <= 1 ? 6 : 1;
@@ -782,21 +783,12 @@ export function creerHeros(ctx, sorte = 'garcon') {
   t.ovale(0.012, P.nez, { ...surVisage(0, -0.07, -0.002), sz: 0.6, trait: false }, 6)
     .piece(new THREE.TorusGeometry(0.022, 0.0055, 4, 9, PI * 0.72), P.bouche, { ...surVisage(0, -0.112, 0.001), rz: PI * 1.14, trait: false });
   if (fille) {
-    // la calotte de cheveux, ceux qui tombent dans le dos ; la frange en mèches ; deux longues mèches devant les
-    // oreilles ; les couettes nouées de rubans rouges, qui frisent au bout
-    t.piece(new THREE.SphereGeometry(0.318, 22, 12, 0, 2 * PI, 0, PI * 0.62), H, { y: CY, rx: -0.4 })
-      .ovale(0.27, H, { y: CY - 0.11, z: -0.1, sx: 1.08, sy: 1.12, sz: 0.62 }, 16);
+    // la calotte de cheveux ; la frange en mèches ; deux longues mèches devant les oreilles
+    t.piece(new THREE.SphereGeometry(0.318, 22, 12, 0, 2 * PI, 0, PI * 0.62), H, { y: CY, rx: -0.4 });
     for (const [x, rz, l] of [[-0.2, 0.55, 0.15], [-0.132, 0.32, 0.18], [-0.066, 0.12, 0.19], [0.0, -0.03, 0.17], [0.066, -0.14, 0.19], [0.132, -0.32, 0.18], [0.2, -0.55, 0.15]]) {
       t.cone(0.056, l, 4, H, { x, y: CY + 0.16, z: 0.262 - Math.abs(x) * 0.4, rx: PI - 0.34, rz, sz: 0.42 });
     }
-    for (const s of [-1, 1]) {
-      t.cone(0.05, 0.27, 5, H, { x: s * 0.258, y: CY - 0.03, z: 0.1, rx: PI - 0.06, rz: s * 0.07, sz: 0.55 })
-        .ovale(0.064, H, { x: s * 0.31, y: CY - 0.25, z: -0.1, sx: 0.85, sy: 2.0, rz: s * 0.18 }, 10)
-        .ovale(0.046, H, { x: s * 0.355, y: CY - 0.39, z: -0.09, sy: 1.35, rz: s * 0.55 }, 8)
-        .ovale(0.042, P.ruban, { x: s * 0.305, y: CY - 0.06, z: -0.14, sx: 0.45, sy: 0.75, sz: 1.2, rx: -0.6 }, 8)
-        .ovale(0.042, P.ruban, { x: s * 0.305, y: CY - 0.13, z: -0.05, sx: 0.45, sy: 0.75, sz: 1.2, rx: 0.6 }, 8)
-        .boule(0.024, P.ruban, { x: s * 0.31, y: CY - 0.1, z: -0.09 }, 1);
-    }
+    for (const s of [-1, 1]) t.cone(0.05, 0.27, 5, H, { x: s * 0.258, y: CY - 0.03, z: 0.1, rx: PI - 0.06, rz: s * 0.07, sz: 0.55 });
   } else {
     // la calotte, des pointes sous la casquette sur le front, devant les oreilles et sur la nuque
     t.piece(new THREE.SphereGeometry(0.318, 22, 12, 0, 2 * PI, 0, PI * 0.6), H, { y: CY, rx: -0.48 });
@@ -808,6 +800,21 @@ export function creerHeros(ctx, sorte = 'garcon') {
   }
   const tete = pivot(ctx, 0, 0.82, 0, maillage(t.fin(0, false)));
   corps.add(tete);
+
+  // la fille : les cheveux qui tombent dans le dos, les couettes nouées de rubans rouges, qui frisent au bout (à part : la capuche du loup les rentre, majCapuche)
+  let couettes = null;
+  if (fille) {
+    const a = atelier().ovale(0.27, H, { y: CY - 0.11, z: -0.1, sx: 1.08, sy: 1.12, sz: 0.62 }, 16);
+    for (const s of [-1, 1]) {
+      a.ovale(0.064, H, { x: s * 0.31, y: CY - 0.25, z: -0.1, sx: 0.85, sy: 2.0, rz: s * 0.18 }, 10)
+        .ovale(0.046, H, { x: s * 0.355, y: CY - 0.39, z: -0.09, sy: 1.35, rz: s * 0.55 }, 8)
+        .ovale(0.042, P.ruban, { x: s * 0.305, y: CY - 0.06, z: -0.14, sx: 0.45, sy: 0.75, sz: 1.2, rx: -0.6 }, 8)
+        .ovale(0.042, P.ruban, { x: s * 0.305, y: CY - 0.13, z: -0.05, sx: 0.45, sy: 0.75, sz: 1.2, rx: 0.6 }, 8)
+        .boule(0.024, P.ruban, { x: s * 0.31, y: CY - 0.1, z: -0.09 }, 1);
+    }
+    couettes = maillage(a.fin(0, false));
+    tete.add(couettes);
+  }
 
   // les yeux (à part : ils clignent) : des disques plats posés sur le visage
   const yeux = [-1, 1].map((s) => {
@@ -1349,12 +1356,13 @@ export function creerHeros(ctx, sorte = 'garcon') {
   // le sac à dos : la tenue le garde ou non (garde : 'sac'), et le mino le cache (sur le dos, à sa place) ; et le dos de
   // l'étole avec lui (majCollier)
   let sacGarde = true, dosPorte = null;
-  // la capuche de la cape du loup : levée sans chapeau (tête nue), couchée dans le dos sinon ; levée, elle cache les épis du garçon
+  // la capuche de la cape du loup : levée sans chapeau (tête nue), couchée dans le dos sinon ; levée, elle cache les épis du garçon et rentre les couettes de la fille
   let teteId = 'defaut';
   const majCapuche = () => {
     const portee = capeL && dosPorte === capeL.objet, levee = portee && teteId === 'nue';
     if (capeL) { capeL.dos.visible = portee && !levee; capeL.tete.visible = !!levee; }
     if (dessus) dessus.visible = teteId !== 'defaut' && teteId !== 'kabuto' && teteId !== 'heron' && !levee;
+    if (couettes) couettes.visible = !levee;
   };
   const majSac = () => { mSac.visible = sacGarde && !dosPorte; majCollier(); };
   /** Mettre la tenue id (HABITS ; 'habit-defaut' ou inconnue : les habits de tous les jours). */
