@@ -22,14 +22,8 @@ const sec = (n: number) => t(n) / FPS;
 const MUSIQUE = 0.42;
 /** [seconde où le bruit doit s'entendre (son attaque déduite), fichier, volume, durée (s) : coupé et fondu au bout]. */
 const SFX: [number, string, number, number?][] = [
-  // l'accroche : seulement les bruits du geste, dehors (le vent, des oiseaux au loin, la veste qui frotte, la respiration)
-  [0, "sfx/dehors.mp3", 5, (T.ouvre - 8) / FPS],
-  // les coups, inégaux, là où le marteau touche la jarre (mesuré : environ 10 dB sous la musique, comme dans la vidéo de référence)
-  [T.coups[0] / FPS, "sfx/coup-1.wav", 0.42], [T.coups[1] / FPS, "sfx/coup-2.wav", 0.48], [T.coups[2] / FPS, "sfx/coup-3.wav", 0.44], [T.coups[3] / FPS, "sfx/coup-1.wav", 0.56], [T.coups[4] / FPS, "sfx/coup-4.wav", 0.55],
-  [T.coups[4] / FPS - 0.63, "sfx/fissure.mp3", 0.42],
-  // les mains : le raclement des morceaux, l'effort (son second souffle tombe sur la dernière poussée)
-  [T.mains / FPS, "sfx/ecarter.mp3", 1.9, (T.ouvre - 10 - T.mains) / FPS],
-  [(T.mains + 34) / FPS, "sfx/effort.mp3", 0.16, (T.ouvre - T.mains - 34) / FPS],
+  // l'accroche : le son d'origine des deux plans, coupé comme eux, et déjà calé sur l'image (preparer.py : geste)
+  [0, "sfx/geste.wav", 1, T.ouvre / FPS],
   // l'ouverture : le souffle de la plongée sous la musique, puis les points qui surgissent
   [T.ouvre / FPS - 0.02, "sfx/air-whoosh-powerful.mp3", 0.3],
   [T.ouvre / FPS + 0.12, "sfx/pops.mp3", 0.55],

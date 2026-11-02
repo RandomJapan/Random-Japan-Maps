@@ -6,8 +6,8 @@ montage Remotion (outils/video/jarre/montage).
   instructions/videos.md), réencodés (1080 × 1920, 24 images/s comme à la source, une image clé toutes les 6) ; l'image où la jarre est
   grande ouverte, avec son trou transparent (img/jarre-ouverte.png) : le montage plonge dedans.
 - Les prises déjà tournées : les quatre saisons (promo30), la balade, les vrais lieux du propriétaire (balade/reels).
-- Les bruitages : ceux des vidéos d'avant ; les coups, la fissure, le raclement, le dehors et l'effort sont des bruits Flora (déjà dans
-  public/sfx), les coups découpés ici en fichiers séparés (coup-1.wav…).
+- Le son de l'accroche (sfx/geste.wav) : le son d'origine des deux plans, généré avec l'image, coupé comme eux dans le montage.
+- Les bruitages : ceux des vidéos d'avant.
 - Le logo.
 """
 import shutil
@@ -78,11 +78,47 @@ def trouer_jarre():
     print('trou : x', xs.min(), '→', xs.max(), ', y', ys.min(), '→', ys.max(), ', centre', int(xs.mean()), int(ys.mean()), ',', round(len(xs) / (1080 * 1920) * 100, 1), "% de l'image")
 
 
-def coups():
-    """Les coups de marteau (coups.mp3, attaques à 0,15, 0,46, 0,82 et 1,49 s) en fichiers séparés, chacun avec ses 15 ms d'avant."""
-    for i, (a, d) in enumerate(((0.135, 0.3), (0.445, 0.34), (0.805, 0.6), (1.475, 0.7)), 1):
-        subprocess.run([ffmpeg(), '-hide_banner', '-loglevel', 'error', '-y', '-ss', str(a), '-t', str(d), '-i', str(PUBLIC / 'sfx' / 'coups.mp3'),
-                        '-af', f'afade=t=out:st={d - 0.06}:d=0.06', '-ar', '48000', str(PUBLIC / 'sfx' / f'coup-{i}.wav')], check=True)
+# Le son de l'accroche : les morceaux des deux plans, comme dans montage/src/Accroche.tsx
+# (plan, seconde de début, seconde de fin, image de début dans le montage, image de fin ; le plan des mains y est joué 5 % plus vite)
+MORCEAUX = (('jarre-marteau', 0.38, 0.38 + 79 / 60, 0, 79), ('jarre-marteau', 2.83, 2.83 + 64 / 60, 79, 143), ('jarre-mains', 0.75, SECONDE_OUVERTE, 143, 300))
+FIN_GESTE = 300  # image : le temps 12, où la musique éclate
+# Images : à 24 images/s, l'image où le marteau touche arrive juste après le choc du son d'origine (mesuré : 2 images à 60 images/s).
+RETARD = 2
+# (images, dB) : le choc le plus fort du son d'origine est un petit coup, et le limiteur met tous les autres au même niveau ; le dernier fend la jarre
+NUANCES = ((44, 66, -3), (114, 143, 3))
+
+
+def geste():
+    """Le son de l'accroche. Seedance génère le son avec l'image : chaque choc y tombe déjà où le marteau touche et chaque craquement où la
+    jarre cède. On le prend donc tel quel, coupé comme l'image (le propriétaire : « le bruit de la jarre au début est pas bien mis » avec
+    les bruitages posés à la main, dont un raclement qui culminait 0,4 s avant que la jarre cède). Un limiteur rabote les chocs, très
+    au-dessus du reste (−2 dB contre −48 dB entre les coups), pour qu'on entende aussi les doigts et la terre."""
+    sr = 48000
+    sortie = np.zeros((round(FIN_GESTE / 60 * sr), 2), dtype=np.float32)
+    fondu = np.linspace(0, 1, int(0.004 * sr), dtype=np.float32)[:, None]
+    for plan, s0, s1, f0, f1 in MORCEAUX:
+        brut = subprocess.run([ffmpeg(), '-hide_banner', '-loglevel', 'error', '-i', str(SOURCES / f'{plan}.mp4'), '-vn', '-ac', '2', '-ar', str(sr), '-f', 'f32le', '-'],
+                              capture_output=True, check=True).stdout
+        son = np.frombuffer(brut, dtype=np.float32).reshape(-1, 2)[int(s0 * sr):int(s1 * sr)]
+        n = round((f1 - f0) / 60 * sr)
+        x = np.linspace(0, len(son) - 1, n)
+        morceau = np.column_stack([np.interp(x, np.arange(len(son)), son[:, c]) for c in (0, 1)]).astype(np.float32)
+        morceau[:len(fondu)] *= fondu
+        morceau[-len(fondu):] *= fondu[::-1]
+        debut = round((f0 + RETARD) / 60 * sr)
+        fin = min(len(sortie), debut + n)
+        sortie[debut:fin] += morceau[:fin - debut]
+    sortie = np.frombuffer(subprocess.run([ffmpeg(), '-hide_banner', '-loglevel', 'error', '-f', 'f32le', '-ar', str(sr), '-ac', '2', '-i', '-',
+                                           '-af', 'alimiter=limit=0.35:attack=1:release=40:level=false:latency=1', '-f', 'f32le', '-'],
+                                          input=sortie.tobytes(), capture_output=True, check=True).stdout, dtype=np.float32).reshape(-1, 2).copy()
+    enveloppe = np.ones(len(sortie), dtype=np.float32)
+    for a, z, db in NUANCES:
+        enveloppe[round(a / 60 * sr):round(z / 60 * sr)] = 10 ** (db / 20)
+    enveloppe = np.convolve(enveloppe, np.ones(240, dtype=np.float32) / 240, mode='same')  # (5 ms de transition)
+    sortie *= enveloppe[:, None]
+    sortie *= 10 ** (-1 / 20) / np.abs(sortie).max()
+    subprocess.run([ffmpeg(), '-hide_banner', '-loglevel', 'error', '-y', '-f', 'f32le', '-ar', str(sr), '-ac', '2', '-i', '-', '-c:a', 'pcm_s16le', str(PUBLIC / 'sfx' / 'geste.wav')],
+                   input=sortie.tobytes(), check=True)
 
 
 def main():
@@ -94,7 +130,7 @@ def main():
     for f in SFX:
         copier(f, PUBLIC / 'sfx' / f.name)
     copier(VIDEOS / 'carte/tunnel/public/tiktok/avatar.jpg', PUBLIC / 'ui' / 'logo.jpg')
-    coups()
+    geste()
     for nom in ('jarre-marteau', 'jarre-mains'):
         if (SOURCES / f'{nom}.mp4').exists():
             clip(nom)

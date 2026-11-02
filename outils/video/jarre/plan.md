@@ -21,7 +21,7 @@ Ton : `chaotic` tenu par des mots courts, après une accroche silencieuse et ré
 
 ## La musique
 
-144 battements par minute : un temps = 25 images à 60 images/s, donc tout tombe juste. 48 temps = 20,0 s. Rien jusqu'au temps 12 (seulement les bruits du geste, à vitesse réelle, hors de la grille : le propriétaire voulait un geste « plus humain »), puis phonk japonais composé par `musique.py` (aucun droit).
+144 battements par minute : un temps = 25 images à 60 images/s, donc tout tombe juste. 48 temps = 20,0 s. Rien jusqu'au temps 12 (seulement le son d'origine des deux plans générés, coupé comme eux et donc calé sur le geste, à vitesse réelle, hors de la grille : le propriétaire voulait un geste « plus humain », et trouvait les bruitages posés à la main mal placés), puis phonk japonais composé par `musique.py` (aucun droit).
 
 ## Le découpage (en temps de musique, t(n) = 25 n images)
 
