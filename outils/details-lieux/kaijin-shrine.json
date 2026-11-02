@@ -1,71 +1,85 @@
 {
   "verifie": "2026-11-02",
+  "titre": {
+    "en": "Kaijin Shrine, Kawatana: torii on Omura Bay (海神神社) · Nagasaki, Japan · Random Japan Place",
+    "fr": "Sanctuaire Kaijin, Kawatana : torii sur la baie d'Omura (海神神社) · Nagasaki · Random Japan Place",
+    "ja": "海神神社（長崎県川棚町）干潮に歩いて行く海辺の神社 · Random Japan Place"
+  },
   "description": {
-    "en": "Located at Kisaka on Tsushima Island, Nagasaki Prefecture, Kaijin Shrine stands on a wooded hill, Mount Izu. Known locally as Ichinomiya-sama, it was the leading shrine of the old Tsushima Province. It is dedicated mainly to the sea goddess Toyotama-hime, and tradition says it was founded by Empress Jingū.",
-    "fr": "Situé à Kisaka, sur l'île de Tsushima (préfecture de Nagasaki), le sanctuaire Kaijin se dresse sur une colline boisée, le mont Izu. Surnommé « Ichinomiya-sama », c'était le premier sanctuaire de l'ancienne province de Tsushima. Il est dédié surtout à la déesse de la mer Toyotama-hime et, selon la tradition, aurait été fondé par l'impératrice Jingū.",
-    "ja": "長崎県対馬市峰町木坂の伊豆山（木坂山）に鎮座する海神神社は、「一宮さま」と呼ばれる旧対馬国の一宮です。主祭神は海の女神・豊玉姫命で、神功皇后が創祀したと伝えられています。"
+    "en": "Located in Kawatana, Nagasaki Prefecture, Kaijin Shrine is a tiny seaside shrine at the foot of a cliff on Omura Bay: two stone torii stand on the rocky shore, in front of a cave where the Eight Dragon Kings are worshipped. It is said to date back to the Edo period, when a lord caught in a storm on the bay prayed to the dragon god and came through safely. You can only walk there along the shore at low tide.",
+    "fr": "Situé à Kawatana, dans la préfecture de Nagasaki, le sanctuaire Kaijin est un tout petit sanctuaire au pied d'une falaise, sur la baie d'Omura : deux torii de pierre se dressent sur le rivage rocheux, devant une grotte où sont vénérés les huit rois-dragons. Il remonterait à l'époque d'Edo, quand un seigneur pris dans une tempête sur la baie pria le dieu-dragon et en réchappa. On ne peut y aller à pied, le long du rivage, qu'à marée basse.",
+    "ja": "長崎県川棚町の海神神社は、大村湾の断崖の下にある小さな神社です。岩場の海岸に石の鳥居が二基並び、奥の洞窟に八大竜王が祀られています。江戸時代、大村湾を渡る途中で暴風雨に遭った筑前藩主の黒田公が竜神に祈って無事だったことから祀られたと伝わります。干潮のときだけ、海岸沿いを歩いて行くことができます。"
   },
   "meta": {
-    "en": "Kaijin Shrine, the old first shrine of Tsushima, on a forested hill at Kisaka. How to get there, what to see, and how it differs from Watatsumi Shrine.",
-    "fr": "Le sanctuaire Kaijin, ancien premier sanctuaire de Tsushima, sur une colline boisée à Kisaka : comment y aller, que voir, et ne pas le confondre avec Watatsumi.",
-    "ja": "対馬一宮・海神神社（峰町木坂）の見どころとアクセス。原生林の伊豆山に鎮座する古社で、和多都美神社との違いも紹介します。"
+    "en": "A tiny shrine with two stone torii and a cave on Omura Bay, in Kawatana, Nagasaki. You can only walk there at low tide: route, timing, parking and safety.",
+    "fr": "Un petit sanctuaire, deux torii de pierre et une grotte sur la baie d'Omura, à Kawatana (Nagasaki). On n'y va qu'à marée basse : trajet, horaires, parking, sécurité.",
+    "ja": "長崎県川棚町、大村湾の断崖の下にたたずむ海神神社。干潮のときだけ歩いて行ける、二基の鳥居と洞窟の神社の行き方と注意点を紹介します。"
   },
   "textes": {
     "en": {
       "voir": [
-        "The shrine sits at the top of Mount Izu (also called Mount Kisaka), in a forest that has been left largely untouched, known as the Kisaka bird forest. The walk up through the old trees is a big part of the visit.",
-        "Its treasures include a bronze standing Buddha from the ancient Korean kingdom of Silla, an Important Cultural Property. It shows how close Tsushima is to the Korean Peninsula."
+        "Two stone torii stand one behind the other on the rocks at the water's edge, at the foot of a cliff. Behind them, a cave in the rock shelters the Eight Dragon Kings (Hachidai Ryūō), whose name is written on the torii.",
+        "According to a sign in nearby Katashima Park, the shrine goes back to the Edo period: Lord Kuroda of Chikuzen, caught in a storm while crossing Omura Bay, prayed to the dragon god and came through safely. The water here is very clear, enough to see sea urchins on the bottom."
       ],
       "aller": [
-        "Tsushima is reached by plane or ferry from Fukuoka, and by plane from Nagasaki. The shrine is on the island's west coast, at 247 Kisaka, Mine-machi, Tsushima City.",
-        "A rental car is the practical choice, since the island is long and its places are far apart. Parking is listed at the shrine. Use the Directions button above to plan the drive."
+        "Start from Katashima Park, the old torpedo test site in Kawatana: about 10 minutes by car from JR Kawatana Station, with free parking and free entry. From its parking lot, you can already see the torii across the water.",
+        "It takes just under 20 minutes on foot to reach the way down to the shore, a small stairway beside a house a little below the Umisachi guesthouse (民宿海幸). Then it's about 20 minutes along the rocky shore. Sources give 1 to 2 hours for the whole trip, so leave plenty of margin."
       ],
       "quand": [
-        "The shrine is outdoors and can be visited all year. Its main festival falls on the 5th day of the 8th lunar month, so the date changes every year."
+        "Only at low tide. Look up the tide times for Omura Bay before you leave, and set off early enough to be back before the water rises: as the tide comes in, there is almost nowhere left to walk.",
+        "The torii look east across the bay, so early in the morning the sun comes up behind them, as in my video. Any season works, as long as the tide is right."
       ],
       "savoir": [
-        "Don't mix it up with Watatsumi Shrine, in Nii (Toyotama-machi). The famous torii standing in the sea are there, not here. The two names are written alike, which is why this shrine is now read Kaijin rather than Watatsumi.",
-        "The shrine is at the top of a hill, so bring shoes you can walk in."
+        "This isn't an easy walk. The shore is covered in big stones, wet rocks are slippery, and parts of the slope have collapsed: wear proper shoes, don't force a way down to the beach, and don't linger, because the tide decides when you have to leave. Please don't photograph the sacred image in the cave.",
+        "Katashima Park is worth a visit too: its torpedo test site, built in 1918, is a registered cultural property. Some parts are off-limits, so stay behind the fences. For questions, Kawatana Town Hall: 0956-82-3131.",
+        "Don't confuse it with another Kaijin Shrine in Nagasaki Prefecture, the old first shrine of Tsushima Island. It is far from here, on a forested hill."
       ]
     },
     "fr": {
       "voir": [
-        "Le sanctuaire se trouve au sommet du mont Izu (aussi appelé mont Kisaka), dans une forêt restée très sauvage, appelée la forêt des oiseaux de Kisaka. La montée entre les vieux arbres fait partie de la visite.",
-        "Parmi ses trésors, un bouddha debout en bronze venu de l'ancien royaume coréen de Silla, classé bien culturel important. Il rappelle à quel point Tsushima est proche de la Corée."
+        "Deux torii de pierre se dressent l'un derrière l'autre sur les rochers, au bord de l'eau, au pied d'une falaise. Derrière eux, une grotte abrite les huit rois-dragons (Hachidai Ryūō), dont le nom est écrit sur les torii.",
+        "D'après un panneau du parc de Katashima, tout proche, le sanctuaire remonte à l'époque d'Edo : le seigneur Kuroda de Chikuzen, pris dans une tempête en traversant la baie d'Omura, pria le dieu-dragon et en réchappa. L'eau est ici très claire : on voit les oursins au fond."
       ],
       "aller": [
-        "On rejoint Tsushima en avion ou en ferry depuis Fukuoka, et en avion depuis Nagasaki. Le sanctuaire est sur la côte ouest de l'île, au 247 Kisaka, Mine-machi, ville de Tsushima.",
-        "Le mieux est de louer une voiture : l'île est longue et ses lieux sont loin les uns des autres. Un parking est signalé sur place. Le bouton Itinéraire ci-dessus te donne la route."
+        "Pars du parc de Katashima, l'ancien site d'essai de torpilles de Kawatana : environ 10 minutes en voiture depuis la gare JR de Kawatana, parking et entrée gratuits. Depuis son parking, tu vois déjà les torii de l'autre côté de l'eau.",
+        "Compte un peu moins de 20 minutes à pied jusqu'à l'accès au rivage, un petit escalier à côté d'une maison, un peu en dessous de la pension Umisachi (民宿海幸). Ensuite, environ 20 minutes sur le rivage rocheux. Les sources donnent 1 à 2 heures pour tout le trajet : garde de la marge."
       ],
       "quand": [
-        "Le sanctuaire est en plein air et se visite toute l'année. Sa grande fête tombe le 5e jour du 8e mois lunaire : la date change donc chaque année."
+        "Seulement à marée basse. Regarde les horaires des marées de la baie d'Omura avant de partir, et pars assez tôt pour revenir avant que l'eau remonte : quand la mer monte, il ne reste presque plus d'endroit où marcher.",
+        "Les torii regardent vers l'est, de l'autre côté de la baie : tôt le matin, le soleil se lève derrière eux, comme dans ma vidéo. Toutes les saisons conviennent, du moment que la marée est bonne."
       ],
       "savoir": [
-        "Ne le confonds pas avec le sanctuaire Watatsumi, à Nii (Toyotama-machi) : les célèbres torii dans la mer sont là-bas, pas ici. Les deux noms s'écrivent presque pareil, c'est pourquoi celui-ci se lit aujourd'hui Kaijin et non Watatsumi.",
-        "Le sanctuaire est en haut d'une colline : prends de bonnes chaussures."
+        "Ce n'est pas une balade facile. Le rivage est couvert de gros cailloux, les rochers mouillés glissent, et des parties de la pente se sont effondrées : prends de bonnes chaussures, ne force pas le passage pour descendre, et ne traîne pas, car c'est la marée qui décide de l'heure du retour. Merci de ne pas photographier l'image sacrée de la grotte.",
+        "Le parc de Katashima vaut aussi la visite : son site d'essai de torpilles, construit en 1918, est un bien culturel enregistré. Certaines parties sont interdites : reste derrière les barrières. Pour toute question, la mairie de Kawatana : 0956-82-3131.",
+        "Ne le confonds pas avec un autre sanctuaire Kaijin de la préfecture de Nagasaki, l'ancien premier sanctuaire de l'île de Tsushima. Il est loin d'ici, sur une colline boisée."
       ]
     },
     "ja": {
       "voir": [
-        "社殿は伊豆山（木坂山）の山頂にあり、太古の姿を残す原生林に包まれています。一帯は「木坂野鳥の森」として親しまれ、古木の間を登っていく参道そのものが見どころです。",
-        "社宝の銅造如来立像は新羅仏とされる国の重要文化財で、朝鮮半島に近い対馬の歴史を今に伝えています。"
+        "断崖の下の水辺の岩場に、石の鳥居が二基、前後に並んで立っています。その奥の洞窟に祀られているのが八大竜王で、鳥居にもその名が記されています。",
+        "近くの片島公園の案内板によると、江戸時代、筑前藩主の黒田公が大村湾を渡る途中で暴風雨に遭い、竜神に祈って無事だったことから祀られたそうです。海の透明度は高く、水底のウニが見えるほどです。"
       ],
       "aller": [
-        "対馬へは福岡から飛行機またはフェリー、長崎から飛行機で渡れます。神社は島の西海岸側、対馬市峰町木坂247にあります。",
-        "島は南北に長く見どころも離れているため、レンタカーでの移動が便利です。駐車場ありと案内されています。上の「ルート」ボタンで道順を確認できます。"
+        "川棚町の片島公園（魚雷発射試験場跡）が出発点です。JR川棚駅から車で約10分で、駐車場も入場も無料です。駐車場から海の向こうに鳥居が見えます。",
+        "海岸への入口は、民宿海幸の少し下にある住宅横の小さな階段で、駐車場から徒歩20分弱です。そこから岩や石の多い海岸を約20分歩きます。全体の所要時間は資料により約1〜2時間なので、余裕を持ってお出かけください。"
       ],
       "quand": [
-        "一年を通して参拝できます。例祭は旧暦8月5日で、新暦の日付は毎年変わります。"
+        "行けるのは干潮のときだけです。出発前に大村湾の潮の時刻を確認し、潮が満ちる前に戻れるように歩き始めましょう。満ちてくると、歩ける場所がほとんどなくなる箇所があります。",
+        "鳥居は東向きに湾を望むので、早朝には動画のように鳥居の向こうから日が昇ります。潮さえ合えば、どの季節でも訪れることができます。"
       ],
       "savoir": [
-        "豊玉町仁位の和多都美神社とは別の神社です。海中に立つ鳥居で知られるのは和多都美神社のほうです。「海神」は本来「ワタツミ」と読みますが、紛らわしいため、現在は「カイジン」と読まれています。",
-        "社殿は山の上にあるので、歩きやすい靴でお出かけください。"
+        "楽な道のりではありません。海岸は大きな石が多く、濡れた岩は滑りやすく、崩落している場所もあります。歩きやすい靴を履き、無理に海岸へ降りないでください。潮の関係で長居はできません。ご本尊の撮影はご遠慮ください。",
+        "片島公園もおすすめです。1918年に造られた魚雷発射試験場跡は国の登録有形文化財です。立ち入り禁止の場所があるので、柵やロープは越えないでください。問い合わせは川棚町役場（0956-82-3131）へ。",
+        "同じ長崎県の、対馬の一宮である海神神社とは別の神社です。対馬の海神神社は遠く離れた森の山の上にあります。"
       ]
     }
   },
   "sources": [
-    { "nom": "Kotobank (海神神社)", "url": "https://kotobank.jp/word/%E6%B5%B7%E7%A5%9E%E7%A5%9E%E7%A4%BE-665262" },
-    { "nom": "tabi-mag (海神神社)", "url": "https://tabi-mag.jp/ns0352/" },
-    { "nom": "tabi-mag (和多都美神社)", "url": "https://tabi-mag.jp/ns0212/" }
+    { "nom": "ながさき旅ネット (川棚の海神神社)", "url": "https://www.nagasaki-tabinet.com/blog/tabibu/takeshi_tomonaga/202202" },
+    { "nom": "くじらの旅 (海神神社)", "url": "https://kujiranotabi.com/spot/2662" },
+    { "nom": "koto43 (海神神社)", "url": "https://koto43.com/kaijin-jinja/" },
+    { "nom": "一人旅研究会 (魚雷発射試験場跡と海神神社)", "url": "https://hitoritabikenkyu.com/gyoraihassyasiken/" },
+    { "nom": "JEEPE (魚雷発射試験場跡)", "url": "https://www.jeepe.jp/ja/articles/torpedo-test-site-ruins-3178" },
+    { "nom": "気象庁 潮位表 / JMA tide tables", "url": "https://www.data.jma.go.jp/kaiyou/db/tide/suisan/index.php" }
   ]
 }
