@@ -87,7 +87,6 @@ CHOIX = {
     "noboribetsu-hell-valley": "File:Jigokudani (Hell Valley), Noboribetsu Onsen, Hokkaido, April 2023 10.jpg",
     "fuji-shibazakura-festival": "File:Fuji Shibazakura Festival 2.jpg",
     "hill-of-the-buddha": "File:頭大仏（2024）.jpg",
-    "todai-ji-daibutsu-den": "File:Daibutsu-den in Todaiji Nara01bs3200.jpg",
     "onion-island-uzu-no-oka": "File:For Shikoku Island - panoramio.jpg",
     "heian-jingu": "File:Heian-jingu, keidai-1.jpg",
     "the-hells-of-beppu": "File:Beppu Umi-jigoku04n4272.jpg",

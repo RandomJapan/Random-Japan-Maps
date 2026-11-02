@@ -38,7 +38,7 @@ ADRESSE = 'http://localhost:8123/?ambiance=non&points=non'
 LARGEUR, HAUTEUR = 432, 768  # un vrai téléphone (l'interface à sa taille), filmé en 1080 × 1920
 ATTENDRE = "window.carte && document.getElementById('chargement').classList.contains('fini')"
 # Les favoris du visiteur au début du film (le château de Himeji s'y ajoute pendant la scène 3)
-FAVORIS = ['kinkaku-ji', 'sanjusangen-do', 'todai-ji-daibutsu-den', 'itsukushima-jinja']
+FAVORIS = ['kinkaku-ji', 'sanjusangen-do', 'echizen-daibutsu', 'itsukushima-jinja']
 # Les vidéos des lieux : celles du propriétaire, telles qu'il les a montées pour TikTok (pas dans le dépôt). Le
 # lecteur TikTok ne marche pas dans un navigateur piloté (TikTok le bloque) : les films voyage et pov montrent donc
 # un extrait du fichier de chaque lieu, préparé dans videos/carte/films-octobre/extraits/ (720 × 1280, sans le son).
