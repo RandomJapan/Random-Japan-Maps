@@ -60,6 +60,8 @@ const JINJA = { x0: -2, x1: 13, z0: -54, z1: -38, y: 1.5 };
 const ROUTE = [[-26, -18, 3.0], [-27.6, -9, 4.35], [-31.6, 0.5, 5.9], [-37.4, 8.6, 7.6], [-42.8, 15.6, 9.25], [-46.6, 21.4, 10.45], [-48, 25, 11.0]];
 // l'entrée de Shiratani Unsuikyō (le bâtiment d'accueil, la carte des sentiers, l'arrêt du bus)
 const ENTREE = { x0: -57, x1: -41, z0: 24, z1: 34.6, y: 11.0 };
+// (le seuil, entre l'entrée et la première marche, tournée de 8° : un coin de 14 cm n'était ni à l'une ni à l'autre, un mur invisible sur la moitié gauche du portique)
+const SEUIL_ENTREE = { x0: -45.1, x1: -42.9, z0: 34.5, z1: 34.85 };
 
 /** Une ligne de points [x, z] dont la hauteur monte régulièrement de y0 à y1 (selon la longueur parcourue) : [x, z, y]. */
 function rampe(pts, y0, y1) {
@@ -540,7 +542,7 @@ function dansLeCadre(x, z) {
     if (dansRect(PALIER_CACHE, x, z)) return true;
     if (aLaPlace(CLAIRIERE, x, z) < 0 && x > -26 && (LAC.x - x) * 0.72 + (z - LAC.z) * 0.69 < 3.4 && auLac(x, z) > 0.8) return true;
   }
-  if (dansRect(QUAI, x, z) || dansRect(RUE, x, z) || dansRect(SALLE, x, z) || dansRect(JINJA, x, z) || dansRect(ENTREE, x, z)) return true;
+  if (dansRect(QUAI, x, z) || dansRect(RUE, x, z) || dansRect(SALLE, x, z) || dansRect(JINJA, x, z) || dansRect(ENTREE, x, z) || dansRect(SEUIL_ENTREE, x, z)) return true;
   if (dansRect(PALIER_YAYOI, x, z) || dansRect(DEVANT_HUTTE, x, z) || dansRect(TSUJI, x, z) || dansRect(PALIER_WILSON, x, z) || dansRect(DECK, x, z) || dansRect(PALIER_PONT, x, z)) return true;
   if (AUTOUR_HUTTE.some((r) => dansRect(r, x, z))) return true;
   if (aLaPlace(KOKE, x, z) < 0 || aLaPlace(TAIKO, x, z) < 0 || aLaPlace(RECOIN, x, z) < 0) return true;

@@ -290,7 +290,7 @@ export function interactionsBancs(bancs) {
  * petits, s'enfonçaient dans leur banc de 5 et 11 cm). Renvoie l'état à faire avancer chaque image.
  */
 export function creerPassant({ x, z, cap = 0, ronde = null, vitesse = 1.1, attente = [2, 6], assis = null, tenue = null, fixe = false }) {
-  return { x, z, y: assis ?? 0, cap, ronde, vitesse, attente, etape: 0, pause: 1 + Math.random() * 2, v: 0, parle: false, assis, hanche: ASSIS * (tenue?.taille || 1), fixe };
+  return { x, z, y: assis ?? 0, cap, ronde, vitesse, attente, etape: 0, sens: 1, pause: 1 + Math.random() * 2, v: 0, parle: false, assis, hanche: ASSIS * (tenue?.taille || 1), fixe };
 }
 /** Assis, la racine d'un personnage est à cette hauteur sous le dessus du siège (personnages.js : asseoir). */
 export const ASSIS = 0.38;
@@ -309,19 +309,18 @@ export function avancerPassant(p, dt, monde, joueur, autres) {
       const [tx, tz, passe] = p.ronde[p.etape];
       const dx = tx - p.x, dz = tz - p.z, d = Math.hypot(dx, dz);
       if (d < 0.25) {
-        p.etape = (p.etape + 1) % p.ronde.length;
+        p.etape = (p.etape + p.sens + p.ronde.length) % p.ronde.length;
         if (!passe) p.pause = p.attente[0] + Math.random() * (p.attente[1] - p.attente[0]);
       } else {
         voulu = p.vitesse;
         p.cap = tourner(p.cap, Math.atan2(dx, dz), dt * 5);
         const nx = p.x + Math.sin(p.cap) * p.v * dt, nz = p.z + Math.cos(p.cap) * p.v * dt;
-        // il attend que le joueur (ou un autre) s'écarte ; au bout de 4 s, il repart vers le point suivant de sa ronde (2026-11-02, Yakushima : un marcheur
-        // restait pour toujours le nez sur un personnage debout sur sa ligne)
-        if (monde.libre(nx, nz, p.y, autres)) { p.x = nx; p.z = nz; p.gene = 0; }
-        else {
-          voulu = 0;
-          if ((p.gene = (p.gene || 0) + dt) > 4) { p.gene = 0; p.etape = (p.etape + 1) % p.ronde.length; }
-        }
+        // il attend que le joueur (ou un autre) s'écarte ; au bout de 4 s, il fait demi-tour sur sa ronde (2026-11-02, Yakushima : un marcheur restait pour toujours le nez
+        // sur un personnage debout sur sa ligne). Vers le point d'où il vient, pas vers le suivant : en ligne droite, celui-là coupe à travers ce que la ronde contourne (le
+        // petit de Himeji, sa nappe). Le temps se compte à sa vitesse, pas au pas refusé : arrêté, ses pas raccourcissent, et le dernier, tout petit, repassait toujours
+        if (monde.libre(nx, nz, p.y, autres)) { p.x = nx; p.z = nz; } else voulu = 0;
+        if (p.v > p.vitesse / 2) p.gene = 0;
+        else if ((p.gene = (p.gene || 0) + dt) > 4) { p.gene = 0; p.sens = -p.sens; p.etape = (p.etape + p.sens + p.ronde.length) % p.ronde.length; }
       }
     }
   }
