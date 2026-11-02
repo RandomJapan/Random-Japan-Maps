@@ -51,25 +51,17 @@ button { font: inherit; color: inherit; cursor: pointer; }
   font: 500 14px var(--police);
 }
 @keyframes flotte { 50% { margin-top: -14px; } }
-/* le sceau d'un tampon : au-dessus de l'endroit, tant qu'on n'a pas ce tampon (balade.js, majSceaux) ; dans la bulle, quand on y est */
-.sceau-tampon { position: fixed; left: 0; top: 0; pointer-events: none; width: 40px; height: 52px; }
-/* (sa petite danse : une transformation, pas une marge : à chaque image, une marge fait tout remettre en page ; processeur ÷4, 2 ms par image) */
-.sceau-tampon span {
-  position: absolute; left: 3px; top: 3px; width: 34px; height: 34px; box-sizing: border-box; display: grid; place-items: center;
-  border-radius: 50%; background: #c8402c; border: 3px solid var(--papier); box-shadow: 0 0 0 2px var(--encre), 0 3px 0 2px rgba(58, 50, 54, 0.35);
-  color: #fff; font: 700 17px var(--police); animation: danse-sceau 1.4s ease-in-out infinite;
+/* le rappel du compagnon (balade.js, surveillerRappel) : en haut, sous les boutons ; il ne gêne ni la vue ni les doigts */
+.rappel-compagnon {
+  position: fixed; top: calc(max(10px, env(safe-area-inset-top)) + 69px); left: 50%; width: max-content; max-width: min(560px, calc(100vw - 24px));
+  box-sizing: border-box; margin: 0; padding: 11px 18px; text-align: center; font-size: 17px; line-height: 1.4; word-break: keep-all; pointer-events: none;
+  transform: translateX(-50%); animation: arrive-rappel 0.35s ease-out;
 }
-.sceau-tampon span::after {
-  content: ''; position: absolute; left: 50%; bottom: -13px; margin-left: -6px; border: 6px solid transparent;
-  border-top-color: var(--encre); border-bottom: 0;
-}
-@keyframes danse-sceau { 50% { transform: translateY(-4px); } }
-.sceau-tampon[hidden] { display: none; }
-body.occupe .sceau-tampon, body.en-tenue .sceau-tampon, body.en-boutique .sceau-tampon, body.en-photo .sceau-tampon, body.en-danse .sceau-tampon { display: none; }
-.bulle-action.pour-tampon span::before {
-  content: '印'; display: inline-grid; place-items: center; width: 20px; height: 20px; margin-right: 5px; border-radius: 50%;
-  background: #c8402c; color: #fff; font: 700 11px var(--police); vertical-align: 1px;
-}
+@keyframes arrive-rappel { from { opacity: 0; transform: translate(-50%, -14px); } }
+body.occupe .rappel-compagnon, body.en-tenue .rappel-compagnon, body.en-boutique .rappel-compagnon, body.en-photo .rappel-compagnon, body.en-danse .rappel-compagnon { display: none; }
+/* (un téléphone couché : plus large et plus petit, pour ne pas cacher la tête du personnage) */
+@media (max-height: 430px) { .rappel-compagnon { max-width: min(680px, calc(100vw - 24px)); padding: 8px 14px; font-size: 15px; } }
+@media (prefers-reduced-motion: reduce) { .rappel-compagnon { animation: none; } }
 
 .aide {
   position: fixed; bottom: var(--bas); left: 50%; transform: translateX(-50%); margin: 0; padding: 6px 16px; white-space: nowrap;

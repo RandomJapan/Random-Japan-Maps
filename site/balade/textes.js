@@ -49,6 +49,7 @@ export const TEXTES = {
     revoila: (lieu) => [`Welcome back to ${lieu}!`],
     compagnonQuestion: ['Three companions would love to walk with you.', 'Which one do you choose?'],
     ouTampon: (ou) => `“A stamp… ${ou}!”`,
+    rappelCompagnon: (nom) => `Don’t forget: your companion is your best friend! Turn to ${nom} and talk to get hints about the stamps.`,
     compagnons: {
       kon: {
         nom: 'Kon', choix: 'Kon, the messenger fox of Inari. Polite and clever, he can sniff out stamps from afar.',
@@ -189,6 +190,7 @@ export const TEXTES = {
     revoila: (lieu) => [`Te revoilà ${aLieu(lieu)} !`],
     compagnonQuestion: ['Trois compagnons aimeraient faire la balade avec toi.', 'Lequel choisis-tu ?'],
     ouTampon: (ou) => `« Un tampon… ${ou} ! »`,
+    rappelCompagnon: (nom) => `N’oublie pas : ton compagnon est ton meilleur ami ! Tourne-toi vers ${nom} et parle-lui pour avoir des indices sur les tampons.`,
     compagnons: {
       kon: {
         nom: 'Kon', choix: 'Kon, le renard messager d’Inari. Poli et malin, il flaire les tampons de loin.',
@@ -329,6 +331,7 @@ export const TEXTES = {
     revoila: (lieu) => [`おかえり！　${lieu}だよ！`],
     compagnonQuestion: ['3びきの　なかまが　いっしょに　さんぽ　したいって。', 'どの　こに　する？'],
     ouTampon: (ou) => `「スタンプは……${ou}！」`,
+    rappelCompagnon: (nom) => `わすれないで！　なかまは　いちばんの　ともだち。${nom}の　ほうを　むいて　はなしかけると、スタンプの　ヒントが　もらえるよ！`,
     compagnons: {
       kon: {
         nom: 'コン', choix: 'コン。おいなりさまの　つかいの　キツネ。れいぎ　ただしくて　かしこい。とおくの　スタンプも　かぎつける。',

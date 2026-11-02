@@ -2788,8 +2788,8 @@ export function construire(ctx) {
   const lire = (id, x, z, ry) => ({ id: `panneau-${id}`, x: x - Math.sin(ry) * 1.2, z: z - Math.cos(ry) * 1.2, rayon: 1.8, verbe: 'lire', vers: [x, z], action: (jeu) => jeu.dire(jeu.tx(`panneau-${id}`)) });
   const HAIDEN = RJ(0, 0, 2.0 + 1.55);
   // (2026-11-01, le propriétaire : « pour les tampons… place mieux et donne une indication de où regarder » : souvent un personnage juste à
-  // côté, et c'est « Parler » qui s'offrait. Un tampon : tampon (son id : tant qu'on ne l'a pas, un sceau rouge au-dessus de l'endroit, vu
-  // de loin, balade.js, et il passe avant ce qui est à côté), quoi (ce que dit la bulle))
+  // côté, et c'est « Parler » qui s'offrait. Un tampon : tampon (son id : il passe avant ce qui est à côté, balade.js), quoi (ce que dit
+  // la bulle) ; le sceau rouge vu de loin, essayé le même jour, est retiré : « on peut parler aux compagnons qui nous donnent des indices »)
   const QUOI = {
     yakujinja: { fr: 'Prier', en: 'Pray', ja: 'おまいりする' }, sarushika: { fr: 'Regarder le singe', en: 'Watch the monkey', ja: 'サルを見る' }, taikoiwa: { fr: 'Regarder les sommets', en: 'Look at the peaks', ja: 'やまやまを見る' },
     wilson: { fr: 'Lever les yeux', en: 'Look up', ja: '上を見る' }, jomonsugi: { fr: 'Regarder le Jōmon Sugi', en: 'Look at Jōmon Sugi', ja: '縄文杉を見る' },

@@ -2594,39 +2594,6 @@ function cibleProche() {
 }
 
 let cible = null;
-/**
- * Le sceau des tampons (2026-11-01, Yakushima ; le propriétaire : « donne une indication de où regarder ») : au-dessus de l'endroit d'une
- * interaction qui a tampon (son id), tant qu'on n'a pas ce tampon, un petit sceau rouge qui flotte, à l'écran (rien à dessiner en plus) :
- * vu à travers le décor jusqu'à 24 m ; il s'efface quand la bulle « A » prend sa place.
- */
-const SCEAUX = new Map();
-const PORTEE_SCEAU = 24;
-function majSceaux() {
-  const L = M.lieu;
-  for (const i of L.interactions) {
-    if (!i.tampon) continue;
-    let el = SCEAUX.get(i);
-    const dx = i.x - etat.x, dz = i.z - etat.z, y = i.y ?? (i.yLu ??= L.monde.hauteur(i.x, i.z));
-    const voulu = etat.mode === 'jeu' && !PHOTO && cible?.id !== i.id && Math.hypot(dx, dz) < PORTEE_SCEAU && Math.abs(y - etat.y) < 12 && !aLeTampon(L.id, i.tampon);
-    let v = null;
-    if (voulu) { v = new THREE.Vector3(i.x, y + (i.haut || 1.6) + 0.5, i.z).project(camera); }
-    const voit = voulu && v.z < 1 && Math.abs(v.x) < 1.02 && Math.abs(v.y) < 1.02;
-    if (!el) {
-      if (!voit) continue;
-      el = document.createElement('div');
-      el.className = 'sceau-tampon';
-      el.innerHTML = '<span>印</span>';
-      document.body.append(el);
-      SCEAUX.set(i, el);
-    }
-    if (el.hidden === voit) el.hidden = !voit;
-    if (voit) {
-      // (seulement s'il a bougé d'au moins un demi-pixel)
-      const sx = ((v.x + 1) / 2) * innerWidth, sy = ((1 - v.y) / 2) * innerHeight;
-      if (Math.abs(sx - (el.sx ?? -1e4)) + Math.abs(sy - (el.sy ?? -1e4)) > 0.5) { el.sx = sx; el.sy = sy; el.style.transform = `translate(${sx - 20}px, ${sy - 52}px)`; }
-    }
-  }
-}
 async function agir() {
   const c = cible;
   if (!c || etat.mode !== 'jeu') return;
@@ -2648,9 +2615,42 @@ async function agir() {
   }
 }
 
+/**
+ * Le rappel du compagnon (2026-11-01, le propriétaire, en retirant le sceau rouge des tampons : « au bout de quelques minutes, si la
+ * personne, elle tourne en rond, elle ne sait pas trop quoi faire, tu lui affiches un message sur l'écran… votre compagnon est votre
+ * meilleur ami, il vous donnera des indices ») : on compte le temps passé à marcher (ni arrêté, ni à lire) depuis le dernier tampon ou
+ * la dernière question au compagnon. S'il reste des tampons ici : le message à 3 minutes, encore une fois 5 minutes plus tard, puis plus
+ * rien. Ni les photos ni les films (?demo) ne passent par là.
+ */
+const APRES_RAPPEL = [180, 300];
+const rappel = { marche: 0, vus: 0, x: 0, z: 0, minuteur: 0 };
+function remettreRappel() {
+  rappel.marche = 0; rappel.vus = 0;
+  clearTimeout(rappel.minuteur);
+  $('.rappel-compagnon').hidden = true;
+}
+function surveillerRappel(dt) {
+  const bouge = Math.hypot(etat.x - rappel.x, etat.z - rappel.z) > 0.001;
+  rappel.x = etat.x; rappel.z = etat.z;
+  if (etat.mode !== 'jeu' || !bouge || rappel.vus >= APRES_RAPPEL.length) return;
+  rappel.marche += dt;
+  if (rappel.marche < APRES_RAPPEL[rappel.vus]) return;
+  rappel.marche = 0; rappel.vus++;
+  const L = M.lieu;
+  if (L.tampons.every((tp) => aLeTampon(L.id, tp.id))) return;
+  const el = $('.rappel-compagnon');
+  el.textContent = t('rappelCompagnon')(tc('nom'));
+  el.hidden = false;
+  M.kon.sauter();
+  M.bruitage.cri(espece, { pan: panDe(renard.x, renard.z) });
+  clearTimeout(rappel.minuteur);
+  rappel.minuteur = setTimeout(() => { el.hidden = true; }, 10000);
+}
+
 /** Le compagnon souffle où est le prochain tampon (chacun à sa façon), après un petit bond et son cri. */
 async function parlerCompagnon() {
   const L = M.lieu;
+  remettreRappel();
   M.kon.sauter();
   M.bruitage.cri(espece, { pan: panDe(renard.x, renard.z) });
   const manque = L.tampons.find((tp) => !aLeTampon(L.id, tp.id));
@@ -2666,6 +2666,7 @@ async function tampon(id, puis) {
   const L = M.lieu;
   const tp = L.tampons.find((x) => x.id === id);
   if (!ajouterTampon(L.id, id)) { await dialogue.dire([t('dejaTampon')]); return; }
+  remettreRappel();
   const el = $('.tampon-obtenu');
   el.innerHTML = `<div class="tampon-papier"><div class="tampon-presse">${dessinTampon(tp, L.nomJa, 200)}</div></div>`;
   el.hidden = false;
@@ -4104,12 +4105,10 @@ function dessiner(dt, temps) {
     const v = new THREE.Vector3(cible.x, cible.y + cible.haut, cible.z).project(camera);
     bulle.hidden = v.z > 1;
     bulle.style.transform = `translate(${((v.x + 1) / 2) * innerWidth}px, ${((1 - v.y) / 2) * innerHeight}px) translate(-50%, -100%)`;
-    // (quoi : ce que dit la bulle à la place du verbe ; un tampon qu'on n'a pas encore : le sceau rouge dans la bulle)
+    // (quoi : ce que dit la bulle à la place du verbe)
     const verbe = cible.quoi?.[langue] ?? t(cible.verbe);
     if (bulle.dataset.verbe !== verbe) { bulle.querySelector('span').textContent = verbe; bulle.dataset.verbe = verbe; }
-    bulle.classList.toggle('pour-tampon', !!cible.tampon && !aLeTampon(M.lieu.id, cible.tampon));
   } else bulle.hidden = true;
-  majSceaux();
   $('.bouton-a').classList.toggle('pret', !!cible);
   document.body.classList.toggle('occupe', etat.mode !== 'jeu');
 
@@ -4228,7 +4227,7 @@ construire();
 majInterface();
 if (PHOTO === 'perso' || (!sorte && !PHOTO && !DEMO)) cadrerLesDeux(); else placer();
 $('.chargement').hidden = true;
-window.balade = { scene, rendu, camera, monde: () => M, etat, cam, renard, jeu, ouvrirBoutique, commencerDanse, lancerFeux, ouvrirPhoto, changerSaison, photo }; // (pour les essais)
+window.balade = { scene, rendu, camera, monde: () => M, etat, cam, renard, jeu, rappel, ouvrirBoutique, commencerDanse, lancerFeux, ouvrirPhoto, changerSaison, photo }; // (pour les essais)
 
 /**
  * La qualité qui s'adapte : si l'image peine (la moitié des images de 2 s en plus de 22 ms, moins de 45 par
@@ -4271,7 +4270,7 @@ if (DEMO) {
     const dt = Math.min(0.05, Math.max(0, (now - avant) / 1000));
     adapter(now - avant);
     avant = now;
-    if (PHOTO) temps = 1.2; else { temps += dt; avancer(dt); }
+    if (PHOTO) temps = 1.2; else { temps += dt; avancer(dt); surveillerRappel(dt); }
     dessiner(PHOTO ? 0 : dt, temps);
     if (++images === 4) window.__pret = true;
   });
