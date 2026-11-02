@@ -42,7 +42,7 @@ export const PIECES = [
   { id: 'mino', place: 'dos', lieu: 'gokayama' },
   { id: 'ailes', place: 'dos', lieu: 'kinkakuji' },
   { id: 'cormoran', place: 'dos', lieu: 'udo' },
-  // (avec : la capuche ne se lève que sans chapeau : la mettre enlève le chapeau, qu'on peut remettre ; la capuche retombe alors dans le dos)
+  // (avec : la capuche ne se lève que sans chapeau ni masque : la mettre enlève le chapeau, qu'on peut remettre ; la capuche retombe alors dans le dos)
   { id: 'loup', place: 'dos', lieu: 'yakushima', avec: ['nue'] },
   { id: 'cou-rien', place: 'cou' },
   { id: 'magatama', place: 'cou', lieu: 'takachiho' },
@@ -134,12 +134,16 @@ const DESSINS = {
     <ellipse cx="10.5" cy="27" rx="6" ry="3" transform="rotate(-28 10.5 27)" fill="#b98250" stroke="${ENCRE}" stroke-width="1.8"/>
     <ellipse cx="37.5" cy="27" rx="6" ry="3" transform="rotate(28 37.5 27)" fill="#b98250" stroke="${ENCRE}" stroke-width="1.8"/>
     ${trait(BOIS_D, '#e2c596', 3)}<g transform="translate(48 0) scale(-1 1)">${trait(BOIS_D, '#e2c596', 3)}</g>`,
-  // la cape du loup blanc (Yakushima) : la capuche et ses deux oreilles, le col de fourrure, la cape en pointes, trois crocs
-  loup: `<path d="M9 44 L12 27 Q14 19 24 19 Q34 19 36 27 L39 44 L33 40 L29 45 L24 40 L19 45 L15 40 Z" fill="#f4f1e6" stroke="${ENCRE}" stroke-width="2.4" stroke-linejoin="round"/>
-    <path d="M13 20 L11 5 L20 12 Q24 10.5 28 12 L37 5 L35 20 Q30 26 24 26 Q18 26 13 20 Z" fill="#fbf9f2" stroke="${ENCRE}" stroke-width="2.4" stroke-linejoin="round"/>
-    <path d="M13.2 10.5 L12.6 7.6 L16 10.4 Z M34.8 10.5 L35.4 7.6 L32 10.4 Z" fill="#d9b8a0"/>
-    <path d="M18 18 Q24 22 30 18 Q29 24 24 24.5 Q19 24 18 18 Z" fill="#6a5a4a"/>
-    <path d="M19.5 29 L21 34 L22.5 29.5 Z M22.6 30 L24 36 L25.4 30 Z M25.5 29.5 L27 34 L28.5 29 Z" fill="#f2e6c4" stroke="${ENCRE}" stroke-width="1.2" stroke-linejoin="round"/>`,
+  // la cape du loup (Yakushima) : la peau grise au bas effiloché, la queue au bout noir, la tête du loup endormi et ses oreilles
+  loup: `<path d="M37 34 Q45 36 44 43 Q43.5 46 41 47 Q39.5 43 36 41 Z" fill="#a9a9a6" stroke="${ENCRE}" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M41 47 Q39.8 44.2 37.8 42.8 L42.8 44.2 Q42.6 46 41 47 Z" fill="${ENCRE}"/>
+    <path d="M9 45 L7 37 L11 26 Q15 19 24 19 Q33 19 37 26 L41 37 L39 45 L35.5 41 L33 46 L29 41.5 L26 46.5 L23 41.5 L19.5 46 L16 41 L13 46 Z" fill="#83848a" stroke="${ENCRE}" stroke-width="2.4" stroke-linejoin="round"/>
+    <path d="M11 30 L9.6 37 L11 42 L13 37 L12.6 31 Z M37 30 L38.4 37 L37 42 L35 37 L35.4 31 Z" fill="#d9d3c7"/>
+    <path d="M13.4 21 L10.5 6 L19.6 12.4 Q24 11 28.4 12.4 L37.5 6 L34.6 21 Q33 27 24 28 Q15 27 13.4 21 Z" fill="#a4a4a0" stroke="${ENCRE}" stroke-width="2.4" stroke-linejoin="round"/>
+    <path d="M13.6 11.6 L12.8 8.6 L16.8 11.6 L15 14.6 Z M34.4 11.6 L35.2 8.6 L31.2 11.6 L33 14.6 Z" fill="#d9cdbd"/>
+    <path d="M18 20.5 Q24 16.5 30 20.5 Q29.4 26.6 24 27.6 Q18.6 26.6 18 20.5 Z" fill="#f3f0e7"/>
+    <path d="M21.2 21.4 Q24 20.2 26.8 21.4 Q26.2 24 24 24.6 Q21.8 24 21.2 21.4 Z" fill="${ENCRE}"/>
+    <path d="M15.6 17 L20 18.6 M32.4 17 L28 18.6" fill="none" stroke="${ENCRE}" stroke-width="1.9" stroke-linecap="round"/>`,
   // la coiffe du héron blanc (Himeji) : un bandeau blanc, une tête de héron au bec jaune posée devant, et derrière, les
   // longues plumes blanches de la parade (les aigrettes) qui retombent
   heron: `<path d="M27 21 Q36 10 46 13 Q38 14 31 22 M25 20 Q30 6 41 4 Q33 8 28 20 M23 20 Q24 9 31 2 Q27 10 26 20" fill="#ffffff" stroke="${ENCRE}" stroke-width="1.8" stroke-linejoin="round"/>

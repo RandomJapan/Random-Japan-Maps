@@ -169,107 +169,313 @@ export function capeCormoran(THREE, atelier, { y = 0.8, k = 1 } = {}) {
   return { haut, ourlet };
 }
 
+/** Les petits outils du pelage du loup : un vecteur de longueur 1 ; le produit de deux vecteurs ; un nombre tiré d'une graine (toujours le même). */
+const norme3 = (v) => { const l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / l, v[1] / l, v[2] / l]; };
+const croix3 = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const hasardL = (n) => { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+// le pelage d'un loup gris, du dessous (0) au dos (1) : crème, gris fauve, gris, gris sombre, presque noir
+const TONS_LOUP = ['#f3f0e7', '#d9d3c7', '#afaca5', '#83848a', '#5f6169'];
+/** La couleur du pelage en d (0 à 1), en couleurs de travail, à mélanger sommet par sommet. */
+const tonLoup = (THREE) => {
+  const T = TONS_LOUP.map((c) => { const k = new THREE.Color(c); return [k.r, k.g, k.b]; });
+  return (d) => { const v = Math.min(0.999, Math.max(0, d)) * (T.length - 1), i = Math.floor(v), f = v - i; return [0, 1, 2].map((k) => T[i][k] + (T[i + 1][k] - T[i][k]) * f); };
+};
 /**
- * La cape du loup blanc (Yakushima, 2026-11-01 : la récompense de ses tampons, choisie par le propriétaire à la place du chapeau-champignon) :
- * une fourrure blanche sur les épaules et le dos, en rangs de mèches pointues qui se recouvrent, le bout un peu gris, comme le pelage d'un
- * loup ; un gros col de fourrure ; la capuche et ses deux oreilles : couchée dans le dos (capucheDos), ou levée sur la tête quand on n'a pas de
- * chapeau (capucheTete, dans le repère de la tête : cy, son milieu ; r, son rayon). Ouverte devant, comme le mino et la cape de plumes ;
- * les deux rangs du bas en six morceaux qui s'écartent quand on court (animerCape). Renvoie { haut, ourlet, capucheDos, capucheTete } (des ateliers).
+ * Un pelage : des touffes de poils, longues, effilées, dans une seule pièce sans trait d'encre (leur dessous, vu d'en bas, c'est la coque du trait, sombre).
+ * Ni leurs normales ni leurs couleurs ne sont celles de leurs facettes : la normale est celle de la forme d'en dessous (N, un peu au hasard : toute la fourrure
+ * s'éclaire d'un bloc, et le bord de l'ombre y fait des dents, de touffe en touffe) ; la couleur va de la racine, sombre, à la pointe, claire, et du milieu aux bords
+ * (sans ça : du papier déchiré ; en rangs de lames : la cape de plumes, 2026-11-02). o : l'origine de la pièce (un morceau de l'ourlet : son pivot).
+ * À poser dans l'atelier avant toute autre pièce (poser).
  */
-export function capeLoup(THREE, atelier, { y = 0.8, k = 1, cy = 0.25, r: rt = 0.3 } = {}) {
-  const PI = Math.PI, t0 = PI - 1.78, t1 = PI + 1.78;
-  const B1 = '#fbf9f3', B2 = '#f6f3ea', B3 = '#f0ece0', B4 = '#e6e1d4', OREILLE = '#d9b6a0', ENCRE = '#3a3236';
-  const BLANCS = [B1, B2, B3, B2];
-  const hasardP = (n) => { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
-  // (des mèches sans trait d'encre, à peine plus sombres au bout : avec un trait et un bout gris, soixante lames faisaient une armure, 2026-11-01)
-  const PROFIL = [0.62, 1, 0.94, 0.66, 0.14];
-  const meche = (a, base, pointe, normale, large, c, j = 0) => plumeCormoran(THREE, a, { base, pointe, normale, large, epais: 0.008, c, bout: B4, finBout: 0.82, roulis: j % 2 ? 0.1 : -0.1, bombe: 0.016, profil: PROFIL, trait: false });
-  const r = (yy) => (0.21 + (y - yy) * 0.36) * k;
-  const haut = atelier(), ourlet = [];
-  // le dessous, d'un seul tenant : il donne son trait d'encre au dehors de la cape ; la doublure, vue par devant, sous les bras
-  for (const [ya, yb, d] of [[y - 0.2, y + 0.015, 0.008], [y - 0.44, y - 0.18, 0.04]]) {
-    const h = yb - ya;
-    haut.piece(new THREE.CylinderGeometry(r(yb) - d, r(ya) - d, h, 26, 1, true, t0, t1 - t0), B3, { y: (ya + yb) / 2, nuance: 0.01 });
-    haut.piece(new THREE.CylinderGeometry(r(yb) - d - 0.008, r(ya) - d - 0.008, h, 26, 1, true, t0, t1 - t0), '#b4afa2', { y: (ya + yb) / 2, sx: -1, trait: false });
-  }
-  // les rangs de mèches, du bas vers le haut : [pointe, base, largeur, nombre] ; les deux du bas en six morceaux (ils s'écartent quand on court)
-  // (le rang du haut part de sous le col : plus bas, le haut de la manche passait entre deux mèches)
-  const RANGS = [[y - 0.52, y - 0.28, 0.135, 15], [y - 0.42, y - 0.2, 0.128, 15], [y - 0.3, y - 0.11, 0.118, 14], [y - 0.2, y, 0.108, 13]];
-  const [yt1, yb1] = RANGS[1], yp = RANGS[2][0] + 0.012, rp = r(yb1) + 0.014 + (r(yt1) + 0.012 - r(yb1)) * ((yb1 - yp) / (yb1 - yt1));
-  RANGS.forEach(([yt, yb, large, n], i) => {
-    const dr = 0.014 * i, morceaux = i <= 1 ? 6 : 1;
-    for (let j = 0; j < n; j++) {
-      const t = t0 + ((j + 0.5 + (i % 2 ? 0.5 : 0)) / (n + (i % 2 ? 0.5 : 0))) * (t1 - t0), s = Math.sin(t), c = Math.cos(t), rb = r(yb) + dr, ytt = yt - 0.04 * hasardP(i * 17 + j), rtt = r(ytt) + dr + 0.01;
-      const q = { base: [rb * s, yb, rb * c], pointe: [rtt * s, ytt, rtt * c], normale: [s, 0.3, c], large: large * k, c: BLANCS[Math.floor(hasardP(i * 31 + j) * 4)], j };
-      if (morceaux === 1) { meche(haut, q.base, q.pointe, q.normale, q.large, q.c, j); continue; }
-      const m = Math.min(5, Math.floor((j / n) * morceaux));
-      if (!ourlet[m]) {
-        const tm = t0 + ((m + 0.5) / morceaux) * (t1 - t0);
-        ourlet[m] = { a: atelier(), pivot: [rp * Math.sin(tm), yp, rp * Math.cos(tm)], axe: [-Math.cos(tm), 0, Math.sin(tm)], t: tm };
+function fourrure(THREE, o = [0, 0, 0]) {
+  const pos = [], nor = [], col = [], US = [0, 0.3, 0.62, 1], LARGEURS = [0.6, 1, 0.72, 0], BOMBES = [0.7, 1, 0.7, 0];
+  return {
+    /** Une touffe : de B à la pointe P, courbée par M, couchée sur la surface de normale N ; c0, c1 : la couleur de sa racine, de sa pointe (tonLoup). */
+    touffe(B, M, P, N, large, c0, c1) {
+      const anneaux = US.map((u, i) => {
+        const v = 1 - u, C = [0, 1, 2].map((k) => v * v * B[k] + 2 * v * u * M[k] + u * u * P[k] - o[k]);
+        const T = norme3([0, 1, 2].map((k) => 2 * v * (M[k] - B[k]) + 2 * u * (P[k] - M[k]))), X = norme3(croix3(T, N)), w = (large / 2) * LARGEURS[i], h = large * 0.3 * BOMBES[i];
+        const c = [0, 1, 2].map((k) => c0[k] + (c1[k] - c0[k]) * u);
+        const som = (p, s, e) => ({ p, n: norme3([N[0] + X[0] * s + T[0] * 0.35 * u, N[1] + X[1] * s + T[1] * 0.35 * u, N[2] + X[2] * s + T[2] * 0.35 * u]), c: [c[0] * e, c[1] * e, c[2] * e] });
+        return { L: som([C[0] - X[0] * w, C[1] - X[1] * w, C[2] - X[2] * w], -0.7, 0.86), H: som([C[0] + N[0] * h, C[1] + N[1] * h, C[2] + N[2] * h], 0, 1), R: som([C[0] + X[0] * w, C[1] + X[1] * w, C[2] + X[2] * w], 0.7, 0.86) };
+      });
+      const tri = (...vs) => { for (const v of vs) { pos.push(...v.p); nor.push(...v.n); col.push(...v.c); } };
+      for (let i = 0; i < 3; i++) {
+        const a = anneaux[i], b = anneaux[i + 1];
+        tri(a.L, a.H, b.H);
+        tri(a.H, a.R, b.R);
+        if (i < 2) { tri(a.L, b.H, b.L); tri(a.H, b.R, b.H); }
       }
-      const o = ourlet[m], [px, py, pz] = o.pivot;
-      meche(o.a, [q.base[0] - px, q.base[1] - py, q.base[2] - pz], [q.pointe[0] - px, q.pointe[1] - py, q.pointe[2] - pz], q.normale, q.large, q.c, j);
+    },
+    /** Une mèche : deux brins, de la même racine, qui s'écartent au bout, l'un plus court (une seule grosse touffe, en forme de feuille, c'est une plume). */
+    meche(B, M, P, N, large, c0, c1, g) {
+      const X = norme3(croix3([P[0] - B[0], P[1] - B[1], P[2] - B[2]], N)), w = large * 0.62, court = 0.68 + 0.22 * hasardL(g), de = (q, s, e = 1) => [0, 1, 2].map((k) => q[k] + X[k] * s * large + (B[k] + (q[k] - B[k]) * e - q[k]));
+      this.touffe(de(B, -0.2), de(M, -0.25), de(P, -0.42), N, w, c0, c1);
+      this.touffe(de(B, 0.2), de(M, 0.25, court), de(P, 0.42, court), N, w, c0.map((v) => v * 0.97), c1.map((v) => v * 0.97));
+    },
+    poser(a) {
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      a.piece(g, TONS_LOUP[2], { trait: false });
+      const fin = a.fin;
+      a.fin = (d, p) => { const f = fin(d, p); f.geometrie.attributes.normal.array.set(nor); f.geometrie.attributes.color.array.set(col); return f; };
+      return a;
+    },
+  };
+}
+
+/**
+ * La cape du loup (Yakushima : la récompense de ses tampons, choisie par le propriétaire à la place du chapeau-champignon). Le 2026-11-02, il la
+ * trouvait trop proche de la cape de plumes (la même cloche, en rangs de lames) : « il faudrait que ça ressemble plus à une fourrure de loup ».
+ * C'est maintenant une peau de loup jetée sur les épaules : un pelage de longues touffes, sans rangs, qui s'écartent de la ligne du dos ; le dos gris sombre,
+ * les flancs gris et fauves, les bords crème, comme un loup gris ; une crinière sur les épaules, une queue touffue au bout noir (queue), le cuir de la peau
+ * dedans (les deux pattes de devant pendent sur la poitrine, avec les crocs : collierCrocs) ; la capuche : la tête du loup, endormie, ses oreilles ; levée sur la
+ * tête quand on n'a pas de chapeau (capucheTete, dans le repère de la tête : cy, son milieu ; r, son rayon), couchée dans le dos sinon (capucheDos). Ouverte
+ * devant, comme le mino. Le bas du pelage en six morceaux qui s'écartent quand on court (animerCape). Renvoie { haut, ourlet, queue, capucheDos, capucheTete } (des ateliers).
+ */
+export function capeLoup(THREE, atelier, { y = 0.8, cy = 0.25, r: rt = 0.3 } = {}) {
+  const PI = Math.PI, t0 = PI - 1.78, t1 = PI + 1.78, ton = tonLoup(THREE), serre = (v, a, b) => Math.min(b, Math.max(a, v));
+  const CUIR = '#b7a386', ENCRE = '#2c282c', OREILLE = '#d9cdbd', NOIR = '#3b3b42', [CREME, FAUVE, GRIS, SOMBRE, TRES_SOMBRE] = TONS_LOUP;
+  /** La racine et la pointe d'une touffe : d, sa place sur le loup ; un peu au hasard, quelques poils plus sombres ou plus clairs. */
+  const couleurs = (d, g) => {
+    const h = hasardL(g), n = (hasardL(g + 0.5) - 0.5) * 0.09 + (h < 0.13 ? 0.15 : h > 0.9 ? -0.13 : 0);
+    return [ton(d + n + 0.16), ton(d + n - 0.05)];
+  };
+  /** La couleur de la coque sous le poil, en d : un peu plus sombre que lui. */
+  const dessousDe = (d) => TONS_LOUP[serre(Math.round((d + 0.25) * 4), 0, 4)];
+  const piecePleine = (a, pos, c, o) => { const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); a.piece(geo, c, o); };
+
+  // ---- la peau : un cône un peu aplati (rayon, AX, AZ), le bas plus long au milieu du dos (yBas) ; sur(t, yy, plus) : un point à l'angle t depuis l'avant (le dos en π)
+  const AX = 1.12, AZ = 1.12, rayon = (yy) => 0.24 + (y - yy) * 0.2, yBas = (t) => y - 0.43 + 0.09 * ((t - PI) / 1.78) ** 2;
+  const sur = (t, yy, plus = 0) => { const r = rayon(yy) + plus; return [AX * r * Math.sin(t), yy, AZ * r * Math.cos(t)]; };
+  const NORM = (t, g, m = 0.2) => norme3([Math.sin(t) / AX + (hasardL(g) - 0.5) * 0.26, m + (hasardL(g + 0.1) - 0.5) * 0.26, Math.cos(t) / AZ + (hasardL(g + 0.2) - 0.5) * 0.26]);
+  // (le poil le plus sombre au milieu du dos ; du bruit lent, pour des groupes de longues touffes au bas)
+  const dorsal = (t) => Math.max(0, 1 - Math.abs(t - PI) / 1.78) ** 0.8;
+  const bruit = (t) => 0.5 + 0.28 * Math.sin(t * 6.3 + 1) + 0.22 * Math.sin(t * 14.1 + 2.3);
+  const yp = y - 0.25, haut = atelier(), Fh = fourrure(THREE), ourlet = [];
+  const morceau = (t) => {
+    const m = Math.min(5, Math.floor(((t - t0) / (t1 - t0)) * 6));
+    if (!ourlet[m]) {
+      const tm = t0 + ((m + 0.5) / 6) * (t1 - t0), pivot = sur(tm, yp, 0.012);
+      ourlet[m] = { a: atelier(), F: fourrure(THREE, pivot), pivot, axe: [-Math.cos(tm), 0, Math.sin(tm)], t: tm };
     }
-  });
-  /** Un boudin de fourrure le long de points, festonné (des bosses douces) : le col, le bord de la capuche. (Des touffes rondes faisaient un collier de boules grises à facettes.) */
+    return ourlet[m];
+  };
+  // les touffes du pelage, sans rangs : une grille tirée au hasard, de haut en bas ; elles s'écartent de la ligne du dos
+  let g = 0;
+  for (let yy = y - 0.04; yy > y - 0.5; yy -= 0.046) {
+    const n = Math.round(((t1 - t0) * rayon(yy) * 1.03) / 0.046);
+    for (let j = 0; j < n; j++) {
+      g += 1;
+      const t = t0 + ((j + 0.5 + (hasardL(g) - 0.5) * 0.95) / n) * (t1 - t0), yb = yy + (hasardL(g + 0.3) - 0.5) * 0.045, ybas = yBas(t);
+      if (yb < ybas + 0.03) continue;
+      const cote = serre((t - PI) / 0.5, -1, 1), r = rayon(yb);
+      let L = 0.14 + 0.09 * hasardL(g + 0.4);
+      // (ce qui descend jusqu'au bas : il le dépasse, plus ou moins, par groupes : un bas effiloché, pas une frange régulière)
+      const auBord = yb - L < ybas + 0.03;
+      if (auBord) L = yb - ybas + 0.015 + 0.11 * bruit(t) * (0.4 + 0.6 * hasardL(g + 0.45));
+      const dt = (cote * (0.08 + 0.2 * hasardL(g + 0.5)) * L + (hasardL(g + 0.55) - 0.5) * 0.035) / r, t2 = serre(t + dt, t0 - 0.03, t1 + 0.03), tm = t + (t2 - t) * 0.45 + ((hasardL(g + 0.6) - 0.5) * 0.02) / r;
+      const B = sur(t, yb, 0.006), M = sur(tm, yb - L * 0.5, 0.022), P = sur(t2, yb - L, 0.02 + 0.02 * hasardL(g + 0.65) + (auBord ? 0.012 : 0));
+      const d = dorsal(t) * (0.62 + 0.42 * Math.min(1, (yb - ybas) / 0.3)), large = (0.046 + 0.022 * hasardL(g + 0.7)) * (auBord ? 1.1 : 1), [c0, c1] = couleurs(d, g + 0.8);
+      (yb < yp ? morceau(t).F : Fh).meche(B, M, P, NORM(t, g), large, c0, c1, g + 0.9);
+    }
+  }
+  // la crinière, sur les épaules : trois couches de longues touffes qui partent du cou
+  for (const [r0, y0, r1, L0, nb, dec] of [[0.17, y + 0.055, 0.3, 0.27, 34, 0], [0.155, y + 0.075, 0.28, 0.22, 30, 0.5], [0.14, y + 0.09, 0.25, 0.17, 26, 0.2]]) {
+    for (let j = 0; j < nb; j++) {
+      g += 1;
+      const t = PI - 2 + ((j + dec + (hasardL(g) - 0.5) * 0.7) / nb) * 4, s = Math.sin(t), c = Math.cos(t), dd = Math.abs(t - PI), L = L0 * (0.82 + 0.36 * hasardL(g + 0.4)) * (dd > 1.6 ? 0.72 : 1), cote = serre((t - PI) / 0.5, -1, 1);
+      const t2 = t + cote * (0.04 + 0.1 * hasardL(g + 0.5)), r2 = r0 + (r1 - r0) * (0.85 + 0.3 * hasardL(g + 0.6)), rm = r0 + (r2 - r0) * 0.78, tm = t + (t2 - t) * 0.4;
+      const [c0, c1] = couleurs(Math.max(0, 1 - dd / 2.05) ** 0.9 * 0.96, g + 0.8);
+      Fh.touffe([AX * r0 * s, y0, AZ * r0 * c], [AX * rm * Math.sin(tm), y0 - L * 0.24, AZ * rm * Math.cos(tm)], [AX * r2 * Math.sin(t2), y0 - L * 0.86, AZ * r2 * Math.cos(t2)], NORM(t, g, 0.62), 0.05 + 0.024 * hasardL(g + 0.7), c0, c1);
+    }
+  }
+  // le bord de la peau, devant : un bourrelet de poil crème, de longues touffes tournées vers l'avant (de face, des touffes vues par la tranche faisaient des lames)
+  for (const s of [-1, 1]) {
+    const te = PI + s * 1.76;
+    for (let j = 0; j < 9; j++) {
+      g += 1;
+      const yb = y - 0.015 - j * 0.042 + (hasardL(g) - 0.5) * 0.02, L = 0.13 + 0.05 * hasardL(g + 0.3), ybas = yBas(te), yf = Math.max(ybas - 0.05 - 0.05 * hasardL(g + 0.35), yb - L), N = norme3([Math.sin(te) * 0.75, 0.15, Math.cos(te) * 0.75 + 0.75]), [c0, c1] = couleurs(0.06, g + 0.8);
+      Fh.touffe(sur(te, yb, 0.012), sur(te - s * 0.01, (yb + yf) / 2, 0.03), sur(te + s * 0.015, yf, 0.026), N, 0.05 + 0.016 * hasardL(g + 0.5), c0, c1);
+    }
+  }
+  Fh.poser(haut);
+  // le dessous, d'un seul tenant : il donne son trait d'encre au dehors de la cape ; son poil plus sombre, entre les touffes ; dedans, le cuir
+  {
+    const N = 30, M = 6, posC = [], colC = [], posD = [];
+    const A = (i, j) => { const t = t0 + (i / N) * (t1 - t0), yy = y + 0.02 + (yBas(t) - y - 0.02) * (j / M); return { t, yy }; };
+    for (let i = 0; i < N; i++) {
+      for (let j = 0; j < M; j++) {
+        const q = [A(i, j), A(i + 1, j), A(i + 1, j + 1), A(i, j + 1)], E = q.map((p) => sur(p.t, p.yy)), D = q.map((p) => sur(p.t, p.yy, -0.012));
+        posC.push(...E[0], ...E[3], ...E[2], ...E[0], ...E[2], ...E[1]);
+        const c = dessousDe(dorsal(q[0].t) * 0.8);
+        colC.push(c, c);
+        posD.push(...D[0], ...D[2], ...D[3], ...D[0], ...D[1], ...D[2]);
+      }
+    }
+    piecePleine(haut, posC, GRIS, { couleurs: colC });
+    piecePleine(haut, posD, CUIR, { trait: false });
+  }
+  /** Un boudin de fourrure le long de points : le col, le bord de la capuche (un tube un peu bosselé, sous les touffes). */
   const boudin = (a, pts, R, c, n = 16) => {
-    const C = new THREE.CatmullRomCurve3(pts.map((p) => new THREE.Vector3(...p))), PAS = 72, COTES = 8;
-    const g = new THREE.TubeGeometry(C, PAS, R, COTES, false), p = g.attributes.position, cc = new THREE.Vector3();
-    // (chaque rang du tube : plus gros aux bosses, un peu moins entre elles)
+    const C = new THREE.CatmullRomCurve3(pts.map((p) => new THREE.Vector3(...p))), PAS = 60, COTES = 7;
+    const geo = new THREE.TubeGeometry(C, PAS, R, COTES, false), p = geo.attributes.position, cc = new THREE.Vector3();
     for (let i = 0; i < p.count; i++) {
       const rang = Math.floor(i / (COTES + 1)), f = rang / PAS;
       C.getPoint(f, cc);
-      const b = 0.8 + 0.34 * Math.abs(Math.sin(f * n * PI)) ** 0.7, fin = Math.min(1, Math.min(f, 1 - f) * 16);
+      const b = 0.9 + 0.12 * Math.sin(f * n * PI) + 0.07 * Math.sin(f * n * 2.7 * PI + 1), fin = Math.min(1, Math.min(f, 1 - f) * 16);
       p.setXYZ(i, cc.x + (p.getX(i) - cc.x) * b * fin, cc.y + (p.getY(i) - cc.y) * b * fin, cc.z + (p.getZ(i) - cc.z) * b * fin);
     }
-    a.piece(g, c, { nuance: 0.012 });
+    a.piece(geo, c, { nuance: 0.012 });
   };
-  // le gros col : tout autour du cou, sauf devant
+  // le col, sous la crinière : il lui donne son volume et son trait ; le bourrelet du bord de la peau
   {
     const pts = [];
-    for (let j = 0; j <= 16; j++) { const u = PI - 1.92 + (j / 16) * 3.84; pts.push([0.18 * k * Math.sin(u), y + 0.014, 0.18 * k * Math.cos(u)]); }
-    boudin(haut, pts, 0.078, B1, 12);
-  }
-
-  // ---- la capuche couchée dans le dos : un paquet de fourrure sous la nuque, ses deux oreilles qui dépassent, vues de derrière
-  const capucheDos = atelier();
-  capucheDos.ovale(0.19, B2, { y: y - 0.02, z: -0.262 * k, sx: 1.2, sy: 0.9, sz: 0.72, nuance: 0.012 }, 14);
-  for (let j = 0; j < 7; j++) {
-    const s = -1 + (j / 6) * 2;
-    meche(capucheDos, [s * 0.17, y + 0.07 - 0.03 * Math.abs(s), -0.33 * k], [s * 0.21, y - 0.19, -0.33 * k + 0.02 * Math.abs(s)], [s * 0.3, 0.2, -1], 0.1, BLANCS[j % 4], j);
-  }
-  for (const s of [-1, 1]) {
-    capucheDos.cone(0.07, 0.2, 6, B1, { x: s * 0.105, y: y + 0.135, z: -0.34 * k, sz: 0.5, rx: -0.42, rz: -s * 0.2 })
-      .cone(0.042, 0.13, 6, OREILLE, { x: s * 0.105, y: y + 0.125, z: -0.306 * k, sz: 0.3, rx: -0.42, rz: -s * 0.2, trait: false });
-  }
-
-  // ---- la capuche levée : une coque de fourrure ajustée à la tête, ouverte sur le visage, bordée de touffes rondes comme une parka ; deux oreilles de
-  // loup, droites ; sur le front, le museau du loup, sa truffe et ses yeux fermés ; dans la nuque, des mèches qui rejoignent le col
-  const capucheTete = atelier(), RC = rt + 0.05, N = 28, M = 16, pos = [], cols = [];
-  const dir = (l, b) => [Math.sin(l) * Math.cos(b), Math.sin(b), Math.cos(l) * Math.cos(b)];
-  const bossele = (l, b) => 1 + 0.016 * Math.sin(l * 7 + b * 6) + 0.013 * Math.sin(l * 13 - b * 9) + 0.01 * Math.sin(l * 23 + b * 17);
-  const pt = (l, b) => { const d = dir(l, b), R = RC * bossele(l, b); return [d[0] * R, cy + 0.01 + d[1] * R * 1.02, -0.016 + d[2] * R]; };
-  const visage = (l, b) => (l / 1.12) ** 2 + ((b + 0.04) / 0.8) ** 2 < 1;
-  const dessous = (l) => -0.62 - 0.55 * (Math.abs(l) / PI);
-  const quad = (A, B, C, D, n, c) => {
-    const tri = (P, Q, S) => { const ux = Q[0] - P[0], uy = Q[1] - P[1], uz = Q[2] - P[2], vx = S[0] - P[0], vy = S[1] - P[1], vz = S[2] - P[2], nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx; if (nx * n[0] + ny * n[1] + nz * n[2] < 0) pos.push(...P, ...S, ...Q); else pos.push(...P, ...Q, ...S); cols.push(c); };
-    tri(A, B, C); tri(A, C, D);
-  };
-  for (let i = 0; i < N; i++) {
-    for (let j = 0; j < M; j++) {
-      const l0 = -PI + (i / N) * 2 * PI, l1 = -PI + ((i + 1) / N) * 2 * PI, b0 = -PI / 2 + 0.2 + (j / M) * (PI - 0.2), b1 = -PI / 2 + 0.2 + ((j + 1) / M) * (PI - 0.2), lm = (l0 + l1) / 2, bm = (b0 + b1) / 2;
-      if (visage(lm, bm) || bm < dessous(lm)) continue;
-      const n = dir(lm, bm);
-      quad(pt(l0, b0), pt(l1, b0), pt(l1, b1), pt(l0, b1), n, B2);
-      // (l'envers, un rien plus petit, plus sombre : autour du visage)
-      const dd = (P) => [P[0] * 0.962, cy + 0.01 + (P[1] - cy - 0.01) * 0.962, -0.016 + (P[2] + 0.016) * 0.962];
-      quad(dd(pt(l0, b0)), dd(pt(l1, b0)), dd(pt(l1, b1)), dd(pt(l0, b1)), [-n[0], -n[1], -n[2]], '#a8a396');
+    for (let j = 0; j <= 16; j++) { const u = PI - 1.92 + (j / 16) * 3.84; pts.push([AX * 0.18 * Math.sin(u), y + 0.014, AZ * 0.18 * Math.cos(u)]); }
+    boudin(haut, pts, 0.07, GRIS, 10);
+    for (const s of [-1, 1]) {
+      const te = PI + s * 1.77, b = [];
+      for (let j = 0; j <= 6; j++) b.push(sur(te, y - 0.01 + (yBas(te) - y - 0.03) * (j / 6), 0.004));
+      boudin(haut, b, 0.024, FAUVE, 5);
     }
   }
+  for (const o of ourlet) o.F.poser(o.a);
+
+  // ---- la queue : un fuseau touffu qui pend du bas du dos, gris, le dessous clair, le bout noir ; son pivot à la base (elle balance, animerCape)
+  const queue = { a: atelier(), pivot: sur(PI, y - 0.3, 0.03) };
   {
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-    capucheTete.piece(g, B2, { couleurs: cols, nuance: 0.012 });
+    const Fq = fourrure(THREE), Q = (f) => { const v = 1 - f; return [0.012 * Math.sin(f * 4), -0.36 * f, -0.14 * v * f - 0.02 * f * f]; }, Rq = (f) => 0.018 + 0.078 * Math.sin(Math.min(1, f * 1.15) * PI) ** 0.7;
+    const noirL = ton(1);
+    for (let i = 0; i < 9; i++) {
+      for (let j = 0; j < 9; j++) {
+        g += 1;
+        const f = (i + (j % 3) / 3) / 9, f2 = Math.min(1.1, f + 0.3 + 0.08 * hasardL(g + 0.1)), a = (j / 9) * 2 * PI + i * 0.45, s = Math.sin(a), c = Math.cos(a);
+        const C1 = Q(f), C2 = Q((f + f2) / 2), C3 = Q(Math.min(1, f2)), r1 = Rq(f) * 0.9, r2 = Rq((f + f2) / 2) * 1.08, r3 = Rq(Math.min(1, f2)) * 0.86 + (f2 > 1 ? -0.012 : 0.006);
+        // (le dessus gris, le dessous clair ; le bout noir, comme un loup, peu à peu)
+        const base = 0.46 + 0.22 * c, k0 = serre((f - 0.52) / 0.2, 0, 1), k1 = serre((f2 - 0.72) / 0.2, 0, 1), mele = (q, k) => [0, 1, 2].map((m) => q[m] + (noirL[m] * 0.72 - q[m]) * k), n = (hasardL(g + 0.6) - 0.5) * 0.08;
+        Fq.touffe([C1[0] + r1 * s, C1[1], C1[2] + r1 * c], [C2[0] + r2 * s, C2[1], C2[2] + r2 * c], [C3[0] + r3 * s, C3[1] - (f2 > 1 ? 0.03 : 0), C3[2] + r3 * c], norme3([s + (hasardL(g) - 0.5) * 0.2, 0.1, c + (hasardL(g + 0.2) - 0.5) * 0.2]), 0.036 + 0.016 * hasardL(g + 0.4), mele(ton(base + n + 0.12), k0), mele(ton(base + n - 0.04), k1));
+      }
+    }
+    Fq.poser(queue.a);
+    const noyau = new THREE.CatmullRomCurve3([0, 0.25, 0.5, 0.75, 1].map((f) => new THREE.Vector3(...Q(f))));
+    const tube = new THREE.TubeGeometry(noyau, 14, 1, 7, false), p = tube.attributes.position, cc = new THREE.Vector3();
+    for (let i = 0; i < p.count; i++) {
+      const f = Math.floor(i / 8) / 14, r = Rq(f) * 0.86 * Math.min(1, (1 - f) * 7 + 0.1);
+      noyau.getPoint(f, cc);
+      p.setXYZ(i, cc.x + (p.getX(i) - cc.x) * r, cc.y + (p.getY(i) - cc.y) * r, cc.z + (p.getZ(i) - cc.z) * r);
+    }
+    queue.a.piece(tube, GRIS, { teinte: (x, yy) => (yy < -0.2 ? NOIR : GRIS) });
+  }
+
+  // ---- la tête du loup, endormie : le dessus du museau, sombre, le dessous crème, la truffe, les yeux fermés en biais ; dans le repère { x, y, z, rx, ry, s }, le museau vers +z
+  const teteLoup = (a, q) => {
+    const poser = (geo, c, trait = true) => a.piece(geo, c, { ...q, trait });
+    const boule = (r, x, yy, z, sx, sy, sz, n = 10) => new THREE.SphereGeometry(r, n, Math.max(5, n - 3)).scale(sx, sy, sz).translate(x, yy, z);
+    poser(boule(0.13, 0, 0.038, 0, 0.92, 0.62, 1), GRIS);
+    poser(boule(0.094, 0, 0.012, 0.1, 0.76, 0.56, 1.42), '#a3a29d');
+    poser(boule(0.07, 0, 0.038, 0.13, 0.46, 0.42, 1.25, 8), SOMBRE, false);
+    poser(boule(0.076, 0, -0.03, 0.11, 0.76, 0.46, 1.4), CREME);
+    poser(boule(0.03, 0, 0.012, 0.238, 1.05, 0.78, 0.8, 8), NOIR, false);
+    poser(new THREE.BoxGeometry(0.008, 0.024, 0.008).translate(0, -0.02, 0.232), ENCRE, false);
+    for (const s of [-1, 1]) {
+      poser(new THREE.BoxGeometry(0.066, 0.01, 0.014).rotateZ(s * 0.34).rotateY(s * 0.62).translate(s * 0.074, 0.058, 0.09), ENCRE, false);
+      poser(boule(0.016, s * 0.068, 0.098, 0.03, 1.4, 0.62, 0.7, 6), CREME, false);
+    }
+    return a;
+  };
+  /** Une oreille de loup, un triangle aux côtés bombés : le dos sombre, le dedans clair (du côté sens) ; O, son pied. */
+  const oreilleLoup = (a, O, s, e = 1, sens = 1) => {
+    const bombe = (h) => (x, yy, z) => { const v = yy / h + 0.5, l = 1 + 0.42 * Math.sin(PI * Math.min(1, v)); return [x * l, yy, z * l]; };
+    a.piece(new THREE.ConeGeometry(0.098 * e, 0.19 * e, 7, 3), SOMBRE, { x: O[0], y: O[1] + 0.075 * e, z: O[2], sz: 0.58, rz: -s * 0.3, ry: s * 0.25, deformer: bombe(0.19 * e), teinte: (x, yy) => (yy > O[1] + 0.12 * e ? TRES_SOMBRE : SOMBRE) });
+    a.piece(new THREE.ConeGeometry(0.058 * e, 0.125 * e, 6, 2), OREILLE, { x: O[0] - s * 0.002 * e, y: O[1] + 0.06 * e, z: O[2] + sens * 0.042 * e, sz: 0.24, rz: -s * 0.3, ry: s * 0.25, deformer: bombe(0.125 * e), trait: false });
+  };
+
+  // ---- la capuche couchée dans le dos : la tête du loup qui dort, tournée vers l'arrière, les oreilles dressées, du poil autour
+  const capucheDos = atelier();
+  {
+    const Fd = fourrure(THREE), Cy = y - 0.02, Cz = -0.285, RX = 0.2, RY = 0.165, RZ = 0.125;
+    const ici = (a, b, plus = 0) => [(RX + plus) * Math.sin(a) * Math.cos(b), Cy + (RY + plus) * Math.sin(b), Cz - (RZ + plus) * Math.cos(a) * Math.cos(b)];
+    for (let j = 0; j < 104; j++) {
+      g += 1;
+      // (a, b : tirés sur la moitié de boule tournée vers l'arrière ; le poil part du museau, en éventail, et la pesanteur le tire)
+      const a = (hasardL(g) - 0.5) * 3.1, b = (hasardL(g + 0.2) - 0.5) * 2.7, loin = Math.hypot(a, b) || 1;
+      if (loin < 0.42) continue;
+      const da = a / loin, db = b / loin - 0.55, L = 0.42 + 0.24 * hasardL(g + 0.3), n = norme3([Math.sin(a) * Math.cos(b) + (hasardL(g + 0.4) - 0.5) * 0.24, Math.sin(b) + (hasardL(g + 0.5) - 0.5) * 0.24, -Math.cos(a) * Math.cos(b)]);
+      const [c0, c1] = couleurs(0.76 - 0.5 * Math.abs(Math.sin(a)) - 0.16 * (b < -0.2 ? 1 : 0), g + 0.8);
+      Fd.touffe(ici(a, b, 0.004), ici(a + da * L * 0.5, b + db * L * 0.5, 0.016), ici(a + da * L, b + db * L, 0.014 + 0.014 * hasardL(g + 0.55)), n, 0.032 + 0.016 * hasardL(g + 0.6), c0, c1);
+    }
+    Fd.poser(capucheDos);
+    capucheDos.ovale(1, GRIS, { y: Cy, z: Cz, sx: RX, sy: RY, sz: RZ }, 12);
+    teteLoup(capucheDos, { x: 0, y: Cy - 0.02, z: Cz - RZ + 0.045, ry: PI, rx: -0.46, s: 0.8 });
+    for (const s of [-1, 1]) oreilleLoup(capucheDos, [s * 0.115, Cy + 0.115, Cz - 0.03], s, 0.74, -1);
+  }
+
+  // ---- la capuche levée : une coque ajustée à la tête, ouverte sur le visage ; du poil qui part du front, passe sur le crâne et descend dans la nuque ; plus sombre sur la ligne
+  // du crâne, clair sur les joues et autour du visage ; sur le front, la tête du loup qui dort, ses oreilles
+  const capucheTete = atelier(), RC = rt + 0.05;
+  const dir = (l, b) => [Math.sin(l) * Math.cos(b), Math.sin(b), Math.cos(l) * Math.cos(b)];
+  const bossele = (l, b) => 1 + 0.012 * Math.sin(l * 7 + b * 6) + 0.01 * Math.sin(l * 13 - b * 9);
+  const dehors = (D, plus = 0) => { const R = RC + plus; return [D[0] * R, cy + 0.01 + D[1] * R * 1.02, -0.016 + D[2] * R]; };
+  const pt = (l, b, plus = 0) => { const D = dir(l, b), R = RC * bossele(l, b) + plus; return [D[0] * R, cy + 0.01 + D[1] * R * 1.02, -0.016 + D[2] * R]; };
+  const visage = (l, b) => (l / 1.12) ** 2 + ((b + 0.04) / 0.8) ** 2;
+  const dessous = (l) => -0.62 - 0.55 * (Math.abs(l) / PI);
+  // (d'où part le poil : le milieu du front ; il s'en éloigne, et la pesanteur le tire vers le bas)
+  const FRONT = dir(0, 0.72);
+  const flot = (D) => {
+    const pd = D[0] * FRONT[0] + D[1] * FRONT[1] + D[2] * FRONT[2], loin = [pd * D[0] - FRONT[0], pd * D[1] - FRONT[1], pd * D[2] - FRONT[2]];
+    return norme3([loin[0] + D[0] * D[1] * 0.45, loin[1] + (-1 + D[1] * D[1]) * 0.45, loin[2] + D[2] * D[1] * 0.45]);
+  };
+  // (la place sur le loup : sombre sur la ligne du crâne, clair vers les joues et le visage)
+  const surCrane = (D, l, b) => { const pres = Math.max(0, 1 - (visage(l, b) - 1) / 1.1), bas = serre((0.15 - b) / 0.9, 0, 1); return Math.max(0, 1 - Math.abs(D[0]) / 0.92) ** 0.9 * (1 - 0.85 * pres) * (0.68 + 0.36 * (1 - bas)) + 0.05; };
+  {
+    const Ft = fourrure(THREE);
+    for (let b = 1.46; b > -1.3; b -= 0.165) {
+      const n = Math.max(3, Math.round((2 * PI * RC * Math.cos(b)) / 0.066));
+      for (let j = 0; j < n; j++) {
+        g += 1;
+        const l0 = -PI + ((j + 0.5 + (hasardL(g) - 0.5) * 0.9) / n) * 2 * PI, b0 = Math.min(1.5, b + (hasardL(g + 0.2) - 0.5) * 0.16);
+        if (b0 < dessous(l0) - 0.02 || visage(l0, b0) < 1.04) continue;
+        const D = dir(l0, b0), F = flot(D), bas = serre((0.15 - b0) / 0.9, 0, 1), L = (0.15 + 0.08 * hasardL(g + 0.3)) * (1 + 0.32 * bas), lat = (hasardL(g + 0.35) - 0.5) * 0.14, X = norme3(croix3(D, F));
+        const fin = norme3([0, 1, 2].map((k) => D[k] + (F[k] + X[k] * lat) * (L / RC))), mil = norme3([0, 1, 2].map((k) => D[k] + (F[k] + X[k] * lat * 0.2) * (L / RC) * 0.5));
+        // (pas de pointe dans l'ouverture du visage : sous le museau, des piquants sur la frange)
+        if (visage(Math.atan2(fin[0], fin[2]), Math.asin(fin[1])) < 1.2) continue;
+        const n2 = norme3([D[0] + (hasardL(g + 0.4) - 0.5) * 0.24, D[1] + (hasardL(g + 0.45) - 0.5) * 0.24, D[2] + (hasardL(g + 0.5) - 0.5) * 0.24]), [c0, c1] = couleurs(surCrane(D, l0, b0), g + 0.8);
+        Ft.meche(dehors(D, 0.004), dehors(mil, 0.016 + 0.006 * bas), dehors(fin, 0.014 + 0.016 * hasardL(g + 0.55) + 0.024 * bas), n2, 0.056 + 0.024 * hasardL(g + 0.6), c0, c1, g + 0.9);
+      }
+    }
+    // autour du visage : de fines touffes crème, qui partent du bord et suivent le poil voisin, de longueurs inégales (couchées droit vers l'arrière, en échelle, elles faisaient des plumes)
+    for (let j = 0; j < 58; j++) {
+      g += 1;
+      const u = -2.62 + ((j + 0.5 + (hasardL(g) - 0.5) * 0.9) / 58) * 5.24, l = 1.17 * Math.sin(u), b = -0.04 + 0.85 * Math.cos(u), D = dir(l, b), F = flot(D), L = (0.07 + 0.08 * hasardL(g + 0.2)) * (Math.abs(u) < 1.2 ? 0.8 : 1) / RC, dl = Math.sin(u), db = Math.cos(u), X = dir(l + dl * 0.2, b + db * 0.2);
+      // (jamais vers le visage : en haut, le poil qui part du front y descendait, des pointes sur la frange)
+      const hors = [0, 1, 2].map((k) => (X[k] - D[k]) * 5), vers = F[0] * hors[0] + F[1] * hors[1] + F[2] * hors[2] > 0.2 ? F : norme3(hors);
+      const pli = (f) => norme3([0, 1, 2].map((k) => D[k] + (vers[k] * 0.8 + hors[k] * 0.4) * L * f));
+      const d = (Math.abs(u) < 1.2 ? 0.28 : 0.06) + (hasardL(g + 0.25) - 0.5) * 0.06;
+      Ft.touffe(dehors(D, 0.03), dehors(pli(0.5), 0.034), dehors(pli(1), 0.012 + 0.016 * hasardL(g + 0.3)), norme3(pli(0.5)), 0.03 + 0.016 * hasardL(g + 0.5), ton(d + 0.1), ton(d - 0.04));
+    }
+    Ft.poser(capucheTete);
+  }
+  // la coque : le dehors (le poil plus sombre, entre les touffes), et le dedans, autour des ouvertures
+  {
+    const N = 26, M = 13, posC = [], colC = [], posD = [];
+    for (let i = 0; i < N; i++) {
+      for (let j = 0; j < M; j++) {
+        const l0 = -PI + (i / N) * 2 * PI, l1 = -PI + ((i + 1) / N) * 2 * PI, b0 = -PI / 2 + 0.2 + (j / M) * (PI - 0.2), b1 = -PI / 2 + 0.2 + ((j + 1) / M) * (PI - 0.2), lm = (l0 + l1) / 2, bm = (b0 + b1) / 2;
+        if (visage(lm, bm) < 1 || bm < dessous(lm)) continue;
+        // (un sommet dans l'ouverture du visage : ramené sur son bord ; sans ça, un bord en escalier, sous le boudin)
+        const net = (l, b) => { const v = visage(l, b); return v < 1 ? pt(l / Math.sqrt(v), (b + 0.04) / Math.sqrt(v) - 0.04) : pt(l, b); };
+        const A = net(l0, b0), B = net(l1, b0), C = net(l1, b1), E = net(l0, b1), c = dessousDe(surCrane(dir(lm, bm), lm, bm));
+        // (les faces vers le dehors : d'une latitude à l'autre, dans le sens de la longitude)
+        posC.push(...A, ...B, ...C, ...A, ...C, ...E);
+        colC.push(c, c);
+        if (visage(lm, bm) < 2.1 || bm < dessous(lm) + 0.42) {
+          const dd = (P) => [P[0] * 0.965, cy + 0.01 + (P[1] - cy - 0.01) * 0.965, -0.016 + (P[2] + 0.016) * 0.965];
+          posD.push(...dd(A), ...dd(C), ...dd(B), ...dd(A), ...dd(E), ...dd(C));
+        }
+      }
+    }
+    piecePleine(capucheTete, posC, GRIS, { couleurs: colC });
+    piecePleine(capucheTete, posD, CUIR, { trait: false });
   }
   // le bord : un boudin de fourrure autour du visage, d'une joue à l'autre, par-dessus la tête
   {
@@ -278,41 +484,42 @@ export function capeLoup(THREE, atelier, { y = 0.8, k = 1, cy = 0.25, r: rt = 0.
       const u = -2.62 + (j / 24) * 5.24, l = 1.17 * Math.sin(u), b = -0.04 + 0.85 * Math.cos(u), d = dir(l, b);
       pts.push([d[0] * RC * 1.005, cy + 0.01 + d[1] * RC * 1.005, -0.016 + d[2] * RC * 1.005]);
     }
-    boudin(capucheTete, pts, 0.052, B1, 20);
+    boudin(capucheTete, pts, 0.04, CREME, 7);
   }
-  // (des mèches sur le crâne et le derrière de la tête : toute lisse, on aurait dit une boule)
-  for (const [b0, n, dl] of [[0.62, 9, 2.1], [0.2, 11, 2.3], [-0.2, 11, 2.4]]) {
-    for (let j = 0; j < n; j++) {
-      const l = PI - dl + ((j + 0.5) / n) * 2 * dl, ll = l > PI ? l - 2 * PI : l, bb = b0 + 0.05 * ((j % 2) * 2 - 1), P = pt(ll, bb), Q = pt(ll, bb - 0.42), d = dir(ll, bb);
-      meche(capucheTete, [P[0] * 0.985, cy + (P[1] - cy) * 0.985, P[2] * 0.985], [Q[0] * 1.03, cy + (Q[1] - cy) * 1.03, Q[2] * 1.03], d, 0.1, BLANCS[(j + n) % 4], j);
-    }
-  }
-  // dans la nuque, des mèches
-  for (let j = 0; j < 8; j++) {
-    const l = PI - 1.0 + ((j + 0.5) / 8) * 2.0, ll = l > PI ? l - 2 * PI : l, b = dessous(ll) + 0.2, P = pt(ll, b), d = dir(ll, b);
-    meche(capucheTete, [P[0] * 0.97, P[1] + 0.08, P[2] * 0.97], [P[0] * 1.06, P[1] - 0.13, P[2] * 1.06], [d[0], 0.2, d[2]], 0.095, BLANCS[j % 4], j);
-  }
-  for (const s of [-1, 1]) {
-    const O = pt(s * 0.62, 0.92);
-    capucheTete.cone(0.1, 0.27, 6, B1, { x: O[0] + s * 0.012, y: O[1] + 0.095, z: O[2] - 0.012, sz: 0.52, rz: -s * 0.2, ry: s * 0.15 })
-      .cone(0.06, 0.17, 6, OREILLE, { x: O[0] + s * 0.009, y: O[1] + 0.08, z: O[2] + 0.024, sz: 0.3, rz: -s * 0.2, ry: s * 0.15, trait: false });
-  }
-  // le museau du loup, sur le front (la truffe, la bouche fermée, les yeux fermés)
-  const M0 = pt(0, 0.84);
-  capucheTete.ovale(0.105, B1, { x: 0, y: M0[1] + 0.012, z: M0[2] + 0.012, sx: 0.92, sy: 0.7, sz: 1.12, rx: 0.42 }, 12)
-    .ovale(0.058, B2, { x: 0, y: M0[1] - 0.022, z: M0[2] + 0.092, sx: 0.8, sy: 0.62, sz: 1.2, rx: 0.42 }, 8)
-    .ovale(0.024, ENCRE, { x: 0, y: M0[1] - 0.052, z: M0[2] + 0.16, sx: 1.15, sy: 0.8, sz: 0.8, trait: false }, 6);
-  for (const s of [-1, 1]) capucheTete.boite(0.052, 0.008, 0.012, ENCRE, { x: s * 0.062, y: M0[1] + 0.058, z: M0[2] + 0.052, rz: -s * 0.3, ry: s * 0.45, rx: 0.42, trait: false });
-  return { haut, ourlet, capucheDos, capucheTete };
+  for (const s of [-1, 1]) oreilleLoup(capucheTete, pt(s * 0.92, 0.94, 0.018), s, 1.16);
+  const M0 = pt(0, 0.82, -0.012);
+  teteLoup(capucheTete, { x: 0, y: M0[1], z: M0[2], rx: 0.3 });
+  return { haut, ourlet, queue, capucheDos, capucheTete };
 }
 
 /**
  * Le collier de crocs de la cape du loup : un cordon de cuir autour du cou, qui retombe sur la poitrine (comme le collier de magatama : mêmes
- * mesures, BUSTES), et cinq crocs d'ivoire pendus devant, le plus grand au milieu. On ne le porte que si rien d'autre n'est au cou.
+ * mesures, BUSTES), et cinq crocs d'ivoire pendus devant, le plus grand au milieu ; de chaque côté, une patte de devant du loup qui pend de la crinière, couchée sur la
+ * poitrine, ses doigts et ses griffes. On ne le porte que si rien d'autre n'est au cou.
  */
 export function collierCrocs(THREE, a, { bas = 0.735, avant = 0.014, rayon = (y) => 0.15 + 0.022 * Math.min(1, Math.max(0, (0.8 - y) / 0.25)), aplati = 0.9 } = {}) {
-  const PI = Math.PI, CUIR = '#6a4a30', IVOIRE = '#f2e6c4', BOUT = '#d9c79c';
+  const PI = Math.PI, CUIR = '#6a4a30', IVOIRE = '#f2e6c4', BOUT = '#d9c79c', NOIR = '#3b3b42', ton = tonLoup(THREE), F = fourrure(THREE);
   const buste = (x, y) => { const r = rayon(y); return aplati * r * Math.sqrt(Math.max(0, 1 - (x / r) ** 2)); };
+  // les pattes : d'abord leur poil (fourrure, la première pièce de l'atelier)
+  const patteX = (y) => 0.112 + 0.01 * Math.sin((0.8 - y) * 5), patteZ = (x, y) => Math.max(0.1, buste(x, y) + avant + 0.02);
+  for (const s of [-1, 1]) {
+    for (let j = 0; j < 22; j++) {
+      const yb = 0.81 - (j % 11) * 0.021, a0 = -1.1 + (j / 21) * 2.2 + (hasardL(j * 3.1 + s) - 0.5) * 0.3, L = 0.075 + 0.04 * hasardL(j * 1.7 + s), yf = Math.max(0.585, yb - L), sa = Math.sin(a0), ca = Math.cos(a0), R0 = 0.033;
+      const point = (yy, plus) => { const x = s * patteX(yy); return [x + sa * (R0 + plus), yy, patteZ(x, yy) + ca * (R0 + plus) * 0.8]; };
+      F.touffe(point(yb, 0), point((yb + yf) / 2, 0.012), point(yf, 0.004), norme3([sa, 0.1, ca]), 0.03 + 0.012 * hasardL(j * 2.3 + s), ton(0.2 + 0.1 * hasardL(j + s)), ton(0.02 + 0.08 * hasardL(j * 1.3 + s)));
+    }
+  }
+  F.poser(a);
+  for (const s of [-1, 1]) {
+    const pts = [0.815, 0.76, 0.7, 0.64, 0.6].map((yy) => { const x = s * patteX(yy); return [x, yy, patteZ(x, yy)]; });
+    a.tube(pts, 0.03, TONS_LOUP[1], { cotes: 7, pas: 10 });
+    const [px, py, pz] = pts[4], z = (dx) => pz + 0.012 - Math.abs(dx) * 0.2;
+    a.ovale(0.046, TONS_LOUP[0], { x: px, y: py - 0.026, z: z(0), sx: 0.96, sy: 0.84, sz: 0.72 }, 8);
+    for (const k of [-1, 0, 1]) {
+      a.ovale(0.0185, TONS_LOUP[0], { x: px + k * 0.027, y: py - 0.066 + Math.abs(k) * 0.008, z: z(0) + 0.022, sy: 1.1, sz: 0.85 }, 6);
+      a.cone(0.0072, 0.022, 4, NOIR, { x: px + k * 0.028, y: py - 0.091 + Math.abs(k) * 0.008, z: z(0) + 0.028, rx: PI + 0.25, trait: false });
+    }
+  }
   const point = (t) => {
     const c = Math.cos(t), devant = Math.max(0, -c), d2 = devant * devant;
     const x = Math.sin(t) * (0.1 - 0.045 * d2), y = 0.84 + (bas - 0.84) * d2;
@@ -1104,7 +1311,7 @@ export function creerHeros(ctx, sorte = 'garcon') {
   // en marchant, plus en courant, grand ouvert quand on saute, qu'on danse ou qu'on fait « Ouais ! »), plus au dos que sur les
   // côtés, et qui battent chacun à son tour (la phase avance à chaque image)
   // (la cape du loup, Yakushima : pareil ; capeL, sa capuche à part : capuche, couchée dans le dos ou levée sur la tête)
-  let cape = null, capeL = null, ecartCape = 0, phaseCape = 0;
+  let cape = null, capeL = null, ecartCape = 0, phaseCape = 0, leveQueue = 0;
   const animerCape = (dt, vitesse, fete) => {
     const C = cape?.objet.visible ? cape : capeL?.objet.visible ? capeL : null;
     if (!C) return;
@@ -1115,6 +1322,12 @@ export function creerHeros(ctx, sorte = 'garcon') {
     for (const m of C.ourlet) {
       const dos = 0.55 - 0.45 * Math.cos(m.t);
       m.g.quaternion.setFromAxisAngle(m.axe, Math.max(0, ecartCape * dos + bat * Math.sin(phaseCape + m.t * 2.3)));
+    }
+    // (la queue du loup : elle balance ; elle se lève en arrière quand on court ; assis, elle passerait à travers le banc)
+    if (C.queue) {
+      leveQueue += ((fete ? 0.8 : vif ? 0.62 : vitesse > 0.4 ? 0.24 : 0.07) - leveQueue) * Math.min(1, dt * 4);
+      C.queue.rotation.set(leveQueue, Math.sin(phaseCape * 0.5) * (vif ? 0.24 : 0.1), 0, 'YXZ');
+      C.queue.visible = !assis;
     }
   };
   // la queue de renard (Motonosumi : elle vient avec les oreilles, la pièce de tête « renard ») : des touffes blanches le long
@@ -1289,12 +1502,12 @@ export function creerHeros(ctx, sorte = 'garcon') {
         bras: (s) => {
           const b = atelier();
           b.cylindre(0.064, 0.06, 0.15, 12, NUIT, { y: -0.06 })
-            // l'épaulière (sode) : une grande plaque lacée, un peu écartée du bras
-            .piece(new THREE.BoxGeometry(0.026, 0.28, 0.23, 1, 7, 1), ROUGE, { x: s * 0.09, y: -0.12, rz: s * 0.34, teinte: (px, py) => (Math.floor((py + 0.26) / 0.04) % 2 ? BLEU : ROUGE) })
             .cylindre(0.047, 0.044, 0.15, 10, NUIT, { y: -0.215 })
             .cylindre(0.05, 0.047, 0.09, 10, FER, { y: -0.23, teinte: (px, py) => (Math.floor(py * 70) % 2 ? FER : OR) });
           return main(b, s, '#3a3236');
         },
+        // l'épaulière (sode) : une grande plaque lacée, un peu écartée du bras ; à part : sous une cape, on l'enlève (majEpaulieres)
+        epaulieres: (s) => atelier().piece(new THREE.BoxGeometry(0.026, 0.28, 0.23, 1, 7, 1), ROUGE, { x: s * 0.09, y: -0.12, rz: s * 0.34, teinte: (px, py) => (Math.floor((py + 0.26) / 0.04) % 2 ? BLEU : ROUGE) }),
         jambes: (s) => {
           const j = atelier();
           j.cylindre(0.086, 0.078, 0.24, 12, NUIT, { y: -0.12 })
@@ -1356,15 +1569,18 @@ export function creerHeros(ctx, sorte = 'garcon') {
   // le sac à dos : la tenue le garde ou non (garde : 'sac'), et le mino le cache (sur le dos, à sa place) ; et le dos de
   // l'étole avec lui (majCollier)
   let sacGarde = true, dosPorte = null;
-  // la capuche de la cape du loup : levée sans chapeau (tête nue), couchée dans le dos sinon ; levée, elle cache les épis du garçon et rentre les couettes de la fille
-  let teteId = 'defaut';
+  // la capuche de la cape du loup : levée sans chapeau (tête nue), couchée dans le dos sinon, ou avec le masque de renard, posé sur le côté de la tête (il sortait à moitié de la fourrure) ;
+  // levée, elle cache les épis du garçon et rentre les couettes de la fille
+  let teteId = 'defaut', yeuxId = 'aucune';
   const majCapuche = () => {
-    const portee = capeL && dosPorte === capeL.objet, levee = portee && teteId === 'nue';
+    const portee = capeL && dosPorte === capeL.objet, levee = portee && teteId === 'nue' && yeuxId !== 'masque';
     if (capeL) { capeL.dos.visible = portee && !levee; capeL.tete.visible = !!levee; }
     if (dessus) dessus.visible = teteId !== 'defaut' && teteId !== 'kabuto' && teteId !== 'heron' && !levee;
     if (couettes) couettes.visible = !levee;
   };
   const majSac = () => { mSac.visible = sacGarde && !dosPorte; majCollier(); };
+  // les épaulières de l'armure : sous le mino ou une cape, elles ressortaient à travers (2026-11-02) ; les ailes, elles, ne les couvrent pas
+  const majEpaulieres = () => { for (const m of habitPorte?.epaulieres ?? []) m.visible = !dosPorte || dosPorte === ailes?.objet; };
   /** Mettre la tenue id (HABITS ; 'habit-defaut' ou inconnue : les habits de tous les jours). */
   function habiller(id) {
     if (habitPorte) for (const m of habitPorte.meshes) m.visible = false;
@@ -1386,7 +1602,8 @@ export function creerHeros(ctx, sorte = 'garcon') {
       corps.add(meshes[0]);
       if (d.bras) bras.forEach((br, i) => { const m = maillage(d.bras(i ? 1 : -1).fin(0, false)); br.add(m); meshes.push(m); });
       if (d.jambes) jambes.forEach((j, i) => { const m = maillage(d.jambes(i ? 1 : -1).fin(0, false)); j.add(m); meshes.push(m); });
-      habits[id] = { meshes, garde: d.garde || [], bras: !!d.bras, jambes: !!d.jambes, long: !!d.long };
+      const epaulieres = d.epaulieres ? bras.map((br, i) => { const m = maillage(d.epaulieres(i ? 1 : -1).fin(0, false)); br.add(m); meshes.push(m); return m; }) : [];
+      habits[id] = { meshes, epaulieres, garde: d.garde || [], bras: !!d.bras, jambes: !!d.jambes, long: !!d.long };
     }
     const h = habits[id];
     for (const m of h.meshes) m.visible = true;
@@ -1399,6 +1616,7 @@ export function creerHeros(ctx, sorte = 'garcon') {
     for (const m of jambesBase) m.visible = !h.jambes;
     long = h.long;
     habitPorte = h;
+    majEpaulieres();
   }
 
   // ---- La danse des fêtes (bon-odori), réglée sur l'air de la fête (musique.js : 112 battements par minute). Des
@@ -1578,7 +1796,7 @@ export function creerHeros(ctx, sorte = 'garcon') {
           cape.objet.visible = true;
           dosPorte = cape.objet;
         }
-        // la cape du loup blanc (Yakushima) : comme celle de plumes ; sa capuche (majCapuche)
+        // la cape du loup (Yakushima) : comme celle de plumes ; sa queue ; sa capuche (majCapuche)
         if (id === 'loup') {
           if (!capeL) {
             const objet = new THREE.Group(), c = capeLoup(THREE, atelier, { cy: CY, r: R }), haut = maillage(c.haut.fin(0, false));
@@ -1587,7 +1805,9 @@ export function creerHeros(ctx, sorte = 'garcon') {
             const dos = maillage(c.capucheDos.fin(0, false)), teteC = maillage(c.capucheTete.fin(0, false));
             objet.add(dos);
             tete.add(teteC);
-            capeL = { objet, haut, ourlet, dos, tete: teteC };
+            const qu = pivot(ctx, ...c.queue.pivot, maillage(c.queue.a.fin(0, false)));
+            objet.add(qu);
+            capeL = { objet, haut, ourlet, dos, tete: teteC, queue: qu };
             corps.add(objet);
           }
           capeL.objet.visible = true;
@@ -1595,6 +1815,7 @@ export function creerHeros(ctx, sorte = 'garcon') {
         }
         majCapuche();
         majSac();
+        majEpaulieres();
         return;
       }
       // au cou : rien ('cou-rien'), le collier de magatama (Takachiho), l'étole et la conque du yamabushi (les Trente Bouddhas)
@@ -1611,6 +1832,9 @@ export function creerHeros(ctx, sorte = 'garcon') {
         majCapuche();
         if (id === 'renard' && !queue) { queue = queueRenard(); corps.add(queue); }
         if (queue) queue.visible = id === 'renard';
+      } else {
+        yeuxId = id;
+        majCapuche();
       }
       if (portees[place]) portees[place].visible = false;
       portees[place] = null;
