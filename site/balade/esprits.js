@@ -90,7 +90,7 @@ export function formesEsprits(ctx) {
           const v = Math.abs(Math.sin(phase)), sol = 1 - v;
           // (il touche le sol : il s'écrase ; en l'air : il s'allonge. Au repos : il respire, et penche la tête de temps en temps)
           const ecrase = allure * (sol * sol * 0.2 - v * 0.05), souffle = (1 - allure) * 0.02 * Math.sin(temps * 2.1 + graine);
-          let y = v * allure * (0.07 + 0.05 * Math.min(1, vitesse / 3)), et = 0;
+          let y = s * v * allure * (0.07 + 0.05 * Math.min(1, vitesse / 3)), et = 0;
           if (joie > 0) {
             joie = Math.max(0, joie - dt / 0.55);
             const u = 1 - joie;

@@ -3197,20 +3197,24 @@ export function construire(ctx) {
 
     // ---- la piste de nos pas : une miette tous les 20 cm ; un esprit la suit à quelques mètres derrière
     const NP = 140, PASP = 0.2, px = new Float32Array(NP), py = new Float32Array(NP), pz = new Float32Array(NP);
-    let teteP = 0, nP = 0;
+    let teteP = 0, nP = 0, reste = 0;
     const miette = (x, y, z) => { teteP = (teteP + 1) % NP; px[teteP] = x; py[teteP] = y; pz[teteP] = z; nP = Math.min(NP, nP + 1); };
     const majPiste = (j) => {
-      if (!nP) { miette(j.x, j.y, j.z); return true; }
+      if (!nP) { miette(j.x, j.y, j.z); reste = 0; return true; }
       const lx = px[teteP], ly = py[teteP], lz = pz[teteP], d = Math.hypot(j.x - lx, j.z - lz);
       // (un saut : on vient de passer de l'autre côté de l'arbre, une scène nous a posés ailleurs)
-      if (d > 5) { nP = 0; miette(j.x, j.y, j.z); return true; }
+      if (d > 5) { nP = 0; miette(j.x, j.y, j.z); reste = 0; return true; }
       for (let k = 1; k * PASP <= d; k++) { const f = (k * PASP) / d; miette(lx + (j.x - lx) * f, ly + (j.y - ly) * f, lz + (j.z - lz) * f); }
+      reste = Math.hypot(j.x - px[teteP], j.z - pz[teteP]);
       return false;
     };
     const T = { x: 0, y: 0, z: 0 };
-    /** Le point de la piste à s mètres derrière nous (dans T) ; faux si elle est plus courte que ça. */
+    /**
+     * Le point de la piste à s mètres derrière nous (dans T) ; faux si elle est plus courte que ça. Compté depuis nous, pas depuis la dernière miette (2026-11-02, « Le déplacement
+     * de l'esprit est saccadé » : ce point n'avançait qu'à chaque nouvelle miette, 20 cm d'un coup ; l'esprit y bondissait en une image, puis restait immobile 7 images sur 10).
+     */
     const surPiste = (s) => {
-      const f = s / PASP, i = Math.floor(f);
+      const f = Math.max(0, s - reste) / PASP, i = Math.floor(f);
       if (i + 1 >= nP) return false;
       const a = (teteP - i + NP) % NP, b = (a - 1 + NP) % NP, u = f - i;
       T.x = px[a] + (px[b] - px[a]) * u; T.y = py[a] + (py[b] - py[a]) * u; T.z = pz[a] + (pz[b] - pz[a]) * u;
@@ -3229,12 +3233,17 @@ export function construire(ctx) {
       s.vit += (pas / Math.max(dt, 1e-3) - s.vit) * Math.min(1, dt * 10);
       return d - pas;
     };
+    /** Il suit un point de la piste : assez vite pour ne pas se laisser distancer (vJ, notre vitesse), et il rattrape un écart en douceur : sa vitesse monte peu à peu, il ne bondit jamais d'un coup. */
+    const suivre = (s, x, y, z, vJ, dt) => {
+      s.elan = Math.min(12, vJ * 1.15 + 0.5 + 2.5 * Math.hypot(x - s.x, z - s.z), (s.elan || 0) + 25 * dt);
+      return avancerVers(s, x, y, z, s.elan, dt, true);
+    };
     /** Posé près de nous, là où il y a de la place (à l'arrivée, après un saut). */
     const poserAutour = (s, k, j) => {
       const t = j.cap + PI + (k - 2) * 0.6, r = 0.95 + 0.25 * (k % 2);
       let x = j.x + Math.sin(t) * r, z = j.z + Math.cos(t) * r;
       if (!monde.libre(x, z, j.y)) { x = j.x; z = j.z; }
-      s.x = x; s.z = z; s.y = monde.hauteur(x, z, j.y + 0.3); s.vit = 0;
+      s.x = x; s.z = z; s.y = monde.hauteur(x, z, j.y + 0.3); s.vit = 0; s.elan = 0;
     };
     /** Il sautille jusqu'à (x, y, z) à la vitesse v ; se résout à l'arrivée. */
     const va = (s, x, y, z, v = 3.2, apres = 'attend') => new Promise((fin) => { s.fin?.(); Object.assign(s, { mode: 'va', cible: { x, y, z, v }, fin, apres }); s.m.objet.visible = true; });
@@ -3310,7 +3319,7 @@ export function construire(ctx) {
     };
 
     // ---- le petit esprit : à son petit cèdre, derrière nous, ou sur le dos du compagnon
-    const A = { m: formes.creer('cedre', 0.64), x: AMI.x, y: solDessine(AMI.x, AMI.z), z: AMI.z, cap: 0, vit: 0, etat: 'attend', porteur: null, arc: null, arret: 0, court: 0, monter: false };
+    const A = { m: formes.creer('cedre', 0.64), x: AMI.x, y: solDessine(AMI.x, AMI.z), z: AMI.z, cap: 0, vit: 0, ox: 0, oz: 0, etat: 'attend', porteur: null, arc: null, arret: 0, court: 0, monter: false };
     objet.add(A.m.objet);
     const vSiege = new THREE.Vector3();
     const descendreDuDos = () => {
@@ -3319,7 +3328,7 @@ export function construire(ctx) {
       A.m.objet.rotation.set(0, 0, 0);
       A.porteur = null;
     };
-    const majAmi = (dt, temps, c, S) => {
+    const majAmi = (dt, temps, c, S, saut) => {
       const j = c.joueur, o = A.m.objet;
       if (!S.fini) { o.visible = false; return; }
       if (!S.suit) {
@@ -3342,10 +3351,15 @@ export function construire(ctx) {
       if (A.etat === 'pied') {
         // il trotte derrière nous, de l'autre côté que le compagnon
         const d = Math.hypot(j.x - A.x, j.z - A.z);
-        if (d > 9) poserAutour(A, 1, j);
+        if (d > 9 || saut) poserAutour(A, 1, j);
         else if (surPiste(1.2)) {
-          const lat = 0.28, q = Math.atan2(j.x - T.x, j.z - T.z), ox = -Math.cos(q) * lat, oz = Math.sin(q) * lat, libre = monde.libre(T.x + ox, T.z + oz, T.y);
-          avancerVers(A, T.x + (libre ? ox : 0), T.y, T.z + (libre ? oz : 0), 12, dt, true);
+          // (à 28 cm de la piste, si c'est libre et de plain-pied là où il sera dans un instant ; il s'en écarte et y revient en douceur. Sans ça, il sautait 46 cm en une
+          // image en passant sur le palier du Yayoi-sugi, le long des marches.)
+          const lat = 0.28, tx = T.x, ty = T.y, tz = T.z, q = Math.atan2(j.x - tx, j.z - tz), ox = -Math.cos(q) * lat, oz = Math.sin(q) * lat;
+          surPiste(0.3);
+          const ok = monde.libre(T.x + ox, T.z + oz, T.y) && Math.abs(monde.hauteur(T.x + ox, T.z + oz, T.y + 0.4) - monde.hauteur(T.x, T.z, T.y + 0.4)) < 0.15, f = Math.min(1, dt * 8);
+          A.ox += ((ok ? ox : 0) - A.ox) * f; A.oz += ((ok ? oz : 0) - A.oz) * f;
+          suivre(A, tx + A.ox, ty, tz + A.oz, vit, dt);
         } else A.vit += (0 - A.vit) * Math.min(1, dt * 8);
         if (A.vit < 0.15) A.cap = tourne(A.cap, Math.atan2(j.x - A.x, j.z - A.z), dt * 3);
         // on court : il ne suit plus ; il saute sur le dos du compagnon, s'il n'est pas loin
@@ -3388,6 +3402,9 @@ export function construire(ctx) {
           A.etat = 'descend';
           A.arc = { t: 0, x: vSiege.x, y: vSiege.y, z: vSiege.z };
           A.x = vSiege.x; A.y = vSiege.y; A.z = vSiege.z;
+          // (rendu à la scène, sa place y serait encore celle qu'il avait sur le dos : le centre du monde, le temps d'une image)
+          o.position.set(A.x, A.y, A.z);
+          o.rotation.y = A.cap;
           crier('esprit', A.x, A.y, A.z, 0.8);
         }
         return;
@@ -3397,7 +3414,7 @@ export function construire(ctx) {
         A.x = A.arc.x + (bx - A.arc.x) * e; A.z = A.arc.z + (bz - A.arc.z) * e;
         A.y = A.arc.y + (by - A.arc.y) * e + Math.sin(u * PI) * 0.32;
         A.vit = 0;
-        if (u >= 1) { A.etat = 'pied'; A.m.bondir(); }
+        if (u >= 1) { A.etat = 'pied'; A.ox = A.oz = 0; A.m.bondir(); }
       }
       o.position.set(A.x, A.y, A.z);
       o.rotation.y = A.cap;
@@ -3742,7 +3759,7 @@ export function construire(ctx) {
           voileV = S.ouvert ? 1 : 0;
           if (!vue && !S.fini && !S.ouvert && S.n >= 4) { vue = true; c.scene(direOu); }
         }
-        const saut = majPiste(j);
+        const saut = majPiste(j), vJ = Math.hypot(j.vx, j.vz);
         const cache = dansLeCache(j);
         // ---- les petits esprits
         let montrees = 0;
@@ -3764,7 +3781,7 @@ export function construire(ctx) {
             etincelle.ranger(k); lueur.ranger(k);
             if (s.mode === 'suit') {
               if (dJ > 11 || saut) poserAutour(s, k, j);
-              else if (surPiste(1.9 + k * 0.62)) avancerVers(s, T.x, T.y, T.z, 12, dt, true);
+              else if (surPiste(1.9 + k * 0.62)) suivre(s, T.x, T.y, T.z, vJ, dt);
               else s.vit += (0 - s.vit) * Math.min(1, dt * 8);
               if (s.vit < 0.15) s.cap = tourne(s.cap, Math.atan2(j.x - s.x, j.z - s.z), dt * 3);
               // (tous les cinq : à l'approche du vieux cèdre, ils partent devant, et nous attendent devant sa bouche)
@@ -3808,7 +3825,7 @@ export function construire(ctx) {
         // ---- le petit cèdre, le petit esprit
         majPousse(dt);
         pousse.visible = Math.hypot(j.x - POUSSE.x, j.z - POUSSE.z) < 45;
-        majAmi(dt, temps, c, S);
+        majAmi(dt, temps, c, S, saut);
         // ---- de l'autre côté de l'arbre : le cerf, à la première arrivée en haut des marches
         if (cache && S.ouvert && !S.fini && !enScene && surLaLigne(CHEMIN_CACHE, j.x, j.z).s > L_CACHE - 1.6) { enScene = true; c.scene(sceneCerf); }
         const pres = Math.hypot(j.x - LAC.x, j.z - LAC.z) < 34;
