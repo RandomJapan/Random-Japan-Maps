@@ -249,6 +249,8 @@ function rayonBarriere(t) {
  * là, on glisserait sur la paroi jusqu'en bas.
  */
 function dansLeCadre(x, z) {
+  // (au pied du belvédère, contre la barrière, une fente de 15 cm à 50 cm sous le sol d'à côté, trop raide tout autour : qui y tombait n'en sortait plus, 2026-11-02)
+  if (Math.hypot(x + 4.04, z + 77.96) < 0.22) return false;
   const r = Math.hypot(x, z), a = angle(x, z), r2 = rayonPied(a) + PAROI;
   if (r < r2 - 1) return true;
   if (a <= PLATEAU[0] || a >= PLATEAU[1] || r >= r2 + largeurCrete(a) - 0.6) return false;

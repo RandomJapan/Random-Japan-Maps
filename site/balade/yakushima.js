@@ -97,6 +97,8 @@ const marche = (E, k) => { const [x, z, y, tx, tz] = auPoint(E.pts, ((k + 0.5) *
 // le palier du Yayoi-sugi, à côté du sentier de pierre (à l'ouest), d'où on le regarde
 const YAYOI = { x: -48.2, z: 47.6, r: 1.32 };
 const PALIER_YAYOI = (() => { const k = Math.round(14.2 / ESC_PIERRE.giron), m = marche(ESC_PIERRE, k); return { x0: m.x - 3.3, x1: m.x - 1.02, z0: m.z - 1.15, z1: m.z + 1.15, y: m.y, k }; })();
+// (entre son plancher, droit, et le bord de l'escalier, de biais : un coin de 20 cm n'était ni à l'un ni à l'autre, un mur invisible sur le haut du palier)
+const SEUIL_YAYOI = { x0: PALIER_YAYOI.x1 - 0.02, x1: PALIER_YAYOI.x1 + 0.3, z0: PALIER_YAYOI.z1 - 0.95, z1: PALIER_YAYOI.z1 };
 // le pont suspendu Satsuki (さつき吊橋), au-dessus de la gorge du Shiratani : son tablier, qui s'affaisse de 30 cm au milieu
 const PONT = { x0: -36.6, x1: -25.6, z: 62.5, demi: 0.62, y: 19.5, creux: 0.3 };
 // le palier de pierre entre le haut du sentier et le pont (2026-11-01, le propriétaire : « il faut que tu donnes un espace entre la
@@ -543,7 +545,7 @@ function dansLeCadre(x, z) {
     if (aLaPlace(CLAIRIERE, x, z) < 0 && x > -26 && (LAC.x - x) * 0.72 + (z - LAC.z) * 0.69 < 3.4 && auLac(x, z) > 0.8) return true;
   }
   if (dansRect(QUAI, x, z) || dansRect(RUE, x, z) || dansRect(SALLE, x, z) || dansRect(JINJA, x, z) || dansRect(ENTREE, x, z) || dansRect(SEUIL_ENTREE, x, z)) return true;
-  if (dansRect(PALIER_YAYOI, x, z) || dansRect(DEVANT_HUTTE, x, z) || dansRect(TSUJI, x, z) || dansRect(PALIER_WILSON, x, z) || dansRect(DECK, x, z) || dansRect(PALIER_PONT, x, z)) return true;
+  if (dansRect(PALIER_YAYOI, x, z) || dansRect(SEUIL_YAYOI, x, z) || dansRect(DEVANT_HUTTE, x, z) || dansRect(TSUJI, x, z) || dansRect(PALIER_WILSON, x, z) || dansRect(DECK, x, z) || dansRect(PALIER_PONT, x, z)) return true;
   if (AUTOUR_HUTTE.some((r) => dansRect(r, x, z))) return true;
   if (aLaPlace(KOKE, x, z) < 0 || aLaPlace(TAIKO, x, z) < 0 || aLaPlace(RECOIN, x, z) < 0) return true;
   if (surPont(x, z)) return true;
@@ -657,6 +659,7 @@ export function construire(ctx) {
   }
   // le palier du Yayoi-sugi (des planches) ; le pont suspendu ; les planches de la voie du train ; la plateforme du Jōmon Sugi
   monde.surface(PALIER_YAYOI.x0, PALIER_YAYOI.x1, PALIER_YAYOI.z0, PALIER_YAYOI.z1, PALIER_YAYOI.y, { sol: 'bois' });
+  monde.surface(SEUIL_YAYOI.x0, SEUIL_YAYOI.x1, SEUIL_YAYOI.z0, SEUIL_YAYOI.z1, PALIER_YAYOI.y, { sol: 'bois' });
   {
     const pts = [];
     for (let k = 0; k <= 24; k++) { const x = PONT.x0 + ((PONT.x1 - PONT.x0) * k) / 24; pts.push([x, PONT.z, yPont(x)]); }
@@ -2927,8 +2930,9 @@ export function construire(ctx) {
         if (dl < 0.5 || dl > 3.2) continue;
         const x = gx + 0.5 + (hasard(gx * 1.37, gz * 0.73) - 0.5) * 0.8, z = gz + 0.5 + (hasard(gz * 1.19, gx * 0.91) - 0.5) * 0.8;
         if (versCadre(x, z) < 0.45) continue;
-        // (ni au bord des maisons, de l'entrée, du sanctuaire et du quai ; ni dans l'eau ; ni sur les rochers, troncs et poteaux)
-        if (z < -14 || dansRect(ENTREE, x, z, 0.9)) continue;
+        // (ni au bord des maisons, de l'entrée, du sanctuaire et du quai ; ni dans l'eau ; ni sur les rochers, troncs et poteaux. Mais sur le bout de pré entre la dernière
+        // maison et la forêt, à l'ouest de la route : rien ne l'arrêtait, 3 m de mur invisible ; dans l'herbe, pas sur le goudron, qui déborde du cadre)
+        if ((z < -14 && !(x < -29.4 && z > -16.6 && surLaLigne(ROUTE, x, z).d > 3.7)) || dansRect(ENTREE, x, z, 0.9)) continue;
         if (occupe(x, z, 0.25) || versRect(DECK, x, z) < 1.2 || aLaPlace(TAIKO, x, z) < 1.0) continue;
         if (terrain(x, z) < 1.8) continue;
         const t = hasard(x * 0.37, z * 0.53), u = hasard(z * 0.41, x * 0.29);
