@@ -897,6 +897,21 @@ const OISEAUX = {
       .ton(0.52, 0.24, (t) => 700 + 420 * Math.sin(Math.PI * Math.min(1, t / 0.24) * 0.85), ad(0.03, 0.09, 0.24));
     return cadrer([echo(c.b, sr)], sr, 0.25);
   },
+  // (Yakushima, 2026-11-01) les petits esprits : du tout petit bois creux qu'on frappe, « tok, tok », un rien plus aigu que Saya, leur cousin
+  esprit(sr, r) {
+    const c = composer(sr, r, 0.5);
+    const f0 = 1050 + 240 * r();
+    for (const [t0, f, g] of [[0.01, f0, 0.8], [0.13, f0 * 1.16, 0.65]]) c.modes(t0, [[f, g, 0.035], [f * 2.3, 0.3 * g, 0.018], [f * 3.7, 0.1 * g, 0.009]]);
+    return cadrer([echo(c.b, sr)], sr, 0.25);
+  },
+  // le grand cerf : un long appel, très grave et doux, qui monte un peu et retombe ; plus une trompe de brume qu'un brame ; un souffle dedans
+  cerf(sr, r) {
+    const c = composer(sr, r, 3.6);
+    const d = 2.6, env = ad(0.55, 1.5, d), f = (t) => 92 + 22 * Math.sin(Math.PI * Math.min(1, t / d)) + 1.2 * Math.sin(TAU * 4.3 * t);
+    for (const [k, g] of [[1, 1], [2, 0.62], [3, 0.3], [4, 0.14], [6, 0.05]]) c.ton(0.04, d, (t) => f(t) * k, (t) => g * env(t), 0);
+    c.bruit(0.04, { f: 520, q: 0.7, duree: d, forme: env, gain: 0.07 });
+    return cadrer([echo(echo(c.b, sr), sr)], sr, 0.5);
+  },
   // la bouscarle du Japon (uguisu), l'oiseau du printemps : « hôôô… ho-ke-kyo ! »
   uguisu(sr, r) {
     const c = composer(sr, r, 2.4);

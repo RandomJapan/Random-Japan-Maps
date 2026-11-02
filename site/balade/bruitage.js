@@ -47,6 +47,8 @@ const V = {
   shiofuki: 0.11, saisen: 0.1,
   // (Yakushima) le « kuu » des singes (oiseau()) ; la corne du bateau du batelier (la traversée d'Udo à Yakushima)
   singe: 0.045, corne: 0.05,
+  // (Yakushima) les petits esprits, le grand cerf (oiseau())
+  esprit: 0.075, cerf: 0.11,
 };
 const lisse = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
 

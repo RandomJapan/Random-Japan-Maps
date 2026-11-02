@@ -51,6 +51,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
   font: 500 14px var(--police);
 }
 @keyframes flotte { 50% { margin-top: -14px; } }
+/* l'écran qui se couvre d'une lumière pâle (jeu.fondu) */
+.fondu { position: fixed; inset: 0; z-index: 20; background: #eaf6d8; opacity: 0; pointer-events: none; transition: opacity 0.5s ease; }
+.fondu.vue { opacity: 1; }
 /* le rappel du compagnon (balade.js, surveillerRappel) : en haut, sous les boutons ; il ne gêne ni la vue ni les doigts */
 .rappel-compagnon {
   position: fixed; top: calc(max(10px, env(safe-area-inset-top)) + 69px); left: 50%; width: max-content; max-width: min(560px, calc(100vw - 24px));

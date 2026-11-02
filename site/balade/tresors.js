@@ -12,7 +12,7 @@
 // ================================================================
 
 /** Le secret de chaque lieu. */
-export const SECRETS = { itsukushima: 'corbeaux', aogashima: 'tresor', gokayama: 'heike', himeji: 'okiku', takachiho: 'miroir', kinkakuji: 'phenix', beppu: 'ippen', motonosumi: 'torii124', sanjubutsu: 'oni', udo: 'plumes', yakushima: 'champignons' };
+export const SECRETS = { itsukushima: 'corbeaux', aogashima: 'tresor', gokayama: 'heike', himeji: 'okiku', takachiho: 'miroir', kinkakuji: 'phenix', beppu: 'ippen', motonosumi: 'torii124', sanjubutsu: 'oni', udo: 'plumes', yakushima: 'esprits' };
 /** Les secrets en plus d'un lieu, un koban chacun ; le carnet ne les montre qu'une fois trouvés (2026-10-29 : la grotte de l'ermite
  * des Trente Bouddhas, derrière la cascade). */
 export const SECRETS_EN_PLUS = { sanjubutsu: ['iwaya'] };
@@ -59,6 +59,12 @@ export const indiceVu = (id) => etat().indices.includes(id);
 export function voirIndice(id) {
   const s = etat();
   if (!s.indices.includes(id)) { s.indices.push(id); ecrire('baladeSecrets', s); }
+}
+
+/** On oublie un indice (le petit esprit de Yakushima, qui nous suit ou qui attend à son petit cèdre). */
+export function oublierIndice(id) {
+  const s = etat();
+  if (s.indices.includes(id)) { s.indices = s.indices.filter((q) => q !== id); ecrire('baladeSecrets', s); }
 }
 
 export const achats = () => lire('baladeAchats', []);

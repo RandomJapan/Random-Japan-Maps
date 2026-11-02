@@ -3,7 +3,11 @@
 //  de la balade, la seconde moitié du « lieu à deux » d'Udo ; le propriétaire, le 2026-10-30 : « on prend le bateau. Et on
 //  se rend à l'île Yakushima… On peut pas débloquer Yakushima sans avoir fait ce lieu-là… à partir du moment où tu as pris
 //  le bateau… la petite icône visiter en 3D… elle apparaît » ; le 2026-10-31 : « Commence Yakushima », et de mes
-//  propositions : le port, la forêt et le Jōmon Sugi ; le secret des champignons qui brillent ; le chapeau-champignon).
+//  propositions : le port, la forêt et le Jōmon Sugi ; le secret et la récompense ont changé le 2026-11-01, à sa demande : « je pense que
+//  ça peut être un secret en rapport avec Princesse Mononoke », puis, de mes propositions : « secret : les petits esprits qui mènent au
+//  grand cerf, vêtement : la cape du loup + quand on a fini le secret il y a un petit esprit qui attend et qui a besoin de nous pour une
+//  petite mission ; une fois terminée il demande s'il peut te suivre et peut aussi monter sur le dos du renard et de la loutre par exemple ;
+//  par contre il ne peut pas sortir de Yakushima car il doit rester dans la forêt sacrée »).
 //  On y arrive par le bateau du batelier d'Udo, au port de Miyanoura (宮之浦港), le grand port de l'île. Le village : un
 //  restaurant où l'on entre (le poisson volant, le maquereau « au cou cassé »), la boutique d'objets en bois de yakusugi, la
 //  location de matériel de randonnée, le sanctuaire Yaku-jinja (益救神社) : son dieu, Hikohohodemi (Yamasachihiko), est le
@@ -29,7 +33,8 @@
 import { creerMonde, interactionsBancs, lisse, hasard, bruitDoux, surLaLigne } from './monde.js';
 import { panneau, PAPIER_PANNEAU } from './decor.js';
 import { MATIERES as M } from './textures.js';
-import { secretTrouve, indiceVu } from './tresors.js';
+import { secretTrouve, indiceVu, oublierIndice } from './tresors.js';
+import { formesEsprits, creerGrandCerf, PELAGE_CERF } from './esprits.js';
 
 const PI = Math.PI;
 
@@ -80,7 +85,9 @@ const ESC_PIERRE = { pts: rampe([[-44, 34.6], [-43.4, 38.6], [-42.4, 43.4], [-41
 const ESC_TAIKO = { pts: rampe([[22.8, 106.0], [23.9, 109.2], [25.0, 112.2], [26.2, 114.6]], 27.4, 32.9), demi: 0.95, giron: 0.38, sol: 'pierre', bois: false };
 const ESC_OKABU = { pts: rampe([[64.6, 72.0], [67.2, 70.6], [70.2, 69.2], [73.2, 68.0], [75.4, 67.4]], 24.88, 28.0), demi: 0.95, giron: 0.74, sol: 'bois', bois: true };
 const ESC_JOMON = { pts: rampe([[76.4, 70.2], [77.6, 73.8], [79.8, 77.0], [82.8, 79.6], [86.2, 81.4], [87.6, 82.2]], 28.0, 33.4), demi: 0.95, giron: 0.74, sol: 'bois', bois: true };
-const ESCALIERS = [ESC_PIERRE, ESC_TAIKO, ESC_OKABU, ESC_JOMON];
+// (les marches de pierre moussues du bassin caché, derrière le vieux cèdre creux : le secret)
+const ESC_CACHE = { pts: rampe([[-18.7, 98.6], [-20.8, 100.4], [-22.2, 102.6], [-22.6, 104.4], [-22.5, 106.2]], 23.0, 27.0), demi: 0.85, giron: 0.38, sol: 'pierre', bois: false };
+const ESCALIERS = [ESC_PIERRE, ESC_TAIKO, ESC_OKABU, ESC_JOMON, ESC_CACHE];
 for (const E of ESCALIERS) { E.L = longueur(E.pts); E.n = Math.max(2, Math.round(E.L / E.giron)); }
 /** La marche k de l'escalier E : son milieu [x, z], sa hauteur (le dessus), la direction [tx, tz]. */
 const marche = (E, k) => { const [x, z, y, tx, tz] = auPoint(E.pts, ((k + 0.5) * E.L) / E.n); return { x, z, y, tx, tz }; };
@@ -103,6 +110,47 @@ const ARBRE_SINGE = { x: 20.7, z: 84.4 }, BRANCHE = { x: 18.5, z: 87.0, y: KOKE.
 // le petit sentier caché (le secret) : de la forêt de mousse vers l'ouest, par-dessus le ruisseau, jusqu'au vieux cèdre creux
 const SENTIER_SECRET = [[0.4, 89.6, 23.6], [-3.5, 91.2, 23.42], [-7.5, 93.0, 23.22], [-11.0, 94.6, 23.05], [-12.8, 95.4, 22.98]];
 const CREUX = { x: -15.7, z: 96.4, r: 1.25 };
+// le bassin caché (2026-11-01) : on y passe à travers le vieux cèdre creux, une fois que les petits esprits en ont ouvert le fond. Derrière
+// l'arbre, un petit palier et des marches de pierre ; en haut, le bassin (LAC), dans une clairière où l'on marche sur la rive, du nord au
+// sud-est (CLAIRIERE) ; le grand cerf arrive par le sud-ouest (ROUTE_CERF), où l'on ne va pas. Rien n'y mène autrement : c'est un coin de forêt
+// fermé de tous côtés. Son eau tombe d'un rocher, au sud (FILET), et ressort sous les rochers du nord : c'est la source de la rivière.
+const PALIER_CACHE = { x0: -19.7, x1: -17.25, z0: 95.8, z1: 99.0, y: 23.0 };
+const LAC = { x: -25, z: 113.3, rx: 7.4, rz: 5.8, ry: 0.25, y: 27.0 };
+const CLAIRIERE = { x: -23.2, z: 112.6, rx: 10.6, rz: 7.6, ry: 0.25 };
+const B_LAC = { x0: -46, x1: -6, z0: 95, z1: 131 };
+const POSTE = { x: -22.5, z: 106.0 };
+const ROUTE_CERF = [[-40.5, 126.5], [-36.5, 122.8], [-32.6, 119.0], [-29.2, 115.6], [-26.2, 112.6], [-24.1, 110.5]];
+// (d'où l'on sort de l'arbre, de l'autre côté ; le dos de l'arbre, où l'on y rentre)
+const SORTIE_CREUX = { x: -17.8, z: 97.1 };
+// le petit cèdre du petit esprit, sur la rive est ; le petit esprit, à côté
+const POUSSE = { x: -17.3, z: 110.4 }, AMI = { x: -17.95, z: 109.55 };
+// les cinq petits esprits, en vue, au bord des sentiers, chacun sur sa pierre : ce qu'il a sur la tête, vers où il regarde
+const ESPRITS = [
+  { id: 'e1', sorte: 'pousse', x: -18.5, z: 65.2, vers: [-21, 65.5] },
+  { id: 'e2', sorte: 'gland', x: -6.44, z: 79.86, vers: [-7.6, 76.6] },
+  { id: 'e3', sorte: 'mousse', x: 8.4, z: 83.2, vers: [4, 85] },
+  { id: 'e4', sorte: 'champi', x: 26.25, z: 105.1, vers: [22, 103.5] },
+  { id: 'e5', sorte: 'fougere', x: 64.6, z: 74.9, vers: [60, 76.5] },
+];
+/**
+ * L'état du secret : trouvé (fini), les esprits salués (pris : des indices, « esprit-e1 »…, n), le fond du cèdre ouvert ; le petit esprit :
+ * sa demande, son petit cèdre arrosé, s'il nous suit, s'il est déjà monté sur le dos du compagnon. Relu dans le stockage au plus toutes les
+ * 0,4 s (les conditions des actions sont demandées à chaque image). etatEsprits.oublier() après un changement.
+ */
+const etatEsprits = (() => {
+  let s = null, lu = -1;
+  const lire = () => {
+    const t = performance.now();
+    if (!s || t - lu > 400) {
+      lu = t;
+      const pris = ESPRITS.map((E) => indiceVu(`esprit-${E.id}`));
+      s = { fini: secretTrouve('esprits'), pris, n: pris.filter(Boolean).length, ouvert: indiceVu('cedre-ouvert'), demande: indiceVu('ami-demande'), arrose: indiceVu('ami-arrose'), suit: indiceVu('ami-suit'), dosVu: indiceVu('ami-dos') };
+    }
+    return s;
+  };
+  lire.oublier = () => { s = null; };
+  return lire;
+})();
 // du bout est de la forêt de mousse au col de Tsuji, en passant devant le refuge
 const SENTIER3 = [[15.2, 90.2, 23.6], [18.2, 94.0, 24.4], [20.0, 97.6, 25.5], [21.0, 101.0, 26.7], [21.4, 103.2, 27.2]];
 const HUTTE = { x: 26.0, z: 95.3 };
@@ -238,9 +286,11 @@ function ligneIndexee(pts) {
     return { d: Math.sqrt(d), h, s };
   };
 }
-const surRuisseau = ligneIndexee(RUISSEAU), surRavin = ligneIndexee(RAVIN), surEauWilson = ligneIndexee(EAU_WILSON);
+// (le filet d'eau qui nourrit le bassin caché : il tombe d'un rocher, au sud)
+const FILET = enMarches(ligneDouce([[-24.0, 122.6, 29.3], [-24.05, 122.3, 28.9], [-24.1, 122.05, 28.0], [-24.2, 121.2, 27.9], [-24.3, 120.2, 27.35], [-24.4, 119.4, 27.02], [-24.45, 118.9, 27.01]]), 4);
+const surRuisseau = ligneIndexee(RUISSEAU), surRavin = ligneIndexee(RAVIN), surEauWilson = ligneIndexee(EAU_WILSON), surFilet = ligneIndexee(FILET);
 /** Les sources : d'où tombe l'eau (x, z, y le haut de la chute), de quel côté elle part. */
-const SOURCES = [{ x: 19.25, z: 109.75, y: 28.3, vers: [18.3, 108.3] }, { x: 56.5, z: 102.6, y: 27.9, vers: [55.2, 101.0] }];
+const SOURCES = [{ x: 19.25, z: 109.75, y: 28.3, vers: [18.3, 108.3] }, { x: 56.5, z: 102.6, y: 27.9, vers: [55.2, 101.0] }, { x: -24.0, z: 122.6, y: 29.3, vers: [-24.1, 121.6] }];
 
 // ---------------------------------------------------------------- La géométrie du plan
 const dansRect = (r, x, z, m = 0) => x >= r.x0 - m && x <= r.x1 + m && z >= r.z0 - m && z <= r.z1 + m;
@@ -252,6 +302,8 @@ function aLaPlace(p, x, z) {
   const q = Math.hypot(u / p.rx, v / p.rz);
   return q < 1e-6 ? -Math.min(p.rx, p.rz) : ((q - 1) * q) / Math.hypot(u / (p.rx * p.rx), v / (p.rz * p.rz));
 }
+/** La distance au bord de l'eau du bassin caché (négative dedans) : une ellipse dont le bord n'est pas lisse. */
+const auLac = (x, z) => aLaPlace(LAC, x, z) + (bruitDoux(x * 0.55, z * 0.55, 2) - 0.5) * 1.1;
 /** Sur l'escalier E (dans sa largeur, entre ses bouts) ? m : la marge. */
 const surEsc = (E, x, z, m = 0) => { const l = surLaLigne(E.pts, x, z); return l.d < E.demi + m && l.s > -m && l.s < E.L + m; };
 /** Sur le pont suspendu ? */
@@ -339,7 +391,7 @@ function versChemin(x, z) {
 const lit = (pts, x, z) => surLaLigne(pts, x, z);
 // (une boîte autour de chaque eau : loin d'elles, on ne les regarde pas)
 const boite = (pts, m) => { const xs = pts.map((p) => p[0]), zs = pts.map((p) => p[1]); return { x0: Math.min(...xs) - m, x1: Math.max(...xs) + m, z0: Math.min(...zs) - m, z1: Math.max(...zs) + m }; };
-const B_RIVIERE = boite(RIVIERE, 12), B_RUISSEAU = boite(RUISSEAU, 7), B_RAVIN = boite(RAVIN, 7), B_WILSON = boite(EAU_WILSON, 7);
+const B_RIVIERE = boite(RIVIERE, 12), B_RUISSEAU = boite(RUISSEAU, 7), B_RAVIN = boite(RAVIN, 7), B_WILSON = boite(EAU_WILSON, 7), B_FILET = boite(FILET, 4);
 /** La demi-largeur de la rivière (son eau) à la longueur s depuis sa source : étroite dans la gorge, plus large en bas. */
 const largeRiviere = (s) => 0.6 + 1.0 * lisse(0, 42, s) + 1.2 * lisse(120, 200, s);
 /** Le lit d'un ruisseau : l (surLaLigne : d, la distance à sa ligne ; h, le niveau de l'eau) ; w, la demi-largeur de l'eau. Le sol passe au
@@ -392,6 +444,16 @@ function terrain(x, z) {
     const dj = versRect(JINJA, x, z);
     if (dj < 2.2 && d > -0.5) h = JINJA.y - 0.03 + (h - JINJA.y + 0.03) * lisse(0.2, 2.2, dj);
   }
+  // le bassin caché et sa rive : le fond qui descend doucement, puis plus vite ; la rive presque plate ; puis la pente de la montagne reprend
+  if (dansRect(B_LAC, x, z)) {
+    const dl = auLac(x, z), dp = Math.min(aLaPlace(CLAIRIERE, x, z), dl - 0.8);
+    if (dp < 4) {
+      const y = dl < 0 ? LAC.y - (dl > -2 ? -dl * 0.16 : 0.32 + (-dl - 2) * 0.3) : LAC.y + Math.min(dl, 5) * 0.05 + (bruitDoux(x * 0.3, z * 0.3, 2) - 0.5) * 0.12 * lisse(0.6, 2.5, dl);
+      h = y + (h - y) * lisse(0.4, 4, dp);
+    }
+    // (le lit du filet d'eau : hors du bassin ; sa rive, relevée, faisait une bosse dans l'eau)
+    if (dl > 0 && dansRect(B_FILET, x, z)) { const l = surFilet(x, z); if (l.d < 3) h += (creuser(h, l, 0.24) - h) * lisse(0, 0.8, dl); }
+  }
   // les sentiers de terre, la route, les escaliers : le sol à leur hauteur (sous les marches, 15 cm plus bas que leur ligne)
   for (const k of chemins(x, z, PROCHES)) {
     const c = TOUS_CHEMINS[k], dd = D_[k], yc = H_[k] - (c.sorte === 'escalier' ? 0.16 : 0.03);
@@ -400,7 +462,7 @@ function terrain(x, z) {
   }
   // les places : l'entrée de Shiratani, le palier du Yayoi-sugi, la forêt de mousse (un peu bosselée), le devant du refuge, le col,
   // l'abri de Kosugidani, le palier de la souche de Wilson
-  for (const [r, t] of [[ENTREE, 3.2], [SOL_HUTTE, 2.2], [TSUJI, 2.4], [PALIER_WILSON, 2.0], [PALIER_PONT, 2.4]]) {
+  for (const [r, t] of [[ENTREE, 3.2], [SOL_HUTTE, 2.2], [TSUJI, 2.4], [PALIER_WILSON, 2.0], [PALIER_PONT, 2.4], [PALIER_CACHE, 1.8]]) {
     const dr = versRect(r, x, z);
     if (dr < t) h = r.y - 0.03 + (h - r.y + 0.03) * lisse(0.2, t, dr);
   }
@@ -443,6 +505,7 @@ const solDetaille = (x0, z0, x1, z1) => {
   if (dansRect(B_RUISSEAU, cx, cz) && surRuisseau(cx, cz).d < 3.2) return true;
   if (cz > 74 && dansRect(B_RAVIN, cx, cz) && surRavin(cx, cz).d < 3) return true;
   if (cz > 54 && dansRect(B_WILSON, cx, cz) && surEauWilson(cx, cz).d < 2) return true;
+  if (cz > 100 && dansRect(B_LAC, cx, cz)) { const dl = aLaPlace(LAC, cx, cz); if (dl > -1.4 && dl < 1.4) return true; if (dansRect(B_FILET, cx, cz) && surFilet(cx, cz).d < 1.6) return true; }
   return false;
 };
 
@@ -454,6 +517,12 @@ const solDetaille = (x0, z0, x1, z1) => {
  * garde-fous, les rambardes, l'ourlet de fougères et de bambous nains de la forêt) : le voyageur, un point, s'arrête 27 cm avant.
  */
 function dansLeCadre(x, z) {
+  // (le bassin caché : le palier derrière l'arbre, les marches — plus bas, comme les autres — et la rive, de l'est du seuil de pierres du nord
+  // jusqu'au sud ; pas au sud-ouest, d'où vient le cerf)
+  if (dansRect(B_LAC, x, z)) {
+    if (dansRect(PALIER_CACHE, x, z)) return true;
+    if (aLaPlace(CLAIRIERE, x, z) < 0 && x > -26 && (LAC.x - x) * 0.72 + (z - LAC.z) * 0.69 < 3.4 && auLac(x, z) > 0.8) return true;
+  }
   if (dansRect(QUAI, x, z) || dansRect(RUE, x, z) || dansRect(SALLE, x, z) || dansRect(JINJA, x, z) || dansRect(ENTREE, x, z)) return true;
   if (dansRect(PALIER_YAYOI, x, z) || dansRect(DEVANT_HUTTE, x, z) || dansRect(TSUJI, x, z) || dansRect(PALIER_WILSON, x, z) || dansRect(DECK, x, z) || dansRect(PALIER_PONT, x, z)) return true;
   if (AUTOUR_HUTTE.some((r) => dansRect(r, x, z))) return true;
@@ -483,7 +552,7 @@ export const infos = {
 };
 
 /** La nuit : les fenêtres et les lanternes s'allument. */
-export const sortesNuit = (P) => ({ [P.shoji]: 'lumiere', [P.shojiCadre]: 'treillis' });
+export const sortesNuit = (P) => ({ [P.shoji]: 'lumiere', [P.shojiCadre]: 'treillis', [PELAGE_CERF.base]: 'lumiere', [PELAGE_CERF.fonce]: 'lumiere', [PELAGE_CERF.clair]: 'lumiere' });
 
 /** Un triangle A, B, C ajouté à pos, tourné vers n (retourné s'il regarde de l'autre côté). */
 function tri(pos, A, B, C, n) {
@@ -1365,6 +1434,7 @@ export function construire(ctx) {
     ruban(RUISSEAU, (s) => largeRuisseau(s) + 0.22, { largeur: 1.2 });
     ruban(RAVIN, (s) => largeRavin(s) + 0.22, { largeur: 1.0 });
     ruban(EAU_WILSON, () => 0.26 + 0.14, { largeur: 0.6, pas: 0.25 });
+    ruban(FILET, () => 0.24 + 0.14, { largeur: 0.6, pas: 0.2 });
   }
   // les sources : un petit amas de granite d'où l'eau tombe, dans sa vasque ; des rochers de part et d'autre, de la mousse dessus
   // (et celle de la rivière, dans la forêt au-dessus du sentier caché)
@@ -1777,8 +1847,8 @@ export function construire(ctx) {
 
   // ---------------------------------------------------------------- Le petit sentier caché et le vieux cèdre creux (le secret)
   // Un sentier étroit part de la forêt de mousse vers l'ouest, passe le ruisseau sur une planche, et finit devant un vieux cèdre
-  // mort, cassé à 6 m, creux : sa bouche tournée vers le sentier. De jour, il fait noir dedans ; la nuit, les champignons qui
-  // brillent (シイノトモシビタケ) y mènent, et l'éclairent.
+  // mort, cassé à 6 m, creux : sa bouche tournée vers le sentier. Il fait noir dedans. Quand les cinq petits esprits y sont entrés, son fond
+  // s'ouvre (un trou comme la bouche, bouché tant que ce n'est pas fait : secretEsprits) : on passe de l'autre côté, au bassin caché.
   const PLANCHE_RUISSEAU = (() => {
     const l = surLaLigne(SENTIER_SECRET, -4.17, 91.5);
     const [x, z, y, tx, tz] = auPoint(SENTIER_SECRET, l.s);
@@ -1795,15 +1865,17 @@ export function construire(ctx) {
   }
   /** Le vieux cèdre creux : une coque épaisse, sa bouche (de 1 m de large, 1,7 m de haut) tournée vers le bout du sentier. */
   const BOUCHE_CREUX = Math.atan2(SENTIER_SECRET[4][1] - CREUX.z, SENTIER_SECRET[4][0] - CREUX.x);
+  const DOS_CREUX = BOUCHE_CREUX + PI, DEMI_TROU = 0.62 / CREUX.r, R_CREUX = 0.82;
   const ouvertureDe = (th, bouche, demi) => { const d = Math.atan2(Math.sin(th - bouche), Math.cos(th - bouche)); return Math.abs(d) < demi; };
   {
-    const a = morceau(CREUX.x, CREUX.z), y = terrain(CREUX.x, CREUX.z), R0 = CREUX.r, Rin = 0.82, H = 6.2, NT = 28, NH = 12, pos = [], cols = [];
+    const a = morceau(CREUX.x, CREUX.z), y = terrain(CREUX.x, CREUX.z), R0 = CREUX.r, Rin = R_CREUX, H = 6.2, NT = 28, NH = 12, pos = [], cols = [];
+    const trou = (th) => ouvertureDe(th, BOUCHE_CREUX, DEMI_TROU) || ouvertureDe(th, DOS_CREUX, DEMI_TROU);
     const rugo = (th, t) => 1 + 0.06 * Math.sin(th * 9 + t * 5) + 0.04 * Math.sin(th * 17 - t * 11);
     const pt = (th, t, r) => [CREUX.x + Math.cos(th) * r, y - 0.4 + t * (H + 0.4), CREUX.z + Math.sin(th) * r];
     const haut = (th) => 1 - 0.22 * Math.max(0, Math.sin(th * 3 + 1.1)) - 0.12 * Math.max(0, Math.sin(th * 7));
-    const tBouche = 2.1 / (H + 0.4), demiB = 0.62 / R0;
+    const tBouche = 2.1 / (H + 0.4);
     for (let j = 0; j < NT; j++) {
-      const th0 = (j / NT) * 2 * PI, th1 = ((j + 1) / NT) * 2 * PI, ouvert = ouvertureDe((th0 + th1) / 2, BOUCHE_CREUX, demiB);
+      const th0 = (j / NT) * 2 * PI, th1 = ((j + 1) / NT) * 2 * PI, ouvert = trou((th0 + th1) / 2);
       for (let i = 0; i < NH; i++) {
         const t0 = i / NH, t1 = (i + 1) / NH;
         if (ouvert && t1 <= tBouche + 0.01) continue;
@@ -1827,7 +1899,7 @@ export function construire(ctx) {
         }
       }
       // (les bords de la bouche : les joues entre dehors et dedans)
-      if (ouvert !== ouvertureDe(((j + 1.5) / NT) * 2 * PI, BOUCHE_CREUX, demiB)) {
+      if (ouvert !== trou(((j + 1.5) / NT) * 2 * PI)) {
         const th = th1, A = pt(th, 0, R0 * rugo(th, 0)), B = pt(th, tBouche, R0 * rugo(th, tBouche)), C = pt(th, tBouche, Rin), D = pt(th, 0, Rin), n = [-Math.sin(th), 0, Math.cos(th)];
         tri(pos, A, B, C, n); tri(pos, A, C, D, n); tri(pos, A, C, B, [-n[0], 0, -n[2]]); tri(pos, A, D, C, [-n[0], 0, -n[2]]);
         cols.push('#6a5240', '#6a5240', '#6a5240', '#6a5240');
@@ -1840,8 +1912,89 @@ export function construire(ctx) {
     a.cylindre(Rin, Rin, 0.04, 16, '#2e2620', { x: CREUX.x, y: y + 0.0, z: CREUX.z, trait: false });
     // des fougères et de la mousse au pied ; une jeune pousse sur le haut cassé
     a.houppe(0.5, '#6a9a44', { x: CREUX.x + Math.cos(BOUCHE_CREUX + 2.4) * 1.2, y: y + 5.8, z: CREUX.z + Math.sin(BOUCHE_CREUX + 2.4) * 1.0, sy: 0.6, sorte: 'persistant' }, 0);
+    // (les toutes petites traces de pas, sur la mousse, de la fin du sentier à la bouche : le texte les montre)
+    for (let k = 0; k < 11; k++) {
+      const f = 0.06 + (k / 10) * 0.82, sg = k % 2 ? 1 : -1, tx = Math.cos(BOUCHE_CREUX), tz = Math.sin(BOUCHE_CREUX), R = R0 + 0.05 + f * 2.05, fx = CREUX.x + tx * R - tz * sg * 0.045, fz = CREUX.z + tz * R + tx * sg * 0.045;
+      a.ovale(0.024, MOUSSE_F, { x: fx, y: solDessine(fx, fz) + 0.006, z: fz, sx: 0.8, sy: 0.12, sz: 1.3, ry: Math.atan2(-tx, -tz), trait: false }, 6);
+    }
     // (on n'y entre pas : sa coque arrête, sa bouche aussi, à 1,25 m du milieu)
     monde.cercle(CREUX.x, CREUX.z, R0 + 0.27);
+  }
+
+  // ---------------------------------------------------------------- Le bassin caché (le secret) : ses marches, ses vieux cèdres, sa rive
+  rangsDeMarches(ESC_CACHE);
+  /** Une petite lanterne de pierre moussue, éteinte le jour ; la nuit, son papier s'allume (sa lumière : lumieres). */
+  const lanterneMoussue = (x, z, y = solDessine(x, z)) => {
+    const a = morceau(x, z), G = GRANITES[1], G2 = GRANITES[3];
+    a.cylindre(0.2, 0.25, 0.14, 8, MOUSSE_F, { x, y: y + 0.05, z })
+      .cylindre(0.075, 0.095, 0.44, 8, G, { x, y: y + 0.32, z })
+      .cylindre(0.17, 0.11, 0.07, 6, G2, { x, y: y + 0.57, z })
+      .boite(0.2, 0.17, 0.2, P.shoji, { x, y: y + 0.69, z, trait: false })
+      .cone(0.25, 0.18, 6, MOUSSE, { x, y: y + 0.87, z })
+      .boule(0.04, G, { x, y: y + 0.98, z }, 0);
+    for (const [dx, dz] of [[-0.092, -0.092], [0.092, -0.092], [-0.092, 0.092], [0.092, 0.092]]) a.boite(0.034, 0.18, 0.034, G2, { x: x + dx, y: y + 0.69, z: z + dz, trait: false });
+    monde.cercle(x, z, 0.25 + 0.27);
+    lumieres.push({ x, y: y + 0.69, z, halo: 0.26, sol: y, r: 2.3, c: '#f2d6a4' });
+  };
+  {
+    // de très vieux cèdres autour de l'eau ; le plus proche porte la corde sacrée (注連縄 : la forêt sacrée) ; ses mèches de papier
+    for (const [k, [x, z, r, fut]] of [[-12.2, 104.6, 1.55, 13], [-10.0, 118.2, 1.5, 13], [-27.6, 124.6, 1.8, 15], [-39.4, 114.4, 1.6, 14], [-36.2, 104.4, 1.35, 12]].entries()) {
+      const y = terrain(x, z), Y = yakusugi(morceau(x, z), x, z, y, { r, fut, h: fut + 10, lobes: 5 + (k % 2), branches: 4 });
+      monde.cercle(x, z, r * 1.3 + 0.27);
+      if (k === 0) {
+        const a = morceau(x, z), hC = 2.5, tC = (hC + 0.7) / (fut + 0.7), [ax, az] = Y.axe(tC), pts = [];
+        for (let j = 0; j <= 40; j++) { const th = (j / 40) * 2 * PI, R = Y.rayon(th, tC) + 0.055; pts.push([ax + Math.cos(th) * R, y + hC + 0.03 * Math.sin(th * 3), az + Math.sin(th) * R]); }
+        a.tube(pts, 0.07, '#d9c48a', { cotes: 6, pas: 84, teinte: (wx, wy, wz) => (Math.floor((Math.atan2(wz - az, wx - ax) + PI) * 8) % 2 ? '#d9c48a' : '#c4ad72') });
+        // (les shide, du côté du bassin ; ils pendent de la corde)
+        for (const th of [PI * 0.72, PI * 0.92, PI * 1.12]) {
+          const R = Y.rayon(th, tC) + 0.1, px = ax + Math.cos(th) * R, pz = az + Math.sin(th) * R, ry = Math.atan2(Math.cos(th), Math.sin(th));
+          for (const [dy, dx] of [[-0.14, 0], [-0.3, 0.05], [-0.46, 0]]) a.boite(0.1, 0.17, 0.008, '#f6f2e6', { x: px + Math.cos(ry) * dx, y: y + hC + dy, z: pz - Math.sin(ry) * dx, ry, nuance: 0.02, trait: false });
+        }
+      }
+    }
+    // la ceinture de pierres moussues au bord de l'eau (ce qui arrête, côté bassin), sauf là où passe le cerf et où tombe le filet ; moins serrée
+    // là où l'on ne va pas
+    const cL = Math.cos(LAC.ry), sL = Math.sin(LAC.ry);
+    const surLaRive = (u, v, f) => { const a = LAC.rx * u * f, b = LAC.rz * v * f; return [LAC.x + a * cL + b * sL, LAC.z - a * sL + b * cL]; };
+    for (let k = 0; k < 84; k++) {
+      const t = (k / 84) * 2 * PI + hasard(k, 1.7) * 0.025, u = Math.cos(t), v = Math.sin(t);
+      let x = 0, z = 0;
+      for (let f = 0.62; f < 1.4; f += 0.01) { [x, z] = surLaRive(u, v, f); if (auLac(x, z) >= 0.12) break; }
+      const loin = (LAC.x - x) * 0.72 + (z - LAC.z) * 0.69 >= 3.4;
+      if ((loin && k % 2) || surLaLigne(ROUTE_CERF, x, z).d < 2.3 || Math.hypot(x - FILET[FILET.length - 1][0], z - FILET[FILET.length - 1][1]) < 1.0) continue;
+      const r = 0.27 + 0.2 * hasard(k, 3.1) + (k % 5 === 0 ? 0.14 : 0);
+      rocher(morceau(x, z), x, LAC.y + 0.02, z, r * 1.25, r * 0.74, r, k, { finesse: 1, mousse: 0.42, mouille: LAC.y + 0.05, trait: k % 2 === 0 });
+    }
+    // au nord, sous les rochers, l'eau repart : un seuil de grosses pierres
+    for (const [x, z, r] of [[-28.2, 106.6, 0.85], [-29.6, 107.4, 0.7], [-26.9, 106.0, 0.6]]) rocher(morceau(x, z), x, LAC.y + 0.08, z, r * 1.3, r * 0.8, r, x, { mousse: 0.55, mouille: LAC.y + 0.1 });
+    // sur la rive : de gros rochers moussus, un tronc tombé, ses fougères (l'ourlet de la forêt fait le reste)
+    for (const [x, z, r, g] of [[-14.6, 113.8, 0.85, 1], [-20.4, 119.6, 0.7, 2], [-29.6, 104.6, 0.75, 3]]) {
+      rocher(morceau(x, z), x, terrain(x, z) + r * 0.2, z, r * 1.25, r * 0.85, r, g, { mousse: 0.85 });
+      monde.cercle(x, z, r * 1.25 + 0.27);
+    }
+    // le petit cèdre du petit esprit : une motte de mousse, quatre petites pierres (la pousse elle-même : secretEsprits)
+    {
+      const y = solDessine(POUSSE.x, POUSSE.z), a = morceau(POUSSE.x, POUSSE.z);
+      a.ovale(0.46, MOUSSE, { x: POUSSE.x, y: y + 0.02, z: POUSSE.z, sy: 0.34, teinte: (wx, wy, wz) => (Math.sin(wx * 21) * Math.sin(wz * 19) > 0.1 ? MOUSSE_C : MOUSSE) }, 12);
+      for (let k = 0; k < 5; k++) { const th = 0.6 + (k / 5) * 2 * PI, r = 0.1 + 0.03 * (k % 2); rocher(a, POUSSE.x + Math.cos(th) * 0.5, y + 0.06, POUSSE.z + Math.sin(th) * 0.5, r * 1.2, r * 0.8, r, k, { finesse: 0, mousse: 0.4, trait: false }); }
+      monde.cercle(POUSSE.x, POUSSE.z, 0.52 + 0.27);
+    }
+    // les quatre lanternes, en bas et en haut des marches
+    for (const sg of [-1, 1]) {
+      const [xb, zb, , txb, tzb] = auPoint(ESC_CACHE.pts, 0.6), [xh, zh, , txh, tzh] = auPoint(ESC_CACHE.pts, ESC_CACHE.L - 0.7), o = ESC_CACHE.demi + 0.5;
+      lanterneMoussue(xb + tzb * sg * o, zb - txb * sg * o);
+      lanterneMoussue(xh + tzh * sg * o, zh - txh * sg * o);
+    }
+    // la lune sur le bassin (rien que la nuit : une lumière sans lampe, sans halo)
+    for (const [x, z, r] of [[LAC.x + 2.5, LAC.z - 3.5, 13], [LAC.x - 3.5, LAC.z + 2.5, 13]]) lumieres.push({ x, y: LAC.y + 8, z, halo: 0, sol: LAC.y, r, c: '#9dbcf0' });
+    // (et sur le poitrail et la tête du cerf, là où il s'arrête, face à nous : la lune vient de derrière lui, il était tout noir)
+    lumieres.push({ x: POSTE.x - 1.2, y: LAC.y + 4.2, z: POSTE.z + 1.6, halo: 0, sol: LAC.y, r: 8.5, c: '#d6e2ff' });
+  }
+  // la pierre de chaque petit esprit (son haut : solDessine + 0,37, là où il se tient)
+  for (const E of ESPRITS) {
+    const y = solDessine(E.x, E.z);
+    rocher(morceau(E.x, E.z), E.x, y + 0.12, E.z, 0.36, 0.26, 0.33, hasard(E.x, E.z) * 6, { mousse: 0.85 });
+    monde.cercle(E.x, E.z, 0.36 + 0.2);
   }
 
   // ---------------------------------------------------------------- Le refuge de Shiratani (白谷小屋)
@@ -2313,6 +2466,7 @@ export function construire(ctx) {
     if (dansRect(B_RAVIN, x, z) && surRavin(x, z).d < 0.9 + m) return true;
     if (dansRect(B_WILSON, x, z) && surEauWilson(x, z).d < 0.9 + m) return true;
     if ([...SOURCES, { x: -28.75, z: 101.5 }].some((S) => Math.hypot(x - S.x, z - S.z) < 3.8 + m)) return true;
+    if (dansRect(B_LAC, x, z) && (aLaPlace(LAC, x, z) < 0.9 + m || surLaLigne(ROUTE_CERF, x, z).d < 2.9 + m || (dansRect(B_FILET, x, z) && surFilet(x, z).d < 0.8 + m))) return true;
     // (entre le point de vue et le singe : rien)
     if (surLaLigne([[OBS.x, OBS.z], [BRANCHE.x + 0.4, BRANCHE.z]], x, z).d < 1.3 + m || Math.hypot(x - CERF.x, z - CERF.z) < 1.0 + m) return true;
     // (ni sur les panneaux)
@@ -2463,6 +2617,15 @@ export function construire(ctx) {
         else if (t < 0.72) sasa(x, z, 0.45 + 0.25 * u, 0.65 + 0.25 * hasard(x, z));
       }
     }
+    // (la rive d'en face du bassin caché, où l'on ne va pas : sur la pente nue, on aurait dit un gazon)
+    for (let gz = B_LAC.z0; gz < B_LAC.z1; gz += 1.1) for (let gx = B_LAC.x0; gx < B_LAC.x1; gx += 1.1) {
+      const x = gx + (hasard(gx * 1.37, gz * 0.73) - 0.5) * 0.9, z = gz + (hasard(gz * 1.19, gx * 0.91) - 0.5) * 0.9, dl = versCadre(x, z);
+      if (dl <= 3.2 || auLac(x, z) < 0.9 || auLac(x, z) > 8 || occupe(x, z, 0.25)) continue;
+      const u = hasard(x * 0.37, z * 0.53), w = hasard(z * 0.41, x * 0.29);
+      if (u < 0.55) fougere(x, z, 0.62 + 0.36 * w);
+      else if (u < 0.74) sasa(x, z, 0.48 + 0.24 * w, 0.62 + 0.25 * hasard(x, z));
+      else if (u < 0.82) rocher(morceau(x, z), x, terrain(x, z) - 0.12, z, 0.4 + 0.35 * w, 0.3 + 0.24 * w, 0.42 + 0.26 * w, u, { mousse: 0.85, finesse: 1 });
+    }
     for (const [a, { feuilles, teintes }] of lots) {
       const g = new THREE.BufferGeometry();
       g.setAttribute('position', new THREE.Float32BufferAttribute(feuilles.flat(), 3));
@@ -2542,10 +2705,9 @@ export function construire(ctx) {
     poser(a.fin(), 0, 0, { y: 0 });
   }
 
-  // ---------------------------------------------------------------- Les champignons (le secret : シイノトモシビタケ)
+  // ---------------------------------------------------------------- Les champignons (シイノトモシビタケ, ceux des rushes du propriétaire)
   // De petits champignons pâles sur le bois mort, le long du petit sentier caché et au bord de la forêt de mousse : le jour, on les
-  // voit à peine (beiges, quelques centimètres) ; la nuit, ils brillent d'un vert doux et font un chemin jusqu'au vieux cèdre creux ;
-  // dans le creux, un cercle de champignons autour du koban.
+  // voit à peine (beiges, quelques centimètres) ; la nuit, ils brillent d'un vert doux. (Ils ont été le secret du lieu jusqu'au 2026-11-01.)
   const TOUFFES_CHAMPI = [];
   {
     const a = atelier(), CAP = '#e4ecc8', LAMES = '#cfd8b0', PIED = '#eef0e0';
@@ -2574,11 +2736,6 @@ export function construire(ctx) {
     touffe(...surTombe(-4.6, 86.0, 1.0, 87.4, 0.45, 0.86), 4, 1.2, 4.4);
     // et quelques autres dans la forêt de mousse, pour le décor (sur les racines, au pied des rochers)
     for (const [x, z, g] of [[14.4, 83.8, 1.1], [17.3, 90.6, 2.2], [3.0, 93.2, 5.5], [-12.4, 79.2, 6.6], [17.0, 100.6, 7.7]]) touffe(x, z, solDessine(x, z), 4, 1.1, g);
-    // dans le creux du vieux cèdre : un cercle de champignons sur le bois du fond
-    for (let k = 0; k < 8; k++) {
-      const t = BOUCHE_CREUX + PI + (k - 3.5) * 0.36, x = CREUX.x + Math.cos(t) * 0.58, z = CREUX.z + Math.sin(t) * 0.58;
-      touffe(x, z, terrain(CREUX.x, CREUX.z) + 0.015, 3, 1.15, 10 + k);
-    }
     poser(a.fin(), 0, 0, { y: 0 });
   }
 
@@ -2662,62 +2819,701 @@ export function construire(ctx) {
   })();
   animes.push(singes);
 
-  // ---------------------------------------------------------------- La lueur des champignons, et le secret
-  // La nuit, chaque touffe de champignons brille d'un vert doux (un point de lumière qui respire) ; dans le vieux cèdre creux, le
-  // cercle des champignons s'allume un à un quand on regarde dedans, et le koban paraît. La première nuit qu'on approche de la
-  // clairière, le compagnon les voit faire un chemin (une scène).
+  // ---------------------------------------------------------------- La lueur des champignons
+  // La nuit, chaque touffe de champignons brille d'un vert doux (un point de lumière qui respire).
   const champignons = (() => {
     const objet = new THREE.Group(), n = TOUFFES_CHAMPI.length, lueur = nuee(THREE, n + 2, { additif: true });
     objet.add(lueur.m);
-    // (le koban, dans le creux, sur un coussin de mousse ; il paraît quand le cercle s'allume)
-    const a = atelier(), yc = terrain(CREUX.x, CREUX.z);
-    a.cylindre(0.22, 0.26, 0.08, 10, MOUSSE, { y: 0.04 }).ovale(0.075, '#e8c060', { y: 0.2, sx: 0.78, sy: 1.0, sz: 0.16, sorte: 'lumiere' }, 12);
-    const koban = ctx.maillage(a.fin());
-    const kx = CREUX.x + Math.cos(BOUCHE_CREUX + PI) * 0.18, kz = CREUX.z + Math.sin(BOUCHE_CREUX + PI) * 0.18;
-    koban.position.set(kx, yc, kz);
-    koban.rotation.y = -BOUCHE_CREUX + PI / 2;
-    koban.visible = false;
-    objet.add(koban);
-    const creux = TOUFFES_CHAMPI.map(([x, , z], k) => (Math.hypot(x - CREUX.x, z - CREUX.z) < 1.2 ? k : -1)).filter((k) => k >= 0);
-    const allume = new Float32Array(n);
-    let revele = -1, lu = -1, trouve = false, vu = false;
     return {
-      objet, koban: [kx, yc + 0.2, kz],
-      /** Le cercle du creux s'allume un à un (se résout quand c'est fait). */
-      reveler: () => new Promise((fin) => { revele = 0; setTimeout(fin, 2600); }),
-      prendre() { koban.visible = false; trouve = true; },
+      objet,
       maj(dt, temps, c) {
-        if (temps - lu > 0.5) { lu = temps; trouve = secretTrouve('champignons'); vu = indiceVu('champignons-nuit'); }
         const nuit = c.nuit;
-        if (revele >= 0) revele += dt;
+        lueur.m.visible = nuit > 0.01;
+        if (!lueur.m.visible) return [];
         for (let k = 0; k < n; k++) {
-          const [x, y, z, poids] = TOUFFES_CHAMPI[k], dansCreux = creux.includes(k);
-          // (ceux du creux : éteints tant qu'on n'a pas regardé dedans la nuit, sauf une fois le secret trouvé)
-          const voulu = dansCreux ? (trouve || (revele >= 0 && revele > 0.25 * creux.indexOf(k)) ? 1 : 0.12) : 1;
-          allume[k] += (voulu - allume[k]) * Math.min(1, dt * 3);
-          const v = nuit * allume[k] * (0.75 + 0.25 * Math.sin(temps * 1.3 + k * 1.7));
-          if (v < 0.01) lueur.ranger(k);
-          else lueur.poser(k, x, y + 0.04, z, (0.55 + 0.12 * poids) * (c.champ ? 50 / c.champ : 1), 0.42 * v, 1.0 * v, 0.38 * v, 0.9 * v);
+          const [x, y, z, poids] = TOUFFES_CHAMPI[k], v = nuit * (0.75 + 0.25 * Math.sin(temps * 1.3 + k * 1.7));
+          lueur.poser(k, x, y + 0.04, z, (0.55 + 0.12 * poids) * (c.champ ? 50 / c.champ : 1), 0.42 * v, 1.0 * v, 0.38 * v, 0.9 * v);
         }
         lueur.fin();
-        koban.visible = !trouve && nuit > 0.5 && revele > creux.length * 0.25;
-        // la première nuit, près de la clairière : le compagnon voit le chemin de lumières
-        if (!vu && !trouve && nuit > 0.9 && Math.hypot(c.joueur.x - 1.0, c.joueur.z - 87.6) < 9) {
-          vu = true;
-          c.scene(async (jeu) => {
-            jeu.voirIndice('champignons-nuit');
-            jeu.cadrer({ de: [5.6, KOKE.y + 2.2, 85.6], vers: [-6.0, KOKE.y + 0.3, 93.0], champ: 52 });
-            await jeu.attendre(900);
-            await jeu.dire(jeu.tx('champignonsNuit'));
-            await jeu.dire(jeu.tx('champignonsNuitCompagnon')[jeu.compagnon], 'compagnon');
-            jeu.cadrer(null);
-          });
-        }
         return [];
       },
     };
   })();
-  animes.push(champignons);
+
+  // ---------------------------------------------------------------- Le secret : les petits esprits, le bassin caché, le grand cerf
+  // (2026-11-01 ; les modèles : esprits.js.) Cinq petits esprits en vue au bord des sentiers (ESPRITS) : on les salue, ils nous suivent à la queue
+  // leu leu, sur la piste de nos pas. Pour le quatrième, le jeu dit où est le dernier ; pour le cinquième, ils veulent nous emmener au vieux cèdre
+  // creux : ils y entrent, son fond s'ouvre (une lumière douce), on passe de l'autre côté : il y fait nuit (la nuit tombe pendant le fondu, le jour
+  // revient au retour). Ils sautillent devant nous dans les marches ; au bord du bassin, ils appellent, et le grand cerf vient à travers l'eau, des
+  // fleurs s'ouvrant sous ses pas (son reflet : le miroir) ; il s'incline, le koban remonte du fond. Puis les esprits rentrent chez eux (à leur pierre,
+  // où on peut encore les saluer) ; un tout petit est resté sur la rive, à côté de son petit cèdre qui penche : il demande de l'eau de la source de
+  // la souche de Wilson ; arrosé, le cèdre se redresse et grandit, et le petit esprit demande s'il peut venir avec nous. Il trotte derrière nous ; quand
+  // on court (ou qu'on le lui demande), il saute sur le dos du compagnon, et en redescend quand on reste un moment sans bouger. Il ne quitte pas l'île.
+  const secretEsprits = (() => {
+    const pc = ctx.perso || ctx, objet = new THREE.Group(), formes = formesEsprits(pc), cris = [];
+    const crier = (nom, x, y, z, fort = 1) => cris.push({ nom, x, y, z, fort });
+    const liste = ESPRITS.map((E) => {
+      const m = formes.creer(E.sorte), y = solDessine(E.x, E.z) + 0.37, cap = Math.atan2(E.vers[0] - E.x, E.vers[1] - E.z);
+      objet.add(m.objet);
+      return { ...E, m, y, cap, xM: E.x, yM: y, zM: E.z, capM: cap, vit: 0, mode: 'maison', cible: null, fin: null, apres: null };
+    });
+
+    // ---- la piste de nos pas : une miette tous les 20 cm ; un esprit la suit à quelques mètres derrière
+    const NP = 140, PASP = 0.2, px = new Float32Array(NP), py = new Float32Array(NP), pz = new Float32Array(NP);
+    let teteP = 0, nP = 0;
+    const miette = (x, y, z) => { teteP = (teteP + 1) % NP; px[teteP] = x; py[teteP] = y; pz[teteP] = z; nP = Math.min(NP, nP + 1); };
+    const majPiste = (j) => {
+      if (!nP) { miette(j.x, j.y, j.z); return true; }
+      const lx = px[teteP], ly = py[teteP], lz = pz[teteP], d = Math.hypot(j.x - lx, j.z - lz);
+      // (un saut : on vient de passer de l'autre côté de l'arbre, une scène nous a posés ailleurs)
+      if (d > 5) { nP = 0; miette(j.x, j.y, j.z); return true; }
+      for (let k = 1; k * PASP <= d; k++) { const f = (k * PASP) / d; miette(lx + (j.x - lx) * f, ly + (j.y - ly) * f, lz + (j.z - lz) * f); }
+      return false;
+    };
+    const T = { x: 0, y: 0, z: 0 };
+    /** Le point de la piste à s mètres derrière nous (dans T) ; faux si elle est plus courte que ça. */
+    const surPiste = (s) => {
+      const f = s / PASP, i = Math.floor(f);
+      if (i + 1 >= nP) return false;
+      const a = (teteP - i + NP) % NP, b = (a - 1 + NP) % NP, u = f - i;
+      T.x = px[a] + (px[b] - px[a]) * u; T.y = py[a] + (py[b] - py[a]) * u; T.z = pz[a] + (pz[b] - pz[a]) * u;
+      return true;
+    };
+    /** Avance vers (x, y, z) à vmax au plus ; renvoie la distance qui reste. */
+    const avancerVers = (s, x, y, z, vmax, dt) => {
+      const dx = x - s.x, dz = z - s.z, d = Math.hypot(dx, dz), pas = Math.min(d, vmax * dt);
+      if (d > 1e-3) { s.x += (dx / d) * pas; s.z += (dz / d) * pas; if (pas > 1e-3) s.cap = tourne(s.cap, Math.atan2(dx, dz), dt * 9); }
+      s.y += (y - s.y) * Math.min(1, dt * 12);
+      s.vit += (pas / Math.max(dt, 1e-3) - s.vit) * Math.min(1, dt * 10);
+      return d - pas;
+    };
+    /** Posé près de nous, là où il y a de la place (à l'arrivée, après un saut). */
+    const poserAutour = (s, k, j) => {
+      const t = j.cap + PI + (k - 2) * 0.6, r = 0.95 + 0.25 * (k % 2);
+      let x = j.x + Math.sin(t) * r, z = j.z + Math.cos(t) * r;
+      if (!monde.libre(x, z, j.y)) { x = j.x; z = j.z; }
+      s.x = x; s.z = z; s.y = monde.hauteur(x, z, j.y + 0.3); s.vit = 0;
+    };
+    /** Il sautille jusqu'à (x, y, z) à la vitesse v ; se résout à l'arrivée. */
+    const va = (s, x, y, z, v = 3.2, apres = 'attend') => new Promise((fin) => { s.fin?.(); Object.assign(s, { mode: 'va', cible: { x, y, z, v }, fin, apres }); s.m.objet.visible = true; });
+
+    // ---- les marches derrière l'arbre, jusqu'en haut (y compris le palier) ; où les esprits se rangent sur la rive
+    const CHEMIN_CACHE = [[SORTIE_CREUX.x, SORTIE_CREUX.z, PALIER_CACHE.y], ...ESC_CACHE.pts], L_CACHE = longueur(CHEMIN_CACHE);
+    const RIVE = (() => {
+      const c0 = Math.cos(LAC.ry), s0 = Math.sin(LAC.ry), dx = POSTE.x - LAC.x, dz = POSTE.z - LAC.z, th0 = Math.atan2((dx * s0 + dz * c0) / LAC.rz, (dx * c0 - dz * s0) / LAC.rx);
+      return [-0.74, -0.52, -0.3, 0.27, 0.46].map((o) => {
+        const u = Math.cos(th0 + o) * (LAC.rx + 1.05), v = Math.sin(th0 + o) * (LAC.rz + 1.05), x = LAC.x + u * c0 + v * s0, z = LAC.z - u * s0 + v * c0;
+        return { x, z, y: solDessine(x, z) };
+      });
+    })();
+    const dansLeCache = (j) => j.x < -17.1 && dansRect(B_LAC, j.x, j.z);
+
+    // ---- le fond du cèdre : bouché, puis une lumière douce
+    const yCreux = terrain(CREUX.x, CREUX.z);
+    const bouchon = (() => {
+      const a = atelier(), pos = [], cols = [], N = 8, y0 = yCreux - 0.4, y1 = yCreux + 1.74, d0 = DEMI_TROU * 1.04, R1 = CREUX.r * 1.03;
+      for (let k = 0; k < N; k++) {
+        const t0 = DOS_CREUX - d0 + (k / N) * 2 * d0, t1 = DOS_CREUX - d0 + ((k + 1) / N) * 2 * d0;
+        const P = (t, r, y) => [CREUX.x + Math.cos(t) * r, y, CREUX.z + Math.sin(t) * r], n = [Math.cos((t0 + t1) / 2), 0, Math.sin((t0 + t1) / 2)];
+        tri(pos, P(t0, R1, y0), P(t1, R1, y0), P(t1, R1, y1), n); tri(pos, P(t0, R1, y0), P(t1, R1, y1), P(t0, R1, y1), n);
+        cols.push('#5f4a3c', '#5f4a3c');
+        const ni = [-n[0], 0, -n[2]], R2 = R_CREUX - 0.004;
+        tri(pos, P(t0, R2, y0), P(t1, R2, y0), P(t1, R2, y1), ni); tri(pos, P(t0, R2, y0), P(t1, R2, y1), P(t0, R2, y1), ni);
+        cols.push('#2a2420', '#2a2420');
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      a.piece(g, '#2a2420', { couleurs: cols });
+      return ctx.maillage(a.fin(0, false));
+    })();
+    objet.add(bouchon);
+    const voile = (() => {
+      const W = 32, H = 64, d = new Uint8Array(W * H * 4);
+      for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+        const u = Math.abs((i + 0.5) / W - 0.5) * 2, v = (j + 0.5) / H, al = (1 - u ** 3) * Math.min(1, v * 7) * (1 - lisse(0.82, 1, v)) * (0.55 + 0.45 * Math.exp(-(((v - 0.42) / 0.4) ** 2)));
+        d.set([235, 250, 214, Math.round(al * 255)], (j * W + i) * 4);
+      }
+      const tx = new THREE.DataTexture(d, W, H);
+      tx.magFilter = tx.minFilter = THREE.LinearFilter;
+      tx.needsUpdate = true;
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 1.78), new THREE.MeshBasicMaterial({ map: tx, transparent: true, depthWrite: false, side: THREE.DoubleSide, opacity: 0, fog: false }));
+      const R = (R_CREUX + CREUX.r) / 2 - 0.08;
+      m.position.set(CREUX.x + Math.cos(DOS_CREUX) * R, yCreux + 0.85, CREUX.z + Math.sin(DOS_CREUX) * R);
+      m.rotation.y = Math.atan2(Math.cos(DOS_CREUX), Math.sin(DOS_CREUX));
+      m.visible = false;
+      m.renderOrder = 3;
+      return m;
+    })();
+    objet.add(voile);
+    let voileV = 0;
+
+    // ---- le petit cèdre du petit esprit : il penche ; arrosé, il se redresse et grandit
+    const pousse = (() => {
+      const a = atelier(), V = '#6aa24a', V2 = '#4f8a3a';
+      a.tronc([[0, -0.02, 0], [0, 0.2, 0], [0, 0.42, 0]], [0.028, 0.022, 0.01], '#7a5a40', 6);
+      for (const [r, h, y] of [[0.17, 0.24, 0.16], [0.13, 0.22, 0.28], [0.09, 0.2, 0.4]]) a.cone(r, h, 7, y > 0.2 ? V : V2, { y });
+      const g = new THREE.Group();
+      g.position.set(POUSSE.x, solDessine(POUSSE.x, POUSSE.z) + 0.12, POUSSE.z);
+      g.add(pc.maillage(a.fin(0, false)));
+      return g;
+    })();
+    objet.add(pousse);
+    const capPenche = Math.atan2(AMI.x - POUSSE.x, AMI.z - POUSSE.z);
+    let vigueur = 0, vigueurVoulue = 0;
+    const majPousse = (dt) => {
+      vigueur += (vigueurVoulue - vigueur) * Math.min(1, dt * 1.4);
+      const s = 0.72 + 0.72 * vigueur;
+      pousse.scale.set(s, s, s);
+      pousse.rotation.set(1.05 * (1 - vigueur), capPenche, 0, 'YXZ');
+    };
+
+    // ---- le petit esprit : à son petit cèdre, derrière nous, ou sur le dos du compagnon
+    const A = { m: formes.creer('cedre', 0.64), x: AMI.x, y: solDessine(AMI.x, AMI.z), z: AMI.z, cap: 0, vit: 0, etat: 'attend', porteur: null, arc: null, arret: 0, court: 0, monter: false };
+    objet.add(A.m.objet);
+    const vSiege = new THREE.Vector3();
+    const descendreDuDos = () => {
+      if (A.porteur) A.porteur.porterSurLeDos(false);
+      if (A.m.objet.parent !== objet) objet.add(A.m.objet);
+      A.m.objet.rotation.set(0, 0, 0);
+      A.porteur = null;
+    };
+    const majAmi = (dt, temps, c, S) => {
+      const j = c.joueur, o = A.m.objet;
+      if (!S.fini) { o.visible = false; return; }
+      if (!S.suit) {
+        // à son petit cèdre : il nous regarde quand on approche
+        if (A.etat !== 'attend') { descendreDuDos(); Object.assign(A, { etat: 'attend', x: AMI.x, z: AMI.z, y: solDessine(AMI.x, AMI.z) }); }
+        const d = Math.hypot(j.x - A.x, j.z - A.z);
+        o.visible = d < 45;
+        if (!o.visible) return;
+        A.cap = tourne(A.cap, d < 9 ? Math.atan2(j.x - A.x, j.z - A.z) : capPenche + PI, dt * 3);
+        o.position.set(A.x, A.y, A.z);
+        o.rotation.y = A.cap;
+        A.m.animer(dt, temps, 0);
+        return;
+      }
+      o.visible = true;
+      if (A.etat === 'attend') { A.etat = 'pied'; A.vit = 0; }
+      const kon = c.kon, vit = Math.hypot(j.vx, j.vz);
+      // (on a changé de compagnon pendant qu'il était sur le dos de l'autre : il redescend)
+      if (A.etat === 'dos' && A.porteur !== kon) { descendreDuDos(); A.etat = 'pied'; poserAutour(A, 1, j); }
+      if (A.etat === 'pied') {
+        // il trotte derrière nous, de l'autre côté que le compagnon
+        const d = Math.hypot(j.x - A.x, j.z - A.z);
+        if (d > 9) poserAutour(A, 1, j);
+        else if (surPiste(1.2)) {
+          const lat = 0.28, q = Math.atan2(j.x - T.x, j.z - T.z), ox = -Math.cos(q) * lat, oz = Math.sin(q) * lat, libre = monde.libre(T.x + ox, T.z + oz, T.y);
+          avancerVers(A, T.x + (libre ? ox : 0), T.y, T.z + (libre ? oz : 0), 12, dt);
+        } else A.vit += (0 - A.vit) * Math.min(1, dt * 8);
+        if (A.vit < 0.15) A.cap = tourne(A.cap, Math.atan2(j.x - A.x, j.z - A.z), dt * 3);
+        // on court : il ne suit plus ; il saute sur le dos du compagnon, s'il n'est pas loin
+        A.court = vit > 4.4 ? A.court + dt : 0;
+        if (j.mode === 'jeu' && (A.court > 0.7 || A.monter) && Math.hypot(c.renard.x - A.x, c.renard.z - A.z) < 7) {
+          A.monter = false;
+          A.etat = 'monte';
+          A.arc = { t: 0, x: A.x, y: A.y, z: A.z };
+          crier('esprit', A.x, A.y, A.z, 0.8);
+        }
+      } else if (A.etat === 'monte') {
+        A.arc.t = Math.min(1, A.arc.t + dt / 0.42);
+        kon.dos.getWorldPosition(vSiege);
+        const u = A.arc.t, e = u * u * (3 - 2 * u);
+        A.x = A.arc.x + (vSiege.x - A.arc.x) * e; A.z = A.arc.z + (vSiege.z - A.arc.z) * e;
+        A.y = A.arc.y + (vSiege.y - A.arc.y) * e + Math.sin(u * PI) * 0.55;
+        A.cap = tourne(A.cap, c.renard.cap, dt * 10);
+        A.vit = 0;
+        if (u >= 1) {
+          kon.dos.add(o);
+          o.position.set(0, 0, 0);
+          o.rotation.set(0, 0, 0);
+          kon.porterSurLeDos(true);
+          kon.sauter();
+          A.porteur = kon;
+          A.etat = 'dos';
+          A.arret = 0;
+          // (la première fois, le compagnon s'en étonne)
+          if (!S.dosVu) c.scene(async (jeu) => { jeu.voirIndice('ami-dos'); etatEsprits.oublier(); await comp(jeu, 'amiDosCompagnon'); });
+          A.m.animer(dt, temps, 0);
+          return;
+        }
+      } else if (A.etat === 'dos') {
+        // il redescend quand on reste un moment sans bouger
+        A.arret = vit < 0.15 && j.mode === 'jeu' ? A.arret + dt : 0;
+        A.m.animer(dt, temps, 0);
+        if (A.arret > 6) {
+          o.getWorldPosition(vSiege);
+          descendreDuDos();
+          A.etat = 'descend';
+          A.arc = { t: 0, x: vSiege.x, y: vSiege.y, z: vSiege.z };
+          A.x = vSiege.x; A.y = vSiege.y; A.z = vSiege.z;
+          crier('esprit', A.x, A.y, A.z, 0.8);
+        }
+        return;
+      } else if (A.etat === 'descend') {
+        A.arc.t = Math.min(1, A.arc.t + dt / 0.4);
+        const u = A.arc.t, e = u * u * (3 - 2 * u), ok = surPiste(1.2), bx = ok ? T.x : j.x - Math.sin(j.cap) * 1.1 - Math.cos(j.cap) * 0.5, bz = ok ? T.z : j.z - Math.cos(j.cap) * 1.1 + Math.sin(j.cap) * 0.5, by = ok ? T.y : j.y;
+        A.x = A.arc.x + (bx - A.arc.x) * e; A.z = A.arc.z + (bz - A.arc.z) * e;
+        A.y = A.arc.y + (by - A.arc.y) * e + Math.sin(u * PI) * 0.32;
+        A.vit = 0;
+        if (u >= 1) { A.etat = 'pied'; A.m.bondir(); }
+      }
+      o.position.set(A.x, A.y, A.z);
+      o.rotation.y = A.cap;
+      A.m.animer(dt, temps, A.vit);
+    };
+
+    // ---- le grand cerf : il n'existe que de ce côté de l'arbre ; il suit une ligne (CHEMIN_CERF), à son pas
+    const CHEMIN_CERF = ligneDouce(ROUTE_CERF.map(([x, z]) => [x, z, 0]), 0.25), L_CERF = longueur(CHEMIN_CERF);
+    let cerf = null;
+    const C = { x: 0, y: 0, z: 0, cap: 0, s: 0, sens: 1, v: 0, vMax: 0, but: 0, fin: null, marche: false };
+    const assurerCerf = () => { if (!cerf) { cerf = creerGrandCerf(pc); cerf.objet.visible = false; objet.add(cerf.objet); } return cerf; };
+    const yCerf = (x, z) => { const h = terrain(x, z); return h < LAC.y - 0.2 ? LAC.y - 0.2 : h; };
+    /** Il marche le long de sa ligne jusqu'à la longueur but, à vMax ; se résout à l'arrivée. */
+    const cerfMarche = (but, vMax) => new Promise((fin) => { Object.assign(C, { but, sens: Math.sign(but - C.s) || 1, vMax, fin, marche: true }); });
+
+    // ---- les lucioles du bassin, les fleurs qui s'ouvrent sous les pas du cerf, le koban
+    const lucioles = nuee(THREE, 30, { additif: true });
+    objet.add(lucioles.m);
+    const luc = Array.from({ length: 30 }, (_, k) => ({ x: LAC.x + (hasard(k, 2.1) - 0.5) * 22, z: LAC.z + (hasard(3.3, k) - 0.5) * 17, h: 0.5 + 2.6 * hasard(k, 7.7), p: hasard(k, 9.1) * 6.28 }));
+    const fleurs = (() => {
+      const pos = [], col = [], NP5 = 5, B = [0.96, 0.98, 0.93], J = [0.96, 0.8, 0.32];
+      for (let k = 0; k < NP5; k++) {
+        const t = (k / NP5) * 2 * PI, ux = Math.cos(t), uz = Math.sin(t), vx = -uz, vz = ux, q = (d, l, h) => [ux * d + vx * l, h, uz * d + vz * l];
+        pos.push(...q(0.02, 0, 0.012), ...q(0.1, 0.05, 0.03), ...q(0.19, 0, 0.055), ...q(0.02, 0, 0.012), ...q(0.19, 0, 0.055), ...q(0.1, -0.05, 0.03));
+        for (let i = 0; i < 6; i++) col.push(...B);
+        pos.push(0, 0.035, 0, ...q(0.045, 0.02, 0.018), ...q(0.045, -0.02, 0.018));
+        for (let i = 0; i < 3; i++) col.push(...J);
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+      const places = [];
+      for (let k = 0; k < 130; k++) {
+        const f = 0.3 + 0.7 * hasard(k, 1.1), [x0, z0, , tx, tz] = auPoint(CHEMIN_CERF, f * L_CERF), o = (hasard(k, 2.2) - 0.5) * 3.8, x = x0 + tz * o, z = z0 - tx * o;
+        if (!dansRect(B_LAC, x, z) || auLac(x, z) > 1.2 || dansLeCadre(x, z)) continue;
+        const h = terrain(x, z);
+        places.push({ x, y: h < LAC.y ? LAC.y + 0.008 : h + 0.035, z, f, s: 0.8 + 0.7 * hasard(k, 3.3), ry: hasard(k, 4.4) * 6.28 });
+      }
+      const m = new THREE.InstancedMesh(g, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide }), places.length);
+      m.frustumCulled = false;
+      m.visible = false;
+      const M4 = new THREE.Matrix4(), Q = new THREE.Quaternion(), P3 = new THREE.Vector3(), S3 = new THREE.Vector3(), Y = new THREE.Vector3(0, 1, 0);
+      let avance = -1;
+      return {
+        m,
+        /** Ouvertes jusqu'où le cerf est allé (de 0 à 1) ; ne refait les matrices que si ça change. */
+        ouvrir(v) {
+          if (v <= avance) return;
+          avance = v;
+          places.forEach((q, k) => {
+            const e = lisse(q.f, q.f + 0.05, v), s = q.s * e * (1 + 0.25 * Math.sin(e * PI));
+            M4.compose(P3.set(q.x, q.y, q.z), Q.setFromAxisAngle(Y, q.ry), S3.setScalar(Math.max(s, 1e-4)));
+            m.setMatrixAt(k, M4);
+          });
+          m.instanceMatrix.needsUpdate = true;
+        },
+      };
+    })();
+    objet.add(fleurs.m);
+    const kobanM = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 0.025, 24), new THREE.MeshLambertMaterial({ color: '#e8b941', emissive: '#6a4a10' }));
+    kobanM.scale.set(0.72, 1, 1.15);
+    kobanM.visible = false;
+    objet.add(kobanM);
+    let monte = null;
+
+    // ---- l'étincelle au-dessus d'un petit esprit qu'on n'a pas encore salué (le jour : peinte, cernée d'encre ; la nuit : une étoile douce)
+    const ppx = Math.min(globalThis.devicePixelRatio || 1, 2);
+    const etincelle = nuee(THREE, ESPRITS.length, { tache: etincelleEncre(THREE) }), lueur = nuee(THREE, ESPRITS.length, { additif: true });
+    for (const n of [etincelle, lueur]) { n.m.material.sizeAttenuation = false; objet.add(n.m); }
+
+    // ---- ce qu'on dit quand il n'en reste qu'un, ou qu'on les a tous (une fois par visite, à l'arrivée s'il le faut)
+    let vue = false, enScene = false, pret = false, rendreJour = false, contexte = null;
+    const direOu = async (jeu) => {
+      const S = etatEsprits();
+      if (S.fini || S.ouvert) return;
+      if (S.n === 4) { const k = S.pris.indexOf(false); await jeu.dire([jeu.tx('espritDernier')(jeu.tx('lieuxEsprits')[ESPRITS[k].id])]); }
+      else if (S.n === 5) await jeu.dire(jeu.tx('espritsVers'));
+    };
+
+    // ---- la traversée de l'arbre
+    const capDe = (x0, z0, x1, z1) => Math.atan2(x1 - x0, z1 - z0);
+    const FIN_SENTIER = SENTIER_SECRET[SENTIER_SECRET.length - 1];
+    const traverser = async (jeu, versLeBassin) => {
+      const S = etatEsprits();
+      if (versLeBassin) {
+        jeu.placer(FIN_SENTIER[0], FIN_SENTIER[1], capDe(FIN_SENTIER[0], FIN_SENTIER[1], CREUX.x, CREUX.z));
+        await jeu.marcher([[FIN_SENTIER[0], FIN_SENTIER[1]], [CREUX.x + Math.cos(BOUCHE_CREUX) * 1.62, CREUX.z + Math.sin(BOUCHE_CREUX) * 1.62]], 1.5);
+      } else {
+        await jeu.marcher([[contexte.joueur.x, contexte.joueur.z], [CREUX.x + Math.cos(DOS_CREUX) * 1.62, CREUX.z + Math.sin(DOS_CREUX) * 1.62]], 1.5);
+      }
+      jeu.son('magie');
+      await jeu.fondu(true);
+      if (versLeBassin) {
+        rendreJour = !jeu.estNuit;
+        if (rendreJour) await jeu.nuit(true);
+        jeu.placer(SORTIE_CREUX.x, SORTIE_CREUX.z, capDe(SORTIE_CREUX.x, SORTIE_CREUX.z, ESC_CACHE.pts[0][0], ESC_CACHE.pts[0][1]), PALIER_CACHE.y);
+        // (les esprits, s'ils ne sont pas encore repartis : devant nous, dans les marches)
+        if (!S.fini) liste.forEach((s, k) => { const [x, z, y] = auPoint(CHEMIN_CACHE, Math.min(L_CACHE, 2.4 + k * 0.8)); Object.assign(s, { x, y, z, mode: 'guide', vit: 0 }); s.m.objet.visible = true; });
+      } else {
+        jeu.placer(FIN_SENTIER[0], FIN_SENTIER[1], capDe(CREUX.x, CREUX.z, FIN_SENTIER[0], FIN_SENTIER[1]), yCreux);
+        if (!S.fini) for (const s of liste) { s.mode = 'cache'; s.m.objet.visible = false; }
+        if (rendreJour) await jeu.nuit(false);
+        rendreJour = false;
+      }
+      jeu.cadrer(null);
+      // (la caméra de côté : juste derrière le voyageur, elle était dans l'arbre, et on ne voyait qu'un mur noir)
+      jeu.cameraDerriere(versLeBassin ? 0.84 : 1.15);
+      await jeu.attendre(250);
+      await jeu.fondu(false);
+      if (versLeBassin && !S.fini) await jeu.dire(jeu.tx('nuitDerriere'));
+    };
+
+    // ---- la scène du grand cerf
+    const sceneCerf = async (jeu) => {
+      assurerCerf();
+      const capL = capDe(POSTE.x, POSTE.z, LAC.x, LAC.z);
+      jeu.placer(POSTE.x, POSTE.z, capL, LAC.y);
+      liste.forEach((s, k) => { va(s, RIVE[k].x, RIVE[k].y, RIVE[k].z, 3.4, 'rive'); });
+      jeu.cadrer({ de: [POSTE.x + 2.2, LAC.y + 2.4, POSTE.z - 2.8], vers: [LAC.x - 1.4, LAC.y + 0.7, LAC.z + 1.8], champ: 60 });
+      await jeu.attendre(1700);
+      await jeu.dire(jeu.tx('bassinVu'));
+      for (let n = 0; n < 8; n++) { const s = liste[n % 5]; s.m.bondir(); crier('esprit', s.x, s.y, s.z, 1); await jeu.attendre(290); }
+      await jeu.attendre(500);
+      crier('cerf', -38, LAC.y + 3, 124, 4);
+      await jeu.attendre(1500);
+      await jeu.dire(jeu.tx('cerfReponse'));
+      // il sort de la forêt, et traverse l'eau vers nous
+      const [x0, z0] = CHEMIN_CERF[0];
+      Object.assign(C, { x: x0, z: z0, y: yCerf(x0, z0), s: 0, cap: Math.atan2(CHEMIN_CERF[4][0] - x0, CHEMIN_CERF[4][1] - z0), v: 0 });
+      cerf.objet.visible = true;
+      fleurs.m.visible = true;
+      fleurs.ouvrir(0);
+      const arrive = cerfMarche(L_CERF, 1.5);
+      jeu.cadrer({ de: [POSTE.x - 1.5, LAC.y + 1.15, POSTE.z - 1.5], vers: [-28.8, LAC.y + 2.5, 116.5], champ: 56 });
+      await jeu.attendre(3400);
+      await jeu.dire(jeu.tx('cerfVient'));
+      await arrive;
+      // il s'arrête devant nous ; vus de côté, face à face : le petit voyageur et le grand cerf qui le regarde
+      {
+        const mx = (POSTE.x + C.x) / 2, mz = (POSTE.z + C.z) / 2, dx = C.x - POSTE.x, dz = C.z - POSTE.z, l = Math.hypot(dx, dz), ox = dz / l, oz = -dx / l;
+        jeu.cadrer({ de: [mx + ox * 8.2, LAC.y + 1.5, mz + oz * 8.2], vers: [mx, LAC.y + 2.35, mz], champ: 50 });
+      }
+      { const d = capDe(C.x, C.z, POSTE.x, POSTE.z) - C.cap; cerf.regard(Math.atan2(Math.sin(d), Math.cos(d)), 0.28); }
+      await jeu.attendre(1500);
+      await jeu.dire(jeu.tx('cerfRegarde'));
+      await comp(jeu, 'cerfCompagnon');
+      jeu.geste('prier');
+      await jeu.attendre(1500);
+      jeu.geste(null);
+      // il s'incline, souffle ; un anneau de lumière sur l'eau ; le koban remonte du fond et vient à nous
+      cerf.incliner(1);
+      await jeu.attendre(1500);
+      const fx = C.x + Math.sin(C.cap) * 1.1, fz = C.z + Math.cos(C.cap) * 1.1;
+      contexte.rond(fx, LAC.y, fz, 3.4, 2.6);
+      contexte.rond(fx, LAC.y, fz, 2.0, 1.8);
+      jeu.son('magie');
+      await jeu.dire(jeu.tx('cerfKoban'));
+      await new Promise((fin) => { monte = { de: [fx, LAC.y - 0.1, fz], vers: [POSTE.x, LAC.y + 1.05, POSTE.z], t: 0, fin }; kobanM.visible = true; });
+      await comp(jeu, 'cerfKobanCompagnon');
+      await jeu.trouverSecret('esprits');
+      etatEsprits.oublier();
+      // il se redresse et repart, sans un bruit ; les fleurs restent
+      cerf.incliner(0);
+      cerf.regard(0, 0);
+      await jeu.attendre(1300);
+      const parti = cerfMarche(0, 1.7);
+      jeu.cadrer({ de: [POSTE.x + 1.8, LAC.y + 1.9, POSTE.z - 1.6], vers: [LAC.x - 3, LAC.y + 1.6, LAC.z + 2], champ: 60 });
+      await jeu.dire(jeu.tx('cerfPart'));
+      parti.then(() => { if (cerf) cerf.objet.visible = false; });
+      // les petits esprits nous saluent et rentrent chez eux (à leur pierre)
+      for (const s of liste) s.m.bondir();
+      crier('esprit', POSTE.x, LAC.y, POSTE.z, 1);
+      await jeu.attendre(650);
+      await jeu.dire(jeu.tx('espritsPartent'));
+      for (const s of liste) {
+        jeu.nuage(s.x, s.y + 0.15, s.z, 0.55);
+        Object.assign(s, { mode: 'maison', x: s.xM, y: s.yM, z: s.zM, cap: s.capM, vit: 0, fin: null });
+        await jeu.attendre(170);
+      }
+      // un tout petit est resté sur la rive
+      jeu.cadrer({ de: [AMI.x - 2.4, LAC.y + 1.15, AMI.z - 2.0], vers: [AMI.x + 0.25, LAC.y + 0.3, AMI.z + 0.3], champ: 46 });
+      await jeu.attendre(1100);
+      A.m.bondir();
+      crier('esprit', AMI.x, LAC.y, AMI.z, 0.9);
+      await jeu.dire(jeu.tx('amiReste'));
+      jeu.cadrer(null);
+      jeu.cameraDerriere();
+      enScene = false;
+    };
+
+    // ---- ce qu'on peut faire
+    let sacEau = false;
+    const QUOI_E = { fr: 'Saluer le petit esprit', en: 'Greet the little spirit', ja: 'こだまに　あいさつ' }, QUOI_ENTRER = { fr: 'Entrer dans le vieux cèdre', en: 'Enter the old cedar', ja: 'スギの　なかへ' }, QUOI_RETOUR = { fr: 'Retourner dans le vieux cèdre', en: 'Go back into the old cedar', ja: 'スギの　なかへ　もどる' };
+    const QUOI_EAU = { fr: 'Puiser l’eau de la source', en: 'Draw water from the spring', ja: 'わき水を　くむ' }, QUOI_ARROSER = { fr: 'Arroser le petit cèdre', en: 'Water the little cedar', ja: 'スギに　水を　やる' };
+    const saluer = async (jeu, s) => {
+      const S0 = etatEsprits();
+      if (S0.fini) { s.m.bondir(); crier('esprit', s.x, s.y, s.z, 1); await jeu.dire(jeu.tx('espritMaison')); return; }
+      jeu.voirIndice(`esprit-${s.id}`);
+      etatEsprits.oublier();
+      const S = etatEsprits();
+      s.m.bondir();
+      crier('esprit', s.x, s.y, s.z, 1);
+      await jeu.attendre(450);
+      if (S.n === 1) { await jeu.dire(jeu.tx('espritPremier')); await comp(jeu, 'espritCompagnon'); }
+      else await jeu.dire([jeu.tx('espritAutre')(S.n)]);
+      s.mode = 'suit';
+      vue = S.n >= 4;
+      if (S.n === 4) await direOu(jeu);
+      if (S.n === 5) { for (const q of liste) q.m.bondir(); await jeu.dire(jeu.tx('espritsTous')); await comp(jeu, 'espritsTousCompagnon'); }
+    };
+    const parlerAmi = async (jeu) => {
+      const S = etatEsprits(), nom = jeu.nomCompagnon;
+      if (!S.demande) {
+        A.m.bondir();
+        await jeu.dire(jeu.tx('amiDemande'), 'ami');
+        jeu.voirIndice('ami-demande');
+        etatEsprits.oublier();
+        await comp(jeu, 'amiDemandeCompagnon');
+        return;
+      }
+      if (!S.arrose) {
+        if (!jeu.aDansSac('eau-source')) { await jeu.dire(jeu.tx('amiRappel'), 'ami'); return; }
+        // on verse l'eau : le petit cèdre se redresse et grandit
+        jeu.prendre('eau-source');
+        sacEau = false;
+        jeu.geste('offrir');
+        await jeu.attendre(900);
+        await jeu.dire(jeu.tx('amiArrose'));
+        jeu.geste(null);
+        jeu.son('magie');
+        vigueurVoulue = 1;
+        jeu.nuage(POUSSE.x, solDessine(POUSSE.x, POUSSE.z) + 0.5, POUSSE.z, 0.6);
+        jeu.voirIndice('ami-arrose');
+        etatEsprits.oublier();
+        await jeu.attendre(1500);
+        for (let n = 0; n < 3; n++) { A.m.bondir(); crier('esprit', A.x, A.y, A.z, 1); await jeu.attendre(600); }
+        await jeu.dire(jeu.tx('amiMerci'), 'ami');
+      } else if (S.suit) {
+        // il nous suit : monter sur le dos du compagnon, ou rentrer à son petit cèdre
+        const r = await jeu.choisir(jeu.tx('amiParle')(nom), jeu.tx('amiOptions')(nom), 'ami');
+        if (r === 0) { A.monter = true; await jeu.dire(jeu.tx('amiMonte'), 'ami'); return; }
+        if (r === 1) {
+          await jeu.dire(jeu.tx('amiAttend'), 'ami');
+          jeu.nuage(A.x, A.y + 0.15, A.z, 0.5);
+          oublierIndice('ami-suit');
+          etatEsprits.oublier();
+        }
+        return;
+      } else await jeu.dire(jeu.tx('amiVenir'), 'ami');
+      // peut-il venir avec nous ?
+      const r = await jeu.choisir(jeu.tx('amiQuestion'), [jeu.t('oui'), jeu.t('non')], 'ami');
+      if (r !== 0) { await jeu.dire(jeu.tx('amiNon'), 'ami'); return; }
+      A.m.bondir();
+      crier('esprit', A.x, A.y, A.z, 1);
+      jeu.voirIndice('ami-suit');
+      etatEsprits.oublier();
+      await jeu.dire(jeu.tx('amiOui'), 'ami');
+    };
+    const creuxAction = async (jeu) => {
+      const S = etatEsprits();
+      if (S.ouvert) { await traverser(jeu, true); return; }
+      if (S.n < ESPRITS.length) {
+        await jeu.dire(jeu.tx('creux'));
+        if (S.n > 0) await comp(jeu, 'creuxCompagnon');
+        return;
+      }
+      // les cinq entrent dans l'arbre, l'un après l'autre ; son fond s'ouvre
+      const [ex, ez] = FIN_SENTIER;
+      jeu.placer(ex, ez, capDe(ex, ez, CREUX.x, CREUX.z));
+      jeu.cadrer({ de: [ex + 2.3, yCreux + 1.5, ez + 2.6], vers: [CREUX.x, yCreux + 0.85, CREUX.z], champ: 54 });
+      await jeu.dire(jeu.tx('creuxEsprits'));
+      for (const [k, s] of liste.entries()) {
+        const q = 0.55 * Math.sin(k * 2.4);
+        await va(s, CREUX.x + Math.cos(BOUCHE_CREUX + q) * 1.0, yCreux + 0.02, CREUX.z + Math.sin(BOUCHE_CREUX + q) * 1.0, 3.4, 'attend');
+        crier('esprit', s.x, s.y, s.z, 1);
+        await va(s, CREUX.x, yCreux + 0.02, CREUX.z, 2.2, 'cache');
+      }
+      await jeu.attendre(500);
+      jeu.son('magie');
+      jeu.voirIndice('cedre-ouvert');
+      etatEsprits.oublier();
+      await jeu.attendre(1300);
+      await jeu.dire(jeu.tx('creuxOuvert'));
+      await comp(jeu, 'creuxOuvertCompagnon');
+      jeu.cadrer(null);
+      await traverser(jeu, true);
+    };
+    const actions = [
+      ...liste.map((s) => ({
+        id: `esprit-${s.id}`, verbe: 'parler', quoi: QUOI_E, rayon: 2.3, haut: 0.62,
+        // (là où il est, tant qu'il est chez lui)
+        pres: () => ({ x: s.xM, z: s.zM, y: s.yM }), vers: [s.xM, s.zM],
+        si: () => s.mode === 'maison',
+        action: (jeu) => saluer(jeu, s),
+      })),
+      {
+        // le vieux cèdre creux : tant qu'on n'a pas les cinq, il fait noir dedans ; puis on y passe
+        id: 'creux', x: SENTIER_SECRET[4][0], z: SENTIER_SECRET[4][1], rayon: 1.6, haut: 1.3, verbe: 'regarder', vers: [CREUX.x, CREUX.z],
+        pres: () => (etatEsprits().ouvert ? { quoi: QUOI_ENTRER } : {}),
+        action: creuxAction,
+      },
+      // de l'autre côté : retourner dans l'arbre
+      { id: 'creux-dos', x: SORTIE_CREUX.x, z: SORTIE_CREUX.z, y: PALIER_CACHE.y, rayon: 1.5, haut: 1.3, verbe: 'regarder', quoi: QUOI_RETOUR, vers: [CREUX.x, CREUX.z], action: (jeu) => traverser(jeu, false) },
+      {
+        // le petit esprit (à son petit cèdre, ou derrière nous) ; sur le dos du compagnon, on ne lui parle pas : on parle au compagnon
+        id: 'ami', verbe: 'parler', rayon: 1.7, haut: 0.62, kon: true,
+        si: () => { const S = etatEsprits(); return S.fini && A.etat !== 'dos' && A.etat !== 'monte' && A.etat !== 'descend'; },
+        pres: () => ({ x: A.x, z: A.z, y: A.y, quoi: sacEau ? QUOI_ARROSER : undefined }),
+        action: parlerAmi,
+      },
+      {
+        // la source de la souche de Wilson (la mission du petit esprit)
+        id: 'source', x: WILSON.x + 0.42, z: WILSON.z - 0.62, y: WILSON.y, rayon: 0.95, haut: 0.95, verbe: 'regarder', quoi: QUOI_EAU, vers: [WILSON.x + 0.62, WILSON.z - 1.02],
+        si: (jeu) => { const S = etatEsprits(); return S.demande && !S.arrose && !jeu.aDansSac('eau-source'); },
+        async action(jeu) { jeu.geste('creuser'); jeu.son('magie'); await jeu.attendre(800); jeu.geste(null); jeu.donner('eau-source'); sacEau = true; await jeu.dire(jeu.tx('source')); },
+      },
+    ];
+    const api = {
+      objet, actions, liste, A, RIVE,
+      /** (essais) La scène du cerf, sans attendre d'y arriver ; le cerf posé en x, z, tourné vers cap, en marche à la vitesse v. */
+      sceneCerf, traverser,
+      essaiCerf(x, z, cap, v = 0) { assurerCerf(); Object.assign(C, { x, z, y: yCerf(x, z), cap, marche: false, essai: v }); cerf.objet.visible = true; return cerf; },
+      maj(dt, temps, c) {
+        contexte = c;
+        const S = etatEsprits(), j = c.joueur, nuit = c.nuit;
+        cris.length = 0;
+        // ---- la première image : chacun à sa place
+        if (!pret) {
+          pret = true;
+          miette(j.x, j.y, j.z);
+          liste.forEach((s, k) => {
+            if (S.fini || !S.pris[k]) s.mode = 'maison';
+            else if (S.ouvert) { s.mode = 'cache'; s.m.objet.visible = false; }
+            else { s.mode = 'suit'; poserAutour(s, k, j); }
+          });
+          // (il nous suit : le voilà ; il saute de joie, tok-tok)
+          if (S.suit) { poserAutour(A, 1, j); A.m.bondir(); crier('esprit', A.x, A.y, A.z, 0.9); }
+          vigueur = vigueurVoulue = S.arrose ? 1 : 0;
+          if (S.fini) { fleurs.ouvrir(1); }
+          bouchon.visible = !S.ouvert;
+          voile.visible = S.ouvert;
+          voileV = S.ouvert ? 1 : 0;
+          if (!vue && !S.fini && !S.ouvert && S.n >= 4) { vue = true; c.scene(direOu); }
+        }
+        const saut = majPiste(j);
+        const cache = dansLeCache(j);
+        // ---- les petits esprits
+        let montrees = 0;
+        liste.forEach((s, k) => {
+          const dJ = Math.hypot(j.x - s.x, j.z - s.z);
+          if (s.mode === 'maison') {
+            s.x = s.xM; s.y = s.yM; s.z = s.zM; s.vit = 0;
+            s.cap = tourne(s.cap, dJ < 7 ? Math.atan2(j.x - s.x, j.z - s.z) : s.capM, dt * 3);
+            s.m.objet.visible = dJ < 60;
+            // (son étincelle, tant qu'on ne l'a pas salué)
+            if (S.fini || !s.m.objet.visible) { etincelle.ranger(k); lueur.ranger(k); }
+            else {
+              montrees++;
+              const pres = lisse(1.2, 3.2, dJ), yy = s.y + 0.62 + 0.04 * Math.sin(temps * 1.3 + k), e = Math.max(0, Math.sin(temps * 3.1 + k) * Math.sin(temps * 1.9 + k * 1.7));
+              if (nuit > 0.5) { lueur.poser(k, s.x, yy, s.z, (22 + 26 * e) * ppx, 0.9 * pres, 1.0 * pres, 0.75 * pres, 1); etincelle.ranger(k); }
+              else { etincelle.poser(k, s.x, yy, s.z, (30 + 16 * e) * ppx, 1, 0.92, 0.42, pres); lueur.ranger(k); }
+            }
+          } else {
+            etincelle.ranger(k); lueur.ranger(k);
+            if (s.mode === 'suit') {
+              if (dJ > 11 || saut) poserAutour(s, k, j);
+              else if (surPiste(1.9 + k * 0.62)) avancerVers(s, T.x, T.y, T.z, 12, dt);
+              else s.vit += (0 - s.vit) * Math.min(1, dt * 8);
+              if (s.vit < 0.15) s.cap = tourne(s.cap, Math.atan2(j.x - s.x, j.z - s.z), dt * 3);
+              // (tous les cinq : à l'approche du vieux cèdre, ils partent devant, et nous attendent devant sa bouche)
+              if (S.n === ESPRITS.length && !S.ouvert && Math.hypot(j.x - CREUX.x, j.z - CREUX.z) < 15) {
+                const q = (k - 2) * 0.32 + 0.18, r = 2.15 + 0.3 * (k % 2), x = CREUX.x + Math.cos(BOUCHE_CREUX + q) * r, z = CREUX.z + Math.sin(BOUCHE_CREUX + q) * r;
+                va(s, x, solDessine(x, z), z, 5.5, 'attend');
+              }
+            } else if (s.mode === 'va') {
+              const q = s.cible;
+              if (avancerVers(s, q.x, q.y, q.z, q.v, dt) < 0.02) { s.mode = s.apres; s.vit = 0; const f = s.fin; s.fin = null; f?.(); }
+            } else if (s.mode === 'attend') {
+              s.vit += (0 - s.vit) * Math.min(1, dt * 8);
+              s.cap = tourne(s.cap, Math.atan2(j.x - s.x, j.z - s.z), dt * 3);
+            } else if (s.mode === 'guide') {
+              // ils sautillent devant nous, dans les marches, et nous attendent en haut
+              const l = surLaLigne(CHEMIN_CACHE, j.x, j.z), but = Math.min(L_CACHE, l.s + 2.4 + k * 0.8), [x, z, y] = auPoint(CHEMIN_CACHE, but);
+              avancerVers(s, x, y, z, 4, dt);
+              if (s.vit < 0.15) s.cap = tourne(s.cap, Math.atan2(j.x - s.x, j.z - s.z), dt * 3);
+            } else if (s.mode === 'rive') {
+              s.vit += (0 - s.vit) * Math.min(1, dt * 8);
+              s.cap = tourne(s.cap, Math.atan2(LAC.x - s.x, LAC.z - s.z), dt * 3);
+            }
+            s.m.objet.visible = s.mode !== 'cache';
+          }
+          if (s.m.objet.visible) {
+            s.m.objet.position.set(s.x, s.y, s.z);
+            s.m.objet.rotation.y = s.cap;
+            s.m.animer(dt, temps, s.vit);
+          }
+        });
+        etincelle.m.visible = montrees > 0 && nuit <= 0.5;
+        lueur.m.visible = montrees > 0 && nuit > 0.5;
+        if (etincelle.m.visible) etincelle.fin();
+        if (lueur.m.visible) lueur.fin();
+        // ---- le fond du cèdre
+        if (S.ouvert && !voile.visible) { voile.visible = true; bouchon.visible = false; }
+        if (voile.visible) {
+          voileV = Math.min(1, voileV + dt / 1.6);
+          voile.material.opacity = voileV * (0.82 + 0.1 * Math.sin(temps * 1.4));
+        }
+        // ---- le petit cèdre, le petit esprit
+        majPousse(dt);
+        pousse.visible = Math.hypot(j.x - POUSSE.x, j.z - POUSSE.z) < 45;
+        majAmi(dt, temps, c, S);
+        // ---- de l'autre côté de l'arbre : le cerf, à la première arrivée en haut des marches
+        if (cache && S.ouvert && !S.fini && !enScene && surLaLigne(CHEMIN_CACHE, j.x, j.z).s > L_CACHE - 1.6) { enScene = true; c.scene(sceneCerf); }
+        const pres = Math.hypot(j.x - LAC.x, j.z - LAC.z) < 34;
+        fleurs.m.visible = pres && (S.fini || (cerf?.objet.visible ?? false));
+        lucioles.m.visible = pres && nuit > 0.3;
+        if (lucioles.m.visible) {
+          luc.forEach((q, k) => {
+            const v = nuit * Math.max(0, Math.sin(temps * 0.9 + q.p)) ** 2, x = q.x + 0.6 * Math.sin(temps * 0.31 + q.p), z = q.z + 0.6 * Math.cos(temps * 0.27 + q.p * 2), y = LAC.y + q.h + 0.25 * Math.sin(temps * 0.6 + q.p);
+            lucioles.poser(k, x, y, z, 0.2 * (c.champ ? 50 / c.champ : 1), 0.7 * v, 1.0 * v, 0.45 * v, 0.9 * v);
+          });
+          lucioles.fin();
+        }
+        if (cerf?.objet.visible) {
+          // (il accélère et ralentit doucement ; il ralentit en arrivant)
+          let vv = C.essai || 0;
+          if (C.marche) {
+            const reste = (C.but - C.s) * C.sens;
+            C.v += (Math.min(C.vMax, 0.18 + reste * 0.55) - C.v) * Math.min(1, dt * 1.2);
+            C.s += C.sens * C.v * dt;
+            vv = C.v;
+            if (reste <= 0.02) { C.marche = false; C.v = 0; const f = C.fin; C.fin = null; f?.(); }
+            const [x, z, , tx, tz] = auPoint(CHEMIN_CERF, Math.min(L_CERF, Math.max(0, C.s)));
+            C.x = x; C.z = z;
+            C.cap = tourne(C.cap, Math.atan2(tx * C.sens, tz * C.sens), dt * (C.sens < 0 ? 0.9 : 1.6));
+          }
+          C.y += (yCerf(C.x, C.z) - C.y) * Math.min(1, dt * 3);
+          cerf.objet.position.set(C.x, C.y, C.z);
+          cerf.objet.rotation.y = C.cap;
+          for (const [x, z] of cerf.animer(dt, temps, vv)) {
+            if (auLac(x, z) < 0) c.rond(x, LAC.y, z, 1.5, 2.2);
+          }
+          if (C.sens > 0) fleurs.ouvrir(C.s / L_CERF);
+        }
+        // ---- le koban : il remonte du fond, tourne, puis vient à nous
+        if (monte) {
+          monte.t = Math.min(1, monte.t + dt / 2.4);
+          const u = monte.t, k = lisse(0.4, 1, u), { de, vers } = monte;
+          kobanM.position.set(de[0] + (vers[0] - de[0]) * k, de[1] + 1.1 * lisse(0, 0.4, u) + (vers[1] - de[1] - 1.1) * k, de[2] + (vers[2] - de[2]) * k);
+          kobanM.rotation.set(PI / 2 - 0.2, temps * 4, 0);
+          if (u >= 1) { kobanM.visible = false; const f = monte.fin; monte = null; f(); }
+        }
+        return cris;
+      },
+    };
+    return api;
+  })();
+  animes.push(champignons, secretEsprits);
 
   // ---------------------------------------------------------------- Les gens
   const PEAU = P.peau, NOIR = '#2a2226';
@@ -2802,6 +3598,8 @@ export function construire(ctx) {
         await jeu.dire(jeu.txn('batelier'), 'batelier');
         const r = await jeu.choisir(jeu.tx('batelierRetour'), [jeu.t('oui'), jeu.t('non')], 'batelier');
         if (r !== 0) { await jeu.dire(jeu.tx('batelierAttend'), 'batelier'); return; }
+        // (le petit esprit ne quitte pas l'île : « il doit rester dans la forêt sacrée »)
+        if (etatEsprits().suit) await jeu.dire(jeu.tx('amiBateau'), 'ami');
         await jeu.dire(jeu.tx('batelierPart'), 'batelier');
         await jeu.partir('udo');
       },
@@ -2878,29 +3676,9 @@ export function construire(ctx) {
     { id: 'cascade', x: ENTREE.x1 - 0.6, z: 32.6, rayon: 1.8, haut: 1.4, verbe: 'regarder', vers: [-33.4, 44], async action(jeu) { jeu.cadrer({ de: [ENTREE.x1 - 0.2, ENTREE.y + 2.2, 32.0], vers: [-33.2, 11, 47], champ: 56 }); await jeu.attendre(700); await jeu.dire(jeu.txn('cascade')); jeu.cadrer(null); } },
     { id: 'pont', x: PONT.x0 - 0.5, z: PONT.z, y: PONT.y, rayon: 1.5, haut: 1.6, verbe: 'regarder', vers: [PONT.x1, PONT.z], action: (jeu) => jeu.dire(jeu.txn('pont')) },
     // les champignons du bord de la clairière : de jour, à peine visibles ; la nuit, ils brillent
-    { id: 'champignons', x: -0.2, z: 87.9, rayon: 1.6, haut: 1.0, verbe: 'regarder', vers: [-1.0, 86.9], action: async (jeu) => { await jeu.dire(jeu.txn('champignons')); if (!jeu.estNuit && !secretTrouve('champignons')) jeu.voirIndice('champignons'); } },
-    {
-      // le vieux cèdre creux (le secret) : de jour, il fait noir dedans ; la nuit, le cercle des champignons s'allume, le koban paraît
-      id: 'creux', x: SENTIER_SECRET[4][0], z: SENTIER_SECRET[4][1], rayon: 1.6, haut: 1.3, verbe: 'regarder', vers: [CREUX.x, CREUX.z],
-      async action(jeu) {
-        if (secretTrouve('champignons')) { await jeu.dire(jeu.txn('creuxApres')); return; }
-        if (!jeu.estNuit) { await jeu.dire(jeu.tx('creux')); if (indiceVu('champignons') || indiceVu('champignons-nuit')) await comp(jeu, 'creuxCompagnon'); return; }
-        const [kx, ky, kz] = champignons.koban, [ex, ez] = SENTIER_SECRET[4];
-        jeu.placer(ex, ez, Math.atan2(CREUX.x - ex, CREUX.z - ez));
-        jeu.cadrer({ de: [ex + (ex - CREUX.x) * 0.5, ky + 1.0, ez + (ez - CREUX.z) * 0.5], vers: [kx, ky + 0.15, kz], champ: 50 });
-        await jeu.dire(jeu.tx('creuxNuit'));
-        jeu.son('magie');
-        await champignons.reveler();
-        await jeu.dire(jeu.tx('creuxKoban'));
-        jeu.geste('creuser');
-        await jeu.attendre(700);
-        champignons.prendre();
-        jeu.geste(null);
-        await comp(jeu, 'creuxKobanCompagnon');
-        await jeu.trouverSecret('champignons');
-        jeu.cadrer(null);
-      },
-    },
+    { id: 'champignons', x: -0.2, z: 87.9, rayon: 1.6, haut: 1.0, verbe: 'regarder', vers: [-1.0, 86.9], action: (jeu) => jeu.dire(jeu.txn('champignons')) },
+    // le secret : les petits esprits, le vieux cèdre creux, le petit esprit (secretEsprits)
+    ...secretEsprits.actions,
     {
       // le randonneur du refuge : il fait venir le soir (et les champignons) ; la nuit, il rend le matin
       id: 'refuge', passant: 'refuge', verbe: 'parler',
@@ -2919,7 +3697,7 @@ export function construire(ctx) {
         await jeu.dire(jeu.tx('refugeMatin'), 'refuge');
       },
     },
-    { id: 'guide', passant: 'guide', verbe: 'parler', async action(jeu) { await jeu.dire(jeu.txn('guide'), 'guide'); if (!jeu.estNuit && !secretTrouve('champignons')) { await jeu.dire(jeu.tx('guideChampignons'), 'guide'); jeu.voirIndice('champignons'); } } },
+    { id: 'guide', passant: 'guide', verbe: 'parler', async action(jeu) { await jeu.dire(jeu.txn('guide'), 'guide'); if (!jeu.estNuit && !etatEsprits().fini) await jeu.dire(jeu.tx('guideEsprits'), 'guide'); } },
     { id: 'videaste', passant: 'videaste', verbe: 'parler', async action(jeu) { await jeu.dire(jeu.tx('videaste'), 'videaste'); await jeu.video(); } },
     lire('entree', ESC_PIERRE.pts[0][0], ESC_PIERRE.pts[0][1] - 0.2, 0), lire('carte', -49.8, 33.9, 0), lire('yayoi', PANNEAUX.yayoi.x, PANNEAUX.yayoi.z, PANNEAUX.yayoi.ry), lire('nidai', PANNEAUX.nidai.x, PANNEAUX.nidai.z, PANNEAUX.nidai.ry),
     lire('kuguri', PANNEAUX.kuguri.x, PANNEAUX.kuguri.z, PANNEAUX.kuguri.ry), lire('koke', PANNEAUX.koke.x, PANNEAUX.koke.z, PANNEAUX.koke.ry), lire('tsuji', TSUJI.x0 + 1.0, TSUJI.z1 - 0.8, -PI / 2),
@@ -2955,9 +3733,13 @@ export function construire(ctx) {
     ...infos, textes: TEXTES,
     objets, monde, terrain, etiquettes, passants, daims, interactions, actionDaim, verbeDaim: 'regarder', vapeurs, bancs, lumieres, animes,
     actionBete: async (jeu, b) => { await jeu.dire(jeu.txn(b.sorte)); },
-    // (le secret, tresors.js : les champignons qui brillent ; le marchand, à l'abri de Kosugidani ; les sons en plus ; les feux
+    // (le secret, tresors.js : les petits esprits et le grand cerf ; le marchand, à l'abri de Kosugidani ; les sons en plus ; les feux
     // d'artifice au-dessus de la mer, au nord)
-    secret: 'champignons', marchand: MARCHAND, sons: ['claque', 'cloche', 'papier', 'oiseau/singe', 'oiseau/corne'],
+    secret: 'esprits', esprits: secretEsprits, marchand: MARCHAND, sons: ['claque', 'cloche', 'papier', 'oiseau/singe', 'oiseau/corne', 'oiseau/esprit', 'oiseau/cerf'],
+    // (le bassin caché : son eau, qui reflète le cerf ; le reflet ne se fait que la caméra tout près)
+    eauxCalmes: [[LAC.x - LAC.rx - 1.4, LAC.x + LAC.rx + 1.4, LAC.z - LAC.rz - 1.4, LAC.z + LAC.rz + 1.4, LAC.y]],
+    eauCalme: { clair: '#3a5a4c', profond: '#142c30', clarte: 0.42, teinteReflet: '#dfeaf0', refletMin: 0.55 },
+    miroir: { y: LAC.y, x0: LAC.x - LAC.rx - 1.4, x1: LAC.x + LAC.rx + 1.4, z0: LAC.z - LAC.rz - 1.4, z1: LAC.z + LAC.rz + 1.4, pres: [LAC.x, LAC.z, 24] },
     feux: { x: -20, y: 0, z: -170, large: 90, haut: [42, 68] },
     // (on arrive en bateau d'Udo : là, au quai ; le départ est le même)
     arrivee: depart,
@@ -2980,8 +3762,8 @@ export function construire(ctx) {
     courants,
     // (le bruit de la cascade : sans voile, l'eau glisse sur la dalle)
     cascades: [{ x: BRUIT_CASCADE.x, z: BRUIT_CASCADE.z, y0: 14.7, y1: 7.4, voile: false }],
-    ruisseaux: [RUISSEAU, RIVIERE.slice(0, 11), RAVIN.slice(0, 120), EAU_WILSON.slice(0, 30)],
-    mares: [[1.6, 95.4], [-9.2, 88.2], [WILSON.x, WILSON.z]], sonGrenouilles: 'grenouilles',
+    ruisseaux: [RUISSEAU, RIVIERE.slice(0, 11), RAVIN.slice(0, 120), EAU_WILSON.slice(0, 30), FILET],
+    mares: [[1.6, 95.4], [-9.2, 88.2], [WILSON.x, WILSON.z], [LAC.x, LAC.z]], sonGrenouilles: 'grenouilles',
     eau: { x0: -1400, x1: 1400, z0: -1400, z1: 1400, niveau: 0, clair: '#58c6c2', profond: '#1b5b9e' },
     centreRive: [-20, -54],
     vent: { dir: [0.4, 0.9], force: 0.7 }, oiseaux: ['milan', 'uguisu'], ambiances: ['vagues', 'insectes', 'ruisseau', 'grenouilles', 'cascade'],
@@ -3030,6 +3812,24 @@ function nuee(THREE, n, o = {}) {
     ranger(k) { A.position.setXYZ(k, 0, -500, 0); A.taille.setX(k, 0); },
     fin() { A.position.needsUpdate = A.taille.needsUpdate = A.color.needsUpdate = true; },
   };
+}
+/** Une étoile à quatre branches cernée d'un trait d'encre, peinte (le jour : l'étincelle au-dessus d'un petit esprit ; comme les plumes d'Udo). */
+function etincelleEncre(THREE) {
+  const TX = 64, px = new Uint8Array(TX * TX * 4), S = 3;
+  for (let j = 0; j < TX; j++) for (let i = 0; i < TX; i++) {
+    let dedans = 0, encre = 0;
+    for (let a = 0; a < S; a++) for (let b = 0; b < S; b++) {
+      const x = Math.abs((i + (a + 0.5) / S - TX / 2) / (TX / 2)), y = Math.abs((j + (b + 0.5) / S - TX / 2) / (TX / 2));
+      const f = Math.sqrt(x) + Math.sqrt(y);
+      if (f < 0.97) { dedans++; if (f > 0.74) encre++; }
+    }
+    const a = dedans / (S * S), e = dedans ? encre / dedans : 0, v = Math.round(255 * (1 - 0.82 * e));
+    px.set([v, Math.round(v * 0.86), Math.round(v * 0.62), Math.round(a * 255)], (j * TX + i) * 4);
+  }
+  const t = new THREE.DataTexture(px, TX, TX);
+  t.magFilter = t.minFilter = THREE.LinearFilter;
+  t.needsUpdate = true;
+  return t;
 }
 /** Un angle qui tourne vers un autre, par le plus court. */
 const tourne = (a, b, f) => { const d = ((b - a + PI) % (2 * PI) + 2 * PI) % (2 * PI) - PI; return a + d * Math.min(1, f); };
@@ -3151,7 +3951,7 @@ function aspectSol(P, x, z, h) {
   // le haut du Taiko-iwa : le granite nu, un peu de lichen
   if (aLaPlace(TAIKO, x, z) < 1.2) return [b2 > 0.7 ? '#8f9a7a' : bruit > 0.5 ? '#b4aea2' : '#a9a397', M.roche];
   // les escaliers de pierre : la pierre ; le palier et le dedans de la souche de Wilson : la terre sombre
-  if (surEsc(ESC_PIERRE, x, z, 0.3) || surEsc(ESC_TAIKO, x, z, 0.3)) return ['#9d978d', M.roche];
+  if (surEsc(ESC_PIERRE, x, z, 0.3) || surEsc(ESC_TAIKO, x, z, 0.3) || surEsc(ESC_CACHE, x, z, 0.3)) return ['#9d978d', M.roche];
   if (dansRect(PALIER_WILSON, x, z, 0.2) || Math.hypot(x - WILSON.x, z - WILSON.z) < WILSON.r + 0.2) return [bruit > 0.5 ? '#5e4a3a' : '#544234', M.terre];
   // la voie du train : le ballast brun-gris, entre les traverses
   { const l = surLaLigne(VOIE, x, z); if (l.d < 1.0) return [bruit > 0.5 ? '#6e655a' : '#655d53', M.terre]; }
@@ -3160,6 +3960,13 @@ function aspectSol(P, x, z, h) {
   // (le palier du pont : de la pierre, des dalles ; le devant du refuge, le col, l'abri : la terre)
   if (dansRect(PALIER_PONT, x, z, 0.15)) return [bruit > 0.5 ? '#a8a297' : '#9d978d', M.dalles];
   if (dansRect(DEVANT_HUTTE, x, z, 0.1) || AUTOUR_HUTTE.some((r) => dansRect(r, x, z, 0.1)) || dansRect(TSUJI, x, z, 0.1) || aLaPlace(RECOIN, x, z) < 0.1) return [bruit > 0.55 ? '#7a5e44' : '#6e543d', M.terre];
+  // le bassin caché : le fond sombre, les galets du bord, la mousse tout autour
+  if (dansRect(B_LAC, x, z)) {
+    const dl = auLac(x, z);
+    if (dl < 0.1) return [dl < -1.6 ? '#2c3a34' : bruit > 0.5 ? '#46544a' : '#3f4c44', M.roche];
+    if (dl < 0.5 + 0.3 * bruit) return [bruit > 0.5 ? '#7f7a62' : '#726e58', M.terre];
+    if (aLaPlace(CLAIRIERE, x, z) < 4 || dansRect(PALIER_CACHE, x, z, 2.5)) return [bruit > 0.6 ? '#7aa648' : bruit > 0.3 ? '#6a9a40' : '#5f8a3a', M.mousse];
+  }
   // la forêt de mousse : la mousse partout (la clairière et tout autour)
   if (aLaPlace(KOKE, x, z) < 6 || Math.hypot(x - CREUX.x, z - CREUX.z) < 7) return [bruit > 0.6 ? '#7aa648' : bruit > 0.3 ? '#6a9a40' : '#5f8a3a', M.mousse];
   // le village : les jardins (l'herbe), entre la mer et la forêt
@@ -3177,7 +3984,7 @@ function aspectSol(P, x, z, h) {
 // dit », c'est ce qu'on raconte, pas un fait)
 const TEXTES = {
   fr: {
-    noms: { batelier: 'Le batelier', pecheur: 'Le pêcheur', touriste: 'La randonneuse', touriste2: 'Le randonneur', pretre: 'Le prêtre', artisan: 'L’artisan', loueuse: 'La loueuse', theiere: 'La marchande de thé', serveuse: 'La serveuse', cuisinier: 'Le cuisinier', mangeur: 'Le client', dineuse: 'La cliente', dineur: 'Le client', mamie: 'La grand-mère', chauffeur: 'Le chauffeur du bus', guichet: 'La dame du guichet', guide: 'La guide', randonneur: 'Le randonneur', photographe: 'La photographe', videaste: '@random_japan_place', refuge: 'Le randonneur du refuge', sommets: 'Le randonneur', agent: 'L’agent des sentiers', marcheur: 'La marcheuse', amoureuse: 'L’amoureuse', amoureux: 'L’amoureux', guideJomon: 'La guide', onigiri: 'Le randonneur', ancien: 'Le vieux monsieur' },
+    noms: { ami: 'Le petit esprit', batelier: 'Le batelier', pecheur: 'Le pêcheur', touriste: 'La randonneuse', touriste2: 'Le randonneur', pretre: 'Le prêtre', artisan: 'L’artisan', loueuse: 'La loueuse', theiere: 'La marchande de thé', serveuse: 'La serveuse', cuisinier: 'Le cuisinier', mangeur: 'Le client', dineuse: 'La cliente', dineur: 'Le client', mamie: 'La grand-mère', chauffeur: 'Le chauffeur du bus', guichet: 'La dame du guichet', guide: 'La guide', randonneur: 'Le randonneur', photographe: 'La photographe', videaste: '@random_japan_place', refuge: 'Le randonneur du refuge', sommets: 'Le randonneur', agent: 'L’agent des sentiers', marcheur: 'La marcheuse', amoureuse: 'L’amoureuse', amoureux: 'L’amoureux', guideJomon: 'La guide', onigiri: 'Le randonneur', ancien: 'Le vieux monsieur' },
     tampons: {
       yakujinja: ['Le sanctuaire de l’île', 'au bout du quai, à l’est : prier au sanctuaire Yaku-jinja'],
       sarushika: ['Le singe et le cerf', 'au bout est de la forêt de mousse : regarder le singe sur sa branche basse, et le cerf dessous'],
@@ -3213,7 +4020,7 @@ const TEXTES = {
     chauffeur: ['Le bus monte du port jusqu’ici, à l’entrée de Shiratani Unsuikyō. Ça grimpe, hein ?', 'Attention aux singes et aux cerfs sur la route : ils se promènent comme chez eux.'],
     guichet: ['Bienvenue à Shiratani Unsuikyō ! Ici, on donne une petite participation pour l’entretien de la forêt et des sentiers.', 'Merci pour la forêt ! Bonne marche, et restez bien sur les sentiers.'],
     guide: ['Bienvenue dans la forêt de Shiratani ! Quelques règles : on reste sur les sentiers, on ne marche pas sur la mousse, on ne donne rien à manger aux singes ni aux cerfs.', 'Plus haut, la forêt de mousse, puis le col de Tsuji : à droite, le rocher Taiko-iwa ; à gauche, la voie du petit train qui mène au Jōmon Sugi.'],
-    guideChampignons: ['Oh, et si tu passes la nuit au refuge… Certaines nuits, de tout petits champignons brillent en vert dans la forêt de mousse.', 'Je les ai vus, une fois. On aurait dit qu’ils montraient un chemin…'],
+    guideEsprits: ['Tu sais quoi ? C’est cette forêt qui a inspiré le film d’animation « Princesse Mononoke ».', 'Et les anciens disent que de petits esprits vivent dans les vieux arbres. Ouvre l’œil au bord des sentiers : ils ne se cachent pas beaucoup.'],
     guideNuit: ['La nuit, la forêt est noire comme de l’encre. Ne quitte pas le sentier !'],
     randonneur: ['Ces marches, c’est un bon échauffement ! Au bout, le pont suspendu au-dessus de la rivière.', 'Écoute : la cascade Hiryū-otoshi glisse sur le granite, juste là.'],
     cascade: ['La cascade Hiryū-otoshi (飛流おとし) : la rivière de Shiratani glisse sur une grande dalle de granite clair, en écume blanche.', 'Le granite de Yakushima est sorti de sous la terre il y a très longtemps : c’est lui qui fait les montagnes de l’île.'],
@@ -3245,15 +4052,47 @@ const TEXTES = {
     libellule: ['Une libellule se pose sur un rocher moussu, au bord de l’eau.'],
     grenouille: ['Une rainette toute verte, sur une pierre du ruisseau.', 'La nuit, on entend ses cousines chanter partout dans la forêt.'],
     champignons: ['De tout petits champignons pâles, sur un tronc tombé couvert de mousse. On les voit à peine.'],
-    champignonsNuit: ['Regarde… les petits champignons brillent ! Une lumière verte, toute douce, sur le bois mort.', 'Il y en a d’autres, plus loin, vers l’ouest… Ils font comme un chemin dans la forêt.'],
-    champignonsNuitCompagnon: { kon: ['« Des petites lanternes de la forêt… Suivons-les ! »'], pon: ['« Pon ?! Des champignons qui brillent… On ne les mange pas, hein ? On les suit. »'], chapu: ['« Chapuuu ! Un chemin de lumières ! Par là, par là ! »'], gao: ['« Gao… Un passage gardé par des lueurs. Je passe devant. »'], fuwa: ['« Fuwa… Comme les lumières du fond de la mer. Elles nous appellent. »'], saya: ['« La forêt allume ses lampes… Elle veut nous montrer quelque chose. »'] },
-    creux: ['Un vieux cèdre mort, cassé, tout creux. Il fait noir dedans.', 'De tout petits champignons poussent sur le bois du fond.'],
-    creuxCompagnon: { kon: ['« La guide parlait de champignons qui brillent la nuit… Et si on revenait quand il fait noir ? »'], pon: ['« Pon… Il fait trop noir là-dedans. Revenons la nuit, avec les champignons qui brillent ! »'], chapu: ['« Chapu ! La nuit, ça doit être plus joli, là-dedans. »'], gao: ['« Gao. Rien à voir de jour. La nuit, peut-être… »'], fuwa: ['« Fuwa… Ce creux attend la nuit. »'], saya: ['« Ce vieux cèdre garde un secret… La nuit le dira. »'] },
-    creuxNuit: ['Les champignons ont mené jusqu’ici… Au fond du vieux cèdre creux, quelque chose s’allume.'],
-    creuxKoban: ['Un cercle de champignons s’allume, un par un… et au milieu, sur un coussin de mousse, brille une pièce d’or : un koban !'],
-    creuxKobanCompagnon: { kon: ['« La forêt nous l’a gardé… Merci, les petits champignons. »'], pon: ['« Pon pon pon ! De l’or ! Mon oncle Bunbuku va être content ! »'], chapu: ['« Chapuuu ! Un trésor dans un arbre ! »'], gao: ['« Gao ! Bien gardé, bien trouvé. »'], fuwa: ['« Fuwa… La forêt a des trésors comme la mer. »'], saya: ['« Le vieux cèdre te l’a donné. Il t’a trouvé gentil. »'] },
-    creuxApres: ['Le vieux cèdre creux. Les petits champignons veillent dans le noir.'],
-    creuxApresNuit: ['Au fond du creux, le cercle des champignons brille doucement. La forêt te dit bonsoir.'],
+    creux: ['Un vieux cèdre mort, cassé, tout creux. Il fait noir dedans.', 'Par terre, devant lui, de toutes petites traces de pas. Elles entrent dans l’arbre… et n’en ressortent pas.'],
+    creuxCompagnon: { kon: ['« Ces petits pas… Et si les petits esprits savaient ce qu’il y a là-dedans ? Trouvons-les tous. »'], pon: ['« Pon… Il fait trop noir pour moi. Trouvons d’abord tous les petits esprits ! »'], chapu: ['« Chapu ! Ce sont leurs traces ! Il en manque encore, sur les sentiers ! »'], gao: ['« Gao. Ce passage n’est pas pour nous… pas encore. Trouvons les autres esprits. »'], fuwa: ['« Fuwa… L’arbre attend les petits esprits. Tous. »'], saya: ['« Mes cousins passent par là. Mais il faut qu’ils soient tous là pour que l’arbre s’ouvre. »'] },
+    espritPremier: ['Un petit esprit de la forêt ! Il te regarde, tout rond, tout curieux.', 'Tok-tok ! Il saute de joie… et se met à te suivre.'],
+    espritCompagnon: { kon: ['« Un esprit des arbres ! Il y en a d’autres, j’en suis sûr, au bord des sentiers. Trouvons-les tous ! »'], pon: ['« Pon ! Il est tout petit ! Il doit avoir des copains cachés par ici. Cherchons-les ! »'], chapu: ['« Chapu ! Un petit esprit ! Il y en a sûrement d’autres sur les sentiers ! »'], gao: ['« Gao. Un esprit de la forêt. Il n’est pas seul : cherchons les autres, au bord des sentiers. »'], fuwa: ['« Fuwa… Un esprit tout doux. Il a des frères sur les sentiers, je les sens. »'], saya: ['« Un cousin ! Les autres ne sont pas loin : regarde bien au bord des sentiers. »'] },
+    espritAutre: (n) => `Un autre petit esprit ! Il saute de joie et rejoint la file. Tok-tok ! (${n}/5)`,
+    espritDernier: (ou) => `Les petits esprits te tirent par le pied… Il en manque un : ${ou}.`,
+    lieuxEsprits: { e1: 'sur le sentier de terre, juste après le pont suspendu', e2: 'sur le sentier de terre, juste après le Kuguri-sugi', e3: 'dans la forêt de mousse, sur une pierre de la clairière', e4: 'au col de Tsuji, là où les sentiers se croisent', e5: 'au bout de la voie du petit train, au pied de l’escalier de bois' },
+    espritsTous: ['Les cinq petits esprits sautillent autour de toi, tout excités. Ils veulent t’emmener quelque part !', 'Ils regardent vers l’ouest de la forêt de mousse : vers le vieux cèdre creux, au bout du petit sentier.'],
+    espritsVers: ['Les cinq petits esprits veulent t’emmener au vieux cèdre creux, au bout du petit sentier, à l’ouest de la forêt de mousse.'],
+    espritsTousCompagnon: { kon: ['« Suivons-les. Ils savent où ils vont. »'], pon: ['« Pon ! En file indienne ! Je ferme la marche ! »'], chapu: ['« Chapuuu ! On y va, on y va ! »'], gao: ['« Gao. Je les garde. En route. »'], fuwa: ['« Fuwa… Ils nous appellent, tout doucement. »'], saya: ['« Ils vont nous présenter quelqu’un de très vieux. Tiens-toi bien. »'] },
+    espritMaison: ['Tok-tok ! Le petit esprit te fait signe, tout content.'],
+    creuxEsprits: ['Les petits esprits se rassemblent devant le vieux cèdre. L’un après l’autre, ils entrent dans le noir…'],
+    creuxOuvert: ['Au fond du creux, le vieux bois s’écarte. Une lumière douce t’appelle.'],
+    creuxOuvertCompagnon: { kon: ['« Ils nous attendent de l’autre côté. Allons-y. »'], pon: ['« Pon… Bon. Mais c’est toi qui passes devant. »'], chapu: ['« Chapu ! Ça brille ! J’y vais, j’y vais ! »'], gao: ['« Gao. Je te suis. »'], fuwa: ['« Fuwa… Il y a de l’eau, là-bas. Je la sens. »'], saya: ['« C’est la porte de la vieille forêt. Ne fais pas de bruit. »'] },
+    nuitDerriere: ['De ce côté de l’arbre, il fait nuit.', 'Des marches de pierre couvertes de mousse montent dans la forêt. Les petits esprits sautillent devant toi, comme de petites lanternes.'],
+    bassinVu: ['Un bassin immobile, caché au fond de la forêt. La lune s’y tient tout entière.', 'Les petits esprits s’alignent sur la rive… et se mettent à frapper, tout doucement. Tok, tok, tok.'],
+    cerfReponse: ['Au loin, quelque chose leur répond.'],
+    cerfVient: ['Un cerf immense sort de la forêt. Son dos est couvert de mousse et de fougères ; de petites fleurs blanches poussent sur ses bois.', 'À chacun de ses pas, des fleurs s’ouvrent sur l’eau.'],
+    cerfRegarde: ['Il s’arrête devant toi et te regarde, longtemps. Tu n’oses plus respirer.'],
+    cerfCompagnon: { kon: ['« …C’est le gardien de la forêt. Ne bouge pas. Incline-toi. »'], pon: ['« Pon… »', '(Pon n’a jamais été aussi silencieux.)'], chapu: ['« Chapu… Il est grand comme un arbre… »'], gao: ['« Gao. Même moi, je baisse la tête. »'], fuwa: ['« Fuwa… Mon grand-père parlait de lui. Le roi de la montagne, comme le mien est roi de la mer. »'], saya: ['« C’est lui qui veille sur nous tous, depuis toujours. Salue-le. »'] },
+    cerfKoban: ['Il baisse sa grande tête vers toi et souffle doucement. Un anneau de lumière s’étend sur l’eau…', '…et une pièce d’or remonte du fond : un koban !'],
+    cerfKobanCompagnon: { kon: ['« Il t’a reconnu… Merci, grand gardien. »'], pon: ['« Pon pon pon ! De l’or ! (Tout bas, hein.) Mon oncle Bunbuku va être content ! »'], chapu: ['« Chapuuu ! Un trésor de la forêt ! »'], gao: ['« Gao ! Bien mérité. »'], fuwa: ['« Fuwa… La forêt a des trésors, comme la mer. »'], saya: ['« Il t’a trouvé gentil. Il ne se trompe jamais. »'] },
+    cerfPart: ['Le grand cerf repart sans un bruit et s’efface entre les arbres. Là où il a marché, les fleurs restent ouvertes.'],
+    espritsPartent: ['Les petits esprits te saluent. Tok-tok ! Puis ils repartent, chacun vers sa pierre, au bord des sentiers.'],
+    amiReste: ['Mais un tout petit esprit est resté sur la rive, à côté d’une petite pousse qui penche. Il te regarde sans oser approcher…'],
+    amiDemande: ['Tok… Tu as appelé le grand cerf… Alors toi, tu peux m’aider ?', 'Mon petit cèdre a soif. Il penche, regarde. L’eau du bassin dort trop profond pour ses racines.', 'Il lui faudrait l’eau de la source, celle qui coule dans la grande souche, là où le ciel fait un cœur. Tu veux bien m’en rapporter ?'],
+    amiDemandeCompagnon: { kon: ['« La souche de Wilson ! Elle est de l’autre côté du col, au bout de la voie du petit train. Il y a une source dedans. »'], pon: ['« Pon ! La grande souche ! Passé le col, le long des rails. J’espère qu’il y a à manger là-bas. »'], chapu: ['« Chapu ! De l’eau, je connais ! La grande souche, c’est après le col, par la voie du train ! »'], gao: ['« Gao. La souche de Wilson : passe le col, suis la voie du train. Je t’accompagne. »'], fuwa: ['« Fuwa… Une source dans un arbre. Passe le col, et suis les rails. »'], saya: ['« La vieille souche de Wilson, après le col. Je connais cette eau : elle réveille les jeunes arbres. »'] },
+    amiRappel: ['Tok… L’eau de la source, dans la grande souche où le ciel fait un cœur. Mon petit cèdre t’attend.'],
+    source: ['Tu remplis une grande feuille de l’eau de la source. Elle est glacée. Ne la renverse pas !'],
+    amiArrose: ['Tu verses doucement l’eau de la source au pied de la petite pousse…'],
+    amiMerci: ['Regarde ! Il relève la tête ! Il a grandi !', 'Merci, merci ! Tok-tok-tok !'],
+    amiQuestion: ['Dis… Je peux venir avec toi ? Je suis tout petit, je ne prendrai pas de place.'],
+    amiOui: ['Youpi ! Je sais marcher très vite ! Et si je suis fatigué, je monterai sur le dos de ton ami.'],
+    amiNon: ['Alors je reste avec mon petit cèdre. Reviens me voir, d’accord ?'],
+    amiVenir: ['Tok-tok ! Te revoilà ! Regarde comme il pousse, mon petit cèdre.'],
+    amiParle: (nom) => [`Tok-tok ! Je peux monter sur le dos de ${nom} ?`],
+    amiOptions: (nom) => [`Monte sur le dos de ${nom}`, 'Retourne à ton petit cèdre', 'Rien, on continue'],
+    amiMonte: ['Hop ! J’arrive !'],
+    amiAttend: ['D’accord. Je rentre voir mon petit cèdre. Tu sais où me trouver !'],
+    amiBateau: ['Tok… Moi, je ne peux pas quitter l’île. Je dois rester près de la forêt sacrée : c’est ma maison.', 'Je t’attends ici. Reviens vite !'],
+    amiDosCompagnon: { kon: ['« Oh ! Il est monté sur mon dos. Tiens-toi bien, petit. »'], pon: ['« Pon ! Ça chatouille ! Bon, d’accord, reste là. »'], chapu: ['« Chapu ! Accroche-toi, je bondis ! »'], gao: ['« Gao. Reste droit, petit. »'], fuwa: ['« Fuwa… On flotte ensemble. »'], saya: ['« Cousin, tu pèses plus lourd que tu n’en as l’air. »'] },
     hokora: ['Tu frappes deux fois dans tes mains devant le petit sanctuaire de la souche, le Tamashiro-jinja (木魂神社).', 'Des pièces brillent à ses pieds : chaque marcheur en laisse une.'],
     wilson: ['Tu lèves les yeux… Là-haut, le ciel fait un cœur, entre les bords de la vieille souche !', 'La souche de Wilson : un cèdre de 2 000 à 3 000 ans, abattu au XVIe siècle (13,8 m de tour). On dit que voir le cœur porte chance en amour.'],
     wilsonNuit: ['Tu lèves les yeux… Dans le noir, le cœur est plein d’étoiles.'],
@@ -3273,7 +4112,7 @@ const TEXTES = {
     'panneau-yayoi': ['« 弥生杉 Yayoi-sugi »', 'Environ 3 000 ans, 26,1 m de haut, 8,1 m de tour. On ne l’a jamais abattu : sa forme tordue ne donnait pas de belles planches.'],
     'panneau-nidai': ['« 二代大杉 Nidai-ōsugi »', 'Le « grand cèdre de deuxième génération » : un jeune cèdre a poussé sur la souche d’un ancien qu’on avait abattu. C’est le plus grand de la vallée (32 m).'],
     'panneau-kuguri': ['« くぐり杉 Kuguri-sugi »', 'Le « cèdre sous lequel on passe » : ses racines font une arche au-dessus du sentier.'],
-    'panneau-koke': ['« 苔むす森 La forêt de mousse »', 'Très humide, pleine de rochers : la mousse couvre tout. On reste sur le sentier : elle met des années à repousser.'],
+    'panneau-koke': ['« 苔むす森 La forêt de mousse »', 'Très humide, pleine de rochers : la mousse couvre tout. On reste sur le sentier : elle met des années à repousser.', 'Cette forêt a inspiré le film d’animation « Princesse Mononoke ».'],
     'panneau-tsuji': ['« 辻峠 Le col de Tsuji »', '↑ 太鼓岩 Taiko-iwa · ← 縄文杉 Jōmon Sugi (par la voie du train) · ↓ 白谷雲水峡 Shiratani Unsuikyō'],
     'panneau-taiko': ['« 太鼓岩 Taiko-iwa »', 'Le « rocher du tambour », un dôme de granite à 1 050 m. De là-haut : les sommets du cœur de l’île et la vallée de l’Anbō.'],
     'panneau-voie': ['« 安房森林軌道 La voie forestière d’Anbō »', 'Construite à partir de 1922 pour descendre le bois jusqu’au port d’Anbō. Encore utilisée pour l’entretien des sentiers. Attention : les planches glissent par temps de pluie.'],
@@ -3284,7 +4123,7 @@ const TEXTES = {
     'panneau-menu': ['« お品書き Le menu »', 'Poisson volant frit (とびうお唐揚げ) · Maquereau au cou cassé (首折れサバ), en sashimi · Galettes de poisson (つけあげ) · Nouilles au bouillon de poisson volant · Jus de tankan · Thé de Yakushima'],
   },
   en: {
-    noms: { batelier: 'The boatman', pecheur: 'The fisherman', touriste: 'The hiker', touriste2: 'The hiker', pretre: 'The priest', artisan: 'The craftsman', loueuse: 'The rental clerk', theiere: 'The tea seller', serveuse: 'The waitress', cuisinier: 'The cook', mangeur: 'The customer', dineuse: 'The customer', dineur: 'The customer', mamie: 'The grandmother', chauffeur: 'The bus driver', guichet: 'The ticket lady', guide: 'The guide', randonneur: 'The hiker', photographe: 'The photographer', videaste: '@random_japan_place', refuge: 'The hut hiker', sommets: 'The hiker', agent: 'The trail warden', marcheur: 'The walker', amoureuse: 'The girlfriend', amoureux: 'The boyfriend', guideJomon: 'The guide', onigiri: 'The hiker', ancien: 'The old man' },
+    noms: { ami: 'The little spirit', batelier: 'The boatman', pecheur: 'The fisherman', touriste: 'The hiker', touriste2: 'The hiker', pretre: 'The priest', artisan: 'The craftsman', loueuse: 'The rental clerk', theiere: 'The tea seller', serveuse: 'The waitress', cuisinier: 'The cook', mangeur: 'The customer', dineuse: 'The customer', dineur: 'The customer', mamie: 'The grandmother', chauffeur: 'The bus driver', guichet: 'The ticket lady', guide: 'The guide', randonneur: 'The hiker', photographe: 'The photographer', videaste: '@random_japan_place', refuge: 'The hut hiker', sommets: 'The hiker', agent: 'The trail warden', marcheur: 'The walker', amoureuse: 'The girlfriend', amoureux: 'The boyfriend', guideJomon: 'The guide', onigiri: 'The hiker', ancien: 'The old man' },
     tampons: {
       yakujinja: ['The island’s shrine', 'at the east end of the quay: pray at Yaku Shrine'],
       sarushika: ['The monkey and the deer', 'at the east end of the moss forest: watch the monkey on its low branch, and the deer below'],
@@ -3320,7 +4159,7 @@ const TEXTES = {
     chauffeur: ['The bus comes up from the harbour to here, the entrance of Shiratani Unsuikyō. Steep, isn’t it?', 'Watch out for monkeys and deer on the road: they stroll around as if they owned it.'],
     guichet: ['Welcome to Shiratani Unsuikyō! Here we ask for a small contribution to look after the forest and the trails.', 'Thank you for the forest! Have a good walk, and stay on the trails.'],
     guide: ['Welcome to the Shiratani forest! A few rules: stay on the trails, don’t step on the moss, don’t feed the monkeys or the deer.', 'Further up: the moss forest, then Tsuji Pass. To the right, Taiko-iwa Rock; to the left, the little railway that leads to Jōmon Sugi.'],
-    guideChampignons: ['Oh, and if you spend the night at the hut… On some nights, tiny mushrooms glow green in the moss forest.', 'I saw them once. It looked like they were showing a path…'],
+    guideEsprits: ['You know what? This forest inspired the animated film “Princess Mononoke”.', 'And the old folks say little spirits live in the ancient trees. Keep your eyes open along the trails: they hardly hide at all.'],
     guideNuit: ['At night the forest is as black as ink. Don’t leave the trail!'],
     randonneur: ['These steps are a good warm-up! At the end, the suspension bridge over the river.', 'Listen: Hiryū-otoshi falls slide over the granite, right there.'],
     cascade: ['Hiryū-otoshi falls (飛流おとし): the Shiratani river slides down a great slab of pale granite in white foam.', 'Yakushima’s granite came up from deep underground long, long ago: it’s what makes the island’s mountains.'],
@@ -3352,15 +4191,47 @@ const TEXTES = {
     libellule: ['A dragonfly lands on a mossy rock at the water’s edge.'],
     grenouille: ['A bright green tree frog on a stone in the stream.', 'At night you can hear its cousins singing all over the forest.'],
     champignons: ['Tiny pale mushrooms on a fallen, moss-covered trunk. You can barely see them.'],
-    champignonsNuit: ['Look… the little mushrooms are glowing! A soft green light on the dead wood.', 'There are more further on, to the west… They make a sort of path through the forest.'],
-    champignonsNuitCompagnon: { kon: ['“Little lanterns of the forest… Let’s follow them!”'], pon: ['“Pon?! Glowing mushrooms… We don’t eat them, right? We follow them.”'], chapu: ['“Chapuuu! A path of lights! This way, this way!”'], gao: ['“Gao… A passage guarded by glows. I’ll go first.”'], fuwa: ['“Fuwa… Like the lights at the bottom of the sea. They’re calling us.”'], saya: ['“The forest is lighting its lamps… It wants to show us something.”'] },
-    creux: ['An old dead cedar, broken and hollow. It’s dark inside.', 'Tiny mushrooms grow on the wood at the back.'],
-    creuxCompagnon: { kon: ['“The guide talked about mushrooms that glow at night… What if we came back when it’s dark?”'], pon: ['“Pon… It’s too dark in there. Let’s come back at night, with the glowing mushrooms!”'], chapu: ['“Chapu! It must be prettier in there at night.”'], gao: ['“Gao. Nothing to see by day. At night, maybe…”'], fuwa: ['“Fuwa… This hollow is waiting for the night.”'], saya: ['“This old cedar keeps a secret… The night will tell.”'] },
-    creuxNuit: ['The mushrooms led all the way here… Deep inside the old hollow cedar, something lights up.'],
-    creuxKoban: ['A ring of mushrooms lights up, one by one… and in the middle, on a cushion of moss, a gold coin shines: a koban!'],
-    creuxKobanCompagnon: { kon: ['“The forest kept it for us… Thank you, little mushrooms.”'], pon: ['“Pon pon pon! Gold! My uncle Bunbuku will be pleased!”'], chapu: ['“Chapuuu! Treasure in a tree!”'], gao: ['“Gao! Well guarded, well found.”'], fuwa: ['“Fuwa… The forest has treasures, like the sea.”'], saya: ['“The old cedar gave it to you. It thought you were kind.”'] },
-    creuxApres: ['The old hollow cedar. The little mushrooms keep watch in the dark.'],
-    creuxApresNuit: ['Deep in the hollow, the ring of mushrooms glows softly. The forest wishes you good night.'],
+    creux: ['An old dead cedar, broken and hollow. It’s dark inside.', 'On the ground in front of it, tiny footprints. They go into the tree… and don’t come back out.'],
+    creuxCompagnon: { kon: ['“Those little steps… Maybe the little spirits know what’s in there. Let’s find them all.”'], pon: ['“Pon… Too dark for me. Let’s find all the little spirits first!”'], chapu: ['“Chapu! Those are their tracks! There are more of them on the trails!”'], gao: ['“Gao. This way is not for us… not yet. Let’s find the other spirits.”'], fuwa: ['“Fuwa… The tree is waiting for the little spirits. All of them.”'], saya: ['“My cousins go through here. But they must all be here for the tree to open.”'] },
+    espritPremier: ['A little forest spirit! It looks at you, all round and curious.', 'Tok-tok! It jumps for joy… and starts following you.'],
+    espritCompagnon: { kon: ['“A tree spirit! There are others along the trails, I’m sure. Let’s find them all!”'], pon: ['“Pon! So tiny! It must have friends hiding around here. Let’s look for them!”'], chapu: ['“Chapu! A little spirit! There must be more on the trails!”'], gao: ['“Gao. A spirit of the forest. It isn’t alone: let’s look for the others along the trails.”'], fuwa: ['“Fuwa… Such a gentle spirit. It has brothers on the trails, I can feel them.”'], saya: ['“A cousin! The others aren’t far: look closely along the trails.”'] },
+    espritAutre: (n) => `Another little spirit! It jumps for joy and joins the line. Tok-tok! (${n}/5)`,
+    espritDernier: (ou) => `The little spirits tug at your foot… One is missing: ${ou}.`,
+    lieuxEsprits: { e1: 'on the earth trail, just past the suspension bridge', e2: 'on the earth trail, just past the Kuguri-sugi', e3: 'in the moss forest, on a stone in the clearing', e4: 'at Tsuji pass, where the trails cross', e5: 'at the end of the forest railway, at the foot of the wooden stairs' },
+    espritsTous: ['The five little spirits hop around you, all excited. They want to take you somewhere!', 'They’re looking west of the moss forest: toward the old hollow cedar, at the end of the little trail.'],
+    espritsVers: ['The five little spirits want to take you to the old hollow cedar, at the end of the little trail, west of the moss forest.'],
+    espritsTousCompagnon: { kon: ['“Let’s follow them. They know where they’re going.”'], pon: ['“Pon! Single file! I’ll bring up the rear!”'], chapu: ['“Chapuuu! Let’s go, let’s go!”'], gao: ['“Gao. I’ll guard them. Onward.”'], fuwa: ['“Fuwa… They’re calling us, very softly.”'], saya: ['“They’re going to introduce us to someone very old. Mind your manners.”'] },
+    espritMaison: ['Tok-tok! The little spirit waves at you, delighted.'],
+    creuxEsprits: ['The little spirits gather in front of the old cedar. One after another, they go into the dark…'],
+    creuxOuvert: ['At the back of the hollow, the old wood parts. A soft light is calling you.'],
+    creuxOuvertCompagnon: { kon: ['“They’re waiting for us on the other side. Let’s go.”'], pon: ['“Pon… All right. But you go first.”'], chapu: ['“Chapu! It’s shining! I’m going, I’m going!”'], gao: ['“Gao. I’m right behind you.”'], fuwa: ['“Fuwa… There’s water over there. I can feel it.”'], saya: ['“This is the door to the old forest. Don’t make a sound.”'] },
+    nuitDerriere: ['On this side of the tree, it’s night.', 'Moss-covered stone steps climb into the forest. The little spirits hop ahead of you, like little lanterns.'],
+    bassinVu: ['A still pool, hidden deep in the forest. The whole moon fits inside it.', 'The little spirits line up on the shore… and start knocking, very softly. Tok, tok, tok.'],
+    cerfReponse: ['Far away, something answers them.'],
+    cerfVient: ['An immense stag steps out of the forest. Its back is covered in moss and ferns; little white flowers grow on its antlers.', 'With each step, flowers open on the water.'],
+    cerfRegarde: ['It stops in front of you and looks at you for a long time. You hardly dare to breathe.'],
+    cerfCompagnon: { kon: ['“…It’s the guardian of the forest. Don’t move. Bow.”'], pon: ['“Pon…”', '(Pon has never been this quiet.)'], chapu: ['“Chapu… It’s as big as a tree…”'], gao: ['“Gao. Even I bow my head.”'], fuwa: ['“Fuwa… My grandfather spoke of it. King of the mountain, as mine is king of the sea.”'], saya: ['“It has watched over all of us, forever. Greet it.”'] },
+    cerfKoban: ['It lowers its great head toward you and breathes out softly. A ring of light spreads across the water…', '…and a gold coin rises from the bottom: a koban!'],
+    cerfKobanCompagnon: { kon: ['“It knows you… Thank you, great guardian.”'], pon: ['“Pon pon pon! Gold! (Quietly, though.) My uncle Bunbuku will be pleased!”'], chapu: ['“Chapuuu! A forest treasure!”'], gao: ['“Gao! Well earned.”'], fuwa: ['“Fuwa… The forest has treasures, like the sea.”'], saya: ['“It thought you were kind. It’s never wrong.”'] },
+    cerfPart: ['The great stag leaves without a sound and fades between the trees. Where it walked, the flowers stay open.'],
+    espritsPartent: ['The little spirits wave goodbye. Tok-tok! Then they head back, each to its stone beside the trails.'],
+    amiReste: ['But one tiny spirit has stayed on the shore, next to a little drooping sapling. It looks at you, too shy to come closer…'],
+    amiDemande: ['Tok… You called the great stag… So maybe you can help me too?', 'My little cedar is thirsty. Look, it’s drooping. The pool’s water sleeps too deep for its roots.', 'It needs water from the spring, the one that runs inside the great stump, where the sky makes a heart. Will you bring me some?'],
+    amiDemandeCompagnon: { kon: ['“Wilson’s stump! It’s on the other side of the pass, at the end of the forest railway. There’s a spring inside.”'], pon: ['“Pon! The great stump! Past the pass, along the rails. I hope there’s food there.”'], chapu: ['“Chapu! Water, I know all about! The great stump is after the pass, along the railway!”'], gao: ['“Gao. Wilson’s stump: cross the pass, follow the railway. I’ll come with you.”'], fuwa: ['“Fuwa… A spring inside a tree. Cross the pass and follow the rails.”'], saya: ['“Old Wilson’s stump, after the pass. I know that water: it wakes young trees.”'] },
+    amiRappel: ['Tok… Water from the spring, inside the great stump where the sky makes a heart. My little cedar is waiting.'],
+    source: ['You fill a big leaf with water from the spring. It’s ice cold. Don’t spill it!'],
+    amiArrose: ['You gently pour the spring water at the foot of the little sapling…'],
+    amiMerci: ['Look! It’s lifting its head! It’s grown!', 'Thank you, thank you! Tok-tok-tok!'],
+    amiQuestion: ['Say… Can I come with you? I’m very small, I won’t take up any room.'],
+    amiOui: ['Hooray! I can walk really fast! And if I get tired, I’ll ride on your friend’s back.'],
+    amiNon: ['Then I’ll stay with my little cedar. Come back and see me, all right?'],
+    amiVenir: ['Tok-tok! You’re back! Look how my little cedar is growing.'],
+    amiParle: (nom) => [`Tok-tok! Can I ride on ${nom}’s back?`],
+    amiOptions: (nom) => [`Hop on ${nom}’s back`, 'Go back to your little cedar', 'Nothing, let’s go on'],
+    amiMonte: ['Hop! Here I come!'],
+    amiAttend: ['All right. I’ll go back to my little cedar. You know where to find me!'],
+    amiBateau: ['Tok… I can’t leave the island. I have to stay near the sacred forest: it’s my home.', 'I’ll wait for you here. Come back soon!'],
+    amiDosCompagnon: { kon: ['“Oh! It climbed onto my back. Hold on tight, little one.”'], pon: ['“Pon! That tickles! Oh, all right, stay there.”'], chapu: ['“Chapu! Hang on, I bound!”'], gao: ['“Gao. Sit up straight, little one.”'], fuwa: ['“Fuwa… We float together.”'], saya: ['“Cousin, you’re heavier than you look.”'] },
     hokora: ['You clap twice before the stump’s little shrine, Tamashiro Shrine (木魂神社).', 'Coins shine at its feet: every hiker leaves one.'],
     wilson: ['You look up… Up there, the sky makes a heart between the edges of the old stump!', 'Wilson’s Stump: a cedar 2,000 to 3,000 years old, felled in the 16th century (13.8 m around). They say seeing the heart brings luck in love.'],
     wilsonNuit: ['You look up… In the dark, the heart is full of stars.'],
@@ -3380,7 +4251,7 @@ const TEXTES = {
     'panneau-yayoi': ['“弥生杉 Yayoi-sugi”', 'About 3,000 years old, 26.1 m tall, 8.1 m around. It was never felled: its twisted shape wouldn’t give good planks.'],
     'panneau-nidai': ['“二代大杉 Nidai-ōsugi”', 'The “second-generation great cedar”: a young cedar grew on the stump of an old one that had been felled. It is the tallest in the valley (32 m).'],
     'panneau-kuguri': ['“くぐり杉 Kuguri-sugi”', 'The “cedar you walk under”: its roots form an arch over the trail.'],
-    'panneau-koke': ['“苔むす森 The moss forest”', 'Very damp and full of boulders: moss covers everything. Stay on the trail: it takes years to grow back.'],
+    'panneau-koke': ['“苔むす森 The moss forest”', 'Very damp and full of boulders: moss covers everything. Stay on the trail: it takes years to grow back.', 'This forest inspired the animated film “Princess Mononoke”.'],
     'panneau-tsuji': ['“辻峠 Tsuji Pass”', '↑ 太鼓岩 Taiko-iwa · ← 縄文杉 Jōmon Sugi (by the railway) · ↓ 白谷雲水峡 Shiratani Unsuikyō'],
     'panneau-taiko': ['“太鼓岩 Taiko-iwa”', 'The “drum rock”, a granite dome at 1,050 m. From the top: the peaks at the heart of the island and the Anbō valley.'],
     'panneau-voie': ['“安房森林軌道 The Anbō forest railway”', 'Built from 1922 to bring timber down to Anbō port. Still used to look after the trails. Careful: the planks are slippery in the rain.'],
@@ -3391,7 +4262,7 @@ const TEXTES = {
     'panneau-menu': ['“お品書き The menu”', 'Fried flying fish (とびうお唐揚げ) · Broken-neck mackerel (首折れサバ), as sashimi · Fish cakes (つけあげ) · Flying-fish broth noodles · Tankan juice · Yakushima tea'],
   },
   ja: {
-    noms: { batelier: 'せんどうさん', pecheur: 'りょうしさん', touriste: 'とざんきゃく', touriste2: 'とざんきゃく', pretre: 'かんぬしさん', artisan: 'しょくにんさん', loueuse: 'レンタルの　おねえさん', theiere: 'おちゃやさん', serveuse: 'てんいんさん', cuisinier: 'いたまえさん', mangeur: 'おきゃくさん', dineuse: 'おきゃくさん', dineur: 'おきゃくさん', mamie: 'おばあさん', chauffeur: 'バスの　うんてんしゅさん', guichet: 'うけつけの　ひと', guide: 'ガイドさん', randonneur: 'とざんきゃく', photographe: 'カメラマン', videaste: '@random_japan_place', refuge: 'こやに　とまる　ひと', sommets: 'とざんきゃく', agent: 'さぎょういんさん', marcheur: 'とざんきゃく', amoureuse: 'カップルの　かのじょ', amoureux: 'カップルの　かれ', guideJomon: 'ガイドさん', onigiri: 'とざんきゃく', ancien: 'おじいさん' },
+    noms: { ami: 'ちいさな　こだま', batelier: 'せんどうさん', pecheur: 'りょうしさん', touriste: 'とざんきゃく', touriste2: 'とざんきゃく', pretre: 'かんぬしさん', artisan: 'しょくにんさん', loueuse: 'レンタルの　おねえさん', theiere: 'おちゃやさん', serveuse: 'てんいんさん', cuisinier: 'いたまえさん', mangeur: 'おきゃくさん', dineuse: 'おきゃくさん', dineur: 'おきゃくさん', mamie: 'おばあさん', chauffeur: 'バスの　うんてんしゅさん', guichet: 'うけつけの　ひと', guide: 'ガイドさん', randonneur: 'とざんきゃく', photographe: 'カメラマン', videaste: '@random_japan_place', refuge: 'こやに　とまる　ひと', sommets: 'とざんきゃく', agent: 'さぎょういんさん', marcheur: 'とざんきゃく', amoureuse: 'カップルの　かのじょ', amoureux: 'カップルの　かれ', guideJomon: 'ガイドさん', onigiri: 'とざんきゃく', ancien: 'おじいさん' },
     tampons: {
       yakujinja: ['しまの　じんじゃ', 'みなとの　ひがしの　はし：益救神社に　おまいりする'],
       sarushika: ['サルと　シカ', '苔むす森の　ひがしがわ：えだの　サルと、その下の　シカを　見る'],
@@ -3427,7 +4298,7 @@ const TEXTES = {
     chauffeur: ['バスは　みなとから　ここ、白谷雲水峡の　いりぐちまで　のぼって　くるんだ。きゅうな　さかだろ？', 'みちの　サルと　シカに　ちゅうい。じぶんの　いえみたいに　あるいてるからな。'],
     guichet: ['白谷雲水峡へ　ようこそ！　ここで　森と　とざんどうを　まもる　ための　きょうりょくきんを　おねがいしています。', 'ありがとうございます！　よい　とざんを。とざんどうから　はずれないでくださいね。'],
     guide: ['白谷の　森へ　ようこそ！　ルールは：とざんどうから　はずれない、コケを　ふまない、サルや　シカに　えさを　あげない。', 'この　先は　苔むす森、それから　辻峠。みぎへ　いくと　太鼓岩、ひだりへ　いくと　縄文杉へ　つづく　トロッコの　みちよ。'],
-    guideChampignons: ['そうそう、こやに　とまるなら……　ある　よるに　苔むす森で、ちいさな　キノコが　みどりいろに　ひかるの。', 'いちど　見たことが　あるわ。まるで　みちを　おしえて　くれてる　みたいだった……'],
+    guideEsprits: ['しってる？　この森は　アニメえいが「もののけ姫」の　ヒントに　なったの。', 'ふるい　木には　ちいさな　こだまが　すんでるって、むかしの　ひとは　いうのよ。とざんどうの　そばを　よく　見てね。あまり　かくれて　いないから。'],
     guideNuit: ['よるの　森は　すみみたいに　まっくら。とざんどうから　はなれないでね！'],
     randonneur: ['この　いしだん、いい　じゅんびうんどう！　この　先に　かわの　上の　つりばしが　あるよ。', 'きいて。すぐ　そこで　飛流おとしが　かこうがんの　上を　すべっていくんだ。'],
     cascade: ['飛流おとし。白谷川の　みずが、しろい　あわに　なって　大きな　かこうがんの　いわの　上を　すべりおちる。', '屋久島の　かこうがんは、ずっと　むかしに　ちかから　あがってきた　いわ。しまの　山も　この　いわで　できているんだ。'],
@@ -3459,15 +4330,47 @@ const TEXTES = {
     libellule: ['トンボが　みずべの　コケの　いわに　とまった。'],
     grenouille: ['さわの　いしの　上の　まみどりの　アマガエル。', 'よるに　なると、森じゅうで　なかまが　うたうよ。'],
     champignons: ['コケに　おおわれた　たおれぎに、ちいさな　しろっぽい　キノコ。よく　見ないと　わからない。'],
-    champignonsNuit: ['見て……　ちいさな　キノコが　ひかってる！　かれきの　上に、やさしい　みどりの　ひかり。', 'にしの　ほうにも、まだ　ある……　森の　なかに　みちを　つくってるみたい。'],
-    champignonsNuitCompagnon: { kon: ['「森の　ちいさな　ちょうちん……　ついていこう！」'], pon: ['「ポン？！　ひかる　キノコ……　たべないよね？　ついていくんだよね。」'], chapu: ['「チャプー！　ひかりの　みち！　こっち、こっち！」'], gao: ['「ガオ……　ひかりが　まもる　みち。さきに　いく。」'], fuwa: ['「フワ……　うみの　そこの　ひかりみたい。よんでるよ。」'], saya: ['「森が　あかりを　ともしてる……　なにかを　見せたいんだ。」'] },
-    creux: ['かれた　ふるい　スギ。おれて、なかが　からっぽ。なかは　まっくら。', 'おくの　木に　ちいさな　キノコが　はえている。'],
-    creuxCompagnon: { kon: ['「ガイドさんが　よるに　ひかる　キノコの　はなしを　してたね……　くらく　なったら　また　こない？」'], pon: ['「ポン……　なかが　くらすぎ。よるに、ひかる　キノコと　いっしょに　こよう！」'], chapu: ['「チャプ！　よるの　ほうが　きれいそう。」'], gao: ['「ガオ。ひるは　なにも　ない。よるなら……」'], fuwa: ['「フワ……　この　あなは　よるを　まってる。」'], saya: ['「この　ふるい　スギは　ひみつを　もってる……　よるが　おしえて　くれる。」'] },
-    creuxNuit: ['キノコが　ここまで　みちを　おしえてくれた……　ふるい　スギの　なかで、なにかが　ひかる。'],
-    creuxKoban: ['キノコの　わが　ひとつずつ　ひかって……　まんなかの　コケの　ざぶとんに、きんいろの　コバンが　ひかっている！'],
-    creuxKobanCompagnon: { kon: ['「森が　まもって　くれてたんだね……　ありがとう、キノコさん。」'], pon: ['「ポンポンポン！　きんだ！　ブンブクおじさん　よろこぶぞ！」'], chapu: ['「チャプー！　木の　なかの　たからもの！」'], gao: ['「ガオ！　よく　まもられ、よく　みつけた。」'], fuwa: ['「フワ……　森にも　うみみたいに　たからが　あるんだ。」'], saya: ['「ふるい　スギが　くれたのよ。あなたが　やさしいって。」'] },
-    creuxApres: ['ふるい　からっぽの　スギ。ちいさな　キノコが　やみの　なかで　見まもっている。'],
-    creuxApresNuit: ['あなの　おくで　キノコの　わが　やさしく　ひかる。森が「おやすみ」って　いってる。'],
+    creux: ['かれた　ふるい　スギ。おれて、なかが　からっぽ。なかは　まっくら。', '木の　まえの　じめんに、ちいさな　あしあと。木の　なかへ　はいって……　でてきて　いない。'],
+    creuxCompagnon: { kon: ['「この　ちいさな　あしあと……　こだまたちなら　なかの　ことを　しっているかも。ぜんぶ　さがそう。」'], pon: ['「ポン……　くらすぎるよ。さきに　こだまを　ぜんぶ　さがそう！」'], chapu: ['「チャプ！　こだまの　あしあとだ！　とざんどうに　まだ　いるよ！」'], gao: ['「ガオ。ここは　まだ　とおれない。ほかの　こだまを　さがそう。」'], fuwa: ['「フワ……　木は　こだまを　まっている。みんなを。」'], saya: ['「いとこたちは　ここを　とおるんだ。でも、みんな　そろわないと　木は　ひらかない。」'] },
+    espritPremier: ['森の　ちいさな　こだま！　まんまるな　かおで　こっちを　見ている。', 'トクトク！　うれしそうに　とびはねて……　ついてくる。'],
+    espritCompagnon: { kon: ['「木の　せいれいだ！　とざんどうの　そばに、まだ　いるはず。ぜんぶ　さがそう！」'], pon: ['「ポン！　ちっちゃい！　ともだちが　かくれてるはず。さがそう！」'], chapu: ['「チャプ！　こだまだ！　とざんどうに　まだ　いるよ！」'], gao: ['「ガオ。森の　せいれいだ。ひとりでは　ない。とざんどうの　そばを　さがそう。」'], fuwa: ['「フワ……　やさしい　こだま。きょうだいが　とざんどうに　いるよ。」'], saya: ['「いとこだ！　ほかの　こも　ちかくに　いるよ。とざんどうの　そばを　よく　見て。」'] },
+    espritAutre: (n) => `また　こだまだ！　とびはねて、れつに　くわわった。トクトク！（${n}/5）`,
+    espritDernier: (ou) => `こだまたちが　足を　ひっぱる……　あと　ひとり。${ou}に　いるみたい。`,
+    lieuxEsprits: { e1: 'つりばしを　わたった　すぐ　先の　とざんどう', e2: 'くぐり杉を　とおった　すぐ　先の　とざんどう', e3: '苔むす森の　ひろばの　石の　上', e4: 'みちが　まじわる　辻峠', e5: 'トロッコ道の　おわり、木の　かいだんの　下' },
+    espritsTous: ['五ひきの　こだまが、うれしそうに　まわりを　とびはねる。どこかへ　つれていきたいみたい！', '苔むす森の　西の　ほうを　見ている。ちいさな　みちの　おくの、からっぽの　ふるい　スギの　ほうだ。'],
+    espritsVers: ['五ひきの　こだまが、苔むす森の　西、ちいさな　みちの　おくの　からっぽの　スギへ　つれていきたがっている。'],
+    espritsTousCompagnon: { kon: ['「ついていこう。こだまたちは　みちを　しっている。」'], pon: ['「ポン！　いちれつ！　ぼくは　いちばん　うしろ！」'], chapu: ['「チャプー！　いこう、いこう！」'], gao: ['「ガオ。まもって　やる。しゅっぱつだ。」'], fuwa: ['「フワ……　そっと　よんでるよ。」'], saya: ['「とても　としを　とった　かたに　あわせて　くれるんだ。ぎょうぎよくね。」'] },
+    espritMaison: ['トクトク！　こだまが　うれしそうに　手を　ふっている。'],
+    creuxEsprits: ['こだまたちが　ふるい　スギの　まえに　あつまった。ひとり　また　ひとり、やみの　なかへ……'],
+    creuxOuvert: ['あなの　おくで　ふるい　木が　ひらく。やさしい　ひかりが　よんでいる。'],
+    creuxOuvertCompagnon: { kon: ['「むこうで　まっているよ。いこう。」'], pon: ['「ポン……　わかった。でも　さきに　いってね。」'], chapu: ['「チャプ！　ひかってる！　いく、いく！」'], gao: ['「ガオ。ついていく。」'], fuwa: ['「フワ……　むこうに　水が　ある。わかるよ。」'], saya: ['「ふるい　森の　とびらだ。しずかにね。」'] },
+    nuitDerriere: ['木の　こちらがわは、よるだ。', 'コケむした　石の　かいだんが　森へ　のぼっていく。こだまたちが　ちいさな　あかりのように　先を　はねていく。'],
+    bassinVu: ['森の　おくに　かくれた、しずかな　いけ。お月さまが　まるごと　うつっている。', 'こだまたちは　きしに　ならんで……　そっと　たたきはじめた。トク、トク、トク。'],
+    cerfReponse: ['とおくで、なにかが　こたえた。'],
+    cerfVient: ['とても　大きな　シカが　森から　あらわれた。せなかは　コケと　シダに　おおわれ、つのには　ちいさな　白い　花が　さいている。', 'あるくたびに、水の　上に　花が　ひらく。'],
+    cerfRegarde: ['シカは　きみの　まえで　とまり、じっと　見つめる。いきも　できない。'],
+    cerfCompagnon: { kon: ['「……森の　まもりがみだ。うごかないで。おじぎを。」'], pon: ['「ポン……」', '（ポンが　こんなに　しずかなのは　はじめて。）'], chapu: ['「チャプ……　木みたいに　大きい……」'], gao: ['「ガオ。わたしでも　あたまを　さげる。」'], fuwa: ['「フワ……　おじいさんが　はなしてくれた。海の　王さまに　たいする、山の　王さまだって。」'], saya: ['「ずっと　ぼくたちを　見まもって　くれている　かただよ。ごあいさつを。」'] },
+    cerfKoban: ['大きな　あたまを　きみの　ほうへ　さげて、そっと　いきを　ふいた。ひかりの　わが　水の　上に　ひろがって……', '……そこから　きんいろの　小判が　うかんできた！'],
+    cerfKobanCompagnon: { kon: ['「みとめて　くれたんだね……　ありがとう、まもりがみさま。」'], pon: ['「ポンポンポン！　きんだ！（小さな　こえで。）ブンブクおじさん　よろこぶぞ！」'], chapu: ['「チャプー！　森の　たからもの！」'], gao: ['「ガオ！　よく　やった。」'], fuwa: ['「フワ……　森にも　海みたいに　たからが　あるね。」'], saya: ['「やさしい　こだって　わかったんだ。まちがえないよ。」'] },
+    cerfPart: ['大きな　シカは　おとも　なく　もどっていき、木の　あいだに　きえた。あるいた　あとには、花が　さいたまま。'],
+    espritsPartent: ['こだまたちが　おじぎを　した。トクトク！　そして　とざんどうの　そばの　石へ、それぞれ　かえっていく。'],
+    amiReste: ['でも、とても　ちいさな　こだまが　ひとり、きしに　のこっている。かたむいた　わかぎの　そばで、こっちを　見ている……'],
+    amiDemande: ['トク……　大きな　シカを　よんでくれたんだね……　ぼくも　たすけて　くれる？', 'ぼくの　ちいさな　スギが　のどが　かわいているの。ほら、かたむいてる。いけの　水は　ねっこに　とどかない。', '大きな　きりかぶの　なかを　ながれる　わき水が　いるの。空が　ハートに　見える　ところ。もってきて　くれる？'],
+    amiDemandeCompagnon: { kon: ['「ウィルソン株だ！　峠の　むこう、トロッコ道の　おわりだよ。なかに　わき水が　あるんだ。」'], pon: ['「ポン！　大きな　きりかぶ！　峠を　こえて、線路に　そって。たべものも　あると　いいな。」'], chapu: ['「チャプ！　水なら　まかせて！　峠の　先の　トロッコ道だよ！」'], gao: ['「ガオ。ウィルソン株は、峠を　こえて　線路に　そって　いく。いっしょに　いこう。」'], fuwa: ['「フワ……　木の　なかの　わき水。峠を　こえて、線路を　たどって。」'], saya: ['「峠の　先の　ふるい　ウィルソン株だね。あの　水は　わかい　木を　めざめさせるんだ。」'] },
+    amiRappel: ['トク……　空が　ハートに　見える　大きな　きりかぶの　わき水だよ。ちいさな　スギが　まってる。'],
+    source: ['大きな　はっぱに　わき水を　くんだ。つめたい！　こぼさないでね！'],
+    amiArrose: ['わき水を　そっと　わかぎの　ねもとに　そそいだ……'],
+    amiMerci: ['見て！　あたまを　あげた！　大きく　なった！', 'ありがとう、ありがとう！　トクトクトク！'],
+    amiQuestion: ['ねえ……　いっしょに　いっても　いい？　ちいさいから　じゃまに　ならないよ。'],
+    amiOui: ['やったー！　ぼく、あるくの　はやいよ！　つかれたら、きみの　ともだちの　せなかに　のるね。'],
+    amiNon: ['じゃあ、ちいさな　スギと　ここに　いるね。また　あいに　きてね。'],
+    amiVenir: ['トクトク！　おかえり！　ぼくの　スギ、こんなに　のびたよ。'],
+    amiParle: (nom) => [`トクトク！　${nom}の　せなかに　のっても　いい？`],
+    amiOptions: (nom) => [`${nom}の　せなかに　のって`, 'スギの　ところへ　おかえり', 'なんでもない'],
+    amiMonte: ['ぴょん！　いくよ！'],
+    amiAttend: ['わかった。スギの　ところへ　かえるね。どこに　いるか　しってるよね！'],
+    amiBateau: ['トク……　ぼくは　島から　でられないの。聖なる　森の　そばに　いなくちゃ。ここが　ぼくの　おうち。', 'ここで　まってる。はやく　かえってきてね！'],
+    amiDosCompagnon: { kon: ['「おや！　せなかに　のったね。しっかり　つかまって。」'], pon: ['「ポン！　くすぐったい！　まあ、いいか。」'], chapu: ['「チャプ！　つかまって、はねるよ！」'], gao: ['「ガオ。ちゃんと　すわれ。」'], fuwa: ['「フワ……　いっしょに　うかぼう。」'], saya: ['「いとこよ、見た目より　おもいね。」'] },
     hokora: ['かぶの　なかの　ちいさな　おやしろ、木魂神社の　まえで　二かい　てを　たたく。', 'あしもとで　おかねが　ひかる。とざんきゃくが　ひとつずつ　おいていくんだ。'],
     wilson: ['上を　見ると……　ふるい　かぶの　ふちの　あいだで、そらが　ハートの　かたちに！', 'ウィルソン株。二千から　三千ねん　いきた　スギで、十六せいきに　きられた（みきまわり　13.8メートル）。ハートが　見えると　こいが　かなうって　いうよ。'],
     wilsonNuit: ['上を　見ると……　くらやみの　ハートが　ほしで　いっぱい。'],
@@ -3487,7 +4390,7 @@ const TEXTES = {
     'panneau-yayoi': ['「弥生杉」', 'じゅれい　やく　三千ねん、たかさ　26.1メートル、みきまわり　8.1メートル。まがった　かたちで　いい　いたが　とれないので、きられなかった。'],
     'panneau-nidai': ['「二代大杉」', 'きられた　ふるい　スギの　きりかぶの　上に、わかい　スギが　そだった（きりかぶこうしん）。たにで　いちばん　たかい（32メートル）。'],
     'panneau-kuguri': ['「くぐり杉」', 'ねが　とざんどうの　上で　アーチに　なっていて、下を　くぐれる　スギ。'],
-    'panneau-koke': ['「苔むす森」', 'しっけが　おおく、いわだらけ。なにもかも　コケに　おおわれている。コケは　もとに　もどるのに　なんねんも　かかるので、とざんどうを　あるこう。'],
+    'panneau-koke': ['「苔むす森」', 'しっけが　おおく、いわだらけ。なにもかも　コケに　おおわれている。コケは　もとに　もどるのに　なんねんも　かかるので、とざんどうを　あるこう。', 'この森は　アニメえいが「もののけ姫」の　ヒントに　なった。'],
     'panneau-tsuji': ['「辻峠」', '↑ 太鼓岩　・　← 縄文杉（トロッコの　みち）　・　↓ 白谷雲水峡'],
     'panneau-taiko': ['「太鼓岩」', 'ひょうこう　1050メートルの　かこうがんの　ドーム。上から　しまの　まんなかの　山やまと　安房川の　たにが　見える。'],
     'panneau-voie': ['「安房森林軌道」', '1922ねんから、木を　安房港まで　おろす　ために　つくられた。いまも　とざんどうの　せいびに　つかわれる。雨の　日は　いたが　すべるので　ちゅうい。'],

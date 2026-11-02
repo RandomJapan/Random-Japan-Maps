@@ -1308,6 +1308,8 @@ function creerMiroir(m) {
     rendre(rendu, scene, cam, net = false) {
       u.miroirActif.value = 0;
       if (cam.position.y < m.y + 0.05) return false;
+      // (pres : [x, z, r] : seulement la caméra à moins de r de là : le bassin caché de Yakushima, qu'on ne voit de nulle part ailleurs)
+      if (m.pres && Math.hypot(cam.position.x - m.pres[0], cam.position.z - m.pres[1]) > m.pres[2]) return false;
       // la caméra symétrique : sa position, sa direction et son haut retournés par le plan de l'eau
       cam.updateMatrixWorld();
       virtuelle.position.set(cam.position.x, 2 * m.y - cam.position.y, cam.position.z);
@@ -2357,8 +2359,11 @@ $('.garde-robe').addEventListener('click', (e) => {
 function porterPiece(p) {
   const tenue = lireTenue(sorte, totalTampons);
   if (tenue[p.place] === p.id) return;
-  tenue[p.place] = p.id;
-  ecrireTenue(sorte, tenue);
+  // (avec : ce qu'on met en même temps : la cape du loup enlève le chapeau, pour que sa capuche se lève ; on peut le remettre ensuite)
+  if (p.avec) for (const id of p.avec) porterPiece(piece(id));
+  const tenue2 = p.avec ? lireTenue(sorte, totalTampons) : tenue;
+  tenue2[p.place] = p.id;
+  ecrireTenue(sorte, tenue2);
   if (p.place === 'pas') {
     M.trace = p.id !== 'trace-aucune' ? p.id.slice(6) : null;
     if (M.trace) for (let k = 0; k < 3; k++) M.effets.trace(M.trace, etat.x + (k - 1) * 0.2, etat.y, etat.z, true);
@@ -2714,6 +2719,10 @@ const jeu = {
   cacherVoyageur(oui) { M.joueur.objet.visible = !oui; M.kon.objet.visible = !oui; },
   /** Le compagnon choisi : 'kon', 'pon' ou 'chapu' (ce qu'il dit dans les lieux en dépend ; dire(…, 'compagnon')). */
   get compagnon() { return espece || 'kon'; },
+  /** Son nom, dans la langue du joueur. */
+  get nomCompagnon() { return tc('nom'); },
+  /** La caméra derrière le voyageur, tout de suite (il vient d'être posé ailleurs). */
+  cameraDerriere(decalage = 0) { cam.lacet = etat.cap + Math.PI + decalage; camera.userData.place = false; },
   /**
    * La caméra posée ailleurs, le temps d'un regard : { de: [x, y, z], vers: [x, y, z], champ (en degrés) }, ou null :
    * elle revient derrière le joueur.
@@ -2783,6 +2792,11 @@ const jeu = {
     const cote = fc >= -marge && fc <= 1 + marge ? { x: b.de[0] + fc * (b.a[0] - b.de[0]), z: b.de[1] + fc * (b.a[1] - b.de[1]), y: b.y, cap: b.cap } : null;
     this.asseoir({ x: p.x, z: p.z, y: b.y, cap: b.cap, libre: true, cote }, { lacet: b.cap + Math.PI + (b.vue ?? 0.35), tangage: 0.2, distance: 4.6 });
   },
+  /**
+   * L'écran qui se couvre d'une lumière pâle (oui), ou se découvre, en une demi-seconde ; se résout une fois fait (2026-11-01, Yakushima : on
+   * passe à travers le vieux cèdre creux ; de l'autre côté, il fait nuit).
+   */
+  fondu: (oui) => new Promise((fin) => { $('.fondu').classList.toggle('vue', oui); setTimeout(fin, 560); }),
   /** La vapeur (d'un sauna) qui envahit l'écran (oui), ou se dissipe. */
   vapeur: (oui) => $('.vapeur-ecran').classList.toggle('visible', oui),
   /** On ressort en sueur : les habits trempés sèchent dans une dizaine de secondes ; le compagnon s'ébrouera. */
@@ -2965,6 +2979,8 @@ const contexteAnime = {
   refleter: (calque, oui) => { if (M.miroir) M.miroir.calques[oui ? 'enable' : 'disable'](calque); },
   // (2026-10-28, Motonosumi : le compteur des torii écrit en bas de l'écran, dans la langue du joueur, sans arrêter la marche)
   aide: (texte) => jeu.aide(texte), tx: (cle) => tx(cle),
+  // (2026-11-01, Yakushima : le petit esprit qui monte sur le dos du compagnon ; les rides sous les pas du grand cerf)
+  renard, get kon() { return M.kon; }, rond: (x, y, z, r, d) => M.effets.rond(x, y, z, r, d),
 };
 /** Une scène : le joueur s'arrête le temps d'un dialogue (fn(jeu)), puis repart. */
 async function jouerScene(fn) {

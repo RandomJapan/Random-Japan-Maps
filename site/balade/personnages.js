@@ -170,6 +170,167 @@ export function capeCormoran(THREE, atelier, { y = 0.8, k = 1 } = {}) {
 }
 
 /**
+ * La cape du loup blanc (Yakushima, 2026-11-01 : la récompense de ses tampons, choisie par le propriétaire à la place du chapeau-champignon) :
+ * une fourrure blanche sur les épaules et le dos, en rangs de mèches pointues qui se recouvrent, le bout un peu gris, comme le pelage d'un
+ * loup ; un gros col de fourrure ; la capuche et ses deux oreilles : couchée dans le dos (capucheDos), ou levée sur la tête quand on n'a pas de
+ * chapeau (capucheTete, dans le repère de la tête : cy, son milieu ; r, son rayon). Ouverte devant, comme le mino et la cape de plumes ;
+ * les deux rangs du bas en six morceaux qui s'écartent quand on court (animerCape). Renvoie { haut, ourlet, capucheDos, capucheTete } (des ateliers).
+ */
+export function capeLoup(THREE, atelier, { y = 0.8, k = 1, cy = 0.25, r: rt = 0.3 } = {}) {
+  const PI = Math.PI, t0 = PI - 1.78, t1 = PI + 1.78;
+  const B1 = '#fbf9f3', B2 = '#f6f3ea', B3 = '#f0ece0', B4 = '#e6e1d4', OREILLE = '#d9b6a0', ENCRE = '#3a3236';
+  const BLANCS = [B1, B2, B3, B2];
+  const hasardP = (n) => { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+  // (des mèches sans trait d'encre, à peine plus sombres au bout : avec un trait et un bout gris, soixante lames faisaient une armure, 2026-11-01)
+  const PROFIL = [0.62, 1, 0.94, 0.66, 0.14];
+  const meche = (a, base, pointe, normale, large, c, j = 0) => plumeCormoran(THREE, a, { base, pointe, normale, large, epais: 0.008, c, bout: B4, finBout: 0.82, roulis: j % 2 ? 0.1 : -0.1, bombe: 0.016, profil: PROFIL, trait: false });
+  const r = (yy) => (0.21 + (y - yy) * 0.36) * k;
+  const haut = atelier(), ourlet = [];
+  // le dessous, d'un seul tenant : il donne son trait d'encre au dehors de la cape ; la doublure, vue par devant, sous les bras
+  for (const [ya, yb, d] of [[y - 0.2, y + 0.015, 0.008], [y - 0.44, y - 0.18, 0.04]]) {
+    const h = yb - ya;
+    haut.piece(new THREE.CylinderGeometry(r(yb) - d, r(ya) - d, h, 26, 1, true, t0, t1 - t0), B3, { y: (ya + yb) / 2, nuance: 0.01 });
+    haut.piece(new THREE.CylinderGeometry(r(yb) - d - 0.008, r(ya) - d - 0.008, h, 26, 1, true, t0, t1 - t0), '#b4afa2', { y: (ya + yb) / 2, sx: -1, trait: false });
+  }
+  // les rangs de mèches, du bas vers le haut : [pointe, base, largeur, nombre] ; les deux du bas en six morceaux (ils s'écartent quand on court)
+  const RANGS = [[y - 0.52, y - 0.28, 0.135, 15], [y - 0.42, y - 0.2, 0.128, 15], [y - 0.3, y - 0.11, 0.118, 14], [y - 0.2, y - 0.03, 0.108, 13]];
+  const [yt1, yb1] = RANGS[1], yp = RANGS[2][0] + 0.012, rp = r(yb1) + 0.014 + (r(yt1) + 0.012 - r(yb1)) * ((yb1 - yp) / (yb1 - yt1));
+  RANGS.forEach(([yt, yb, large, n], i) => {
+    const dr = 0.014 * i, morceaux = i <= 1 ? 6 : 1;
+    for (let j = 0; j < n; j++) {
+      const t = t0 + ((j + 0.5 + (i % 2 ? 0.5 : 0)) / (n + (i % 2 ? 0.5 : 0))) * (t1 - t0), s = Math.sin(t), c = Math.cos(t), rb = r(yb) + dr, ytt = yt - 0.04 * hasardP(i * 17 + j), rtt = r(ytt) + dr + 0.01;
+      const q = { base: [rb * s, yb, rb * c], pointe: [rtt * s, ytt, rtt * c], normale: [s, 0.3, c], large: large * k, c: BLANCS[Math.floor(hasardP(i * 31 + j) * 4)], j };
+      if (morceaux === 1) { meche(haut, q.base, q.pointe, q.normale, q.large, q.c, j); continue; }
+      const m = Math.min(5, Math.floor((j / n) * morceaux));
+      if (!ourlet[m]) {
+        const tm = t0 + ((m + 0.5) / morceaux) * (t1 - t0);
+        ourlet[m] = { a: atelier(), pivot: [rp * Math.sin(tm), yp, rp * Math.cos(tm)], axe: [-Math.cos(tm), 0, Math.sin(tm)], t: tm };
+      }
+      const o = ourlet[m], [px, py, pz] = o.pivot;
+      meche(o.a, [q.base[0] - px, q.base[1] - py, q.base[2] - pz], [q.pointe[0] - px, q.pointe[1] - py, q.pointe[2] - pz], q.normale, q.large, q.c, j);
+    }
+  });
+  /** Un boudin de fourrure le long de points, festonné (des bosses douces) : le col, le bord de la capuche. (Des touffes rondes faisaient un collier de boules grises à facettes.) */
+  const boudin = (a, pts, R, c, n = 16) => {
+    const C = new THREE.CatmullRomCurve3(pts.map((p) => new THREE.Vector3(...p))), PAS = 72, COTES = 8;
+    const g = new THREE.TubeGeometry(C, PAS, R, COTES, false), p = g.attributes.position, cc = new THREE.Vector3();
+    // (chaque rang du tube : plus gros aux bosses, un peu moins entre elles)
+    for (let i = 0; i < p.count; i++) {
+      const rang = Math.floor(i / (COTES + 1)), f = rang / PAS;
+      C.getPoint(f, cc);
+      const b = 0.8 + 0.34 * Math.abs(Math.sin(f * n * PI)) ** 0.7, fin = Math.min(1, Math.min(f, 1 - f) * 16);
+      p.setXYZ(i, cc.x + (p.getX(i) - cc.x) * b * fin, cc.y + (p.getY(i) - cc.y) * b * fin, cc.z + (p.getZ(i) - cc.z) * b * fin);
+    }
+    a.piece(g, c, { nuance: 0.012 });
+  };
+  // le gros col : tout autour du cou, sauf devant
+  {
+    const pts = [];
+    for (let j = 0; j <= 16; j++) { const u = PI - 1.92 + (j / 16) * 3.84; pts.push([0.18 * k * Math.sin(u), y + 0.014, 0.18 * k * Math.cos(u)]); }
+    boudin(haut, pts, 0.078, B1, 12);
+  }
+
+  // ---- la capuche couchée dans le dos : un paquet de fourrure sous la nuque, ses deux oreilles qui dépassent, vues de derrière
+  const capucheDos = atelier();
+  capucheDos.ovale(0.19, B2, { y: y - 0.02, z: -0.262 * k, sx: 1.2, sy: 0.9, sz: 0.72, nuance: 0.012 }, 14);
+  for (let j = 0; j < 7; j++) {
+    const s = -1 + (j / 6) * 2;
+    meche(capucheDos, [s * 0.17, y + 0.07 - 0.03 * Math.abs(s), -0.33 * k], [s * 0.21, y - 0.19, -0.33 * k + 0.02 * Math.abs(s)], [s * 0.3, 0.2, -1], 0.1, BLANCS[j % 4], j);
+  }
+  for (const s of [-1, 1]) {
+    capucheDos.cone(0.07, 0.2, 6, B1, { x: s * 0.105, y: y + 0.135, z: -0.34 * k, sz: 0.5, rx: -0.42, rz: -s * 0.2 })
+      .cone(0.042, 0.13, 6, OREILLE, { x: s * 0.105, y: y + 0.125, z: -0.306 * k, sz: 0.3, rx: -0.42, rz: -s * 0.2, trait: false });
+  }
+
+  // ---- la capuche levée : une coque de fourrure ajustée à la tête, ouverte sur le visage, bordée de touffes rondes comme une parka ; deux oreilles de
+  // loup, droites ; sur le front, le museau du loup, sa truffe et ses yeux fermés ; dans la nuque, des mèches qui rejoignent le col
+  const capucheTete = atelier(), RC = rt + 0.05, N = 28, M = 16, pos = [], cols = [];
+  const dir = (l, b) => [Math.sin(l) * Math.cos(b), Math.sin(b), Math.cos(l) * Math.cos(b)];
+  const bossele = (l, b) => 1 + 0.016 * Math.sin(l * 7 + b * 6) + 0.013 * Math.sin(l * 13 - b * 9) + 0.01 * Math.sin(l * 23 + b * 17);
+  const pt = (l, b) => { const d = dir(l, b), R = RC * bossele(l, b); return [d[0] * R, cy + 0.01 + d[1] * R * 1.02, -0.016 + d[2] * R]; };
+  const visage = (l, b) => (l / 1.12) ** 2 + ((b + 0.04) / 0.8) ** 2 < 1;
+  const dessous = (l) => -0.62 - 0.55 * (Math.abs(l) / PI);
+  const quad = (A, B, C, D, n, c) => {
+    const tri = (P, Q, S) => { const ux = Q[0] - P[0], uy = Q[1] - P[1], uz = Q[2] - P[2], vx = S[0] - P[0], vy = S[1] - P[1], vz = S[2] - P[2], nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx; if (nx * n[0] + ny * n[1] + nz * n[2] < 0) pos.push(...P, ...S, ...Q); else pos.push(...P, ...Q, ...S); cols.push(c); };
+    tri(A, B, C); tri(A, C, D);
+  };
+  for (let i = 0; i < N; i++) {
+    for (let j = 0; j < M; j++) {
+      const l0 = -PI + (i / N) * 2 * PI, l1 = -PI + ((i + 1) / N) * 2 * PI, b0 = -PI / 2 + 0.2 + (j / M) * (PI - 0.2), b1 = -PI / 2 + 0.2 + ((j + 1) / M) * (PI - 0.2), lm = (l0 + l1) / 2, bm = (b0 + b1) / 2;
+      if (visage(lm, bm) || bm < dessous(lm)) continue;
+      const n = dir(lm, bm);
+      quad(pt(l0, b0), pt(l1, b0), pt(l1, b1), pt(l0, b1), n, B2);
+      // (l'envers, un rien plus petit, plus sombre : autour du visage)
+      const dd = (P) => [P[0] * 0.962, cy + 0.01 + (P[1] - cy - 0.01) * 0.962, -0.016 + (P[2] + 0.016) * 0.962];
+      quad(dd(pt(l0, b0)), dd(pt(l1, b0)), dd(pt(l1, b1)), dd(pt(l0, b1)), [-n[0], -n[1], -n[2]], '#a8a396');
+    }
+  }
+  {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    capucheTete.piece(g, B2, { couleurs: cols, nuance: 0.012 });
+  }
+  // le bord : un boudin de fourrure autour du visage, d'une joue à l'autre, par-dessus la tête
+  {
+    const pts = [];
+    for (let j = 0; j <= 24; j++) {
+      const u = -2.62 + (j / 24) * 5.24, l = 1.17 * Math.sin(u), b = -0.04 + 0.85 * Math.cos(u), d = dir(l, b);
+      pts.push([d[0] * RC * 1.005, cy + 0.01 + d[1] * RC * 1.005, -0.016 + d[2] * RC * 1.005]);
+    }
+    boudin(capucheTete, pts, 0.052, B1, 20);
+  }
+  // (des mèches sur le crâne et le derrière de la tête : toute lisse, on aurait dit une boule)
+  for (const [b0, n, dl] of [[0.62, 9, 2.1], [0.2, 11, 2.3], [-0.2, 11, 2.4]]) {
+    for (let j = 0; j < n; j++) {
+      const l = PI - dl + ((j + 0.5) / n) * 2 * dl, ll = l > PI ? l - 2 * PI : l, bb = b0 + 0.05 * ((j % 2) * 2 - 1), P = pt(ll, bb), Q = pt(ll, bb - 0.42), d = dir(ll, bb);
+      meche(capucheTete, [P[0] * 0.985, cy + (P[1] - cy) * 0.985, P[2] * 0.985], [Q[0] * 1.03, cy + (Q[1] - cy) * 1.03, Q[2] * 1.03], d, 0.1, BLANCS[(j + n) % 4], j);
+    }
+  }
+  // dans la nuque, des mèches
+  for (let j = 0; j < 8; j++) {
+    const l = PI - 1.0 + ((j + 0.5) / 8) * 2.0, ll = l > PI ? l - 2 * PI : l, b = dessous(ll) + 0.2, P = pt(ll, b), d = dir(ll, b);
+    meche(capucheTete, [P[0] * 0.97, P[1] + 0.08, P[2] * 0.97], [P[0] * 1.06, P[1] - 0.13, P[2] * 1.06], [d[0], 0.2, d[2]], 0.095, BLANCS[j % 4], j);
+  }
+  for (const s of [-1, 1]) {
+    const O = pt(s * 0.62, 0.92);
+    capucheTete.cone(0.1, 0.27, 6, B1, { x: O[0] + s * 0.012, y: O[1] + 0.095, z: O[2] - 0.012, sz: 0.52, rz: -s * 0.2, ry: s * 0.15 })
+      .cone(0.06, 0.17, 6, OREILLE, { x: O[0] + s * 0.009, y: O[1] + 0.08, z: O[2] + 0.024, sz: 0.3, rz: -s * 0.2, ry: s * 0.15, trait: false });
+  }
+  // le museau du loup, sur le front (la truffe, la bouche fermée, les yeux fermés)
+  const M0 = pt(0, 0.84);
+  capucheTete.ovale(0.105, B1, { x: 0, y: M0[1] + 0.012, z: M0[2] + 0.012, sx: 0.92, sy: 0.7, sz: 1.12, rx: 0.42 }, 12)
+    .ovale(0.058, B2, { x: 0, y: M0[1] - 0.022, z: M0[2] + 0.092, sx: 0.8, sy: 0.62, sz: 1.2, rx: 0.42 }, 8)
+    .ovale(0.024, ENCRE, { x: 0, y: M0[1] - 0.052, z: M0[2] + 0.16, sx: 1.15, sy: 0.8, sz: 0.8, trait: false }, 6);
+  for (const s of [-1, 1]) capucheTete.boite(0.052, 0.008, 0.012, ENCRE, { x: s * 0.062, y: M0[1] + 0.058, z: M0[2] + 0.052, rz: -s * 0.3, ry: s * 0.45, rx: 0.42, trait: false });
+  return { haut, ourlet, capucheDos, capucheTete };
+}
+
+/**
+ * Le collier de crocs de la cape du loup : un cordon de cuir autour du cou, qui retombe sur la poitrine (comme le collier de magatama : mêmes
+ * mesures, BUSTES), et cinq crocs d'ivoire pendus devant, le plus grand au milieu. On ne le porte que si rien d'autre n'est au cou.
+ */
+export function collierCrocs(THREE, a, { bas = 0.735, avant = 0.014, rayon = (y) => 0.15 + 0.022 * Math.min(1, Math.max(0, (0.8 - y) / 0.25)), aplati = 0.9 } = {}) {
+  const PI = Math.PI, CUIR = '#6a4a30', IVOIRE = '#f2e6c4', BOUT = '#d9c79c';
+  const buste = (x, y) => { const r = rayon(y); return aplati * r * Math.sqrt(Math.max(0, 1 - (x / r) ** 2)); };
+  const point = (t) => {
+    const c = Math.cos(t), devant = Math.max(0, -c), d2 = devant * devant;
+    const x = Math.sin(t) * (0.1 - 0.045 * d2), y = 0.84 + (bas - 0.84) * d2;
+    const derriere = -0.07 * Math.max(0, c), w = Math.min(1, Math.max(0, -c / 0.3));
+    return [x, y, derriere * (1 - w) + (buste(x, y) + avant) * w];
+  };
+  const tour = [];
+  for (let k = 0; k <= 32; k++) tour.push(point((k / 32) * 2 * PI));
+  a.tube(tour, 0.0065, CUIR, { cotes: 5, pas: 64, trait: false });
+  for (const [e, u] of [[-0.9, 0.78], [-0.46, 0.92], [0, 1.15], [0.46, 0.92], [0.9, 0.78]]) {
+    const [x, y, z] = point(PI + e), L = 0.072 * u, inc = -e * 0.28;
+    // (un croc : pointé vers le bas, un peu tourné vers le milieu ; son talon pris dans le cordon)
+    a.cone(0.0155 * u, L, 6, IVOIRE, { x: x + Math.sin(inc) * L * 0.46, y: y - Math.cos(inc) * L * 0.46 - 0.002, z: z + 0.008, rx: PI, rz: inc, teinte: (px, py) => (py < y - L * 0.68 ? BOUT : IVOIRE) })
+      .ovale(0.0105 * u, CUIR, { x, y: y + 0.002, z: z + 0.006, sy: 0.7, trait: false }, 6);
+  }
+  return a;
+}
+
+/**
  * Le collier de magatama (勾玉, Takachiho, 2026-10-25) : les joyaux en forme de virgule des dieux du Japon (le collier
  * suspendu à l'arbre sacré devant la grotte d'Amaterasu, avec le miroir). Un cordon autour du cou qui retombe sur la
  * poitrine, des perles de cornaline et de cristal, trois magatama de jade, le plus grand au milieu. bas : la hauteur du bas
@@ -743,28 +904,6 @@ export function creerHeros(ctx, sorte = 'garcon') {
       }
       return a;
     },
-    // le chapeau-champignon (Yakushima, 2026-10-31, la récompense choisie par le propriétaire : « Un chapeau-champignon ») : le
-    // chapeau d'un champignon de la forêt de mousse posé sur la tête, crème à peine vert, son milieu brun, son bord un peu ondulé,
-    // ses lamelles dessous ; deux tout petits champignons qui poussent dessus. La nuit, il brille d'un vert doux (sorte lumiere),
-    // comme les champignons du secret (シイノトモシビタケ)
-    champignon() {
-      const a = atelier(), y = CY + 0.15, R = 0.4, CREME = '#e6edc6', BRUN = '#c4a274', LAMES = '#d6d4b0';
-      a.piece(new THREE.SphereGeometry(R, 24, 9, 0, 2 * PI, 0, PI / 2), CREME, {
-        y, sy: 0.62, sorte: 'lumiere', nuance: 0.03,
-        deformer: (px, py, pz) => { const th = Math.atan2(pz, px), b = 1 + 0.035 * Math.sin(th * 7) * (1 - py / R); return [px * b, py, pz * b]; },
-        teinte: (wx, wy) => (wy > y + R * 0.62 * 0.78 ? BRUN : wy > y + R * 0.62 * 0.6 ? '#d8c8a0' : CREME),
-      });
-      // le dessous : les lamelles (des rayons fins), le bord
-      a.piece(new THREE.RingGeometry(0.1, R * 0.99, 24), LAMES, { y: y + 0.004, rx: PI / 2, trait: false, sorte: 'lumiere' });
-      for (let k = 0; k < 24; k++) { const t = (k / 24) * 2 * PI; a.boite(R * 0.82, 0.012, 0.006, '#bdb894', { x: Math.cos(t) * R * 0.52, y: y + 0.01, z: Math.sin(t) * R * 0.52, ry: -t, trait: false }); }
-      // les deux petits champignons, sur le dessus, un peu penchés
-      for (const [x, z, h, r, inc] of [[0.12, -0.05, 0.1, 0.055, 0.25], [-0.1, 0.07, 0.07, 0.04, -0.3]]) {
-        const yb = y + R * 0.62 * Math.sqrt(Math.max(0, 1 - (x * x + z * z) / (R * R))) - 0.01;
-        a.cylindre(0.012, 0.016, h, 6, '#f2f0e0', { x, y: yb + h / 2, z, rz: inc })
-          .piece(new THREE.SphereGeometry(r, 10, 4, 0, 2 * PI, 0, PI / 2), CREME, { x: x - Math.sin(inc) * h, y: yb + h * Math.cos(inc), z, sy: 0.6, rz: inc, sorte: 'lumiere' });
-      }
-      return a;
-    },
     // la coiffe du héron blanc (Himeji, le « Héron blanc ») : un héron perché sur la tête comme un chapeau, le corps blanc
     // et ses ailes repliées, le cou en S qui se dresse devant, la tête au bec jaune, l'œil noir, la petite huppe ; derrière,
     // les longues plumes de la parade (les aigrettes) qui retombent
@@ -957,14 +1096,16 @@ export function creerHeros(ctx, sorte = 'garcon') {
   // la cape en plumes de cormoran (Udo, 2026-10-31) : le haut, sur les épaules ; l'ourlet, six morceaux qui s'écartent (un peu
   // en marchant, plus en courant, grand ouvert quand on saute, qu'on danse ou qu'on fait « Ouais ! »), plus au dos que sur les
   // côtés, et qui battent chacun à son tour (la phase avance à chaque image)
-  let cape = null, ecartCape = 0, phaseCape = 0;
+  // (la cape du loup, Yakushima : pareil ; capeL, sa capuche à part : capuche, couchée dans le dos ou levée sur la tête)
+  let cape = null, capeL = null, ecartCape = 0, phaseCape = 0;
   const animerCape = (dt, vitesse, fete) => {
-    if (!cape || !cape.objet.visible) return;
+    const C = cape?.objet.visible ? cape : capeL?.objet.visible ? capeL : null;
+    if (!C) return;
     const vif = fete || vitesse > 4.4, voulu = fete ? 0.5 : vif ? 0.36 : vitesse > 0.4 ? 0.12 : 0;
     ecartCape += (voulu - ecartCape) * Math.min(1, dt * 4);
     phaseCape += dt * 2 * PI * (vif ? 2.6 : 1.2);
     const bat = (vif ? 0.06 : 0.02) * Math.min(1, ecartCape / 0.1);
-    for (const m of cape.ourlet) {
+    for (const m of C.ourlet) {
       const dos = 0.55 - 0.45 * Math.cos(m.t);
       m.g.quaternion.setFromAxisAngle(m.axe, Math.max(0, ecartCape * dos + bat * Math.sin(phaseCape + m.t * 2.3)));
     }
@@ -1176,12 +1317,20 @@ export function creerHeros(ctx, sorte = 'garcon') {
   let habitCourant = 'habit-defaut';
   const majCollier = () => {
     for (const m of [...Object.values(colliers), ...Object.values(dosEtoles)]) m.visible = false;
-    if (!auCou) return;
+    if (!auCou) {
+      // (rien au cou, avec la cape du loup : ses crocs)
+      if (capeL && dosPorte === capeL.objet) {
+        const k = BUSTES[habitCourant] ? habitCourant : 'habit-defaut', cle = `crocs:${k}`;
+        if (!colliers[cle]) { colliers[cle] = maillage(collierCrocs(THREE, atelier(), BUSTES[k]).fin(0, false)); corps.add(colliers[cle]); }
+        colliers[cle].visible = true;
+      }
+      return;
+    }
     // (au cou : le collier de magatama, à la mesure du buste de la tenue ; ou l'étole et la conque du yamabushi, couchées
     // sur le relief de ce qu'on porte : le haut de la tenue, et le bas qu'elle garde, devant lequel pend la conque ; et le
     // mino, dont le col de corde et ses cordons passent devant la poitrine, ou le haut de la cape de plumes de cormoran et son
     // col : l'étole se pose dessus)
-    const surDos = auCou !== 'yamabushi' || !dosPorte ? null : dosPorte === pieces.mino ? ['mino', pieces.mino] : cape && dosPorte === cape.objet ? ['cormoran', cape.haut] : null;
+    const surDos = auCou !== 'yamabushi' || !dosPorte ? null : dosPorte === pieces.mino ? ['mino', pieces.mino] : cape && dosPorte === cape.objet ? ['cormoran', cape.haut] : capeL && dosPorte === capeL.objet ? ['loup', capeL.haut] : null;
     const k = auCou === 'yamabushi' || BUSTES[habitCourant] ? habitCourant : 'habit-defaut', cle = `${auCou}:${k}${surDos ? ':' + surDos[0] : ''}`;
     if (!colliers[cle]) {
       if (auCou === 'yamabushi') {
@@ -1200,6 +1349,13 @@ export function creerHeros(ctx, sorte = 'garcon') {
   // le sac à dos : la tenue le garde ou non (garde : 'sac'), et le mino le cache (sur le dos, à sa place) ; et le dos de
   // l'étole avec lui (majCollier)
   let sacGarde = true, dosPorte = null;
+  // la capuche de la cape du loup : levée sans chapeau (tête nue), couchée dans le dos sinon ; levée, elle cache les épis du garçon
+  let teteId = 'defaut';
+  const majCapuche = () => {
+    const portee = capeL && dosPorte === capeL.objet, levee = portee && teteId === 'nue';
+    if (capeL) { capeL.dos.visible = portee && !levee; capeL.tete.visible = !!levee; }
+    if (dessus) dessus.visible = teteId !== 'defaut' && teteId !== 'kabuto' && teteId !== 'heron' && !levee;
+  };
   const majSac = () => { mSac.visible = sacGarde && !dosPorte; majCollier(); };
   /** Mettre la tenue id (HABITS ; 'habit-defaut' ou inconnue : les habits de tous les jours). */
   function habiller(id) {
@@ -1384,6 +1540,7 @@ export function creerHeros(ctx, sorte = 'garcon') {
       if (place === 'dos') {
         if (dosPorte) dosPorte.visible = false;
         dosPorte = null;
+        // (les pièces du dos, pour ce qui se pose dessus)
         if (id === 'mino') {
           if (!pieces.mino) { pieces.mino = maillage(capeMino(THREE, atelier()).fin(0, false)); corps.add(pieces.mino); }
           pieces.mino.visible = true;
@@ -1413,6 +1570,22 @@ export function creerHeros(ctx, sorte = 'garcon') {
           cape.objet.visible = true;
           dosPorte = cape.objet;
         }
+        // la cape du loup blanc (Yakushima) : comme celle de plumes ; sa capuche (majCapuche)
+        if (id === 'loup') {
+          if (!capeL) {
+            const objet = new THREE.Group(), c = capeLoup(THREE, atelier, { cy: CY, r: R }), haut = maillage(c.haut.fin(0, false));
+            objet.add(haut);
+            const ourlet = c.ourlet.map((o) => { const g = pivot(ctx, ...o.pivot, maillage(o.a.fin(0, false))); objet.add(g); return { g, axe: new THREE.Vector3(...o.axe), t: o.t }; });
+            const dos = maillage(c.capucheDos.fin(0, false)), teteC = maillage(c.capucheTete.fin(0, false));
+            objet.add(dos);
+            tete.add(teteC);
+            capeL = { objet, haut, ourlet, dos, tete: teteC };
+            corps.add(objet);
+          }
+          capeL.objet.visible = true;
+          dosPorte = capeL.objet;
+        }
+        majCapuche();
         majSac();
         return;
       }
@@ -1426,7 +1599,8 @@ export function creerHeros(ctx, sorte = 'garcon') {
       if (place !== 'tete' && place !== 'yeux') return;
       if (place === 'tete') {
         coiffe.visible = id === 'defaut';
-        if (dessus) dessus.visible = id !== 'defaut' && id !== 'kabuto' && id !== 'heron' && id !== 'champignon';
+        teteId = id;
+        majCapuche();
         if (id === 'renard' && !queue) { queue = queueRenard(); corps.add(queue); }
         if (queue) queue.visible = id === 'renard';
       }
@@ -2150,7 +2324,7 @@ const FORMES = {
       // le grand grelot remplace le sien)
       accessoires: {
         cou: { c: [0, 0.42, 0.19], rx: PI / 2 - 0.5, r: 0.082 }, devant: [0, 0.395, 0.272], crane: { p: [0, 0.16, -0.01], r: 0.112 }, foulard: '#2f6fb0',
-        bandana: { r: 0.083, tube: 0.019 }, triangle: [0, 0.365, 0.302], triangleR: 0.07, collier: false, grelot: [0, 0.303, 0.288], grelotR: 0.04,
+        bandana: { r: 0.083, tube: 0.019 }, triangle: [0, 0.365, 0.302], triangleR: 0.07, collier: false, grelot: [0, 0.303, 0.288], grelotR: 0.04, dos: [0, 0.41, -0.05],
       },
     };
   },
@@ -2196,7 +2370,7 @@ const FORMES = {
       corps, tete: { p: [0, 0.47, 0.14], a: tete }, yeux, queue: { p: [0, 0.27, -0.2], a: queue },
       pattes: [[-1, 1], [1, 1], [-1, -1], [1, -1]].map(([sx, sz]) => ({ p: sz > 0 ? [sx * 0.09, 0.17, 0.12] : [sx * 0.1, 0.2, -0.11], a: patte(sz > 0) })),
       bascule: [0.11, -0.12],
-      accessoires: { cou: { c: [0, 0.415, 0.105], rx: PI / 2 - 0.2, r: 0.1 }, devant: [0, 0.385, 0.2], crane: { p: [0, 0.155, -0.005], r: 0.125 }, foulard: '#c8302c' },
+      accessoires: { cou: { c: [0, 0.415, 0.105], rx: PI / 2 - 0.2, r: 0.1 }, devant: [0, 0.385, 0.2], crane: { p: [0, 0.155, -0.005], r: 0.125 }, foulard: '#c8302c', dos: [0, 0.44, -0.06] },
     };
   },
   // Chapu, la loutre de rivière (kawauso, qui se change elle aussi en humain dans les contes) : un long corps
@@ -2240,7 +2414,7 @@ const FORMES = {
       bascule: [0.06, -0.2],
       // (Chapu a déjà son foulard bleu : le foulard jaune le recouvre, le grelot y est pendu)
       accessoires: {
-        cou: { c: [0, 0.215, 0.25], rx: PI / 2 - 0.45, r: 0.072 }, devant: [0, 0.2, 0.322], crane: { p: [0, 0.075, -0.01], r: 0.085 }, foulard: '#e8b941',
+        cou: { c: [0, 0.215, 0.25], rx: PI / 2 - 0.45, r: 0.072 }, devant: [0, 0.2, 0.322], crane: { p: [0, 0.075, -0.01], r: 0.085 }, foulard: '#e8b941', dos: [0, 0.245, -0.06],
         bandana: { r: 0.072, tube: 0.023 }, triangle: [0, 0.15, 0.314], triangleR: 0.075, collier: false, grelot: [0, 0.125, 0.337], grelotR: 0.028,
       },
     };
@@ -2298,7 +2472,7 @@ const FORMES = {
       corps, tete: { p: [0, 0.5, 0.21], a: tete }, yeux, queue: { p: [0, 0.33, -0.21], a: queue },
       pattes: [[-1, 1], [1, 1], [-1, -1], [1, -1]].map(([sx, sz]) => ({ p: sz > 0 ? [sx * 0.072, 0.24, 0.15] : [sx * 0.082, 0.27, -0.14], a: patte(sz > 0) })),
       bascule: [0, 0],
-      accessoires: { cou: { c: [0, 0.432, 0.17], rx: PI / 2 - 0.45, r: 0.112 }, devant: [0, 0.405, 0.28], crane: { p: [0, 0.125, -0.035], r: 0.14 }, foulard: '#2f8a5a' },
+      accessoires: { cou: { c: [0, 0.432, 0.17], rx: PI / 2 - 0.45, r: 0.112 }, devant: [0, 0.405, 0.28], crane: { p: [0, 0.125, -0.035], r: 0.14 }, foulard: '#2f8a5a', dos: [0, 0.42, -0.05] },
     };
   },
   // Fuwa, le bébé dragon des mers (un petit Ryūjin) : un long corps blanc nacré qui ondule (des anneaux, animés par
@@ -2351,7 +2525,7 @@ const FORMES = {
       // (les pattes de derrière tiennent au troisième anneau : elles suivent ses ondulations)
       pattes: [{ p: [-0.058, Y - 0.04, 0.08], a: patte(false) }, { p: [0.058, Y - 0.04, 0.08], a: patte(true) }, { p: [-0.05, -0.035, 0], a: patte(false), anneau: 3 }, { p: [0.05, -0.035, 0], a: patte(false), anneau: 3 }],
       bascule: [Y, 0], vol: true,
-      accessoires: { cou: { c: [0, Y + 0.005, 0.075], rx: PI / 2 - 0.55, r: 0.07 }, devant: [0, Y - 0.04, 0.13], crane: { p: [0, 0.1, -0.025], r: 0.08 }, foulard: '#e889a8', triangleR: 0.05 },
+      accessoires: { cou: { c: [0, Y + 0.005, 0.075], rx: PI / 2 - 0.55, r: 0.07 }, devant: [0, Y - 0.04, 0.13], crane: { p: [0, 0.1, -0.025], r: 0.08 }, foulard: '#e889a8', triangleR: 0.05, dos: [0, Y + 0.058, -0.09] },
     };
   },
   // Saya, l'esprit d'un vieil arbre (un kodama : dans les contes, c'est lui qui répond, en écho, dans la forêt) : un
@@ -2388,7 +2562,7 @@ const FORMES = {
       corps, tete: { p: [0, 0.31, 0.0], a: tete }, yeux, queue: null,
       pattes: [{ p: [-0.112, 0.27, 0.0], a: bras() }, { p: [0.112, 0.27, 0.0], a: bras() }, { p: [-0.05, 0.11, 0], a: jambe() }, { p: [0.05, 0.11, 0], a: jambe() }],
       bascule: [0.1, 0], bipede: true,
-      accessoires: { cou: { c: [0, 0.312, 0.0], rx: PI / 2, r: 0.09 }, devant: [0, 0.29, 0.09], crane: { p: [0, 0.235, 0], r: 0.11 }, foulard: '#e8732e' },
+      accessoires: { cou: { c: [0, 0.312, 0.0], rx: PI / 2, r: 0.09 }, devant: [0, 0.29, 0.09], crane: { p: [0, 0.235, 0], r: 0.11 }, foulard: '#e8732e', dosTete: [0, 0.232, -0.01] },
     };
   },
 };
@@ -2427,6 +2601,11 @@ export function creerCompagnon(ctx, espece, o = {}) {
   const queue = F.queue ? pivot(ctx, ...F.queue.p, maillage(F.queue.a.fin(0, false))) : new THREE.Group();
   corps.add(queue);
   const cligner = cligneur(yeux);
+  // (2026-11-01, Yakushima : le petit esprit monte sur son dos ; Saya le porte sur sa tête. Tant qu'il porte quelqu'un, il reste debout : assis,
+  // la loutre dressée sur ses pattes ou le tanuki sur son derrière l'auraient couché sur le dos)
+  const dos = new THREE.Group();
+  if (F.accessoires.dosTete) { dos.position.set(...F.accessoires.dosTete); tete.add(dos); } else { dos.position.set(...(F.accessoires.dos || [0, 0.45, 0])); corps.add(dos); }
+  let porte = false;
 
   // ---- Les accessoires (tenues.js, place « compagnon ») : faits la première fois qu'on les porte
   const A = F.accessoires, accessoires = {};
@@ -2469,6 +2648,9 @@ export function creerCompagnon(ctx, espece, o = {}) {
   return {
     objet: racine,
     espece,
+    /** Là où l'on monte sur lui ; porter(oui) : il porte quelqu'un (il ne s'assoit plus). */
+    dos,
+    porterSurLeDos(oui) { porte = oui; },
     /** Il s'ébroue (en sortant de l'eau). */
     secouer() { secousse = 1; },
     /** Un petit bond de joie (on vient de le choisir). */
@@ -2498,7 +2680,7 @@ export function creerCompagnon(ctx, espece, o = {}) {
       let pose = 0;
       if (f !== foulee) { foulee = f; if (allure > 0.3) pose = f & 1 ? -1 : 1; }
       // assis quand il attend (pas dans l'eau)
-      assis += ((allure < 0.05 && !nage ? 1 : 0) - assis) * Math.min(1, dt * 4);
+      assis += ((allure < 0.05 && !nage && !porte ? 1 : 0) - assis) * Math.min(1, dt * 4);
       const sw = Math.sin(phase) * (loutre ? 0.55 : tanuki ? 0.6 : bipede ? 0.75 : 0.7) * allure;
       const [ag, ad, rg, rd] = pattes;
       if (loutre) { ag.rotation.x = ad.rotation.x = sw; rg.rotation.x = rd.rotation.x = -sw; } // elle bondit : les pattes par paires
