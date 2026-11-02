@@ -71,8 +71,8 @@ import * as yakushima from './yakushima.js';
 // Beppu, en essai depuis le 2026-10-27, sorti le 2026-10-28 : « tu peux mettre en ligne pour tout le monde » ; Motonosumi, en
 // essai depuis le 2026-10-28, sorti le 2026-10-29 : « met en ligne Motonosumi pour tout le monde » ; les Trente Bouddhas, en
 // essai depuis le 2026-10-29, sortis le 2026-10-30 : « envoie les trente Bouddhas pour tout le monde » ; Udo, en essai depuis le
-// 2026-10-30 ; Yakushima, en essai depuis le 2026-10-31)
-const EN_ESSAI = ['udo', 'yakushima'];
+// 2026-10-30, et Yakushima, en essai depuis le 2026-10-31, sortis le 2026-11-02 : « tu peux mettre en ligne Udo et Yakushima »)
+const EN_ESSAI = [];
 // (les îles où l'on n'arrive qu'en bateau : Yakushima, depuis Udo, une fois ses cinq tampons pris ; le propriétaire, le 2026-10-30 :
 // « On peut pas débloquer Yakushima sans avoir fait ce lieu-là… à partir du moment où tu as pris le bateau… la petite icône visiter
 // en 3D… elle apparaît ». Prendre le bateau (jeu.partir) écrit localStorage.baladeYakushima = 'oui', que lit aussi la carte, app.js)
