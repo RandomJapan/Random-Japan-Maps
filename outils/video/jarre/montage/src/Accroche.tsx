@@ -1,62 +1,65 @@
-// L'accroche (0 → temps 10), sur le modèle de la vidéo du PSG que le propriétaire a montrée : à la première personne, un marteau
-// tape sur une jarre enterrée, puis deux mains gantées l'ouvrent, sans texte ni musique, avec seulement les bruits du geste. Au
-// temps 10, les deux morceaux partent sur les côtés avec les mains : le Japon est dedans. Les deux plans sont générés avec Flora
-// (MiniMax H3 Max, de leur première à leur dernière image) et joués image par image : chaque coup de marteau tombe sur un temps.
+// L'accroche (0 → temps 12), sur le modèle de la vidéo du PSG que le propriétaire a montrée : à la première personne, un marteau
+// tape sur une jarre enterrée, puis deux mains l'ouvrent, sans texte ni musique, avec seulement les bruits du geste. Au temps 12, la
+// carte apparaît au fond du trou et on plonge dedans. Le propriétaire voulait un geste « plus humain » : les deux plans sont générés
+// avec Flora (Seedance 2.0, à partir de leur seule première image) et joués à leur vitesse réelle, avec une coupe dans celui du marteau
+// et le petit tremblement d'un téléphone (accélérés et calés sur les temps, ceux de la première version faisaient mécaniques).
 import React from "react";
 import { AbsoluteFill, Freeze, Img, interpolate, OffthreadVideo, staticFile, useCurrentFrame } from "remotion";
-import { entre, FPS, secousse, t } from "./theme";
-import { T } from "./temps";
+import { entre, FPS, secousse } from "./theme";
+import { T, TROU } from "./temps";
 
-// [image de la vidéo, seconde du plan de Flora] : les coups du marteau sont à 1,0, 1,8, 2,47, 3,14 et 3,81 s de son plan
-const CLES_MARTEAU: [number, number][] = [[0, 0.12], [t(1), 1.0], [t(2), 1.8], [t(3), 2.47], [t(4), 3.14], [t(5), 3.81], [t(5.5), 4.3]];
-// la fente s'ouvre d'un coup au début du plan des mains, puis continue plus vite
-const CLES_MAINS: [number, number][] = [[t(5.5), 0.3], [t(7.5), 1.7], [t(10), 4.4]];
-const seconde = (f: number, cles: [number, number][]) => interpolate(f, cles.map((c) => c[0]), cles.map((c) => c[1]), { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-const DUREE_OUVERTURE = 20; // images : les morceaux quittent l'image
+// la seconde de chaque plan de Flora à chaque image : le marteau en deux morceaux (les trois premiers coups, puis, sans sa pause,
+// le grand coup qui fend la jarre), les mains jusqu'à l'image où la jarre est grande ouverte (preparer.py : SECONDE_OUVERTE)
+const secondeMarteau = (f: number) => (f < T.coupe ? 0.38 + f / FPS : 2.83 + (f - T.coupe) / FPS);
+const secondeMains = (f: number) => interpolate(f, [T.mains, T.ouvre], [0.75, 3.5], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+const DUREE_PLONGEE = 20; // images : on passe à travers le trou
 
-/** Les deux morceaux (la dernière image du plan des mains, coupée le long de la fente) : ils partent sur les côtés, en
- *  tournant et en venant vers l'objectif (comme tirés par les mains). */
-const Moities: React.FC = () => {
+/** Le tremblement de la main qui filme : plusieurs lentes oscillations sans rapport entre elles (px, degrés), jamais régulières. */
+const tremblement = (f: number) => {
+  const x = 5 * Math.sin(f / 41 + 0.3) + 3 * Math.sin(f / 17.3 + 2.1) + 1.2 * Math.sin(f / 7.1);
+  const y = 4 * Math.sin(f / 37 + 1.2) + 2.4 * Math.sin(f / 15.1) + 1 * Math.sin(f / 6.3);
+  const r = 0.32 * Math.sin(f / 53 + 0.7) + 0.12 * Math.sin(f / 19);
+  return { x, y, r, z: 1.035 + 0.006 * Math.sin(f / 61) };
+};
+
+/** La jarre ouverte, son trou transparent : la caméra avance puis tombe dedans. */
+const Plongee: React.FC = () => {
   const f = useCurrentFrame();
-  if (f < T.ouvre || f >= T.ouvre + DUREE_OUVERTURE) return null;
-  const u = entre(f, T.ouvre, T.ouvre + DUREE_OUVERTURE);
-  const e = u * u * (3 - 2 * u) * (0.7 + 0.3 * u); // (un départ lourd, puis ils filent)
-  const moitie = (cote: "gauche" | "droite") => {
-    const signe = cote === "gauche" ? -1 : 1;
-    return (
-      <Img key={cote} src={staticFile(`img/moitie-${cote}.png`)} style={{
-        position: "absolute", inset: 0, width: 1080, height: 1920,
-        transform: `translateX(${(signe * 1050 * e).toFixed(1)}px) rotate(${(signe * 9 * e).toFixed(2)}deg) scale(${(1 + 0.32 * e).toFixed(4)})`,
-        transformOrigin: `${cote === "gauche" ? 0 : 100}% 80%`,
-      }} />
-    );
-  };
-  return <AbsoluteFill>{moitie("gauche")}{moitie("droite")}</AbsoluteFill>;
+  if (f < T.ouvre || f >= T.ouvre + DUREE_PLONGEE) return null;
+  const u = entre(f, T.ouvre, T.ouvre + DUREE_PLONGEE);
+  const k = 1 + 0.2 * Math.min(1, u * 3) + 11 * u ** 4;
+  return (
+    <Img src={staticFile("img/jarre-ouverte.png")} style={{
+      position: "absolute", inset: 0, width: 1080, height: 1920, transformOrigin: `${TROU[0]}px ${TROU[1]}px`, transform: `scale(${k.toFixed(4)})`,
+    }} />
+  );
 };
 
 export const Accroche: React.FC = () => {
   const f = useCurrentFrame();
-  if (f >= T.ouvre + DUREE_OUVERTURE) return null;
-  // une petite secousse à chaque coup : la main tient le téléphone près de la jarre
+  if (f >= T.ouvre + DUREE_PLONGEE) return null;
+  const { x, y, r, z } = tremblement(f);
+  // à chaque coup, la tête bouge à peine
   const [sx, sy] = T.coups.reduce<[number, number]>((a, c, i) => {
-    const [x, y] = secousse(f, c, i === 4 ? 12 : 6, 0.22);
-    return [a[0] + x, a[1] + y];
+    const [dx, dy] = secousse(f, c, i === T.coups.length - 1 ? 7 : 3.5, 0.2);
+    return [a[0] + dx, a[1] + dy];
   }, [0, 0]);
   return (
-    <AbsoluteFill>
+    <AbsoluteFill style={{ transform: `translate(${(x + sx).toFixed(2)}px, ${(y + sy).toFixed(2)}px) rotate(${r.toFixed(3)}deg) scale(${z.toFixed(4)})` }}>
       {f < T.mains && (
-        <AbsoluteFill style={{ transform: `translate(${sx.toFixed(1)}px, ${sy.toFixed(1)}px) scale(1.02)` }}>
-          <Freeze frame={Math.round(seconde(f, CLES_MARTEAU) * FPS)}>
-            <OffthreadVideo src={staticFile("clips/jarre-marteau.mp4")} muted style={{ width: 1080, height: 1920 }} />
+        // (la jarre de ce plan est petite : on se rapproche d'elle et du marteau)
+        <AbsoluteFill style={{ transform: "scale(1.2)", transformOrigin: "47% 40%" }}>
+          <Freeze frame={Math.round(secondeMarteau(f) * FPS)}>
+            <OffthreadVideo src={staticFile("clips/jarre-marteau.mp4")} muted style={{ position: "absolute", inset: 0, width: 1080, height: 1920 }} />
           </Freeze>
         </AbsoluteFill>
       )}
       {f >= T.mains && f < T.ouvre && (
-        <Freeze frame={Math.round(seconde(f, CLES_MAINS) * FPS)}>
+        <Freeze frame={Math.round(secondeMains(f) * FPS)}>
           <OffthreadVideo src={staticFile("clips/jarre-mains.mp4")} muted style={{ position: "absolute", inset: 0, width: 1080, height: 1920 }} />
         </Freeze>
       )}
-      <Moities />
+      <Plongee />
     </AbsoluteFill>
   );
 };

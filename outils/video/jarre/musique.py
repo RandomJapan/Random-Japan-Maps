@@ -1,15 +1,16 @@
 """La musique de la vidéo « jarre » (2026-11-02) : un rythme « phonk » à la japonaise, composé ici (aucun droit, aucun crédit),
-qui éclate quand la jarre s'ouvre (temps 10 de la vidéo), comme dans la vidéo du PSG que le propriétaire a montrée. Avant,
+qui éclate quand la jarre s'ouvre (temps 12 de la vidéo), comme dans la vidéo du PSG que le propriétaire a montrée. Avant,
 rien : seulement les bruits du geste. Les instruments sont ceux de la vidéo « éclat » (eclat/musique.py), avec un taiko.
     python outils/video/jarre/musique.py
 
 144 battements par minute (un temps = 25 images à 60 images/s) dans la gamme miyako-bushi sur mi (mi, fa, la, si, do). La
-mesure 0 commence au temps 10 de la vidéo : les temps de la vidéo sont donc 10 + 4 × mesure + pas / 4. Une grosse caisse et une
+mesure 0 commence au temps 10 de la vidéo, mais on n'en joue que la seconde moitié, à partir du coup d'ouverture (temps 12 ; le geste
+de l'accroche a besoin de ses cinq secondes) : les temps de la vidéo sont donc 10 + 4 × mesure + pas / 4. Une grosse caisse et une
 basse « 808 » saturée (pour qu'on l'entende sur un téléphone), un clap sur les temps 2 et 4, des charlestons, la mélodie à la
 cloche (« cowbell ») doublée d'un koto à partir de la mesure 2, un taiko aux changements de partie. La mesure 6 s'arrête net au
 temps 36,5 (la vidéo se fige) et repart au temps 37 (le portail vers la balade). Les mesures 8 et 9 : deux coups (le logo,
 puis « FREE · LINK IN BIO »), puis tout s'éteint à la fin de la vidéo.
-Sortie : videos/carte/jarre/public/musique/jarre.wav (48 kHz, stéréo), qui commence au temps 10.
+Sortie : videos/carte/jarre/public/musique/jarre.wav (48 kHz, stéréo), qui commence au temps 12.
 """
 import wave
 from functools import lru_cache
@@ -22,7 +23,8 @@ SORTIE = RACINE / 'videos' / 'carte' / 'jarre' / 'public' / 'musique' / 'jarre.w
 SR = 48000
 BPM = 144
 PAS = 60 / BPM / 4  # une double croche (s)
-TEMPS_TOTAL = 38  # du temps 10 au temps 48 de la vidéo
+TEMPS_TOTAL = 36  # du temps 12 au temps 48 de la vidéo
+DEBUT = 8  # le pas de la mesure 0 où la musique commence (le temps 12)
 
 rng = np.random.default_rng(144)
 
@@ -185,31 +187,37 @@ def main():
         d[i:i + len(x)] += x * vol * (1 + pan) ** 0.5
 
     for m, (riff, ligne, arret, coup, avec_koto) in enumerate(MESURES_PLAN):
-        t0 = m * 16 * PAS
+        t0 = (m * 16 - DEBUT) * PAS
         fin = t0 + arret * PAS
-        if coup:
+        if m == 0:  # le coup d'ouverture : tout frappe ensemble, la basse tient jusqu'au pas 10
+            poser(cymbale(), 0, 0.36)
+            poser(taiko(), 0, 0.6)
+            poser(grosse_caisse(), 0, 0.9)
+            poser(basse('E2', 2 * PAS), 0, 0.36)
+        elif coup:
             poser(cymbale(), t0, 0.32, arret=t0 + 16 * PAS)
             poser(taiko(), t0, 0.5, arret=t0 + 16 * PAS)
+        depart = DEBUT if m == 0 else 0
         for p in GROSSE:
-            if p < arret:
+            if depart <= p < arret:
                 poser(grosse_caisse(), t0 + p * PAS, 0.8, arret=fin)
         for p, nom, longueur in ligne:
-            if p < arret:
+            if depart <= p < arret:
                 poser(basse(nom, longueur * PAS), t0 + p * PAS, 0.36, arret=fin)
         for p in (4, 12):
-            if p < arret:
+            if depart <= p < arret:
                 poser(clap(), t0 + p * PAS, 0.6, arret=fin)
         pas_ch = [p for p in range(0, 16, 2)] + ([9, 11, 12.5, 13, 13.5] if m in (1, 3, 5) else [])
         for p in sorted(pas_ch):
-            if p < arret:
+            if depart <= p < arret:
                 poser(charleston(p == 10), t0 + p * PAS, 0.24 if p % 2 == 0 else 0.16, pan=0.35, arret=fin)
         for p, nom in riff:
-            if p < arret:
+            if depart <= p < arret:
                 poser(cloche(nom), t0 + p * PAS, 0.5, pan=-0.2, arret=fin)
                 if avec_koto:
                     poser(koto(nom[:-1] + str(int(nom[-1]) - 1)), t0 + p * PAS, 0.5, pan=0.45, arret=fin)
     # le temps 37 (mesure 6, pas 12) : le coup qui ouvre le portail, puis un roulement jusqu'au temps 38
-    t37 = 6 * 16 * PAS + 12 * PAS
+    t37 = (6 * 16 - DEBUT + 12) * PAS
     poser(grosse_caisse(), t37, 1.0)
     poser(taiko(), t37, 0.55)
     poser(basse('E2', 4 * PAS), t37, 0.42)
@@ -219,7 +227,7 @@ def main():
     for p in (2, 3):
         poser(taiko(), t37 + p * PAS, 0.35)
     # la fin (temps 42 et 44) : deux coups, la basse qui sonne longtemps, la cloche et le koto une dernière fois
-    t42 = 8 * 16 * PAS
+    t42 = (8 * 16 - DEBUT) * PAS
     for k, dt in enumerate((0, 8 * PAS)):
         poser(cymbale(), t42 + dt, 0.36)
         poser(grosse_caisse(), t42 + dt, 1.0)

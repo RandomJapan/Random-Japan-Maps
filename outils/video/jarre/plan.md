@@ -21,15 +21,15 @@ Ton : `chaotic` tenu par des mots courts, après une accroche silencieuse et ré
 
 ## La musique
 
-144 battements par minute : un temps = 25 images à 60 images/s, donc tout tombe juste. 48 temps = 20,0 s. Rien jusqu'au temps 10 (les coups de marteau tombent sur les temps de la grille), puis phonk japonais composé par `musique.py` (aucun droit).
+144 battements par minute : un temps = 25 images à 60 images/s, donc tout tombe juste. 48 temps = 20,0 s. Rien jusqu'au temps 12 (seulement les bruits du geste, à vitesse réelle, hors de la grille : le propriétaire voulait un geste « plus humain »), puis phonk japonais composé par `musique.py` (aucun droit).
 
 ## Le découpage (en temps de musique, t(n) = 25 n images)
 
 | Temps | Durée | Plan | Mots |
 |---|---|---|---|
-| 0 → 5,5 | 2,29 s | La jarre, le marteau : cinq coups sur les temps 1 à 5, la fissure court | aucun |
-| 5,5 → 10 | 1,88 s | Les deux mains l'ouvrent, la fente noire, puis un creux de silence | aucun |
-| 10 → 16 | 2,5 s | Les morceaux partent, tout le Japon, ses points, plongée sur le mont Fuji | « 150+ PLACES », « ONE 3D MAP » |
+| 0 → 5,7 | 2,38 s | La jarre enterrée, le marteau : cinq petits coups à vitesse réelle, une coupe, le coup fort qui la fend | aucun |
+| 5,7 → 12 | 2,62 s | Les deux mains l'ouvrent pour de bon : une main reprend sa prise, le morceau bascule | aucun |
+| 12 → 16 | 1,67 s | La carte au fond du trou, on plonge dedans, tout le Japon, ses points, le mont Fuji | « 150+ PLACES », « ONE 3D MAP » |
 | 16 → 21 | 2,08 s | On touche l'épingle d'Itsukushima, sa fiche se déplie, on touche la vidéo : son vrai plan joue | « TAP A PIN », « WATCH THE VIDEO » |
 | 21 → 25 | 1,67 s | Le bouton Random, la caméra vole jusqu'à Aogashima, sa fiche | « ROLL THE DICE » |
 | 25 → 28 | 1,25 s | La même vue de Kyoto en quatre saisons | « 4 SEASONS » |

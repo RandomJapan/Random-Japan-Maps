@@ -7,12 +7,13 @@ import { AbsoluteFill, Img, OffthreadVideo, Sequence, staticFile, useCurrentFram
 import layout from "../../../../../videos/carte/jarre/public/ui/layout.json";
 import { Credits, Doigt, FOUET, Mots, Plans, TiltShift, UnPlan } from "./Commun";
 import { C, entre, expoEntree, expoSortie, houle, rebond, t } from "./theme";
-import { T } from "./temps";
+import { T, TROU } from "./temps";
 
 const ANNEAU = 18; // images : le portail s'ouvre sur tout l'écran
 
+// le premier plan de la carte : on le voit d'abord tout petit, au fond de la jarre (voir plongee)
+const PREMIER: UnPlan[] = [{ de: T.plongee, a: T.itsuku, src: "rushes/ja-plongee.mp4", v: 1.7, zoom: [1.04, 1.0], entree: "sec" }];
 const PLANS: UnPlan[] = [
-  { de: T.plongee, a: T.itsuku, src: "rushes/ja-plongee.mp4", v: 1.15, zoom: [1.16, 1.0], entree: "sec" },
   { de: T.itsuku, a: T.des, src: "rushes/ja-itsuku.mp4", t0: 0.1, zoom: [1.04, 1.0], entree: "fouet" },
   { de: T.des, a: T.saisons, src: "rushes/ja-vol.mp4", zoom: [1, 1], entree: "fouet" },
   { de: T.saisons, a: t(25.75), src: "rushes/p-printemps.mp4", t0: 0.8, entree: "flash" },
@@ -112,6 +113,13 @@ const Bouton: React.FC<{ src: string; de: number; appui: number; a: number; x: n
   );
 };
 
+/** La carte au fond de la jarre : elle tient dans le trou (son centre sur celui du trou, 62 % de sa taille), et vient vers nous
+ *  bien plus vite que la jarre : le trou ne montre jamais son bord. */
+const plongee = (f: number) => {
+  const p = expoSortie(entre(f, T.ouvre, T.ouvre + 24));
+  return `translate(${((TROU[0] - 540) * (1 - p)).toFixed(1)}px, ${((TROU[1] - 960) * (1 - p)).toFixed(1)}px) scale(${(0.62 + 0.38 * p).toFixed(4)})`;
+};
+
 export const Carte: React.FC = () => {
   const f = useCurrentFrame();
   // le flou derrière la fiche d'Itsukushima
@@ -120,13 +128,14 @@ export const Carte: React.FC = () => {
   const BAS_FICHE = 1560;
   return (
     <AbsoluteFill style={{ backgroundColor: C.nuit }}>
+      <AbsoluteFill style={{ transform: plongee(f) }}><Plans plans={PREMIER} /></AbsoluteFill>
       <Plans plans={PLANS} />
       <Balade />
       {f >= T.itsuku && f < T.des && <TiltShift flou={12 * derriere} net={0} z={30} />}
       <AbsoluteFill style={{ zIndex: 35, background: "linear-gradient(rgba(0,0,0,.3) 0px, rgba(0,0,0,0) 560px)", opacity: f >= T.plongee + 15 && f < T.fin ? 1 : 0 }} />
 
-      <Mots texte={"*150+* PLACES"} de={t(10.5)} a={t(13)} />
-      <Mots texte={"ONE *3D* MAP"} de={t(13)} a={T.itsuku} />
+      <Mots texte={"*150+* PLACES"} de={t(12.75)} a={t(14.25)} />
+      <Mots texte={"ONE *3D* MAP"} de={t(14.25)} a={T.itsuku} />
 
       {/* on touche une épingle ; sa fiche ; sa vidéo */}
       <Doigt de={T.itsuku + 8} appui={T.tapEpingle} x0={900} y0={1180} x={EPINGLE[0]} y={EPINGLE[1]} />

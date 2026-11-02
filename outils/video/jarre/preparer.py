@@ -3,12 +3,11 @@ montage Remotion (outils/video/jarre/montage).
     python outils/video/jarre/preparer.py
 
 - L'accroche : les deux plans de la jarre, générés avec Flora à partir de ses images (dans sources/ : voir « The jar video » dans
-  instructions/videos.md), réencodés (1080 × 1920, 24 images/s comme à la source, une image clé toutes les 6) ; sa dernière image coupée en
-  deux calques transparents le long de la fente noire (img/moitie-gauche.png, img/moitie-droite.png), que le montage écarte
-  pour ouvrir la jarre.
+  instructions/videos.md), réencodés (1080 × 1920, 24 images/s comme à la source, une image clé toutes les 6) ; l'image où la jarre est
+  grande ouverte, avec son trou transparent (img/jarre-ouverte.png) : le montage plonge dedans.
 - Les prises déjà tournées : les quatre saisons (promo30), la balade, les vrais lieux du propriétaire (balade/reels).
-- Les bruitages : ceux des vidéos d'avant ; les coups, la fissure et le raclement de la jarre sont des bruits Flora (déjà dans
-  public/sfx), découpés ici en coups séparés (coup-1.wav…).
+- Les bruitages : ceux des vidéos d'avant ; les coups, la fissure, le raclement, le dehors et l'effort sont des bruits Flora (déjà dans
+  public/sfx), les coups découpés ici en fichiers séparés (coup-1.wav…).
 - Le logo.
 """
 import shutil
@@ -16,7 +15,7 @@ import subprocess
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageFilter
+from PIL import Image, ImageDraw, ImageFilter
 
 ICI = Path(__file__).resolve().parent
 RACINE = ICI.parents[2]
@@ -49,69 +48,34 @@ def copier(src, dest):
 def clip(nom):
     """Un plan de Flora : recadré en 1080 × 1920, sans son, une image clé toutes les 6 images (le montage le joue image par image)."""
     subprocess.run([ffmpeg(), '-hide_banner', '-loglevel', 'error', '-y', '-i', str(SOURCES / f'{nom}.mp4'),
-                    '-vf', 'scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,format=yuv420p',
+                    # (un peu plus chaud et moins net : un plan filmé au téléphone dehors, pas une image de synthèse)
+                    '-vf', 'scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,eq=saturation=1.12:contrast=0.97,colorbalance=rm=0.05:gm=0.01:bm=-0.05:rh=0.03:bh=-0.03,unsharp=5:5:-0.35,format=yuv420p',
                     '-c:v', 'libx264', '-preset', 'medium', '-crf', '15', '-g', '6', '-an', '-color_range', 'tv', '-colorspace', 'bt709',
                     '-color_primaries', 'bt709', '-color_trc', 'bt709', str(PUBLIC / 'clips' / f'{nom}.mp4')], check=True)
 
 
-def couper_jarre():
-    """La dernière image du plan des mains, coupée en deux le long de la fente : sa ligne médiane sépare les deux moitiés, et les
-    pixels sombres de la fente sont retirés des deux."""
-    f = PUBLIC / 'img' / 'derniere.png'
-    subprocess.run([ffmpeg(), '-hide_banner', '-loglevel', 'error', '-y', '-sseof', '-0.2', '-i', str(PUBLIC / 'clips' / 'jarre-mains.mp4'),
-                    '-update', '1', '-frames:v', '1', str(f)], check=True)
-    im = np.asarray(Image.open(f).convert('RGB')).astype(np.float32)
-    h, l = im.shape[:2]
-    sombre = (im @ np.array([0.299, 0.587, 0.114], dtype=np.float32)) < 42
+# l'image du plan des mains où la jarre est grande ouverte (s), et un point au milieu du trou (px de la vidéo)
+SECONDE_OUVERTE = 3.5
+GERME = (497, 864)
+SOMBRE = 62  # (luminosité, sur 255) : le fond de la jarre est plus sombre que la terre et les gants
 
-    def suite(y, a, z):
-        """La plus longue suite de pixels sombres de la ligne y entre les colonnes a et z : (début, fin), ou None."""
-        ligne, meilleur, debut = sombre[y, a:z], None, None
-        for x in range(z - a + 1):
-            if x < z - a and ligne[x]:
-                debut = x if debut is None else debut
-            elif debut is not None:
-                if meilleur is None or x - debut > meilleur[1] - meilleur[0]:
-                    meilleur = (debut + a, x + a)
-                debut = None
-        return meilleur
 
-    # on part du milieu de la fente (au milieu de la jarre) et on la suit vers le haut et vers le bas, ligne par ligne, tant
-    # qu'elle reste d'un seul tenant : les ombres de la terre et des manches n'en font pas partie
-    y_milieu = h // 2 - 120
-    gauche, droite = np.full(h, -1.0), np.full(h, -1.0)
-    gauche[y_milieu], droite[y_milieu] = suite(y_milieu, int(l * 0.28), int(l * 0.72))
-    for pas in (-1, 1):
-        y, g0, d0 = y_milieu + pas, gauche[y_milieu], droite[y_milieu]
-        while 0 <= y < h:
-            r = suite(y, int(g0) - 14, int(d0) + 14)
-            if r is None or r[1] - r[0] < 16:
-                break
-            gauche[y], droite[y] = r
-            g0, d0, y = r[0], r[1], y + pas
-    lignes = np.where(gauche >= 0)[0]
-    y0, y1 = lignes.min(), lignes.max()
-    # au-dessus et au-dessous de la fente, la coupe continue dans la terre, en dents de scie comme une terre qui se déchire (toute
-    # droite, elle faisait un rectangle découpé quand les morceaux s'écartaient)
-    milieu = np.interp(np.arange(h), lignes, (gauche[lignes] + droite[lignes]) / 2)
-    milieu = np.convolve(np.pad(milieu, 40, mode='edge'), np.ones(81) / 81, mode='valid')
-    rng = np.random.default_rng(12)
-    def bruit(n, longueur):
-        b = np.interp(np.arange(n), np.arange(0, n + longueur, longueur), rng.standard_normal(n // longueur + 2)[:len(np.arange(0, n + longueur, longueur))])
-        return b
-    dents = 34 * bruit(h, 90) + 16 * bruit(h, 26) + 7 * bruit(h, 8)
-    hors = np.clip(np.maximum(y0 - np.arange(h), np.arange(h) - y1) / 70, 0, 1)  # 0 le long de la fente, 1 loin d'elle
-    milieu = milieu + dents * hors
-    trou = np.zeros((h, l), dtype=bool)
-    for y in lignes:
-        trou[y, int(gauche[y]):int(droite[y])] = True
-    masque_trou = np.asarray(Image.fromarray((trou * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(3)).filter(ImageFilter.GaussianBlur(1.1))).astype(np.float32) / 255
-    xs = np.arange(l, dtype=np.float32)[None, :]
-    cote = np.clip((milieu[:, None] - xs) / 1.5 + 0.5, 0, 1)  # 1 à gauche de la ligne médiane
-    for nom, a in (('gauche', cote), ('droite', 1 - cote)):
-        alpha = a * (1 - masque_trou)
-        Image.fromarray(np.dstack([im, alpha * 255]).clip(0, 255).astype(np.uint8)).save(PUBLIC / 'img' / f'moitie-{nom}.png')
-    print('fente : lignes', y0, '→', y1, ', centre', round(float(milieu[(y0 + y1) // 2]), 1), 'sur', l)
+def trouer_jarre():
+    """Le trou de la jarre ouverte, rendu transparent : la carte apparaîtra dedans. On part d'un point au milieu du trou et on remplit
+    ce qui est sombre et d'un seul tenant, puis on referme les petits cailloux plus clairs du fond."""
+    f = PUBLIC / 'img' / 'ouverte.png'
+    subprocess.run([ffmpeg(), '-hide_banner', '-loglevel', 'error', '-y', '-ss', str(SECONDE_OUVERTE), '-i', str(PUBLIC / 'clips' / 'jarre-mains.mp4'),
+                    '-frames:v', '1', '-update', '1', str(f)], check=True)
+    im = Image.open(f).convert('RGB')
+    gris = np.asarray(im.filter(ImageFilter.GaussianBlur(1.5))).astype(np.float32) @ np.array([0.299, 0.587, 0.114], dtype=np.float32)
+    sombre = Image.fromarray(((gris < SOMBRE) * 255).astype(np.uint8)).copy()  # (une copie : floodfill ne remplit pas une image en lecture seule)
+    ImageDraw.floodfill(sombre, GERME, 128)
+    trou = Image.fromarray(((np.asarray(sombre) == 128) * 255).astype(np.uint8))
+    trou = trou.filter(ImageFilter.MaxFilter(15)).filter(ImageFilter.MinFilter(15)).filter(ImageFilter.MaxFilter(3)).filter(ImageFilter.GaussianBlur(1.2))
+    alpha = 255 - np.asarray(trou)
+    Image.fromarray(np.dstack([np.asarray(im), alpha]).astype(np.uint8)).save(PUBLIC / 'img' / 'jarre-ouverte.png')
+    ys, xs = np.where(np.asarray(trou) > 128)
+    print('trou : x', xs.min(), '→', xs.max(), ', y', ys.min(), '→', ys.max(), ', centre', int(xs.mean()), int(ys.mean()), ',', round(len(xs) / (1080 * 1920) * 100, 1), "% de l'image")
 
 
 def coups():
@@ -135,7 +99,7 @@ def main():
         if (SOURCES / f'{nom}.mp4').exists():
             clip(nom)
     if (PUBLIC / 'clips' / 'jarre-mains.mp4').exists():
-        couper_jarre()
+        trouer_jarre()
     print('bruitages et prises prêts dans', PUBLIC)
 
 

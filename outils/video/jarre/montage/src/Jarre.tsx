@@ -1,7 +1,7 @@
 // La vidéo « jarre » (2026-11-02, le propriétaire, avec une vidéo TikTok du PSG : « En te basant sur le Hook de cette vidéo tu vas
 // faire un edit en motion design de maximum 20 secondes pour présenter la carte et ses fonctionnalités »). 20 s, 9:16, 60 images/s,
 // en anglais. L'accroche (Accroche.tsx) : un marteau, une jarre enterrée, deux mains qui l'ouvrent, sans texte ni musique ; dedans,
-// la carte, et la musique qui éclate. Puis les fonctions (Carte.tsx), la fin (Fin.tsx). Le flou de mouvement seulement pendant les
+// la carte : on y plonge, et la musique éclate. Puis les fonctions (Carte.tsx), la fin (Fin.tsx). Le flou de mouvement seulement pendant les
 // mouvements rapides. Le découpage : outils/video/jarre/plan.md.
 import React from "react";
 import { AbsoluteFill, Audio, interpolate, Sequence, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
@@ -22,15 +22,17 @@ const sec = (n: number) => t(n) / FPS;
 const MUSIQUE = 0.42;
 /** [seconde où le bruit doit s'entendre (son attaque déduite), fichier, volume, durée (s) : coupé et fondu au bout]. */
 const SFX: [number, string, number, number?][] = [
-  // l'accroche : le bruit de la pièce, les coups, la fissure, le raclement (seulement les bruits du geste)
-  [0, "sfx/piece.wav", 1, 4.1],
-  // (mesuré : environ 10 dB sous la musique, comme dans la vidéo de référence ; à 0,7-1, les coups dépassaient le maximum)
-  [T.coups[0] / FPS, "sfx/coup-1.wav", 0.45], [T.coups[1] / FPS, "sfx/coup-2.wav", 0.5], [T.coups[2] / FPS, "sfx/coup-3.wav", 0.52], [T.coups[3] / FPS, "sfx/coup-1.wav", 0.56], [T.coups[4] / FPS, "sfx/coup-4.wav", 0.62],
-  [T.coups[4] / FPS - 0.63, "sfx/fissure.mp3", 0.52],
-  [T.mains / FPS, "sfx/ecarter.mp3", 2.6, 1.72],
-  // l'ouverture : un creux juste avant le temps 10 (le raclement s'est éteint), puis le souffle sous la musique
+  // l'accroche : seulement les bruits du geste, dehors (le vent, des oiseaux au loin, la veste qui frotte, la respiration)
+  [0, "sfx/dehors.mp3", 5, (T.ouvre - 8) / FPS],
+  // les coups, inégaux, là où le marteau touche la jarre (mesuré : environ 10 dB sous la musique, comme dans la vidéo de référence)
+  [T.coups[0] / FPS, "sfx/coup-1.wav", 0.42], [T.coups[1] / FPS, "sfx/coup-2.wav", 0.48], [T.coups[2] / FPS, "sfx/coup-3.wav", 0.44], [T.coups[3] / FPS, "sfx/coup-1.wav", 0.56], [T.coups[4] / FPS, "sfx/coup-4.wav", 0.55],
+  [T.coups[4] / FPS - 0.63, "sfx/fissure.mp3", 0.42],
+  // les mains : le raclement des morceaux, l'effort (son second souffle tombe sur la dernière poussée)
+  [T.mains / FPS, "sfx/ecarter.mp3", 1.9, (T.ouvre - 10 - T.mains) / FPS],
+  [(T.mains + 34) / FPS, "sfx/effort.mp3", 0.16, (T.ouvre - T.mains - 34) / FPS],
+  // l'ouverture : le souffle de la plongée sous la musique, puis les points qui surgissent
   [T.ouvre / FPS - 0.02, "sfx/air-whoosh-powerful.mp3", 0.3],
-  [T.ouvre / FPS + 0.15, "sfx/pops.mp3", 0.55],
+  [T.ouvre / FPS + 0.12, "sfx/pops.mp3", 0.55],
   // les panoramiques éclair
   ...COUPES_FOUET.map((c): [number, string, number] => [c / FPS - 0.33, "sfx/swoosh-quick.mp3", 0.35]),
   // l'épingle, la fiche, la vidéo
