@@ -1,0 +1,74 @@
+{
+  "verifie": "2026-11-02",
+  "titre": {
+    "en": "Jewelry Ice at Otsu Beach, Toyokoro (ジュエリーアイス) · Hokkaido, Japan · Random Japan Place",
+    "fr": "Jewelry Ice, les bijoux de glace de Toyokoro (ジュエリーアイス) · Hokkaido, Japon · Random Japan Place",
+    "ja": "ジュエリーアイス（豊頃町・大津海岸）· Random Japan Place"
+  },
+  "meta": {
+    "en": "Jewelry Ice on Otsu Beach, Toyokoro, Hokkaido: when it appears (mid-January to February), the best time of day, how to get there, tours and surviving the cold.",
+    "fr": "Les Jewelry Ice de la plage d'Otsu à Toyokoro (Hokkaido) : quand les voir (mi-janvier à février), à quelle heure, comment y aller, et le froid.",
+    "ja": "北海道豊頃町・大津海岸のジュエリーアイス。見頃は1月中旬から2月、時間帯ごとの見え方、行き方、ツアー、防寒と安全の注意点を紹介します。"
+  },
+  "textes": {
+    "en": {
+      "voir": [
+        "Otsu Beach lies at the mouth of the Tokachi River. In deep winter the river freezes, its ice drifts out into the Pacific, and the waves polish it before washing it back up on the sand: clear blocks that shine like gemstones. This natural show is known as Jewelry Ice.",
+        "Each time of day gives a different look: sunrise colors in the morning, bright sparkle under the blue Tokachi sky around noon, and sunset tones in the evening, with fewer people."
+      ],
+      "aller": [
+        "The beach is in Otsu, Toyokoro, about 1 hour by car from central Obihiro. Cars can't go on the beach: use the free parking lots, then walk about 5 minutes over a small hill. Don't park on the road, as it can block emergency vehicles.",
+        "Without a car, Tokachi Bus offers a bus-and-taxi package from Obihiro Station, Samurai Produce runs a guided sunrise tour, and Hokuto Taxi has private-hire plans."
+      ],
+      "quand": [
+        "The ice usually appears from mid-January to late February, and sometimes into early March. Whether it's there depends on the weather and the sea, and it can vanish from the shore, so check the latest news from the Toyokoro Tourism Association (015-574-2216) before you go.",
+        "The best conditions are a clear day after several days without snow."
+      ],
+      "savoir": [
+        "It's seriously cold: below −20°C, and feeling like −25 to −30°C. Wear layers, gloves and a hat, and keep your phone and camera batteries warm. Stay back from the water, as high waves are dangerous, and watch your step on the slippery ice.",
+        "The area is residential, so be quiet early and late, switch off your engine when parked, and take your litter home. During the season, a rest area usually opens with toilets and local food."
+      ]
+    },
+    "fr": {
+      "voir": [
+        "La plage d'Otsu se trouve à l'embouchure de la rivière Tokachi. Au cœur de l'hiver, la rivière gèle, sa glace part dans le Pacifique, et les vagues la polissent avant de la rejeter sur le sable : des blocs transparents qui brillent comme des pierres précieuses. On appelle ce spectacle naturel les Jewelry Ice, les bijoux de glace.",
+        "Chaque moment de la journée change tout : les couleurs de l'aube le matin, l'éclat sous le ciel bleu de Tokachi à midi, et les tons du couchant le soir, avec moins de monde."
+      ],
+      "aller": [
+        "La plage est à Otsu, à Toyokoro, à environ 1 heure en voiture du centre d'Obihiro. Les voitures ne peuvent pas aller sur la plage : utilise les parkings gratuits, puis marche environ 5 minutes par-dessus une petite colline. Ne te gare pas sur la route, tu pourrais bloquer les secours.",
+        "Sans voiture, Tokachi Bus propose une formule bus et taxi depuis la gare d'Obihiro, Samurai Produce un circuit guidé au lever du soleil, et Hokuto Taxi des taxis privés."
+      ],
+      "quand": [
+        "La glace apparaît en général de mi-janvier à fin février, parfois jusqu'à début mars. Sa présence dépend de la météo et de la mer, et elle peut disparaître du rivage : vérifie les dernières nouvelles auprès de l'office du tourisme de Toyokoro (015-574-2216) avant de partir.",
+        "Les meilleures conditions : une journée claire après plusieurs jours sans neige."
+      ],
+      "savoir": [
+        "Il fait vraiment froid : moins de −20 °C, avec un ressenti de −25 à −30 °C. Prévois plusieurs couches, des gants et un bonnet, et garde les batteries au chaud. Reste à distance de l'eau, les grosses vagues sont dangereuses, et attention à la glace qui glisse.",
+        "Le quartier est résidentiel : reste discret tôt et tard, coupe le moteur quand tu es garé, et remporte tes déchets. Pendant la saison, un espace de repos ouvre en général, avec toilettes et produits locaux."
+      ]
+    },
+    "ja": {
+      "voir": [
+        "大津海岸は十勝川の河口にあります。厳冬期に川が凍り、流れ出た氷が太平洋で波にもまれて磨かれ、砂浜に打ち上げられます。宝石のように輝く透明な氷の塊が、ジュエリーアイスです。",
+        "朝は朝焼けと、昼は十勝ブルーの空と、夕方は夕焼けと。時間帯によって見え方が変わり、夕方は比較的すいています。"
+      ],
+      "aller": [
+        "場所は豊頃町大津で、帯広の中心部から車で約1時間です。海岸には車で入れないので無料駐車場を利用し、小さな丘を越えて約5分歩きます。緊急車両の妨げになるので路上駐車は控えてください。",
+        "車がない場合は、十勝バスのバス＆タクシーパック（帯広駅発）、サムライプロデュースの早朝ガイドツアー、北斗タクシーの貸切プランがあります。"
+      ],
+      "quand": [
+        "例年の見頃は1月中旬から2月下旬で、3月上旬まで見られる年もあります。天候や海の状況によって海岸から消えることもあるので、お出かけ前に豊頃町観光協会（015-574-2216）で最新情報をご確認ください。",
+        "雪のない日が数日続いた後の晴れた日が、特にきれいです。"
+      ],
+      "savoir": [
+        "気温は−20℃を下回ることがあり、体感は−25〜−30℃にもなります。重ね着、手袋、帽子で防寒し、バッテリーは冷やさないようにしましょう。高波は危険なので海に近づきすぎず、滑りやすい氷にもご注意ください。",
+        "周辺は住宅地です。早朝や夜間は静かにし、停車中はエンジンを切り、ごみは持ち帰りましょう。期間中はトイレや産直販売のある休憩所が開くのが通例です。"
+      ]
+    }
+  },
+  "sources": [
+    { "nom": "豊頃町観光協会 (ジュエリーアイス)", "url": "https://www.toyokoro-kankoh.com/" },
+    { "nom": "Walkerplus (ジュエリーアイス)", "url": "https://www.walkerplus.com/article/134834/" },
+    { "nom": "北海道新聞 (大津海岸)", "url": "https://www.hokkaido-np.co.jp/article/1276046/" }
+  ]
+}

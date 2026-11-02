@@ -1,0 +1,74 @@
+{
+  "verifie": "2026-11-02",
+  "titre": {
+    "en": "Nomizo Falls and Kameiwa Cave (濃溝の滝・亀岩の洞窟) · Chiba, Japan · Random Japan Place",
+    "fr": "Cascade de Nomizo et grotte de Kameiwa (濃溝の滝・亀岩の洞窟) · Chiba, Japon · Random Japan Place",
+    "ja": "濃溝の滝・亀岩の洞窟（千葉県君津市）· Random Japan Place"
+  },
+  "meta": {
+    "en": "Nomizo Falls and Kameiwa Cave in Kimitsu, Chiba: when to see the heart of light (March and September mornings), free parking and how to get there from Tokyo.",
+    "fr": "La cascade de Nomizo et la grotte de Kameiwa à Kimitsu (Chiba) : quand voir le cœur de lumière (matins de mars et septembre), parking gratuit et accès.",
+    "ja": "君津市の濃溝の滝・亀岩の洞窟。光のハートが見られる3月・9月の朝の時間、無料駐車場、車と電車でのアクセスを紹介します。"
+  },
+  "textes": {
+    "en": {
+      "voir": [
+        "The famous picture here is a cave, with a small waterfall running through it, and light reflecting off the water. Locals call it Kameiwa Cave, or the river-diverting tunnel.",
+        "It isn't natural: it's the result of kawamawashi, an old technique of cutting through a bend of a river to make new rice fields. Tradition dates the first work here to around 1660."
+      ],
+      "aller": [
+        "By car: about 33 minutes from Kisarazu IC on the Ken-O Expressway, or 38 minutes from Kimitsu IC on the Tateyama Expressway. By train: from JR Kazusa-Kameyama Station, it is about 15 minutes by car or taxi.",
+        "Parking at Shimizu Keiryu Hiroba is free, with three lots. The first, by the souvenir center, is the nearest. From there the falls are a short walk of about 500 meters through the forest."
+      ],
+      "quand": [
+        "The heart of light shows on early mornings around the spring and autumn equinoxes, in March and September, roughly between 6:30 and 7:30. It needs clear weather, the right water level and the right sun angle, so nothing is guaranteed.",
+        "Fireflies appear in early summer, and the autumn leaves come late here, around November and December."
+      ],
+      "savoir": [
+        "On weekends and during the firefly and foliage seasons, the first lot fills up, so come early.",
+        "The Michi-no-Eki Fureai Park Kimitsu roadside station is about 3 minutes away by car, useful for food and a break."
+      ]
+    },
+    "fr": {
+      "voir": [
+        "La célèbre image d'ici, c'est une grotte, traversée par une petite cascade, avec la lumière qui se reflète sur l'eau. Les habitants l'appellent la grotte de Kameiwa, ou le tunnel de dérivation de la rivière.",
+        "Elle n'est pas naturelle : c'est le résultat du kawamawashi, une ancienne technique qui consistait à couper un méandre de rivière pour créer de nouvelles rizières. La tradition date les premiers travaux d'ici vers 1660."
+      ],
+      "aller": [
+        "En voiture : environ 33 minutes depuis la sortie Kisarazu de l'autoroute Ken-O, ou 38 minutes depuis la sortie Kimitsu de l'autoroute de Tateyama. En train : depuis la gare JR de Kazusa-Kameyama, environ 15 minutes en voiture ou en taxi.",
+        "Le parking de Shimizu Keiryu Hiroba est gratuit, avec trois zones. La première, près de la boutique de souvenirs, est la plus proche. De là, compte environ 500 mètres à pied dans la forêt."
+      ],
+      "quand": [
+        "Le cœur de lumière apparaît tôt le matin autour des équinoxes, en mars et en septembre, à peu près entre 6 h 30 et 7 h 30. Il faut un ciel dégagé, le bon niveau d'eau et le bon angle de soleil : rien n'est garanti.",
+        "Les lucioles arrivent au début de l'été, et les couleurs d'automne sont tardives ici, vers novembre et décembre."
+      ],
+      "savoir": [
+        "Le week-end et pendant les saisons des lucioles et des feuilles rouges, le premier parking se remplit : viens tôt.",
+        "L'aire d'étape Michi-no-Eki Fureai Park Kimitsu est à environ 3 minutes en voiture, pratique pour manger et faire une pause."
+      ]
+    },
+    "ja": {
+      "voir": [
+        "よく知られた写真の場所は、小さな滝が流れる洞窟で、差し込んだ光が水面に映ります。地元では「亀岩の洞窟」「川廻しのトンネル」とも呼ばれてきました。",
+        "自然にできたものではなく、蛇行する川の一部をトンネルで短絡して田を作る「川廻し」の工事によって生まれた地形です。最初の工事は1660年頃と伝えられています。"
+      ],
+      "aller": [
+        "車：圏央道・木更津ICから約33分、館山自動車道・君津ICから約38分。電車：JR上総亀山駅から車・タクシーで約15分です。",
+        "清水渓流広場の駐車場は無料で、3か所あります。お土産センターのある第一駐車場が最も近く、そこから森の中を約500m歩きます。"
+      ],
+      "quand": [
+        "光のハートが見られるのは、春分・秋分前後の3月と9月の早朝、午前6時30分から7時30分頃が目安です。天候、水量、日の出の角度などの条件がそろったときだけの現象です。",
+        "初夏はホタル、秋は遅めの紅葉（11月から12月頃）が楽しめます。"
+      ],
+      "savoir": [
+        "休日やホタル・紅葉の時期は第一駐車場が混み合うので、早めの到着をおすすめします。",
+        "道の駅ふれあいパークきみつまで車で約3分で、食事や休憩に便利です。"
+      ]
+    }
+  },
+  "sources": [
+    { "nom": "タイムズクラブ (濃溝の滝)", "url": "https://www.timesclub.jp/sp/tanomachi_ex/chiba/kimitsu/004.html" },
+    { "nom": "るるぶ&more (濃溝の滝)", "url": "https://rurubu.jp/andmore/article/11998" },
+    { "nom": "トラベルコ (濃溝の滝)", "url": "https://www.tour.ne.jp/j_spot/1325424/" }
+  ]
+}

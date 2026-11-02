@@ -1,0 +1,68 @@
+{
+  "verifie": "2026-11-02",
+  "meta": {
+    "en": "Asuka-no-Yu, the Dōgo Onsen annex in Matsuyama: opening hours, prices from ¥610, how to book the special bath, and how to get there by tram.",
+    "fr": "Asuka-no-Yu, l'annexe de Dōgo Onsen à Matsuyama : horaires, prix dès 610 ¥, réservation du bain spécial, et comment y aller en tramway.",
+    "ja": "道後温泉別館 飛鳥乃湯泉の営業時間と料金（610円〜）、特別浴室の予約、見どころ、伊予鉄道でのアクセスを紹介します。"
+  },
+  "textes": {
+    "en": {
+      "voir": [
+        "Asuka-no-Yu is an annex of Dōgo Onsen, built in the style of the Asuka period. The main bath is decorated with large ceramic murals in Tobe-yaki, a local porcelain, showing scenes from old poems linked to Dōgo. The noren curtain at the entrance is made of Iyo-kasuri, the local woven cloth.",
+        "Upstairs, the special bath recreates the imperial bath of Yushinden in the main Dōgo Onsen building."
+      ],
+      "aller": [
+        "From Dōgo Onsen Station on the Iyotetsu tram, it is a 3 to 5-minute walk.",
+        "By car, it is about 8 km (25 minutes) from Matsuyama IC on the Matsuyama Expressway."
+      ],
+      "quand": [
+        "The first-floor bath is open from 6:00 to 23:00 (last entry 22:30), and the upstairs rest rooms from 6:00 to 22:00 (last entry 21:00). It closes only for a rare day in December.",
+        "It can be visited in any season, and early morning or late evening are good ways to avoid the busiest hours."
+      ],
+      "savoir": [
+        "Prices at the time of checking: ¥610 for the first-floor bath, ¥1,280 with the upstairs hall, ¥1,690 with a private rest room (adults, tax included). Tea and sweets are served upstairs after your bath.",
+        "The special bath costs ¥1,690 per person plus ¥2,040 per group. It can be booked from 90 days ahead, online or by phone (089-932-1126). Soap isn't allowed there, so wash in the first-floor bath, and be on time: bookings are cancelled after 30 minutes."
+      ]
+    },
+    "fr": {
+      "voir": [
+        "Asuka-no-Yu est une annexe de Dōgo Onsen, construite dans le style de l'époque d'Asuka. Le grand bain est décoré de grandes fresques en céramique de Tobe, une porcelaine locale, qui illustrent d'anciens poèmes liés à Dōgo. Le rideau noren de l'entrée est en Iyo-kasuri, le tissu de la région.",
+        "À l'étage, le bain spécial reproduit le bain impérial Yushinden du bâtiment principal de Dōgo Onsen."
+      ],
+      "aller": [
+        "Depuis la station de tramway Dōgo Onsen (Iyotetsu), compte 3 à 5 minutes à pied.",
+        "En voiture, environ 8 km (25 minutes) depuis la sortie Matsuyama de l'autoroute de Matsuyama."
+      ],
+      "quand": [
+        "Le bain du rez-de-chaussée est ouvert de 6 h à 23 h (dernière entrée 22 h 30), et les salles de repos de l'étage de 6 h à 22 h (dernière entrée 21 h). L'établissement ne ferme qu'un rare jour de décembre.",
+        "Il se visite en toute saison. Tôt le matin ou tard le soir, tu évites les heures les plus chargées."
+      ],
+      "savoir": [
+        "Prix relevés : 610 ¥ pour le bain du rez-de-chaussée, 1 280 ¥ avec la grande salle de l'étage, 1 690 ¥ avec une salle de repos privée (adulte, taxes comprises). Thé et petit gâteau sont servis à l'étage après le bain.",
+        "Le bain spécial coûte 1 690 ¥ par personne, plus 2 040 ¥ par groupe. Il se réserve jusqu'à 90 jours à l'avance, en ligne ou par téléphone (089-932-1126). Le savon y est interdit : lave-toi au rez-de-chaussée. Sois à l'heure : après 30 minutes de retard, la réservation est annulée."
+      ]
+    },
+    "ja": {
+      "voir": [
+        "飛鳥乃湯泉は、飛鳥時代の建築様式を取り入れた道後温泉の別館です。大浴場の壁には、道後ゆかりの和歌の情景を描いた砥部焼の大きな陶板画が飾られ、入口には伊予絣ののれんが掛かります。",
+        "2階の特別浴室では、道後温泉本館の皇室専用浴室「又新殿」を再現した空間で入浴できます。"
+      ],
+      "aller": [
+        "伊予鉄道の道後温泉駅から徒歩3〜5分です。",
+        "車の場合は松山自動車道・松山ICから約8km、25分ほどです。"
+      ],
+      "quand": [
+        "1階浴室は6:00〜23:00（札止め22:30）、2階の休憩室は6:00〜22:00（札止め21:00）です。休館は12月の臨時休館日のみとされています。",
+        "季節を問わず楽しめます。早朝や夜遅めの時間は、比較的ゆったり入浴できます。"
+      ],
+      "savoir": [
+        "確認時の料金（大人・税込）は、1階浴室610円、2階大広間休憩付き1,280円、2階個室休憩付き1,690円です。2階では入浴後にお茶とお菓子が出されます。",
+        "特別浴室は1人1,690円に加えて1組2,040円です。90日前からオンラインか電話（089-932-1126）で予約できます。特別浴室では石けんを使えないので、体は1階で洗いましょう。30分以上遅れると予約は自動的に取り消されます。"
+      ]
+    }
+  },
+  "sources": [
+    { "nom": "道後温泉 公式サイト (飛鳥乃湯泉)", "url": "https://dogo.jp/onsen/asuka" },
+    { "nom": "るるぶ&more (飛鳥乃湯泉)", "url": "https://rurubu.jp/andmore/spot/80111954" }
+  ]
+}

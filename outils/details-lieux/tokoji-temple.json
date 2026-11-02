@@ -1,0 +1,74 @@
+{
+  "verifie": "2026-11-02",
+  "titre": {
+    "en": "Tokoji Temple, Hagi (東光寺): 500 stone lanterns · Yamaguchi, Japan · Random Japan Place",
+    "fr": "Temple Tokoji, Hagi (東光寺) : 500 lanternes de pierre · Yamaguchi, Japon · Random Japan Place",
+    "ja": "東光寺（山口県萩市）毛利家墓所と500基の石灯籠 · Random Japan Place"
+  },
+  "meta": {
+    "en": "Tokoji in Hagi: over 500 stone lanterns before the Mori lords' graves, lit on August 15. Opening hours, ¥300 entry, how to get there by bus or on foot.",
+    "fr": "Le Tokoji à Hagi : plus de 500 lanternes de pierre devant les tombes des seigneurs Mori, allumées le 15 août. Horaires, entrée à 300 ¥, accès en bus ou à pied.",
+    "ja": "萩市の東光寺は、毛利家墓所に500余基の石灯籠が並ぶ黄檗宗の寺院。8月15日の万灯会、拝観時間と拝観料、バスと徒歩でのアクセスを紹介します。"
+  },
+  "textes": {
+    "en": {
+      "voir": [
+        "Tokoji is a temple of the Ōbaku school of Zen, founded in 1691 by Mori Yoshinari, the third lord of the Hagi domain. Its Somon and Sanmon gates, bell tower and main hall are all Important Cultural Properties.",
+        "The highlight is behind the main hall: the graves of the odd-numbered Mori lords, from the 3rd to the 11th, with over 500 stone lanterns, given by their retainers, lined up in rows in front of them."
+      ],
+      "aller": [
+        "By bus: take the Maaru Bus loop (east course) to Tokoji-mae, 1 minute from the temple. On foot: about 20 minutes from JR Higashi-Hagi Station.",
+        "By car: about 30 minutes from Edo IC on the Ogori-Hagi Road. There's free parking for about 20 cars."
+      ],
+      "quand": [
+        "On August 15, the Mandoe festival lights all the lanterns from 19:30 to 21:30, as a send-off for the spirits of the dead. Daisho-in temple holds the matching welcome fire on August 13.",
+        "On other days, the rows of mossy lanterns are quiet and very photogenic, particularly in soft morning light."
+      ],
+      "savoir": [
+        "Open every day from 8:30 to 17:00. Entry costs ¥300 for adults and ¥150 for children of junior high age and under, with discounts for groups of 30 or more.",
+        "It's a burial ground, so please be respectful when taking photos."
+      ]
+    },
+    "fr": {
+      "voir": [
+        "Le Tokoji est un temple de l'école zen Ōbaku, fondé en 1691 par Mori Yoshinari, troisième seigneur du fief de Hagi. Ses portes Somon et Sanmon, sa tour de la cloche et son hall principal sont tous classés biens culturels importants.",
+        "Le plus beau est derrière le hall principal : les tombes des seigneurs Mori de rang impair, du 3e au 11e, et devant elles plus de 500 lanternes de pierre offertes par leurs vassaux, alignées en rangées."
+      ],
+      "aller": [
+        "En bus : le bus circulaire Maaru (circuit est) jusqu'à Tokoji-mae, à 1 minute du temple. À pied : environ 20 minutes depuis la gare JR de Higashi-Hagi.",
+        "En voiture : environ 30 minutes depuis la sortie Edo de la route Ogori-Hagi. Il y a un parking gratuit d'environ 20 places."
+      ],
+      "quand": [
+        "Le 15 août, la fête Mandoe allume toutes les lanternes de 19 h 30 à 21 h 30, pour raccompagner les esprits des morts. Le temple Daisho-in allume le feu d'accueil le 13 août.",
+        "Les autres jours, les rangées de lanternes moussues sont calmes et très photogéniques, surtout dans la douce lumière du matin."
+      ],
+      "savoir": [
+        "Ouvert tous les jours de 8 h 30 à 17 h. L'entrée coûte 300 ¥ pour les adultes et 150 ¥ jusqu'au collège, avec une réduction à partir de 30 personnes.",
+        "C'est un lieu de sépulture : reste respectueux en prenant tes photos."
+      ]
+    },
+    "ja": {
+      "voir": [
+        "東光寺は元禄4年（1691年）に3代藩主・毛利吉就が創建した黄檗宗の寺院です。総門、三門、鐘楼、大雄宝殿はいずれも国の重要文化財です。",
+        "一番の見どころは本堂裏の毛利家墓所です。3代から11代までの奇数代藩主の墓前に、藩士が寄進した500余基の石灯籠が整然と並びます。"
+      ],
+      "aller": [
+        "バス：萩循環まぁーるバス（東回りコース）「東光寺前」下車、徒歩約1分。徒歩：JR東萩駅から約20分です。",
+        "車：小郡萩道路・絵堂ICから約30分。無料駐車場が約20台分あります。"
+      ],
+      "quand": [
+        "毎年8月15日の万灯会（送り火）では、19:30から21:30まで石灯籠に火が灯されます。8月13日の迎え火は大照院で行われます。",
+        "そのほかの日は、苔むした灯籠の列を静かに眺められます。朝のやわらかな光の時間もおすすめです。"
+      ],
+      "savoir": [
+        "拝観は無休で8:30〜17:00です。拝観料は大人（高校生以上）300円、小人（中学生以下）150円で、30人以上の団体割引があります。",
+        "墓所ですので、撮影の際もお静かにお願いします。"
+      ]
+    }
+  },
+  "sources": [
+    { "nom": "おいでませ山口へ (東光寺)", "url": "https://yamaguchi-tourism.jp/spot/detail_14019.html" },
+    { "nom": "おいでませ山口へ (萩・万灯会)", "url": "https://yamaguchi-tourism.jp/event/detail_14003.html" },
+    { "nom": "tabi-mag (萩・万灯会)", "url": "https://tabi-mag.jp/hagimandoue-okuribi/" }
+  ]
+}

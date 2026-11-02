@@ -395,6 +395,13 @@ Chaque page montre la couverture de ta vidéo (on clique pour la lire), la descr
 
 **Google Search Console :** c'est fait depuis le 2 octobre 2026. Le domaine randomjapanplace.com est validé et le plan du site (`https://map.randomjapanplace.com/sitemap.xml`) est envoyé. Sur search.google.com/search-console, le menu « Pages » montre les pages que Google connaît, et « Performances » les recherches qui mènent à tes pages. Il n'y a rien à refaire : Google relit le plan du site tout seul.
 
+**Les guides détaillés (depuis le 2 novembre 2026) :** 20 lieux ont, en plus, un petit guide sur leur page, dans les trois langues : que voir, comment y aller, quand y aller, bon à savoir, avec les sources. Ils ont été choisis d'après tes chiffres de la Search Console (les lieux qui sortent déjà) et parmi les lieux rares que Google connaît déjà, car c'est là que tu as le plus de chances d'apparaître. Pour Google, une page plus riche a plus de chances d'être gardée et bien classée, mais ça prend plusieurs semaines.
+
+- Ces guides ne sont pas dans le tableau : ils sont dans le dossier `outils/details-lieux/`, un fichier par lieu. Si tu veux en changer un ou en ajouter d'autres, demande-le à Claude.
+- Si tu **changes le nom anglais** d'un de ces lieux dans le tableau, son adresse change et sa page perd son guide jusqu'à ce que Claude le rebranche.
+- La description qui s'affiche sur la carte reste celle du tableau.
+- Pour faire venir Google plus vite sur une page : dans la Search Console, colle son adresse dans la barre du haut (« Inspection de l'URL »), puis clique sur « Demander l'indexation ». Google limite le nombre de demandes par jour : fais-en une dizaine, et continue le lendemain.
+
 ## Le compteur de visites
 
 Sur ordinateur, le nombre de visites de la carte s'affiche en haut, à droite du titre. À l'ouverture, il défile jusqu'au total, puis ajoute la visite en cours. Les visites sur téléphone sont comptées aussi, mais le compteur ne s'affiche que sur ordinateur.

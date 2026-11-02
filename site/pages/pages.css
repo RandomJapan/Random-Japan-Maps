@@ -101,6 +101,13 @@ h2::after { content: ""; flex: 1; border-top: 1px solid var(--trait); opacity: .
 .carte-mer { font: italic 19px var(--police-carte); fill: #1c4744; opacity: .75; text-anchor: middle; }
 .carte-note { margin: 8px 0 0; font: italic 14px var(--police-carte); color: var(--encre-3); }
 
+/* ---------- Le guide détaillé d'un lieu : quatre petites sections, deux par ligne ---------- */
+.guide { display: grid; grid-template-columns: 1fr 1fr; align-items: start; }
+.guide .section:nth-child(even) { padding-left: 0; }
+.guide p { margin: 0 0 10px; line-height: 1.7; }
+.guide-note { margin: 22px 28px 0; font: italic 14px/1.6 var(--police-carte); color: var(--encre-3); overflow-wrap: anywhere; }
+.guide-note a { color: inherit; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+
 .voisins { display: grid; gap: 10px; }
 .voisin {
   display: grid; grid-template-columns: 90px 1fr; align-items: center; text-decoration: none;
@@ -148,6 +155,9 @@ h3 small { font: 500 12px var(--police); color: var(--encre-3); margin-left: 4px
   .carte .bouton { left: 50%; right: auto; transform: translateX(-50%); white-space: nowrap; }
   .bas { grid-template-columns: 1fr; }
   .bas .section + .section { padding-left: 16px; }
+  .guide { grid-template-columns: 1fr; }
+  .guide .section:nth-child(even) { padding-left: 16px; }
+  .guide-note { margin: 18px 16px 0; }
   .voisin { grid-template-columns: 72px 1fr; }
   .voisin img, .voisin .sans-image { width: 72px; height: 96px; }
 }

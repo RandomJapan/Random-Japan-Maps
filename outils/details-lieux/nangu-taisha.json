@@ -1,0 +1,69 @@
+{
+  "verifie": "2026-11-02",
+  "meta": {
+    "en": "Nangu Taisha in Tarui, Gifu: head shrine of mining and metalwork, rebuilt in 1642 with 18 Important Cultural Properties. Gate hours and access from Tarui Station.",
+    "fr": "Le Nangū-taisha à Tarui (Gifu) : sanctuaire des mines et des métaux, rebâti en 1642, 18 bâtiments classés. Horaires de la porte, accès depuis la gare de Tarui.",
+    "ja": "岐阜県垂井町の南宮大社は、金属と鉱山の総本宮で美濃国一宮。徳川家光が再建した18棟の重要文化財、開門時間、垂井駅からの行き方を紹介します。"
+  },
+  "textes": {
+    "en": {
+      "voir": [
+        "Nangu Taisha is the old first shrine of Mino Province, and the head shrine of mining and metalworking, dedicated to Kanayamahiko.",
+        "After the shrine burned down in the Battle of Sekigahara, the third Tokugawa shogun, Iemitsu, had it rebuilt in 1642. Eighteen of its buildings, including the two-story gate, are Important Cultural Properties: a leading example of Edo-period shrine architecture."
+      ],
+      "aller": [
+        "The address is 1734-1 Miyashiro-mine, Tarui-cho, Gifu Prefecture. From JR Tarui Station, allow 15 to 20 minutes on foot.",
+        "By car, it is about 6 km (20 minutes) from Sekigahara IC on the Meishin Expressway, by National Route 21. There is a parking lot at the shrine."
+      ],
+      "quand": [
+        "The gates open from 5:00 to 18:00 from April 16 to October 14, and from 6:00 to 17:30 from October 15 to April 15.",
+        "It is easy to combine with Tarui-juku, a post town on the old Nakasendo road, and with the Sekigahara battlefield nearby."
+      ],
+      "savoir": [
+        "Around New Year's Eve and the first three days of January, traffic restrictions usually apply, so plan to come by train then.",
+        "For anything else, the shrine's number is 0584-22-1225."
+      ]
+    },
+    "fr": {
+      "voir": [
+        "Le Nangū-taisha est l'ancien premier sanctuaire de la province de Mino, et le sanctuaire principal des mines et du travail des métaux, dédié à Kanayamahiko.",
+        "Après l'incendie du sanctuaire lors de la bataille de Sekigahara, le troisième shogun Tokugawa, Iemitsu, l'a fait reconstruire en 1642. Dix-huit de ses bâtiments, dont la porte à étage, sont classés biens culturels importants : un exemple majeur de l'architecture des sanctuaires de l'époque d'Edo."
+      ],
+      "aller": [
+        "L'adresse est 1734-1 Miyashiro-mine, Tarui-cho (préfecture de Gifu). Depuis la gare JR de Tarui, compte 15 à 20 minutes à pied.",
+        "En voiture, environ 6 km (20 minutes) depuis la sortie Sekigahara de l'autoroute Meishin, par la route nationale 21. Il y a un parking au sanctuaire."
+      ],
+      "quand": [
+        "Les portes sont ouvertes de 5 h à 18 h du 16 avril au 14 octobre, et de 6 h à 17 h 30 du 15 octobre au 15 avril.",
+        "Tu peux le combiner facilement avec Tarui-juku, une ville-étape de l'ancienne route Nakasendo, et avec le champ de bataille de Sekigahara, tout proche."
+      ],
+      "savoir": [
+        "Autour du 31 décembre et des trois premiers jours de janvier, la circulation est en général restreinte : viens plutôt en train.",
+        "Pour le reste, le numéro du sanctuaire est le 0584-22-1225."
+      ]
+    },
+    "ja": {
+      "voir": [
+        "南宮大社は美濃国の一宮で、金山彦大神を祀る、鉱山や金属業の総本宮です。",
+        "社殿は関ケ原の合戦で焼失した後、寛永19年（1642年）に徳川家光によって再建されました。楼門をはじめ18棟が国の重要文化財に指定されており、江戸時代の神社建築を代表する遺構です。"
+      ],
+      "aller": [
+        "所在地は岐阜県不破郡垂井町宮代峯1734-1です。JR垂井駅から徒歩15〜20分ほどです。",
+        "車の場合は名神高速・関ケ原ICから国道21号経由で約6km、20分ほどです。駐車場があります。"
+      ],
+      "quand": [
+        "開門時間は、4月16日から10月14日は5:00〜18:00、10月15日から4月15日は6:00〜17:30です。",
+        "中山道の宿場町・垂井宿や、近くの関ケ原古戦場とあわせて巡りやすい場所です。"
+      ],
+      "savoir": [
+        "大晦日から正月三が日は例年交通規制があるので、電車での参拝をおすすめします。",
+        "そのほかのお問い合わせは南宮大社（0584-22-1225）へ。"
+      ]
+    }
+  },
+  "sources": [
+    { "nom": "岐阜の旅ガイド (南宮大社)", "url": "https://www.kankou-gifu.jp/spot/detail_5257.html" },
+    { "nom": "るるぶ&more (南宮大社)", "url": "https://rurubu.jp/andmore/spot/80021437" },
+    { "nom": "岐阜の旅ガイド (中山道 垂井宿)", "url": "https://www.kankou-gifu.jp/spot/detail_7082.html" }
+  ]
+}

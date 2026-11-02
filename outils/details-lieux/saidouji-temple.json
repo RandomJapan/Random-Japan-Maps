@@ -1,0 +1,67 @@
+{
+  "verifie": "2026-11-02",
+  "titre": {
+    "ja": "済渡寺 白い千本鳥居とあじさい（岡山県新見市）· Random Japan Place"
+  },
+  "meta": {
+    "en": "Saidouji in Niimi, Okayama: 78 white torii over 86 m, plus 11,000 hydrangeas. Best flower dates, opening hours, narrow-road tips and how to get there by taxi or car.",
+    "fr": "Le Saidouji à Niimi (Okayama) : 78 torii blancs sur 86 m et 11 000 hortensias. Meilleures dates, horaires, route étroite, et comment y aller en taxi ou en voiture.",
+    "ja": "岡山県新見市の済渡寺は、全長86mの白い千本鳥居とあじさいの寺。花の見頃、拝観時間、狭い道の注意、車とタクシーでの行き方を紹介します。"
+  },
+  "textes": {
+    "en": {
+      "voir": [
+        "Said to have been founded by Kūkai (Kōbō Daishi), Saidouji is above all known for its white torii: 78 gates forming a tunnel 86 meters long, painted white after a white dragon.",
+        "The temple is also called the hydrangea temple, with about 11,000 hydrangeas, while about 5,000 irises grow in the rice fields in front of it."
+      ],
+      "aller": [
+        "The address is 661 Hoso, Niimi, Okayama Prefecture. By car: about 25 minutes from Niimi IC on the Chugoku Expressway, or 35 minutes from Kayo IC on the Okayama Expressway. There's parking for about 100 cars.",
+        "By train: take a taxi for about 30 minutes from JR Ishiga Station. Ikura and Hokoku stations, although closer, have no taxis, so start from Ishiga or Bitchu-Takahashi."
+      ],
+      "quand": [
+        "The irises and hydrangeas flower in early summer. On the mountain, hydrangeas are at their best from late June to the end of July. The white torii themselves can be seen at any time of year."
+      ],
+      "savoir": [
+        "Open from 9:00 to 16:00, with the gate closing at 16:30.",
+        "Some parts of the road are narrow, and large and medium buses are not accepted. Small cars, taxis and motorbikes are recommended, and on the way down you are asked to take the Niimi direction."
+      ]
+    },
+    "fr": {
+      "voir": [
+        "Fondé, dit-on, par Kūkai (Kōbō Daishi), le Saidouji est surtout connu pour ses torii blancs : 78 portes formant un tunnel de 86 mètres, peintes en blanc en référence à un dragon blanc.",
+        "On l'appelle aussi le temple des hortensias, avec environ 11 000 pieds, et environ 5 000 iris poussent dans les rizières juste devant."
+      ],
+      "aller": [
+        "L'adresse est 661 Hoso, à Niimi (préfecture d'Okayama). En voiture : environ 25 minutes depuis la sortie Niimi de l'autoroute du Chugoku, ou 35 minutes depuis la sortie Kayo de l'autoroute d'Okayama. Il y a un parking d'environ 100 places.",
+        "En train : prends un taxi depuis la gare JR d'Ishiga, environ 30 minutes. Les gares d'Ikura et de Hokoku, pourtant plus proches, n'ont pas de taxis : pars d'Ishiga ou de Bitchu-Takahashi."
+      ],
+      "quand": [
+        "Les iris et les hortensias fleurissent au début de l'été. Dans la montagne, les hortensias sont au mieux de fin juin à fin juillet. Les torii blancs, eux, se voient toute l'année."
+      ],
+      "savoir": [
+        "Ouvert de 9 h à 16 h, fermeture de la porte à 16 h 30.",
+        "La route est étroite par endroits, et les grands et moyens bus ne sont pas acceptés. Petites voitures, taxis et motos sont conseillés, et on te demande de redescendre côté Niimi."
+      ]
+    },
+    "ja": {
+      "voir": [
+        "空海（弘法大師）が建てたと伝わる済渡寺で特に知られているのが、白龍にちなんだ白い千本鳥居です。全長86mに78基が並びます。",
+        "「あじさい寺」とも呼ばれ、約11,000株のあじさいが咲き、寺の前の田には約5,000株の花菖蒲が植えられています。"
+      ],
+      "aller": [
+        "所在地は岡山県新見市法曽661です。車なら中国自動車道・新見ICから約25分、岡山自動車道・賀陽ICから約35分で、普通車約100台分の駐車場があります。",
+        "電車の場合はJR石蟹駅からタクシーで約30分です。井倉駅・方谷駅にはタクシーがないため、石蟹駅か備中高梁駅から乗車してください。"
+      ],
+      "quand": [
+        "初夏に花菖蒲とあじさいが咲きます。山のあじさいの見頃は6月下旬から7月末です。白い鳥居は一年を通して見られます。"
+      ],
+      "savoir": [
+        "拝観は9:00〜16:00で、16:30に閉門します。",
+        "道幅の狭い場所があり、大型・中型バスは受け入れていません。小型車、タクシー、バイクが推奨され、下山時は新見方面へ通行するよう案内されています。"
+      ]
+    }
+  },
+  "sources": [
+    { "nom": "岡山観光WEB (済渡寺)", "url": "https://www.okayama-kanko.jp/spot/10950" }
+  ]
+}

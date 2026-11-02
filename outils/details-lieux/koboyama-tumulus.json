@@ -1,0 +1,69 @@
+{
+  "verifie": "2026-11-02",
+  "meta": {
+    "en": "Koboyama Tumulus in Matsumoto: a 3rd-century burial mound covered with cherry trees, with views of the Alps. Best dates in April, bus from the station, no parking.",
+    "fr": "Le tumulus de Koboyama à Matsumoto : une tombe du IIIe siècle couverte de cerisiers, avec vue sur les Alpes. Dates d'avril, bus depuis la gare, pas de parking.",
+    "ja": "松本市の弘法山古墳は、約4000本の桜に包まれる3世紀の前方後方墳。桜の見頃、北アルプスの眺め、バスでの行き方、駐車場なしの注意点を紹介します。"
+  },
+  "textes": {
+    "en": {
+      "voir": [
+        "Koboyama Tumulus is a keyhole-style burial mound with a square front and back, a little over 60 meters long, built in the late 3rd century. It is one of the oldest of its kind in eastern Japan and a National Historic Site.",
+        "From the top you can see the Matsumoto plain and the Northern Alps. In spring, thousands of cherry trees turn the whole hill pale pink."
+      ],
+      "aller": [
+        "The address is 2-1000 Namiyanagi, Matsumoto. From the bus terminal at Matsumoto Station, take the Namiyanagi Danchi line to Koboyama Iriguchi and walk for about 10 minutes.",
+        "The Town Sneaker loop bus (South course) from the station also stops at Yume Hiroba Shonai, close by. By road it is about 20 minutes from Matsumoto IC, but read the parking note below."
+      ],
+      "quand": [
+        "Early to mid-April is the usual cherry season: around 4,000 trees are in bloom, with several varieties. The dates shift with the weather each year.",
+        "Fresh greens in May and June and autumn colors in October and November are much quieter times to enjoy the view."
+      ],
+      "savoir": [
+        "There's no parking at the site, so public transport is strongly recommended, especially during the blossom.",
+        "Sources give its length as 62 or 66 meters. For anything practical, the Matsumoto City tourism office (0263-34-8307) can help."
+      ]
+    },
+    "fr": {
+      "voir": [
+        "Le tumulus de Koboyama est une tombe en forme de trou de serrure à l'avant et à l'arrière carrés, d'un peu plus de 60 mètres, construite à la fin du IIIe siècle. C'est l'une des plus anciennes de ce type dans l'est du Japon, et un site historique national.",
+        "Du sommet, on voit la plaine de Matsumoto et les Alpes du Nord. Au printemps, des milliers de cerisiers colorent toute la colline en rose pâle."
+      ],
+      "aller": [
+        "L'adresse est 2-1000 Namiyanagi, à Matsumoto. Depuis la gare routière de Matsumoto, prends la ligne Namiyanagi Danchi jusqu'à Koboyama Iriguchi, puis marche une dizaine de minutes.",
+        "Le bus circulaire Town Sneaker (circuit sud) s'arrête aussi à Yume Hiroba Shonai, tout près. Par la route, c'est à environ 20 minutes de la sortie Matsumoto, mais lis la note sur le parking ci-dessous."
+      ],
+      "quand": [
+        "Les cerisiers fleurissent en général de début à mi-avril : environ 4 000 arbres, de plusieurs variétés. Les dates bougent chaque année selon la météo.",
+        "Le vert de mai et juin et les couleurs d'octobre et novembre sont des moments bien plus calmes pour profiter de la vue."
+      ],
+      "savoir": [
+        "Il n'y a pas de parking sur place : les transports en commun sont vivement conseillés, surtout pendant la floraison.",
+        "Les sources donnent une longueur de 62 ou 66 mètres. Pour toute question pratique, l'office du tourisme de Matsumoto : 0263-34-8307."
+      ]
+    },
+    "ja": {
+      "voir": [
+        "弘法山古墳は3世紀後半に築かれた前方後方墳で、全長は60mあまり。東日本で最古級の古墳のひとつとされ、国の史跡に指定されています。",
+        "墳頂からは松本平や北アルプスを見渡せます。春には数千本の桜で丘全体が淡いピンク色に染まります。"
+      ],
+      "aller": [
+        "所在地は松本市並柳2-1000です。松本バスターミナルから並柳団地線で「弘法山入口」下車、徒歩約10分です。",
+        "松本駅からの周遊バス「タウンスニーカー」南コースの「ゆめひろば庄内」も近くです。車なら松本ICから約20分ですが、駐車場については下の注意をご覧ください。"
+      ],
+      "quand": [
+        "桜の見頃は例年4月上旬から中旬で、ソメイヨシノやオオヤマザクラなど約4000本が咲きます。開花はその年の気候で前後します。",
+        "5〜6月の新緑や10〜11月の紅葉の頃は、静かに眺めを楽しめます。"
+      ],
+      "savoir": [
+        "駐車場はありません。特に桜の時期は公共交通機関の利用をおすすめします。",
+        "全長は資料により62mまたは約66mとされています。詳しくは松本市観光ブランド課（0263-34-8307）へお問い合わせください。"
+      ]
+    }
+  },
+  "sources": [
+    { "nom": "JR東日本 (弘法山古墳)", "url": "https://media.jreast.co.jp/articles/6090" },
+    { "nom": "ウェザーニュース (弘法山古墳の桜)", "url": "https://weathernews.jp/s/sakura/spot/4807/" },
+    { "nom": "ジョルダン (弘法山古墳 お花見)", "url": "https://sp.jorudan.co.jp/hanami/spot_214.html" }
+  ]
+}

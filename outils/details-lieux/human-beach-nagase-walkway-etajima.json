@@ -1,0 +1,73 @@
+{
+  "verifie": "2026-11-02",
+  "titre": {
+    "en": "Nagase Beach Walkway, Etajima: the path into the sea (長瀬海岸) · Random Japan Place",
+    "fr": "Promenade de la plage de Nagase, Etajima : le chemin dans la mer · Random Japan Place",
+    "ja": "江田島・長瀬海岸の遊歩道（満潮で海に沈むような道）· Random Japan Place"
+  },
+  "meta": {
+    "en": "A stone walkway that seems to float on the Seto Inland Sea at high tide, on Etajima. Ferry from Hiroshima, best tide and sunset tips, free parking.",
+    "fr": "Un chemin de pierre qui semble flotter sur la mer intérieure à marée haute, à Etajima : ferry depuis Hiroshima, marée et coucher de soleil, parking gratuit.",
+    "ja": "満潮になると海に沈むように見える江田島・長瀬海岸の遊歩道。広島港からの行き方、潮と夕日の時間、無料駐車場を紹介します。"
+  },
+  "textes": {
+    "en": {
+      "voir": [
+        "Nagase Beach is a man-made beach with about 400 meters of white sand and calm, clear water, on Etajima in the Seto Inland Sea. Its stone walkway runs out toward the water: when the tide is high, the sea comes up around it and the path looks as if it is floating or sinking into the sea.",
+        "On a windless evening the water works like a mirror, which is why people come here for sunset photos."
+      ],
+      "aller": [
+        "From Hiroshima Port, a high-speed boat takes about 25 minutes to Nakamachi Port, and the beach is then about a 10-minute walk away. The ferry takes about 40 minutes to Takada Port, with about 10 more minutes to the beach.",
+        "You can also drive without a ferry: National Routes 2 and 31 through Kure, then over the Ondo and Hayase bridges. Parking is free."
+      ],
+      "quand": [
+        "Come when the tide is high: look up the day's times in a tide table before you leave. A calm day close to sunset gives the best reflections.",
+        "July and August are the swimming season. The beach is busiest then, and quieter the rest of the year."
+      ],
+      "savoir": [
+        "The beach has showers, changing rooms and toilets, and swimming is free. Paddleboard lessons for beginners are offered too, with advance booking.",
+        "At high tide the walkway can be wet or partly covered, so take care and don't go out on it in rough weather."
+      ]
+    },
+    "fr": {
+      "voir": [
+        "La plage de Nagase est une plage artificielle d'environ 400 mètres de sable blanc, à l'eau calme et claire, sur l'île d'Etajima, dans la mer intérieure de Seto. Son chemin de pierre avance vers l'eau : à marée haute, la mer monte tout autour et il semble flotter, ou s'enfoncer dans la mer.",
+        "Quand il n'y a pas de vent, le soir, l'eau devient un miroir. C'est pour ça qu'on y vient photographier le coucher de soleil."
+      ],
+      "aller": [
+        "Depuis le port de Hiroshima, un bateau rapide rejoint le port de Nakamachi en 25 minutes environ, puis la plage est à 10 minutes à pied. Le ferry met environ 40 minutes jusqu'au port de Takada, puis il reste une dizaine de minutes pour arriver à la plage.",
+        "Tu peux aussi venir en voiture sans ferry : routes nationales 2 et 31 par Kure, puis les ponts d'Ondo et de Hayase. Le parking est gratuit."
+      ],
+      "quand": [
+        "Viens à marée haute : regarde les horaires du jour dans une table des marées avant de partir. Une journée calme, vers le coucher du soleil, donne les plus beaux reflets.",
+        "Juillet et août sont la saison de la baignade : c'est là qu'il y a le plus de monde. Le reste de l'année, c'est plus tranquille."
+      ],
+      "savoir": [
+        "La plage a des douches, des vestiaires et des toilettes, et la baignade est gratuite. Des initiations au paddle sont aussi proposées, sur réservation.",
+        "À marée haute, le chemin peut être mouillé ou en partie recouvert : fais attention, et n'y va pas par mauvais temps."
+      ]
+    },
+    "ja": {
+      "voir": [
+        "長瀬海水浴場は、瀬戸内海に浮かぶ江田島にある人工海浜で、約400mの白い砂浜と穏やかで澄んだ海が広がります。海へ向かってのびる石畳の遊歩道は、満潮になると周りまで海水が満ち、海に浮かんでいるように、また海に沈んでいくように見えます。",
+        "風のない夕方には海面が鏡のようになり、夕日の撮影に訪れる人も多い場所です。"
+      ],
+      "aller": [
+        "広島港から高速船で約25分の中町港で下船し、徒歩約10分です。フェリーなら約40分で高田港に着き、そこから約10分です。",
+        "車の場合は国道2号・31号で呉を通り、音戸大橋と早瀬大橋を渡ればフェリーなしで行けます。駐車場は無料です。"
+      ],
+      "quand": [
+        "満潮の時間に合わせて訪れましょう。潮の時刻はお出かけ前に潮見表で確認できます。風の弱い日の夕方は、水面の映り込みが特にきれいです。",
+        "7月と8月は海水浴シーズンでにぎわいます。それ以外の時期は比較的静かに過ごせます。"
+      ],
+      "savoir": [
+        "シャワー、更衣室、トイレがあり、海水浴は無料です。初心者向けのSUP体験（要予約）もあります。",
+        "満潮時の遊歩道は濡れていたり、一部が水に隠れていたりします。足元に注意し、海が荒れている日は近づかないでください。"
+      ]
+    }
+  },
+  "sources": [
+    { "nom": "Dive! Hiroshima (長瀬海水浴場)", "url": "https://dive-hiroshima.com/explore/1177/" },
+    { "nom": "気象庁 潮位表 / JMA tide tables", "url": "https://www.data.jma.go.jp/kaiyou/db/tide/suisan/index.php" }
+  ]
+}

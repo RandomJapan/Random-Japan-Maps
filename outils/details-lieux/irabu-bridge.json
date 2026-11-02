@@ -1,0 +1,67 @@
+{
+  "verifie": "2026-11-02",
+  "meta": {
+    "en": "Irabu Bridge in Miyakojima, 3,540 m long and free to cross: how to get there, where to park (not on the bridge), walking across, and the best time to go.",
+    "fr": "Le pont d'Irabu à Miyakojima, 3 540 m et gratuit : comment y aller, où te garer (pas sur le pont), le traverser à pied, et la meilleure période.",
+    "ja": "全長3,540mの無料の橋、宮古島の伊良部大橋。アクセス、駐車場所（橋の上は駐停車禁止）、歩いて渡るときの注意、おすすめの時期を紹介します。"
+  },
+  "textes": {
+    "en": {
+      "voir": [
+        "Opened on January 31, 2015, Irabu Bridge links Miyako Island to Irabu Island over about 3,540 meters, and it is the longest toll-free bridge in Japan. Its gentle rise and curve lift you over a strikingly turquoise sea.",
+        "The drive itself is the attraction. Once across, Makiyama Observatory on Irabu Island is one of the places to look out over the area."
+      ],
+      "aller": [
+        "The bridge is about 10 to 15 minutes by car from Miyako Airport. It is part of Okinawa Prefectural Road 252, and it is free.",
+        "A rental car or scooter is the simplest way to cross and to stop at either end."
+      ],
+      "quand": [
+        "May to October brings the warmest weather and the brightest sea. Go on a sunny day, when the sun is high, for the most vivid blue. Typhoons can pass through in summer and autumn, so keep an eye on the forecast."
+      ],
+      "savoir": [
+        "You can't stop or park on the bridge. For photos, use the free parking spaces at either end.",
+        "You may walk or cycle across, but there is no separate sidewalk, only a 1.25-meter shoulder. Walking it at night is dangerous."
+      ]
+    },
+    "fr": {
+      "voir": [
+        "Ouvert le 31 janvier 2015, le pont d'Irabu relie l'île de Miyako à l'île d'Irabu sur environ 3 540 mètres : c'est le plus long pont gratuit du Japon. Sa montée douce et sa courbe te font passer au-dessus d'une mer d'un turquoise étonnant.",
+        "Le trajet lui-même est l'attraction. Une fois de l'autre côté, l'observatoire de Makiyama, sur l'île d'Irabu, est un des points de vue sur la région."
+      ],
+      "aller": [
+        "Le pont est à environ 10 à 15 minutes en voiture de l'aéroport de Miyako. Il fait partie de la route préfectorale 252 d'Okinawa et il est gratuit.",
+        "Le plus simple pour le traverser et t'arrêter à chaque bout : une voiture ou un scooter de location."
+      ],
+      "quand": [
+        "De mai à octobre, il fait le plus chaud et la mer est la plus lumineuse. Va-y par beau temps, quand le soleil est haut, pour le bleu le plus vif. Des typhons peuvent passer en été et en automne : surveille la météo."
+      ],
+      "savoir": [
+        "On ne peut pas s'arrêter ni se garer sur le pont. Pour les photos, utilise les places de stationnement gratuites à chaque extrémité.",
+        "On peut le traverser à pied ou à vélo, mais il n'y a pas de trottoir, seulement un accotement de 1,25 mètre. La nuit, à pied, c'est dangereux."
+      ]
+    },
+    "ja": {
+      "voir": [
+        "2015年1月31日に開通した伊良部大橋は、宮古島と伊良部島を結ぶ全長約3,540mの橋で、無料で渡れる橋としては日本最長です。ゆるやかな上りとカーブの先に、鮮やかなターコイズブルーの海が広がります。",
+        "橋を渡るドライブそのものが見どころです。渡った先の伊良部島には牧山展望台もあります。"
+      ],
+      "aller": [
+        "宮古空港から車で約10〜15分です。沖縄県道252号の一部で、通行料はかかりません。",
+        "橋を渡って両側のたもとに立ち寄るには、レンタカーやレンタルバイクが便利です。"
+      ],
+      "quand": [
+        "5月から10月は気温が高く、海もいっそう明るく見えます。日が高い晴れた時間帯は、青さが特に鮮やかです。夏から秋は台風が来ることもあるので、天気予報をご確認ください。"
+      ],
+      "savoir": [
+        "橋の上は駐停車禁止です。写真を撮るときは、橋の両側のたもとにある無料の駐車スペースを利用しましょう。",
+        "徒歩や自転車でも渡れますが、分離された歩道はなく、幅1.25mの路肩のみです。夜間の歩行は危険です。"
+      ]
+    }
+  },
+  "sources": [
+    { "nom": "ANA Japan Travel Planner (伊良部大橋)", "url": "https://www.ana.co.jp/ja/cn/japan-travel-planner/okinawa/0000021.html" },
+    { "nom": "skyticket (伊良部大橋)", "url": "https://skyticket.jp/guide/8427/" },
+    { "nom": "Bousaid (歩いて渡る)", "url": "https://www.bousaid.com/?p=53838" },
+    { "nom": "Guidoor (伊良部大橋)", "url": "https://www.gltjp.com/ja/directory/item/16200/" }
+  ]
+}

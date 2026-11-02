@@ -1,0 +1,65 @@
+{
+  "verifie": "2026-11-02",
+  "meta": {
+    "en": "Ishiharadake Fort in Saikai, Nagasaki: an 1899 stone fort swallowed by the forest. Moat, gun sites, a 100 m passage, free entry, how to find it and where to camp.",
+    "fr": "Le fort d'Ishiharadake à Saikai (Nagasaki) : un fort de pierre de 1899 avalé par la forêt. Douves, canons, galerie de 100 m, entrée libre, accès et camping.",
+    "ja": "長崎県西海市の石原岳堡塁跡は、森に包まれた明治32年の要塞跡。濠や砲台跡、約100mの通路、無料開放、行き方、キャンプ場を紹介します。"
+  },
+  "textes": {
+    "en": {
+      "voir": [
+        "Ishiharadake Fort was built by the Imperial Japanese Army and completed in December 1899. It belonged to the Sasebo fortress, set up against a possible Russian naval attack: its job was to defend the coastal batteries at the mouth of the bay from a landing on the side. It had six 10 cm Krupp cannons and four 9 cm steel mortars.",
+        "Today it is a forest park. The moat and gun positions remain as they were, and the rooms once used to store ammunition can still be seen. Inside the main structure, a slope leads down to a passage about 100 meters long."
+      ],
+      "aller": [
+        "The fort is in Yokose-go, Saikai-cho, Saikai City, Nagasaki Prefecture, and you need a car. From National Route 202, turn north on the road near Saikai Kita Elementary School and follow the signs for Ishiharadake Park. An earth rampart appears on the left, then the park sign and entrance.",
+        "Use the Directions button above to get the route from where you are."
+      ],
+      "quand": [
+        "The park is open all day, every day, and any season works."
+      ],
+      "savoir": [
+        "Entry is free. You can also camp here for ¥510 per tent per night. Saikai City's tourism section (0959-37-0064) handles questions.",
+        "It's an old military site with dark passages and uneven ground: bring a flashlight and good shoes."
+      ]
+    },
+    "fr": {
+      "voir": [
+        "Le fort d'Ishiharadake a été construit par l'armée impériale et achevé en décembre 1899. Il faisait partie de la forteresse de Sasebo, créée face à une possible attaque de la flotte russe : son rôle était de protéger les batteries côtières de l'entrée de la baie contre un débarquement sur le côté. Il comptait six canons Krupp de 10 cm et quatre mortiers d'acier de 9 cm.",
+        "C'est aujourd'hui un parc forestier. Les douves et les emplacements de canons sont restés tels quels, et on voit encore les salles qui servaient à stocker les munitions. Dans le bâtiment principal, une pente descend vers une galerie d'environ 100 mètres."
+      ],
+      "aller": [
+        "Le fort est à Yokose-go, Saikai-cho, ville de Saikai (préfecture de Nagasaki), et il faut une voiture. Depuis la route nationale 202, prends vers le nord la route proche de l'école primaire Saikai Kita, puis suis les panneaux du parc d'Ishiharadake. Un rempart de terre apparaît à gauche, puis le panneau et l'entrée du parc.",
+        "Le bouton Itinéraire ci-dessus te donne la route depuis là où tu es."
+      ],
+      "quand": [
+        "Le parc est ouvert tous les jours, à toute heure, et toutes les saisons conviennent."
+      ],
+      "savoir": [
+        "L'entrée est gratuite. On peut aussi y camper pour 510 ¥ par tente et par nuit. Le service du tourisme de Saikai (0959-37-0064) répond aux questions.",
+        "C'est un ancien site militaire, avec des galeries sombres et un sol irrégulier : prends une lampe et de bonnes chaussures."
+      ]
+    },
+    "ja": {
+      "voir": [
+        "石原岳堡塁は旧陸軍が築き、明治32年（1899年）12月に完成しました。ロシア艦隊の襲来に備えた佐世保要塞の一部で、湾口を守る砲台群を側面から守るための陸戦用の堡塁です。クルップ式10センチカノン砲6門と鋼製9センチ臼砲4門が配備されていました。",
+        "現在は森林公園となり、濠や砲台跡が当時の姿のまま残っています。弾薬庫として使われた部屋も見られ、メインの建物内のスロープを降りると約100mの通路に出ます。"
+      ],
+      "aller": [
+        "所在地は長崎県西海市西海町横瀬郷で、車での訪問が基本です。国道202号から、西海市立西海北小学校の近くで北へ分かれる道に入り、石原岳公園の表示に従って進みます。道沿い左手に土塁が見えると、公園の看板と入口があります。",
+        "上の「ルート」ボタンで、現在地からの道順を確認できます。"
+      ],
+      "quand": [
+        "終日開放で年中無休、どの季節でも訪れることができます。"
+      ],
+      "savoir": [
+        "入場は無料です。キャンプ場（1泊1張510円）としても利用できます。問い合わせは西海市商工観光物産課（0959-37-0064）へ。",
+        "暗い通路や足元の悪い場所がある軍事遺跡です。懐中電灯と歩きやすい靴をお持ちください。"
+      ]
+    }
+  },
+  "sources": [
+    { "nom": "tabi-mag (石原岳堡塁跡)", "url": "https://tabi-mag.jp/ns0374/" },
+    { "nom": "Walkerplus (石原岳森林公園)", "url": "https://www.walkerplus.com/article/198010/" }
+  ]
+}

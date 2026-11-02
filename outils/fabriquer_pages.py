@@ -5,6 +5,8 @@
 - site/en/, site/fr/, site/ja/ : la liste de tous les lieux, par région et préfecture ;
 - site/sitemap.xml et site/robots.txt : le plan du site pour les moteurs de recherche ;
 - site/pages/japon.svg : le fond de la petite carte.
+Un lieu peut aussi avoir un guide détaillé (que voir, comment y aller, quand y aller, bon à savoir, sources), dans
+outils/details-lieux/<lieu>.json : voir lire_details.
 Tout vient de la copie de secours du tableau (site/data/secours-*.csv) : la GitHub Action relance ce script
 à chaque mise en ligne, donc un nouveau lieu du tableau a sa page le lendemain. Ces fichiers ne sont pas
 gardés dans git (.gitignore). Le style et le petit script des pages sont dans site/pages/ (pages.css, pages.js).
@@ -28,6 +30,8 @@ SITE = RACINE / "site"
 ADRESSE = "https://map.randomjapanplace.com/"
 LANGUES = ("en", "fr", "ja")
 NB_VOISINS = 3
+# Les guides détaillés de certains lieux, un fichier par lieu (le nom du fichier : l'identifiant du lieu)
+DETAILS = RACINE / "outils" / "details-lieux"
 
 # ---------------------------------------------------------------- Textes des pages
 T = {
@@ -43,6 +47,9 @@ T = {
         "titre_site": "Random Japan Place", "video_du": lambda d: f"TikTok video of {d}",
         "mois": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
         "date": lambda j, m, a: f"{m} {j}, {a}",
+        "voir": lambda n: f"What to see at {n}", "aller": lambda n: f"How to get to {n}", "quand": "When to go", "savoir": "Good to know",
+        "sources": "Sources:", "verifie": lambda m, a: f"Information checked in {m} {a}. Times and prices change, so check before you go.",
+        "balade": "Visit in 3D",
     },
     "fr": {
         "japon": "Japon", "carte3d": "Voir sur la carte 3D", "tiktok": "Voir sur TikTok", "itineraire": "Itinéraire",
@@ -56,6 +63,9 @@ T = {
         "titre_site": "Random Japan Place", "video_du": lambda d: f"Vidéo TikTok du {d}",
         "mois": ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"],
         "date": lambda j, m, a: f"{j} {m} {a}",
+        "voir": lambda n: f"{n} : que voir", "aller": lambda n: f"{n} : comment y aller", "quand": "Quand y aller", "savoir": "Bon à savoir",
+        "sources": "Sources :", "verifie": lambda m, a: f"Infos vérifiées en {m} {a}. Les horaires et les prix changent : vérifie avant de partir.",
+        "balade": "Visiter en 3D",
     },
     "ja": {
         "japon": "日本", "carte3d": "3Dマップで見る", "tiktok": "TikTokで見る", "itineraire": "ルート",
@@ -69,6 +79,9 @@ T = {
         "titre_site": "Random Japan Place", "video_du": lambda d: f"TikTok動画（{d}）",
         "mois": [f"{i}月" for i in range(1, 13)],
         "date": lambda j, m, a: f"{a}年{m}{j}日",
+        "voir": lambda n: f"{n}の見どころ", "aller": lambda n: f"{n}へのアクセス", "quand": "おすすめの時期", "savoir": "知っておきたいこと",
+        "sources": "参考にした情報：", "verifie": lambda m, a: f"{a}年{m}に確認した情報です。営業時間や料金は変わることがあるので、お出かけ前にご確認ください。",
+        "balade": "3Dで歩く",
     },
 }
 NOM_LANGUE = {"en": "EN", "fr": "FR", "ja": "日本語"}
@@ -82,6 +95,7 @@ ICO = {
     "route": '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z"/></svg>',
     "sortie": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>',
     "lire": '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15a1 1 0 0 0 1.5.9l12-7.5a1 1 0 0 0 0-1.8l-12-7.5A1 1 0 0 0 7 4.5Z"/></svg>',
+    "balade": '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m12 2-9 5v10l9 5 9-5V7Zm0 2.3L18.2 8 12 11.4 5.8 8ZM5 9.7l6 3.3v6.6l-6-3.3Zm8 9.9V13l6-3.3v6.6Z"/></svg>',
 }
 
 
@@ -193,6 +207,29 @@ def lire_regions():
         regions.append({"cle": cle, "nom": {"en": en, "fr": fr, "ja": ja}, "prefectures": [int(x) for x in nums.split(",")]})
     assert len(prefs) == 47 and len(regions) == 8, "regions.js a changé de forme"
     return prefs, regions
+
+
+def lire_details(lieux):
+    """Les guides détaillés. Un fichier écrit à la main, avec ses sources (le tableau n'a pas la place pour ça) :
+    verifie (la date du contrôle, AAAA-MM-JJ), textes.<langue>.voir/aller/quand/savoir (des listes de paragraphes),
+    meta.<langue> (la description pour Google), sources (nom, url), et s'il le faut titre.<langue> (le titre pour Google),
+    description.<langue> (remplace celle du tableau sur la page) et balade (le lieu de la balade 3D, s'il est public).
+    Un fichier cassé ou un lieu renommé ne doit pas bloquer la mise en ligne : on le signale, et la page reste sans guide."""
+    connus = {l["id"]: l for l in lieux}
+    for f in sorted(DETAILS.glob("*.json")):
+        lieu = connus.get(f.stem)
+        if not lieu:
+            print(f"Guide sans lieu (renommé dans le tableau ?) : {f.name}")
+            continue
+        try:
+            d = json.loads(f.read_text(encoding="utf-8"))
+            for langue in LANGUES:
+                assert all(d["textes"][langue][k] for k in ("voir", "aller", "quand", "savoir")) and d["meta"][langue]
+            assert d["sources"] and re.fullmatch(r"\d{4}-\d{2}-\d{2}", d["verifie"])
+        except (ValueError, KeyError, AssertionError) as err:
+            print(f"Guide illisible, ignoré : {f.name} ({err!r})")
+            continue
+        lieu["details"] = d
 
 
 def en_langue(textes, langue):
@@ -363,6 +400,19 @@ def date_texte(langue, d):
     return t["date"](d.day, t["mois"][d.month - 1], d.year)
 
 
+def bloc_guide(details, langue, nom):
+    """Le guide détaillé d'un lieu : quatre petites sections, puis la date du contrôle et les sources."""
+    t = T[langue]
+    textes = details["textes"][langue]
+    sections = "".join(
+        f'<section class="section"><h2>{e(titre)}</h2>{"".join(f"<p>{e(p)}</p>" for p in textes[cle])}</section>'
+        for cle, titre in (("voir", t["voir"](nom)), ("aller", t["aller"](nom)), ("quand", t["quand"]), ("savoir", t["savoir"])))
+    annee, mois = int(details["verifie"][:4]), int(details["verifie"][5:7])
+    sources = " · ".join(f'<a href="{e(s["url"])}" rel="noopener">{e(s["nom"])}</a>' for s in details["sources"])
+    return f"""<div class="guide">{sections}</div>
+    <p class="guide-note">{e(t["verifie"](t["mois"][mois - 1], annee))} {e(t["sources"])} {sources}</p>"""
+
+
 def page_lieu(l, langue, lieux, prefs, regions, goatcounter):
     t = T[langue]
     prefixe = "../../"
@@ -374,7 +424,8 @@ def page_lieu(l, langue, lieux, prefs, regions, goatcounter):
     nom_region = en_langue(region["nom"], langue) if region else ""
     cat = l["cat"]
     nom_cat = en_langue(cat["nom"], langue)
-    desc = en_langue(l["description"], langue)
+    details = l.get("details")
+    desc = (details and details.get("description", {}).get(langue)) or en_langue(l["description"], langue)
     chemin = f"{langue}/{l['id']}/"
     alternatives = {lg: f"{lg}/{l['id']}/" for lg in LANGUES}
     liens_langues = {lg: f"{prefixe}{lg}/{l['id']}/" for lg in LANGUES}
@@ -385,6 +436,9 @@ def page_lieu(l, langue, lieux, prefs, regions, goatcounter):
         en_plus = f" ({ja})" if ja and ja != nom else ""
         titre = f"{nom}{en_plus} · {nom_pref}, {t['japon']} · Random Japan Place"
     description = resume(desc) or f"{nom} · {nom_cat} · {t['dans'](nom_region, nom_pref)}"
+    if details:
+        titre = details.get("titre", {}).get(langue) or titre
+        description = details["meta"][langue]
     image = image_partage(l)
     cover = couverture(l)
     date = date_video(l["video"])
@@ -419,6 +473,8 @@ def page_lieu(l, langue, lieux, prefs, regions, goatcounter):
     if l["tiktok"]:
         boutons.append(f'<a class="bouton" href="{e(l["tiktok"])}" rel="noopener">{ICO["tiktok"]}{e(t["tiktok"])}</a>')
     boutons.append(f'<a class="bouton" href="https://www.google.com/maps/dir/?api=1&amp;destination={l["lat"]},{l["lng"]}" rel="noopener">{ICO["route"]}{e(t["itineraire"])}</a>')
+    if details and details.get("balade"):
+        boutons.insert(1, f'<a class="bouton" href="{prefixe}balade/?lieu={e(details["balade"])}&amp;langue={langue}">{ICO["balade"]}{e(t["balade"])}</a>')
     if re.match(r"^https?://", l["autre"]):
         boutons.append(f'<a class="bouton" href="{e(l["autre"])}" rel="noopener">{ICO["sortie"]}{e(t["plus"])}</a>')
 
@@ -475,6 +531,7 @@ def page_lieu(l, langue, lieux, prefs, regions, goatcounter):
         {date_html}
       </div>
     </div>
+    {bloc_guide(details, langue, nom) if details else ""}
     <div class="bas">
       <section class="section">
         <h2>{e(t["ou"])}</h2>
@@ -535,15 +592,18 @@ def page_liste(langue, lieux, prefs, regions, goatcounter):
 
 
 def plan_du_site(lieux):
-    def url(chemins, courant):
+    def url(chemins, courant, maj=""):
         alt = "".join(f'<xhtml:link rel="alternate" hreflang="{l}" href="{ADRESSE}{c}"/>' for l, c in chemins.items())
-        return f"<url><loc>{ADRESSE}{courant}</loc>{alt}</url>"
+        date = f"<lastmod>{maj}</lastmod>" if maj else ""
+        return f"<url><loc>{ADRESSE}{courant}</loc>{date}{alt}</url>"
     lignes = [f"<url><loc>{ADRESSE}</loc></url>"]
     listes = {l: f"{l}/" for l in LANGUES}
     lignes += [url(listes, listes[l]) for l in LANGUES]
     for lieu in lieux:
         chemins = {l: f"{l}/{lieu['id']}/" for l in LANGUES}
-        lignes += [url(chemins, chemins[l]) for l in LANGUES]
+        # (seuls les guides ont une date : celle de leur dernier contrôle, pour que Google revienne les lire)
+        maj = lieu["details"]["verifie"] if lieu.get("details") else ""
+        lignes += [url(chemins, chemins[l], maj) for l in LANGUES]
     return ('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" '
             'xmlns:xhtml="http://www.w3.org/1999/xhtml">\n' + "\n".join(lignes) + "\n</urlset>\n")
 
@@ -551,6 +611,7 @@ def plan_du_site(lieux):
 def main():
     lieux = lire_lieux()
     lire_categories(lieux)
+    lire_details(lieux)
     prefs, regions = lire_regions()
     geo = json.loads((SITE / "data" / "prefectures.geojson").read_text(encoding="utf-8"))
     formes = {f["properties"]["code"]: chemin_svg(f["geometry"]["coordinates"]) for f in geo["features"]}

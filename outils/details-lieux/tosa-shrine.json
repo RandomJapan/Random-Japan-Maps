@@ -1,0 +1,69 @@
+{
+  "verifie": "2026-11-02",
+  "meta": {
+    "en": "Tosa Shrine in Kochi, known as Shinane-sama: its dragonfly-shaped halls, the August Shinane festival, how to get there from Tosa-Ichinomiya Station, and parking.",
+    "fr": "Le sanctuaire de Tosa à Kochi, dit Shinane-sama : ses halls en forme de libellule, la fête de Shinane en août, l'accès depuis la gare de Tosa-Ichinomiya, le parking.",
+    "ja": "「しなね様」と呼ばれる高知市の土佐神社。とんぼの形の社殿、8月の志那祢祭、土佐一宮駅からのアクセス、駐車場、見学の注意点を紹介します。"
+  },
+  "textes": {
+    "en": {
+      "voir": [
+        "Locals call Tosa Shrine Shinane-sama. It is the guardian shrine of the old Tosa Province, dedicated to the gods Ajisukitakahikone and Hitokotonushi. Its main hall, offering hall and worship hall, its two-story gate and its drum tower are all Important Cultural Properties.",
+        "Look closely at the plan of the buildings: the worship hall has wings on each side, which form a cross and suggest a dragonfly. Dragonflies were seen as insects of victory, which is why it is also known as the shrine of the victory insect."
+      ],
+      "aller": [
+        "The address is 2-16-1 Ichinomiya-Shinane, Kochi. On foot, it is about 15 minutes from JR Tosa-Ichinomiya Station. A bus also runs from Harimayabashi to the Ichinomiya-Jinja-mae stop, right beside the shrine.",
+        "By car, it is about 2 km from Kochi IC, on Prefectural Roads 44 and 384. There is parking for about 80 cars."
+      ],
+      "quand": [
+        "The grounds are open all year. The main festival, Shinane-sai, takes place on August 24 and 25, with sacred dances, night stalls on the approach, and a procession of portable shrines on the second day.",
+        "In March, during the Igomori festival, entry to the grounds may be limited."
+      ],
+      "savoir": [
+        "The two-story gate was under repair as of November 2025, so it may still be covered when you visit.",
+        "For the current state of the works or festival dates, contact the shrine directly: 088-845-1096."
+      ]
+    },
+    "fr": {
+      "voir": [
+        "Les habitants appellent le sanctuaire de Tosa « Shinane-sama ». C'est le sanctuaire protecteur de l'ancienne province de Tosa, dédié aux dieux Ajisukitakahikone et Hitokotonushi. Son hall principal, son hall des offrandes, son hall de prière, sa porte à étage et sa tour du tambour sont tous classés biens culturels importants.",
+        "Regarde bien le plan des bâtiments : le hall de prière a des ailes de chaque côté, qui dessinent une croix et font penser à une libellule. La libellule était vue comme l'insecte de la victoire : c'est pourquoi on parle aussi du sanctuaire de l'insecte vainqueur."
+      ],
+      "aller": [
+        "L'adresse est 2-16-1 Ichinomiya-Shinane, à Kochi. À pied, compte environ 15 minutes depuis la gare JR de Tosa-Ichinomiya. Un bus part aussi de Harimayabashi jusqu'à l'arrêt Ichinomiya-Jinja-mae, juste à côté du sanctuaire.",
+        "En voiture, environ 2 km depuis la sortie Kochi, par les routes préfectorales 44 et 384. Il y a un parking d'environ 80 places."
+      ],
+      "quand": [
+        "L'enceinte est ouverte toute l'année. La grande fête, Shinane-sai, a lieu les 24 et 25 août, avec des danses sacrées, des stands le soir sur l'allée, et une procession de palanquins le deuxième jour.",
+        "En mars, pendant la fête Igomori, l'entrée de l'enceinte peut être limitée."
+      ],
+      "savoir": [
+        "La porte à étage était en travaux en novembre 2025 : elle peut être encore couverte lors de ta visite.",
+        "Pour l'état des travaux ou les dates des fêtes, contacte directement le sanctuaire : 088-845-1096."
+      ]
+    },
+    "ja": {
+      "voir": [
+        "土佐神社は地元で「しなね様」と呼ばれる、土佐国の総鎮守です。御祭神は味鋤高彦根神と一言主神。本殿・幣殿・拝殿、楼門、鼓楼はいずれも国の重要文化財です。",
+        "社殿の形にもご注目ください。拝殿の左右に翼殿があって十文字をなす「入りとんぼ造り」で、とんぼの形を思わせます。とんぼは勝虫とされることから、「勝虫の社」とも呼ばれています。"
+      ],
+      "aller": [
+        "所在地は高知市一宮しなね2-16-1です。JR土佐一宮駅から徒歩約15分。はりまや橋から県交バスで「一宮神社前」下車、すぐの方法もあります。",
+        "車の場合は高知ICから県道44号・384号で約2km、駐車場は約80台です。"
+      ],
+      "quand": [
+        "境内は一年を通して参拝できます。大祭の志那祢祭は8月24日・25日で、神楽の奉納、参道の夜店、2日目の神輿行列が行われます。",
+        "3月の斎籠祭（いごもり祭）の期間中は、境内への立ち入りが制限されることがあります。"
+      ],
+      "savoir": [
+        "楼門は2025年11月の時点で保存修理工事中でした。訪問時にも覆われている可能性があります。",
+        "工事の状況や祭りの日程は、神社（088-845-1096）へ直接ご確認ください。"
+      ]
+    }
+  },
+  "sources": [
+    { "nom": "るるぶ&more (土佐神社)", "url": "https://rurubu.jp/andmore/spot/80037082" },
+    { "nom": "JEEPE (土佐神社)", "url": "https://www.jeepe.jp/ja/articles/tosa-jinja-2674" },
+    { "nom": "るるぶ&more (志那祢祭)", "url": "https://rurubu.jp/andmore/spot/20003050" }
+  ]
+}

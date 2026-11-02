@@ -1,0 +1,70 @@
+{
+  "verifie": "2026-11-02",
+  "meta": {
+    "en": "Hirayu Waterfall in Takayama, 64 m high: autumn colors, the February ice festival with its light-up, buses from Takayama, and the 20-minute walk from the road.",
+    "fr": "La cascade de Hirayu à Takayama, 64 m de haut : couleurs d'automne, fête de la glace illuminée en février, bus depuis Takayama, et la marche de 20 minutes.",
+    "ja": "高山市の平湯大滝は落差64mの名瀑。紅葉、2月の結氷まつりとライトアップ、高山からのバス、歩く時間と冬の足元の注意を紹介します。"
+  },
+  "textes": {
+    "en": {
+      "voir": [
+        "Hirayu Waterfall drops 64 meters and is about 6 meters wide, on the Otaki River, which rises in the peaks of the Norikura range. It stands in Okuhida Hirayu Otaki Park, and it is counted among the three great waterfalls of Hida.",
+        "The same waterfall has two faces: framed by red leaves in autumn, and frozen solid in the depths of winter, when it becomes a huge pillar of ice."
+      ],
+      "aller": [
+        "By bus: from Takayama, Nohi buses take about an hour to the Hirayu Onsen area. From the Hirayu Onsen Ski-jo-mae or Otakiguchi stops, it is about a 20-minute walk.",
+        "During the ice festival, a free shuttle runs from Hirayu Bus Terminal, with a 20-minute walk after that. The park is free and open all year."
+      ],
+      "quand": [
+        "Autumn brings the red and gold around the falls, around October and November depending on the year.",
+        "In February, the Hirayu Otaki Ice Festival lights up the frozen fall at night. In 2026 it ran from February 15 to 25, from 19:00 to 21:00. Check the dates for next winter."
+      ],
+      "savoir": [
+        "The ground can be wet after rain and icy in winter, so wear non-slip shoes.",
+        "Hirayu Onsen Tourist Information (0578-89-3030) can confirm bus times and festival dates. Bus routes change, so look up the current timetable."
+      ]
+    },
+    "fr": {
+      "voir": [
+        "La cascade de Hirayu tombe de 64 mètres sur environ 6 mètres de large, sur la rivière Otaki, qui naît dans les sommets du massif de Norikura. Elle se trouve dans le parc Okuhida Hirayu Otaki et compte parmi les trois grandes cascades de Hida.",
+        "Elle a deux visages : encadrée de feuilles rouges en automne, et entièrement gelée au cœur de l'hiver, quand elle devient une immense colonne de glace."
+      ],
+      "aller": [
+        "En bus : depuis Takayama, les bus Nohi mettent environ une heure jusqu'au secteur de Hirayu Onsen. Depuis les arrêts Hirayu Onsen Ski-jo-mae ou Otakiguchi, il reste environ 20 minutes à pied.",
+        "Pendant la fête de la glace, une navette gratuite part de la gare routière de Hirayu, puis il reste 20 minutes à pied. Le parc est gratuit et ouvert toute l'année."
+      ],
+      "quand": [
+        "L'automne apporte le rouge et l'or autour de la chute, vers octobre et novembre selon les années.",
+        "En février, la fête de la glace de Hirayu Otaki illumine la chute gelée le soir. En 2026, elle a eu lieu du 15 au 25 février, de 19 h à 21 h. Vérifie les dates de l'hiver prochain."
+      ],
+      "savoir": [
+        "Le sol peut être mouillé après la pluie et verglacé en hiver : prends des chaussures qui ne glissent pas.",
+        "L'office du tourisme de Hirayu Onsen (0578-89-3030) peut te confirmer les bus et les dates de la fête. Les lignes de bus changent : regarde les horaires à jour."
+      ]
+    },
+    "ja": {
+      "voir": [
+        "平湯大滝は落差64m、幅6mの滝で、乗鞍の峰々を源とする大滝川に懸かります。奥飛騨平湯大滝公園の中にあり、飛騨三大名瀑のひとつとされています。",
+        "秋は紅葉に彩られ、厳冬期には全面が凍りついて巨大な氷柱となる、二つの表情を持つ滝です。"
+      ],
+      "aller": [
+        "バス：高山から濃飛バスで平湯温泉方面へ約1時間。「平湯温泉スキー場前」や「大滝口」から徒歩約20分です。",
+        "結氷まつりの期間中は平湯バスターミナルから無料シャトルバスがあり、下車後は徒歩約20分です。公園は通年開放で入園無料です。"
+      ],
+      "quand": [
+        "秋は滝の周りが赤や黄に色づきます。時期は年により前後しますが、10月から11月頃が目安です。",
+        "2月の平湯大滝結氷まつりでは、凍った滝が夜にライトアップされます。2026年は2月15日から25日の19時〜21時に開催されました。次の冬の日程はご確認ください。"
+      ],
+      "savoir": [
+        "雨の後や冬は足元が濡れたり凍ったりするので、滑りにくい靴でお出かけください。",
+        "バスや祭りの日程は平湯温泉観光案内所（0578-89-3030）で確認できます。バスの経路は変わることがあるので、最新の時刻表をご覧ください。"
+      ]
+    }
+  },
+  "sources": [
+    { "nom": "岐阜の旅ガイド (平湯大滝結氷まつり)", "url": "https://www.kankou-gifu.jp/event/detail_1295.html" },
+    { "nom": "るるぶ&more (結氷まつり)", "url": "https://rurubu.jp/andmore/spot/20000998" },
+    { "nom": "tabi-mag (平湯大滝)", "url": "https://tabi-mag.jp/gi0094/" },
+    { "nom": "Guidoor (平湯大滝)", "url": "https://www.gltjp.com/ja/directory/item/18034/" }
+  ]
+}

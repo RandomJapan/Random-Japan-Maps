@@ -1,0 +1,69 @@
+{
+  "verifie": "2026-11-02",
+  "meta": {
+    "en": "Ashino Park in Goshogawara, Aomori: a little train runs through 1,500 cherry trees in Osamu Dazai's hometown. Best dates in spring and how to get there.",
+    "fr": "Le parc d'Ashino à Goshogawara (Aomori) : un petit train passe sous 1 500 cerisiers, au pays d'Osamu Dazai. Meilleures dates au printemps et accès.",
+    "ja": "青森県五所川原市の芦野公園は、桜のトンネルを津軽鉄道が走る名所で、太宰治ゆかりの地。桜の見頃、芦野公園駅からの行き方、見どころを紹介します。"
+  },
+  "textes": {
+    "en": {
+      "voir": [
+        "Ashino Park lies in the former town of Kanagi, the birthplace of novelist Osamu Dazai, and it is one of Japan's 100 best cherry blossom spots. The Tsugaru Railway line runs right through it, so in spring the retro train passes under the flowers.",
+        "Fans of Dazai will find a literary monument and his statue here, as well as the old Ashinokoen Station building, which appears in his book Tsugaru."
+      ],
+      "aller": [
+        "By train: get off at Ashinokoen Station on the Tsugaru Railway, right next to the park.",
+        "By car: about 15 minutes from Goshogawara-Kita IC on the Tsugaru Expressway."
+      ],
+      "quand": [
+        "The cherry blossoms usually peak from late April to early May, which overlaps with Japan's Golden Week holidays, so weekends get crowded. The dates shift a little every year, so check the local forecast.",
+        "Outside the season the park is much quieter, and you can follow Dazai's traces in Kanagi at your own pace."
+      ],
+      "savoir": [
+        "Sources count about 1,500 cherry trees, or 2,200 around the park's lake, so take the number as a rough guide.",
+        "The Tsugaru Railway doesn't run often: look up the timetable before you go, especially if you want to photograph the train under the blossoms."
+      ]
+    },
+    "fr": {
+      "voir": [
+        "Le parc d'Ashino se trouve dans l'ancienne ville de Kanagi, où est né l'écrivain Osamu Dazai, et fait partie des 100 meilleurs sites de cerisiers du Japon. La ligne du Tsugaru Railway le traverse : au printemps, le train rétro passe sous les fleurs.",
+        "Les lecteurs de Dazai y trouveront un monument littéraire et sa statue, ainsi que l'ancienne gare d'Ashinokoen, qui apparaît dans son livre Tsugaru."
+      ],
+      "aller": [
+        "En train : descends à la gare d'Ashinokoen, sur le Tsugaru Railway, juste à côté du parc.",
+        "En voiture : environ 15 minutes depuis la sortie Goshogawara-Kita de l'autoroute de Tsugaru."
+      ],
+      "quand": [
+        "Les cerisiers sont en général au mieux de fin avril à début mai, en pleine Golden Week japonaise : il y a du monde le week-end. Les dates bougent un peu chaque année, regarde les prévisions locales.",
+        "Hors saison, le parc est bien plus calme, et tu peux suivre les traces de Dazai à Kanagi à ton rythme."
+      ],
+      "savoir": [
+        "Les sources comptent environ 1 500 cerisiers, ou 2 200 autour du lac du parc : prends ce nombre comme un ordre de grandeur.",
+        "Le Tsugaru Railway ne passe pas souvent : regarde les horaires avant de partir, surtout si tu veux photographier le train sous les fleurs."
+      ]
+    },
+    "ja": {
+      "voir": [
+        "芦野公園は作家・太宰治の生誕地である旧金木町（現・五所川原市）にあり、「日本のさくら名所100選」のひとつです。園内を津軽鉄道が走り、春には満開の桜の下をレトロな列車が通り抜けます。",
+        "太宰治の文学碑や銅像のほか、小説『津軽』にも登場する芦野公園駅の旧駅舎もあります。"
+      ],
+      "aller": [
+        "電車：津軽鉄道・芦野公園駅で下車してすぐです。",
+        "車：津軽自動車道・五所川原北ICから約15分です。"
+      ],
+      "quand": [
+        "桜の見頃は例年4月下旬から5月上旬で、ゴールデンウィークと重なるため週末は混み合います。開花は年によって前後するので、最新情報をご確認ください。",
+        "桜の時期以外は静かで、金木の太宰ゆかりの地をゆっくり巡れます。"
+      ],
+      "savoir": [
+        "桜の本数は約1,500本とする資料と、芦野湖を中心に2,200本とする資料があり、目安としてお考えください。",
+        "津軽鉄道の本数は多くありません。桜と列車を撮影したい場合は、事前に時刻表をご確認ください。"
+      ]
+    }
+  },
+  "sources": [
+    { "nom": "JR East (Ashino Park)", "url": "https://www.jreast.co.jp/en/akita/meettheheart/column/article77.html" },
+    { "nom": "ANA Japan Travel Planner (芦野公園)", "url": "https://www.ana.co.jp/ja/jp/japan-travel-planner/aomori/0000011.html" },
+    { "nom": "tabi-mag (お花見列車)", "url": "https://tabi-mag.jp/ohanamitrain-tohoku" }
+  ]
+}

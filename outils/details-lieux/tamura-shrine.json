@@ -1,0 +1,69 @@
+{
+  "verifie": "2026-11-02",
+  "meta": {
+    "en": "Tamura Shrine in Takamatsu, the first shrine of old Sanuki: a sacred deep pool, a thousand torii, Sunday-morning udon. How to get there from Ichinomiya Station.",
+    "fr": "Le sanctuaire Tamura à Takamatsu, premier sanctuaire de l'ancienne Sanuki : bassin sacré, mille torii, udon le dimanche matin. Comment y aller depuis Ichinomiya.",
+    "ja": "讃岐国一宮・田村神社（高松市）の見どころとアクセス。奥殿の深淵、千本鳥居、日曜限定のうどん、琴電一宮駅からの行き方を紹介します。"
+  },
+  "textes": {
+    "en": {
+      "voir": [
+        "Tamura Shrine was the leading shrine of the old Sanuki Province. Its heart is the inner hall, built over a deep pool that is worshipped as a water god and tied to a dragon legend. It is hidden beneath the hall, but it explains why water matters so much here.",
+        "Take time to explore the grounds: the great camphor tree, the Ichinomiya Tenmangu, almost as large as a main shrine, and the tunnel of a thousand torii beside it."
+      ],
+      "aller": [
+        "The shrine is at 286 Ichinomiya-cho, Takamatsu. From Ichinomiya Station on the Kotoden Kotohira Line it is about a 10-minute walk. The station was moved a little farther away in 1987, so older guides may show a shorter walk.",
+        "Ichinomiya-ji, temple 83 of the Shikoku pilgrimage, is close by, so the two make an easy pair."
+      ],
+      "quand": [
+        "You can visit all year. The biggest events are the Setsubun festival in February and the lantern festival in August.",
+        "Come on a Sunday morning if you can: the udon shop in the grounds is known for opening only then."
+      ],
+      "savoir": [
+        "People also come here to pray for road safety.",
+        "Event dates and the udon shop's hours can change, so check before making a special trip."
+      ]
+    },
+    "fr": {
+      "voir": [
+        "Le sanctuaire Tamura était le premier de l'ancienne province de Sanuki. Son cœur est le hall intérieur, construit au-dessus d'un bassin profond vénéré comme un dieu de l'eau et lié à une légende de dragon. Il est caché sous le hall, mais il explique la place de l'eau dans ce lieu.",
+        "Prends le temps de parcourir l'enceinte : le grand camphrier, le Ichinomiya Tenmangu, presque aussi grand qu'un sanctuaire principal, et le tunnel de mille torii juste à côté."
+      ],
+      "aller": [
+        "Le sanctuaire est au 286 Ichinomiya-cho, à Takamatsu. Depuis la gare d'Ichinomiya, sur la ligne Kotoden Kotohira, compte environ 10 minutes à pied. La gare a été un peu éloignée en 1987 : les anciens guides peuvent annoncer moins.",
+        "L'Ichinomiya-ji, temple 83 du pèlerinage de Shikoku, est tout près : les deux se visitent facilement ensemble."
+      ],
+      "quand": [
+        "Le sanctuaire se visite toute l'année. Les grandes fêtes sont Setsubun en février et la fête des lanternes en août.",
+        "Viens un dimanche matin si tu peux : le restaurant d'udon de l'enceinte est connu pour n'ouvrir qu'à ce moment-là."
+      ],
+      "savoir": [
+        "On y vient aussi prier pour la sécurité sur la route.",
+        "Les dates des fêtes et les horaires du restaurant peuvent changer : vérifie avant de faire le déplacement exprès."
+      ]
+    },
+    "ja": {
+      "voir": [
+        "田村神社は旧讃岐国の一宮です。中心となる奥殿の下には深淵があり、田村定水大明神とも称される水の神、龍神の伝説とも結びついています。深淵は奥殿の下に隠れていますが、水への信仰を今に伝える場所です。",
+        "境内はぜひゆっくりと。大きな楠、本宮さながらの規模を持つ一宮天満宮、その脇の千本鳥居など、見どころが数多くあります。"
+      ],
+      "aller": [
+        "所在地は高松市一宮町286。高松琴平電鉄琴平線の一宮駅から徒歩約10分です。駅は1987年に少し琴平寄りへ移設されたため、古い案内より少し遠くなっています。",
+        "四国八十八ヶ所第83番札所の一宮寺も近く、あわせて参拝しやすい場所です。"
+      ],
+      "quand": [
+        "一年を通して参拝できます。2月の節分祭と8月の灯篭祭が特に大きな行事です。",
+        "日曜の午前中に訪れるなら、境内のうどん店もおすすめです。日曜の午前中しか営業しないことで知られています。"
+      ],
+      "savoir": [
+        "交通安全の祈願でも知られています。",
+        "行事の日程やうどん店の営業は変わることがあるので、目当てにする場合は事前にご確認ください。"
+      ]
+    }
+  },
+  "sources": [
+    { "nom": "tabi-mag (田村神社)", "url": "https://tabi-mag.jp/ka0109/" },
+    { "nom": "JEEPE (田村神社)", "url": "https://www.jeepe.jp/ja/articles/tamura-jinja-2687" },
+    { "nom": "まっぷるトラベルガイド (一宮駅周辺)", "url": "https://www.mapple.net/station/289567/spot/" }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "verifie": "2026-11-02",
+  "meta": {
+    "en": "Lake Kagami, the mirror pond of Togakushi, Nagano. Bus from Nagano Station, parking, October road limits, best autumn dates and why it's closed in winter.",
+    "fr": "L'étang Kagami, le miroir de Togakushi (Nagano) : bus depuis Nagano, parking, restrictions d'octobre, meilleure période d'automne et fermeture en hiver.",
+    "ja": "戸隠連峰を水面に映す長野市の鏡池。長野駅からのバス、駐車場、10月の交通規制、紅葉の見頃、冬の通行不可について紹介します。"
+  },
+  "textes": {
+    "en": {
+      "voir": [
+        "Kagami means mirror: on a still day, this small pond in the Togakushi highlands reflects the jagged ridge of Mount Togakushi and the forest around it almost perfectly.",
+        "A short walk around the shore gives different angles on the reflection. If you have time, combine it with Togakushi Shrine, which is close by."
+      ],
+      "aller": [
+        "By bus: Alpico buses from Nagano Station take about an hour to the Kagami-ike Iriguchi stop, then it is about a 30-minute walk.",
+        "By car: about 30 minutes from Shinano-machi IC on the Joshin-etsu Expressway. There is a free parking lot for about 50 cars. The road to the pond is narrow, and large vehicles will struggle."
+      ],
+      "quand": [
+        "The autumn colors are usually at their best from early to late October, with mid-to-late October often given as the peak. Fresh green also looks good in May and June.",
+        "On October weekends and holidays, private cars may not be allowed down to the pond. You then park at Chusha-nishi (about 200 free spaces) and take the shuttle bus."
+      ],
+      "savoir": [
+        "In winter the area lies under more than 2 meters of snow and no vehicles can get in. The road usually stays closed until the snow has gone, so check before planning a spring visit.",
+        "The Togakushi Tourist Information Center (026-254-2888) can confirm road limits and shuttle dates, which change every year."
+      ]
+    },
+    "fr": {
+      "voir": [
+        "Kagami veut dire miroir : quand il n'y a pas de vent, ce petit étang des hauteurs de Togakushi reflète presque parfaitement la crête dentelée du mont Togakushi et la forêt tout autour.",
+        "Une courte balade sur la rive te donne plusieurs angles sur le reflet. Si tu as le temps, combine-la avec le sanctuaire Togakushi, tout proche."
+      ],
+      "aller": [
+        "En bus : les bus Alpico depuis la gare de Nagano mettent environ une heure jusqu'à l'arrêt Kagami-ike Iriguchi, puis il reste environ 30 minutes à pied.",
+        "En voiture : environ 30 minutes depuis la sortie Shinano-machi de l'autoroute Joshin-etsu. Un parking gratuit d'environ 50 places est sur place. La route est étroite, difficile pour les grands véhicules."
+      ],
+      "quand": [
+        "Les couleurs d'automne sont en général les plus belles de début à fin octobre, avec un sommet souvent annoncé de mi à fin octobre. Le vert tendre de mai et juin est très beau aussi.",
+        "Les week-ends et jours fériés d'octobre, les voitures peuvent être interdites jusqu'à l'étang. On se gare alors à Chusha-nishi (environ 200 places gratuites) et on prend la navette."
+      ],
+      "savoir": [
+        "En hiver, le secteur est sous plus de 2 mètres de neige et aucun véhicule ne peut y entrer. La route reste en général fermée jusqu'à la fonte : vérifie avant de prévoir une visite au printemps.",
+        "Le centre d'information de Togakushi (026-254-2888) peut te confirmer les restrictions et les dates de navette, qui changent chaque année."
+      ]
+    },
+    "ja": {
+      "voir": [
+        "風のない日には、戸隠連峰の荒々しい稜線と周囲の森が、その名のとおり鏡のように水面に映ります。",
+        "池のほとりを少し歩くと、さまざまな角度で映り込みを楽しめます。近くの戸隠神社とあわせて訪れるのもおすすめです。"
+      ],
+      "aller": [
+        "バス：長野駅からアルピコ交通のバスで約1時間、「鏡池入口」で下車し、徒歩約30分です。",
+        "車：上信越道・信濃町ICから約30分。無料駐車場が約50台分あります。周辺の道は狭く、大型車の通行は困難です。"
+      ],
+      "quand": [
+        "紅葉は例年10月上旬から下旬で、特に10月中旬から下旬が見頃とされています。5月から6月の新緑もきれいです。",
+        "10月の土日祝日は、池のそばまで一般車が入れない場合があります。そのときは中社西駐車場（約200台・無料）に停めて、シャトルバスを利用します。"
+      ],
+      "savoir": [
+        "冬は積雪が2mを超え、車両は一切入れません。雪解けまで通行できないことが多いので、春に訪れる場合は事前にご確認ください。",
+        "交通規制やシャトルバスの日程は毎年変わります。戸隠観光情報センター（026-254-2888）で確認できます。"
+      ]
+    }
+  },
+  "sources": [
+    { "nom": "るるぶ&more (戸隠高原 鏡池)", "url": "https://rurubu.jp/andmore/spot/80018628" },
+    { "nom": "ANA Japan Travel Planner", "url": "https://www.ana.co.jp/ja/us/japan-travel-planner/nagano/0000015.html" },
+    { "nom": "tabi-mag (鏡池)", "url": "https://tabi-mag.jp/nn067/" },
+    { "nom": "戸隠観光協会 (冬の戸隠)", "url": "https://togakushi-21.jp/system/wp-content/uploads/2024/12/冬の戸隠へご来訪されるみなさま（日）.pdf" }
+  ]
+}

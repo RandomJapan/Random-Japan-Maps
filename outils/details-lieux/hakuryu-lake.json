@@ -1,0 +1,74 @@
+{
+  "verifie": "2026-11-02",
+  "titre": {
+    "en": "Hakuryu Lake, Kochi's Monet Pond (白龍湖) · Kochi, Japan · Random Japan Place",
+    "fr": "Lac Hakuryu, l'étang de Monet de Kochi (白龍湖) · Kochi, Japon · Random Japan Place",
+    "ja": "白龍湖（高知版モネの池・津野町）· Random Japan Place"
+  },
+  "meta": {
+    "en": "Hakuryu Lake, the cobalt-blue pond of Tsuno known as Kochi's Monet Pond. Where it is, how to get there, parking, the small donation, and when to go.",
+    "fr": "Le lac Hakuryu, l'étang bleu cobalt de Tsuno, dit « étang de Monet » de Kochi : où il est, comment y aller, le parking, la petite participation et quand y aller.",
+    "ja": "高知版モネの池と呼ばれる津野町の白龍湖。コバルトブルーの理由、場所、行き方、駐車場、協力金、季節ごとの色を紹介します。"
+  },
+  "textes": {
+    "en": {
+      "voir": [
+        "Hakuryu Lake is much smaller than its name suggests: about the size of two tennis courts, and only 1 to 3 meters deep. Its water is a cobalt blue, thanks to the limestone beneath it and the way it reflects light, and carp seem to float in the clear water, which earned it the nickname of Kochi's Monet Pond.",
+        "A statue of a tanuki and a dragon figure mark the entrance."
+      ],
+      "aller": [
+        "The pond is in Yoshōno, Tsuno, Takaoka District, Kochi Prefecture, at the foot of the Shikoku Karst. You need a car: Matsuyama is about 2 hours away.",
+        "Private taxi tours also run from Kochi City, often combined with the blue waters of the Niyodo River. Only a few cars can park here, and the last part goes up a mountain road."
+      ],
+      "quand": [
+        "Sunny days bring out the blue best. The color changes with the seasons: autumn leaves are reflected on the surface, and in winter the water turns a deep jade.",
+        "It is also easy to combine with a drive across the Shikoku Karst plateau, which is at its best in the warmer months."
+      ],
+      "savoir": [
+        "This is private land, kindly opened to visitors. Entry is free, with a voluntary contribution of ¥100. Please leave no litter, and stay quiet.",
+        "Wear shoes you can walk in on a mountain path. Local contact listed: 0889-62-3316."
+      ]
+    },
+    "fr": {
+      "voir": [
+        "Le lac Hakuryu est bien plus petit que son nom ne le dit : la taille de deux courts de tennis environ, et seulement 1 à 3 mètres de profondeur. Son eau est bleu cobalt, grâce au calcaire du sol et à la façon dont il renvoie la lumière. Les carpes semblent flotter dans l'eau claire, d'où son surnom d'étang de Monet de Kochi.",
+        "Une statue de tanuki et un dragon marquent l'entrée."
+      ],
+      "aller": [
+        "L'étang est à Yoshōno, à Tsuno (district de Takaoka, préfecture de Kochi), au pied du karst de Shikoku. Il faut une voiture : Matsuyama est à environ 2 heures.",
+        "Des taxis privés proposent aussi des circuits depuis Kochi, souvent avec les eaux bleues de la rivière Niyodo. Il n'y a de la place que pour quelques voitures, et la fin du trajet se fait sur une route de montagne."
+      ],
+      "quand": [
+        "Le bleu ressort le mieux par beau temps. La couleur change avec les saisons : les feuilles d'automne se reflètent à la surface, et en hiver l'eau vire au jade profond.",
+        "Tu peux aussi le combiner avec une route sur le plateau du karst de Shikoku, surtout agréable à la belle saison."
+      ],
+      "savoir": [
+        "C'est un terrain privé, ouvert aux visiteurs par gentillesse. L'entrée est gratuite, avec une participation libre de 100 ¥. Ne laisse rien derrière toi et reste discret.",
+        "Prends des chaussures adaptées à un chemin de montagne. Contact local indiqué : 0889-62-3316."
+      ]
+    },
+    "ja": {
+      "voir": [
+        "白龍湖の広さはテニスコート2面分ほど、深さは1〜3mほどの小さな池です。石灰岩の地層と光の反射によって水はコバルトブルーに見え、透明な水の中を泳ぐ鯉の姿から「高知版モネの池」と呼ばれています。",
+        "入口には、たぬきの像と龍のオブジェが目印として立っています。"
+      ],
+      "aller": [
+        "高知県高岡郡津野町芳生野甲、四国カルストの麓にあります。車での訪問が基本で、松山市からは約2時間です。",
+        "高知市内発の貸切タクシープランもあり、仁淀ブルーの名所と組み合わせた内容が紹介されています。駐車できるのは数台で、最後は山道を進みます。"
+      ],
+      "quand": [
+        "晴れた日は青さがいっそう際立ちます。秋は水面に紅葉が映り、冬は深い翡翠色に変わるなど、季節によって表情が変わります。",
+        "四国カルストのドライブとあわせて訪れるのもおすすめです。"
+      ],
+      "savoir": [
+        "私有地で、ご厚意により公開されています。入場は無料で、任意の協力金は100円です。ごみは持ち帰り、静かに楽しみましょう。",
+        "山道を歩ける靴でお出かけください。問い合わせ先として0889-62-3316が案内されています。"
+      ]
+    }
+  },
+  "sources": [
+    { "nom": "たびいろ (白龍湖)", "url": "https://tabiiro.jp/plan/2688/" },
+    { "nom": "VELTRA (高知版モネの池 白龍湖)", "url": "https://www.veltra.com/jp/japan/kochi/a/170134" },
+    { "nom": "日本旅行 Tripa", "url": "https://www.nta.co.jp/media/tripa/articles/18sAZ" }
+  ]
+}
