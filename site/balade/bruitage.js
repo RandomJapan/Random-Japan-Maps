@@ -55,6 +55,8 @@ const V = {
   chameau: 0.1, grelots: 0.05, glisse: 0.07, poudre: 0.1,
   // (Tottori) les galets du télésiège, à chaque pylône (oiseau())
   poulies: 0.06,
+  // (le chrono de la planche, Tottori ; les jumelles du toit)
+  top: 0.05, depart: 0.06, porte: 0.05, rate: 0.05, arrivee: 0.06, clac: 0.06, trouve: 0.055,
 };
 const lisse = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
 

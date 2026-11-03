@@ -72,6 +72,16 @@ body.occupe .rappel-compagnon, body.en-tenue .rappel-compagnon, body.en-boutique
   transition: opacity 0.8s;
 }
 .aide.vue { opacity: 0; pointer-events: none; }
+/* ---- le bandeau d'un petit jeu, en haut de l'écran : le chrono, le record */
+.chrono {
+  z-index: 5; position: fixed; top: calc(env(safe-area-inset-top, 0px) + 58px); left: 50%; transform: translateX(-50%); padding: 6px 16px 7px; display: flex; flex-direction: column; align-items: center; gap: 1px;
+  background: rgba(255, 250, 240, 0.94); font-variant-numeric: tabular-nums; text-align: center; white-space: nowrap; pointer-events: none; line-height: 1.15;
+}
+.chrono[hidden] { display: none; }
+.chrono b { font-size: 25px; letter-spacing: 0.02em; }
+.chrono small { font-size: 12.5px; opacity: 0.86; }
+.chrono .bon { color: #2a7a4a; font-weight: 700; }
+.chrono .rate { color: #c0392b; font-weight: 700; }
 
 /* ---- la boîte de dialogue, en bas */
 .dialogue {

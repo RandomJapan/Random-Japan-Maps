@@ -127,6 +127,8 @@ function matieres(P) {
   mettre(M.pierre, 'fonte', 'fonteClair', 'depot');
   mettre(M.enduit, 'crepi', 'crepiGris');
   mettre(M.bois, 'caillebotis', 'caillebotisClair', 'caillebotisFonce', 'planche', 'plancheFonce');
+  // (Tottori : les sculptures de sable du musée, le grain du sable)
+  mettre(M.sable, '#dcc595', '#ceb583', '#efe0bd', '#b39868', '#86704a');
   return t;
 }
 

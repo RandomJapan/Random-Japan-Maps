@@ -921,6 +921,48 @@ const OISEAUX = {
     c.bruit(0.0, { f: 300, q: 0.6, duree: 0.8, forme: ad(0.1, 0.25, 0.8), gain: 0.12 });
     return cadrer([c.b], sr, 0.25);
   },
+  // le chrono de la planche (2026-11-03) : le top du compte à rebours, le départ, une porte passée, une porte ratée, l'arrivée (trois notes qui montent)
+  top(sr, r) {
+    const c = composer(sr, r, 0.24);
+    c.modes(0.005, [[660, 0.7, 0.05], [1320, 0.2, 0.03]]);
+    return cadrer([c.b], sr, 0.3);
+  },
+  depart(sr, r) {
+    const c = composer(sr, r, 0.6);
+    c.modes(0.005, [[990, 0.8, 0.16], [1980, 0.22, 0.09], [495, 0.3, 0.12]]);
+    return cadrer([c.b], sr, 0.34);
+  },
+  porte(sr, r) {
+    const c = composer(sr, r, 0.42);
+    c.modes(0.004, [[1320, 0.6, 0.08], [2640, 0.16, 0.05]]);
+    c.modes(0.085, [[1760, 0.7, 0.11], [3520, 0.14, 0.06]]);
+    return cadrer([c.b], sr, 0.28);
+  },
+  rate(sr, r) {
+    const c = composer(sr, r, 0.34);
+    c.modes(0.004, [[196, 0.8, 0.09], [233, 0.5, 0.08]]);
+    c.bruit(0.0, { type: 'bas', f: 500, tau: 0.05, gain: 0.25 });
+    return cadrer([c.b], sr, 0.26);
+  },
+  arrivee(sr, r) {
+    const c = composer(sr, r, 1.3);
+    for (const [t0, f, g, tau] of [[0.01, 880, 0.7, 0.16], [0.15, 1109, 0.7, 0.16], [0.3, 1319, 0.8, 0.32], [0.3, 1760, 0.35, 0.3]]) c.modes(t0, [[f, g, tau], [f * 2, g * 0.2, tau * 0.5]]);
+    return cadrer([c.b], sr, 0.36);
+  },
+  // les jumelles à pièce : le déclic du mécanisme ; une chose trouvée : deux petites notes
+  clac(sr, r) {
+    const c = composer(sr, r, 0.3);
+    c.modes(0.004, [[1900 + 200 * r(), 0.5, 0.012], [720 + 80 * r(), 0.5, 0.025]]);
+    c.modes(0.09, [[2400 + 200 * r(), 0.4, 0.01], [540 + 60 * r(), 0.7, 0.03]]);
+    c.bruit(0.08, { type: 'bas', f: 900, tau: 0.02, gain: 0.3 });
+    return cadrer([c.b], sr, 0.3);
+  },
+  trouve(sr, r) {
+    const c = composer(sr, r, 0.6);
+    c.modes(0.004, [[1046, 0.7, 0.09], [2093, 0.15, 0.05]]);
+    c.modes(0.11, [[1568, 0.8, 0.18], [3136, 0.14, 0.08]]);
+    return cadrer([c.b], sr, 0.3);
+  },
   // le sable sous la planche : un chuintement qui passe, quelques grains
   glisse(sr, r) {
     const c = composer(sr, r, 0.55);

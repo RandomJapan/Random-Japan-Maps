@@ -15,8 +15,8 @@ import { aAchete } from './tresors.js';
 // de plus : la tenue entière, ce qu'on laisse sous ses pas, ce que porte le compagnon ; puis, avec Gokayama, ce qu'on
 // porte sur le dos : le sac, ou le mino, la cape de paille ; avec Takachiho, ce qu'on porte au cou : le collier de magatama ;
 // avec Kinkaku-ji, sur le dos encore : les ailes du phénix, des plumes d'or qui s'ouvrent quand on court ; avec Udo, la
-// cape en plumes de cormoran, dont le bas se soulève quand on court)
-export const PLACES = ['tete', 'yeux', 'habit', 'dos', 'cou', 'pas', 'compagnon'];
+// cape en plumes de cormoran, dont le bas se soulève quand on court ; le 2026-11-03, ce qu'on tient à la main : l'ombrelle de Shan-shan, qu'on peut porter avec une cape, ou le sac)
+export const PLACES = ['tete', 'yeux', 'habit', 'dos', 'main', 'cou', 'pas', 'compagnon'];
 /**
  * Les pièces, par place (une seule pièce par place à la fois) ; lieu : le lieu dont il faut tous les tampons ; achat :
  * l'article du marchand qui la débloque (tresors.js) ; sans l'un ni l'autre : dès le départ. 'defaut' : la casquette du
@@ -44,7 +44,8 @@ export const PIECES = [
   { id: 'cormoran', place: 'dos', lieu: 'udo' },
   // (avec : la capuche ne se lève que sans chapeau ni masque : la mettre enlève le chapeau, qu'on peut remettre ; la capuche retombe alors dans le dos)
   { id: 'loup', place: 'dos', lieu: 'yakushima', avec: ['nue'] },
-  { id: 'ombrelle', place: 'dos', lieu: 'tottori' },
+  { id: 'main-rien', place: 'main' },
+  { id: 'ombrelle', place: 'main', lieu: 'tottori' },
   { id: 'cou-rien', place: 'cou' },
   { id: 'magatama', place: 'cou', lieu: 'takachiho' },
   { id: 'yamabushi', place: 'cou', lieu: 'sanjubutsu' },
@@ -57,7 +58,7 @@ export const PIECES = [
   { id: 'cp-chapeau', place: 'compagnon', achat: 'accessoires' },
   { id: 'cp-grelot', place: 'compagnon', achat: 'accessoires' },
 ];
-const PAR_DEFAUT = { tete: 'defaut', yeux: 'aucune', habit: 'habit-defaut', dos: 'sac', cou: 'cou-rien', pas: 'trace-aucune', compagnon: 'cp-defaut' };
+const PAR_DEFAUT = { tete: 'defaut', yeux: 'aucune', habit: 'habit-defaut', dos: 'sac', main: 'main-rien', cou: 'cou-rien', pas: 'trace-aucune', compagnon: 'cp-defaut' };
 const CLE = 'baladeTenue', CLE_VUES = 'baladeTenuesVues';
 
 const lire = (cle, defaut) => { try { return JSON.parse(localStorage.getItem(cle)) ?? defaut; } catch { return defaut; } };
@@ -135,6 +136,8 @@ const DESSINS = {
     <ellipse cx="10.5" cy="27" rx="6" ry="3" transform="rotate(-28 10.5 27)" fill="#b98250" stroke="${ENCRE}" stroke-width="1.8"/>
     <ellipse cx="37.5" cy="27" rx="6" ry="3" transform="rotate(28 37.5 27)" fill="#b98250" stroke="${ENCRE}" stroke-width="1.8"/>
     ${trait(BOIS_D, '#e2c596', 3)}<g transform="translate(48 0) scale(-1 1)">${trait(BOIS_D, '#e2c596', 3)}</g>`,
+  // à la main : rien (une main ouverte, quatre doigts ronds et un pouce)
+  'main-rien': `<path d="M16 44 Q10 36 8.6 28 Q7.8 24.4 10.6 24 Q13 23.8 14 27 L15.6 31 L15 13 Q15 10 17.6 10 Q20 10 20.2 13 L20.8 24 L21.4 9.4 Q21.6 6.6 24.2 6.6 Q26.8 6.8 26.8 9.6 L26.6 24 L28 11.4 Q28.4 8.8 30.8 9 Q33.2 9.4 32.8 12 L31.4 25 L34.2 16.4 Q35 14 37.2 14.8 Q39.2 15.6 38.6 18 L35 33 Q34 39 31.6 44 Z" fill="#ffdcbc" stroke="${ENCRE}" stroke-width="2.3" stroke-linejoin="round"/>`,
   // l'ombrelle de Shan-shan (Tottori) : la toile rouge et or, ses baleines, ses grelots tout autour, le manche de bambou
   ombrelle: `<path d="M7 25 Q24 3 41 25 Z" fill="#d8402c" stroke="${ENCRE}" stroke-width="2.4" stroke-linejoin="round"/>
     <path d="M14.5 25 Q24 9 33.5 25 Z" fill="#f2c443"/><path d="M19.5 25 Q24 14.5 28.5 25 Z" fill="#f4efe2"/>

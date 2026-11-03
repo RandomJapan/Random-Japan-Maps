@@ -1348,7 +1348,9 @@ export function creerHeros(ctx, sorte = 'garcon') {
   // en marchant, plus en courant, grand ouvert quand on saute, qu'on danse ou qu'on fait « Ouais ! »), plus au dos que sur les
   // côtés, et qui battent chacun à son tour (la phase avance à chaque image)
   // (la cape du loup, Yakushima : pareil ; capeL, sa capuche à part : capuche, couchée dans le dos ou levée sur la tête)
-  let cape = null, capeL = null, ecartCape = 0, phaseCape = 0, leveQueue = 0, ombrelle = null, ombrelleRangee = false;
+  let cape = null, capeL = null, ecartCape = 0, phaseCape = 0, leveQueue = 0, ombrelle = null, ombrellePortee = false, ombrelleRangee = false, aCheval = false;
+  // (le bras qui tient l'ombrelle : presque à l'horizontale, le poing devant l'épaule)
+  const BRAS_OMBRELLE = -1.32;
   const animerCape = (dt, vitesse, fete) => {
     const C = cape?.objet.visible ? cape : capeL?.objet.visible ? capeL : null;
     if (!C) return;
@@ -1383,7 +1385,9 @@ export function creerHeros(ctx, sorte = 'garcon') {
     return g;
   };
   const animerQueue = (dt, vitesse) => {
-    if (!queue || !queue.visible) return;
+    if (!queue || teteId !== 'renard') return;
+    // (assis, elle passerait à travers le dossier : comme celle du loup)
+    queue.visible = !assis;
     const allure = Math.min(1, vitesse / 4);
     phaseQueue += dt * (1.5 + 2.5 * allure);
     queue.rotation.set(-0.15 * allure, Math.sin(phaseQueue) * (0.12 + 0.22 * allure), Math.sin(phaseQueue * 0.5) * 0.05, 'YXZ');
@@ -1755,7 +1759,7 @@ export function creerHeros(ctx, sorte = 'garcon') {
     } else if (g === 'planche') {
       // debout sur la planche de sable (Tottori) : les genoux pliés, le corps de côté, les bras écartés pour tenir l'équilibre
       const o = Math.sin(t * 2.1);
-      B.rotation.x = -0.25 + 0.08 * o; G.rotation.x = -0.25 - 0.08 * o; B.rotation.z = 1.05 + 0.1 * o; G.rotation.z = -1.05 + 0.1 * o;
+      B.rotation.x = -0.25 + 0.08 * o; G.rotation.x = -0.25 - 0.08 * o; B.rotation.z = -1.05 + 0.1 * o; G.rotation.z = 1.05 + 0.1 * o;
       jambes[0].rotation.x = -0.35; jambes[1].rotation.x = 0.28;
       corps.rotation.x = 0.1; tete.rotation.x = -0.06; danseur.position.y = -0.05 + 0.012 * o;
     } else if (g === 'grimper') {
@@ -1785,11 +1789,10 @@ export function creerHeros(ctx, sorte = 'garcon') {
     objet: racine,
     /** Porte-t-il l'ombrelle de Shan-shan ? (ses grelots, à chaque pas : balade.js, unPas) */
     get aOmbrelle() { return !!ombrelle?.objet.visible; },
-    /** L'ombrelle rangée le temps d'un siège du télésiège (oui), ou de nouveau à la main ; s'il la porte. */
-    rangerOmbrelle(oui) {
-      if (oui && ombrelle?.objet.visible) { ombrelle.objet.visible = false; ombrelleRangee = true; }
-      if (!oui && ombrelleRangee) { ombrelle.objet.visible = true; ombrelleRangee = false; }
-    },
+    /** L'ombrelle rangée (oui : le temps d'un siège du télésiège, d'une descente en planche), ou de nouveau à la main ; s'il la porte. */
+    rangerOmbrelle(oui) { ombrelleRangee = oui; },
+    /** À califourchon (oui) : les jambes de part et d'autre du dos d'un chameau, les mains devant lui ; ou assis, comme sur un banc. */
+    aCheval(oui) { aCheval = oui; if (!oui) jambes[0].rotation.z = jambes[1].rotation.z = 0; },
     /** Une petite courbette (on lui parle, il remercie…). */
     saluer() { salut = 1; },
     /**
@@ -1812,6 +1815,24 @@ export function creerHeros(ctx, sorte = 'garcon') {
      */
     porter(place, id) {
       if (place === 'habit') { habiller(id); return; }
+      // à la main : rien, ou l'ombrelle de Shan-shan (Tottori) : le manche dans le poing (la main du bras droit, au bout de son pivot), la toile au-dessus de la tête ; elle tourne doucement, ses grelots se
+      // balancent. (2026-11-03 : « elle est mal tenue dans la main… elle traverse son bras » : elle était posée sur l'avant-bras, à 20 cm de l'épaule, la main à 31 cm ; et « un objet tenu à la main », à
+      // sa place à elle : une cape en même temps.) Le bras est levé dans animer ; rangée pendant un geste qui prend les deux mains
+      if (place === 'main') {
+        ombrellePortee = id === 'ombrelle';
+        if (ombrellePortee && !ombrelle) {
+          const o = ombrelleShanshan(THREE, atelier), objet = new THREE.Group(), tourne = new THREE.Group(), gr = maillage(o.grelots.fin(0, false));
+          objet.add(maillage(o.manche.fin(0, false)), tourne);
+          tourne.add(maillage(o.toile.fin(0, false)), gr);
+          objet.position.set(0, -0.312, 0);
+          // (l'axe, dans le repère du bras levé à BRAS_OMBRELLE : vers le haut, un peu en arrière et vers l'extérieur : il passe loin de la tête, et la toile la couvre)
+          objet.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(-0.27, 0.34, 0.9).normalize());
+          ombrelle = { objet, tourne, gr };
+          bras[0].add(objet);
+        }
+        if (ombrelle) ombrelle.objet.visible = ombrellePortee;
+        return;
+      }
       // sur le dos : le sac de tous les jours ('sac'), ou le mino (la cape de paille de Gokayama), qui le cache
       if (place === 'dos') {
         if (dosPorte) dosPorte.visible = false;
@@ -1833,21 +1854,6 @@ export function creerHeros(ctx, sorte = 'garcon') {
           }
           ailes.objet.visible = true;
           dosPorte = ailes.objet;
-        }
-        // l'ombrelle de Shan-shan (Tottori) : dans la main droite, le bras levé, le manche posé contre l'épaule ; elle tourne doucement, ses grelots se balancent
-        if (id === 'ombrelle') {
-          if (!ombrelle) {
-            const o = ombrelleShanshan(THREE, atelier), objet = new THREE.Group(), tourne = new THREE.Group(), gr = maillage(o.grelots.fin(0, false));
-            objet.add(maillage(o.manche.fin(0, false)), tourne);
-            tourne.add(maillage(o.toile.fin(0, false)), gr);
-            objet.position.set(0, -0.2, 0);
-            // (l'axe, dans le repère du bras levé à −1 rad : vers le haut, un peu en arrière et vers l'extérieur)
-            objet.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(-0.24, 0.76, 0.6).normalize());
-            ombrelle = { objet, tourne, gr };
-            bras[0].add(objet);
-          }
-          ombrelle.objet.visible = true;
-          dosPorte = ombrelle.objet;
         }
         // la cape en plumes de cormoran (Udo) : le haut sur les épaules, l'ourlet en six morceaux, chacun sur son pivot
         if (id === 'cormoran') {
@@ -1935,10 +1941,16 @@ export function creerHeros(ctx, sorte = 'garcon') {
       bras[1].rotation.x = sw * 0.85;
       bras[0].rotation.z = -0.12;
       bras[1].rotation.z = 0.12;
-      // (l'ombrelle : le bras droit levé, immobile ; la toile tourne, plus vite quand on marche ; les grelots se balancent en retard)
-      if (ombrelle?.objet.visible) {
-        bras[0].rotation.x = -1.0 + Math.sin(phase * 2) * 0.03 * marche;
-        bras[0].rotation.z = 0.05;
+      // (l'ombrelle : le bras droit levé, le poing devant l'épaule ; la toile tourne, plus vite quand on marche ; les grelots se balancent en retard. Rangée pendant ce qui prend les deux mains : la
+      // danse, un geste, les rames, un siège de télésiège)
+      const ombrelleEnMain = ombrellePortee && !ombrelleRangee && !danse && !geste && rame === null;
+      if (ombrelle) ombrelle.objet.visible = ombrelleEnMain;
+      const leverOmbrelle = () => {
+        bras[0].rotation.x = BRAS_OMBRELLE + Math.sin(phase * 2) * 0.03 * marche;
+        bras[0].rotation.z = 0.04;
+      };
+      if (ombrelleEnMain) {
+        leverOmbrelle();
         ombrelle.tourne.rotation.y += dt * (0.25 + 0.5 * marche);
         ombrelle.gr.rotation.x = Math.sin(phase * 2 - 0.6) * 0.02 * marche;
         ombrelle.gr.rotation.z = Math.cos(phase * 2 - 0.6) * 0.02 * marche;
@@ -1959,6 +1971,14 @@ export function creerHeros(ctx, sorte = 'garcon') {
         jambes[0].rotation.x = jambes[1].rotation.x = -1.3;
         bras[0].rotation.x = bras[1].rotation.x = -0.55;
         corps.rotation.x = -0.05 + courbe;
+        // (à califourchon : les cuisses de part et d'autre du dos, un peu en avant ; les mains à la poignée)
+        if (aCheval) {
+          jambes[0].rotation.x = jambes[1].rotation.x = -0.42;
+          jambes[0].rotation.z = -0.92; jambes[1].rotation.z = 0.92;
+          bras[0].rotation.x = bras[1].rotation.x = -0.95;
+          bras[0].rotation.z = 0.2; bras[1].rotation.z = -0.2;
+        }
+        if (ombrelleEnMain) leverOmbrelle();
         if (rame !== null) {
           // (o = −1 : l'attaque, les pelles du côté de la proue ; o = 1 : la fin du coup, du côté de la poupe — balade.js, piloter)
           // à l'attaque, penché vers la poupe, les bras tendus, les genoux pliés ; puis il tire : les poignées vers la
@@ -2948,11 +2968,13 @@ export function creerCompagnon(ctx, espece, o = {}) {
   // (la queue qui bat, les anneaux de Fuwa qui ondulent : leur phase avance de dt × leur rythme. 2026-10-26, « quand il se
   // déplace, sa queue tremble » : c'était sin(temps × rythme), le rythme suivant l'allure ; en marchant, l'allure bouge un peu
   // à chaque image, et la phase sautait de temps × l'écart, de plus en plus fort au fil de la partie)
-  let phaseQueue = 0, phaseVol = 0;
+  let phaseQueue = 0, phaseVol = 0, queueCote = 0;
   const loutre = espece === 'chapu', tanuki = espece === 'pon', vol = !!F.vol, bipede = !!F.bipede;
   return {
     objet: racine,
     espece,
+    /** Assis contre un dossier (oui) : sa queue passe à côté de lui, le long de l'assise ; côté : −1 ou 1 (vers où, dans son repère). Sans cela, elle sortait par derrière (2026-11-03, le télésiège de Tottori). */
+    queueSurLeCote(oui, cote = 1) { queueCote = oui ? cote : 0; },
     /** Là où l'on monte sur lui ; porter(oui) : il porte quelqu'un (il ne s'assoit plus). */
     dos,
     porterSurLeDos(oui) { porte = oui; },
@@ -3104,6 +3126,10 @@ export function creerCompagnon(ctx, espece, o = {}) {
         tete.rotation.z += s * 0.8;
         queue.rotation.y += s * 1.5;
       }
+      // (contre un dossier : la queue à plat sur l'assise, de côté ; elle ne bat presque plus)
+      // (celle du shisa, en flamme bouclée, monte trop haut : elle passerait quand même à travers le dossier)
+      if (queueCote) { queue.rotation.y = queueCote * (1.95 + 0.05 * Math.sin(phaseQueue)); queue.rotation.x = 0; queue.rotation.z = 0; }
+      queue.visible = !(queueCote && espece === 'gao');
       return nage || vol ? 0 : pose;
     },
   };

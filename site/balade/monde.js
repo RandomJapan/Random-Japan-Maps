@@ -179,13 +179,17 @@ export function creerMonde({ terrain, cadre, profond = -0.6, pente = null }) {
     return Math.hypot(terrain(x + e, z) - terrain(x - e, z), terrain(x, z + e) - terrain(x, z - e)) / (2 * e);
   }
 
-  /** Ce qu'on entend en marchant sur la surface où l'on se tient en x, z, à la hauteur y ('bois' par défaut). */
-  function solSous(x, z, y) {
-    let sol = 'bois', ecart = 0.2;
+  /**
+   * Ce qu'on entend en marchant sur la surface où l'on se tient en x, z, à la hauteur y : la plus haute sous ses pieds (à 20 cm près), au-dessus du sol naturel h, sa matière ('bois' si elle n'en dit
+   * rien) ; null : aucune, on est sur le sol naturel. (Les pieds suivent le sol avec un peu de retard : en descendant une pente en courant, ils sont plus de 12 cm au-dessus de lui ; sans surface
+   * autour, cela répondait 'bois', et la dune sonnait comme un plancher : 2026-11-03, Tottori. Une marche d'escalier, de même, passe sous eux.)
+   */
+  function solSous(x, z, y, h = -Infinity) {
+    let sol = null, haut = h - 0.02;
     for (const s of surfaces) {
       if (s.plein || !dedans(s, x, z)) continue;
-      const e = Math.abs(hauteurDe(s, x, z) - y);
-      if (e < ecart) { ecart = e; sol = s.sol || 'bois'; }
+      const q = hauteurDe(s, x, z);
+      if (q <= y + 0.2 && q >= haut) { haut = q; sol = s.sol || 'bois'; }
     }
     return sol;
   }
@@ -277,7 +281,7 @@ export function pointDuBanc(b, x, z) {
 /** Les bancs d'un lieu → leurs interactions : on s'y assoit où l'on est, sur toute leur longueur (jeu.asseoirSurBanc). */
 export function interactionsBancs(bancs) {
   return bancs.map((b, i) => ({
-    id: `banc-${i}`, verbe: 'asseoir', rayon: 1.5, haut: 1.2,
+    id: `banc-${i}`, verbe: 'asseoir', rayon: 1.5, haut: 1.2, y: b.etage ? b.y - 0.5 : undefined,
     pres: (x, z) => pointDuBanc(b, x, z),
     action: (jeu) => jeu.asseoirSurBanc(b),
   }));

@@ -2351,7 +2351,7 @@ function gene(de, cible = etat) {
 }
 let avantTenue = null;
 function ouvrirGarderobe() {
-  if ((etat.mode !== 'jeu' && etat.mode !== 'menu') || M.barque?.actif || (siege && !siege.libre)) return;
+  if ((etat.mode !== 'jeu' && etat.mode !== 'menu') || M.barque?.actif || M.lieu.conduite?.actif || (siege && !siege.libre)) return;
   fermerTout();
   if (siege) seLever();
   touches.clear();
@@ -2375,6 +2375,8 @@ function fermerGarderobe() {
 function majGarderobe(info = null) {
   const T = t('tenue'), tenue = lireTenue(sorte, totalTampons);
   const sections = PLACES.map((place) => {
+    // (la main, tant que le lieu de l'ombrelle n'est pas ouvert à tous : un seul choix, rien à choisir)
+    if (PIECES_VUES.filter((p) => p.place === place).length < 2) return '';
     const boutons = PIECES_VUES.filter((p) => p.place === place).map((p) => {
       const ok = gagnee(p, totalTampons), porte = tenue[place] === p.id;
       return `<button type="button" class="piece${porte ? ' actif' : ''}${ok ? '' : ' verrou'}" data-piece="${p.id}" aria-pressed="${porte}">`
@@ -2759,7 +2761,7 @@ function seLever() {
 
 /** Ce que les lieux peuvent faire (leurs actions reçoivent cet objet). */
 const jeu = {
-  t, tx,
+  t, tx, tactile,
   dire: (pages, qui) => dialogue.dire(pages, { qui: qui && nomQui(qui) }),
   choisir: (pages, options, qui) => dialogue.choisir(pages, options, { qui: qui && nomQui(qui) }),
   aTampon: (id) => aLeTampon(M.lieu.id, id),
@@ -2767,6 +2769,14 @@ const jeu = {
   saluer: () => M.joueur.saluer(),
   /** L'ombrelle de Shan-shan rangée (oui), ou de nouveau à la main : sous le petit toit d'un siège du télésiège, elle le traversait. */
   rangerOmbrelle: (oui) => M.joueur.rangerOmbrelle(oui),
+  /** À califourchon (oui) sur le siège qu'on va prendre (un chameau), ou assis comme sur un banc. */
+  aCheval: (oui) => M.joueur.aCheval(oui),
+  /** Un petit bandeau en haut de l'écran, le temps d'un petit jeu (le chrono d'une descente…) : son contenu (du HTML), ou plus (null). */
+  chrono(html) {
+    const el = $('.chrono');
+    el.hidden = html == null;
+    if (html != null && el.dataset.v !== html) { el.innerHTML = html; el.dataset.v = html; }
+  },
   /** Le voyageur et son compagnon ne se dessinent plus (oui), ou de nouveau : le temps d'un regard où la caméra serait en eux. */
   cacherVoyageur(oui) { M.joueur.objet.visible = !oui; M.kon.objet.visible = !oui; },
   /** Le compagnon choisi : 'kon', 'pon' ou 'chapu' (ce qu'il dit dans les lieux en dépend ; dire(…, 'compagnon')). */
@@ -3207,7 +3217,7 @@ function acheterArticle(id) {
 
 // ---- la danse des fêtes (bon-odori) : la caméra de face, l'air de la fête ; une touche, un appui, et l'on s'arrête
 function commencerDanse() {
-  if (etat.mode !== 'jeu' || M.barque?.actif || (siege && !siege.libre)) return;
+  if (etat.mode !== 'jeu' || M.barque?.actif || M.lieu.conduite?.actif || (siege && !siege.libre)) return;
   if (siege) seLever();
   touches.clear();
   etat.vx = etat.vz = 0;
@@ -3543,6 +3553,8 @@ function avancer(dt) {
     renard.banc = banc;
     M.kon.sauter();
   }
+  // (banc.dossier : un dossier derrière lui, sa queue sur le côté, vers le voyageur)
+  M.kon.queueSurLeCote?.(!!renard.banc?.dossier, renard.banc?.dossier);
   if (renard.banc) {
     // assis sur le banc à côté du voyageur
     Object.assign(renard, { x: banc.x, z: banc.z, y: banc.y, vitesse: 0 });
@@ -3801,7 +3813,10 @@ function niveauEau(x, z) {
 /** Sous les pieds en x, z, à la hauteur y : le sol (bruitage-calcul.js, SOLS), la profondeur d'eau, la hauteur du sol naturel. */
 function sousLesPieds(x, z, y) {
   const L = M.lieu, h = L.terrain(x, z);
-  if (y > h + 0.12) return { sol: L.monde.solSous(x, z, y), eau: 0, h };
+  if (y > h + 0.12) {
+    const s = L.monde.solSous(x, z, y, h);
+    if (s) return { sol: s, eau: 0, h };
+  }
   const ne = niveauEau(x, z), eau = ne == null ? 0 : Math.max(0, ne - h);
   const sol = eau > 0.03 ? 'eau' : SON_DU_SOL[matiereDuSol(x, z, h)] || 'terre';
   // (l'hiver du calendrier magique : la neige crisse sous les pas ; pas sous un toit, la salle du bas du donjon, dont le
@@ -4020,6 +4035,8 @@ function dessiner(dt, temps) {
   const { joueur, autre, kon, lieu } = M;
   joueur.objet.position.set(etat.x, etat.y, etat.z);
   joueur.objet.rotation.y = etat.cap;
+  // (siege.roulis : le siège se balance, le voyageur avec lui : un chameau au pas)
+  joueur.objet.rotation.z = siege?.roulis || 0;
   const pasJoueur = joueur.animer(dt, etat.vitesse, temps);
   if (autre.objet.visible) {
     // l'autre voyageur, à droite du premier (pour l'objectif)
