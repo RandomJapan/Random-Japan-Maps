@@ -2146,6 +2146,12 @@ export function construire(ctx) {
           a.baton([A.x, y + 1.42, A.z], [B2.x, y + 1.42, B2.z], 0.04, B, 6).baton([A.x, y + 1.1, A.z], [B2.x, y + 1.1, B2.z], 0.025, B, 5);
           for (let k = az > 0 ? 1 : 0; k <= n; k++) a.boite(0.08, 0.66, 0.08, BF, { x: A.x + (B2.x - A.x) * k / n, y: y + 1.12, z: A.z + (B2.z - A.z) * k / n });
         }
+        // (elle descend le long des marches, ses poteaux plantés à côté : 2026-11-03, on sortait des marches par le côté, ou on les longeait, et on restait coincé pour de bon dans le mur d'en bas)
+        {
+          const A = R(sg * 1.7, 0, 3.62), B2 = R(sg * 1.7, 0, 4.5);
+          a.baton([A.x, y + 1.42, A.z], [B2.x, y + 0.86, B2.z], 0.04, B, 6).baton([A.x, y + 1.1, A.z], [B2.x, y + 0.54, B2.z], 0.025, B, 5);
+          for (const t of [0.52, 1]) { const h = 1.45 - 0.56 * t, zp = A.z + (B2.z - A.z) * t; a.boite(0.08, h + 0.1, 0.08, BF, { x: A.x, y: y + (h - 0.1) / 2, z: zp }); }
+        }
         const q = R(sg * 2.9, 0, 6.1);
         a.boite(0.9, 0.95, 0.9, P.pierreFonce, { x: q.x, y: y + 0.475, z: q.z }).boite(0.98, 0.1, 0.98, P.pierre, { x: q.x, y: y + 1.0, z: q.z });
         const Kr = repere(q.x, q.z, -sg * 0.35), K = (lx, ly, lz, o = {}) => ({ ...Kr(lx, 0, lz, o), y: y + 1.05 + ly, ordre: 'YXZ' });
@@ -2173,7 +2179,8 @@ export function construire(ctx) {
       for (const sg of [-1, 1]) {
         murR(sg * 4.8, -3.7, sg * 4.8, 3.7, 0.3, -1, 0.5);
         murR(sg * 4.8, 3.7, sg * 1.65, 3.7, 0.3, -1, 0.5);
-        murR(sg * 1.6, 3.7, sg * 1.6, 4.53, 0.28, -1, 0.45);
+        // (le long des marches : de bas en haut. Un mur qui s'arrête à mi-hauteur à côté d'une pente est un piège : on y entre en la descendant)
+        murR(sg * 1.65, 3.62, sg * 1.65, 4.53, 0.33, -1, 3);
         // sur l'estrade : la balustrade, les poteaux de devant
         murR(sg * 4.62, -3.5, sg * 4.62, 3.62, 0.3, 0.5, 3);
         murR(sg * 4.62, 3.62, sg * 1.7, 3.62, 0.3, 0.5, 3);
@@ -2224,6 +2231,12 @@ export function construire(ctx) {
         // (le poteau du coin une seule fois : les côtés commencent au deuxième)
         for (let k = ax === bx ? 1 : 0; k <= n; k++) a.boite(0.07, 0.56, 0.07, BF, { x: A.x + (B2.x - A.x) * k / n, y: y + 1.34, z: A.z + (B2.z - A.z) * k / n });
       }
+      // (la balustrade descend le long des marches, ses poteaux plantés à côté : voir le hall)
+      for (const sg of [-1, 1]) {
+        const A = R(sg * 1.1, 0, 3.1), B2 = R(sg * 1.1, 0, 4.32);
+        a.baton([A.x, y + 1.62, A.z], [B2.x, y + 0.88, B2.z], 0.035, B, 6);
+        for (const t of [0.57, 1]) { const h = 1.64 - 0.74 * t, xp = A.x + (B2.x - A.x) * t; a.boite(0.07, h + 0.1, 0.07, BF, { x: xp, y: y + (h - 0.1) / 2, z: A.z }); }
+      }
       // (la pente des marches passe par le milieu du dessus de chacune : elle allait 14 cm sous la plus haute)
       monde.surface(KAGURA.x - 2.95, KAGURA.x + 3.2, KAGURA.z - 3.95, KAGURA.z + 3.95, 1.05, { sol: 'bois' });
       monde.rampe(KAGURA.x + 3.2, KAGURA.x + 4.6, KAGURA.z - 1.0, KAGURA.z + 1.0, 'x', 1.05, 0.0, { sol: 'bois' });
@@ -2236,7 +2249,7 @@ export function construire(ctx) {
       monde.mur(X - 3.2, Z - 4.2, X - 3.2, Z + 4.2, 0.3, -1, 0.6);
       for (const sg of [-1, 1]) {
         monde.mur(X + 3.2, Z + sg * 4.2, X + 3.2, Z + sg * 1.05, 0.3, -1, 0.6);
-        monde.mur(X + 3.2, Z + sg * 1.0, X + 4.4, Z + sg * 1.0, 0.28, -1, 0.55);
+        monde.mur(X + 3.2, Z + sg * 1.05, X + 4.4, Z + sg * 1.05, 0.33, -1, 3);
         monde.mur(X + 3.1, Z + sg * 4.05, X + 3.1, Z + sg * 1.1, 0.3, 0.6, 3);
         monde.mur(X - 3.0, Z + sg * 4.05, X + 3.1, Z + sg * 4.05, 0.3, 0.6, 3);
         for (const dz of [-3.8, 3.8]) monde.cercle(X + sg * 2.8, Z + dz, 0.42, 0.6, 3);
