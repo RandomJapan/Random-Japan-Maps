@@ -911,6 +911,16 @@ const OISEAUX = {
     for (const [t0, k, g] of [[0.01, 1, 0.9], [0.17, 1.26, 0.6], [0.38, 0.94, 0.75], [0.62, 1.12, 0.45]]) c.modes(t0, [[f0 * k, g, 0.28], [f0 * k * 2.42, 0.42 * g, 0.16], [f0 * k * 3.87, 0.2 * g, 0.08], [f0 * k * 5.3, 0.08 * g, 0.05]]);
     return cadrer([echo(c.b, sr)], sr, 0.3);
   },
+  // les galets d'un pylône, sous la pince d'un siège du télésiège : quatre petits coups de métal, « ka-ta-ka-ta », le câble qui ronfle
+  poulies(sr, r) {
+    const c = composer(sr, r, 0.9);
+    for (const [t0, g] of [[0.02, 1], [0.17, 0.8], [0.31, 0.9], [0.46, 0.7]]) {
+      c.modes(t0, [[410 + 40 * r(), 0.7 * g, 0.03], [1130 + 90 * r(), 0.3 * g, 0.018], [2300 + 200 * r(), 0.12 * g, 0.01]]);
+      c.bruit(t0, { type: 'bas', f: 200, tau: 0.025, gain: 0.5 * g });
+    }
+    c.bruit(0.0, { f: 300, q: 0.6, duree: 0.8, forme: ad(0.1, 0.25, 0.8), gain: 0.12 });
+    return cadrer([c.b], sr, 0.25);
+  },
   // le sable sous la planche : un chuintement qui passe, quelques grains
   glisse(sr, r) {
     const c = composer(sr, r, 0.55);

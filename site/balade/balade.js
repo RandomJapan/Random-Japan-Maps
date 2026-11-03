@@ -2351,7 +2351,7 @@ function gene(de, cible = etat) {
 }
 let avantTenue = null;
 function ouvrirGarderobe() {
-  if ((etat.mode !== 'jeu' && etat.mode !== 'menu') || M.barque?.actif) return;
+  if ((etat.mode !== 'jeu' && etat.mode !== 'menu') || M.barque?.actif || (siege && !siege.libre)) return;
   fermerTout();
   if (siege) seLever();
   touches.clear();
@@ -2596,6 +2596,8 @@ const absent = (p) => !!p.quand && (p.quand === 'nuit') !== (M.nuit.v > 0.5);
 function cibleProche() {
   const L = M.lieu;
   if (L.conduite?.actif) return null;
+  // (assis par le lieu, en route : sur le chameau, sur le télésiège de Tottori, rien à faire au passage)
+  if (siege && !siege.libre) return null;
   if (siege?.libre) return { x: etat.x, z: etat.z, y: etat.y, haut: 1.55, verbe: 'lever', lever: true };
   const cands = [];
   // (dans la barque : seulement ce qu'on fait depuis l'eau, accoster, prendre ce qui est sous la falaise)
@@ -2763,6 +2765,8 @@ const jeu = {
   aTampon: (id) => aLeTampon(M.lieu.id, id),
   tampon, video, attendre,
   saluer: () => M.joueur.saluer(),
+  /** L'ombrelle de Shan-shan rangée (oui), ou de nouveau à la main : sous le petit toit d'un siège du télésiège, elle le traversait. */
+  rangerOmbrelle: (oui) => M.joueur.rangerOmbrelle(oui),
   /** Le voyageur et son compagnon ne se dessinent plus (oui), ou de nouveau : le temps d'un regard où la caméra serait en eux. */
   cacherVoyageur(oui) { M.joueur.objet.visible = !oui; M.kon.objet.visible = !oui; },
   /** Le compagnon choisi : 'kon', 'pon' ou 'chapu' (ce qu'il dit dans les lieux en dépend ; dire(…, 'compagnon')). */
@@ -3203,7 +3207,7 @@ function acheterArticle(id) {
 
 // ---- la danse des fêtes (bon-odori) : la caméra de face, l'air de la fête ; une touche, un appui, et l'on s'arrête
 function commencerDanse() {
-  if (etat.mode !== 'jeu' || M.barque?.actif) return;
+  if (etat.mode !== 'jeu' || M.barque?.actif || (siege && !siege.libre)) return;
   if (siege) seLever();
   touches.clear();
   etat.vx = etat.vz = 0;
@@ -3304,7 +3308,7 @@ const photo = creerPhoto($('.photo'), {
 });
 function ouvrirPhoto() {
   if (etat.mode !== 'jeu' || M.barque?.actif) return;
-  if (siege) seLever();
+  if (siege?.libre) seLever();
   touches.clear();
   etat.vx = etat.vz = 0;
   etat.mode = 'photo';
@@ -3535,7 +3539,7 @@ function avancer(dt) {
     M.kon.sauter();
   }
   // s'il y a la place, il saute sur le banc à côté du voyageur assis : arrivé tout près, ou au bout de 2,5 s
-  if (banc && !renard.banc && !renard.nage && etat.mode !== 'depart' && (Math.hypot(banc.x - renard.x, banc.z - renard.z) < 1.1 || debout?.t > 2.5)) {
+  if (banc && !renard.banc && !renard.nage && etat.mode !== 'depart' && (Math.hypot(banc.x - renard.x, banc.z - renard.z) < 1.1 || debout?.t > 2.5 || banc.aussitot)) {
     renard.banc = banc;
     M.kon.sauter();
   }

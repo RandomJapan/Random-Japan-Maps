@@ -1348,7 +1348,7 @@ export function creerHeros(ctx, sorte = 'garcon') {
   // en marchant, plus en courant, grand ouvert quand on saute, qu'on danse ou qu'on fait « Ouais ! »), plus au dos que sur les
   // côtés, et qui battent chacun à son tour (la phase avance à chaque image)
   // (la cape du loup, Yakushima : pareil ; capeL, sa capuche à part : capuche, couchée dans le dos ou levée sur la tête)
-  let cape = null, capeL = null, ecartCape = 0, phaseCape = 0, leveQueue = 0, ombrelle = null;
+  let cape = null, capeL = null, ecartCape = 0, phaseCape = 0, leveQueue = 0, ombrelle = null, ombrelleRangee = false;
   const animerCape = (dt, vitesse, fete) => {
     const C = cape?.objet.visible ? cape : capeL?.objet.visible ? capeL : null;
     if (!C) return;
@@ -1785,6 +1785,11 @@ export function creerHeros(ctx, sorte = 'garcon') {
     objet: racine,
     /** Porte-t-il l'ombrelle de Shan-shan ? (ses grelots, à chaque pas : balade.js, unPas) */
     get aOmbrelle() { return !!ombrelle?.objet.visible; },
+    /** L'ombrelle rangée le temps d'un siège du télésiège (oui), ou de nouveau à la main ; s'il la porte. */
+    rangerOmbrelle(oui) {
+      if (oui && ombrelle?.objet.visible) { ombrelle.objet.visible = false; ombrelleRangee = true; }
+      if (!oui && ombrelleRangee) { ombrelle.objet.visible = true; ombrelleRangee = false; }
+    },
     /** Une petite courbette (on lui parle, il remercie…). */
     saluer() { salut = 1; },
     /**

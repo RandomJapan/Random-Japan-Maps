@@ -12,12 +12,13 @@
 //  jusqu'au fond de la grande cuvette, où elle s'effrite dans le vent (le propriétaire l'a choisi parmi quatre ; inventé pour le
 //  jeu, un clin d'œil à une vieille chanson, Tsuki no Sabaku : ni ses paroles ni son air). Sa récompense : l'ombrelle de
 //  Shan-shan, aux grelots de la grande fête de Tottori (tenues.js).
+//  Le 2026-11-03, le vrai télésiège (鳥取砂丘リフト) : de l'entrée du sable au Sakyu Center, sur la colline (creerTelesiege).
 //  Les distances sont resserrées de moitié environ ; les hauteurs sont les vraies (GSI, le modèle à 5 m : l'entrée 46–55 m,
 //  l'oasis 19 m, la crête 44–47 m). Le rivage, qui court du sud-ouest au nord-est, est tourné de 20° : il suit l'axe des x.
 //  Repère : x vers l'est, z vers le sud, y vers le haut, en mètres ; la mer au nord (niveau 0).
 //  ctx : { THREE, atelier, P (palette), peinture, perso, maillage }.
 // ================================================================
-import { creerMonde, interactionsBancs, lisse, hasard, bruitDoux } from './monde.js';
+import { creerMonde, interactionsBancs, lisse, hasard, bruitDoux, ASSIS } from './monde.js';
 import { panneau, PAPIER_PANNEAU } from './decor.js';
 import { MATIERES as M } from './textures.js';
 import { secretTrouve } from './tresors.js';
@@ -158,6 +159,23 @@ const MUSEE_D = { x0: 238.9, x1: 269.3, z0: 86.9, z1: 121.1, porte: { z0: 100, z
 const GALERIE = { x0: 240, x1: 269.25, z0: 117, z1: 121.1, h: 3.6, escX1: 250, escL: 1.4 };
 // le Sakyu Kaikan (砂丘会館), où l'on entre : sa salle, sa porte
 const SALLE = { x0: 250.85, x1: 271.2, z0: -7.2, z1: 29.2, porte: { z0: 6.2, z1: 9.4 } };
+// le télésiège (鳥取砂丘リフト) : de la gare du bas, sur le sable, à celle du haut, au Sakyu Center (砂丘センター 見晴らしの丘, sur la colline) : une ligne droite, au-dessus de la clôture,
+// de la route, du parking et des pins. Le vrai : 216 m et 15 m de montée (ses deux gares sur la photo aérienne, les hauteurs GSI) ; ici 161 m, 13 m (e : la moitié de l'écart entre ses deux câbles ;
+// xb, xh : ses deux grandes roues ; appuis : [x, hauteur du câble, sa flèche au milieu de la portée qui finit là])
+const LIFT = { z: 70, e: 1.7, xb: 187.6, xh: 348.5, appuis: [[187.6, 51.9, 0], [198, 51.9, 0], [206, 53.4, 0.12], [254, 54.8, 0.9], [282, 57.2, 0.35], [310, 60.6, 0.35], [336, 64.8, 0.3], [348.5, 64.8, 0]] };
+const GARE_B = { x0: 182, x1: 198, z0: 60, z1: 80, F: 49.1 };
+const GARE_H = { x0: 336, x1: 355, z0: 62, z1: 78, F: 62.02 };
+// la 砂丘テラス, à côté de la gare ; la salle du Sakyu Center, sa porte sur la terrasse
+const TERRASSE = { x0: 336, x1: 356, z0: 36, z1: 62 };
+const CENTRE = { x0: 356.6, x1: 376, z0: 34, z1: 60, porte: { z0: 46, z1: 50 } };
+/** La hauteur du câble en x : droit d'un appui à l'autre, moins sa flèche. */
+function yCable(x) {
+  const A = LIFT.appuis;
+  let i = 0;
+  while (i < A.length - 2 && x > A[i + 1][0]) i++;
+  const f = Math.min(1, Math.max(0, (x - A[i][0]) / (A[i + 1][0] - A[i][0])));
+  return A[i][1] + (A[i + 1][1] - A[i][1]) * f - 4 * A[i + 1][2] * f * (1 - f);
+}
 
 // ---------------------------------------------------------------- Le sol : une grille au mètre, peinte une fois
 const G = { x0: -440, z0: -280, nx: 881, nz: 561 };
@@ -223,6 +241,14 @@ function preparerSol() {
     const dBout = Math.max(0, PALIER.x0 - x);
     return melange(y, h, lisse(0, 6, Math.max(dz, dBout)));
   });
+  // les deux gares, la terrasse et le Sakyu Center ; sous la ligne, le sol reste 4,4 m sous le câble (les pieds qui pendent, 2,8 m)
+  aplanir(GARE_B, GARE_B.F - 0.02, 8);
+  aplanir({ x0: GARE_H.x0, x1: 388, z0: 30, z1: 84 }, GARE_H.F - 0.02, 12);
+  zone(267, LIFT.z, 76, (x, z, h) => {
+    const d = Math.abs(z - LIFT.z);
+    if (d > 6.5 || x < GARE_B.x1 || x > GARE_H.x0) return h;
+    return melange(Math.min(h, yCable(x) - 4.4), h, lisse(4.2, 6.5, d));
+  });
   H = T;
 }
 const rOasis = (x, z) => {
@@ -259,7 +285,7 @@ const trouSol = (x0, z0, x1, z1) => z1 < zRivage((x0 + x1) / 2) - 90;
 
 // ---------------------------------------------------------------- Le cadre : le sable, jusqu'aux clôtures de sable (堆砂垣) ; la route et le parking
 // (x, z) le long du bord du sable : de la digue ouest, dans la mer, à la digue est, puis la clôture à l'est, au sud, à l'ouest. Le pied de chaque digue ferme la plage.
-const BORD_SABLE = [[-238, -196], [226, -196], [226, -126], [212, -92], [206, -60], [203, -12], [200.4, 33], [200.4, 43], [195, 88], [174, 128], [122, 146], [40, 151], [-60, 150], [-160, 153], [-238, 150]];
+const BORD_SABLE = [[-238, -196], [226, -196], [226, -126], [212, -92], [206, -60], [203, -12], [200.4, 33], [200.4, 43], [GARE_B.x1, GARE_B.z0], [GARE_B.x1, GARE_B.z1], [195, 88], [174, 128], [122, 146], [40, 151], [-60, 150], [-160, 153], [-238, 150]];
 const BORD_ROUTE = [[213, ROUTE.z0], [250, ROUTE.z0], [250, 80], [236, 80], [236, 130], [213, 130]];
 function dansPoly(pts, x, z) {
   let c = false;
@@ -278,9 +304,14 @@ function dansLeCadre(x, z) {
   if (x > SALLE.x0 && x < SALLE.x1 && z > SALLE.z0 && z < SALLE.z1) return true;
   if (x > 249.9 && x <= SALLE.x0 + 0.01 && z > SALLE.porte.z0 && z < SALLE.porte.z1) return true;
   if (x > MUSEE_D.x0 && x < MUSEE_D.x1 && z > MUSEE_D.z0 && z < MUSEE_D.z1) return true;
+  // en haut : la terrasse, la gare (sa porte sur la terrasse), la salle du Sakyu Center (sa porte sur la terrasse)
+  if (x > TERRASSE.x0 + 0.3 && x < TERRASSE.x1 && z > TERRASSE.z0 + 0.3 && z < TERRASSE.z1) return true;
+  if (x > GARE_H.x0 && x < GARE_H.x1 && z >= TERRASSE.z1 - 0.01 && z < GARE_H.z1) return true;
+  if (x > CENTRE.x0 && x < CENTRE.x1 && z > CENTRE.z0 && z < CENTRE.z1) return true;
+  if (x > TERRASSE.x1 - 0.1 && x <= CENTRE.x0 + 0.01 && z > CENTRE.porte.z0 && z < CENTRE.porte.z1) return true;
   return x > 235.9 && x <= MUSEE_D.x0 + 0.01 && z > MUSEE_D.porte.z0 && z < MUSEE_D.porte.z1;
 }
-const dansLeCadreLarge = (x, z) => x > -252 && x < 262 && z > -180 && z < 164;
+const dansLeCadreLarge = (x, z) => (x > -252 && x < 262 && z > -180 && z < 164) || (x > 320 && x < 402 && z > 16 && z < 98);
 
 // ---------------------------------------------------------------- Le sol, sa couleur
 // les teintes du sable, du plus sombre au plus clair (une table : pas de chaîne de caractères à fabriquer pour chaque point)
@@ -337,6 +368,7 @@ function aspectSol(P, x, z, h) {
   }
   if (x > 222 && x < MUSEE.x1 + 1.5 && z > 78 && z < MUSEE.z1 + 2) return ['#a8a59c', M.dalles];
   if (x > 250 && x < 272 && z > -8 && z < 70) return ['#6a6967', M.route];
+  if (x > GARE_H.x0 - 0.5 && x < 389 && z > 29 && z < 85) return ['#a8a59c', M.dalles];
   // au-delà des clôtures, la forêt de pins, le sous-bois ; le loin, la forêt vue d'en haut
   const b = bruitDoux(x, z, 7);
   if (x > 262 || x < -300 || z > 215 || (z > -90 && x > 240)) return [b > 0.55 ? '#3f5f3a' : '#4a6b3f', M.sousBois];
@@ -452,8 +484,8 @@ export function construire(ctx) {
       if (k % 2 === 0) a.baton([ax - nx * 0.05, ya - 0.3, az - nz * 0.05], [ax - nx * 0.05, ya + 1.12, az - nz * 0.05], 0.035, '#6f5a3e', 6);
     }
   };
-  // (de la digue est à l'escalier ; de l'escalier au sud, à l'ouest, jusqu'à la digue ouest)
-  const CLOTURE = [[[226, -146], ...BORD_SABLE.slice(2, 7)], [...BORD_SABLE.slice(7), [-238, -146]]];
+  // (de la digue est à l'escalier ; de l'escalier à la gare du télésiège, qui prend sa place ; de là au sud, à l'ouest, jusqu'à la digue ouest)
+  const CLOTURE = [[[226, -146], ...BORD_SABLE.slice(2, 7)], BORD_SABLE.slice(7, 9), [...BORD_SABLE.slice(9), [-238, -146]]];
   for (const L of CLOTURE) for (let i = 0; i + 1 < L.length; i++) troncon(L[i][0], L[i][1], L[i + 1][0], L[i + 1][1]);
 
   // ---------------------------------------------------------------- Les digues (消波ブロック) qui ferment la plage
@@ -872,8 +904,13 @@ export function construire(ctx) {
     a.houppe(0.3 * h, c, { x: x + dx * 0.6, y: y + 0.56 * h, z, sy: 0.42, bosses: 0.24, sorte: 'conifere' }, fin).houppe(0.26 * h, c, { x: x + dx, y: y + 0.84 * h, z: z + 0.1 * h, sy: 0.42, bosses: 0.24, sorte: 'conifere' }, fin);
   };
   for (let z = -130; z < 214; z += 6.2) {
-    for (let x = -296; x < 300; x += 6.2) {
+    for (let x = -296; x < 412; x += 6.2) {
       const gx = x + (hasard(x, z) - 0.5) * 3.8, gz = z + (hasard(z, x) - 0.5) * 3.8;
+      // (au-delà de x = 300, seulement autour de la ligne du télésiège et du Sakyu Center : plus loin, la forêt en boules, plus bas)
+      if (gx >= 300 && !(gx < 352 ? gz > -44 && gz < 128 : gz > 14 && gz < 102)) continue;
+      // (le couloir de la ligne : les pins s'écartent, les sièges passent entre eux ; rien non plus sur la colline du Sakyu Center)
+      if (gx > 196 && gx < 340 && Math.abs(gz - LIFT.z) < 7.5) continue;
+      if (gx > 329 && gx < 392 && gz > 28 && gz < 86) continue;
       if (!horsTout(gx, gz)) continue;
       const d = distPoly(BORD_SABLE, gx, gz);
       const dr = gx > 205 ? Math.min(Math.abs(gx - 213), Math.abs(gx - 250)) : 99; // (près de la route)
@@ -885,8 +922,9 @@ export function construire(ctx) {
       // (vers le rivage, les pins s'arrêtent : l'herbe et le sable jusqu'à la plage, côté ouest)
       if (gz < -60 && gx < -200) continue;
       if (gz < -40 && gx > 228 && hasard(gx, 3) > 0.5) continue;
-      const y = terrain(gx, gz), h = 5.2 + 3.8 * hasard(gx * 1.3, gz) - (d < 7 ? 1.6 : 0), sens = hasard(gz, gx * 2) > 0.3 ? 1 : -1;
-      const prochePlace = d < 16 || (gx > 205 && dr < 16);
+      // (sous la terrasse, moins hauts : ils ne bouchent pas la vue ; le long de la ligne, de près, on les voit bien)
+      const y = terrain(gx, gz), h = (5.2 + 3.8 * hasard(gx * 1.3, gz) - (d < 7 ? 1.6 : 0)) * (gx > 300 ? 0.72 : 1), sens = hasard(gz, gx * 2) > 0.3 ? 1 : -1;
+      const prochePlace = d < 16 || (gx > 205 && dr < 16) || (gx > 250 && gx < 345 && Math.abs(gz - LIFT.z) < 15);
       if (prochePlace) pinVent(morceau(gx, gz), gx, y, gz, h, sens);
       else if (d < 34) pinLoin(morceau(gx, gz), gx, y, gz, h, sens, 1);
       else if (hasard(gx * 3, gz) < 0.62) pinLoin(morceau(gx, gz, 100), gx, y, gz, h * 1.15, sens, 0);
@@ -914,6 +952,8 @@ export function construire(ctx) {
       if (!fin && (Math.round(x / 20) % 2 || Math.round(z / 20) % 2)) continue;
       const gx = x + (hasard(x, z) - 0.5) * 12, gz = z + (hasard(z, x) - 0.5) * 12;
       if (gz - zRivage(gx) < 30) continue;
+      // (ni sur la ligne du télésiège, ni sur la colline du Sakyu Center, ni devant la vue de sa terrasse : là, les pins)
+      if (gx < 352 ? gz > -56 && gz < 140 : gx < 424 && gz > 2 && gz < 114) continue;
       const y = terrain(gx, gz);
       if (y < 8) continue;
       boule(gx, gz, y, fin);
@@ -1365,6 +1405,13 @@ export function construire(ctx) {
     { id: 'visiteur', x: 254.2, z: 96.6, cap: PI + 0.2, tenue: { taille: 1.05, peau: PEAU, cheveux: '#5a5650', coiffure: 'court', haut: '#6a7a9a', manches: 'longues', bas: { sorte: 'pantalon', c: '#3a3a44' }, chaussures: '#3a3236', semelle: SEM, appareil: true } },
     { id: 'visiteuse', x: 257.2, z: 112.4, cap: 1.5, tenue: { taille: 0.9, peau: '#f0c8a6', cheveux: '#d8d4cc', coiffure: 'chignon', haut: '#a86a8a', manches: 'longues', bas: { sorte: 'pantalon', c: '#4a4a56' }, chaussures: '#3a3236', semelle: SEM } },
     { id: 'galerie', x: 257, z: 118.0, cap: PI, y: yF + GALERIE.h, tenue: { taille: 1.0, peau: '#f2c9a8', cheveux: CH, coiffure: 'queue', chapeau: { sorte: 'bob', c: '#e8a42a' }, haut: '#d8402c', manches: 'longues', bas: { sorte: 'pantalon', c: '#2f3a5a' }, chaussures: BLANC, semelle: SEM } },
+    // le télésiège : ses deux préposés ; le Sakyu Center ; sa terrasse
+    { id: 'liftBas', x: 189.4, z: 65.2, cap: PI / 2, tenue: { taille: 1.04, peau: '#e8bf98', cheveux: NOIR, coiffure: 'court', chapeau: { sorte: 'casquette', c: '#2a4a7a', c2: '#2a4a7a' }, haut: '#2a4a7a', manches: 'longues', bas: { sorte: 'pantalon', c: '#2a2a34' }, chaussures: '#2a2a30', semelle: SEM } },
+    { id: 'liftHaut', x: 343.8, z: 74.7, cap: -PI / 2, tenue: { taille: 0.96, peau: '#f2c9a8', cheveux: CH, coiffure: 'queue', chapeau: { sorte: 'casquette', c: '#2a4a7a', c2: '#2a4a7a' }, haut: '#2a4a7a', manches: 'longues', bas: { sorte: 'pantalon', c: '#2a2a34' }, chaussures: '#2a2a30', semelle: SEM } },
+    { id: 'centreCaisse', x: 372.95, z: 41, cap: -PI / 2, tenue: { taille: 0.94, peau: '#f0c8a6', cheveux: NOIR, coiffure: 'chignon', haut: '#f4efe2', manches: 'longues', tablier: '#c8402c', bas: { sorte: 'pantalon', c: '#3a3a44' }, chaussures: '#3a3236', semelle: SEM } },
+    { id: 'centreClient', x: 360.66, z: 51.98, cap: 0, assis: GARE_H.F + 0.47, tenue: { taille: 1.04, peau: PEAU, cheveux: '#5a5650', coiffure: 'court', haut: '#6a8a5a', manches: 'courtes', bas: { sorte: 'pantalon', c: '#3a3a44' }, chaussures: '#3a3236', semelle: SEM } },
+    { id: 'vieuxHaut', x: 339.8, z: 43.2, cap: -2.0, tenue: { taille: 0.92, peau: '#e0b48c', cheveux: '#d8d4cc', coiffure: 'court', chapeau: { sorte: 'paille', c: '#d8c088', c2: '#3a3a44' }, haut: '#8a7a5a', manches: 'longues', bas: { sorte: 'pantalon', c: '#4a4a56' }, chaussures: '#3a3236', semelle: SEM } },
+    { id: 'filleHaut', x: 342.4, z: 40.4, cap: PI - 0.3, tenue: { taille: 0.95, peau: '#f2c9a8', cheveux: '#5a3a28', coiffure: 'queue', chapeau: { sorte: 'soleil', c: '#f4efe2' }, haut: '#e8a0a8', manches: 'courtes', bas: { sorte: 'jupe', c: '#f4efe2' }, chaussures: '#c8a080', semelle: SEM } },
     // ceux qui marchent : de l'entrée à l'oasis, de l'oasis à la crête, le long de la crête, sur la plage (leurs rondes loin de ce qu'on vient voir)
     { id: 'marcheur', x: 186, z: 44, cap: -1.6, ronde: [[186, 44], [140, 52, true], [84, 54, true], [62, 44]], vitesse: 1.15, attente: [8, 16], tenue: { taille: 1.0, peau: '#f2c9a8', cheveux: CH, coiffure: 'court', chapeau: { sorte: 'bob', c: '#e8d8b8' }, haut: '#4a8ab0', manches: 'courtes', bas: { sorte: 'short', c: '#5a5040' }, chaussures: BLANC, semelle: SEM, sac: { sorte: 'dos', c: '#c8402c', c2: '#8a2a1e' } }, quand: 'jour' },
     { id: 'grimpeur', x: -2, z: 12, cap: PI, ronde: [[-2, 12], [-6, ZC(-6) + 22, true], [-8, ZC(-8) + 3]], vitesse: 0.75, attente: [10, 18], tenue: { taille: 1.04, peau: PEAU, cheveux: NOIR, coiffure: 'court', chapeau: { sorte: 'casquette', c: '#3a6a4a', c2: '#3a6a4a' }, haut: '#3a6a8a', manches: 'courtes', bas: { sorte: 'pantalon', c: '#c9b48a' }, chaussures: '#3a3236', semelle: SEM }, quand: 'jour' },
@@ -1509,6 +1556,7 @@ export function construire(ctx) {
     const r = await jeu.choisir(jeu.tx(`${qui}Soir`), [jeu.t('oui'), jeu.t('non')], qui);
     if (r === 0) await jeu.nuit(true);
   };
+  const lift = creerTelesiege(ctx, { monde, poser, ecrire, morceau, murRect, bancs, lumieres, animes, comp });
   const interactions = [
     // ---- le sommet (le tampon) : la mer, l'îlot en forme de baleine, le Daisen
     {
@@ -1608,6 +1656,40 @@ export function construire(ctx) {
         if (!jeu.aTampon('oasis')) { await jeu.tampon('oasis'); await comp(jeu, 'oasisCompagnon'); }
       },
     },
+    // ---- le télésiège : ses deux préposés, son écriteau ; en haut, les jumelles de la terrasse
+    {
+      id: 'liftBas', passant: 'liftBas', verbe: 'parler',
+      async action(jeu) {
+        const r = await jeu.choisir(jeu.tx('liftBas'), [jeu.t('oui'), jeu.t('non')], 'liftBas');
+        if (r !== 0) return;
+        await jeu.dire(jeu.tx('liftBasOui'), 'liftBas');
+        await lift.embarquer(jeu, 'bas');
+      },
+    },
+    {
+      id: 'liftHaut', passant: 'liftHaut', verbe: 'parler',
+      async action(jeu) {
+        const r = await jeu.choisir(jeu.tx('liftHaut'), [jeu.t('oui'), jeu.t('non')], 'liftHaut');
+        if (r !== 0) return;
+        await jeu.dire(jeu.tx('liftHautOui'), 'liftHaut');
+        await lift.embarquer(jeu, 'haut');
+      },
+    },
+    { id: 'panneauLift', x: lift.PANNEAU.x, z: lift.PANNEAU.z, rayon: 2.2, haut: 1.5, verbe: 'lire', vers: [lift.PANNEAU.x + 1, lift.PANNEAU.z], action: (jeu) => jeu.dire(jeu.tx('panneauLift')) },
+    {
+      id: 'jumellesHaut', x: lift.JUMELLES.x, z: lift.JUMELLES.z, rayon: 1.5, haut: 1.5, verbe: 'regarder', vers: [lift.JUMELLES.x - 30, lift.JUMELLES.z - 30],
+      async action(jeu) {
+        if (jeu.estNuit) { await jeu.dire(jeu.tx('jumellesHautNuit')); return; }
+        await jeu.dire(jeu.tx('jumellesHaut'));
+        jeu.jumelles(true);
+        jeu.cadrer({ de: [lift.JUMELLES.x, GARE_H.F + 1.5, lift.JUMELLES.z - 0.3], vers: [SOMMET.x, SOMMET.y + 3, SOMMET.z], champ: 11 });
+        await jeu.attendre(500);
+        await jeu.dire(jeu.tx('jumellesHautVue'));
+        jeu.cadrer(null);
+        jeu.jumelles(false);
+      },
+    },
+    parler('centreCaisse'), parler('centreClient'), parler('vieuxHaut'), parler('filleHaut'),
     // ---- les gens
     { id: 'chauffeur', passant: 'chauffeur', verbe: 'parler', action: (jeu) => jeu.dire(jeu.tx('chauffeur'), 'chauffeur') },
     parler('garde'),
@@ -1647,7 +1729,7 @@ export function construire(ctx) {
     // (le secret, tresors.js ; le marchand ; les sons à fabriquer en plus ; les feux d'artifice : interdits sur le vrai sable, ils partent d'un bateau
     // juste après les vagues ; de grosses bombes, assez haut pour passer la crête vues de chez Bunbuku, à 380 m : de petites gerbes n'y faisaient que quelques
     // points ; jamais à moins de 300 m : depuis la crête ou la plage, elles sortiraient du haut de l'image)
-    secret: 'caravane', marchand: MARCHAND, sons: ['oiseau/chameau', 'oiseau/grelots', 'oiseau/glisse', 'oiseau/poudre'],
+    secret: 'caravane', marchand: MARCHAND, sons: ['oiseau/chameau', 'oiseau/grelots', 'oiseau/glisse', 'oiseau/poudre', 'oiseau/poulies'],
     feux: { x: 30, y: 0, z: -235, large: 170, haut: [85, 120], echelle: 2.2, loin: 300 },
     mouettes: {
       vols: [{ x: 60, z: -190, r: 26, h: 16, sens: 1 }, { x: -90, z: -180, r: 20, h: 12, sens: -1 }, { x: 170, z: -170, r: 16, h: 14, sens: 1 }],
@@ -1680,6 +1762,638 @@ export function construire(ctx) {
   };
 }
 const tournerVers = (a, b, k) => { const d = Math.atan2(Math.sin(b - a), Math.cos(b - a)); return a + d * Math.min(1, k); };
+
+// ---------------------------------------------------------------- Le télésiège (鳥取砂丘リフト) et le Sakyu Center
+/**
+ * Le vrai télésiège des dunes (2026-11-03 ; le propriétaire : « fais le vrai télésiège ») : « リフトに乗って砂丘まで空中散歩！ », dit le site de la ville, de la gare du
+ * Sakyu Center (砂丘センター 見晴らしの丘, sur la colline) à l'entrée du sable. Comme sur les photos : des sièges à toit et à lattes corail, un numéro dans le dos, suspendus
+ * à un grand C d'acier ; des pylônes gris en T ; le filet au-dessus de la route, ses passerelles de bois, ses poteaux et ses fils ; la gare du bas et son grand pignon
+ * (l'horloge, « おりば ») ; en haut, la tour (« 砂丘センター », « リフトのりば »), le long bâtiment et sa boule blanche, la 砂丘テラス à côté de la gare.
+ * Les sièges ne font qu'un seul objet (InstancedMesh : deux dessins pour les vingt-huit, et le trait d'encre suit, styles.js). On monte à gauche : le câble du nord vers
+ * le haut, celui du sud vers le bas ; chaque siège tourne autour de deux grandes roues, sa suspente toujours vers l'extérieur (+x, dans son repère).
+ */
+function creerTelesiege(ctx, { monde, poser, ecrire, morceau, murRect, bancs, lumieres, animes, comp }) {
+  const { THREE, atelier, P } = ctx;
+  const { z: ZL, e: E, xb: XB, xh: XH } = LIFT, L1 = XH - XB, LT = 2 * L1 + 2 * PI * E, N = 28, ECART = LT / N, VITESSE = 3.2;
+  const mod = (s) => ((s % LT) + LT) % LT, PANNEAU = { x: 179.2, z: 69.8 };
+  const ACIER = '#a7abac', ACIER_F = '#7f8487', CABLE = '#2f3336', CORAIL = '#e8685a', CORAIL_F = '#d75a4e', TOLE_L = '#aaa292', TOLE_L2 = '#9b9383', BOIS_CL = '#cdbb9c', BOIS_F = '#4a3a2c', VITRE = '#3d5560', BETON = '#bdb8ad', ALU = '#c6cacb', PIN = '#3a5f33';
+
+  /** Un mur de pignon (ses points [z, y], depuis le plancher F ; ses trous [z0, z1, y0, y1]), de x à x + 0,2. */
+  const pignon = (a, x, F, pts, trous, c) => {
+    const s = new THREE.Shape();
+    pts.forEach(([u, v], i) => (i ? s.lineTo(u, v) : s.moveTo(u, v)));
+    s.closePath();
+    for (const [u0, u1, v0, v1] of trous) {
+      const t = new THREE.Path();
+      t.moveTo(u0, v0); t.lineTo(u0, v1); t.lineTo(u1, v1); t.lineTo(u1, v0); t.closePath();
+      s.holes.push(t);
+    }
+    a.piece(new THREE.ExtrudeGeometry(s, { depth: 0.2, bevelEnabled: false }), c, { x: x + 0.2, y: F, ry: -PI / 2, nuance: 0.02 });
+  };
+  /** Une main courante d'acier, le long d'un quai, de x0, z0 à x1, z1, ses montants. */
+  const garde = (a, x0, z0, x1, z1, F) => {
+    const n = Math.max(1, Math.round(Math.hypot(x1 - x0, z1 - z0) / 1.5));
+    a.baton([x0, F + 1.0, z0], [x1, F + 1.0, z1], 0.028, ACIER, 6, { trait: false }).baton([x0, F + 0.55, z0], [x1, F + 0.55, z1], 0.018, ACIER, 5, { trait: false });
+    for (let k = 0; k <= n; k++) { const x = melange(x0, x1, k / n), z = melange(z0, z1, k / n); a.baton([x, F, z], [x, F + 1.0, z], 0.022, ACIER, 5, { trait: false }); }
+  };
+  /** Les deux quais, dans une gare : une rampe de chaque côté de la voie, de x0 à x1, percée d'une porte en xp ; la voie, plus sombre ; la marque jaune. */
+  const quais = (a, x0, x1, xp, F) => {
+    for (const z of [ZL - 3.1, ZL + 3.1]) {
+      garde(a, x0, z, xp - 0.7, z, F); garde(a, xp + 0.7, z, x1, z, F);
+      monde.mur(x0, z, x1, z, 0.27);
+      a.boite(1.4, 0.012, 0.1, '#f2c443', { x: xp, y: F + 0.045, z: z + (z < ZL ? -0.62 : 0.62), trait: false });
+      for (const dx of [-0.13, 0.13]) a.ovale(0.075, '#f2c443', { x: xp + dx, y: F + 0.045, z: z + (z < ZL ? -0.36 : 0.36), sy: 0.06, sz: 1.5, trait: false }, 6);
+    }
+    a.boite(x1 - x0, 0.012, 6.2, '#7d7a72', { x: (x0 + x1) / 2, y: F + 0.04, z: ZL, trait: false });
+  };
+  /** La grande roue : son pied (au milieu de la voie), son moteur ; le reste tourne (roues, plus bas). */
+  const pied = (a, x, F, plaf) => {
+    a.cylindre(0.2, 0.26, 2.7, 10, ACIER_F, { x, y: F + 1.35, z: ZL }).boite(1.0, 0.7, 1.0, '#5a6a72', { x, y: F + 0.35, z: ZL, nuance: 0.02 }).boite(0.3, plaf - 2.7, 0.3, ACIER_F, { x, y: F + (plaf + 2.7) / 2, z: ZL });
+  };
+
+  // ---- la gare du bas, posée sur le sable : un grand pignon vers l'ouest, sa pente qui descend loin vers le sud, comme la vraie ; la vitre et l'horloge, « おりば » sur la tôle
+  {
+    const G = GARE_B, F = G.F, a = atelier(), xm = (G.x0 + G.x1) / 2, zm = (G.z0 + G.z1) / 2, HN = 5.6, HF = 7.6, HS = 3.9, ZF = 64.5, PLAF = 3.7, XP = 191;
+    const toitY = (z) => (z < ZF ? melange(HN, HF, (z - G.z0) / (ZF - G.z0)) : melange(HF, HS, (z - ZF) / (G.z1 - ZF)));
+    a.boite(G.x1 - G.x0, 2.6, G.z1 - G.z0, BETON, { x: xm, y: F - 1.3, z: zm, nuance: 0.02 });
+    a.boite(G.x1 - G.x0 - 0.1, 0.03, G.z1 - G.z0 - 0.1, '#bdb8aa', { x: xm, y: F + 0.012, z: zm, nuance: 0.02, trait: false });
+    monde.surface(G.x0 - 0.1, G.x1, G.z0, G.z1, F + 0.035, { sol: 'pierre' });
+    const PTS = [[G.z0, 0], [G.z1, 0], [G.z1, HS], [ZF, HF], [G.z0, HN]];
+    pignon(a, G.x0, F, PTS, [[61.6, 66.4, 0.012, 6.1], [74, 78, 0.012, 2.6]], TOLE_L);
+    pignon(a, G.x1 - 0.2, F, PTS, [[ZL - 3.1, ZL + 3.1, 0.012, 3.6]], TOLE_L);
+    a.boite(G.x1 - G.x0, HN, 0.2, TOLE_L, { x: xm, y: F + HN / 2, z: G.z0 + 0.1, nuance: 0.02 }).boite(G.x1 - G.x0, HS, 0.2, TOLE_L, { x: xm, y: F + HS / 2, z: G.z1 - 0.1, nuance: 0.02 });
+    // le toit : ses deux pans, leurs rives de bois clair
+    for (const [z0, y0, z1, y1] of [[G.z0 - 0.5, HN - 0.22, ZF, HF], [ZF, HF, G.z1 + 0.7, HS - 0.17]]) {
+      const L = Math.hypot(z1 - z0, y1 - y0), ang = Math.atan2(y0 - y1, z1 - z0), zc = (z0 + z1) / 2, yc = F + (y0 + y1) / 2 + 0.1;
+      a.boite(G.x1 - G.x0 + 1.2, 0.16, L, '#7a776e', { x: xm, y: yc, z: zc, rx: ang, nuance: 0.015 });
+      for (const x of [G.x0 - 0.62, G.x1 + 0.62]) a.boite(0.1, 0.34, L + 0.04, BOIS_CL, { x, y: yc - 0.02, z: zc, rx: ang, nuance: 0.02 });
+    }
+    for (const [z, y] of [[G.z0 - 0.5, HN - 0.22], [G.z1 + 0.7, HS - 0.17]]) a.boite(G.x1 - G.x0 + 1.3, 0.14, 0.12, BOIS_CL, { x: xm, y: F + y + 0.04, z });
+    // la tôle ondulée : des bandes verticales, là où il n'y a pas de vitre (sur le dehors : le pignon, le long côté sud, celui du nord)
+    for (let z = G.z0 + 0.2; z < G.z1; z += 0.46) {
+      if (z > 61.5 && z < 66.5) continue;
+      const h = toitY(z) - 0.08, port = z > 73.9 && z < 78.1, y0 = port ? 2.72 : 0.02;
+      a.boite(0.035, h - y0, 0.14, TOLE_L2, { x: G.x0 - 0.018, y: F + (h + y0) / 2, z, trait: false });
+    }
+    for (let x = G.x0 + 0.2; x < G.x1; x += 0.46) {
+      a.boite(0.14, HS - 0.08, 0.035, TOLE_L2, { x, y: F + (HS - 0.08) / 2, z: G.z1 + 0.018, trait: false });
+      a.boite(0.14, HN - 0.08, 0.035, TOLE_L2, { x, y: F + (HN - 0.08) / 2, z: G.z0 - 0.018, trait: false });
+    }
+    // la grande vitre, sa porte (のりば) ; l'horloge sur le montant du milieu
+    a.boite(0.05, 3.4, 4.8, VITRE, { x: G.x0 + 0.1, y: F + 4.4, z: 64, trait: false });
+    for (const [z0, z1] of [[61.6, 62.4], [65.6, 66.4]]) a.boite(0.05, 2.7, z1 - z0, VITRE, { x: G.x0 + 0.1, y: F + 1.35, z: (z0 + z1) / 2, trait: false });
+    for (const z of [61.6, 62.4, 65.6, 66.4]) a.boite(0.1, z === 62.4 || z === 65.6 ? 2.7 : 6.1, 0.1, BOIS_F, { x: G.x0 + 0.08, y: F + (z === 62.4 || z === 65.6 ? 1.35 : 3.05), z });
+    a.boite(0.1, 3.4, 0.1, BOIS_F, { x: G.x0 + 0.08, y: F + 4.4, z: 64 });
+    for (const y of [2.7, 6.1]) a.boite(0.1, 0.1, 4.9, BOIS_F, { x: G.x0 + 0.08, y: F + y, z: 64 });
+    const xh = G.x0 - 0.03, yh = F + 5.0;
+    a.cylindre(0.68, 0.68, 0.05, 22, '#3a3a40', { x: xh + 0.02, y: yh, z: 64, rz: PI / 2 }).cylindre(0.62, 0.62, 0.05, 22, '#f4f2ea', { x: xh, y: yh, z: 64, rz: PI / 2, trait: false });
+    for (let k = 0; k < 12; k++) { const t = (k / 12) * 2 * PI; a.boite(0.012, k % 3 ? 0.05 : 0.1, 0.024, '#2a2a30', { x: xh - 0.032, y: yh + Math.cos(t) * 0.53, z: 64 + Math.sin(t) * 0.53, rx: t, trait: false }); }
+    // (les aiguilles : cinq heures et demie, comme sur la photo)
+    for (const [t, l] of [[2.88, 0.3], [PI, 0.46]]) a.boite(0.014, l, 0.036, '#2a2a30', { x: xh - 0.04, y: yh + Math.cos(t) * l * 0.5, z: 64 + Math.sin(t) * l * 0.5, rx: t, trait: false });
+    ecrire({ x: G.x0 - 0.012, y: F, z: 64, ry: -PI / 2 }, { texte: '展望台行　のりば', x: 0, y: 3.2, z: 0, l: 3.8, h: 0.5, fond: null, encre: '#f4f2ea' });
+    // la grande porte de l'arrivée, son rideau de fer relevé ; « おりば » au-dessus
+    a.boite(0.34, 0.34, 4.3, '#8e8a80', { x: G.x0 - 0.02, y: F + 2.76, z: 76, nuance: 0.02 });
+    for (const z of [73.96, 78.04]) a.boite(0.26, 2.6, 0.1, '#6e6b62', { x: G.x0 + 0.08, y: F + 1.3, z });
+    ecrire({ x: G.x0 - 0.04, y: F, z: 76, ry: -PI / 2 }, { texte: 'おりば', x: 0, y: 3.5, z: 0, l: 2.6, h: 0.86, fond: null, encre: '#2a2420' });
+    // (sur le long côté nord : on le lit du haut de l'escalier)
+    a.boite(7.2, 0.9, 0.05, '#2a3a5a', { x: xm - 0.4, y: F + 3.3, z: G.z0 - 0.05, trait: false });
+    ecrire({ x: xm - 0.4, y: F, z: G.z0 - 0.08, ry: PI }, { texte: '← リフトのりば', x: 0, y: 3.3, z: 0, l: 6.6, h: 0.72, fond: null, encre: '#f8f8f0' });
+    ecrire({ x: G.x1 + 0.012, y: F, z: ZL, ry: PI / 2 }, { texte: '鳥取砂丘リフト', x: 0, y: 4.75, z: 0, l: 5.4, h: 0.66, fond: null, encre: '#3a3a40' });
+    // le plafond, ses lampes ; le tableau des prix (le vrai : le site de la ville, 2026) ; le distributeur de billets
+    a.boite(G.x1 - G.x0 - 0.2, 0.05, G.z1 - G.z0 - 0.2, '#e8e2d2', { x: xm, y: F + PLAF, z: zm, trait: false });
+    for (const z of [63.4, 76.6]) for (const x of [186, 193]) a.boite(1.5, 0.03, 0.18, '#fff8ea', { x, y: F + PLAF - 0.03, z, sorte: 'lumiere', trait: false });
+    lumieres.push({ x: 189, y: F + 3.4, z: 63.4, halo: 0, sol: F, r: 8, c: '#7a725e' }, { x: 189, y: F + 3.4, z: 76.6, halo: 0, sol: F, r: 8, c: '#7a725e' });
+    a.boite(3.2, 1.3, 0.05, '#2f4a6a', { x: 192, y: F + 2.0, z: G.z0 + 0.24, trait: false });
+    ecrire({ x: 192, y: F, z: G.z0 + 0.272, ry: 0 }, { texte: '大人　片道300円　往復500円', sous: '小人　片道200円　往復300円', x: 0, y: 2.0, z: 0, l: 3.0, h: 1.0, fond: null, encre: '#f4f2ea' });
+    a.boite(0.86, 1.72, 0.5, '#2f6ab0', { x: 186, y: F + 0.86, z: G.z0 + 0.46, nuance: 0.03 }).boite(0.6, 0.5, 0.02, '#dfe9f0', { x: 186, y: F + 1.28, z: G.z0 + 0.72, sorte: 'lumiere', trait: false });
+    ecrire({ x: 186, y: F, z: G.z0 + 0.735, ry: 0 }, { texte: 'きっぷ', x: 0, y: 1.28, z: 0, l: 0.46, h: 0.2, fond: null, encre: '#2a2a30' });
+    murRect(186, G.z0 + 0.46, 0.43, 0.25);
+    // les deux quais, la voie, la grande roue
+    quais(a, 183.6, G.x1 - 0.2, XP, F);
+    garde(a, 183.6, ZL - 3.1, 183.6, ZL + 3.1, F);
+    monde.mur(183.6, ZL - 3.1, 183.6, ZL + 3.1, 0.27);
+    pied(a, XB, F, PLAF);
+    poser(a.fin(), 0, 0, { y: 0, recoit: false });
+    // ce qui arrête : les trois morceaux du pignon, les longs côtés, l'autre pignon (le trou de la voie est fermé par les rampes)
+    for (const [z0, z1] of [[G.z0, 62.4], [65.6, 74], [78, G.z1]]) monde.mur(G.x0 + 0.1, z0, G.x0 + 0.1, z1, 0.27);
+    monde.mur(G.x0, G.z0 + 0.1, G.x1, G.z0 + 0.1, 0.27); monde.mur(G.x0, G.z1 - 0.1, G.x1, G.z1 - 0.1, 0.27);
+    monde.mur(G.x1 - 0.1, G.z0, G.x1 - 0.1, ZL - 3.1, 0.27); monde.mur(G.x1 - 0.1, ZL + 3.1, G.x1 - 0.1, G.z1, 0.27);
+    monde.toit(G.x0, G.x1, G.z0, G.z1, F + PLAF - 0.02, F + HF + 0.4);
+    // l'écriteau, entre les deux portes
+    const s = panneau(atelier(), P, { ecrit: true, pied: 0.4 });
+    poser(s.fin(), PANNEAU.x, PANNEAU.z, { y: terrain(PANNEAU.x, PANNEAU.z), ry: -PI / 2 });
+    ecrire({ x: PANNEAU.x, y: terrain(PANNEAU.x, PANNEAU.z), z: PANNEAU.z, ry: -PI / 2 }, { ...PAPIER_PANNEAU, texte: '鳥取砂丘リフト', lignes: 3, fond: '#f4ecd8', encre: '#2a2420' });
+    monde.cercle(PANNEAU.x, PANNEAU.z, 0.6);
+    // un banc de béton sur le sable, comme sur la photo : on y regarde l'horloge et les sièges qui passent
+    const xb = 172.4, zb = 67.4, yb = terrain(xb, zb), b = atelier();
+    b.boite(0.42, 0.08, 3.0, '#b8b09c', { x: xb, y: yb + 0.46, z: zb, nuance: 0.03 });
+    for (const dz of [-1.2, 1.2]) b.boite(0.34, 0.6, 0.3, '#a8a08c', { x: xb, y: yb + 0.14, z: zb + dz, nuance: 0.03 });
+    poser(b.fin(), 0, 0, { y: 0 });
+    bancs.push({ de: [xb, zb - 1.3], a: [xb, zb + 1.3], y: yb + 0.5, cap: PI / 2 });
+    murRect(xb, zb, 0.21, 1.5);
+  }
+
+  // ---- la gare du haut : sous la tour, sa grande porte vers la ligne ; le quai d'arrivée au nord (la porte de la terrasse), celui du départ au sud, le passage derrière la roue
+  {
+    const G = GARE_H, F = G.F, a = atelier(), xm = (G.x0 + G.x1) / 2, HE = 3.9, HF = 6.0, PLAF = 3.7, XP = 342, Xr = 351.4;
+    a.boite(G.x1 - G.x0, 4.4, G.z1 - G.z0, BETON, { x: xm, y: F - 2.2, z: ZL, nuance: 0.02 });
+    a.boite(G.x1 - G.x0 - 0.1, 0.03, G.z1 - G.z0 - 0.1, '#bdb8aa', { x: xm, y: F + 0.012, z: ZL, nuance: 0.02, trait: false });
+    monde.surface(G.x0, G.x1, G.z0 - 0.1, G.z1, F + 0.035, { sol: 'pierre' });
+    const PTS = [[G.z0, 0], [G.z1, 0], [G.z1, HE], [ZL, HF], [G.z0, HE]];
+    pignon(a, G.x0, F, PTS, [[ZL - 3.1, ZL + 3.1, 0.012, 3.6]], '#d8d4c6');
+    pignon(a, G.x1 - 0.2, F, PTS, [], '#d8d4c6');
+    // les longs côtés : la porte de la terrasse, au nord ; sa baie, au sud
+    for (const [x0, x1] of [[G.x0, 341], [346, G.x1]]) a.boite(x1 - x0, HE, 0.2, '#d8d4c6', { x: (x0 + x1) / 2, y: F + HE / 2, z: G.z0 + 0.1, nuance: 0.02 });
+    a.boite(5, HE - 2.7, 0.2, '#d8d4c6', { x: 343.5, y: F + (HE + 2.7) / 2, z: G.z0 + 0.1, nuance: 0.02 });
+    a.boite(G.x1 - G.x0, HE, 0.2, '#d8d4c6', { x: xm, y: F + HE / 2, z: G.z1 - 0.1, nuance: 0.02 });
+    a.boite(G.x1 - G.x0 - 0.4, 0.9, 0.04, VITRE, { x: xm, y: F + 2.5, z: G.z1 + 0.012, trait: false });
+    for (const sg of [-1, 1]) {
+      const L = Math.hypot(8 + 0.6, (HF - HE) * 1.075), ang = sg * Math.atan2(HF - HE, 8), zc = ZL + sg * (8.6 / 2), yc = F + (HF + HE - (HF - HE) * 0.075) / 2 + 0.1;
+      a.boite(G.x1 - G.x0 + 1.5, 0.16, L, '#5e6468', { x: xm + 0.25, y: yc, z: zc, rx: ang, nuance: 0.015 });
+    }
+    // (entre la gare et le Sakyu Center, pas de fente : elle s'adosse à lui)
+    a.boite(1.02, HE + 0.2, G.z1 - G.z0, '#d8d4c6', { x: G.x1 + 0.5, y: F + (HE + 0.2) / 2, z: ZL, nuance: 0.02 });
+    ecrire({ x: G.x0 - 0.012, y: F, z: ZL, ry: -PI / 2 }, { texte: '砂丘センター', sous: 'Sakyu Center', x: 0, y: 4.4, z: 0, l: 3.6, h: 0.86, fond: null, encre: '#2f4a6a' });
+    a.boite(4.0, 0.42, 0.05, '#2a3a5a', { x: 343.5, y: F + 3.15, z: G.z0 - 0.02, trait: false });
+    ecrire({ x: 343.5, y: F, z: G.z0 - 0.05, ry: PI }, { texte: 'リフトのりば', x: 0, y: 3.15, z: 0, l: 3.6, h: 0.34, fond: null, encre: '#f4f2ea' });
+    a.boite(G.x1 - G.x0 - 0.2, 0.05, G.z1 - G.z0 - 0.2, '#e8e2d2', { x: xm, y: F + PLAF, z: ZL, trait: false });
+    for (const z of [64.4, 75.6]) for (const x of [340, 348]) a.boite(1.5, 0.03, 0.18, '#fff8ea', { x, y: F + PLAF - 0.03, z, sorte: 'lumiere', trait: false });
+    lumieres.push({ x: 345, y: F + 3.4, z: 64.4, halo: 0, sol: F, r: 8, c: '#7a725e' }, { x: 345, y: F + 3.4, z: 75.6, halo: 0, sol: F, r: 8, c: '#7a725e' });
+    quais(a, G.x0 + 0.2, Xr, XP, F);
+    garde(a, Xr, ZL - 3.1, Xr, ZL + 3.1, F);
+    monde.mur(Xr, ZL - 3.1, Xr, ZL + 3.1, 0.27);
+    pied(a, XH, F, PLAF);
+    poser(a.fin(), 0, 0, { y: 0, recoit: false });
+    for (const [z0, z1] of [[G.z0, ZL - 3.1], [ZL + 3.1, G.z1]]) monde.mur(G.x0 + 0.1, z0, G.x0 + 0.1, z1, 0.27);
+    monde.mur(G.x0, G.z1 - 0.1, G.x1, G.z1 - 0.1, 0.27); monde.mur(G.x1 - 0.1, G.z0, G.x1 - 0.1, G.z1, 0.27);
+    monde.mur(G.x0, G.z0 + 0.1, 341, G.z0 + 0.1, 0.27); monde.mur(346, G.z0 + 0.1, G.x1, G.z0 + 0.1, 0.27);
+    monde.toit(G.x0, G.x1, G.z0, G.z1, F + PLAF - 0.02, F + HF + 0.4);
+  }
+
+  // ---- le Sakyu Center : long et bas, ses bandeaux de fenêtres, sa boule blanche et ses réservoirs sur le toit, sa tour ; dedans, les gâteaux et les souvenirs au nord, le restaurant au sud
+  {
+    const a = atelier(), K = CENTRE, F = GARE_H.F, xf = 356, xb = 386, z0 = 30, z1 = 78, H1 = 3.6, H2 = 7.2, PLAF = 3.3, M1 = '#efe8d8', M2 = '#ddd6c6';
+    const xc = (xf + xb) / 2, zc = (z0 + z1) / 2;
+    // le dehors : le socle, le mur du bas (plein là où il n'y a pas la salle), l'étage, le toit
+    a.boite(xb - xf, 3, z1 - z0, BETON, { x: xc, y: F - 1.5, z: zc, nuance: 0.02 });
+    a.boite(xb - xf, H1, K.z0 - 0.1 - z0, M2, { x: xc, y: F + H1 / 2, z: (z0 + K.z0 - 0.1) / 2, nuance: 0.02 });
+    a.boite(xb - xf, H1, z1 - K.z1 - 0.1, M2, { x: xc, y: F + H1 / 2, z: (z1 + K.z1 + 0.1) / 2, nuance: 0.02 });
+    a.boite(xb - K.x1 - 0.1, H1, K.z1 - K.z0 + 0.2, M2, { x: (xb + K.x1 + 0.1) / 2, y: F + H1 / 2, z: (K.z0 + K.z1) / 2, nuance: 0.02 });
+    a.boite(xb - xf, H2 - H1, z1 - z0, M1, { x: xc, y: F + (H1 + H2) / 2, z: zc, nuance: 0.02 });
+    a.boite(xb - xf + 0.4, 0.3, z1 - z0 + 0.4, '#8a8d8e', { x: xc, y: F + H2 + 0.13, z: zc });
+    // le long bandeau de fenêtres de l'étage (vers la mer, à l'ouest et au nord)
+    a.boite(0.04, 1.15, z1 - z0 - 2, '#5d7683', { x: xf - 0.018, y: F + H1 + 1.75, z: zc, trait: false }).boite(xb - xf - 2, 1.15, 0.04, '#5d7683', { x: xc, y: F + H1 + 1.75, z: z0 - 0.018, trait: false });
+    for (let z = z0 + 1; z <= z1 - 0.99; z += 2.3) a.boite(0.07, 1.25, 0.09, ALU, { x: xf - 0.03, y: F + H1 + 1.75, z, trait: false });
+    for (let x = xf + 1; x <= xb - 0.99; x += 2.3) a.boite(0.09, 1.25, 0.07, ALU, { x, y: F + H1 + 1.75, z: z0 - 0.03, trait: false });
+    // la façade du bas, sur la terrasse : les vitrines, leurs montants, la porte (de chaque côté)
+    for (const [za, zb] of [[K.z0, K.porte.z0 - 0.08], [K.porte.z1 + 0.08, K.z1]]) {
+      a.boite(0.05, 2.5, zb - za - 0.02, VITRE, { x: xf + 0.22, y: F + 1.3, z: (za + zb) / 2, trait: false }).boite(0.1, 0.1, zb - za, ALU, { x: xf + 0.2, y: F + 2.6, z: (za + zb) / 2, trait: false }).boite(0.1, 0.1, zb - za, ALU, { x: xf + 0.2, y: F + 0.08, z: (za + zb) / 2, trait: false });
+      for (let z = za; z <= zb + 0.01; z += 1.6) a.boite(0.08, 2.5, 0.06, ALU, { x: xf + 0.2, y: F + 1.3, z, trait: false });
+    }
+    a.boite(0.3, H1 - 2.7, K.z1 - K.z0, M2, { x: xf + 0.15, y: F + (H1 + 2.7) / 2, z: (K.z0 + K.z1) / 2, nuance: 0.02 });
+    a.boite(0.05, 0.46, 3.8, '#2a4a7a', { x: xf - 0.03, y: F + 3.05, z: (K.porte.z0 + K.porte.z1) / 2, trait: false });
+    ecrire({ x: xf - 0.06, y: F, z: (K.porte.z0 + K.porte.z1) / 2, ry: -PI / 2 }, { texte: 'おみやげ・お食事', x: 0, y: 3.05, z: 0, l: 3.4, h: 0.38, fond: null, encre: '#f8f2e2' });
+    // le toit : la rambarde du belvédère (眺望テラス), trois réservoirs, la boule blanche sur son pied
+    const yt = F + H2 + 0.28;
+    for (const [x0, z0r, x1, z1r] of [[xf + 0.3, z0 + 0.3, xb - 0.3, z0 + 0.3], [xf + 0.3, z0 + 0.3, xf + 0.3, z1 - 0.3], [xb - 0.3, z0 + 0.3, xb - 0.3, z1 - 0.3], [xf + 0.3, z1 - 0.3, xb - 0.3, z1 - 0.3]]) garde(a, x0, z0r, x1, z1r, yt);
+    for (const z of [38, 41.2, 44.4]) a.cylindre(1.1, 1.1, 2.2, 12, '#d8d8d0', { x: 376, y: yt + 1.2, z, nuance: 0.02 }).cylindre(0.2, 1.1, 0.3, 12, '#c8c8c0', { x: 376, y: yt + 2.45, z });
+    a.boite(4.6, 2.8, 5.6, M2, { x: 369, y: yt + 1.4, z: 52, nuance: 0.02 }).baton([369, yt + 2.8, 52], [369, yt + 4.4, 52], 0.14, ACIER, 8).ovale(1.55, '#f4f4ee', { x: 369, y: yt + 5.8, z: 52, nuance: 0.01 }, 14);
+    // la tour : son fût, « リフトのりば », sa salle vitrée, « 砂丘センター » tout en haut
+    const xT0 = 356.3, xT1 = 362.3, zT0 = 65, zT1 = 75, xTm = (xT0 + xT1) / 2, zTm = (zT0 + zT1) / 2;
+    a.boite(xT1 - xT0, 5.4, zT1 - zT0, M1, { x: xTm, y: F + H2 + 2.7, z: zTm, nuance: 0.02 });
+    a.boite(xT1 - xT0 + 0.5, 0.2, zT1 - zT0 + 0.5, M2, { x: xTm, y: F + H2 + 5.5, z: zTm });
+    a.boite(xT1 - xT0 - 0.1, 2.3, zT1 - zT0 - 0.1, '#5d7683', { x: xTm, y: F + H2 + 6.75, z: zTm, trait: false });
+    for (let z = zT0; z <= zT1 + 0.01; z += 2) a.boite(0.1, 2.3, 0.1, ALU, { x: xT0 + 0.04, y: F + H2 + 6.75, z, trait: false });
+    a.boite(xT1 - xT0 + 0.8, 1.1, zT1 - zT0 + 0.8, '#f4f2ea', { x: xTm, y: F + H2 + 8.45, z: zTm });
+    a.boite(0.1, 1.05, zT1 - zT0 - 0.4, '#1f3454', { x: xT0 - 0.05, y: F + H2 + 3.4, z: zTm, nuance: 0.01 });
+    ecrire({ x: xT0 - 0.11, y: F, z: zTm, ry: -PI / 2 }, { texte: 'リフトのりば', x: 0, y: H2 + 3.4, z: 0, l: 8.6, h: 0.9, fond: null, encre: '#f8f8f0' });
+    ecrire({ x: xT0 - 0.42, y: F, z: zTm, ry: -PI / 2 }, { texte: '砂丘センター', x: 0, y: H2 + 8.45, z: 0, l: 9.4, h: 0.95, fond: null, encre: '#1f3454' });
+    // le dedans : le carrelage, le plafond, ses lampes, le mur du fond (les boîtes pleines autour font les autres)
+    a.boite(K.x1 - K.x0 + 0.1, 0.05, K.z1 - K.z0 + 0.1, '#c8bfa8', { x: (K.x0 + K.x1) / 2, y: F + 0.01, z: (K.z0 + K.z1) / 2, nuance: 0.03, trait: false });
+    monde.surface(K.x0 - 0.8, K.x1, K.z0, K.z1, F + 0.035, { sol: 'pierre' });
+    a.boite(K.x1 - K.x0 + 0.1, 0.05, K.z1 - K.z0 + 0.1, '#e8e2d2', { x: (K.x0 + K.x1) / 2, y: F + PLAF, z: (K.z0 + K.z1) / 2, trait: false });
+    for (let x = K.x0 + 2.5; x < K.x1; x += 5.2) for (let z = K.z0 + 3.2; z < K.z1; z += 7) a.boite(1.5, 0.03, 0.18, '#fff8ea', { x, y: F + PLAF - 0.03, z, sorte: 'lumiere', trait: false });
+    for (const [z, x] of [[40, 361], [40, 371], [53, 361], [53, 371]]) lumieres.push({ x, y: F + 3.0, z, halo: 0, sol: F, r: 8, c: '#7a725e' });
+    // la cloison entre la boutique et le restaurant
+    a.boite(14, 2.6, 0.14, '#b89a74', { x: K.x1 - 7, y: F + 1.3, z: 49, nuance: 0.03 });
+    monde.mur(K.x1 - 14, 49, K.x1 + 0.1, 49, 0.34);
+    // ---- la boutique, au nord : surtout des gâteaux et des souvenirs de Tottori (les tables, les étagères du fond, la caisse)
+    const COUL = ['#c8402c', '#f2c443', '#3a6aa8', '#f4efe2', '#5a8a4a', '#e88a3a', '#d86a8a', '#a8d4e8', '#8a5a3a', '#e8c8a0'];
+    const paquets = (x, y, z, l, p, g) => { for (let i = 0; i < Math.floor(l / 0.25); i++) for (let j = 0; j < Math.floor(p / 0.22); j++) a.boite(0.2, 0.09 + 0.06 * hasard(i + g, j), 0.17, COUL[(i * 3 + j * 7 + g) % COUL.length], { x: x - l / 2 + 0.13 + i * 0.25, y: y + 0.055, z: z - p / 2 + 0.12 + j * 0.22, trait: false }); };
+    for (const [xt, zt] of [[360.8, 38.4], [365.2, 38.4], [360.8, 44.2], [365.2, 44.2]]) {
+      a.boite(2.6, 0.72, 1.3, '#8a5f3c', { x: xt, y: F + 0.36, z: zt, nuance: 0.03 }).boite(2.7, 0.04, 1.4, '#6e4a2c', { x: xt, y: F + 0.74, z: zt });
+      paquets(xt, F + 0.76, zt, 2.4, 1.1, Math.floor(xt + zt));
+      murRect(xt, zt, 1.35, 0.7);
+    }
+    for (const xe of [359.4, 363.4, 367.4]) {
+      for (let k = 0; k < 4; k++) { a.boite(3.3, 0.04, 0.42, '#7a5a3c', { x: xe, y: F + 0.5 + k * 0.52, z: K.z0 + 0.3 }); paquets(xe, F + 0.52 + k * 0.52, K.z0 + 0.3, 3.1, 0.3, k * 5 + Math.floor(xe)); }
+      a.boite(3.26, 2.4, 0.04, '#b89a74', { x: xe, y: F + 1.2, z: K.z0 + 0.08, trait: false });
+    }
+    murRect(363.4, K.z0 + 0.3, 5.8, 0.25);
+    a.boite(1.0, 0.9, 5.2, '#8a5f3c', { x: 372, y: F + 0.45, z: 41, nuance: 0.03 }).boite(1.12, 0.05, 5.3, '#5e4028', { x: 372, y: F + 0.925, z: 41 }).boite(0.42, 0.22, 0.5, '#3a3a40', { x: 372, y: F + 1.06, z: 42.4 });
+    murRect(372, 41, 0.56, 2.65);
+    // ---- le restaurant, au sud : ses tables, sa carte (les vrais plats : le bol de fruits de mer, le chanpon au bouillon d'os de bœuf, le jus de poire Nijisseiki)
+    const table = (xt, zt) => {
+      a.boite(1.3, 0.05, 0.8, '#6e4a2c', { x: xt, y: F + 0.72, z: zt }).baton([xt, F, zt], [xt, F + 0.7, zt], 0.05, '#3a3a40', 6);
+      for (const dz of [-0.62, 0.62]) for (const dx of [-0.34, 0.34]) a.boite(0.36, 0.05, 0.36, '#3a7a9a', { x: xt + dx, y: F + 0.44, z: zt + dz }).baton([xt + dx, F, zt + dz], [xt + dx, F + 0.42, zt + dz], 0.025, '#3a3a40', 5);
+      a.cylindre(0.05, 0.05, 0.12, 8, '#3a5a7a', { x: xt - 0.42, y: F + 0.81, z: zt }).boite(0.18, 0.02, 0.12, '#f4efe2', { x: xt + 0.45, y: F + 0.755, z: zt - 0.15, trait: false });
+      murRect(xt, zt, 0.65, 0.8);
+    };
+    for (const [xt, zt] of [[361, 52.6], [366, 52.6], [371, 52.6], [361, 57.4], [366, 57.4]]) table(xt, zt);
+    for (const [xm, t] of [[370.6, '海鮮彩り丼'], [372.2, '牛骨ちゃんぽん'], [373.8, 'かにバーガー'], [375.2, '二十世紀梨ジュース']]) {
+      a.boite(0.42, 1.5, 0.02, '#eadfc4', { x: xm, y: F + 2.0, z: K.z1 - 0.03, trait: false });
+      ecrire({ x: xm, y: F, z: K.z1 - 0.05, ry: PI }, { texte: t, vertical: true, x: 0, y: 2.0, z: 0, l: 0.3, h: 1.36, fond: null, encre: '#2a2420' });
+    }
+    monde.toit(K.x0 - 0.2, K.x1 + 0.2, K.z0 - 0.2, K.z1 + 0.2, F + PLAF - 0.02, F + H2 + 0.3);
+    // (la caméra n'entre pas dans ce qui est plein : de la gare ou de la salle, elle s'approche)
+    monde.bloc(xf - 1, xb, K.z1 + 0.1, z1, F - 3, F + H2 + 0.3); monde.bloc(K.x1 + 0.1, xb, z0, K.z1 + 0.1, F - 3, F + H2 + 0.3); monde.bloc(xf, xb, z0, K.z0 - 0.1, F - 3, F + H2 + 0.3);
+    poser(a.fin(), 0, 0, { y: 0, recoit: false });
+  }
+
+  // ---- la 砂丘テラス : à côté de la gare, une grande dalle au-dessus des pins, une seule barrière (poteaux d'acier et fils, comme le long de la ligne), deux bancs, des jumelles
+  const JUMELLES = { x: 339.6, z: 38.7 };
+  {
+    const T = TERRASSE, F = GARE_H.F, a = atelier(), Y = F - 0.02;
+    const cote = (x0, z0, x1, z1) => {
+      const n = Math.round(Math.hypot(x1 - x0, z1 - z0) / 2);
+      for (const [h, r] of [[1.0, 0.03], [0.68, 0.012], [0.36, 0.012]]) a.baton([x0, Y + h, z0], [x1, Y + h, z1], r, h === 1 ? ALU : ACIER_F, 5, { trait: false });
+      for (let k = 0; k <= n; k++) { const x = melange(x0, x1, k / n), z = melange(z0, z1, k / n); a.baton([x, Y - 0.4, z], [x, Y + 1.04, z], 0.032, ACIER, 6); }
+    };
+    cote(T.x0 + 0.03, T.z0 + 0.03, T.x1 + 0.3, T.z0 + 0.03);
+    cote(T.x0 + 0.03, T.z0 + 0.03, T.x0 + 0.03, T.z1 - 0.08);
+    // les jumelles, sur leur pied ; le nom de la terrasse
+    a.baton([JUMELLES.x, Y, JUMELLES.z], [JUMELLES.x, Y + 1.12, JUMELLES.z], 0.05, ACIER_F, 8).boite(0.14, 0.14, 0.2, ACIER_F, { x: JUMELLES.x, y: Y + 1.2, z: JUMELLES.z });
+    for (const dx of [-0.09, 0.09]) a.cylindre(0.08, 0.095, 0.44, 10, '#3f5f8a', { x: JUMELLES.x + dx, y: Y + 1.3, z: JUMELLES.z - 0.04, rx: PI / 2 - 0.08 });
+    monde.cercle(JUMELLES.x, JUMELLES.z, 0.32);
+    a.baton([351, Y, 60.4], [351, Y + 2.3, 60.4], 0.04, ACIER_F, 6).baton([353.4, Y, 60.4], [353.4, Y + 2.3, 60.4], 0.04, ACIER_F, 6).boite(2.9, 0.62, 0.06, '#2a4a6a', { x: 352.2, y: Y + 2.0, z: 60.4 });
+    ecrire({ x: 352.2, y: Y, z: 60.36, ry: PI }, { texte: '砂丘テラス', sous: 'Sakyu Terrace', x: 0, y: 2.0, z: 0, l: 2.5, h: 0.54, fond: null, encre: '#f4f2ea' });
+    monde.cercle(351, 60.4, 0.3); monde.cercle(353.4, 60.4, 0.3);
+    // deux bancs, leurs vues : la mer, les dunes
+    const banc = (x0, z0, x1, z1, cap) => {
+      const xm = (x0 + x1) / 2, zm = (z0 + z1) / 2, le = Math.abs(x1 - x0) > 0.1;
+      a.boite(le ? x1 - x0 + 0.3 : 0.44, 0.08, le ? 0.44 : z1 - z0 + 0.3, '#9a7a54', { x: xm, y: Y + 0.46, z: zm, nuance: 0.03 });
+      for (const f of [-0.42, 0.42]) a.boite(le ? 0.1 : 0.34, 0.44, le ? 0.34 : 0.1, ACIER_F, { x: xm + (le ? f * (x1 - x0) : 0), y: Y + 0.22, z: zm + (le ? 0 : f * (z1 - z0)) });
+      bancs.push({ de: [x0, z0], a: [x1, z1], y: Y + 0.5, cap });
+      murRect(xm, zm, le ? (x1 - x0) / 2 + 0.1 : 0.22, le ? 0.22 : (z1 - z0) / 2 + 0.1);
+    };
+    banc(344, 37.5, 347.4, 37.5, PI);
+    banc(337.5, 45, 337.5, 48.4, -PI / 2);
+    // des bacs de pins, deux lampadaires, un distributeur contre le mur
+    for (const [x, z] of [[353.4, 39.4], [349.6, 39.4], [340.8, 60.4]]) {
+      a.boite(1.3, 0.56, 1.3, '#8a8880', { x, y: Y + 0.28, z, nuance: 0.03 }).fut([x, Y + 0.5, z], [x + 0.14, Y + 2.0, z], 0.08, 0.04, '#5a4636', 6);
+      for (const [dx, dz, yy, r] of [[0.1, 0, 2.0, 0.72], [-0.34, 0.2, 1.54, 0.5], [0.46, -0.16, 1.4, 0.46]]) a.houppe(r, PIN, { x: x + dx, y: Y + yy, z: z + dz, sy: 0.5, bosses: 0.24, sorte: 'conifere' }, 1);
+      murRect(x, z, 0.65, 0.65);
+    }
+    for (const [x, z] of [[350, 47], [340, 52]]) {
+      a.baton([x, Y, z], [x, Y + 3.2, z], 0.05, ACIER_F, 6).ovale(0.16, '#fff4d0', { x, y: Y + 3.34, z, sorte: 'lumiere', trait: false }, 8);
+      lumieres.push({ x, y: Y + 3.34, z, halo: 0.5, sol: Y, r: 6 });
+      monde.cercle(x, z, 0.27);
+    }
+    const xd = 355.1, zd = 56.4;
+    a.boite(0.74, 1.82, 1.05, '#d8402c', { x: xd + 0.37, y: Y + 0.91, z: zd, nuance: 0.03 }).boite(0.02, 0.86, 0.8, '#dfe9f0', { x: xd - 0.012, y: Y + 1.28, z: zd, sorte: 'lumiere', trait: false }).boite(0.015, 0.16, 0.62, '#2a2a30', { x: xd - 0.012, y: Y + 0.36, z: zd, trait: false });
+    for (let r = 0; r < 3; r++) for (let k = 0; k < 6; k++) a.boite(0.015, 0.17, 0.08, ['#d8402c', '#2f6ab0', '#f2c443', '#3a8a5a', '#f4efe2', '#e88a3a'][(k + r * 2) % 6], { x: xd - 0.024, y: Y + 1.0 + r * 0.26, z: zd - 0.32 + k * 0.128, trait: false });
+    murRect(xd + 0.37, zd, 0.37, 0.53);
+    poser(a.fin(), 0, 0, { y: 0 });
+  }
+
+  // ---- la ligne : les pylônes en T (une traverse, deux balanciers à quatre galets, un petit palier, leur numéro), les deux câbles
+  const PYLONES = LIFT.appuis.slice(2, 6).map((q) => q[0]);
+  PYLONES.forEach((x, k) => {
+    const a = morceau(x, ZL), y0 = terrain(x, ZL), yt = yCable(x);
+    a.boite(1.5, 0.7, 1.5, BETON, { x, y: y0 + 0.05, z: ZL, nuance: 0.03 });
+    a.fut([x, y0 + 0.3, ZL], [x, yt - 0.42, ZL], 0.24, 0.17, ACIER, 8);
+    a.boite(0.24, 0.26, 2 * E + 0.46, ACIER, { x, y: yt - 0.46, z: ZL });
+    a.boite(0.9, 0.05, 1.5, '#6f7478', { x: x - 0.1, y: yt - 0.82, z: ZL, trait: false });
+    for (const sg of [-1, 1]) {
+      a.baton([x - 0.55, yt - 0.82, ZL + sg * 0.75], [x - 0.55, yt - 0.3, ZL + sg * 0.75], 0.016, ACIER_F, 4, { trait: false }).baton([x + 0.35, yt - 0.82, ZL + sg * 0.75], [x + 0.35, yt - 0.3, ZL + sg * 0.75], 0.016, ACIER_F, 4, { trait: false });
+      a.boite(1.76, 0.08, 0.1, ACIER_F, { x, y: yt - 0.25, z: ZL + sg * E });
+      for (let g = 0; g < 4; g++) a.cylindre(0.09, 0.09, 0.07, 9, '#3a3f44', { x: x + (g - 1.5) * 0.48, y: yt - 0.125, z: ZL + sg * E, rx: PI / 2, trait: false });
+    }
+    for (let h = y0 + 1.6; h < yt - 1; h += 0.42) a.baton([x + 0.24, h, ZL - 0.14], [x + 0.24, h, ZL + 0.14], 0.012, ACIER_F, 4, { trait: false });
+    a.boite(0.03, 0.34, 0.3, '#f4f2ea', { x: x - 0.25, y: y0 + 2.5, z: ZL, trait: false });
+    ecrire({ x: x - 0.268, y: y0, z: ZL, ry: -PI / 2 }, { texte: String(k + 1), x: 0, y: 2.5, z: 0, l: 0.24, h: 0.28, fond: null, encre: '#2a2420' });
+  });
+  {
+    const c = atelier(), A = LIFT.appuis;
+    for (const sg of [-1, 1]) {
+      for (let i = 0; i + 1 < A.length; i++) {
+        const x0 = A[i][0], x1 = A[i + 1][0], n = A[i + 1][2] > 0 ? 8 : 1;
+        for (let k = 0; k < n; k++) { const xa = melange(x0, x1, k / n), xb = melange(x0, x1, (k + 1) / n); c.baton([xa, yCable(xa), ZL + sg * E], [xb, yCable(xb), ZL + sg * E], 0.034, CABLE, 5, { trait: false }); }
+      }
+    }
+    poser(c.fin(), 0, 0, { y: 0, trait: false });
+  }
+
+  // ---- le filet de protection (au-dessus de la route et, comme sur la photo, en sortant de la gare du haut) : son grillage, ses deux passerelles de bois, ses poteaux, ses fils
+  const uFilet = { nuit: { value: 0 } };
+  const matFilet = new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, side: THREE.DoubleSide, uniforms: uFilet,
+    vertexShader: 'varying vec2 vP; void main() { vP = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: `
+      uniform float nuit; varying vec2 vP;
+      void main() {
+        vec2 p = vP / 0.26;
+        float u = p.x + p.y, v = p.x - p.y, w = fwidth(u);
+        float d = min(abs(fract(u) - 0.5), abs(fract(v) - 0.5));
+        float fil = 1.0 - smoothstep(0.05, 0.05 + max(w, 0.04), d);
+        // (de loin, plus de mailles : un voile à peine visible, sans moiré)
+        float a = mix(fil * 0.85, 0.16, smoothstep(0.3, 0.9, w));
+        if (a < 0.01) discard;
+        vec3 c = mix(vec3(0.33, 0.56, 0.48), vec3(0.02, 0.035, 0.08), nuit);
+        gl_FragColor = vec4(c, a);
+        #include <colorspace_fragment>
+      }`,
+  });
+  const groupeFilets = new THREE.Group();
+  const filet = (x0, x1, y0, y1, fleche, W, deux) => {
+    const yf = (x) => { const f = (x - x0) / (x1 - x0); return melange(y0, y1, f) - 4 * fleche * f * (1 - f); };
+    const a = atelier();
+    for (const sg of [-1, 1]) {
+      const zb = ZL + sg * W;
+      for (let x = x0 + 0.2; x < x1; x += 0.55) a.boite(0.1, 0.03, 0.62, '#8a7a5e', { x, y: yf(x) + 0.05, z: zb + sg * 0.28, nuance: 0.05, trait: false });
+      const n = Math.ceil((x1 - x0) / 3.6);
+      for (let k = 0; k < n; k++) {
+        const xa = melange(x0, x1, k / n), xc = melange(x0, x1, (k + 1) / n);
+        a.baton([xa, yf(xa), zb], [xc, yf(xc), zb], 0.042, CABLE, 5, { trait: false }).baton([xa, yf(xa), zb + sg * 0.58], [xc, yf(xc), zb + sg * 0.58], 0.03, CABLE, 4, { trait: false });
+        for (const h of [0.62, 1.12]) a.baton([xa, yf(xa) + h, zb + sg * 0.58], [xc, yf(xc) + h, zb + sg * 0.58], 0.01, ACIER_F, 3, { trait: false });
+        a.baton([xa, yf(xa) - 0.05, zb + sg * 0.58], [xa, yf(xa) + 1.18, zb + sg * 0.58], 0.026, ACIER, 5);
+      }
+      a.baton([x1, yf(x1) - 0.05, zb + sg * 0.58], [x1, yf(x1) + 1.18, zb + sg * 0.58], 0.026, ACIER, 5);
+    }
+    // les portiques, à chaque bout (au-dessus de la route : le filet tient par ses câbles, d'un portique à l'autre)
+    for (const x of deux ? [x0, x1] : [x0]) {
+      const y = yf(x);
+      for (const sg of [-1, 1]) a.fut([x, terrain(x, ZL + sg * (W + 0.3)) - 0.2, ZL + sg * (W + 0.3)], [x, y, ZL + sg * (W + 0.3)], 0.13, 0.1, ACIER, 7);
+      a.boite(0.18, 0.2, 2 * W + 1.2, ACIER, { x, y: y - 0.02, z: ZL });
+    }
+    poser(a.fin(), 0, 0, { y: 0 });
+    const nx = Math.ceil((x1 - x0) / 2), pos = [], uv = [], idx = [];
+    for (let i = 0; i <= nx; i++) {
+      const x = melange(x0, x1, i / nx), y = yf(x);
+      for (const sg of [-1, 1]) { pos.push(x, y, ZL + sg * W); uv.push(x, sg * W); }
+      if (i) { const b = i * 2; idx.push(b - 2, b - 1, b, b, b - 1, b + 1); }
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    g.setIndex(idx);
+    const m = new THREE.Mesh(g, matFilet);
+    m.renderOrder = 1;
+    groupeFilets.add(m);
+  };
+  filet(206.8, 253.2, 48.9, 48.9, 0.4, 2.6, true);
+  filet(320, 335.9, yCable(320) - 3.5, yCable(335.9) - 3.5, 0, 2.6, false);
+  animes.push({ objet: groupeFilets, maj(dt, temps, c) { uFilet.nuit.value = c.nuit; return []; } });
+
+  // ---------------------------------------------------------------- Les sièges : un seul objet pour tous ; quelques voyageurs dessus
+  /** Le siège, dans le repère du câble : la pince en 0, 0, 0 ; il regarde vers +z ; +x : l'extérieur ; le dessus de l'assise 2,3 m plus bas (Y_SIEGE). */
+  const siegeLift = (() => {
+    const a = atelier(), C = [[0, 0.03, -0.1], [0.16, -0.1, -0.1], [0.42, -0.32, -0.1], [0.5, -0.6, -0.1], [0.36, -0.84, -0.1], [0, -0.97, -0.1]];
+    for (let i = 0; i + 1 < C.length; i++) a.baton(C[i], C[i + 1], 0.03, ACIER, 5, { trait: false });
+    a.boite(0.09, 0.1, 0.3, '#5a5f63', { y: 0.06, z: -0.1, trait: false });
+    // le toit, son tube ; les deux montants ; l'accoudoir ; le dessous de l'assise
+    a.boite(1.72, 0.03, 0.92, CORAIL, { y: -1.0, z: 0.03, nuance: 0.02 });
+    for (const sg of [-1, 1]) {
+      a.baton([sg * 0.8, -1.02, -0.4], [sg * 0.8, -1.02, 0.46], 0.022, ACIER, 5, { trait: false });
+      a.baton([sg * 0.8, -1.02, -0.3], [sg * 0.8, -2.36, -0.3], 0.024, ACIER, 5, { trait: false });
+      a.baton([sg * 0.8, -2.36, -0.3], [sg * 0.8, -2.36, 0.34], 0.024, ACIER, 5, { trait: false });
+      a.baton([sg * 0.8, -1.98, -0.3], [sg * 0.8, -1.96, 0.24], 0.022, ACIER, 5, { trait: false }).baton([sg * 0.8, -1.96, 0.24], [sg * 0.8, -2.36, 0.34], 0.022, ACIER, 5, { trait: false });
+    }
+    a.baton([-0.8, -1.02, 0.46], [0.8, -1.02, 0.46], 0.022, ACIER, 5, { trait: false }).baton([-0.8, -1.02, -0.4], [0.8, -1.02, -0.4], 0.022, ACIER, 5, { trait: false });
+    // les lattes : l'assise, le dossier ; le numéro, dans le dos
+    for (let k = 0; k < 5; k++) a.boite(1.56, 0.03, 0.1, k % 2 ? CORAIL : CORAIL_F, { y: -2.315, z: -0.2 + k * 0.115, trait: false });
+    for (let k = 0; k < 5; k++) a.boite(1.56, 0.1, 0.03, k % 2 ? CORAIL : CORAIL_F, { y: -2.24 + k * 0.115, z: -0.28, rx: -0.1, trait: false });
+    a.boite(0.24, 0.2, 0.012, '#f4f2ea', { y: -2.0, z: -0.3, trait: false }).boite(0.05, 0.13, 0.014, '#2a2420', { x: -0.045, y: -2.0, z: -0.3, trait: false }).boite(0.05, 0.13, 0.014, '#2a2420', { x: 0.045, y: -2.0, z: -0.3, trait: false });
+    return a.fin(0, false);
+  })();
+  const Y_SIEGE = -2.3;
+  /** Un voyageur assis, à la place x du siège (petit : un enfant). */
+  const passager = (a, x, { peau, haut, bas, cheveux, chapeau, k = 1 }) => {
+    const y0 = Y_SIEGE;
+    a.boite(0.28 * k, 0.32 * k, 0.2 * k, haut, { x, y: y0 + 0.17 * k, z: 0.02, nuance: 0.02 });
+    a.ovale(0.18 * k, peau, { x, y: y0 + 0.49 * k, z: 0.04, nuance: 0.01 }, 8);
+    a.ovale(0.19 * k, cheveux, { x, y: y0 + 0.53 * k, z: 0.0, sy: 0.84, nuance: 0.02 }, 8);
+    for (const u of [-1, 1]) {
+      a.ovale(0.024 * k, '#2a2420', { x: x + u * 0.07 * k, y: y0 + 0.47 * k, z: 0.04 + 0.165 * k, trait: false }, 5);
+      a.baton([x + u * 0.15 * k, y0 + 0.3 * k, 0.02], [x + u * 0.17 * k, y0 + 0.07 * k, 0.17 * k], 0.04 * k, haut, 5, { trait: false });
+      a.baton([x + u * 0.08 * k, y0 + 0.03, 0.08], [x + u * 0.08 * k, y0 + 0.02, 0.3 * k], 0.055 * k, bas, 5, { trait: false }).baton([x + u * 0.08 * k, y0 + 0.02, 0.3 * k], [x + u * 0.08 * k, y0 - 0.26 * k, 0.33 * k], 0.05 * k, bas, 5, { trait: false });
+      a.ovale(0.06 * k, '#3a3a40', { x: x + u * 0.08 * k, y: y0 - 0.29 * k, z: 0.37 * k, sz: 1.5, trait: false }, 6);
+    }
+    if (chapeau) a.cylindre(0.26 * k, 0.26 * k, 0.025, 12, chapeau, { x, y: y0 + 0.66 * k, z: 0.0 }).cylindre(0.13 * k, 0.16 * k, 0.1, 10, chapeau, { x, y: y0 + 0.72 * k, z: 0.0 });
+  };
+  const VOYAGEURS = [
+    (a) => { passager(a, -0.3, { peau: '#f2c9a8', haut: '#e88aa0', bas: '#f4efe2', cheveux: '#3a2a22', chapeau: '#f4efe2' }); passager(a, 0.34, { peau: '#e8bf98', haut: '#3a6aa8', bas: '#3a3a44', cheveux: '#2a2420' }); },
+    (a) => { passager(a, 0.1, { peau: '#e0b48c', haut: '#5a8a4a', bas: '#4a4a56', cheveux: '#d8d4cc', chapeau: '#c8b48a' }); },
+    (a) => { passager(a, -0.34, { peau: '#f2c9a8', haut: '#8ac4e8', bas: '#3a3a44', cheveux: '#5a3a28', chapeau: '#e8d8b8' }); passager(a, 0.32, { peau: '#f2c9a8', haut: '#f2c443', bas: '#3a4a6a', cheveux: '#2a2420', k: 0.72 }); },
+  ].map((f) => { const a = atelier(); f(a); return a.fin(0, false); });
+  const groupeLift = new THREE.Group();
+  const SPHERE = new THREE.Sphere(new THREE.Vector3((XB + XH) / 2, 58, ZL), (XH - XB) / 2 + 14);
+  // (des matières à eux : quand une même matière passe d'un objet répété à un objet simple, three.js refait le calcul de tout son programme, à chaque passage, plusieurs
+  // fois par image : avec celles des personnages, 3 à 5 ms par image sur un téléphone, dès que les sièges étaient à l'écran)
+  const matieres = new Map(), OMBRE = new THREE.MeshDepthMaterial();
+  const aPart = (m) => {
+    if (!matieres.has(m)) {
+      const c = m.clone();
+      c.onBeforeCompile = m.onBeforeCompile;
+      c.customProgramCacheKey = m.customProgramCacheKey;
+      if (m.uniforms) c.uniforms = m.uniforms;
+      matieres.set(m, c);
+    }
+    return matieres.get(m);
+  };
+  /** Plusieurs fois le même objet : son corps et son trait, dessinés d'un coup. */
+  const enInstances = (fin, n) => {
+    const L = ctx.perso.maillage(fin, true, true).children.map((m) => {
+      const im = new THREE.InstancedMesh(m.geometry, aPart(m.material), n);
+      im.castShadow = m.castShadow;
+      im.receiveShadow = m.receiveShadow;
+      im.customDepthMaterial = OMBRE;
+      im.boundingSphere = SPHERE;
+      groupeLift.add(im);
+      return im;
+    });
+    // (le corps et le trait lisent les mêmes matrices : envoyées une seule fois à la carte graphique)
+    L[0]?.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    for (const im of L.slice(1)) im.instanceMatrix = L[0].instanceMatrix;
+    return L;
+  };
+  // (un siège sur cinq emporte quelqu'un ; le voyageur prend un siège vide, et vide devant lui)
+  const occupant = (k) => (k % 5 === 2 ? Math.floor(k / 5) % VOYAGEURS.length : -1);
+  const imSieges = enInstances(siegeLift, N);
+  const imVoyageurs = VOYAGEURS.map((fin, v) => {
+    let n = 0;
+    for (let k = 0; k < N; k++) if (occupant(k) === v) n++;
+    return enInstances(fin, n);
+  });
+  const rangVoyageur = [];
+  { const c = VOYAGEURS.map(() => 0); for (let k = 0; k < N; k++) rangVoyageur.push(occupant(k) >= 0 ? c[occupant(k)]++ : -1); }
+
+  // ---- ce qui tourne ou s'ouvre : les deux grandes roues, les quatre portillons
+  const roues = [[XB, GARE_B.F], [XH, GARE_H.F]].map(([x, F]) => {
+    const a = atelier();
+    a.anneau(E, 0.055, '#6a6e72', { rx: PI / 2 });
+    for (let k = 0; k < 6; k++) { const t = (k / 6) * 2 * PI; a.baton([0, 0, 0], [Math.cos(t) * (E - 0.04), 0, Math.sin(t) * (E - 0.04)], 0.035, ACIER_F, 5, { trait: false }); }
+    a.cylindre(0.26, 0.26, 0.26, 12, '#5a5f63', {});
+    const o = ctx.perso.maillage(a.fin(0, false), true, false);
+    o.position.set(x, F + 2.8, ZL);
+    groupeLift.add(o);
+    return o;
+  });
+  const portes = [[191, ZL - 3.1, GARE_B.F, 1], [191, ZL + 3.1, GARE_B.F, -1], [342, ZL - 3.1, GARE_H.F, 1], [342, ZL + 3.1, GARE_H.F, -1]].map(([x, z, F, sg]) => {
+    const a = atelier();
+    a.baton([0.03, 1.0, 0], [1.34, 1.0, 0], 0.024, '#d8402c', 5, { trait: false }).baton([0.03, 0.55, 0], [1.34, 0.55, 0], 0.016, ACIER, 4, { trait: false }).baton([1.34, 0.05, 0], [1.34, 1.03, 0], 0.03, ACIER, 5, { trait: false });
+    const o = ctx.perso.maillage(a.fin(0, false), true, false);
+    o.position.set(x - 0.7, F, z);
+    groupeLift.add(o);
+    return { o, sg, ouvert: 0, veut: 0 };
+  });
+
+  // ---- le câble : où est un siège
+  const pose = { x: 0, y: 0, z: 0, cap: 0, roue: 0 };
+  const surCable = (s) => {
+    if (s < L1) { pose.x = XB + s; pose.z = ZL - E; pose.cap = PI / 2; pose.roue = 0; } else if (s < L1 + PI * E) {
+      const t = (s - L1) / E;
+      pose.x = XH + E * Math.sin(t); pose.z = ZL - E * Math.cos(t); pose.cap = PI / 2 - t; pose.roue = Math.sin(t);
+    } else if (s < 2 * L1 + PI * E) { pose.x = XH - (s - L1 - PI * E); pose.z = ZL + E; pose.cap = -PI / 2; pose.roue = 0; } else {
+      const t = (s - 2 * L1 - PI * E) / E;
+      pose.x = XB - E * Math.sin(t); pose.z = ZL + E * Math.cos(t); pose.cap = -PI / 2 - t; pose.roue = Math.sin(t);
+    }
+    pose.y = yCable(pose.x);
+    return pose;
+  };
+  const sSud = (x) => L1 + PI * E + (XH - x);
+  // monter : le quai (x, z : la marque ; F : le sol) et où le siège arrive (s) ; descendre, de même
+  const QUAIS = {
+    bas: { x: 191, z: ZL - 3.45, F: GARE_B.F + 0.035, cap: PI / 2, s: 191 - XB, porte: 0, vers: 'haut' },
+    haut: { x: 342, z: ZL + 3.45, F: GARE_H.F + 0.035, cap: -PI / 2, s: sSud(342), porte: 3, vers: 'bas' },
+  };
+  const ARRIVEES = {
+    haut: { x: 342, z: ZL - 3.45, F: GARE_H.F + 0.035, cap: PI, s: 342 - XB, porte: 2, vu: false, cle: 'liftHautCompagnon', pas: [342, 65] },
+    bas: { x: 191, z: ZL + 3.45, F: GARE_B.F + 0.035, cap: -PI / 2, s: sSud(191), porte: 1, vu: false, cle: 'liftBasCompagnon', pas: [189.4, 74.6] },
+  };
+  const SAUT = 0.36; // (le temps de s'asseoir, en s)
+  const obj = new THREE.Object3D(), v3 = new THREE.Vector3(), HORS = new THREE.Matrix4().makeTranslation(0, -1000, 0);
+  const siege = { x: 0, z: 0, y: 0, cap: 0, libre: false, cote: { x: 0, z: 0, y: 0, cap: 0, aussitot: true } };
+  let s0 = 0, monte = -1, arrivee = null, descend = null, attente = null, deQuai = null, tSaut = 0, cris = [];
+  /** La pose d'un siège (s : où il en est sur le câble ; k : son numéro) ; force : son balancement. */
+  const poser1 = (s, k, temps, force = 1) => {
+    const q = surCable(s);
+    let bosse = 0;
+    if (s < L1 || (s > L1 + PI * E && s < 2 * L1 + PI * E)) for (const xp of PYLONES) { const d = q.x - xp; if (d > -9 && d < 9) bosse += 0.05 * Math.exp(-Math.abs(d) * 0.34) * Math.sin(d * 1.3); }
+    obj.position.set(q.x, q.y, q.z);
+    obj.rotation.set(force * (0.014 * Math.sin(temps * 1.25 + k * 2.1) + bosse), q.cap, force * (0.012 * Math.sin(temps * 0.85 + k * 1.3)) + 0.14 * q.roue, 'YXZ');
+    obj.updateMatrix();
+    return q;
+  };
+  const scene = async (jeu) => {
+    const A = descend, p = { x: siege.x, y: siege.y, z: siege.z };
+    monte = -1; descend = null;
+    jeu.aide(null);
+    jeu.rangerOmbrelle(false);
+    // (le compagnon saute sur le quai, à côté : lieu du saut, balade.js, ses 75 cm devant le siège)
+    Object.assign(siege.cote, { x: A.x - 2.0, z: A.z - (A.z < ZL ? 0.3 : -0.3), y: A.F + 0.5, cap: PI / 2 });
+    jeu.asseoir(null);
+    const saut = jeu.grimper([[p.x, p.y - ASSIS, p.z], [A.x, A.F, A.z]], 0.34, A.cap);
+    jeu.cameraDerriere(0);
+    await saut;
+    // (quelques pas sur le quai : collé à la rampe, le compagnon n'avait plus de place à côté de lui)
+    await jeu.marcher([[A.x, A.z], A.pas], 1.5);
+    portes[A.porte].veut = 0;
+    if (!A.vu) { A.vu = true; await comp(jeu, A.cle); }
+  };
+
+  animes.push({
+    objet: groupeLift,
+    maj(dt, temps, c) {
+      s0 = mod(s0 + VITESSE * dt);
+      const j = c.joueur, o = c.oeil, dLigne = Math.hypot(Math.max(XB - o.x, 0, o.x - XH), o.z - ZL);
+      cris = [];
+      // (les portillons)
+      for (const q of portes) { q.ouvert += (q.veut - q.ouvert) * Math.min(1, dt * 5); q.o.rotation.y = q.sg * q.ouvert * 1.45; }
+      // le voyageur attend sur la marque : le prochain siège libre, un peu avant la marque
+      if (attente) {
+        for (let k = 0; k < N; k++) {
+          if (occupant(k) >= 0 || occupant((k + 1) % N) >= 0) continue;
+          if (mod(attente.s - (s0 + k * ECART)) < VITESSE * SAUT) { const f = attente.fin; attente = null; f(k); break; }
+        }
+      }
+      // sur le siège : il suit le câble ; la marque, le saut
+      if (monte >= 0) {
+        const sk = mod(s0 + monte * ECART);
+        poser1(sk, monte, temps, 0.45);
+        const cap = pose.cap;
+        v3.set(0.36, Y_SIEGE, 0.05).applyMatrix4(obj.matrix);
+        let sx = v3.x, sy = v3.y, sz = v3.z;
+        v3.set(-0.36, Y_SIEGE, 0.05).applyMatrix4(obj.matrix);
+        let cx = v3.x, cy = v3.y, cz = v3.z;
+        if (tSaut < 1 && deQuai) {
+          // (il saute sur l'assise : de la marque au siège qui arrive, un petit arc)
+          tSaut = Math.min(1, tSaut + dt / SAUT);
+          const f = tSaut * tSaut * (3 - 2 * tSaut), h = Math.sin(tSaut * PI) * 0.34;
+          sx = melange(deQuai.x, sx, f); sz = melange(deQuai.z, sz, f); sy = melange(deQuai.F + ASSIS, sy, f) + h;
+          cx = melange(deQuai.x - Math.sin(deQuai.cap) * 0.5, cx, f); cz = melange(deQuai.z - Math.cos(deQuai.cap) * 0.5, cz, f); cy = melange(deQuai.F, cy, f) + h;
+        }
+        Object.assign(siege, { x: sx, y: sy, z: sz, cap });
+        Object.assign(siege.cote, { x: cx, y: cy, z: cz, cap });
+        if (arrivee) {
+          const d = mod(arrivee.s - sk);
+          if (d < 12) portes[arrivee.porte].veut = 1;
+          // (la marque : il descend ; occupé ailleurs, un menu, une photo, des feux d'artifice : il reste assis jusqu'à l'autre bout)
+          if (d < VITESSE * dt * 1.5 || d > LT - 6) {
+            if (j.mode === 'jeu') { descend = arrivee; arrivee = null; c.scene(scene); } else { portes[arrivee.porte].veut = 0; arrivee = arrivee === ARRIVEES.haut ? ARRIVEES.bas : ARRIVEES.haut; }
+          }
+        }
+      }
+      // tout le reste, seulement si l'on peut le voir
+      groupeLift.visible = dLigne < 560 || monte >= 0;
+      groupeFilets.visible = dLigne < 420 || monte >= 0;
+      if (!groupeLift.visible) return cris;
+      const dr = VITESSE * dt / E;
+      for (const r of roues) r.rotation.y -= dr;
+      const auBas = j.x > 178 && j.x < 200 && j.z > 56 && j.z < 84, enHaut = j.x > 332 && j.z > 56 && j.z < 82;
+      const limB = GARE_B.x1 + (auBas ? 34 : -2), limH = GARE_H.x0 + (enHaut ? -34 : 2);
+      for (let k = 0; k < N; k++) {
+        const sk = mod(s0 + k * ECART), q = poser1(sk, k, temps, k === monte ? 0.45 : 1);
+        imSieges[0]?.setMatrixAt(k, obj.matrix);
+        const v = occupant(k);
+        if (v >= 0) {
+          // (ils descendent en gare, sans qu'on les voie ; la nuit, il n'y a plus que les sièges : le vrai ferme à 16 h)
+          const m = q.x < limB || q.x > limH || c.nuit > 0.5 ? HORS : obj.matrix;
+          imVoyageurs[v][0]?.setMatrixAt(rangVoyageur[k], m);
+        }
+        // (le roulement sur les galets, à chaque pylône : le siège du voyageur, et ceux qui passent tout près)
+        if (dLigne < 30 || k === monte) {
+          const x1 = q.x, y1 = q.y, sur = sk < L1 ? 1 : sk > L1 + PI * E && sk < 2 * L1 + PI * E ? -1 : 0;
+          if (sur) for (const xp of PYLONES) { const xa = x1 - sur * VITESSE * dt; if ((xa - xp) * (x1 - xp) <= 0) { const dp = Math.hypot(xp - o.x, y1 - o.y, q.z - o.z); if (k === monte || dp < 26) cris.push({ x: xp, y: y1, z: q.z, nom: 'poulies', fort: k === monte ? 0.9 : 0.55 }); } }
+        }
+      }
+      if (imSieges[0]) imSieges[0].instanceMatrix.needsUpdate = true;
+      for (const L of imVoyageurs) if (L[0]) L[0].instanceMatrix.needsUpdate = true;
+      return cris;
+    },
+  });
+
+  return {
+    JUMELLES, PANNEAU,
+    /** Monter sur un siège : le voyageur se met sur la marque, le portillon s'ouvre, un siège libre arrive ; on repart libre de regarder autour de soi. */
+    async embarquer(jeu, ou) {
+      const Q = QUAIS[ou];
+      jeu.placer(Q.x, Q.z, Q.cap, Q.F);
+      jeu.cameraDerriere(ou === 'bas' ? 0.9 : -0.9);
+      portes[Q.porte].veut = 1;
+      const k = await new Promise((fin) => { attente = { s: Q.s, fin }; });
+      deQuai = Q; tSaut = 0; monte = k; arrivee = ARRIVEES[Q.vers];
+      jeu.rangerOmbrelle(true);
+      Object.assign(siege, { x: Q.x, y: Q.F + ASSIS, z: Q.z, cap: Q.cap });
+      Object.assign(siege.cote, { x: Q.x, y: Q.F, z: Q.z, cap: Q.cap });
+      jeu.son('oiseau/poulies');
+      // (la caméra au sud-est du siège, tournée vers le nord-ouest : en montant, le voyageur de face, le sable et la mer derrière lui ; en descendant, de dos, tout devant lui)
+      jeu.asseoir(siege, { lacet: PI / 2 - 0.5, tangage: 0.24, distance: 6.4 });
+      setTimeout(() => { portes[Q.porte].veut = 0; }, 900);
+      jeu.aide(jeu.tx('liftAide'));
+    },
+  };
+}
 
 // ---------------------------------------------------------------- La caravane de la lune
 /** Le sol tel qu'il est dessiné en x, z : les deux triangles de sa case (de 2 m, ou de 50 cm là où le sol plie). */
@@ -2222,7 +2936,7 @@ function voiture(THREE, a, R, y, c, sorte) {
 // ---------------------------------------------------------------- Les textes du lieu
 const TEXTES = {
   fr: {
-    noms: { chauffeur: 'Le chauffeur', garde: 'Le garde du parc', vendeuseR: 'La vendeuse', vendeuseF: 'Le vendeur', kaikan: 'La dame de la caisse', serveuse: 'La serveuse', cuisinier: 'Le cuisinier', dineur: 'Le client', dineuse: 'La cliente', chamelier: 'Le chamelier', moniteur: 'Le moniteur', naturaliste: 'La naturaliste', videaste: '@random_japan_place', amoureuse: 'La touriste', amoureux: 'Le touriste', enfant: 'Le petit garçon', maman: 'La maman', pilote: 'Le pilote', pecheur: 'Le pêcheur', sculpteur: 'Le sculpteur', accueil: 'L’hôtesse', visiteur: 'Le visiteur', visiteuse: 'La grand-mère', galerie: 'La visiteuse', marcheur: 'Le randonneur', grimpeur: 'Le grimpeur', randonneuse: 'La promeneuse', plagiste: 'La promeneuse', vieux: 'Le vieil homme' },
+    noms: { liftBas: 'Le préposé du télésiège', liftHaut: 'La préposée du télésiège', centreCaisse: 'La vendeuse', centreClient: 'Le client', vieuxHaut: 'Le vieux monsieur', filleHaut: 'La jeune fille', chauffeur: 'Le chauffeur', garde: 'Le garde du parc', vendeuseR: 'La vendeuse', vendeuseF: 'Le vendeur', kaikan: 'La dame de la caisse', serveuse: 'La serveuse', cuisinier: 'Le cuisinier', dineur: 'Le client', dineuse: 'La cliente', chamelier: 'Le chamelier', moniteur: 'Le moniteur', naturaliste: 'La naturaliste', videaste: '@random_japan_place', amoureuse: 'La touriste', amoureux: 'Le touriste', enfant: 'Le petit garçon', maman: 'La maman', pilote: 'Le pilote', pecheur: 'Le pêcheur', sculpteur: 'Le sculpteur', accueil: 'L’hôtesse', visiteur: 'Le visiteur', visiteuse: 'La grand-mère', galerie: 'La visiteuse', marcheur: 'Le randonneur', grimpeur: 'Le grimpeur', randonneuse: 'La promeneuse', plagiste: 'La promeneuse', vieux: 'Le vieil homme' },
     tampons: {
       crete: ['Le Dos de cheval', 'tout en haut de la grande crête, au poteau 馬の背 : la vue sur la mer'],
       chameau: ['Le tour à dos de chameau', 'au coin des chameaux, juste après l’escalier : demander un tour au chamelier'],
@@ -2272,6 +2986,21 @@ const TEXTES = {
     dineur: ['Je suis monté là-haut en tongs. Je ne recommencerai pas.'],
     dineuse: ['Il y a du sable dans mon sac, dans mes cheveux et, je crois, dans mon riz.'],
     naturaliste: ['Regarde autour de l’oasis : une toute petite cicindèle, エリザハンミョウ. Sur ces dunes, elle ne vit presque plus que là.', 'Les plantes aussi sont fortes : ces touffes raides, c’est la コウボウムギ. Plus le sable les enterre, plus elles poussent.'],
+    liftBas: ['Bienvenue au télésiège ! Il monte au Sakyu Center, là-haut sur la colline : une promenade dans les airs, au-dessus de la route et des pins.', 'Tu montes ?'],
+    liftBasOui: ['Mets-toi sur la marque jaune, je t’ouvre. Le siège arrive par derrière : il ne s’arrête pas, tu t’assois en passant !'],
+    liftHaut: ['Tu redescends vers le sable ? Dans ce sens-là, on a tout devant soi : les dunes, et la mer derrière.', 'On y va ?'],
+    liftHautOui: ['Sur la marque jaune, s’il te plaît. Bon voyage !'],
+    liftAide: 'Tourne la caméra : tout le paysage est à toi.',
+    liftHautCompagnon: { kon: ['« Les pieds dans le vide, et la mer au bout. Je recommence quand tu veux. »'], pon: ['« Pon ! J’ai vu le toit des boutiques ! Et une voiture toute petite ! »'], chapu: ['« Chapu ! On a volé ! Sans ailes ! Encore ! »'], gao: ['« Gao. Ça grince, mais ça tient. J’approuve. »'], fuwa: ['« Fuwa… Pour une fois, c’est toi qui flottais. »'], saya: ['« Il y a un numéro dans le dos de chaque siège. Le nôtre portait bonheur, j’en suis sûre. »'] },
+    liftBasCompagnon: { kon: ['« Tout ce sable qui grandissait sous nos pieds… On dirait un autre pays. »'], pon: ['« Pon ! Ça sentait la mer, tout le long ! Et un peu le gâteau. Non, ça, c’était moi. »'], chapu: ['« Chapu ! Je voulais sauter dans le sable ! De tout là-haut ! »'], gao: ['« Gao. Le monde est grand, vu d’un banc. »'], fuwa: ['« Fuwa… Les gens, sur la crête, ressemblaient à des graines. »'], saya: ['« Je n’ai rien dit de tout le trajet. Il n’y avait rien à ajouter. »'] },
+    panneauLift: ['鳥取砂丘リフト : le télésiège des dunes. Du sable au Sakyu Center, sur la colline : cinq minutes dans les airs.', 'De 9 h 30 à 16 h. 300 yens l’aller, 500 l’aller-retour.'],
+    jumellesHaut: ['Des jumelles, tournées vers la mer.'],
+    jumellesHautVue: ['Le Dos de cheval, tout au bout : des gens minuscules, en file sur la crête. Et derrière eux, toute la mer du Japon.'],
+    jumellesHautNuit: ['Trop noir pour y voir quoi que ce soit. Rien que la lune, au-dessus du sable.'],
+    centreCaisse: ['Bienvenue au Sakyu Center ! Ici, c’est surtout des gâteaux et des souvenirs de Tottori.', 'Et à côté, le restaurant : le bol de fruits de mer, le chanpon au bouillon d’os de bœuf, le burger au crabe avec un jus de poire Nijisseiki !'],
+    centreClient: ['Un chanpon au bouillon d’os de bœuf, avec cette vue… Je ne repars pas tout de suite.'],
+    vieuxHaut: ['Je viens ici chaque année. D’en bas, ce sont des montagnes de sable ; d’ici, on voit enfin leur dessin.', 'Et ce n’est qu’un morceau : le sable court sur seize kilomètres, le long de la côte.'],
+    filleHaut: ['Tu vois ces petits points, sur la crête ? Ce sont des gens ! Je les ai comptés jusqu’à ce que mes yeux piquent.'],
     videaste: ['Salut ! Je filme le lieu pour ma chaîne. Tu veux voir ce que ça donne, vu du ciel ?'],
     amoureuse: ['Il m’a dit : « Ce n’est pas loin, je te jure. » Il y a une heure.'],
     amoureux: ['Regarde-moi cette vue ! …Oui, oui, c’était un peu plus loin que prévu.'],
@@ -2307,7 +3036,7 @@ const TEXTES = {
     milan: ['Un milan noir tourne au-dessus de la crête, sans battre des ailes. Il profite du même vent que le parapente.'],
   },
   en: {
-    noms: { chauffeur: 'The driver', garde: 'The park ranger', vendeuseR: 'The shopkeeper', vendeuseF: 'The shopkeeper', kaikan: 'The cashier', serveuse: 'The waitress', cuisinier: 'The cook', dineur: 'The customer', dineuse: 'The customer', chamelier: 'The camel driver', moniteur: 'The instructor', naturaliste: 'The naturalist', videaste: '@random_japan_place', amoureuse: 'The tourist', amoureux: 'The tourist', enfant: 'The little boy', maman: 'The mother', pilote: 'The pilot', pecheur: 'The fisherman', sculpteur: 'The sculptor', accueil: 'The host', visiteur: 'The visitor', visiteuse: 'The grandmother', galerie: 'The visitor', marcheur: 'The hiker', grimpeur: 'The climber', randonneuse: 'The walker', plagiste: 'The walker', vieux: 'The old man' },
+    noms: { liftBas: 'The chairlift attendant', liftHaut: 'The chairlift attendant', centreCaisse: 'The shopkeeper', centreClient: 'The customer', vieuxHaut: 'The old man', filleHaut: 'The young woman', chauffeur: 'The driver', garde: 'The park ranger', vendeuseR: 'The shopkeeper', vendeuseF: 'The shopkeeper', kaikan: 'The cashier', serveuse: 'The waitress', cuisinier: 'The cook', dineur: 'The customer', dineuse: 'The customer', chamelier: 'The camel driver', moniteur: 'The instructor', naturaliste: 'The naturalist', videaste: '@random_japan_place', amoureuse: 'The tourist', amoureux: 'The tourist', enfant: 'The little boy', maman: 'The mother', pilote: 'The pilot', pecheur: 'The fisherman', sculpteur: 'The sculptor', accueil: 'The host', visiteur: 'The visitor', visiteuse: 'The grandmother', galerie: 'The visitor', marcheur: 'The hiker', grimpeur: 'The climber', randonneuse: 'The walker', plagiste: 'The walker', vieux: 'The old man' },
     tampons: {
       crete: ['The Horse’s Back', 'at the very top of the great ridge, by the 馬の背 post: the view of the sea'],
       chameau: ['The camel ride', 'at the camels’ corner, just past the stairs: ask the camel driver for a ride'],
@@ -2357,6 +3086,21 @@ const TEXTES = {
     dineur: ['I went up there in flip-flops. Never again.'],
     dineuse: ['There’s sand in my bag, in my hair and, I think, in my rice.'],
     naturaliste: ['Look around the oasis: a tiny tiger beetle, エリザハンミョウ. On these dunes it hardly lives anywhere else now.', 'The plants are tough too: those stiff tufts are コウボウムギ. The more the sand buries them, the more they grow.'],
+    liftBas: ['Welcome to the chairlift! It goes up to the Sakyu Center, on top of the hill: a walk through the air, over the road and the pines.', 'Going up?'],
+    liftBasOui: ['Stand on the yellow mark, I’ll open up. The chair comes from behind: it doesn’t stop, just sit down as it passes!'],
+    liftHaut: ['Heading back down to the sand? This way, you have it all in front of you: the dunes, and the sea behind them.', 'Shall we?'],
+    liftHautOui: ['On the yellow mark, please. Have a good ride!'],
+    liftAide: 'Turn the camera: the whole view is yours.',
+    liftHautCompagnon: { kon: ['“Feet in the air, and the sea at the end. Say the word and I’ll go again.”'], pon: ['“Pon! I saw the roofs of the shops! And a tiny, tiny car!”'], chapu: ['“Chapu! We flew! With no wings! Again!”'], gao: ['“Gao. It creaks, but it holds. I approve.”'], fuwa: ['“Fuwa… For once, you were the one floating.”'], saya: ['“Every chair has a number on its back. Ours was a lucky one, I’m sure of it.”'] },
+    liftBasCompagnon: { kon: ['“All that sand growing under our feet… It’s like another country.”'], pon: ['“Pon! It smelled of the sea all the way! And a bit of cake. No, that was me.”'], chapu: ['“Chapu! I wanted to jump into the sand! From way up there!”'], gao: ['“Gao. The world is big, seen from a bench.”'], fuwa: ['“Fuwa… The people on the crest looked like seeds.”'], saya: ['“I said nothing the whole way. There was nothing to add.”'] },
+    panneauLift: ['鳥取砂丘リフト: the dunes chairlift. From the sand to the Sakyu Center, on the hill: five minutes in the air.', '9:30 to 16:00. 300 yen one way, 500 yen return.'],
+    jumellesHaut: ['A pair of binoculars, aimed at the sea.'],
+    jumellesHautVue: ['The Horse’s Back, far away: tiny people in a line along the crest. And behind them, the whole Sea of Japan.'],
+    jumellesHautNuit: ['Too dark to see anything. Only the moon, above the sand.'],
+    centreCaisse: ['Welcome to the Sakyu Center! Here it’s mostly sweets and souvenirs from Tottori.', 'And next door, the restaurant: the seafood bowl, the beef-bone chanpon, the crab burger with a Nijisseiki pear juice!'],
+    centreClient: ['A beef-bone chanpon, with this view… I’m not leaving just yet.'],
+    vieuxHaut: ['I come here every year. From below, they’re mountains of sand; from here, you finally see the pattern.', 'And that’s only a piece of it: the sand runs for sixteen kilometers along the coast.'],
+    filleHaut: ['See those little dots on the crest? They’re people! I counted them until my eyes stung.'],
     videaste: ['Hi! I’m filming this place for my channel. Want to see how it looks from the sky?'],
     amoureuse: ['He told me: “It’s not far, I swear.” That was an hour ago.'],
     amoureux: ['Just look at this view! …Yes, yes, it was a bit further than planned.'],
@@ -2392,7 +3136,7 @@ const TEXTES = {
     milan: ['A black kite circles over the ridge without a wingbeat. It’s using the same wind as the paraglider.'],
   },
   ja: {
-    noms: { chauffeur: 'うんてんしゅ', garde: 'こうえんの　レンジャー', vendeuseR: 'お店の人', vendeuseF: 'お店の人', kaikan: 'レジの　おばさん', serveuse: 'ウェイトレス', cuisinier: '料理人', dineur: 'お客さん', dineuse: 'お客さん', chamelier: 'らくだつかい', moniteur: 'インストラクター', naturaliste: 'しぜんの　けんきゅう者', videaste: '@random_japan_place', amoureuse: 'かんこうきゃく', amoureux: 'かんこうきゃく', enfant: '男の子', maman: 'お母さん', pilote: 'パイロット', pecheur: 'つり人', sculpteur: 'ちょうこく家', accueil: 'うけつけの人', visiteur: 'お客さん', visiteuse: 'おばあさん', galerie: 'お客さん', marcheur: 'ハイカー', grimpeur: 'のぼる人', randonneuse: 'さんぽの人', plagiste: 'さんぽの人', vieux: 'おじいさん' },
+    noms: { liftBas: 'リフトの　かかりいん', liftHaut: 'リフトの　かかりいん', centreCaisse: 'おみせの　人', centreClient: 'おきゃくさん', vieuxHaut: 'おじいさん', filleHaut: 'おねえさん', chauffeur: 'うんてんしゅ', garde: 'こうえんの　レンジャー', vendeuseR: 'お店の人', vendeuseF: 'お店の人', kaikan: 'レジの　おばさん', serveuse: 'ウェイトレス', cuisinier: '料理人', dineur: 'お客さん', dineuse: 'お客さん', chamelier: 'らくだつかい', moniteur: 'インストラクター', naturaliste: 'しぜんの　けんきゅう者', videaste: '@random_japan_place', amoureuse: 'かんこうきゃく', amoureux: 'かんこうきゃく', enfant: '男の子', maman: 'お母さん', pilote: 'パイロット', pecheur: 'つり人', sculpteur: 'ちょうこく家', accueil: 'うけつけの人', visiteur: 'お客さん', visiteuse: 'おばあさん', galerie: 'お客さん', marcheur: 'ハイカー', grimpeur: 'のぼる人', randonneuse: 'さんぽの人', plagiste: 'さんぽの人', vieux: 'おじいさん' },
     tampons: {
       crete: ['馬の背', '大きな　すなの　尾根の　てっぺん、「馬の背」の　くいで：海の　ながめ'],
       chameau: ['らくだに　のる', '階段の　すぐ先の　らくだの　ところ：らくだつかいに　たのもう'],
@@ -2442,6 +3186,21 @@ const TEXTES = {
     dineur: ['ビーチサンダルで　のぼったよ。もう　やらない。'],
     dineuse: ['カバンにも　かみにも、たぶん　ごはんにも　砂が　はいってる。'],
     naturaliste: ['オアシスの　まわりを　見て。小さな　エリザハンミョウが　いるよ。この砂丘では　ほとんど　ここにしか　いないんだ。', 'かたい　草は　コウボウムギ。砂に　うまるほど　のびるの。つよいでしょ。'],
+    liftBas: ['リフトへ　ようこそ！　おかの上の　砂丘センターまで　行くよ。道路と　松の　上を　通る、空中さんぽだ。', '乗っていく？'],
+    liftBasOui: ['黄色い　しるしの上に　立ってね。いま　あけるよ。いすは　うしろから　来て　止まらないから、そのまま　すわって！'],
+    liftHaut: ['砂の方へ　下りる？　下りは　ぜんぶ　前に　見えるよ。砂丘も、その先の　海も。', '乗っていく？'],
+    liftHautOui: ['黄色い　しるしの上に　どうぞ。いってらっしゃい！'],
+    liftAide: 'カメラを　回してみよう。けしきは　ぜんぶ　きみのもの。',
+    liftHautCompagnon: { kon: ['「足の下は　からっぽ、その先に　海。また　乗りたいな」'], pon: ['「ポン！　お店の　屋根が　見えた！　ちっちゃい　車も！」'], chapu: ['「チャプ！　とんだ！　はねも　ないのに！　もう一回！」'], gao: ['「ガオ。ギシギシいうが、じょうぶだ。よし」'], fuwa: ['「フワ……　今日は　きみが　うかんでたね」'], saya: ['「いすの　せなかに　番号が　あるの。わたしたちのは　きっと　えんぎがいいわ」'] },
+    liftBasCompagnon: { kon: ['「足の下で　砂が　どんどん　広がって……　べつの国みたいだったね」'], pon: ['「ポン！　ずっと　海の　においが　した！　あと　おかしも。あ、それは　ぼくか」'], chapu: ['「チャプ！　あの上から　砂に　とびこみたかった！」'], gao: ['「ガオ。ベンチから　見ても、世界は　広いな」'], fuwa: ['「フワ……　尾根の　人たちが　たねみたいだった」'], saya: ['「ずっと　だまってたの。なにも　言うことが　なかったから」'] },
+    panneauLift: ['鳥取砂丘リフト。砂丘から　おかの上の　砂丘センターまで、空中さんぽ　5分。', '9時30分から　16時まで。片道300円、往復500円。'],
+    jumellesHaut: ['海の方を　向いた　そうがんきょう。'],
+    jumellesHautVue: ['ずっと　向こうに　馬の背。小さな　人たちが　尾根に　ならんでいる。その　向こうは、日本海。'],
+    jumellesHautNuit: ['暗くて　なにも　見えない。砂の上に、月だけ。'],
+    centreCaisse: ['砂丘センターへ　ようこそ！　おかしと　鳥取の　おみやげが　たくさん　あるよ。', 'となりは　レストラン。海鮮彩り丼、牛骨ちゃんぽん、かにバーガーに　二十世紀梨の　ジュース！'],
+    centreClient: ['牛骨ちゃんぽんを　食べながら、この　ながめ。まだ　帰れないなあ。'],
+    vieuxHaut: ['毎年　ここに　来るんだ。下から　見れば　砂の山、ここから　見れば　もようが　わかる。', 'それも　ほんの　一部。砂丘は　海岸に　そって　16キロも　つづくんだよ。'],
+    filleHaut: ['尾根の　小さな　点、見える？　あれ、ぜんぶ　人なんだよ！　数えてたら　目が　いたくなっちゃった。'],
     videaste: ['やあ！　チャンネル用に　この場所を　とっているんだ。空から　どう見えるか　見てみる？'],
     amoureuse: ['「すぐそこだよ」って　言ったの。一時間まえに。'],
     amoureux: ['この　ながめ　見て！　……うん、ちょっと　遠かったね。'],

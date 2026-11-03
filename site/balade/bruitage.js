@@ -24,9 +24,11 @@ const VARIANTES = 5;
 // Le 2026-10-22, le propriétaire trouvait l'ambiance trop présente sous la musique, le vent surtout : le vent
 // −6 dB, les autres boucles −3 dB, les pas −2 dB. Mesuré : l'ambiance seule 3,5 dB (Itsukushima) à 7 dB
 // (Aogashima) sous la musique, à −29 LUFS ; en marchant, à peu près au niveau de la musique. Le 2026-10-23, le
-// bruissement des arbres qui bougent au vent était encore trop fort : les feuilles −12 dB
+// bruissement des arbres qui bougent au vent était encore trop fort : les feuilles −12 dB. Le 2026-11-03, les pas
+// encore trop présents (« Baisse les bruits de pas pour toutes les surfaces et pour tous les lieux ») : −8 dB, en marchant, en
+// courant et ceux du compagnon (les éclaboussures dans l'eau aussi : un seul volume pour tous les sols)
 const V = {
-  pas: 0.14, course: 0.2, kon: 0.045, ebrouer: 0.1, oiseau: 0.045, mouette: 0.05, akakokko: 0.04, cri: 0.07, tambour: 0.03, pouf: 0.08,
+  pas: 0.056, course: 0.08, kon: 0.018, ebrouer: 0.1, oiseau: 0.045, mouette: 0.05, akakokko: 0.04, cri: 0.07, tambour: 0.03, pouf: 0.08,
   miaou: 0.05, ronron: 0.07, corbeau: 0.06, pelle: 0.09, boite: 0.09, depart: 0.035, boum: 0.16, crepite: 0.05,
   ventDoux: [0.0035, 0.006], ventFort: 0.015, feuilles: [0.00075, 0.0043], vagues: 0.0085, vapeur: 0.02, insectes: 0.0056,
   no: 0.0085,
@@ -51,6 +53,8 @@ const V = {
   esprit: 0.075, cerf: 0.11,
   // (Tottori) le grognement du chameau, les grelots de la caravane, le sable qui chuinte sous la planche, la caravane qui s'effrite (oiseau())
   chameau: 0.1, grelots: 0.05, glisse: 0.07, poudre: 0.1,
+  // (Tottori) les galets du télésiège, à chaque pylône (oiseau())
+  poulies: 0.06,
 };
 const lisse = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
 

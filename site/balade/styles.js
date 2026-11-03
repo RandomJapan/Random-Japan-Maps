@@ -940,10 +940,19 @@ export function matieresStyle(THREE, style, { anisotropie = 4 } = {}) {
         // la coque gonfle le long des normales lissées, d'autant plus qu'elle est loin : toujours à peu près
         // « epaisseur » pixels (un peu moins au loin, où les traits se serrent)
         vec3 pos = position${avecCoupe ? ' + souffleObjet(position, saison);\n        if (tombee(saison)) pos = vec3(0.0)' : ''};
-        vec4 mv = modelViewMatrix * vec4(pos, 1.0);
+        // (un objet répété, InstancedMesh : les sièges du télésiège de Tottori)
+        #ifdef USE_INSTANCING
+          vec4 mv = modelViewMatrix * instanceMatrix * vec4(pos, 1.0);
+        #else
+          vec4 mv = modelViewMatrix * vec4(pos, 1.0);
+        #endif
         vFace = 0.0;
         if (dot(contour, contour) > 0.01) {
-          vec3 n = normalize(normalMatrix * contour);
+          #ifdef USE_INSTANCING
+            vec3 n = normalize(normalMatrix * mat3(instanceMatrix) * contour);
+          #else
+            vec3 n = normalize(normalMatrix * contour);
+          #endif
           // la coque tournée à l'opposé de l'œil (vFace proche de 1) n'est jamais un contour : c'est le dedans
           // d'un objet vu de l'intérieur (le feuillage d'un arbre), ou ce qu'on voit derrière une face effacée
           vFace = dot(n, normalize(mv.xyz));
