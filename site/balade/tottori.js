@@ -561,7 +561,8 @@ export function construire(ctx) {
     poser(a.fin(), 0, 0, { y: 0 });
     ecrire({ x: xa - 1.84, y: F, z: za + 1.5, ry: -PI / 2 }, { texte: '砂丘入口', x: 0, y: 2.7, z: 0, l: 0.52, h: 0.2, fond: null, encre: '#2a3a5a' });
     ecrire({ x: xa - 1.76, y: F, z: za + 1.5, ry: PI / 2 }, { texte: '砂丘入口', x: 0, y: 2.7, z: 0, l: 0.52, h: 0.2, fond: null, encre: '#2a3a5a' });
-    bancs.push({ de: [xa - 0.5, za - 0.42], a: [xa + 1.7, za - 0.42], y: F + 0.49, cap: PI, vue: 0.3 });
+    // (le dos à la vitre ; la caméra devant, puisque derrière il y a la vitre)
+    bancs.push({ de: [xa - 0.5, za - 0.42], a: [xa + 1.7, za - 0.42], y: F + 0.49, cap: 0, vue: PI - 0.45 });
     monde.mur(xa - 0.8, za - 0.56, xa + 2.0, za - 0.56, 0.3);
     monde.mur(xa - 1.3, za - 0.72, xa + 2.5, za - 0.72, 0.28);
     monde.cercle(xa - 1.8, za + 1.5, 0.27);
@@ -662,7 +663,8 @@ export function construire(ctx) {
     distributeur(a, xf - 0.72, 23.6, '#d8402c'); distributeur(a, xf - 0.72, 24.9, '#2f6ab0');
     // (aucune ombre du dehors dans la salle : le plancher du haut couvrait tout)
     poser(a.fin(), 0, 0, { y: 0, recoit: false });
-    bancs.push({ de: [xf - 0.45, -6.3], a: [xf - 0.45, -2.3], y: F + 0.46, cap: -PI / 2, vue: 0.3 });
+    // (le dos à la façade ; la caméra devant, sinon elle serait dans le mur)
+    bancs.push({ de: [xf - 0.45, -6.3], a: [xf - 0.45, -2.3], y: F + 0.46, cap: -PI / 2, vue: PI - 0.4 });
     const b = atelier();
     b.boite(0.4, 0.06, 4, '#8a6a48', { x: xf - 0.45, y: F + 0.44, z: -4.3 }).boite(0.32, 0.42, 0.08, METAL, { x: xf - 0.45, y: F + 0.21, z: -6 }).boite(0.32, 0.42, 0.08, METAL, { x: xf - 0.45, y: F + 0.21, z: -2.6 });
     poser(b.fin(), 0, 0, { y: 0 });
@@ -708,7 +710,7 @@ export function construire(ctx) {
   boutique(50, 64, '砂丘フレンド', '#2f6a8a', '#f4f4ea', ['#2f6a9a', '#f4efe2'], 11);
   // (un camelot : sur le trottoir devant la らくだや, un grand chameau de bois, à côté duquel on se fait photographier)
   {
-    const a = atelier(), xc = 247.2, zc = 49, R = repere(xc, zc, -PI / 2);
+    const a = atelier(), xc = 249.4, zc = 48.5, R = repere(xc, zc, -PI / 2);
     a.boite(1.6, 0.14, 0.7, '#8a6a48', R(0, F + 0.07, 0));
     a.ovale(0.5, '#c89a5a', R(0, F + 0.92, 0, { sx: 1.5, sy: 0.72, sz: 0.62 }), 10).ovale(0.3, '#b98a4a', R(-0.28, F + 1.26, 0, { sx: 0.9, sy: 0.85, sz: 0.8 }), 8).ovale(0.3, '#b98a4a', R(0.3, F + 1.26, 0, { sx: 0.9, sy: 0.85, sz: 0.8 }), 8);
     for (const [dx, dz] of [[-0.5, -0.18], [-0.5, 0.18], [0.5, -0.18], [0.5, 0.18]]) a.boite(0.12, 0.62, 0.12, '#a87a44', R(dx, F + 0.42, dz));
@@ -943,6 +945,9 @@ export function construire(ctx) {
     }
   }
 
+  // Bunbuku, de trois quarts : les feux d'artifice partent au nord ; face au nord, sa commode cacherait le voyageur qui vient de lui parler
+  const MARCHAND = { x: 3.0, z: 146.6, cap: PI / 2 + 0.5 };
+
   // ---------------------------------------------------------------- Les piquets (杭) : le vrai sable a un piquet tous les 100 m, une adresse écrite dessus ; ici, tous les 50 m
   const LETTRES = 'ABCDEFGHIJK';
   {
@@ -950,7 +955,7 @@ export function construire(ctx) {
     for (let i = 0; i < 10; i++) {
       for (let j = 0; j < 7; j++) {
         const x = -220 + i * 45 + 5 * Math.sin(j * 2.1), z = -128 + j * 45 + 4 * Math.sin(i * 1.7);
-        if (!dansPoly(BORD_SABLE, x, z) || Math.hypot(x - OASIS.x, z - OASIS.z) < OASIS.rx + 6 || Math.hypot(x - CUVETTE.x, z - CUVETTE.z) < 16) continue;
+        if (!dansPoly(BORD_SABLE, x, z) || Math.hypot(x - OASIS.x, z - OASIS.z) < OASIS.rx + 6 || Math.hypot(x - CUVETTE.x, z - CUVETTE.z) < 16 || Math.hypot(x - MARCHAND.x, z - MARCHAND.z) < 7) continue;
         const y = terrain(x, z);
         a.boite(0.12, 1.3, 0.12, '#e8e4d6', { x, y: y + 0.45, z, nuance: 0.03 }).boite(0.14, 0.2, 0.14, '#c8402c', { x, y: y + 1.14, z });
         const nom = `${LETTRES[i]}-${j + 1}`;
@@ -1070,7 +1075,6 @@ export function construire(ctx) {
   }
 
   // ---------------------------------------------------------------- Le coin de Bunbuku : contre la clôture sud, sous un pin, sa lanterne
-  const MARCHAND = { x: 3.0, z: 146.6, cap: PI };
   const LAMPION = { x: 5.2, z: 148.0 };
   {
     const a = atelier(), y = terrain(LAMPION.x, LAMPION.z);
@@ -1640,9 +1644,11 @@ export function construire(ctx) {
   return {
     ...infos, textes: TEXTES,
     objets, monde, terrain, etiquettes, passants, daims: [], interactions, actionDaim: null, vapeurs, bancs, lumieres, actionBete, animes,
-    // (le secret, tresors.js ; le marchand ; les sons à fabriquer en plus ; les feux d'artifice : interdits sur le vrai sable, ils partent d'un bateau au large)
+    // (le secret, tresors.js ; le marchand ; les sons à fabriquer en plus ; les feux d'artifice : interdits sur le vrai sable, ils partent d'un bateau
+    // juste après les vagues ; de grosses bombes, assez haut pour passer la crête vues de chez Bunbuku, à 380 m : de petites gerbes n'y faisaient que quelques
+    // points ; jamais à moins de 300 m : depuis la crête ou la plage, elles sortiraient du haut de l'image)
     secret: 'caravane', marchand: MARCHAND, sons: ['oiseau/chameau', 'oiseau/grelots', 'oiseau/glisse', 'oiseau/poudre'],
-    feux: { x: 30, y: 0, z: -430, large: 120, haut: [60, 90] },
+    feux: { x: 30, y: 0, z: -235, large: 170, haut: [85, 120], echelle: 2.2, loin: 300 },
     mouettes: {
       vols: [{ x: 60, z: -190, r: 26, h: 16, sens: 1 }, { x: -90, z: -180, r: 20, h: 12, sens: -1 }, { x: 170, z: -170, r: 16, h: 14, sens: 1 }],
       poses: [{ x: 214, z: -160, y: 2.8, cap: -1.2, mer: [0, -1] }, { x: -222, z: -158, y: 2.7, cap: 1.2, mer: [0, -1] }],
@@ -2040,7 +2046,7 @@ function sculptures(THREE, atelier, { yM, SABLE1, SABLE2, SABLE3, SABLE4, garde,
   const a = atelier();
   // ---- La Sagrada Família, au fond (à l'est) : le socle, la façade et son grand portail, le rose, les niches ; huit tours percées
   const xS = 265.2, zS = 104;
-  a.ovale(1, SABLE2, { x: xS + 0.8, y: yM + 0.2, z: zS, sx: 5.2, sy: 1.0, sz: 10.2, nuance: 0.03 }, 12);
+  a.ovale(1, SABLE2, { x: xS - 0.2, y: yM + 0.2, z: zS, sx: 4.0, sy: 1.0, sz: 10.2, nuance: 0.03 }, 12);
   a.boite(3.4, 6.4, 13, SABLE1, { x: xS + 1.2, y: yM + 3.6, z: zS, nuance: 0.02, deformer: taille(0.05) });
   const portail = (zc, l, h, c = SABLE4) => {
     const s = new THREE.Shape();
@@ -2064,8 +2070,8 @@ function sculptures(THREE, atelier, { yM, SABLE1, SABLE2, SABLE3, SABLE4, garde,
   };
   for (const [dz, h] of [[-1.5, 10.4], [1.5, 10.4], [-4.6, 9.2], [4.6, 9.2]]) tour(xS + 1.0, zS + dz, 1.0, h);
   for (const [dz, h] of [[-3, 8.3], [3, 8.3], [-6.4, 6.6], [6.4, 6.6]]) tour(xS + 2.6, zS + dz, 0.8, h);
-  // (les grues du chantier, un clin d'œil : la basilique n'est pas finie)
-  a.boite(0.24, 3.6, 0.24, SABLE2, { x: xS + 2.6, y: yM + 10.4, z: zS + 7.2, trait: false }).boite(3.2, 0.2, 0.2, SABLE2, { x: xS + 2.0, y: yM + 12.1, z: zS + 7.2, trait: false });
+  // (la grue du chantier, un clin d'œil : la basilique n'est pas finie ; son mât sort du socle, sa flèche passe sous le toit)
+  a.boite(0.24, 9.0, 0.24, SABLE2, { x: xS + 2.6, y: yM + 5.5, z: zS + 7.2, trait: false }).boite(3.2, 0.2, 0.2, SABLE2, { x: xS + 2.0, y: yM + 9.9, z: zS + 7.2, trait: false });
 
   // ---- L'Alhambra, le long du mur nord : la longue arcade en fer à cheval, sa frise de dentelle, ses deux tours crénelées ; la fontaine aux lions, devant
   const xA = 253, zA = 88.8, L = 12;

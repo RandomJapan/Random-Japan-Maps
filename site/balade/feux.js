@@ -20,6 +20,7 @@ export function creerFeux(THREE) {
   const frein = new Float32Array(NB), poids = new Float32Array(NB), sorte = new Uint8Array(NB), prochaine = new Float32Array(NB);
   const eclat = new Float32Array(NB); // ce qu'on dessine : la vie × le scintillement
   let suivante = 0, vivantes = 0, nouvelles = false;
+  let echelle = 1; // (les grosses bombes d'un lieu immense, scene.echelle : la même gerbe, en plus grand)
   const geo = new THREE.BufferGeometry();
   const aPos = new THREE.BufferAttribute(pos, 3).setUsage(THREE.DynamicDrawUsage);
   const aCoul = new THREE.BufferAttribute(coul, 3).setUsage(THREE.DynamicDrawUsage);
@@ -66,9 +67,9 @@ export function creerFeux(THREE) {
     const i = suivante;
     suivante = (suivante + 1) % NB;
     pos[i * 3] = x; pos[i * 3 + 1] = y; pos[i * 3 + 2] = z;
-    vit[i * 3] = vx; vit[i * 3 + 1] = vy; vit[i * 3 + 2] = vz;
+    vit[i * 3] = vx * echelle; vit[i * 3 + 1] = vy * echelle; vit[i * 3 + 2] = vz * echelle;
     coul[i * 3] = c[0]; coul[i * 3 + 1] = c[1]; coul[i * 3 + 2] = c[2];
-    age[i] = 0; duree[i] = d; taille[i] = t; frein[i] = f; poids[i] = g; sorte[i] = s; vie[i] = 1; prochaine[i] = trainee;
+    age[i] = 0; duree[i] = d; taille[i] = t * echelle; frein[i] = f; poids[i] = g * echelle; sorte[i] = s; vie[i] = 1; prochaine[i] = trainee;
     vivantes = NB;
     nouvelles = true;
   }
@@ -127,10 +128,11 @@ export function creerFeux(THREE) {
     actif: () => programme.length > 0 || bombes.length > 0 || vivantes > 0,
     /**
      * Un spectacle d'une trentaine de secondes. scene : { x, y, z } (où l'on tire : le sol ou l'eau), large (l'écart des
-     * tirs, en m), haut [min, max] (la hauteur des éclats au-dessus de y). rappels : depart(x, y, z), eclat(x, y, z,
-     * couleur, force, crepite). Se résout à la fin (les dernières étoiles éteintes).
+     * tirs, en m), haut [min, max] (la hauteur des éclats au-dessus de y), echelle (facultatif : la taille des gerbes).
+     * rappels : depart(x, y, z), eclat(x, y, z, couleur, force, crepite). Se résout à la fin (les dernières étoiles éteintes).
      */
     spectacle(scene, r = {}) {
+      echelle = scene.echelle ?? 1;
       rappels = r;
       horloge = 0;
       programme = [];

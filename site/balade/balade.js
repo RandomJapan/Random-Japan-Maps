@@ -3248,7 +3248,7 @@ async function lancerFeux() {
     // éclatent haut, il faudrait se tordre le cou)
     const S0 = L.feux, hm = (S0.haut[0] + S0.haut[1]) / 2;
     const dx = S0.x - etat.x, dz = S0.z - etat.z;
-    const d = Math.hypot(dx, dz) || 1, k = Math.max(d, hm * 1.6) / d;
+    const d = Math.hypot(dx, dz) || 1, k = Math.max(d, hm * 1.6, S0.loin ?? 0) / d; // (loin : la distance la plus courte, pour de grosses gerbes)
     const S = { ...S0, x: etat.x + dx * k, z: etat.z + dz * k };
     S.y = Math.max(S0.y, L.terrain(S.x, S.z) + 0.5);
     // la caméra derrière le voyageur, tournée vers le spectacle, un peu plus bas ; elle lève les yeux vers les bombes
