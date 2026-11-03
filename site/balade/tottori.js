@@ -1075,7 +1075,7 @@ export function construire(ctx) {
   }
 
   // ---------------------------------------------------------------- Le coin de Bunbuku : contre la clôture sud, sous un pin, sa lanterne
-  const LAMPION = { x: 5.2, z: 148.0 };
+  const LAMPION = { x: 0.9, z: 147.8 }; // (derrière lui, à sa gauche : à sa droite, son bambou barrait la vue des feux d'artifice)
   {
     const a = atelier(), y = terrain(LAMPION.x, LAMPION.z);
     a.baton([LAMPION.x, y - 0.2, LAMPION.z], [LAMPION.x, y + 2.2, LAMPION.z], 0.03, '#a89a5e', 6);
