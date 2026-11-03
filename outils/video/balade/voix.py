@@ -1,4 +1,4 @@
-"""La voix off des vidéos de la balade 3D, générée le 2026-10-26 (le 2026-10-27 pour la vidéo du Pavillon d'or, le 2026-10-28 pour Beppu, le 2026-10-29 pour Motonosumi, le 2026-10-30 pour les Trente Bouddhas) avec Flora (le connecteur du propriétaire) :
+"""La voix off des vidéos de la balade 3D, générée le 2026-10-26 (le 2026-10-27 pour la vidéo du Pavillon d'or, le 2026-10-28 pour Beppu, le 2026-10-29 pour Motonosumi, le 2026-10-30 pour les Trente Bouddhas, le 2026-11-02 pour Udo et Yakushima) avec Flora (le connecteur du propriétaire) :
 ElevenLabs v4, voix « Sarah » (celle de la promo de 30 s et de la vidéo « tunnel »), en anglais, stabilité 0,45
 (environ 0,05 $ la réplique). Ce script les retélécharge dans videos/balade/public/voix (pas dans git) et resserre
 chacune dans voix/court/<nom>.wav : silences du début et de la fin coupés, pauses ramenées à 0,2 s, un peu accélérée
@@ -15,8 +15,8 @@ import wave
 from pathlib import Path
 
 PUBLIC = Path(__file__).resolve().parents[3] / 'videos' / 'balade' / 'public'
-B = 'https://media.flora.ai/node-inputs/2026/10/{jour}/px7fsq65yzz1brtqt0dbcj4s6s8gny2h/gen-'
-# nom : (génération Flora, texte, accélération[, jour d'octobre de la génération : le 26 sinon])
+B = 'https://media.flora.ai/node-inputs/2026/{jour}/px7fsq65yzz1brtqt0dbcj4s6s8gny2h/gen-'
+# nom : (génération Flora, texte, accélération[, jour d'octobre de la génération : le 26 sinon ; « 11/2 » : le 2 novembre])
 VOIX = {
     # vidéo 1 : la balade, les cinq lieux
     'a1': ('m17ewfsea8bz6k540mrf2qzg7h8h19rd', 'I turned the places from my videos... into a video game.', 1.0),
@@ -80,6 +80,19 @@ VOIX = {
     'h5': ('m17c9g2agj051r4xd52vp91dms8h8mg0', 'But never ring the bell at night... something comes down the mountain.', 1.0, 30),
     'h6': ('m179qedhe11r790pf0cg0qr40x8h8gvb', 'Dare to find out?', 1.0, 30),
     'h7': ('m17b5d9x3cx0x3g9r9f85h2vcx8h86f6', 'The Thirty Buddhas, in 3D. Link in bio.', 1.0, 30),
+    # vidéo 8 : Udo et Yakushima (2026-11-02 ; les listes d'une traite, comme pour Beppu et les suivants)
+    'i1': ('m175n0tvjxjmhx6m0a2xmbctvh8hf7mn', "This forest inspired Princess Mononoke... and it's locked.", 1.2, '11/2'),
+    'i2': ('m17a1q2r4n85rq008xrexd6x3n8hfahk', 'To reach it in my game, start at Udo, a shrine inside a sea cave.', 1.15, '11/2'),
+    'i3': ('m17f7zm671xvat25yynr3t55ad8hfsfd', 'Throw lucky balls at the turtle rock, stroke the rabbit, climb the red torii up to Inari,', 1.2, '11/2'),
+    'i4': ('m173yse4mh3r2w21vgdsyzhftd8hfwcr', 'get all five stamps... and earn a cape of cormorant feathers!', 1.15, '11/2'),
+    'i5': ('m17c8fcjbpfdwg1par0xqm4s1h8hfqvr', 'Only then will the boatman take you across...', 1.15, '11/2'),
+    'i6': ('m17dfjrmm0zxw815znzgfm6ys58he21d', 'and the island only appears on your map after the crossing.', 1.15, '11/2'),
+    'i7': ('m1756bjddg274w5m76j79pe8hx8hfawb', "Yakushima! Land at Miyanoura port, cross the suspension bridge, meet the monkey and the deer in the moss, see a heart of sky in Wilson's stump, stand before the giant Jomon Sugi,", 1.2, '11/2'),
+    'i8': ('m17afemkmtcwjha0xq2e5dg53h8hegdw', 'and earn the wolf cape!', 1.0, '11/2'),
+    'i9': ('m17ax7wqq24pjac66pqh9vb7v58hfe72', 'But this forest has a secret. Greet the little spirits... enter the old hollow cedar... and something huge is waiting.', 1.15, '11/2'),
+    'i10': ('m179k6836c90f7xx6s4gsg6b858hf2gn', 'Can you find it?', 1.0, '11/2'),
+    'i11': ('m1780mrjn0da1hemymyjvbwv658he44h', "And one little spirit will follow you... right onto your companion's back!", 1.15, '11/2'),
+    'i12': ('m17ag8d7yg7zp0zqbrj95k7x018hf6xe', 'Udo and Yakushima, in 3D. Link in bio.', 1.1, '11/2'),
 }
 # Les répliques coupées à leurs pauses (secondes dans voix/court/<nom>.wav, mesurées le 2026-10-26) : chaque morceau
 # se place avec son texte à l'écran. Sans ça, une réplique entière débordait sur la suivante (elles se superposaient)
@@ -114,6 +127,15 @@ COUPES = {
     'h4': {'h4a': (0, 1.62), 'h4b': (1.75, None)},  # Get all five stamps... / and earn the yamabushi's stole and conch!
     'h5': {'h5a': (0, 2.10), 'h5b': (2.25, None)},  # But never ring the bell at night... / something comes down the mountain.
     'h7': {'h7a': (0, 1.22), 'h7b': (1.33, 2.40), 'h7c': (2.48, None)},  # The Thirty Buddhas, / in 3D. / Link in bio.
+    # (Udo et Yakushima, 2026-11-02)
+    'i1': {'i1a': (0, 2.31), 'i1b': (2.60, None)},  # This forest inspired Princess Mononoke... / and it's locked.
+    'i2': {'i2a': (0, 2.25), 'i2b': (2.37, None)},  # To reach it in my game, start at Udo, / a shrine inside a sea cave.
+    'i3': {'i3a': (0, 1.66), 'i3b': (1.95, 2.81), 'i3c': (3.08, None)},  # Throw lucky balls at the turtle rock, / stroke the rabbit, / climb the red torii up to Inari,
+    'i4': {'i4a': (0, 1.38), 'i4b': (1.58, None)},  # get all five stamps... / and earn a cape of cormorant feathers!
+    'i7': {'i7a': (0, 0.63), 'i7b': (0.88, 2.30), 'i7c': (2.51, 3.89), 'i7d': (4.10, 6.04), 'i7e': (6.29, 8.42), 'i7f': (8.73, None)},  # Yakushima! / Land at Miyanoura port, / cross the suspension bridge, / meet the monkey and the deer in the moss, / see a heart of sky in Wilson's stump, / stand before the giant Jomon Sugi,
+    'i9': {'i9a': (0, 1.88), 'i9b': (2.15, 3.56), 'i9c': (3.83, 5.63), 'i9d': (5.93, None)},  # But this forest has a secret. / Greet the little spirits... / enter the old hollow cedar... / and something huge is waiting.
+    'i11': {'i11a': (0, 1.98), 'i11b': (2.18, None)},  # And one little spirit will follow you... / right onto your companion's back!
+    'i12': {'i12a': (0, 1.09), 'i12b': (1.34, 2.11), 'i12c': (2.41, None)},  # Udo and Yakushima, / in 3D. / Link in bio.
 }
 
 
@@ -154,7 +176,8 @@ def main():
     for nom, (gen, _texte, vitesse, *jour) in VOIX.items():
         f = PUBLIC / 'voix' / f'{nom}.mp3'
         if not f.exists():
-            urllib.request.urlretrieve(f'{B.format(jour=jour[0] if jour else 26)}{gen}-0.mp3', f)
+            quand = jour[0] if jour else 26
+            urllib.request.urlretrieve(f'{B.format(jour=quand if isinstance(quand, str) else f"10/{quand}")}{gen}-0.mp3', f)
         court = PUBLIC / 'voix' / 'court' / f'{nom}.wav'
         filtre = ('silenceremove=start_periods=1:start_threshold=-45dB:stop_periods=-1:stop_duration=0.2:'
                   'stop_threshold=-42dB:stop_silence=0.2,areverse,silenceremove=start_periods=1:start_threshold=-45dB,areverse')

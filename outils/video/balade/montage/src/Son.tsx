@@ -13,8 +13,11 @@ const BAISSE_SOUS_VOIX = 0.45;
 const ECART_MINI = 0.08; // (s) entre deux répliques
 const borne = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 
+export type Morceau = { fichier: string; debut: number; volume: number; de?: number; a?: number };
 export type Bande = {
-  musique: { fichier: string; debut: number; volume: number }; // debut : la seconde de l'air à l'image 0
+  // debut : la seconde de l'air à son départ ; de, a (s) : quand il joue dans la vidéo (toute la vidéo, sinon). Plusieurs morceaux :
+  // un air après l'autre (Udo, puis Yakushima)
+  musique: Morceau | Morceau[];
   // [fichier de voix/court, début (s), volume (1 sinon : pour une réplique générée plus bas que les autres)]
   voix: [string, number, number?][];
   // [début (s), fichier (sfx/… ou sfx-jeu/…, avec l'extension), volume, durée (s) : pour une ambiance, qui s'efface au bout]
@@ -41,13 +44,22 @@ export const Son: React.FC<{ bande: Bande; bgm: boolean }> = ({ bande, bgm }) =>
     const d = bande.durees[nom];
     return Math.min(interpolate(f, [s(a) - 8, s(a)], [0, 1], borne), interpolate(f, [s(a + d), s(a + d) + 10], [1, 0], borne));
   }));
-  const m = bande.musique;
+  const morceaux = Array.isArray(bande.musique) ? bande.musique : [bande.musique];
   return (
     <>
-      {bgm ? (
-        <Audio src={staticFile(`musique/${m.fichier}`)} trimBefore={Math.max(0, s(m.debut) + AVANCE)}
-          volume={(f) => m.volume * (1 - BAISSE_SOUS_VOIX * sousVoix(f)) * interpolate(f, [0, 3, duree - s(1.4), duree], [0, 1, 1, 0], borne)} />
-      ) : null}
+      {bgm ? morceaux.map((m, i) => {
+        // (dans une séquence, f compte depuis son début : F, depuis celui de la vidéo)
+        const de = s(m.de ?? 0), a = m.a === undefined ? duree : s(m.a), fondu = m.a === undefined ? s(1.4) : 3;
+        return (
+          <Sequence key={i} from={Math.max(0, de - AVANCE)} durationInFrames={a - de} layout="none">
+            <Audio src={staticFile(`musique/${m.fichier}`)} trimBefore={Math.max(0, s(m.debut) + AVANCE - de + Math.max(0, de - AVANCE))}
+              volume={(f) => {
+                const F = f + de;
+                return m.volume * (1 - BAISSE_SOUS_VOIX * sousVoix(F)) * interpolate(F, [de, de + 3, a - fondu, a], [0, 1, 1, 0], borne);
+              }} />
+          </Sequence>
+        );
+      }) : null}
       {bande.voix.map(([nom, a, v]) => (
         <Sequence key={nom} from={Math.max(0, s(a) - AVANCE)} layout="none"><Audio src={staticFile(`voix/court/${nom}.wav`)} volume={VOLUME_VOIX * (v ?? 1)} /></Sequence>
       ))}

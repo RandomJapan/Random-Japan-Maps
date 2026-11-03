@@ -39,6 +39,11 @@ SECRETS = {'trouves': ['corbeaux', 'tresor', 'heike', 'okiku', 'miroir'], 'indic
 IPPEN_FINI = {'baladeSecrets': {'trouves': ['ippen'], 'indices': []}}
 TOUT_ACHETE = {'baladeAchats': ['danse', 'traces', 'accessoires', 'feux', 'masque', 'happi', 'yukata', 'photo', 'gao', 'fuwa', 'saya', 'calendrier', 'kimonoOr', 'armure'],
                'baladeSecrets': SECRETS, 'baladeMarchandVu': 'oui'}
+# Udo et Yakushima : les cinq tampons ; la clé du bateau ; le petit esprit qui nous suit (le secret fini)
+UDO_TAMPONS = ['ema', 'inari', 'usagi', 'ochichi', 'undama']
+YAKU_TAMPONS = ['yakujinja', 'sarushika', 'taikoiwa', 'wilson', 'jomonsugi']
+BATEAU = {'baladeYakushima': 'oui'}
+AMI_SUIT = {**BATEAU, 'baladeSecrets': {'trouves': ['esprits'], 'indices': ['ami-demande', 'ami-arrose', 'ami-suit', 'ami-dos']}}
 PRISES = {
     # Vidéo 1 : la balade, les cinq lieux
     'it-plage': {'lieu': 'itsukushima'},
@@ -128,6 +133,29 @@ PRISES = {
     'sb-nuit-cloche': {'lieu': 'sanjubutsu', 'ui': 'rien'},
     'sb-torche': {'lieu': 'sanjubutsu', 'ui': 'rien'},
     'sb-fin': {'lieu': 'sanjubutsu', 'ui': 'rien'},
+    # Vidéo 8 : Udo et Yakushima (les textes du jeu cachés ; Yakushima s'ouvre avec la clé du bateau, baladeYakushima)
+    'ud-grotte': {'lieu': 'udo', 'ui': 'rien'},
+    'ud-boule': {'lieu': 'udo', 'ui': 'rien'},
+    'ud-lapin': {'lieu': 'udo', 'ui': 'rien'},
+    'ud-torii': {'lieu': 'udo', 'ui': 'rien'},
+    'ud-cape': {'lieu': 'udo', 'ui': 'rien', 'garder': [[6.2, 10], [13, 19.5]], 'stockage': {'baladeTampons': {'udo': ['ema', 'usagi', 'ochichi', 'undama']}}},
+    'ud-plumes': {'lieu': 'udo', 'ui': 'rien', 'stockage': {'baladeTampons': {'udo': UDO_TAMPONS}, 'baladeTenue': {'fille': {'dos': 'cormoran'}}, 'baladeTenuesVues': ['cormoran']}},
+    'ud-batelier': {'lieu': 'udo', 'ui': 'rien', 'stockage': {'baladeTampons': {'udo': UDO_TAMPONS}}},
+    'ud-traversee': {'lieu': 'udo', 'ui': 'rien', 'stockage': {'baladeTampons': {'udo': UDO_TAMPONS}}},
+    'yk-foret': {'lieu': 'yakushima', 'ui': 'rien', 'stockage': BATEAU},
+    'yk-nuit': {'lieu': 'yakushima', 'ui': 'rien', 'stockage': BATEAU},
+    'yk-port': {'lieu': 'yakushima', 'ui': 'rien', 'stockage': BATEAU},
+    'yk-pont': {'lieu': 'yakushima', 'ui': 'rien', 'stockage': BATEAU},
+    'yk-singe': {'lieu': 'yakushima', 'ui': 'rien', 'stockage': BATEAU},
+    'yk-coeur': {'lieu': 'yakushima', 'ui': 'rien', 'stockage': BATEAU},
+    'yk-jomon': {'lieu': 'yakushima', 'ui': 'rien', 'stockage': BATEAU},
+    'yk-loup': {'lieu': 'yakushima', 'ui': 'rien', 'stockage': {**BATEAU, 'baladeTampons': {'yakushima': YAKU_TAMPONS}, 'baladeTenue': {'fille': {'dos': 'loup'}}, 'baladeTenuesVues': ['loup']}},
+    'yk-esprit': {'lieu': 'yakushima', 'ui': 'rien', 'stockage': BATEAU},
+    'yk-creux': {'lieu': 'yakushima', 'ui': 'rien', 'garder': [[1.5, 11.5]], 'stockage': {**BATEAU, 'baladeSecrets': {'trouves': [], 'indices': ['esprit-e1', 'esprit-e2', 'esprit-e3', 'esprit-e4', 'esprit-e5']}}},
+    'yk-cerf': {'lieu': 'yakushima', 'ui': 'rien', 'stockage': {**BATEAU, 'baladeSecrets': {'trouves': [], 'indices': ['cedre-ouvert']}}},
+    'yk-ami': {'lieu': 'yakushima', 'ui': 'rien', 'stockage': AMI_SUIT},
+    'yk-dos': {'lieu': 'yakushima', 'ui': 'rien', 'stockage': AMI_SUIT},
+    'yk-fin': {'lieu': 'yakushima', 'ui': 'rien', 'stockage': AMI_SUIT},
 }
 DEFAUT = {'perso': 'fille', 'compagnon': 'kon', 'stockage': {}, 'ui': 'dialogue'}
 

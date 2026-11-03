@@ -11,14 +11,17 @@ La musique (les airs du jeu) vient de musique.py, la voix de voix.py, les prises
 """
 import shutil
 import subprocess
+import wave
 from pathlib import Path
 
+import numpy as np
 from PIL import Image
 
 ICI = Path(__file__).resolve().parent
 RACINE = ICI.parents[2]
 PUBLIC = RACINE / 'videos' / 'balade' / 'public'
 VIDEOS_LIEUX = Path(r'D:\Montage\Vidéo lieux random japon')
+SR = 48000
 # le lieu : (fichier du propriétaire, début (s), durée (s)[, vitesse : moins de 1, ralenti]) : choisis sur des planches à
 # une image par seconde
 REELS = {
@@ -51,6 +54,18 @@ REELS = {
     'sb-torii': ('Thirty Buddas.mp4', 20.05, 1.8),
     'sb-escalier': ('Thirty Buddas.mp4', 9.3, 2.2),
     'sb-do': ('Thirty Buddas.mp4', 16.55, 1.5),
+    # Udo et Yakushima (vidéo 8) : 0518.mp4 pour Udo (« Inari shrine.mp4 » est un autre sanctuaire), Yaku-Shima.mov. Le sanctuaire dans la
+    # grotte : après le titre « 鵜戸神宮 », 1,3 s sans texte (ralenti) ; le rocher de la tortue et sa corde ; les ema en forme de lapin ;
+    # les torii rouges, l'escalier ; le sentier de mousse, la baie au couchant, le pont de bois, le cerf et le singe blanc, le tronc géant
+    'ud-grotte': ('0518.mp4', 7.55, 1.3, 0.5),
+    'ud-tortue': ('0518.mp4', 16.85, 1.0, 0.85),
+    'ud-ema': ('0518.mp4', 32.1, 1.3),
+    'ud-torii': ('0518.mp4', 3.95, 0.75, 0.55),
+    'yk-mousse': ('Yaku-Shima.mov', 20.6, 2.6),
+    'yk-baie': ('Yaku-Shima.mov', 23.6, 1.5),
+    'yk-pont': ('Yaku-Shima.mov', 28.1, 1.5),
+    'yk-singe': ('Yaku-Shima.mov', 41.0, 1.5),
+    'yk-tronc': ('Yaku-Shima.mov', 10.4, 1.5),
 }
 SFX = {
     'promo30': ['whoosh-fast', 'swoosh-quick', 'air-whoosh-powerful', 'zoom-air-fast', 'transition-snap', 'impact-deep-whoosh',
@@ -62,6 +77,42 @@ SFX = {
 
 def ffmpeg():
     return shutil.which('ffmpeg') or __import__('imageio_ffmpeg').get_ffmpeg_exe()
+
+
+def metal(t, frequences, amorti):
+    # un choc de métal : des partiels qui ne s'accordent pas, chacun s'éteint à sa vitesse
+    return sum(np.sin(2 * np.pi * h * t) * np.exp(-t * amorti * (0.6 + 0.5 * k)) / (1 + k) for k, h in enumerate(frequences))
+
+
+def ecrire(nom, x):
+    with wave.open(str(PUBLIC / 'sfx-jeu' / f'{nom}.wav'), 'wb') as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(SR)
+        w.writeframes((np.clip(x / (np.abs(x).max() + 1e-9) * 0.8, -1, 1) * 32767).astype(np.int16).tobytes())
+
+
+def cadenas():
+    """Les bruits du cadenas de la vidéo d'Udo et Yakushima, calculés (aucun droit) : verrou (le cadenas qui tombe et se ferme, un choc
+    sourd et un claquement de métal), deverrou (deux petits déclics et l'anse qui saute), chaine (des maillons qui s'entrechoquent)."""
+    (PUBLIC / 'sfx-jeu').mkdir(exist_ok=True)
+    g = np.random.default_rng(20261102)
+    t = np.arange(int(SR * 0.9)) / SR
+    choc = np.sin(2 * np.pi * (70 + 60 * np.exp(-t * 30)) * t) * np.exp(-t * 11)
+    ferme = metal(t, [1380, 2210, 3170, 4630], 26) * 0.5 + g.normal(size=t.size) * np.exp(-t * 70) * 0.4
+    ecrire('verrou', choc * 1.1 + ferme)
+    t = np.arange(int(SR * 0.7)) / SR
+    x = metal(t, [2300, 3540, 5120], 60) * 0.5
+    x += np.roll(metal(t, [1900, 3010, 4480], 45), int(0.09 * SR)) * 0.8
+    x += np.roll(metal(t, [1200, 2050, 3300], 18), int(0.17 * SR)) * 0.6
+    ecrire('deverrou', x)
+    t = np.arange(int(SR * 0.8)) / SR
+    x = np.zeros(t.size)
+    for k in range(9):
+        d = int(SR * (0.02 + k * 0.05 + g.uniform(0, 0.02)))
+        f = g.uniform(1500, 3200)
+        x += np.roll(metal(t, [f, f * 1.47, f * 2.13], 55), d) * g.uniform(0.3, 1)
+    ecrire('chaine', x * np.minimum(1, (t.size - np.arange(t.size)) / (0.1 * SR)))
 
 
 def main():
@@ -78,6 +129,7 @@ def main():
     for dossier, noms in SFX.items():
         for nom in noms:
             shutil.copyfile(RACINE / 'videos' / 'carte' / dossier / 'public' / 'sfx' / f'{nom}.mp3', PUBLIC / 'sfx' / f'{nom}.mp3')
+    cadenas()
     Image.open(RACINE / 'outils' / 'logo-source' / 'logo-carre.jpg').convert('RGB').resize((800, 800), Image.LANCZOS) \
         .save(PUBLIC / 'logo.jpg', quality=93)
     print('extraits, bruitages et logo prêts dans', PUBLIC)

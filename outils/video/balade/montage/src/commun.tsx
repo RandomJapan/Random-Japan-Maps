@@ -285,7 +285,7 @@ export const Fin: React.FC<{ de: number; titre: string; ligne: string; credit?: 
         }}>
           <Img src={staticFile("logo.jpg")} style={{ width: 268, height: 268, borderRadius: "50%" }} />
         </div>
-        <div style={{ ...apparait(vTitre, de + s(0.45)), fontFamily: TITRE, fontSize: 92, lineHeight: 1.1, color: C.papier, textAlign: "center", textShadow: "0 4px 24px rgba(0,0,0,.6)", padding: "0 50px" }}>{titre}</div>
+        <div style={{ ...apparait(vTitre, de + s(0.45)), fontFamily: TITRE, fontSize: 92, lineHeight: 1.1, color: C.papier, textAlign: "center", textShadow: "0 4px 24px rgba(0,0,0,.6)", padding: "0 50px", whiteSpace: "pre-line" }}>{titre}</div>
         <div style={{ ...apparait(vLigne, de + s(0.75)), fontFamily: POLICE, fontWeight: 800, fontSize: 46, color: "#fff", textAlign: "center", textShadow: "0 3px 14px rgba(0,0,0,.6)", padding: "0 60px" }}>{ligne}</div>
         <div style={{ ...apparait(vBouton, de + s(1.05)), display: "flex", flexDirection: "column", alignItems: "center", gap: 18, marginTop: 10 }}>
           <div style={{

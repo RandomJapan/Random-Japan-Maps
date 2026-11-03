@@ -993,6 +993,218 @@
         o.cadre(...o.chemin([[0, [0, 23.3, -21.6], [0, 9, 10], 54], [7, [0.3, 23.1, -20.8], [0, 8.8, 10], 52]], t));
       },
     },
+    // ================================================================ Vidéo 8 : Udo et Yakushima (2026-11-02)
+    // (les objets d'udo.js et de yakushima.js, trouvés par leurs méthodes : les boules de chance (lancer), la lueur du lapin (briller) ;
+    // les esprits et le cerf : M().lieu.esprits, l'objet secret du lieu)
+    // la grotte : le sanctuaire vermillon sous sa voûte, comme la vidéo du propriétaire (de trois quarts, la voûte sombre au-dessus)
+    'ud-grotte': {
+      duree: 5,
+      preparer(o) { o.placer(21.2, -30.6, 13, -32.6, { compagnon: false }); o.compagnon(22.2, -29.6, -1.8); },
+      debut(o) { o.jeu.marcher([[21.2, -30.6], [18.6, -32.2]], 1.2); },
+      chaque(t, dt, o) {
+        for (const [id, x, z] of [['obaa', 20.5, -39.5]]) { const k = o.passant(id); if (k) { k.etat.x = x; k.etat.z = z; } }
+        o.cadre(...o.chemin([[0, [27.2, 6.05, -24.6], [12.5, 9.0, -33.8], 66], [5, [26.2, 6.0, -25.4], [12.5, 8.9, -33.8], 62]], t));
+      },
+    },
+    // les boules de chance : le rocher de la tortue et son carré de corde ; l'anneau d'or glisse sur son dos, la boule part quand il
+    // passe au creux (à 1,85 s) et y tombe (à 2,8 s)
+    'ud-boule': {
+      duree: 5,
+      preparer(o) { o.placer(43.9, -33.8, 50.8, -34, { compagnon: false }); o.compagnon(42.4, -35.2, 1.4); o.u = o.M().lieu.animes.find((a) => a.lancer && a.jouer); },
+      debut(o) { o.u.jouer(true); },
+      quand: [[1.85, (o) => { o.jeu.geste('offrir'); o.u.lancer([44.2, 5.85, -33.8]); }], [2.9, (o) => o.jeu.geste(null)]],
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [45.2, 6.2, -36.4], [50.8, 1.8, -34], 42], [5, [45.7, 5.95, -36.2], [50.8, 1.8, -34], 39]], t));
+      },
+    },
+    // le lapin qu'on caresse : le voyageur devant lui, de côté ; il luit
+    'ud-lapin': {
+      duree: 4,
+      preparer(o) { o.placer(17.0, -25.7, 17.6, -24.3, { compagnon: false }); o.compagnon(15.4, -26.6, 1.2); o.l = o.M().lieu.animes.find((a) => a.briller); },
+      quand: [[0.9, (o) => { o.jeu.geste('offrir'); o.l.briller(); }], [3.1, (o) => o.jeu.geste(null)]],
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [20.6, 5.9, -27.4], [17.3, 5.5, -25.1], 58], [4, [20.4, 5.88, -27.25], [17.3, 5.5, -25.1], 55]], t));
+      },
+    },
+    // les torii rouges jusqu'à Inari : le voyageur les monte, la caméra en bas des marches, comme la vidéo du propriétaire
+    'ud-torii': {
+      duree: 5,
+      preparer(o) { o.placer(-13, -2.4, -13, -10, { compagnon: false }); o.compagnon(-12.3, -1.2, PI); },
+      debut(o) { o.jeu.marcher([[-13, -2.4], [-13, -10]], 1.5); },
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [-13, 11.2, -1.6], [-13, 13.2, -10.2], 70], [5, [-13, 11.5, -2.6], [-13, 13.7, -10.2], 66]], t));
+      },
+    },
+    // le dernier tampon, à Inari (les quatre autres déjà eus) : il prie, le tampon, la carte de la récompense, le jeu lui met la cape
+    'ud-cape': {
+      duree: 34,
+      preparer(o) { const I = o.inter('inari'); o.placer(I.x, I.z, I.vers[0], I.vers[1], { compagnon: false }); o.compagnon(I.x + 1.5, I.z + 0.7, -0.8); },
+      quand: [[0.2, (o) => o.agir('inari')]],
+      chaque(t, dt, o) {
+        o.lire(t, { delai: 0.35 });
+        const sx = Math.sin(e.cap), sz = Math.cos(e.cap), k = t < 14.6 ? 1 : -1;
+        o.cadre([e.x + sx * 2.5 * k + sz * 0.9, e.y + 1.0 + (k < 0 ? 0.25 : 0), e.z + sz * 2.5 * k - sx * 0.9], [e.x + sz * 0.1, e.y + 0.74, e.z - sx * 0.1], 50);
+      },
+    },
+    // la cape de plumes, de dos : il court sur le chemin des lanternes, vers le pont ; les plumes du bas s'écartent
+    'ud-plumes': {
+      duree: 4.5,
+      preparer(o) { o.placer(3.5, 0.1, 18, 0.1, { compagnon: false }); o.compagnon(2.3, 1, 1.57); },
+      debut(o) { o.tenir('KeyW', 'ShiftLeft'); },
+      chaque(t, dt, o) {
+        for (const [id, x, z] of [['touriste', 9, 10], ['touriste2', 10, 10]]) { const k = o.passant(id); if (k) { k.etat.x = x; k.etat.z = z; } }
+        o.viser(18.4, 0.1, 0.2);
+        o.cadre([e.x - 3.1, e.y + 1.75, e.z + 0.55], [e.x + 6, e.y + 1.0, e.z], 52);
+      },
+    },
+    // le batelier sur le quai de Fukei, devant son bateau et le phare rouge ; le voyageur vient à lui
+    'ud-batelier': {
+      duree: 5,
+      preparer(o) { o.placer(-36.2, -31.6, -40.4, -32.45, { y: 4, compagnon: false }); o.compagnon(-35.2, -31, -1.6); },
+      debut(o) { o.jeu.marcher([[-36.2, -31.6], [-38.75, -32.7]], 1.3); },
+      quand: [[1.0, (o) => { const k = o.passant('batelier'); if (k) k.etat.parle = true; }]],
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [-33.9, 3.5, -29.4], [-41.6, 2.9, -33.9], 51], [5, [-34.5, 3.45, -29.8], [-41.6, 2.85, -33.9], 48]], t));
+      },
+    },
+    // la traversée : la carte du jeu, le petit bateau qui avance (6,5 s après 0,8 s) ; le jeu change de lieu à 8,7 s : la prise finit avant
+    'ud-traversee': {
+      duree: 8.5,
+      preparer(o) { o.placer(-38.9, -31.6, -40.4, -32.45, { y: 4, compagnon: false }); o.compagnon(-37.6, -31, -1.6); },
+      quand: [[0.2, (o) => o.jeu.partir('yakushima')]],
+    },
+    // l'accroche : le sentier de la forêt, sous l'arche de racines du Kuguri-sugi, personne ; la caméra avance
+    'yk-foret': {
+      duree: 5,
+      preparer(o) { o.placer(-30, 62.5, -36, 62.5, { y: 21, compagnon: false }); o.compagnon(-31, 63, 0, 21); },
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [-18.6, 21.1, 67.0], [-9, 23.7, 75], 56], [5, [-16.7, 21.4, 68.6], [-8, 23.8, 76], 54]], t));
+      },
+    },
+    // la nuit, le même sentier que l'accroche : « But this forest has a secret » (une étincelle au loin, sous l'arche)
+    'yk-nuit': {
+      duree: 4,
+      async preparer(o) { o.placer(-30, 62.5, -36, 62.5, { y: 21, compagnon: false }); o.compagnon(-31, 63, 0, 21); await o.nuitTout(true); },
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [-18.6, 21.1, 67.0], [-9, 23.7, 75], 56], [4, [-17.0, 21.35, 68.3], [-8, 23.8, 76], 54]], t));
+      },
+    },
+    // l'arrivée au port de Miyanoura : le bateau au premier plan, le quai, la rue, la forêt et les montagnes derrière
+    'yk-port': {
+      duree: 5,
+      preparer(o) { o.placer(-30.2, -54.2, -27, -47, { y: 4, compagnon: false }); o.compagnon(-31.4, -54.6, 0.4); },
+      debut(o) { o.jeu.marcher([[-30.2, -54.2], [-27.4, -49.4]], 1.4); },
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [-30.4, 4.7, -68.6], [-28.2, 4.3, -44], 52], [5, [-30.2, 4.5, -67.2], [-28.2, 4.1, -44], 50]], t));
+      },
+    },
+    // le pont suspendu : la caméra sur son tablier, derrière le voyageur qui le traverse (de haut, de biais, au premier brouillon, il
+    // sortait du cadre et le pont n'était qu'un grillage vert)
+    'yk-pont': {
+      duree: 5,
+      preparer(o) { o.placer(-33.4, 62.5, -20, 62.5, { y: 21, compagnon: false }); o.compagnon(-34.6, 62.5, 1.57, 21); },
+      debut(o) { o.jeu.marcher([[-33.4, 62.5], [-26.2, 62.5]], 1.5); },
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [-36.1, 21.3, 62.6], [-26, 20.2, 62.5], 60], [5, [-35.3, 21.25, 62.55], [-26, 20.2, 62.5], 58]], t));
+      },
+    },
+    // la forêt de mousse : le singe sur sa branche, qui laisse tomber des feuilles, le cerf qui broute dessous
+    'yk-singe': {
+      duree: 5,
+      preparer(o) { o.placer(4, 86, 0, 86, { y: 25, compagnon: false }); o.compagnon(4.8, 85.2, 0, 25); },
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [13.6, 25.4, 89.2], [19.0, 25.0, 87.4], 60], [5, [14.1, 25.35, 89.0], [19.0, 25.0, 87.4], 56]], t));
+      },
+    },
+    // le cœur de ciel, dans la souche de Wilson : on lève les yeux (le voyageur ne se dessine pas : la caméra serait dans sa tête)
+    'yk-coeur': {
+      duree: 5,
+      preparer(o) { o.placer(80.25, 66.55, 78, 66.55, { y: 29, compagnon: false }); o.jeu.cacherVoyageur(true); },
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [80.25, 28.9, 66.55], [78.2, 29.6, 66.5], 62], [1.5, [80.25, 28.9, 66.55], [80.25, 40, 65.8], 60], [5, [80.25, 28.9, 66.55], [80.25, 40, 65.8], 48]], t));
+      },
+    },
+    // le Jōmon Sugi, de sa plateforme : le voyageur tout petit devant lui
+    'yk-jomon': {
+      duree: 5,
+      preparer(o) { o.placer(89.9, 86.3, 91.5, 95, { y: 35, compagnon: false }); o.compagnon(88.6, 86, 0.2, 35); },
+      chaque(t, dt, o) {
+        for (const id of ['onigiri', 'guideJomon', 'ancien']) { const k = o.passant(id); if (k) { k.etat.x = 100; k.etat.z = 82; } }
+        o.cadre(...o.chemin([[0, [88.0, 34.9, 82.0], [90.9, 37.6, 95], 66], [5, [88.0, 34.9, 82.0], [91.2, 43.2, 95], 68]], t));
+      },
+    },
+    // la cape du loup : au sommet du Taiko-iwa, de dos, les montagnes devant ; il lève les bras
+    'yk-loup': {
+      duree: 4.5,
+      preparer(o) { o.placer(28.3, 118, 28.5, 125, { y: 35, compagnon: false }); o.compagnon(27, 117.5, 0.1, 35); },
+      quand: [[1.2, (o) => o.jeu.geste('victoire')]],
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [28.9, 34.9, 115.2], [28.2, 34.3, 119.5], 54], [4.5, [28.7, 34.85, 115.6], [28.2, 34.3, 119.5], 50]], t));
+      },
+    },
+    // le secret, montré sans être résolu. La nuit, un petit esprit luit sur sa pierre, juste après le pont ; il saute quand on le salue
+    'yk-esprit': {
+      duree: 4,
+      async preparer(o) { o.placer(-20.9, 65.1, -18.5, 65.2, { y: 21, compagnon: false }); o.compagnon(-22, 65.8, 1.57, 21); o.s = o.M().lieu.esprits.liste[0]; await o.nuitTout(true); },
+      quand: [[0.8, (o) => o.s.m.bondir()], [1.6, (o) => o.s.m.bondir()]],
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [-20.5, 20.7, 66.5], [-18.6, 20.45, 65.25], 42], [4, [-20.3, 20.68, 66.35], [-18.6, 20.45, 65.25], 38]], t));
+      },
+    },
+    // le vieux cèdre creux, la nuit, face à sa bouche : les cinq esprits, lumineux, y entrent l'un après l'autre, son fond s'ouvre (le
+    // film s'arrête là : le reste est le secret)
+    'yk-creux': {
+      duree: 20,
+      async preparer(o) { o.placer(-12.8, 95.4, -15.7, 96.4, { y: 25, compagnon: false }); o.compagnon(-11.6, 94.8, -1.2, 25); await o.nuitTout(true); },
+      quand: [[0.3, (o) => o.agir('creux')]],
+      chaque(t, dt, o) {
+        o.lire(t, { delai: 0.2 });
+        o.cadre(...o.chemin([[0, [-10.4, 24.3, 93.4], [-15.2, 24.0, 96.2], 58], [20, [-10.9, 24.25, 93.7], [-15.2, 24.0, 96.2], 54]], t));
+      },
+    },
+    // le grand cerf, juste un aperçu : la nuit, sa tête et ses bois qui passent derrière la bosse du terrain, la forêt noire derrière
+    'yk-cerf': {
+      duree: 5,
+      async preparer(o) { o.placer(-22.5, 106, -25, 113.3, { y: 28, compagnon: false }); o.compagnon(-21.4, 105.2, 0, 28); await o.nuitTout(true); o.M().lieu.esprits.essaiCerf(-39.84, 120.91, 0.977, 0.5); },
+      chaque(t, dt, o) {
+        // (essaiCerf le fait marcher sur place : on le pose chaque image un peu plus loin. Il entre par la droite, tête d'abord, et le
+        // plan reste serré sur sa tête et ses bois : au premier brouillon, plus large, on le voyait en entier)
+        o.M().lieu.esprits.essaiCerf(-39.84 + 0.415 * t, 120.91 + 0.28 * t, 0.977, 0.5);
+        o.cadre(...o.chemin([[0, [-30.5, 28.6, 114], [-37.5, 36, 122.5], 32], [5, [-30.8, 28.55, 114.3], [-37.5, 35.8, 122.5], 30]], t));
+      },
+    },
+    // le petit esprit qui nous suit : dans la clairière de mousse, de loin devant, un peu de côté, tout bas, au long foyer : le voyageur et
+    // lui sont grands tous les deux (de face et de près, au premier brouillon, il restait caché derrière ses jambes ; de dos, au
+    // deuxième, il n'était plus qu'un caillou ; de côté et de près, au troisième, il était minuscule)
+    'yk-ami': {
+      duree: 6,
+      preparer(o) { o.placer(1.5, 85.4, 14, 88.5, { y: 25, compagnon: false }); o.compagnon(0.6, 86.4, 1.3, 25); },
+      debut(o) { o.jeu.marcher([[1.5, 85.4], [14, 88.5]], 1.45); },
+      chaque(t, dt, o) {
+        const sx = Math.sin(e.cap), sz = Math.cos(e.cap), rx = -sz, rz = sx;
+        o.cadre([e.x + sx * 3.2 + rx * 1.2, e.y + 0.5, e.z + sz * 3.2 + rz * 1.2], [e.x - sx * 0.4 + rx * 0.15, e.y + 0.62, e.z - sz * 0.4 + rz * 0.15], 46);
+      },
+    },
+    // il saute sur le dos du compagnon, tout près ; puis ils repartent
+    'yk-dos': {
+      duree: 7,
+      preparer(o) { o.placer(-12.6, 72.6, -3, 80.2, { y: 21, compagnon: false }); o.compagnon(-11.6, 73.6, 0.8, 21); },
+      quand: [[1.1, (o) => { o.M().lieu.esprits.A.monter = true; }], [3.0, (o) => { o.jeu.marcher([[-12.6, 72.6], [-7.6, 76.6], [-3, 80.2]], 1.3); }]],
+      chaque(t, dt, o) {
+        const k = o.B.renard, c = 0.82;
+        const sx = Math.sin(c), sz = Math.cos(c);
+        o.cadre([k.x + sx * 2.1 + sz * 0.8, k.y + 0.62, k.z + sz * 2.1 - sx * 0.8], [k.x, k.y + 0.36, k.z], 46);
+      },
+    },
+    // la fin : ils s'en vont sous l'arche de racines, le petit esprit sur le dos du compagnon, vus de dos
+    'yk-fin': {
+      duree: 7,
+      preparer(o) { o.placer(-19.2, 66.1, -9, 75, { y: 21, compagnon: false }); o.compagnon(-20, 66.4, 0.8, 21); o.M().lieu.esprits.A.monter = true; },
+      quand: [[0.8, (o) => { o.jeu.marcher([[-19.2, 66.1], [-17.4, 68.6], [-12.6, 72.6], [-7.6, 76.6]], 1.3); }]],
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [-21.0, 21.05, 64.6], [-9, 23.3, 75], 58], [7, [-19.8, 21.2, 65.8], [-8, 23.4, 76], 56]], t));
+      },
+    },
   };
 
   // ---------------------------------------------------------------- le déroulé

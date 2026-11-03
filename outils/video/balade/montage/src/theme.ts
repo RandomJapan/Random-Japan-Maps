@@ -8,7 +8,7 @@ import { loadFont as rond } from "@remotion/google-fonts/MPLUSRounded1c";
 import { loadFont as zen } from "@remotion/google-fonts/ZenAntique";
 import { loadFont as emoji } from "@remotion/google-fonts/NotoColorEmoji";
 
-const ROND = rond("normal", { weights: ["500", "700", "800"], subsets: ["latin"] }).fontFamily;
+const ROND = rond("normal", { weights: ["500", "700", "800"], subsets: ["latin", "latin-ext"] }).fontFamily;
 const EMOJI = emoji("normal", { weights: ["400"] }).fontFamily;
 export const POLICE = `${ROND}, ${EMOJI}, sans-serif`;
 export const TITRE = `${zen("normal", { weights: ["400"], subsets: ["latin"] }).fontFamily}, ${EMOJI}, serif`;
