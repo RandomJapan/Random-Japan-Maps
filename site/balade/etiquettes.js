@@ -6,7 +6,7 @@
 //  Toutes les étiquettes d'un lieu sont dessinées dans une seule image (un atlas), et forment un seul objet (deux,
 //  avec celles qui brillent) : une vingtaine d'objets et de textures à part faisaient travailler la carte graphique
 //  bien plus que leur taille (2026-10-23).
-//  Une étiquette : { texte, x, y, z, ry (tourné vers +z à 0), l, h (en mètres), fond (ou null : transparent),
+//  Une étiquette : { texte, x, y, z, ry (tourné vers +z à 0), incline (penché en arrière, en radians : un texte couché sur un pupitre), l, h (en mètres), fond (ou null : transparent),
 //  encre, sous (un second texte plus petit dessous), vertical (de haut en bas), lignes (n traits d'écriture
 //  sous le titre : un panneau à lire), cadre (une bordure), lumineux (il ne prend pas l'ombre : un écran), forme
 //  ('rond' : un panneau rond, cadre en anneau), dessin(contexte, largeur, hauteur) : une image peinte par le lieu }.
@@ -57,12 +57,13 @@ export function creerEtiquettes(THREE, liste, { anisotropie = 4 } = {}) {
     if (!choix.length) continue;
     const pos = [], uv = [], nor = [];
     for (const { e, W, H, px, py } of choix) {
-      const cs = Math.cos(e.ry || 0), sn = Math.sin(e.ry || 0), dl = e.l / 2, dh = e.h / 2;
-      const coin = (u, v) => [e.x + u * cs, e.y + v, e.z - u * sn];
+      const cs = Math.cos(e.ry || 0), sn = Math.sin(e.ry || 0), ci = Math.cos(e.incline || 0), si = Math.sin(e.incline || 0), dl = e.l / 2, dh = e.h / 2;
+      const coin = (u, v) => [e.x + u * cs - v * si * sn, e.y + v * ci, e.z - u * sn - v * si * cs];
       const [A, B, C, D] = [coin(-dl, -dh), coin(dl, -dh), coin(dl, dh), coin(-dl, dh)];
       const [u0, u1, v0, v1] = [px / ATLAS, (px + W) / ATLAS, 1 - (py + H) / hauteur, 1 - py / hauteur];
       pos.push(...A, ...B, ...C, ...A, ...C, ...D);
       uv.push(u0, v0, u1, v0, u1, v1, u0, v0, u1, v1, u0, v1);
+      // (même penchée, elle garde la lumière d'une étiquette debout : couchée, elle prenait tout le bleu du ciel, le crème du pupitre de Tottori virait au gris bleu)
       for (let i = 0; i < 6; i++) nor.push(sn, 0, cs);
     }
     const g = new THREE.BufferGeometry();

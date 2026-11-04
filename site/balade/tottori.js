@@ -707,7 +707,8 @@ export function construire(ctx) {
     a.boite(0.9, 0.92, 15.4, '#8a5f3c', { x: 264.4, y: F + 0.46, z: 21, nuance: 0.03 }).boite(1.02, 0.05, 15.5, '#5e4028', { x: 264.4, y: F + 0.945, z: 21 });
     // (le passe-plat : ses plats qui attendent, son noren, les bouteilles derrière)
     for (const z of [17.2, 19.6, 22, 24.4]) mK.couvert(264.3, F + 0.97, z, 0.3, '#f4efe2', z % 2 > 1 ? '#d8603a' : '#e8c88a');
-    for (let k = 0; k < 5; k++) { const z = 15.6 + k * 2.6; bK.boite(0.012, 0.62, 1.22, k % 2 ? '#2a4a7a' : '#2f5a8a', { x: 264.1, y: F + PLAFOND - 0.33, z, nuance: 0.02 }); }
+    // (celui du milieu porte le nom, plus large que lui : le texte, 3,2 m, débordait du noren de 1,22 m, dans le vide et blanc sur le mur clair ; 2026-11-04)
+    [[15.87, 1.22], [18.39, 1.22], [21, 3.4], [23.61, 1.22], [26.13, 1.22]].forEach(([z, l], k) => bK.boite(0.012, 0.62, l, k % 2 ? '#2a4a7a' : '#2f5a8a', { x: 264.1, y: F + PLAFOND - 0.33, z, nuance: 0.02 }));
     ecrire({ x: 264.09, y: F, z: 21, ry: -PI / 2 }, { texte: '砂丘会館 食堂', x: 0, y: PLAFOND - 0.33, z: 0, l: 3.2, h: 0.4, fond: null, encre: '#f4f2e8' });
     for (let k = 0; k < 14; k++) bK.cylindre(0.035, 0.04, 0.26, 7, ['#7a3a26', '#3a5a3a', '#c8a84a'][k % 3], { x: 271.0, y: F + 1.24, z: 15.4 + k * 0.8, trait: false });
     bK.boite(0.3, 0.03, 11.6, '#6e4a2c', { x: 271.02, y: F + 1.1, z: 20.6, trait: false });
@@ -2567,10 +2568,21 @@ function creerTelesiege(ctx, { monde, poser, ecrire, morceau, murRect, bancs, lu
       a.boite(0.13, 0.18, 0.1, '#c8ccd0', { x: xj, y: yt + 0.86, z: zj + 0.05 }).boite(0.05, 0.012, 0.02, '#2a2a30', { x: xj, y: yt + 0.9, z: zj + 0.105, trait: false });
       monde.cercle(xj, zj - 0.12, 0.5, yt - 0.5, yt + 2);
       const { x: xt, z: zt } = TABLE_TOIT;
-      a.cylindre(0.2, 0.26, 0.95, 10, BETON, { x: xt, y: yt + 0.48, z: zt, nuance: 0.03 }).cylindre(0.42, 0.42, 0.05, 18, '#6f7a64', { x: xt, y: yt + 0.98, z: zt, rx: 0.14, nuance: 0.01 });
-      for (let k = 0; k < 8; k++) { const t = (k / 8) * 2 * PI; a.boite(0.012, 0.012, k % 2 ? 0.1 : 0.18, '#d8d4c0', { x: xt + Math.sin(t) * 0.28, y: yt + 1.012 - Math.cos(t) * 0.04, z: zt + Math.cos(t) * 0.28, ry: t, trait: false }); }
+      // (2026-11-04, un écran du propriétaire : « 方位盤 » flottait à 45 cm devant la table. Un pilier carré sur son socle, le nom sur une plaque contre sa face sud ; dessus, le plateau de bronze, penché vers qui le lit,
+      // le haut du pilier pris dans son épaisseur ; sa rose des vents, ses graduations, 北東南西, couchés dans sa pente. surPlateau(u, h, w) : u vers l'est, h au-dessus du centre, w vers le sud, dans le plateau)
+      const TILT = 0.14, yP = yt + 0.98, surPlateau = (u, h, w) => ({ x: xt + u, y: yP + h * Math.cos(TILT) - w * Math.sin(TILT), z: zt + h * Math.sin(TILT) + w * Math.cos(TILT), rx: TILT });
+      a.boite(0.62, 0.08, 0.62, '#a9a498', { x: xt, y: yt + 0.04, z: zt, nuance: 0 }).cylindre(0.27, 0.33, 0.93, 4, BETON, { x: xt, y: yt + 0.515, z: zt, ry: PI / 4, nuance: 0 });
+      a.cylindre(0.42, 0.42, 0.07, 24, '#6f7a64', { x: xt, y: yP, z: zt, rx: TILT, nuance: 0.01 }).cylindre(0.365, 0.365, 0.01, 24, '#8d9a80', { ...surPlateau(0, 0.038, 0), nuance: 0, trait: false });
+      for (let k = 0; k < 8; k++) {
+        const t = (k / 8) * 2 * PI, grand = k % 2 === 0, r = grand ? 0.14 : 0.16;
+        a.boite(grand ? 0.016 : 0.008, 0.006, grand ? 0.2 : 0.1, k === 4 ? '#a8321e' : '#e8e2c8', { ...surPlateau(Math.sin(t) * r, 0.045, Math.cos(t) * r), ry: t, nuance: 0, trait: false });
+      }
+      for (let k = 0; k < 24; k++) { const t = (k / 24) * 2 * PI; a.boite(0.006, 0.006, k % 6 ? 0.016 : 0.028, '#e8e2c8', { ...surPlateau(Math.sin(t) * 0.345, 0.045, Math.cos(t) * 0.345), ry: t, nuance: 0, trait: false }); }
+      a.cylindre(0.028, 0.034, 0.02, 10, '#4a5244', { ...surPlateau(0, 0.052, 0), nuance: 0, trait: false });
+      for (const [texte, u, w, c] of [['北', 0, -0.275, '#a8321e'], ['東', 0.275, 0, '#20281c'], ['南', 0, 0.275, '#20281c'], ['西', -0.275, 0, '#20281c']]) ecrire({ ...surPlateau(u, 0.0445, w), ry: 0 }, { texte, x: 0, y: 0, z: 0, l: 0.1, h: 0.1, incline: PI / 2 - TILT, fond: null, encre: c });
       monde.cercle(xt, zt, 0.5, yt - 0.5, yt + 2);
-      ecrire({ x: xt, y: yt, z: zt + 0.42, ry: 0 }, { texte: '方位盤', x: 0, y: 0.62, z: 0.25, l: 0.3, h: 0.13, fond: null, encre: '#3a3a40' });
+      a.boite(0.34, 0.15, 0.03, '#3f4a38', { x: xt, y: yt + 0.66, z: zt + 0.21, nuance: 0 });
+      ecrire({ x: xt, y: yt, z: zt + 0.228, ry: 0 }, { texte: '方位盤', x: 0, y: 0.66, z: 0, l: 0.3, h: 0.13, fond: null, encre: '#f4f2e4' });
       a.boite(2.8, 0.08, 0.44, '#9a7a54', { x: 366, y: yt + 0.46, z: 32.3, nuance: 0.03 });
       for (const dx of [-1.1, 1.1]) a.boite(0.1, 0.44, 0.34, ACIER_F, { x: 366 + dx, y: yt + 0.22, z: 32.3 });
       bancs.push({ de: [364.9, 32.3], a: [367.1, 32.3], y: yt + 0.5, cap: PI, etage: true });
@@ -2587,14 +2599,16 @@ function creerTelesiege(ctx, { monde, poser, ecrire, morceau, murRect, bancs, lu
       murRect(359.3, 70, 3, 5, 0.27, yt - 0.5, yt + 6);
     }
     // (les réservoirs d'eau, sur leur dalle, cerclés ; le tuyau qui les relie, au-dessus des têtes ; « 受水槽 » sur celui du milieu)
+    // (tournés d'un quart de face : une face plate vers l'ouest, où la plaque se pose ; devant une arête, ses bouts restaient à 10 cm de la cuve)
     for (const z of [38, 41.2, 44.4]) {
-      a.cylindre(1.1, 1.1, 2.2, 12, '#d8d8d0', { x: 376, y: yt + 1.2, z, nuance: 0.02 }).cylindre(0.2, 1.1, 0.3, 12, '#c8c8c0', { x: 376, y: yt + 2.45, z });
-      a.cylindre(1.2, 1.2, 0.12, 12, BETON, { x: 376, y: yt + 0.06, z, nuance: 0.02 });
-      for (const dy of [0.72, 1.86]) a.cylindre(1.125, 1.125, 0.07, 12, ACIER, { x: 376, y: yt + dy, z, nuance: 0.01, trait: false });
+      const ry = PI / 12;
+      a.cylindre(1.1, 1.1, 2.2, 12, '#d8d8d0', { x: 376, y: yt + 1.2, z, ry, nuance: 0.02 }).cylindre(0.2, 1.1, 0.3, 12, '#c8c8c0', { x: 376, y: yt + 2.45, z, ry });
+      a.cylindre(1.2, 1.2, 0.12, 12, BETON, { x: 376, y: yt + 0.06, z, ry, nuance: 0.02 });
+      for (const dy of [0.72, 1.86]) a.cylindre(1.125, 1.125, 0.07, 12, ACIER, { x: 376, y: yt + dy, z, ry, nuance: 0.01, trait: false });
     }
     a.baton([376, yt + 1.98, 38], [376, yt + 1.98, 44.4], 0.06, ACIER_F, 8);
-    a.boite(0.03, 0.3, 0.72, '#f0eee6', { x: 374.875, y: yt + 1.3, z: 41.2, nuance: 0.01 });
-    ecrire({ x: 374.855, y: F, z: 41.2, ry: -PI / 2 }, { texte: '受水槽', x: 0, y: H2 + 0.28 + 1.3, z: 0, l: 0.62, h: 0.22, fond: null, encre: '#2a4a6a' });
+    a.boite(0.02, 0.3, 0.5, '#f0eee6', { x: 374.93, y: yt + 1.3, z: 41.2, nuance: 0.01 });
+    ecrire({ x: 374.917, y: F, z: 41.2, ry: -PI / 2 }, { texte: '受水槽', x: 0, y: H2 + 0.28 + 1.3, z: 0, l: 0.46, h: 0.2, fond: null, encre: '#2a4a6a' });
     // (le socle de la boule : sa semelle, son bandeau ; à l'ouest sa porte de service, au nord et au sud ses grilles, à l'est une armoire électrique)
     a.boite(4.6, 2.8, 5.6, M2, { x: 369, y: yt + 1.4, z: 52, nuance: 0.02 }).baton([369, yt + 2.8, 52], [369, yt + 4.4, 52], 0.14, ACIER, 8).ovale(1.55, '#f4f4ee', { x: 369, y: yt + 5.8, z: 52, nuance: 0.01 }, 14);
     a.boite(4.72, 0.12, 5.72, BETON, { x: 369, y: yt + 0.06, z: 52, nuance: 0.02 }).boite(4.8, 0.14, 5.8, M1, { x: 369, y: yt + 2.77, z: 52, nuance: 0.01 });
@@ -3867,9 +3881,10 @@ function sculptures(THREE, atelier, { yM, SABLE1, SABLE2, SABLE3, SABLE4, SABLE5
   // les plaques : le thème, au mur de l'entrée ; devant la Sagrada Família, le pupitre où l'on s'arrête (le tampon) ; un écriteau pour chaque sculpture
   const b = atelier(), xP = 258.7, zP = 104;
   const pupitre = (x, z, ry, texte) => {
-    const c = Math.cos(ry), s = Math.sin(ry);
-    b.baton([x, yM, z], [x, yM + 0.98, z], 0.04, '#5e4028', 6).boite(0.5, 0.05, 0.8, '#7a5a3c', { x, y: yM + 1.0, z, ry: ry + PI / 2, rz: 0.35, ordre: 'YXZ' });
-    ecrire({ x: x + s * -0.025, y: yM, z: z + c * -0.025, ry }, { texte, x: 0, y: 1.04, z: 0, l: 0.62, h: 0.14, fond: '#f4efe2', encre: '#2a2420' });
+    const c = Math.cos(ry), s = Math.sin(ry), PENTE = 0.35, ep = 0.028;
+    b.baton([x, yM, z], [x, yM + 0.98, z], 0.04, '#5e4028', 6).boite(0.5, 0.05, 0.8, '#7a5a3c', { x, y: yM + 1.0, z, ry: ry + PI / 2, rz: PENTE, ordre: 'YXZ' });
+    // (couchée sur la planche, dans sa pente : debout, elle la traversait, le texte coupé en deux ; 2026-11-04)
+    ecrire({ x: x + s * Math.sin(PENTE) * ep, y: yM + 1.0 + Math.cos(PENTE) * ep, z: z + c * Math.sin(PENTE) * ep, ry }, { texte, x: 0, y: 0, z: 0, l: 0.62, h: 0.14, incline: PI / 2 - PENTE, fond: '#f4efe2', encre: '#2a2420' });
   };
   pupitre(xP, zP, -PI / 2, 'サグラダ・ファミリア');
   poser(b.fin(), 0, 0, { y: 0 });
