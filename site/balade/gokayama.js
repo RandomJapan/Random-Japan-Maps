@@ -1268,13 +1268,15 @@ export function construire(ctx) {
     // ce qui arrête : les murs (la porte), le foyer, le présentoir, l'autel, l'échelle ; les sols ; pour la caméra : les
     // murs, et le plafond (dessous, elle se rapproche)
     const X = MUSEE[1], Z = MUSEE[2], Y = niveau(X, Z);
-    const mur = (x0, z0, x1, z1, r = 0.28) => monde.mur(X + x0, Z + z0, X + x1, Z + z1, r);
+    const mur = (x0, z0, x1, z1, r = 0.28, bas, haut) => monde.mur(X + x0, Z + z0, X + x1, Z + z1, r, bas, haut);
     mur(-w2, -l2, w2, -l2); mur(-w2, l2, w2, l2); mur(-w2, -l2, -w2, l2);
     mur(w2, -l2, w2, -0.85); mur(w2, 0.85, w2, l2);
-    monde.cercle(X + IR.x, Z + IR.z, 0.62);
-    mur(-2.3, -l2 + 0.45, -0.1, -l2 + 0.45, 0.32);
-    mur(-2.0, l2 - 0.5, -0.4, l2 - 0.5, 0.36);
-    monde.cercle(X + ECH.x - 0.05, Z + ECH.z - 0.1, 0.3, Y - 1, Y + 2.6);
+    // (ce qui est au rez-de-chaussée s'arrête sous le plancher du grenier : 2026-11-04, sans limite, le foyer faisait un rond invisible au milieu de l'allée du grenier ; le présentoir et l'autel, un arrêt à ses deux bouts)
+    const EN_BAS = [Y - 1, Y + 2.6];
+    monde.cercle(X + IR.x, Z + IR.z, 0.62, ...EN_BAS);
+    mur(-2.3, -l2 + 0.45, -0.1, -l2 + 0.45, 0.32, ...EN_BAS);
+    mur(-2.0, l2 - 0.5, -0.4, l2 - 0.5, 0.36, ...EN_BAS);
+    monde.cercle(X + ECH.x - 0.05, Z + ECH.z - 0.1, 0.3, ...EN_BAS);
     monde.surface(X + xA, X + w2 - 0.16, Z - l2 + 0.16, Z + l2 - 0.16, Y + yD + 0.02, { sol: 'terre' });
     monde.surface(X - w2 + 0.16, X + xA, Z - l2 + 0.16, Z + zT, Y + yI, { sol: 'bois' });
     monde.surface(X - w2 + 0.16, X + xA, Z + zT, Z + l2 - 0.16, Y + yT, { sol: 'bois' });
