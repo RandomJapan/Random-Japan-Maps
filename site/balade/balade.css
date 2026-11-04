@@ -332,6 +332,7 @@ body.en-tenue .joystick, body.en-tenue .bouton-a, body.en-tenue .aide, body.en-t
 }
 @media (max-width: 380px) {
   .titre span { display: none; }
+  .titre { gap: 6px; padding-right: 7px; }
 }
 
 /* les captures : la scène seule */

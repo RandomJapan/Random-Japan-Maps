@@ -73,8 +73,8 @@ import * as tottori from './tottori.js';
 // essai depuis le 2026-10-28, sorti le 2026-10-29 : « met en ligne Motonosumi pour tout le monde » ; les Trente Bouddhas, en
 // essai depuis le 2026-10-29, sortis le 2026-10-30 : « envoie les trente Bouddhas pour tout le monde » ; Udo, en essai depuis le
 // 2026-10-30, et Yakushima, en essai depuis le 2026-10-31, sortis le 2026-11-02 : « tu peux mettre en ligne Udo et Yakushima »)
-// (les dunes de Tottori, en essai depuis le 2026-11-02)
-const EN_ESSAI = ['tottori'];
+// (les dunes de Tottori, en essai depuis le 2026-11-02, sorties le 2026-11-04 : « Tu peux mettre en ligne Tottori »)
+const EN_ESSAI = [];
 // (les îles où l'on n'arrive qu'en bateau : Yakushima, depuis Udo, une fois ses cinq tampons pris ; le propriétaire, le 2026-10-30 :
 // « On peut pas débloquer Yakushima sans avoir fait ce lieu-là… à partir du moment où tu as pris le bateau… la petite icône visiter
 // en 3D… elle apparaît ». Prendre le bateau (jeu.partir) écrit localStorage.baladeYakushima = 'oui', que lit aussi la carte, app.js)
@@ -2067,6 +2067,8 @@ function appliquerNuit(v) {
 const textesDe = (L, cle) => L.textes[langue]?.[cle] ?? L.textes.en[cle];
 const tx = (cle) => textesDe(M.lieu, cle);
 const nomDe = (L) => L.nom[langue] || L.nom.en;
+// (sur un téléphone, le nom entier passait sous le compteur de tampons : « Dunes de Totto », « Château de Him » ; 2026-11-04, à la sortie de Tottori. Là, le nom court du lieu, s'il en a un)
+const ecranEtroit = matchMedia('(max-width: 460px)');
 /** Le nom du lieu dans une phrase (« les Trente Bouddhas » : textes.js en fait « aux », « des ») ; sinon son nom. */
 const phraseDe = (L) => L.phrase?.[langue] || nomDe(L);
 /** Un texte du compagnon e (textes.js : compagnons) ; tc : celui du compagnon choisi. */
@@ -2113,8 +2115,8 @@ function majInterface() {
   const L = M.lieu;
   document.documentElement.lang = langue;
   document.title = `${nomDe(L)} · ${t('titrePage')} · Random Japan Place`;
-  $('.titre-nom').textContent = nomDe(L);
-  $('.titre-ja').textContent = langue === 'ja' ? L.nom.en : L.nomJa;
+  $('.titre-nom').textContent = (ecranEtroit.matches && L.nomCourt?.[langue]) || nomDe(L);
+  $('.titre-ja').textContent = langue === 'ja' ? (ecranEtroit.matches && L.nomCourt?.en) || L.nom.en : L.nomJa;
   for (const [s, cle] of [['.retour', 'retour'], ['.btn-carnet', 'carnet'], ['.btn-menu', 'menu']]) {
     $(s).title = t(cle);
     $(s).setAttribute('aria-label', t(cle));
@@ -4381,6 +4383,7 @@ $('.chargement p').textContent = t('chargement');
 await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
 construire();
 majInterface();
+ecranEtroit.addEventListener('change', majInterface); // (le téléphone qu'on tourne)
 if (PHOTO === 'perso' || (!sorte && !PHOTO && !DEMO)) cadrerLesDeux(); else placer();
 $('.chargement').hidden = true;
 window.balade = { scene, rendu, camera, monde: () => M, etat, cam, renard, jeu, rappel, ouvrirBoutique, commencerDanse, lancerFeux, ouvrirPhoto, changerSaison, photo }; // (pour les essais)

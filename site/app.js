@@ -2286,8 +2286,8 @@ const BALADES = { 'tottori-sand-dunes': 'tottori', yakushima: 'yakushima', 'itsu
 // (Kinkaku-ji, en essai depuis le 2026-10-26, sorti le 2026-10-27 ; Beppu, en essai depuis le 2026-10-27, sorti le 2026-10-28 ;
 // Motonosumi, en essai depuis le 2026-10-28, sorti le 2026-10-29 ; les Trente Bouddhas, en essai depuis le 2026-10-29, sortis
 // le 2026-10-30 ; Udo, en essai depuis le 2026-10-30, et Yakushima, en essai depuis le 2026-10-31, sortis le 2026-11-02)
-// (les dunes de Tottori, en essai depuis le 2026-11-02)
-const BALADES_ESSAI = new Set(['tottori']);
+// (les dunes de Tottori, en essai depuis le 2026-11-02, sorties le 2026-11-04)
+const BALADES_ESSAI = new Set([]);
 /**
  * Les balades où l'on n'arrive qu'en bateau : Yakushima, depuis Udo (le propriétaire, 2026-10-30 : son « Visiter en 3D » n'apparaît
  * qu'à partir du moment où l'on a pris le bateau ; la balade l'écrit dans localStorage.baladeYakushima). Avant, ni le bouton de

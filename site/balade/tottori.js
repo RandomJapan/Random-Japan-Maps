@@ -408,7 +408,7 @@ function aspectSol(P, x, z, h) {
 /** Ce que le carnet et le menu savent du lieu, sans le construire. */
 export const infos = {
   id: 'tottori', carte: 'tottori-sand-dunes', video: '7667635236829662486',
-  nom: { en: 'Tottori Sand Dunes', fr: 'Dunes de Tottori', ja: '鳥取砂丘' }, nomJa: '鳥取砂丘',
+  nom: { en: 'Tottori Sand Dunes', fr: 'Dunes de Tottori', ja: '鳥取砂丘' }, nomCourt: { en: 'Tottori', fr: 'Tottori' }, nomJa: '鳥取砂丘',
   phrase: { fr: 'les dunes de Tottori', en: 'the Tottori Sand Dunes' },
   tampons: [
     { id: 'crete', motif: 'crete', ja: '馬の背', encre: '#b8862a' },

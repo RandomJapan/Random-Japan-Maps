@@ -148,7 +148,7 @@ function dansLeCadre(x, z) {
 /** Ce que le carnet et le menu savent du lieu, sans le construire. */
 export const infos = {
   id: 'himeji', carte: 'himeji-castle', video: '7649489240199531778',
-  nom: { en: 'Himeji Castle', fr: 'Château de Himeji', ja: '姫路城' }, nomJa: '姫路城',
+  nom: { en: 'Himeji Castle', fr: 'Château de Himeji', ja: '姫路城' }, nomCourt: { en: 'Himeji', fr: 'Himeji' }, nomJa: '姫路城',
   phrase: { fr: 'le château de Himeji' }, // (dans une phrase : « Bienvenue au château de Himeji » ; textes.js, aLieu, deLieu)
   tampons: [
     { id: 'sakura', motif: 'sakura', ja: '三の丸', encre: '#c8506a' },
