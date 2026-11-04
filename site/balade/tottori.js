@@ -1518,7 +1518,7 @@ export function construire(ctx) {
     { id: 'accueil', x: 240.4, z: 99.4, cap: 0.4, tenue: { taille: 0.95, peau: '#f2c9a8', cheveux: NOIR, coiffure: 'chignon', haut: '#2f4a6a', manches: 'longues', bas: { sorte: 'jupe', c: '#2f3a4a' }, chaussures: '#2a2a30', semelle: SEM } },
     { id: 'visiteur', x: 254.2, z: 96.6, cap: PI + 0.2, tenue: { taille: 1.05, peau: PEAU, cheveux: '#5a5650', coiffure: 'court', haut: '#6a7a9a', manches: 'longues', bas: { sorte: 'pantalon', c: '#3a3a44' }, chaussures: '#3a3236', semelle: SEM, appareil: true } },
     { id: 'visiteuse', x: 257.2, z: 112.4, cap: 1.5, tenue: { taille: 0.9, peau: '#f0c8a6', cheveux: '#d8d4cc', coiffure: 'chignon', haut: '#a86a8a', manches: 'longues', bas: { sorte: 'pantalon', c: '#4a4a56' }, chaussures: '#3a3236', semelle: SEM } },
-    { id: 'galerie', x: 257, z: 118.0, cap: PI, y: yF + GALERIE.h, tenue: { taille: 1.0, peau: '#f2c9a8', cheveux: CH, coiffure: 'queue', chapeau: { sorte: 'bob', c: '#e8a42a' }, haut: '#d8402c', manches: 'longues', bas: { sorte: 'pantalon', c: '#2f3a5a' }, chaussures: BLANC, semelle: SEM } },
+    { id: 'galerie', x: 257, z: 118.0, cap: PI, etage: yF + GALERIE.h, tenue: { taille: 1.0, peau: '#f2c9a8', cheveux: CH, coiffure: 'queue', chapeau: { sorte: 'bob', c: '#e8a42a' }, haut: '#d8402c', manches: 'longues', bas: { sorte: 'pantalon', c: '#2f3a5a' }, chaussures: BLANC, semelle: SEM } },
     // le télésiège : ses deux préposés ; le Sakyu Center ; sa terrasse
     { id: 'liftBas', x: 189.4, z: 65.2, cap: PI / 2, tenue: { taille: 1.04, peau: '#e8bf98', cheveux: NOIR, coiffure: 'court', chapeau: { sorte: 'casquette', c: '#2a4a7a', c2: '#2a4a7a' }, haut: '#2a4a7a', manches: 'longues', bas: { sorte: 'pantalon', c: '#2a2a34' }, chaussures: '#2a2a30', semelle: SEM } },
     { id: 'liftHaut', x: 343.8, z: 74.7, cap: -PI / 2, tenue: { taille: 0.96, peau: '#f2c9a8', cheveux: CH, coiffure: 'queue', chapeau: { sorte: 'casquette', c: '#2a4a7a', c2: '#2a4a7a' }, haut: '#2a4a7a', manches: 'longues', bas: { sorte: 'pantalon', c: '#2a2a34' }, chaussures: '#2a2a30', semelle: SEM } },
@@ -1527,7 +1527,7 @@ export function construire(ctx) {
     { id: 'centreServeuse', x: 368.5, z: 56.4, cap: -PI / 2, tenue: { taille: 0.94, peau: '#f2c9a8', cheveux: NOIR, coiffure: 'queue', chapeau: { sorte: 'bandeau', c: '#2a4a7a' }, haut: '#f4efe2', manches: 'courtes', tablier: '#2a4a7a', bas: { sorte: 'pantalon', c: '#3a3a44' }, chaussures: '#3a3236', semelle: SEM } },
     { id: 'centreCliente', x: 362.4, z: 40.72, cap: 0, tenue: { taille: 0.92, peau: '#f0c8a6', cheveux: '#d8d4cc', coiffure: 'chignon', haut: '#8a6a9a', manches: 'longues', bas: { sorte: 'pantalon', c: '#4a4a56' }, chaussures: '#3a3236', semelle: SEM, sac: { sorte: 'dos', c: '#6a7a5a', c2: '#4a5a3a' } } },
     { id: 'kaikanCliente', x: 257.5, z: -0.6, cap: PI, tenue: { taille: 0.96, peau: '#f2c9a8', cheveux: '#3a2a22', coiffure: 'queue', chapeau: { sorte: 'soleil', c: '#e8d8b8' }, haut: '#6a9ac4', manches: 'courtes', bas: { sorte: 'jupe', c: '#e8e0cc' }, chaussures: BLANC, semelle: SEM } },
-    { id: 'toitPhoto', x: 372.4, z: 33.4, cap: PI + 0.5, y: TOIT.y, tenue: { taille: 1.04, peau: PEAU, cheveux: NOIR, coiffure: 'court', chapeau: { sorte: 'casquette', c: '#3a5a7a', c2: '#3a5a7a' }, haut: '#c8783a', manches: 'courtes', bas: { sorte: 'pantalon', c: '#3a3a44' }, chaussures: '#3a3236', semelle: SEM, appareil: true } },
+    { id: 'toitPhoto', x: 372.4, z: 33.4, cap: PI + 0.5, etage: TOIT.y, tenue: { taille: 1.04, peau: PEAU, cheveux: NOIR, coiffure: 'court', chapeau: { sorte: 'casquette', c: '#3a5a7a', c2: '#3a5a7a' }, haut: '#c8783a', manches: 'courtes', bas: { sorte: 'pantalon', c: '#3a3a44' }, chaussures: '#3a3236', semelle: SEM, appareil: true } },
     { id: 'vieuxHaut', x: 339.8, z: 43.2, cap: -2.0, tenue: { taille: 0.92, peau: '#e0b48c', cheveux: '#d8d4cc', coiffure: 'court', chapeau: { sorte: 'paille', c: '#d8c088', c2: '#3a3a44' }, haut: '#8a7a5a', manches: 'longues', bas: { sorte: 'pantalon', c: '#4a4a56' }, chaussures: '#3a3236', semelle: SEM } },
     { id: 'filleHaut', x: 342.4, z: 40.4, cap: PI - 0.3, tenue: { taille: 0.95, peau: '#f2c9a8', cheveux: '#5a3a28', coiffure: 'queue', chapeau: { sorte: 'soleil', c: '#f4efe2' }, haut: '#e8a0a8', manches: 'courtes', bas: { sorte: 'jupe', c: '#f4efe2' }, chaussures: '#c8a080', semelle: SEM } },
     // ceux qui marchent : de l'entrée à l'oasis, de l'oasis à la crête, le long de la crête, sur la plage (leurs rondes loin de ce qu'on vient voir)
@@ -2526,6 +2526,8 @@ function creerTelesiege(ctx, { monde, poser, ecrire, morceau, murRect, bancs, lu
     }
     // (en bas, le rectangle du toit est dans le cadre : ces murs ferment la salle, jusqu'à hauteur d'homme ; la porte de l'escalier ne laisse pas passer depuis la terrasse)
     const HM = [F - 1, F + 3];
+    // (les meubles de la salle aussi : tout ce qui arrête, ici, s'arrête au plafond. 2026-11-04, sans limite, les étagères, les tables et la cloison faisaient, 7,5 m plus haut, autant de murs invisibles sur le toit)
+    const murK = (cx, cz, hx, hz, marge = 0.27) => murRect(cx, cz, hx, hz, marge, ...HM);
     monde.mur(K.x0, K.z0, K.x1, K.z0, 0.27, ...HM); monde.mur(K.x1, K.z0, K.x1, K.z1, 0.27, ...HM); monde.mur(K.x0, K.z1, K.x1, K.z1, 0.27, ...HM);
     monde.mur(TERRASSE.x1, TOIT.pz0 - 0.1, TERRASSE.x1, TOIT.pz1 + 0.1, 0.02, ...HM);
     monde.mur(K.x0, TOIT.pz0 - 0.1, K.x0, TOIT.pz1 + 0.1, 0.2, ...HM);
@@ -2627,9 +2629,9 @@ function creerTelesiege(ctx, { monde, poser, ecrire, morceau, murRect, bancs, lu
     for (const [z, x] of [[40, 361], [40, 371], [53, 361], [53, 371]]) lumieres.push({ x, y: F + 3.0, z, halo: 0, sol: F, r: 8, c: '#7a725e' });
     // la cloison entre la boutique et le restaurant
     a.boite(14, 2.6, 0.14, '#b89a74', { x: K.x1 - 7, y: F + 1.3, z: 49, nuance: 0.03 });
-    monde.mur(K.x1 - 14, 49, K.x1 + 0.1, 49, 0.34);
+    monde.mur(K.x1 - 14, 49, K.x1 + 0.1, 49, 0.34, ...HM);
     // ---- la boutique, au nord : surtout des gâteaux et des souvenirs de Tottori (creerMagasin)
-    const bC = atelier(), mC = creerMagasin(THREE, bC, { ecrire, murRect, F });
+    const bC = atelier(), mC = creerMagasin(THREE, bC, { ecrire, murRect: murK, F });
     mC.etagere(359.0, K.z0 + 0.32, 0, 3.7, [['usagi', 'nashi', 'daisen'], ['kani', 'sakyu'], ['sable', 'ika', 'sable'], ['peluche']], 'お菓子', '#a83a2a');
     mC.etagere(362.9, K.z0 + 0.32, 0, 3.7, [['nashi', 'usagi', 'nashi'], ['sakyu', 'kani'], ['daisen', 'usagi', 'daisen'], ['ika', 'sable', 'ika']], '鳥取銘菓', '#2f6a4a');
     mC.etagere(366.8, K.z0 + 0.32, 0, 3.7, [['chuhai', 'chuhai'], ['chuhai', 'jus'], ['rakkyo', 'rakkyo'], ['kani', 'kani']], '二十世紀梨', '#6a8a3a');
@@ -2644,13 +2646,13 @@ function creerTelesiege(ctx, { monde, poser, ecrire, morceau, murRect, bancs, lu
       a.boite(1.3, 0.05, 0.8, '#6e4a2c', { x: xt, y: F + 0.72, z: zt }).baton([xt, F, zt], [xt, F + 0.7, zt], 0.05, '#3a3a40', 6);
       for (const dz of [-0.62, 0.62]) for (const dx of [-0.34, 0.34]) a.boite(0.36, 0.05, 0.36, '#3a7a9a', { x: xt + dx, y: F + 0.44, z: zt + dz }).baton([xt + dx, F, zt + dz], [xt + dx, F + 0.42, zt + dz], 0.025, '#3a3a40', 5);
       a.cylindre(0.05, 0.05, 0.12, 8, '#3a5a7a', { x: xt - 0.42, y: F + 0.81, z: zt }).boite(0.18, 0.02, 0.12, '#f4efe2', { x: xt + 0.45, y: F + 0.755, z: zt - 0.15, trait: false });
-      murRect(xt, zt, 0.65, 0.8);
+      murK(xt, zt, 0.65, 0.8);
     };
     for (const [xt, zt] of [[361, 52.6], [366, 52.6], [371, 52.6], [361, 57.4], [366, 57.4]]) table(xt, zt);
     // (les couverts du client ; quelques tables encore ; le passe-plat au fond, son noren, le frigo, des bannières)
     for (const [x, z, d, c] of [[360.66, 52.6, -0.8, '#d8603a'], [370.66, 52.6, -0.8, '#e8c88a'], [371.34, 52.6, 0.8, '#d8603a']]) mC.couvert(x, F + 0.745, z, d, '#f4efe2', c);
     bC.boite(0.9, 0.92, 3.6, '#8a5f3c', { x: 375.3, y: F + 0.46, z: 54.2, nuance: 0.03 }).boite(1.02, 0.05, 3.7, '#5e4028', { x: 375.3, y: F + 0.945, z: 54.2 });
-    murRect(375.3, 54.2, 0.51, 1.85);
+    murK(375.3, 54.2, 0.51, 1.85);
     for (const z of [53, 54.3, 55.6]) mC.couvert(375.2, F + 0.97, z, 0.3, '#f4efe2', z < 54 ? '#d8603a' : '#e8c88a');
     for (let k = 0; k < 3; k++) bC.boite(0.012, 0.62, 1.18, k % 2 ? '#2a4a7a' : '#2f5a8a', { x: 374.8, y: F + PLAF - 0.33, z: 53 + k * 1.2, nuance: 0.02 });
     mC.frigo(371, 49.5, 0, 1.3);

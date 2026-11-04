@@ -3440,7 +3440,9 @@ function auPlusPresDe(points, x, z) {
 
 function avancer(dt) {
   const L = M.lieu, monde = L.monde;
-  const autres = M.passants.filter((p) => !absent(p)).map((p) => [p.etat.x, p.etat.z, 0.45]);
+  // (quelqu'un à un autre étage n'arrête pas : 2026-11-04, à Tottori, la caissière et les clients de la salle arrêtaient, 7,5 m au-dessus d'eux, qui marchait sur le toit)
+  const memeEtage = (p) => !(Math.abs(p.etat.y - etat.y) > 2);
+  const autres = M.passants.filter((p) => !absent(p) && memeEtage(p)).map((p) => [p.etat.x, p.etat.z, 0.45]);
   // la direction voulue, par rapport à la caméra
   const libre = etat.mode === 'jeu';
   const avant = libre ? (appuye('KeyW', 'ArrowUp') ? 1 : 0) - (appuye('KeyS', 'ArrowDown') ? 1 : 0) + joy.y : 0;
@@ -3630,7 +3632,8 @@ function avancer(dt) {
   // les passants font leur ronde
   const joueur = { x: etat.x, z: etat.z };
   for (const p of M.passants) {
-    const autresP = [[etat.x, etat.z, 0.6], ...M.passants.filter((q) => q !== p).map((q) => [q.etat.x, q.etat.z, 0.6])];
+    const autresP = M.passants.filter((q) => q !== p).map((q) => [q.etat.x, q.etat.z, 0.6]);
+    if (memeEtage(p)) autresP.push([etat.x, etat.z, 0.6]);
     avancerPassant(p.etat, dt, monde, joueur, autresP);
   }
   herbesHautes(dt);
