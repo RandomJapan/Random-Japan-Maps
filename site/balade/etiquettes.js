@@ -94,8 +94,13 @@ function dessiner(c, e, W, H) {
     c.beginPath(); c.arc(W / 2, H / 2, R * 0.97, 0, 2 * Math.PI); c.fillStyle = e.cadre || '#d8302c'; c.fill();
     c.beginPath(); c.arc(W / 2, H / 2, R * 0.74, 0, 2 * Math.PI); c.fillStyle = e.fond || '#ffffff'; c.fill();
     c.fillStyle = e.encre || '#2a4a9a'; c.textAlign = 'center'; c.textBaseline = 'middle';
-    c.font = `800 ${Math.round(R * 0.95)}px ${POLICE}`;
-    c.fillText(e.texte, W / 2, H / 2 + R * 0.04);
+    // (réduit s'il est trop large pour le rond intérieur : 2026-11-04, à Himeji, « 大手門前 » n'affichait que « 手門 » ; un second texte, plus petit, dessous)
+    let taille = R * 0.95;
+    c.font = `800 ${Math.round(taille)}px ${POLICE}`;
+    const large = c.measureText(e.texte).width;
+    if (large > R * 1.4) { taille *= (R * 1.4) / large; c.font = `800 ${Math.round(taille)}px ${POLICE}`; }
+    c.fillText(e.texte, W / 2, H / 2 + (e.sous ? -taille * 0.36 : R * 0.04));
+    if (e.sous) { c.font = `700 ${Math.round(R * 0.2)}px ${POLICE}`; c.fillText(e.sous, W / 2, H / 2 + taille * 0.36 + R * 0.12); }
     return;
   }
   if (e.fond !== null) { c.fillStyle = e.fond || '#fff8e8'; c.fillRect(0, 0, W, H); }

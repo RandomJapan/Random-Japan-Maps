@@ -2572,7 +2572,7 @@ function creerTelesiege(ctx, { monde, poser, ecrire, morceau, murRect, bancs, lu
       // le haut du pilier pris dans son épaisseur ; sa rose des vents, ses graduations, 北東南西, couchés dans sa pente. surPlateau(u, h, w) : u vers l'est, h au-dessus du centre, w vers le sud, dans le plateau)
       const TILT = 0.14, yP = yt + 0.98, surPlateau = (u, h, w) => ({ x: xt + u, y: yP + h * Math.cos(TILT) - w * Math.sin(TILT), z: zt + h * Math.sin(TILT) + w * Math.cos(TILT), rx: TILT });
       a.boite(0.62, 0.08, 0.62, '#a9a498', { x: xt, y: yt + 0.04, z: zt, nuance: 0 }).cylindre(0.27, 0.33, 0.93, 4, BETON, { x: xt, y: yt + 0.515, z: zt, ry: PI / 4, nuance: 0 });
-      a.cylindre(0.42, 0.42, 0.07, 24, '#6f7a64', { x: xt, y: yP, z: zt, rx: TILT, nuance: 0.01 }).cylindre(0.365, 0.365, 0.01, 24, '#8d9a80', { ...surPlateau(0, 0.038, 0), nuance: 0, trait: false });
+      a.cylindre(0.42, 0.42, 0.07, 24, '#6f7a64', { x: xt, y: yP, z: zt, rx: TILT, nuance: 0.01 }).cylindre(0.365, 0.365, 0.02, 24, '#8d9a80', { ...surPlateau(0, 0.033, 0), nuance: 0, trait: false });
       for (let k = 0; k < 8; k++) {
         const t = (k / 8) * 2 * PI, grand = k % 2 === 0, r = grand ? 0.14 : 0.16;
         a.boite(grand ? 0.016 : 0.008, 0.006, grand ? 0.2 : 0.1, k === 4 ? '#a8321e' : '#e8e2c8', { ...surPlateau(Math.sin(t) * r, 0.045, Math.cos(t) * r), ry: t, nuance: 0, trait: false });

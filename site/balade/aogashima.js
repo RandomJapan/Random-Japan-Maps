@@ -400,8 +400,9 @@ export function construire(ctx) {
     {
       const [x, z, cap] = surRoute(8, -3.0), y = terrain(x, z);
       a.cylindre(0.04, 0.04, 2.3, 8, '#a9adb0', { x, y: y + 1.12, z })
-        .cylindre(0.31, 0.31, 0.02, 20, '#a9adb0', { x, y: y + 2.05, z, rx: PI / 2, ry: cap, ordre: 'YXZ' });
-      etiquettes.push({ texte: '30', forme: 'rond', fond: '#ffffff', cadre: '#d8302c', encre: '#2a4a9a', x: x - Math.sin(cap) * 0.017, y: y + 2.05, z: z - Math.cos(cap) * 0.017, ry: cap + PI, l: 0.6, h: 0.6 });
+        // (le disque devant le poteau, contre lui : sur son axe, le poteau passait devant le texte ; 2026-11-04)
+        .cylindre(0.31, 0.31, 0.02, 20, '#a9adb0', { x: x - Math.sin(cap) * 0.046, y: y + 2.05, z: z - Math.cos(cap) * 0.046, rx: PI / 2, ry: cap, ordre: 'YXZ' });
+      etiquettes.push({ texte: '30', forme: 'rond', fond: '#ffffff', cadre: '#d8302c', encre: '#2a4a9a', x: x - Math.sin(cap) * 0.059, y: y + 2.05, z: z - Math.cos(cap) * 0.059, ry: cap + PI, l: 0.6, h: 0.6 });
       monde.cercle(x, z, 0.2);
     }
     {

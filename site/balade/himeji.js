@@ -462,12 +462,13 @@ export function construire(ctx) {
     {
       // l'arrêt de bus : le poteau, le panneau rond bleu, l'horaire
       const x = 6.4, z = ARR.z1 - 0.5;
-      b.cylindre(0.045, 0.05, 2.5, 8, '#c8c8c4', { x, y: 1.25, z })
+      // (le panneau a deux faces : le poteau s'arrête sous son bord, le disque entre dans son sommet. Il le traversait, devant le texte des deux côtés ; 2026-11-04)
+      b.cylindre(0.045, 0.05, 1.98, 8, '#c8c8c4', { x, y: 0.99, z })
         .cylindre(0.33, 0.33, 0.04, 20, '#2f6fb0', { x, y: 2.28, z, rx: PI / 2 })
         .boite(0.42, 0.56, 0.04, '#f4f2ea', { x, y: 1.35, z: z - 0.05 })
         .cylindre(0.16, 0.2, 0.08, 10, '#8a8a86', { x, y: 0.04, z });
-      ecrire({ x, y: 0, z, ry: PI }, { texte: '大手門前', sous: 'Ōtemon-mae', forme: 'rond', fond: '#2f6fb0', encre: '#ffffff', x: 0, y: 2.28, z: 0.025, l: 0.6, h: 0.6 });
-      ecrire({ x, y: 0, z, ry: 0 }, { texte: '大手門前', sous: 'Ōtemon-mae', forme: 'rond', fond: '#2f6fb0', encre: '#ffffff', x: 0, y: 2.28, z: 0.025, l: 0.6, h: 0.6 });
+      ecrire({ x, y: 0, z, ry: PI }, { texte: '大手門前', sous: 'Ōtemon-mae', forme: 'rond', fond: '#2f6fb0', cadre: '#ffffff', encre: '#ffffff', x: 0, y: 2.28, z: 0.025, l: 0.6, h: 0.6 });
+      ecrire({ x, y: 0, z, ry: 0 }, { texte: '大手門前', sous: 'Ōtemon-mae', forme: 'rond', fond: '#2f6fb0', cadre: '#ffffff', encre: '#ffffff', x: 0, y: 2.28, z: 0.025, l: 0.6, h: 0.6 });
       ecrire({ x, y: 0, z, ry: PI }, { texte: '時刻表', lignes: 4, fond: '#f4f2ea', encre: '#2a2420', x: 0, y: 1.35, z: 0.075, l: 0.38, h: 0.5 });
       monde.cercle(x, z, 0.2);
     }

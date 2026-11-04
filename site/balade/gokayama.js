@@ -2127,10 +2127,11 @@ export function construire(ctx) {
       for (const sg of [-1, 1]) monde.mur(sx - 0.68, sz + sg * 1.26, sx + 0.78, sz + sg * 1.26, 0.12);
       monde.toit(sx - 0.8, sx + 0.85, sz - 1.35, sz + 1.35, y + 2.12, y + 2.5);
       const px = 36.0, pz = -59.6;
-      a.cylindre(0.04, 0.04, 2.25, 6, '#8a8a90', { x: px, y: y + 1.12, z: pz })
-        .cylindre(0.32, 0.32, 0.03, 18, '#2f6a9a', { x: px, y: y + 2.1, z: pz - 0.01, rx: PI / 2 })
+      // (un panneau à deux faces : le poteau s'arrête sous son bord, le disque entre dans son sommet. Il le traversait, devant le texte ; 2026-11-04)
+      a.cylindre(0.04, 0.04, 1.8, 6, '#8a8a90', { x: px, y: y + 0.895, z: pz })
+        .cylindre(0.32, 0.32, 0.03, 18, '#2f6a9a', { x: px, y: y + 2.1, z: pz, rx: PI / 2 })
         .boite(0.34, 0.5, 0.03, '#f4f2ec', { x: px, y: y + 1.4, z: pz + 0.03 });
-      ecrire({ x: px, y, z: pz, ry: 0 }, { texte: '相倉', fond: '#ffffff', encre: '#2f6a9a', cadre: '#2f6a9a', x: 0, y: 2.1, z: 0.025, l: 0.62, h: 0.62, forme: 'rond' });
+      for (const ry of [0, PI]) ecrire({ x: px, y, z: pz, ry }, { texte: '相倉', fond: '#ffffff', encre: '#2f6a9a', cadre: '#2f6a9a', x: 0, y: 2.1, z: 0.018, l: 0.62, h: 0.62, forme: 'rond' });
       ecrire({ x: px, y, z: pz, ry: 0 }, { texte: '時刻表', lignes: 5, fond: '#f4f2ec', encre: '#2a2420', x: 0, y: 1.4, z: 0.05, l: 0.3, h: 0.46 });
       monde.cercle(px, pz, 0.2);
     }

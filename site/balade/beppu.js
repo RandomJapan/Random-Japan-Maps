@@ -820,8 +820,10 @@ export function construire(ctx) {
     bancs.push({ de: [R(-1.2, 0, -0.2).x, R(-1.2, 0, -0.2).z], a: [R(1.2, 0, -0.2).x, R(1.2, 0, -0.2).z], y: y + 0.49, cap: 0, vue: 0.35 });
     monde.mur(R(-1.45, 0, -0.25).x, R(-1.45, 0, -0.25).z, R(1.45, 0, -0.25).x, R(1.45, 0, -0.25).z, 0.5);
     const q = R(2.3, 0, 0.8);
-    a.cylindre(0.04, 0.05, 2.5, 8, '#c8c4bc', { x: q.x, y: y + 1.25, z: q.z }).cylindre(0.32, 0.32, 0.04, 20, '#e8452e', { x: q.x, y: y + 2.45, z: q.z, rx: PI / 2, ry: PI / 2 + 0.2 });
-    ecrire({ x: q.x, y, z: q.z, ry: -PI / 2 + 0.2 }, { texte: '鉄輪', x: 0, y: 2.45, z: 0.03, l: 0.42, h: 0.3, fond: '#f4f0e6', encre: '#2a2a30', forme: 'rond' });
+    // (le disque tourné comme son texte, en travers de la rue : rx et ry sans l'ordre YXZ ne le tournaient pas, il regardait vers le sud et coupait son texte en deux. Deux faces : on arrive derrière lui ; le poteau s'arrête sous son bord, il passait devant le texte ; 2026-11-04)
+    const capD = -PI / 2 + 0.2;
+    a.cylindre(0.04, 0.05, 2.15, 8, '#c8c4bc', { x: q.x, y: y + 1.075, z: q.z }).cylindre(0.32, 0.32, 0.04, 20, '#e8452e', { x: q.x, y: y + 2.45, z: q.z, rx: PI / 2, ry: capD, ordre: 'YXZ' });
+    for (const ry of [capD, capD + PI]) ecrire({ x: q.x, y, z: q.z, ry }, { texte: '鉄輪', x: 0, y: 2.45, z: 0.023, l: 0.6, h: 0.6, fond: '#f4f0e6', cadre: '#e8452e', encre: '#2a2a30', forme: 'rond' });
     ecrire({ x: ARRET.x, y, z: ARRET.z, ry: 0 }, { texte: '鉄輪 かんなわ', sous: '別府駅 ⇄ 鉄輪', x: 0, y: 1.6, z: 0.47, l: 1.4, h: 0.5, fond: '#f4f0e6', encre: '#2a2a30' });
     monde.mur(R(-1.7, 0, -0.55).x, R(-1.7, 0, -0.55).z, R(1.7, 0, -0.55).x, R(1.7, 0, -0.55).z, 0.3);
     monde.cercle(q.x, q.z, 0.3);
