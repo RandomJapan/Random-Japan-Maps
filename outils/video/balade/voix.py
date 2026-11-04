@@ -1,4 +1,4 @@
-"""La voix off des vidéos de la balade 3D, générée le 2026-10-26 (le 2026-10-27 pour la vidéo du Pavillon d'or, le 2026-10-28 pour Beppu, le 2026-10-29 pour Motonosumi, le 2026-10-30 pour les Trente Bouddhas, le 2026-11-02 pour Udo et Yakushima) avec Flora (le connecteur du propriétaire) :
+"""La voix off des vidéos de la balade 3D, générée le 2026-10-26 (le 2026-10-27 pour la vidéo du Pavillon d'or, le 2026-10-28 pour Beppu, le 2026-10-29 pour Motonosumi, le 2026-10-30 pour les Trente Bouddhas, le 2026-11-02 pour Udo et Yakushima, le 2026-11-04 pour les dunes de Tottori) avec Flora (le connecteur du propriétaire) :
 ElevenLabs v4, voix « Sarah » (celle de la promo de 30 s et de la vidéo « tunnel »), en anglais, stabilité 0,45
 (environ 0,05 $ la réplique). Ce script les retélécharge dans videos/balade/public/voix (pas dans git) et resserre
 chacune dans voix/court/<nom>.wav : silences du début et de la fin coupés, pauses ramenées à 0,2 s, un peu accélérée
@@ -16,7 +16,7 @@ from pathlib import Path
 
 PUBLIC = Path(__file__).resolve().parents[3] / 'videos' / 'balade' / 'public'
 B = 'https://media.flora.ai/node-inputs/2026/{jour}/px7fsq65yzz1brtqt0dbcj4s6s8gny2h/gen-'
-# nom : (génération Flora, texte, accélération[, jour d'octobre de la génération : le 26 sinon ; « 11/2 » : le 2 novembre])
+# nom : (génération Flora, texte, accélération[, jour d'octobre de la génération : le 26 sinon ; « 11/2 » : le 2 novembre, « 11/4 » : le 4])
 VOIX = {
     # vidéo 1 : la balade, les cinq lieux
     'a1': ('m17ewfsea8bz6k540mrf2qzg7h8h19rd', 'I turned the places from my videos... into a video game.', 1.0),
@@ -93,6 +93,18 @@ VOIX = {
     'i10': ('m179k6836c90f7xx6s4gsg6b858hf2gn', 'Can you find it?', 1.0, '11/2'),
     'i11': ('m1780mrjn0da1hemymyjvbwv658he44h', "And one little spirit will follow you... right onto your companion's back!", 1.15, '11/2'),
     'i12': ('m17ag8d7yg7zp0zqbrj95k7x018hf6xe', 'Udo and Yakushima, in 3D. Link in bio.', 1.1, '11/2'),
+    # vidéo 9 : les dunes de Tottori (2026-11-04 ; les listes d'une traite, comme pour Beppu et les suivants)
+    'j1': ('m170cgw5n22123vzcdk1q41vds8hj3p6', "This isn't the Sahara... it's Japan.", 1.0, '11/4'),
+    'j2': ('m17c5v3nzwv81wa5xbvch7p8b98hkkjk', 'A desert, right above the sea.', 1.15, '11/4'),
+    'j3': ('m17dmef3xvffqtp116yn9x873h8hkwk2', 'In my game, climb the big stairs... and it all opens at once!', 1.25, '11/4'),
+    'j4': ('m173836ar6gfh1w9g8yar979818hk0g9', 'The sand, the oasis, the great ridge... and the sea!', 1.1, '11/4'),
+    'j5': ('m175cvqyw5p7tn0ej9h6z7mzkn8hk0y2', "Stand on top of the Horse's Back, ride a camel, race down to the beach on a sandboard, against the clock!", 1.1, '11/4'),
+    'j6': ('m17evn0x8p1pcwg1c2jezs7mdn8hj3s0', 'Take the chairlift, eat at the restaurant, play the binocular game on the roof,', 1.1, '11/4'),
+    'j7': ('m17dp2fp15hzp78csg5w6ph2gd8hjptp', 'see a Sagrada Familia made of sand, and walk right into the oasis.', 1.1, '11/4'),
+    'j8': ('m1782vwvsx72f0h0m46cst85pn8hks94', 'Get all five stamps... and earn the Shan-shan umbrella, with its little bells!', 1.1, '11/4'),
+    'j9': ('m174gtycsrm87743tywf0t8tjn8hj1jm', 'But who left these big tracks on the ridge? Why is this bell half buried? And what crosses the moon at night?', 1.1, '11/4'),
+    'j10': ('m17ap5p9tdmt1kjd7fr93m01cx8hkkbw', 'Can you find out?', 1.0, '11/4'),
+    'j11': ('m17cwd01n88k3yhnq29tgq0cfh8hjkbj', 'The Tottori Sand Dunes, in 3D. Link in bio.', 1.1, '11/4'),
 }
 # Les répliques coupées à leurs pauses (secondes dans voix/court/<nom>.wav, mesurées le 2026-10-26) : chaque morceau
 # se place avec son texte à l'écran. Sans ça, une réplique entière débordait sur la suivante (elles se superposaient)
@@ -136,6 +148,15 @@ COUPES = {
     'i9': {'i9a': (0, 1.88), 'i9b': (2.15, 3.56), 'i9c': (3.83, 5.63), 'i9d': (5.93, None)},  # But this forest has a secret. / Greet the little spirits... / enter the old hollow cedar... / and something huge is waiting.
     'i11': {'i11a': (0, 1.98), 'i11b': (2.18, None)},  # And one little spirit will follow you... / right onto your companion's back!
     'i12': {'i12a': (0, 1.09), 'i12b': (1.34, 2.11), 'i12c': (2.41, None)},  # Udo and Yakushima, / in 3D. / Link in bio.
+    # (les dunes de Tottori, 2026-11-04)
+    'j3': {'j3a': (0, 2.04), 'j3b': (2.29, None)},  # In my game, climb the big stairs... / and it all opens at once!
+    'j4': {'j4a': (0, 0.77), 'j4b': (0.92, 1.82), 'j4c': (2.03, 3.00), 'j4d': (3.41, None)},  # The sand, / the oasis, / the great ridge... / and the sea!
+    'j5': {'j5a': (0, 1.70), 'j5b': (1.97, 2.74), 'j5c': (3.08, 4.98), 'j5d': (5.19, None)},  # Stand on top of the Horse's Back, / ride a camel, / race down to the beach on a sandboard, / against the clock!
+    'j6': {'j6a': (0, 1.00), 'j6b': (1.24, 2.12), 'j6c': (2.52, None)},  # Take the chairlift, / eat at the restaurant, / play the binocular game on the roof,
+    'j7': {'j7a': (0, 2.33), 'j7b': (2.65, None)},  # see a Sagrada Familia made of sand, / and walk right into the oasis.
+    'j8': {'j8a': (0, 1.39), 'j8b': (1.64, None)},  # Get all five stamps... / and earn the Shan-shan umbrella, with its little bells!
+    'j9': {'j9a': (0, 2.57), 'j9b': (2.89, 4.76), 'j9c': (5.07, None)},  # But who left these big tracks on the ridge? / Why is this bell half buried? / And what crosses the moon at night?
+    'j11': {'j11a': (0, 1.24), 'j11b': (1.46, 2.21), 'j11c': (2.57, None)},  # The Tottori Sand Dunes, / in 3D. / Link in bio.
 }
 
 

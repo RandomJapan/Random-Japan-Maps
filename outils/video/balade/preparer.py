@@ -66,6 +66,15 @@ REELS = {
     'yk-pont': ('Yaku-Shima.mov', 28.1, 1.5),
     'yk-singe': ('Yaku-Shima.mov', 41.0, 1.5),
     'yk-tronc': ('Yaku-Shima.mov', 10.4, 1.5),
+    # les dunes de Tottori (vidéo 9) : le sable à perte de vue sous le ciel bleu (l'accroche, ralentie : elle dure jusqu'au sceau et au panoramique), le
+    # mur de sable au-dessus de la mer (pas ses premières secondes, où le titre « Tottori Sand Dunes » est incrusté), le haut de la pente et la mer, le
+    # surfeur de sable, la sculpture du musée (un plan très court : ralenti), l'oasis et les gens qui pataugent (un panoramique rapide : ralenti)
+    'tt-sable': ('Tottori Sand Dunes.mp4', 30.04, 2.9, 0.72),
+    'tt-mur': ('Tottori Sand Dunes.mp4', 7.5, 1.6),
+    'tt-vue': ('Tottori Sand Dunes.mp4', 17.6, 2.0),
+    'tt-planche': ('Tottori Sand Dunes.mp4', 33.1, 1.3),
+    'tt-musee': ('Tottori Sand Dunes.mp4', 22.62, 0.42, 0.4),
+    'tt-oasis': ('Tottori Sand Dunes.mp4', 19.92, 0.85, 0.7),
 }
 SFX = {
     'promo30': ['whoosh-fast', 'swoosh-quick', 'air-whoosh-powerful', 'zoom-air-fast', 'transition-snap', 'impact-deep-whoosh',

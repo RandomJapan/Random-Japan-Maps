@@ -1205,6 +1205,193 @@
         o.cadre(...o.chemin([[0, [-21.0, 21.05, 64.6], [-9, 23.3, 75], 58], [7, [-19.8, 21.2, 65.8], [-8, 23.4, 76], 56]], t));
       },
     },
+
+    // ================================================================ Vidéo 9 : les dunes de Tottori (2026-11-04)
+    // le mur de sable au-dessus de la mer, vu de la mer (comme le vrai plan) : à l'est des portes de la descente
+    'tt-mur': {
+      duree: 3.2,
+      preparer(o) { o.placer(150, 20, 150, 0, { y: 50, compagnon: false }); o.compagnon(151, 21, 0, 50); },
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [150, 12, -218], [150, 18, -90], 60], [3.2, [147, 12.6, -213], [150, 18.6, -90], 58]], t));
+      },
+    },
+    // l'escalier, puis tout s'ouvre, en une seule prise : on ne voit que les marches et le ciel ; la caméra passe le haut des marches à 2,73 s
+    // (la mélodie entre là) ; un vol : le sable, l'oasis, la crête, et la mer derrière elle
+    'tt-escalier': {
+      duree: 9.6,
+      preparer(o) { o.placer(208.5, 38, 190, 38, { y: 50, compagnon: false }); o.compagnon(209.5, 37, -PI / 2, 50); },
+      debut(o) { o.jeu.marcher([[208.5, 38], [197, 38], [191, 38.4]], 4.0); },
+      chaque(t, dt, o) {
+        const v = o.passant('videaste'); if (v) { v.etat.x = 52; v.etat.z = -49; }
+        o.cadre(...o.chemin([
+          [0.3, [213.5, 46.6, 38.6], [199, 53.6, 38], 50],
+          [1.7, [207.5, 50.2, 38.6], [194, 57.4, 38], 50],
+          [2.6, [203, 53.6, 38.6], [191, 55.8, 38], 52],
+          [3.2, [199.8, 58.8, 38.8], [150, 46, 30], 60],
+          [4.5, [192, 63, 38], [70, 28, -4], 60],
+          [5.3, [150, 62, 36], [30, 20, 6], 58],
+          [6.05, [84, 43, 31], [28, 20, 11], 58],
+          [7.0, [38, 27, 18], [34, 48, -50], 58],
+          [7.85, [34, 58, -40], [34, 16, -160], 60],
+          [9.6, [34, 62, -76], [34, 8, -300], 60],
+        ], t));
+      },
+    },
+    // le haut du Dos de cheval : le voyageur et le compagnon près du poteau, la mer tout en bas
+    'tt-crete': {
+      duree: 4,
+      preparer(o) { o.placer(41.0, -47.6, 41.6, -70, { y: 50, compagnon: false }); o.compagnon(42.4, -47.2, PI, 50); },
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [39.5, 52.4, -36], [41.5, 39, -92], 44], [4, [39.7, 52.2, -37.2], [41.5, 38.5, -92], 42]], t));
+      },
+    },
+    // le tour à dos de chameau : vu de côté, en marche vers l'ouest, le guide devant, la crête et le ciel derrière
+    'tt-chameau': {
+      duree: 16.5,
+      preparer(o) { const c = o.passant('chamelier'); o.placer(c.etat.x + 1.2, c.etat.z + 1.2, c.etat.x, c.etat.z, { y: 50, compagnon: false }); o.compagnon(c.etat.x + 2, c.etat.z + 2, 0, 50); },
+      quand: [[0.2, (o) => o.agir('chamelier')]],
+      chaque(t, dt, o) {
+        o.lire(t, { delai: 0.25, choix: 0 });
+        o.cadre([e.x - 1.6, e.y + 0.4, e.z + 5.8], [e.x, e.y + 0.65, e.z], 54);
+      },
+    },
+    // la descente en planche : le jeu la conduit tout seul, d'une porte à l'autre ; la caméra du jeu, le chrono
+    'tt-planche': {
+      duree: 30,
+      preparer(o) {
+        const m = o.passant('moniteur');
+        o.placer(m.etat.x + 0.2, m.etat.z - 1.4, m.etat.x, m.etat.z, { y: 50, compagnon: false }); o.compagnon(m.etat.x + 1.4, m.etat.z - 1.4, 0, 50);
+        // (les portes de PISTE, tottori.js : un zigzag de 2,6 m autour de l'axe les passe toutes ; on vise un point un peu devant, sur une sinusoïde
+        // qui passe dans chacune : viser le milieu des portes l'une après l'autre en ratait deux ou trois)
+        const c = o.M().lieu.conduite, maj = c.maj;
+        const zRiv = (x) => -165 + 2.5 * Math.sin(x * 0.011 + 0.7) + 1.2 * Math.sin(x * 0.029 + 2.0);
+        c.maj = function (dt, pousse, vire, etat, cam, renard) {
+          if (c.autre) return maj.call(this, dt, pousse, vire, etat, cam, renard);
+          if (!o.piste) o.piste = { xd: etat.x, zd: etat.z, zf: zRiv(etat.x) + 15 };
+          const P = o.piste, f = Math.min(1.05, (etat.z - P.zd) / (P.zf - P.zd) + 0.055);
+          const cible = [P.xd - 2.6 * Math.cos((PI * (f - 0.17)) / 0.14) * (f < 0.95 ? 1 : 0), P.zd + (P.zf - P.zd) * f];
+          const voulu = Math.atan2(cible[0] - etat.x, cible[1] - etat.z), d = Math.atan2(Math.sin(voulu - c.cap), Math.cos(voulu - c.cap));
+          return maj.call(this, dt, pousse, Math.max(-1, Math.min(1, -d * 3)), etat, cam, renard);
+        };
+      },
+      quand: [[0.2, (o) => o.agir('moniteur')]],
+      chaque(t, dt, o) { o.lire(t, { delai: 0.2, choix: 0 }); },
+    },
+    // le télésiège : la caméra du jeu, le voyageur de face, le sable et la mer derrière lui
+    'tt-lift': {
+      duree: 48,
+      preparer(o) { const c = o.passant('liftBas'); o.placer(c.etat.x + 1, c.etat.z + 1, c.etat.x, c.etat.z, { y: 52, compagnon: false }); o.compagnon(c.etat.x + 1.8, c.etat.z + 1.6, 0, 52); },
+      quand: [[0.2, (o) => o.agir('liftBas')]],
+      chaque(t, dt, o) { o.lire(t, { delai: 0.2, choix: 0 }); },
+    },
+    // le repas au restaurant, de face : le burger au crabe et son jus de poire, les baguettes
+    'tt-repas': {
+      duree: 12,
+      preparer(o) { const c = o.passant('centreServeuse'); o.placer(c.etat.x + 1, c.etat.z + 1, c.etat.x, c.etat.z, { y: 63, compagnon: false }); o.compagnon(c.etat.x + 1.8, c.etat.z + 1.6, 0, 63); },
+      quand: [[0.2, (o) => o.agir('centreServeuse')]],
+      chaque(t, dt, o) { o.lire(t, { delai: 0.2, choix: 2 }); if (e.z > 56 && e.z < 57.5 && e.x > 365 && e.x < 366.5) o.cadre([367.5, 64.3, 59.7], [365.95, 62.92, 56.9], 37); },
+    },
+    // les jumelles du toit : le jeu les vise tout seul
+    'tt-jumelles': {
+      duree: 9,
+      preparer(o) {
+        o.placer(358.3, 32.8, 358.2, 31.9, { y: 70, compagnon: false }); o.compagnon(359.6, 33.2, 0, 70);
+        const CIBLES = [[41.2, 48.4, -46.6], [181.8, 54.3, 64], null, [690, 16, -640], [254, 55, 96], [-3200, 200, -40]], OBS = [358.2, 70.87, 31.58];
+        const c = o.M().lieu.conduite, maj = c.maj, V3 = o.B.camera.position.constructor, d = new V3();
+        c.maj = function (dt, pousse, vire, etat, cam, renard) {
+          if (!c.autre) return maj.call(this, dt, pousse, vire, etat, cam, renard);
+          const txt = document.querySelector('.chrono small')?.textContent || '1/6', k = parseInt(txt, 10) - 1, q = CIBLES[k] || CIBLES[0];
+          o.B.camera.getWorldDirection(d);
+          const az = Math.atan2(q[0] - OBS[0], q[2] - OBS[2]), da = Math.atan2(Math.sin(az - Math.atan2(d.x, d.z)), Math.cos(az - Math.atan2(d.x, d.z)));
+          const el = Math.atan2(q[1] - OBS[1], Math.hypot(q[0] - OBS[0], q[2] - OBS[2])) - Math.asin(d.y);
+          return maj.call(this, dt, Math.max(-1, Math.min(1, el * 5)), Math.max(-1, Math.min(1, -da * 5)), etat, cam, renard);
+        };
+      },
+      quand: [[0.2, (o) => o.agir('jumellesToit')]],
+      chaque(t, dt, o) {
+        o.lire(t, { delai: 0.2, choix: 0 });
+        // (les deux ronds, plus grands que sur un téléphone : sur toute la largeur de la vidéo)
+        for (const [c, sg] of [['.j1', -1], ['.j2', 1]]) { const q = document.querySelector('.jumelles-ecran ' + c); q.setAttribute('cx', 270 + sg * 118); q.setAttribute('cy', 500); q.setAttribute('r', 228); }
+      },
+    },
+    // le musée : le voyageur devant la Sagrada Família de sable
+    'tt-musee': {
+      duree: 3.6,
+      preparer(o) { o.placer(250.5, 103, 262, 104, { y: 45, tangage: 0.1, distance: 4, compagnon: false }); o.compagnon(249.4, 104.2, 1.5, 45); },
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [243.2, 46.2, 103.4], [262, 48.4, 104], 66], [3.6, [245, 46.1, 103.5], [262, 48.6, 104], 64]], t));
+      },
+    },
+    // l'oasis : on marche dans l'eau ; la caméra basse, sur la rive, la grande crête derrière
+    'tt-oasis': {
+      duree: 6.2,
+      preparer(o) { o.placer(25, 25.8, 30, 12, { y: 24, compagnon: false }); o.compagnon(26.5, 26.6, 2.8, 24); },
+      debut(o) { o.jeu.marcher([[25, 25.8], [30, 12]], 2.4); },
+      chaque(t, dt, o) {
+        o.cadre([e.x - 2.2, e.y + 1.0, e.z + 5.2], [e.x + 0.6, e.y + 1.1, e.z - 2], 54);
+      },
+    },
+    // le cinquième tampon (l'écriteau de l'oasis), la carte de la récompense, le nuage et l'ombrelle
+    'tt-tampon': {
+      duree: 18,
+      preparer(o) { const I = o.inter('oasis'); o.placer(I.x, I.z, I.vers[0], I.vers[1], { y: 24, compagnon: false }); o.compagnon(I.x + 1.5, I.z + 0.7, -0.8, 24); },
+      quand: [[0.2, (o) => o.agir('oasis')]],
+      chaque(t, dt, o) {
+        o.lire(t, { delai: 0.35 });
+        const sx = Math.sin(e.cap), sz = Math.cos(e.cap);
+        o.cadre([e.x + sx * 3.6 + sz * 1.0, e.y + 1.0, e.z + sz * 3.6 - sx * 1.0], [e.x + sz * 0.1, e.y + 1.22, e.z - sx * 0.1], 52);
+      },
+    },
+    // l'ombrelle de Shan-shan et ses grelots : elle marche sur la crête, vue de face, la mer derrière
+    'tt-ombrelle': {
+      duree: 4.5,
+      preparer(o) { o.placer(62, -53, 46, -49.6, { y: 50, compagnon: false }); o.compagnon(63, -52.4, -1.5, 50); },
+      debut(o) { o.jeu.marcher([[62, -53], [46, -49.6]], 1.9); },
+      chaque(t, dt, o) {
+        const sx = Math.sin(e.cap), sz = Math.cos(e.cap);
+        o.cadre([e.x + sx * 3.6, e.y + 0.9, e.z + sz * 3.6 + 2.6], [e.x - sx * 0.5, e.y + 1.34, e.z - sz * 0.5], 54);
+      },
+    },
+    // le secret, montré sans être résolu : les grandes traces sur la crête, de jour
+    'tt-traces': {
+      duree: 3.4,
+      preparer(o) { o.placer(130, 30, 120, 30, { y: 50, compagnon: false }); o.compagnon(131, 31, 0, 50); },
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [64, 51, -54.4], [50, 46.2, -50], 38], [3.4, [61.5, 50.2, -53.6], [48, 46.2, -49.6], 36]], t));
+      },
+    },
+    // le grelot à moitié enterré, au fond de la cuvette
+    'tt-grelot': {
+      duree: 2.8,
+      preparer(o) { o.placer(-110, 62, -120, 62, { y: 20, compagnon: false }); o.compagnon(-109, 63, 0, 20); },
+      chaque(t, dt, o) {
+        // (de face, sa fente de grelot en travers : de côté, elle sortait comme la visière d'une casquette)
+        o.cadre(...o.chemin([[0, [-119.2, 10.75, 64.2], [-120.2, 9.98, 62.2], 40], [2.8, [-119.4, 10.6, 63.8], [-120.2, 9.98, 62.2], 35]], t));
+      },
+    },
+    // la caravane devant la lune immense, juste un aperçu : elle marche, loin, à l'ouest des portes (le secret noté trouvé : c'est ainsi qu'elle marche sans nous)
+    'tt-lune': {
+      duree: 5,
+      async preparer(o) {
+        o.placer(150, 60, 120, 60, { y: 50, compagnon: false }); o.compagnon(151, 61, 0, 50);
+        await o.nuitTout(true);
+        o.car = o.M().lieu.animes.find((a) => a.premiereTrace);
+        o.car.s = 134;
+      },
+      chaque(t, dt, o) {
+        // (au long foyer, de très loin, sur la ligne de la lune : les cinq chameaux passent devant son disque)
+        o.cadre(...o.chemin([[0, [33.3, 27.4, -0.7], [-32, 47.5, -26], 20], [5, [33.3, 27.4, -0.7], [-32, 47.5, -26], 18.5]], t));
+      },
+    },
+    // la fin : sur la crête, avec l'ombrelle, vus de dos, la mer devant
+    'tt-fin': {
+      duree: 7,
+      preparer(o) { o.placer(47, -52, 44, -68, { y: 50, compagnon: false }); o.compagnon(48.1, -51.7, PI, 50); },
+      quand: [[0.5, (o) => { o.jeu.marcher([[47, -52], [44, -68]], 1.3); }]],
+      chaque(t, dt, o) {
+        o.cadre([e.x + 1.2, e.y + 2.6, e.z + 6.2], [e.x - 0.6, e.y - 1, e.z - 8], 52);
+      },
+    },
   };
 
   // ---------------------------------------------------------------- le déroulé

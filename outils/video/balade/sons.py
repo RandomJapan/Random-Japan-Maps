@@ -2,7 +2,7 @@
 le tampon, la récompense, le koban, l'achat, la magie, le daim sauvage…), joués hors temps réel (OfflineAudioContext),
 et ceux de bruitage-calcul.js (fabriqués échantillon par échantillon : les cris des compagnons, le nuage, la rame,
 le coq, le grondement de la grotte, les feux d'artifice, la pièce dans le bol, le fouet du thé, les cigales, la boue et le
-geyser de Beppu, la cloche des Trente Bouddhas, la corne du bateau d'Udo…). Rien d'enregistré, aucun droit. Dans videos/balade/public/sfx-jeu/<nom>.wav (48 kHz).
+geyser de Beppu, la cloche des Trente Bouddhas, la corne du bateau d'Udo, le chameau et les grelots de Tottori…). Rien d'enregistré, aucun droit. Dans videos/balade/public/sfx-jeu/<nom>.wav (48 kHz).
 
     python outils/video/balade/sons.py [--port 8123]
 
@@ -32,7 +32,9 @@ CALCULES = ['pouf', 'cri/kon', 'cri/pon', 'cri/chapu', 'cri/gao', 'cri/fuwa', 'c
             # (les Trente Bouddhas : la cloche de bronze, la bouscarle, le vent dans les feuilles, les insectes de la nuit)
             'kane', 'oiseau/uguisu', 'boucle/feuilles', 'boucle/insectes',
             # (Udo et Yakushima : la corne du bateau, le singe, le petit esprit, le grand cerf)
-            'oiseau/corne', 'oiseau/singe', 'oiseau/esprit', 'oiseau/cerf']
+            'oiseau/corne', 'oiseau/singe', 'oiseau/esprit', 'oiseau/cerf',
+            # (les dunes de Tottori : le chameau, les grelots, la planche, le compte à rebours et les portes, les poulies du télésiège, la pièce des jumelles, le vent)
+            'oiseau/chameau', 'oiseau/grelots', 'oiseau/glisse', 'oiseau/top', 'oiseau/depart', 'oiseau/porte', 'oiseau/arrivee', 'oiseau/poulies', 'oiseau/clac', 'oiseau/trouve', 'boucle/ventFort', 'boucle/ventDoux']
 # (deux sons du même nom : le « tampon » de bruitage-calcul.js, les deux sceaux du goshuin, devient sceaux.wav ; celui de
 # son.js, la petite note du carnet, reste tampon.wav)
 RENOMMER = {'tampon': 'sceaux'}

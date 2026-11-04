@@ -43,6 +43,9 @@ TOUT_ACHETE = {'baladeAchats': ['danse', 'traces', 'accessoires', 'feux', 'masqu
 UDO_TAMPONS = ['ema', 'inari', 'usagi', 'ochichi', 'undama']
 YAKU_TAMPONS = ['yakujinja', 'sarushika', 'taikoiwa', 'wilson', 'jomonsugi']
 BATEAU = {'baladeYakushima': 'oui'}
+# Tottori : l'ombrelle en main ; le chrono des petits jeux, plus grand, sous la boîte de texte du montage
+OMBRELLE = {'baladeTampons': {'tottori': ['crete', 'chameau', 'planche', 'musee', 'oasis']}, 'baladeTenue': {'fille': {'main': 'ombrelle'}}, 'baladeTenuesVues': ['ombrelle']}
+CHRONO = '.chrono { top: 232px !important; transform: translateX(-50%) scale(1.5) !important; transform-origin: 50% 0; }'
 AMI_SUIT = {**BATEAU, 'baladeSecrets': {'trouves': ['esprits'], 'indices': ['ami-demande', 'ami-arrose', 'ami-suit', 'ami-dos']}}
 PRISES = {
     # Vidéo 1 : la balade, les cinq lieux
@@ -156,6 +159,23 @@ PRISES = {
     'yk-ami': {'lieu': 'yakushima', 'ui': 'rien', 'stockage': AMI_SUIT},
     'yk-dos': {'lieu': 'yakushima', 'ui': 'rien', 'stockage': AMI_SUIT},
     'yk-fin': {'lieu': 'yakushima', 'ui': 'rien', 'stockage': AMI_SUIT},
+    # Vidéo 9 : les dunes de Tottori (les textes du jeu cachés, sauf le chrono, sous la boîte de texte du montage)
+    'tt-mur': {'lieu': 'tottori', 'ui': 'rien'},
+    'tt-escalier': {'lieu': 'tottori', 'ui': 'rien'},
+    'tt-crete': {'lieu': 'tottori', 'ui': 'rien'},
+    'tt-chameau': {'lieu': 'tottori', 'ui': 'rien', 'garder': [[12.4, 16.2]]},
+    'tt-planche': {'lieu': 'tottori', 'ui': 'rien', 'css': CHRONO, 'garder': [[8.2, 11.6], [19, 25.6]]},
+    'tt-lift': {'lieu': 'tottori', 'ui': 'rien', 'garder': [[39.8, 43.4]]},
+    'tt-repas': {'lieu': 'tottori', 'ui': 'rien', 'garder': [[3.8, 9.5]]},
+    'tt-jumelles': {'lieu': 'tottori', 'ui': 'rien', 'css': CHRONO, 'garder': [[2.6, 6.2]]},
+    'tt-musee': {'lieu': 'tottori', 'ui': 'rien'},
+    'tt-oasis': {'lieu': 'tottori', 'ui': 'rien'},
+    'tt-tampon': {'lieu': 'tottori', 'ui': 'rien', 'garder': [[5.2, 8.4], [11.6, 15.9]], 'stockage': {'baladeTampons': {'tottori': ['crete', 'chameau', 'planche', 'musee']}}},
+    'tt-ombrelle': {'lieu': 'tottori', 'ui': 'rien', 'stockage': OMBRELLE},
+    'tt-traces': {'lieu': 'tottori', 'ui': 'rien'},
+    'tt-grelot': {'lieu': 'tottori', 'ui': 'rien'},
+    'tt-lune': {'lieu': 'tottori', 'ui': 'rien', 'stockage': {'baladeSecrets': {'trouves': ['caravane'], 'indices': []}}},
+    'tt-fin': {'lieu': 'tottori', 'ui': 'rien', 'stockage': OMBRELLE},
 }
 DEFAUT = {'perso': 'fille', 'compagnon': 'kon', 'stockage': {}, 'ui': 'dialogue'}
 
