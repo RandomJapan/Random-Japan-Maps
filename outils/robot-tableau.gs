@@ -29,6 +29,9 @@ const MODELES_REDIGER = ['gemini-3.8-flash', 'gemini-3.5-flash-lite']; // 2e que
 const AGENT = 'RandomJapanPlaceRobot/1.0 (https://randomjapan.github.io/Random-Japan-Maps/)';
 const LIGNES_PAR_PASSAGE = 3;
 const ESSAIS_MAX = 2;
+// Gemini débordé (503) ou quota atteint (429) : ça passe tout seul, alors un essai toutes les 10 minutes pendant 2 heures
+const ESSAIS_DEBORDE = 12;
+const DEBORDE = 'Gemini est débordé';
 const SANS_LEGENDE = 'TikTok ne donne pas la légende de cette vidéo au robot. Écris le nom du lieu dans « Nom (EN) », comme dans ta légende (par exemple « Koboyama Tumulus | Nagano »).';
 const COULEUR_A_VERIFIER = '#FFF2CC';
 const ONGLET_LIEUX = 'Lieux';
@@ -135,7 +138,7 @@ function robotCarte() {
 function traiterLigne_(feuille, col, tache, donnees) {
   const ecrire = (nomCol, valeur) => feuille.getRange(tache.ligne, col[nomCol]).setValue(valeur);
   const essai = (Number((tache.robot.match(/essai (\d+)/) || [])[1]) || 0) + 1;
-  if (essai > ESSAIS_MAX) {
+  if (essai > essaisMax_(tache.robot)) {
     ecrire(COLONNE_ROBOT, '❌ Le robot n\'y arrive pas. Remplis la ligne à la main, ou efface ce message pour réessayer.');
     return false;
   }
@@ -185,11 +188,7 @@ function traiterLigne_(feuille, col, tache, donnees) {
     plage.setBackground(COULEUR_A_VERIFIER);
     return false;
   } catch (err) {
-    const texte = String(err && err.message || err);
-    const reessayer = err && err.reessayer && essai < ESSAIS_MAX;
-    ecrire(COLONNE_ROBOT, reessayer
-      ? `⏳ Petit souci (${texte}). Nouvel essai dans 10 minutes… (essai ${essai})`
-      : `❌ ${texte} Efface ce message pour réessayer.`);
+    ecrire(COLONNE_ROBOT, messageErreur_(err, essai));
     console.error(err);
     return false;
   }
@@ -445,7 +444,7 @@ function demanderGemini_(modeles, consignes, texte) {
         }),
       });
     } catch (e) {
-      derniere = erreur_(`Gemini ne répond pas (${e.message}).`, true);
+      derniere = erreur_(`Gemini ne répond pas (${e.message}).`, true, true);
       continue;
     }
     const code = r.getResponseCode();
@@ -468,7 +467,7 @@ function demanderGemini_(modeles, consignes, texte) {
     }
     console.warn(`Gemini ${modele} : ${code} ${detail}`);
     derniere = erreur_(code === 429 ? 'Quota gratuit de Gemini atteint pour aujourd\'hui.' : `Erreur de Gemini (${code} : ${detail}).`,
-      code === 429 || code >= 500);
+      code === 429 || code >= 500, code === 429 || code >= 500);
     if (code === 429 || code === 404 || code >= 500) continue; // modèle suivant
     throw derniere;
   }
@@ -620,7 +619,7 @@ function traiterVille_(feuille, col, ligne, donnees, feuilleLieux, faites) {
     return false;
   }
   const essai = (Number((robot.match(/essai (\d+)/) || [])[1]) || 0) + 1;
-  if (essai > ESSAIS_MAX) {
+  if (essai > essaisMax_(robot)) {
     ecrire(COLONNE_ROBOT, `❌ Le robot n'y arrive pas. Remplis « ${ONGLET_LIEUX_VILLES} » à la main, ou efface ce message pour réessayer.`);
     return false;
   }
@@ -704,11 +703,7 @@ function traiterVille_(feuille, col, ligne, donnees, feuilleLieux, faites) {
     if (cible !== ligne) feuille.deleteRow(ligne);
     faites.add(cle);
   } catch (err) {
-    const texte = String(err && err.message || err);
-    const reessayer = err && err.reessayer && essai < ESSAIS_MAX;
-    ecrire(COLONNE_ROBOT, reessayer
-      ? `⏳ Petit souci (${texte}). Nouvel essai dans 10 minutes… (essai ${essai})`
-      : `❌ ${texte} Efface ce message pour réessayer.`);
+    ecrire(COLONNE_ROBOT, messageErreur_(err, essai));
     console.error(err);
   }
   return true;
@@ -831,10 +826,27 @@ function nettoyerSaisons_(texte) {
 }
 
 // --- Petits outils ----------------------------------------------------------
-function erreur_(message, reessayer) {
+/** deborde : Gemini débordé ou sans quota, une panne qui passe toute seule (plus d'essais, voir ESSAIS_DEBORDE). */
+function erreur_(message, reessayer, deborde) {
   const e = new Error(message);
   e.reessayer = !!reessayer;
+  e.deborde = !!deborde;
   return e;
+}
+
+/** Le nombre d'essais permis, d'après le dernier message du robot : plus quand c'est Gemini qui était débordé. */
+function essaisMax_(robot) {
+  return String(robot).includes(DEBORDE) ? ESSAIS_DEBORDE : ESSAIS_MAX;
+}
+
+/** Le message après une erreur : ⏳ un nouvel essai dans 10 minutes, ou ❌ (le robot attend qu'on efface le message). */
+function messageErreur_(err, essai) {
+  const texte = String(err && err.message || err);
+  const deborde = err && err.deborde;
+  if (err && err.reessayer && essai < (deborde ? ESSAIS_DEBORDE : ESSAIS_MAX)) {
+    return `⏳ ${deborde ? DEBORDE : 'Petit souci'} (${texte}). Nouvel essai dans 10 minutes… (essai ${essai})`;
+  }
+  return `❌ ${texte} Efface ce message pour réessayer.`;
 }
 
 // --- Tests (résultat dans le « Journal d'exécution », rien n'est écrit dans le tableau) ---
