@@ -21,7 +21,7 @@
 //  donne un koban, la monnaie de Bunbuku, le marchand ambulant (tresors.js), qui vend des objets précieux : la danse des
 //  fêtes, la traînée sous les pas, les accessoires du compagnon, les feux d'artifice (feux.js), des tenues entières,
 //  l'appareil photo (photo.js), trois compagnons secrets et le calendrier magique (calendrier.js : les saisons).
-//  ?lieu=itsukushima|aogashima|gokayama|himeji|takachiho|kinkakuji|beppu|motonosumi|sanjubutsu|udo|yakushima|tottori ; ?perso=garcon|fille ; ?compagnon=kon|pon|chapu ; ?langue=en|fr|ja ;
+//  ?lieu=itsukushima|aogashima|gokayama|himeji|takachiho|kinkakuji|beppu|motonosumi|sanjubutsu|udo|yakushima|tottori|tsubosaka ; ?perso=garcon|fille ; ?compagnon=kon|pon|chapu ; ?langue=en|fr|ja ;
 //  ?arrivee=bateau : on arrive au quai par le bateau d'un autre lieu (jeu.partir : sans le choix du compagnon) ;
 //  ?photo=heros|perso : une image fixe (captures) ; ?demo : une partie jouée image par image (vidéos) ;
 //  ?ciel=parchemin : un essai du style (styles.js) ; ?flou=0 : sans le flou du lointain ; ?aa=0 : sans anticrénelage.
@@ -61,6 +61,7 @@ import * as sanjubutsu from './sanjubutsu.js';
 import * as udo from './udo.js';
 import * as yakushima from './yakushima.js';
 import * as tottori from './tottori.js';
+import * as tsubosaka from './tsubosaka.js';
 
 // chaque lieu : { infos (noms, tampons, textes : sans rien construire), construire(ctx) }
 // (EN_ESSAI : les lieux en cours, qu'on ne voit qu'en mode développeur, localStorage.modeDev = 'oui', celui de la carte ; le
@@ -74,7 +75,8 @@ import * as tottori from './tottori.js';
 // essai depuis le 2026-10-29, sortis le 2026-10-30 : « envoie les trente Bouddhas pour tout le monde » ; Udo, en essai depuis le
 // 2026-10-30, et Yakushima, en essai depuis le 2026-10-31, sortis le 2026-11-02 : « tu peux mettre en ligne Udo et Yakushima »)
 // (les dunes de Tottori, en essai depuis le 2026-11-02, sorties le 2026-11-04 : « Tu peux mettre en ligne Tottori »)
-const EN_ESSAI = [];
+// (Tsubosaka-dera, en essai depuis le 2026-11-05)
+const EN_ESSAI = ['tsubosaka'];
 // (les îles où l'on n'arrive qu'en bateau : Yakushima, depuis Udo, une fois ses cinq tampons pris ; le propriétaire, le 2026-10-30 :
 // « On peut pas débloquer Yakushima sans avoir fait ce lieu-là… à partir du moment où tu as pris le bateau… la petite icône visiter
 // en 3D… elle apparaît ». Prendre le bateau (jeu.partir) écrit localStorage.baladeYakushima = 'oui', que lit aussi la carte, app.js)
@@ -82,7 +84,7 @@ const ILES = { yakushima: 'baladeYakushima' };
 const ileOuverte = (id) => { try { return !ILES[id] || localStorage.getItem(ILES[id]) === 'oui'; } catch { return false; } };
 /** Peut-on aller à ce lieu (en bateau) ? Pas s'il est en essai et qu'on n'est pas en mode développeur. */
 const peutPartir = (id) => !EN_ESSAI.includes(id) || modeDev();
-const LIEUX = Object.fromEntries(Object.entries({ itsukushima, aogashima, gokayama, himeji, takachiho, kinkakuji, beppu, motonosumi, sanjubutsu, udo, yakushima, tottori }).filter(([id]) => (!EN_ESSAI.includes(id) || modeDev()) && ileOuverte(id)));
+const LIEUX = Object.fromEntries(Object.entries({ itsukushima, aogashima, gokayama, himeji, takachiho, kinkakuji, beppu, motonosumi, sanjubutsu, udo, yakushima, tottori, tsubosaka }).filter(([id]) => (!EN_ESSAI.includes(id) || modeDev()) && ileOuverte(id)));
 const params = new URLSearchParams(location.search);
 const PHOTO = params.get('photo');
 const DEMO = params.has('demo');
@@ -134,6 +136,7 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(48, 1, 0.25, 8000);
 
 // ---------------------------------------------------------------- Le monde
+let shamisenFait = false, derniereNoteShamisen = 0;
 let M = null; // { style, ctx, mats, lieu, groupe, voyageurs, joueur, autre, compagnons, kon (le compagnon choisi), passants, daims, eau, ciel, soleil, finale, sauvage, cadre }
 const etat = { x: 0, z: 0, y: 0, cap: 0, vitesse: 0, vx: 0, vz: 0, mode: 'depart' };
 // le compagnon (nage : la loutre dans l'eau ; banc : sa place sur le banc où le voyageur est assis, à côté de lui)
@@ -2783,6 +2786,8 @@ const jeu = {
   cacherVoyageur(oui) { M.joueur.objet.visible = !oui; M.kon.objet.visible = !oui; },
   /** Le compagnon choisi : 'kon', 'pon' ou 'chapu' (ce qu'il dit dans les lieux en dépend ; dire(…, 'compagnon')). */
   get compagnon() { return espece || 'kon'; },
+  /** Le voyageur : 'garcon' ou 'fille' (2026-11-05, Tsubosaka : le rakan qui porte son chapeau, celui qui a son visage). */
+  get perso() { return sorte || 'garcon'; },
   /** Son nom, dans la langue du joueur. */
   get nomCompagnon() { return tc('nom'); },
   /** La caméra derrière le voyageur, tout de suite (il vient d'être posé ailleurs). */
@@ -3040,6 +3045,8 @@ const scenes = [];
 // d'or, qui manque au reflet la nuit)
 const contexteAnime = {
   joueur: etat, get nuit() { return M.nuit.v; }, get champ() { return camera.fov; }, get oeil() { return camera.position; }, scene: (fn) => scenes.push(fn),
+  // (2026-11-05, Tsubosaka : les rakan à part changent avec le compagnon choisi et le voyageur)
+  get compagnon() { return espece || 'kon'; }, get perso() { return sorte || 'garcon'; },
   refleter: (calque, oui) => { if (M.miroir) M.miroir.calques[oui ? 'enable' : 'disable'](calque); },
   // (2026-10-28, Motonosumi : le compteur des torii écrit en bas de l'écran, dans la langue du joueur, sans arrêter la marche)
   aide: (texte) => jeu.aide(texte), tx: (cle) => tx(cle),
@@ -4043,6 +4050,13 @@ function dessiner(dt, temps) {
   // (siege.roulis : le siège se balance, le voyageur avec lui : un chameau au pas)
   joueur.objet.rotation.z = siege?.roulis || 0;
   const pasJoueur = joueur.animer(dt, etat.vitesse, temps);
+  // (le shamisen de Sawaichi, Tsubosaka : à l'arrêt, le voyageur en joue, une note à chaque coup de plectre ; ses sons faits la première fois)
+  joueur.permettreShamisen(etat.mode === 'jeu' || etat.mode === 'tenue');
+  if (joueur.aShamisen) {
+    if (!shamisenFait) { shamisenFait = true; M.bruitage.sons([0, 1, 2, 3, 4, 5].map((i) => `oiseau/shamisen${i}`)); }
+    const ns = joueur.noteShamisen;
+    if (ns.compte !== derniereNoteShamisen) { derniereNoteShamisen = ns.compte; M.bruitage.note(`shamisen${ns.note}`, { force: 0.9 }); }
+  }
   if (autre.objet.visible) {
     // l'autre voyageur, à droite du premier (pour l'objectif)
     const ax = etat.x + Math.cos(etat.cap) * 1.15, az = etat.z - Math.sin(etat.cap) * 1.15;

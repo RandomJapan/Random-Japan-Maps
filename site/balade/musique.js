@@ -452,6 +452,42 @@ const AIRS = {
     jour: { tempo: 88, lead: 'flute', arpege: 'koto', basse: 'pizzDoux', nappe: true, batterie: 'legere' },
     nuit: { tempo: 64, lead: 'boite', arpege: 'kotoDoux', basse: 'pizzDoux', nappe: true, batterie: null },
   },
+  // La mineur, la gamme in (la si♭ ré mi fa, 都節) (2026-11-05) : Tsubosaka-dera, le temple de la montagne, ses cloches et
+  // ses cerisiers ; un air lent qui monte et redescend comme les marches, un peu de mélancolie (l'histoire d'Osato et Sawaichi).
+  // Le jour, le shakuhachi sur le koto, à 80 battements ; la nuit, la boîte à musique, à 60
+  tsubosaka: {
+    gamme: [9, 10, 2, 4, 5, 9, 10], // la, si bémol, ré, mi, fa (pour la seconde voix)
+    intro: ['Am', 'Dm'],
+    A: {
+      accords: ['Am', 'Dm', 'Bb', 'Am', 'F', 'Dm', 'Bb E', 'Am'],
+      melodie: [
+        [69, 6], [70, 2], [74, 4], [76, 4],
+        [77, 6], [76, 2], [74, 8],
+        [70, 4], [74, 4], [76, 6], [74, 2],
+        [69, 12], [null, 4],
+        [77, 6], [81, 2], [77, 4], [76, 4],
+        [74, 6], [76, 2], [74, 4], [70, 4],
+        [69, 4], [70, 4], [74, 4], [76, 4],
+        [69, 12], [null, 4],
+      ],
+      fin2: [[69, 8], [74, 4], [76, 4]],
+    },
+    B: {
+      accords: ['F', 'C', 'Dm', 'Am', 'Bb', 'Dm', 'Dm E', 'Am'],
+      melodie: [
+        [81, 6], [82, 2], [81, 4], [77, 4],
+        [76, 6], [77, 2], [76, 8],
+        [74, 4], [77, 4], [76, 4], [74, 4],
+        [69, 12], [null, 4],
+        [70, 6], [74, 2], [77, 8],
+        [76, 4], [74, 4], [70, 4], [69, 4],
+        [74, 6], [70, 2], [69, 4], [68, 4],
+        [69, 12], [null, 4],
+      ],
+    },
+    jour: { tempo: 80, lead: 'shakuhachi', arpege: 'koto', basse: 'pizzDoux', nappe: true, batterie: 'legere' },
+    nuit: { tempo: 60, lead: 'boite', arpege: 'kotoDoux', basse: 'pizzDoux', nappe: true, batterie: null },
+  },
   // Ré majeur, la gamme yo (ré mi sol la si) : l'air de la danse des fêtes d'été, sautillant (112 battements : la
   // danse du voyageur est réglée dessus, personnages.js)
   odori: {

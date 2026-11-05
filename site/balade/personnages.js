@@ -157,6 +157,33 @@ export function ombrelleShanshan(THREE, atelier) {
   return { toile, grelots, manche };
 }
 
+/**
+ * Le shamisen de Sawaichi (Tsubosaka-dera, 2026-11-05 : la récompense de ses tampons, choisie par le propriétaire) : le luth à trois cordes que
+ * jouait Sawaichi, le mari aveugle du 壺坂霊験記. Le corps carré (胴) aux côtés un peu bombés, tendu de peau blanche devant et derrière, son
+ * cadre de bois sombre ; le long manche (棹) sans frettes ; la tête (天神) recourbée en arrière, ses trois chevilles d'ivoire (糸巻) ; le
+ * chevalet (駒) ; les trois cordes de soie. Le plectre en éventail (撥), à part. Son axe : y, le long du manche ; y = 0 : là où la main tient le
+ * manche, juste au-dessus du corps ; la peau regarde vers +z. Renvoie { instrument, plectre } : deux ateliers.
+ */
+export function shamisenSawaichi(THREE, atelier) {
+  const instrument = atelier(), plectre = atelier(), BOIS = '#3a2418', BOIS2 = '#4a2e1e', PEAU = '#f2ece0', IVOIRE = '#efe6cc', SOIE = '#f6eed4';
+  // (à la taille du voyageur, grosse tête comprise : un peu plus grand que nature, sinon on ne le lisait pas, un bâton et un triangle)
+  const l = 0.21, h = 0.22, e = 0.075, yC = -0.15;
+  // le corps : le cadre (quatre côtés bombés), la peau devant et derrière, un peu en retrait
+  instrument.piece(new THREE.BoxGeometry(l, h, e, 3, 3, 1), BOIS, { y: yC, deformer: (px, py, pz) => [px * (1 + 0.08 * (1 - (2 * py / h) ** 2)), py * (1 + 0.06 * (1 - (2 * px / l) ** 2)), pz], nuance: 0.02 });
+  for (const s of [-1, 1]) instrument.boite(l - 0.016, h - 0.016, 0.004, PEAU, { y: yC, z: s * (e / 2 + 0.001), trait: false });
+  // le manche, la tête recourbée, les chevilles
+  instrument.boite(0.024, 0.54, 0.024, BOIS2, { y: 0.2, nuance: 0.02 })
+    .boite(0.03, 0.09, 0.036, BOIS, { y: 0.505, z: -0.012, rx: -0.35 });
+  for (const [yy, s] of [[0.475, 1], [0.505, -1], [0.535, 1]]) instrument.cylindre(0.008, 0.01, 0.09, 6, IVOIRE, { x: s * 0.03, y: yy, z: -0.014, rz: Math.PI / 2 });
+  // le chevalet sur la peau, les trois cordes jusqu'à la tête
+  instrument.boite(0.034, 0.008, 0.008, IVOIRE, { y: yC - 0.035, z: e / 2 + 0.006, trait: false });
+  for (const dx of [-0.007, 0, 0.007]) instrument.boite(0.002, 0.65, 0.002, SOIE, { x: dx, y: 0.14, z: e / 2 + 0.009, trait: false });
+  // le plectre : la lame en éventail, son manche (dans la main droite ; y = 0 : la main)
+  plectre.piece(new THREE.CylinderGeometry(0.058, 0.014, 0.095, 3, 1), IVOIRE, { y: -0.068, sz: 0.12, nuance: 0.02 })
+    .cylindre(0.009, 0.011, 0.06, 6, '#2a1c12', { y: 0.005 });
+  return { instrument, plectre };
+}
+
 export function capeCormoran(THREE, atelier, { y = 0.8, k = 1 } = {}) {
   const PI = Math.PI, t0 = PI - 1.95, t1 = PI + 1.95;
   const BRONZE = ['#6b5a3a', '#5e5034', '#73603e', '#52492f'], NOIR = '#29271f', BLANC = '#f3f0e6', BLANC2 = '#dcd6c6';
@@ -1349,6 +1376,10 @@ export function creerHeros(ctx, sorte = 'garcon') {
   // côtés, et qui battent chacun à son tour (la phase avance à chaque image)
   // (la cape du loup, Yakushima : pareil ; capeL, sa capuche à part : capuche, couchée dans le dos ou levée sur la tête)
   let cape = null, capeL = null, ecartCape = 0, phaseCape = 0, leveQueue = 0, ombrelle = null, ombrellePortee = false, ombrelleRangee = false, aCheval = false;
+  // (le shamisen de Sawaichi, Tsubosaka : tenu par le manche à la main gauche en marchant ; à l'arrêt, au bout de 2,2 s, en travers du corps, et l'on en
+  // joue : un air à nous, dans la gamme in ; permis : seulement quand on joue (pas pendant un dialogue) ; noteCompte : à chaque coup de plectre, la note)
+  let shamisen = null, shamisenPorte = false, shamisenPermis = false, jeuShamisen = 0, immobile = 0, noteCompte = 0, noteIdx = 0, tempsNote = 0, coupPlectre = 0, iNote = 0;
+  const AIR_SHAMISEN = [[3, 1], [4, 1], [3, 1], [2, 2], [3, 1], [0, 1], [1, 1], [2, 2], [2, 1], [4, 1], [5, 1], [4, 1], [3, 2], [2, 1], [1, 1], [0, 3]];
   // (le bras qui tient l'ombrelle : presque à l'horizontale, le poing devant l'épaule)
   const BRAS_OMBRELLE = -1.32;
   const animerCape = (dt, vitesse, fete) => {
@@ -1789,6 +1820,11 @@ export function creerHeros(ctx, sorte = 'garcon') {
     objet: racine,
     /** Porte-t-il l'ombrelle de Shan-shan ? (ses grelots, à chaque pas : balade.js, unPas) */
     get aOmbrelle() { return !!ombrelle?.objet.visible; },
+    /** Tient-il le shamisen de Sawaichi ? Où en est son air (compte : un de plus à chaque coup de plectre ; note : 0 à 5, de la plus grave) ? */
+    get aShamisen() { return shamisenPorte; },
+    get noteShamisen() { return { compte: noteCompte, note: noteIdx }; },
+    /** On peut en jouer (oui : on se promène ; non : un dialogue, une scène) ; s'il le tient. */
+    permettreShamisen(oui) { shamisenPermis = oui; },
     /** L'ombrelle rangée (oui : le temps d'un siège du télésiège, d'une descente en planche), ou de nouveau à la main ; s'il la porte. */
     rangerOmbrelle(oui) { ombrelleRangee = oui; },
     /** À califourchon (oui) : les jambes de part et d'autre du dos d'un chameau, les mains devant lui ; ou assis, comme sur un banc. */
@@ -1820,6 +1856,15 @@ export function creerHeros(ctx, sorte = 'garcon') {
       // sa place à elle : une cape en même temps.) Le bras est levé dans animer ; rangée pendant un geste qui prend les deux mains
       if (place === 'main') {
         ombrellePortee = id === 'ombrelle';
+        shamisenPorte = id === 'shamisen';
+        if (shamisenPorte && !shamisen) {
+          const o = shamisenSawaichi(THREE, atelier), objet = maillage(o.instrument.fin(0, false)), plectre = maillage(o.plectre.fin(0, false));
+          plectre.position.set(0.0, -0.31, 0.03);
+          plectre.rotation.set(-0.4, 0, 0.3);
+          bras[0].add(plectre);
+          shamisen = { objet, plectre, enJeu: null };
+        }
+        if (shamisen) { shamisen.objet.visible = shamisenPorte; shamisen.plectre.visible = false; }
         if (ombrellePortee && !ombrelle) {
           const o = ombrelleShanshan(THREE, atelier), objet = new THREE.Group(), tourne = new THREE.Group(), gr = maillage(o.grelots.fin(0, false));
           objet.add(maillage(o.manche.fin(0, false)), tourne);
@@ -1954,6 +1999,43 @@ export function creerHeros(ctx, sorte = 'garcon') {
         ombrelle.tourne.rotation.y += dt * (0.25 + 0.5 * marche);
         ombrelle.gr.rotation.x = Math.sin(phase * 2 - 0.6) * 0.02 * marche;
         ombrelle.gr.rotation.z = Math.cos(phase * 2 - 0.6) * 0.02 * marche;
+      }
+      // (le shamisen : en marchant, à la main gauche ; à l'arrêt, le temps de souffler, puis on en joue, le corps contre la hanche droite, le manche
+      // vers l'épaule gauche, la main gauche sur le manche, la droite qui frappe la peau du plectre ; un coup par note)
+      const shamisenEnMain = shamisenPorte && !danse && !geste && rame === null && !assis;
+      if (shamisen) {
+        shamisen.objet.visible = shamisenEnMain;
+        immobile = marche < 0.04 && shamisenPermis ? immobile + dt : 0;
+        jeuShamisen = Math.max(0, Math.min(1, jeuShamisen + (shamisenEnMain && immobile > 2.2 ? dt * 2.5 : -dt * 4)));
+        const joue = jeuShamisen > 0.5;
+        if (shamisenEnMain && joue !== shamisen.enJeu) {
+          shamisen.enJeu = joue;
+          (joue ? corps : bras[1]).add(shamisen.objet);
+          if (joue) {
+            // (dans le repère du corps : le corps de l'instrument devant la hanche droite, le manche vers le haut et la gauche, la peau vers l'avant)
+            const Y = new THREE.Vector3(0.6, 0.66, 0.1).normalize(), Z0 = new THREE.Vector3(0, 0.08, 1), X = new THREE.Vector3().crossVectors(Y, Z0).normalize(), Z = new THREE.Vector3().crossVectors(X, Y);
+            shamisen.objet.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(X, Y, Z));
+            shamisen.objet.position.set(-0.07, 0.46, 0.21).addScaledVector(Y, 0.15);
+          } else {
+            shamisen.objet.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0.93, 0.37).normalize());
+            shamisen.objet.position.set(0.05, -0.3, 0.05);
+          }
+        }
+        shamisen.plectre.visible = shamisenEnMain && joue;
+        if (shamisenEnMain && joue) {
+          // l'air : une note à chaque coup ; le bras droit frappe à chaque note, puis remonte
+          tempsNote += dt;
+          const [n, d] = AIR_SHAMISEN[iNote % AIR_SHAMISEN.length];
+          if (tempsNote >= d * 0.3) { tempsNote = 0; iNote++; noteIdx = AIR_SHAMISEN[iNote % AIR_SHAMISEN.length][0]; noteCompte++; coupPlectre = 1; }
+          void n;
+          coupPlectre = Math.max(0, coupPlectre - dt * 6);
+          // (les bras : vers le manche, vers la peau ; trouvés à partir du point à atteindre : rotation.z = asin(dx), rotation.x = atan2(−dz, −dy))
+          const viser = (b, x0, cible) => { const d = cible.clone().sub(new THREE.Vector3(x0, 0.75, 0)).normalize(); b.rotation.z = Math.asin(Math.max(-1, Math.min(1, d.x))); b.rotation.x = Math.atan2(-d.z, -d.y); };
+          viser(bras[1], 0.205, shamisen.objet.position.clone().add(new THREE.Vector3(0, 1, 0).applyQuaternion(shamisen.objet.quaternion).multiplyScalar(0.12)));
+          viser(bras[0], -0.205, shamisen.objet.position.clone().add(new THREE.Vector3(0, -0.1, 0.06 + 0.04 * coupPlectre).applyQuaternion(shamisen.objet.quaternion)));
+          bras[0].rotation.x += -0.2 * coupPlectre;
+          tete.rotation.x = 0.08;
+        }
       }
       danseur.position.y = 0;
       danseur.rotation.set(0, 0, 0);

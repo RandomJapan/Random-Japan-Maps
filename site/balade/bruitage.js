@@ -55,6 +55,8 @@ const V = {
   chameau: 0.1, grelots: 0.05, glisse: 0.07, poudre: 0.1,
   // (Tottori) les galets du télésiège, à chaque pylône (oiseau())
   poulies: 0.06,
+  // (Tsubosaka) les notes du shamisen de Sawaichi (note())
+  shamisen0: 0.07, shamisen1: 0.07, shamisen2: 0.07, shamisen3: 0.07, shamisen4: 0.065, shamisen5: 0.06,
   // (le chrono de la planche, Tottori ; les jumelles du toit)
   top: 0.05, depart: 0.06, porte: 0.05, rate: 0.05, arrivee: 0.06, clac: 0.06, trouve: 0.055,
 };
@@ -200,6 +202,10 @@ export function creerBruitage({ oiseaux = [], ambiances = [], betes = [], extras
     /** Le cri d'un oiseau qu'on voit (nom : 'mouette'…), plus ou moins fort (force : sa distance), de quel côté (pan). */
     oiseau(nom, { force = 1, pan = 0 } = {}) {
       if (commence && son.pret()) jouer(`oiseau/${nom}`, { gain: (V[nom] ?? V.oiseau) * force, pan, vitesse: 0.92 + Math.random() * 0.18 });
+    },
+    /** Une note de musique (nom : 'shamisen0'… ; comme un oiseau, mais juste : sans le petit écart de hauteur). */
+    note(nom, { force = 1, pan = 0 } = {}) {
+      if (commence && son.pret()) jouer(`oiseau/${nom}`, { gain: (V[nom] ?? V.oiseau) * force, pan, vitesse: 1 });
     },
     /** Un chat qui miaule ou qui ronronne, un chien qui aboie (nom : 'miaou', 'ronron', 'ouaf'), plus ou moins fort (force), de quel côté (pan). */
     bete(nom, { force = 1, pan = 0 } = {}) {

@@ -295,6 +295,30 @@ const MOTIFS = {
     <circle cx="40" cy="66" r="3.4" class="vide"/><circle cx="80" cy="66" r="3.4" class="vide"/>
     <path d="M40 74 Q36 82 40 86 Q44 82 40 74 Z M80 78 Q76 86 80 90 Q84 86 80 78 Z"/>
     <path d="M28 98 H92 L86 112 H34 Z"/><path d="M36 102 Q60 98 84 102" class="vide" fill="none" stroke-width="2.2"/>`,
+  // Tsubosaka-dera (2026-11-05) : le grand Kannon debout sur la colline ; le grand Bouddha assis sur son lotus ; l'œil sous le toit du pavillon
+  // octogonal ; la fresque et ses scènes ; Osato qui mène Sawaichi par la main, au-dessus du vallon
+  kannon: `<path d="M2 98 Q28 72 52 76 L68 76 Q92 72 118 94 L118 116 L2 116 Z" opacity="0.35"/>
+    <rect x="56" y="6" width="8" height="9" rx="3"/><circle cx="60" cy="21" r="7.5"/>
+    <path d="M51 31 Q60 27 69 31 L72 62 Q74 84 72 102 L48 102 Q46 84 48 62 Z"/>
+    <path d="M55 42 Q58 50 56 58 M64 40 Q66 52 64 70 M54 66 Q60 84 56 100 M66 72 Q63 86 65 100" class="vide" fill="none" stroke-width="2"/>
+    <rect x="42" y="102" width="36" height="8" rx="1"/><path d="M36 116 L44 110 H76 L84 116 Z"/>`,
+  daibutsu: `<circle cx="60" cy="14" r="6"/><circle cx="60" cy="27" r="12"/><rect x="54" y="38" width="12" height="6"/>
+    <path d="M30 76 Q30 46 60 44 Q90 46 90 76 Z"/><ellipse cx="60" cy="82" rx="38" ry="11"/>
+    <path d="M50 74 Q60 68 70 74" class="vide" fill="none" stroke-width="2.6"/><path d="M48 25 h7 M65 25 h7 M57 32 h6" class="vide" fill="none" stroke-width="1.8"/>
+    <path d="M14 96 Q24 88 34 96 Q44 88 54 96 Q64 88 74 96 Q84 88 94 96 Q104 88 108 96 L104 104 H16 Z"/><rect x="8" y="104" width="104" height="10" rx="1"/>`,
+  yeux: `<path d="M10 46 L60 18 L110 46 L100 50 L60 30 L20 50 Z"/><rect x="56" y="8" width="8" height="10" rx="3"/>
+    <rect x="24" y="52" width="72" height="56" opacity="0.4"/><rect x="20" y="106" width="80" height="8"/>
+    <path d="M30 78 Q60 56 90 78 Q60 100 30 78 Z"/><circle cx="60" cy="78" r="10" class="vide"/><circle cx="60" cy="78" r="5"/>`,
+  fresque: `<rect x="4" y="22" width="112" height="78" rx="2" opacity="0.35"/><rect x="4" y="96" width="112" height="10"/><rect x="4" y="16" width="112" height="7"/>
+    <path d="M38 24 V96 M82 24 V96" fill="none" stroke-width="3"/>
+    <circle cx="21" cy="46" r="6"/><path d="M13 76 Q13 56 21 54 Q29 56 29 76 Z"/><ellipse cx="21" cy="80" rx="11" ry="4"/>
+    <path d="M44 74 Q50 62 64 64 L72 54 L78 58 L70 68 Q72 78 66 80 L66 92 L62 92 L60 82 L52 82 L50 92 L46 92 Z"/>
+    <circle cx="90" cy="70" r="5"/><path d="M95 66 Q104 64 112 70 L112 76 L95 76 Z"/><path d="M86 88 V40 M110 88 V40" fill="none" stroke-width="2.6"/><ellipse cx="86" cy="38" rx="6" ry="5"/><ellipse cx="110" cy="38" rx="6" ry="5"/>`,
+  osato: `<path d="M2 92 Q20 84 40 94 L60 116 H2 Z M118 86 Q96 80 82 92 L66 116 H118 Z" opacity="0.35"/>
+    <circle cx="42" cy="26" r="8"/><path d="M36 20 Q42 12 48 20 Z"/><path d="M34 38 Q42 34 50 38 L54 98 L30 98 Z"/>
+    <circle cx="76" cy="28" r="8"/><path d="M68 40 Q76 36 84 40 L88 98 L64 98 Z"/>
+    <path d="M52 52 Q60 56 66 52" fill="none" stroke-width="4" stroke-linecap="round"/><path d="M86 56 L98 98" fill="none" stroke-width="3" stroke-linecap="round"/>
+    <path d="M71 27 h4 M78 27 h4" class="vide" fill="none" stroke-width="1.6"/>`,
   // Tottori (2026-11-02) : le Dos de cheval et la mer ; le chameau à deux bosses ; la planche qui descend la pente ; la Sagrada Família de sable ; l'oasis
   crete: `<circle cx="88" cy="24" r="11" opacity="0.5"/><path d="M2 60 H118" fill="none" stroke-width="2.4" opacity="0.5"/><path d="M2 72 H118 M2 84 H60" fill="none" stroke-width="2" opacity="0.35"/>
     <path d="M2 112 Q26 86 56 64 Q70 54 76 52 Q88 66 118 92 L118 116 L2 116 Z"/>

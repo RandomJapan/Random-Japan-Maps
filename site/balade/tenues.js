@@ -46,6 +46,7 @@ export const PIECES = [
   { id: 'loup', place: 'dos', lieu: 'yakushima', avec: ['nue'] },
   { id: 'main-rien', place: 'main' },
   { id: 'ombrelle', place: 'main', lieu: 'tottori' },
+  { id: 'shamisen', place: 'main', lieu: 'tsubosaka' },
   { id: 'cou-rien', place: 'cou' },
   { id: 'magatama', place: 'cou', lieu: 'takachiho' },
   { id: 'yamabushi', place: 'cou', lieu: 'sanjubutsu' },
@@ -144,6 +145,13 @@ const DESSINS = {
     <path d="M24 5 V25 M16 11 L14.5 25 M32 11 L33.5 25 M10.8 18 L9 25 M37.2 18 L39 25" fill="none" stroke="${ENCRE}" stroke-width="1.2"/>
     <circle cx="9" cy="28" r="2.1" fill="#f2c443" stroke="${ENCRE}" stroke-width="1.3"/><circle cx="16.5" cy="28" r="2.1" fill="#f2c443" stroke="${ENCRE}" stroke-width="1.3"/><circle cx="31.5" cy="28" r="2.1" fill="#f2c443" stroke="${ENCRE}" stroke-width="1.3"/><circle cx="39" cy="28" r="2.1" fill="#f2c443" stroke="${ENCRE}" stroke-width="1.3"/>
     <path d="M24 25 V44 Q24 46.5 21 46.5" fill="none" stroke="${ENCRE}" stroke-width="4.4" stroke-linecap="round"/><path d="M24 25 V44 Q24 46.5 21 46.5" fill="none" stroke="#c8a860" stroke-width="2.2" stroke-linecap="round"/>`,
+  // le shamisen de Sawaichi (Tsubosaka) : le corps carré et sa peau blanche, le long manche, la tête et ses chevilles, les trois cordes, le plectre
+  shamisen: `<path d="M27.5 6 L31.5 3.6 L33 6 L29.4 8.4 Z" fill="#3a2418" stroke="${ENCRE}" stroke-width="1.8" stroke-linejoin="round"/>
+    <path d="M30 7 L19 30" fill="none" stroke="${ENCRE}" stroke-width="4.6" stroke-linecap="round"/><path d="M30 7 L19 30" fill="none" stroke="#4a2e1e" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M31 4.6 L34.4 6.6 M32.2 7.4 L35.4 9.2 M27.6 5.4 L25.8 3.2" fill="none" stroke="#efe6cc" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M10.5 27.5 Q16 25 21.5 28.5 Q24.5 34 21 39.5 Q15 42 9.5 38.5 Q6.8 32.5 10.5 27.5 Z" fill="#f2ece0" stroke="${ENCRE}" stroke-width="2.4" stroke-linejoin="round"/>
+    <path d="M28.6 8.6 L16.2 35.4" fill="none" stroke="#f6eed4" stroke-width="0.8"/>
+    <path d="M33 33 L44 27 L44.6 33.6 Z" fill="#efe6cc" stroke="${ENCRE}" stroke-width="1.8" stroke-linejoin="round"/><path d="M38.6 31 L33 42" fill="none" stroke="${ENCRE}" stroke-width="2.6" stroke-linecap="round"/>`,
   // la cape du loup (Yakushima) : la peau grise au bas effiloché, la queue au bout noir, la tête du loup endormi et ses oreilles
   loup: `<path d="M37 34 Q45 36 44 43 Q43.5 46 41 47 Q39.5 43 36 41 Z" fill="#a9a9a6" stroke="${ENCRE}" stroke-width="2" stroke-linejoin="round"/>
     <path d="M41 47 Q39.8 44.2 37.8 42.8 L42.8 44.2 Q42.6 46 41 47 Z" fill="${ENCRE}"/>

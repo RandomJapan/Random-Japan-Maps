@@ -2061,7 +2061,7 @@ export function construire(ctx) {
  * musclé, la jupe plissée nouée à la taille, les pieds nus écartés. ah : la bouche ouverte (阿形 « A ») ou fermée (吽形
  * « Un ») ; s (−1, 1) : le côté, pour que les deux se répondent (le poing levé du côté du torii).
  */
-function nio(THREE, a, R, y, ah, s, C) {
+export function nio(THREE, a, R, y, ah, s, C) {
   const { PIERRE, PIERRE_F, tachee } = C, t = tachee(s * 17 + (ah ? 3 : 0), 0.22);
   const o = (lx, ly, lz, e = {}) => ({ ...R(lx * s, y + ly, lz, e), teinte: 'teinte' in e ? e.teinte : t, nuance: 0.06 });
   const p = (lx, ly, lz) => { const q = R(lx * s, y + ly, lz); return [q.x, q.y, q.z]; };

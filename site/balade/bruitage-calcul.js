@@ -904,6 +904,18 @@ const OISEAUX = {
     c.bruit(0.02, { f: 480, q: 0.8, duree: 1.0, forme: ad(0.1, 0.4, 1.0), gain: 0.12 });
     return cadrer([echo(c.b, sr)], sr, 0.25);
   },
+  // (Tsubosaka, 2026-11-05) le shamisen de Sawaichi : la, si bémol, ré, mi, fa, la (la gamme in) ; le plectre qui claque sur la peau, les
+  // partiels brillants qui meurent vite, et le bourdonnement de la corde contre le manche (さわり)
+  ...Object.fromEntries([220, 233.08, 293.66, 329.63, 349.23, 440].map((f0, i) => [`shamisen${i}`, (sr, r) => {
+    const c = composer(sr, r, 1.5);
+    c.bruit(0.0, { type: 'bas', f: 1400, tau: 0.01, gain: 0.55 });
+    c.modes(0.0, [[160 + 20 * r(), 0.3, 0.045]]);
+    const parts = [];
+    for (let n = 1; n <= 9; n++) parts.push([f0 * n * (1 + 0.0012 * n * n), n === 1 ? 0.85 : 0.72 / n ** 0.55, 0.6 / (1 + 0.32 * n)]);
+    parts.push([f0 * 2.004, 0.22, 0.45], [f0 * 3.006, 0.12, 0.3]);
+    c.modes(0.004, parts);
+    return cadrer([echo(c.b, sr)], sr, 0.3);
+  }])),
   // les grelots de la caravane : trois petites sonnailles de bronze, loin, qui se répondent, chacune ses partiels pas tout à fait justes
   grelots(sr, r) {
     const c = composer(sr, r, 1.3);
