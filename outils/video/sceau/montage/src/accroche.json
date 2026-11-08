@@ -1,0 +1,7 @@
+{
+  "morceaux": [
+    { "clip": "cire-verse", "s0": 0.0, "f0": 0, "f1": 96, "v": 1, "zoom": 1.32, "centre": [0.45, 0.58] },
+    { "clip": "cire-tampon", "s0": 2.2, "f0": 96, "f1": 186, "v": 1, "zoom": 1.32, "centre": [0.47, 0.5] },
+    { "clip": "cire-japon", "s0": 0.25, "f0": 186, "f1": 300, "v": 1 }
+  ]
+}

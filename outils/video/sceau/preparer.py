@@ -2,9 +2,10 @@
 montage Remotion (outils/video/sceau/montage).
     python outils/video/sceau/preparer.py
 
-- L'accroche : les deux plans de la lettre, générés avec Flora à partir de ses images (dans sources/ : voir « The seal video » dans
-  instructions/videos.md), réencodés (1080 × 1920, 24 images/s comme à la source, une image clé toutes les 6).
-- Le son de l'accroche (sfx/geste.wav) : le son d'origine des deux plans, généré avec l'image, coupé comme eux dans le montage.
+- L'accroche : les plans de la cire et du tampon, générés avec Flora à partir de ses images (dans sources/ : voir « The seal video »
+  dans instructions/videos.md), réencodés (1080 × 1920, une image clé toutes les 6). Ceux de la première version (la lettre) sont
+  dans sources/v1.
+- Le son de l'accroche (sfx/geste.wav) : le son d'origine des plans, généré avec l'image, coupé comme eux dans le montage.
 - Les prises déjà tournées : la mer, la légende et la route (vidéo « jarre »), les quatre saisons (promo30), la balade.
 - Le vrai plan des dunes (reels/tottori.mp4), pris dans la vidéo du propriétaire.
 - Les bruitages : ceux des vidéos d'avant. Le logo. L'interrupteur jour/nuit, découpé dans la capture de l'interface.
@@ -31,7 +32,8 @@ PRISES = {
 SFX = [VIDEOS / 'carte/tunnel/public/sfx' / n for n in ('tap.mp3', 'pop.mp3', 'pops.mp3', 'whoosh-fast.mp3', 'swoosh-quick.mp3', 'bass-hit-short.mp3',
                                                         'air-whoosh-powerful.mp3', 'paper-slide.mp3', 'sparkle-touch.mp3', 'ui-message-pop.mp3',
                                                         'ui-success-soft.mp3', 'transition-snap.mp3', 'shimmer-sparkle-sweep.mp3', 'zoom-air-fast.mp3')] + [
-    VIDEOS / 'carte/promo30/public/sfx' / n for n in ('click-camera.mp3', 'impact-deep-whoosh.mp3', 'hit-fast-exciting.mp3', 'pinceau.mp3', 'tonnerre.mp3')]
+    VIDEOS / 'carte/promo30/public/sfx' / n for n in ('click-camera.mp3', 'impact-deep-whoosh.mp3', 'hit-fast-exciting.mp3', 'pinceau.mp3', 'tonnerre.mp3')] + [
+    VIDEOS / 'carte/eclat/public/sfx' / 'piece.wav']
 # le vrai plan des dunes : le grand mur de sable au-dessus des vagues, ses marcheurs (secondes de la vidéo du propriétaire)
 REEL_TOTTORI = ('Tottori Sand Dunes.mp4', 7.2, 3.0)
 
@@ -74,35 +76,51 @@ def interrupteur():
     tout.crop(tuple(round(v * k) for v in (x - m, y - m, x + w + m, y + h + m))).save(PUBLIC / 'ui' / 'interrupteur.png')
 
 
-# Le son de l'accroche : les morceaux des deux plans, comme dans montage/src/Accroche.tsx
-# (plan, seconde de début, seconde de fin, image de début dans le montage, image de fin, gain en dB : le plan de la lettre qu'on
-# déplie sort de Flora 15 à 20 dB plus bas que le craquement du sceau)
-MORCEAUX = (('sceau-casse', 0.45, 0.45 + 100 / 60, 0, 100, 0), ('lettre-ouverte', 0.15, 3.75, 100, 300, 10))
+# Le son de l'accroche : les morceaux des plans, coupés comme dans le montage (montage/src/accroche.json : le fichier, sa seconde à la
+# première image, les images de début et de fin dans la vidéo, la vitesse)
+ACCROCHE = json.loads((ICI / 'montage' / 'src' / 'accroche.json').read_text(encoding='utf-8'))['morceaux']
+# (dB par plan : chacun sort de Flora à son propre niveau ; le gros plan de Kling n'a pas de son, on y met le silence de la pièce)
+GAINS = {'cire-verse': 0, 'cire-tampon': 0, 'cire-japon': 0}
 FIN_GESTE = 300  # image : le temps 12, où la musique éclate
-# Images : à 24 images/s, l'image où le sceau cède arrive juste après le craquement du son d'origine (comme la jarre : 2 images à 60).
+# Images : à 24 images/s, l'image d'un choc arrive juste après lui dans le son d'origine (mesuré sur la jarre : 2 images à 60).
 RETARD = 2
-# (images, dB) : le pouce qui appuie fait craquer la cire une première fois, plus fort que quand elle casse ; le coup qui la casse
-# doit rester le moment le plus fort de l'accroche (mesuré sur geste.wav, en 20 ms : le craquement −14 dB, le papier −19, le pouce −28)
-NUANCES = ((12, 40, -6), (64, 82, 12))
-# Le limiteur, avant de tout remonter à −1 dB : l'accroche n'est faite que de petits bruits dans le silence. Limitée à 0,4, elle
-# était 23 dB sous la musique (la jarre : 13) ; à 0,08 (le plus bas qu'accepte alimiter : 0,0625), 15 dB.
+# (images, dB) : des nuances à la main, si un bruit couvre le geste qu'on doit entendre
+NUANCES = ()
+# Le limiteur, avant de tout remonter à −1 dB : une accroche faite de petits bruits dans le silence sonne trop bas sans lui (la
+# première version, limitée à 0,4 : 23 dB sous la musique ; la jarre : 13). alimiter n'accepte pas moins de 0,0625.
 LIMITE = 0.08
 
 
+def son_de(plan, sr):
+    """Le son d'un plan de Flora (stéréo, sr), ou None s'il n'en a pas."""
+    r = subprocess.run([ffmpeg(), '-hide_banner', '-loglevel', 'error', '-i', str(SOURCES / f'{plan}.mp4'), '-vn', '-ac', '2', '-ar', str(sr), '-f', 'f32le', '-'],
+                       capture_output=True)
+    return np.frombuffer(r.stdout, dtype=np.float32).reshape(-1, 2) if r.returncode == 0 and r.stdout else None
+
+
 def geste():
-    """Le son de l'accroche. Seedance génère le son avec l'image : le craquement du sceau y tombe déjà où la cire cède, le papier
-    froissé où les mains déplient la lettre. On le prend tel quel, coupé comme l'image (la leçon de la jarre : les bruitages posés à
-    la main sonnaient faux), avec ses nuances, puis un limiteur fort qui fait monter tous les petits bruits."""
+    """Le son de l'accroche. Seedance génère le son avec l'image : la cire qui coule, le tampon qui s'enfonce et se décolle y tombent
+    déjà avec l'image. On le prend tel quel, coupé comme l'image (la leçon de la jarre : les bruitages posés à la main sonnaient
+    faux), puis un limiteur fort qui fait monter tous les petits bruits. Un plan sans son reçoit le silence de la pièce (piece.wav)."""
     sr = 48000
     sortie = np.zeros((round(FIN_GESTE / 60 * sr), 2), dtype=np.float32)
     fondu = np.linspace(0, 1, int(0.004 * sr), dtype=np.float32)[:, None]
-    for plan, s0, s1, f0, f1, db in MORCEAUX:
-        brut = subprocess.run([ffmpeg(), '-hide_banner', '-loglevel', 'error', '-i', str(SOURCES / f'{plan}.mp4'), '-vn', '-ac', '2', '-ar', str(sr), '-f', 'f32le', '-'],
-                              capture_output=True, check=True).stdout
-        son = np.frombuffer(brut, dtype=np.float32).reshape(-1, 2)[int(s0 * sr):int(s1 * sr)]
+    piece = None
+    for m in ACCROCHE:
+        f0, f1, v = m['f0'], min(m['f1'], FIN_GESTE), m['v']
+        son = son_de(m['clip'], sr)
         n = round((f1 - f0) / 60 * sr)
-        x = np.linspace(0, len(son) - 1, n)  # (le plan de la lettre est joué 8 % plus vite : son son aussi)
-        morceau = np.column_stack([np.interp(x, np.arange(len(son)), son[:, c]) for c in (0, 1)]).astype(np.float32) * 10 ** (db / 20)
+        if son is None:
+            if piece is None:
+                brut = subprocess.run([ffmpeg(), '-hide_banner', '-loglevel', 'error', '-i', str(PUBLIC / 'sfx' / 'piece.wav'), '-ac', '2', '-ar', str(sr), '-f', 'f32le', '-'],
+                                      capture_output=True, check=True).stdout
+                piece = np.frombuffer(brut, dtype=np.float32).reshape(-1, 2)
+            morceau = np.resize(piece, (n, 2)).astype(np.float32) * 0.3  # (le souffle de la pièce, sous le bruit de la cire)
+        else:
+            son = son[int(m['s0'] * sr):int((m['s0'] + (f1 - f0) / 60 * v) * sr)]
+            x = np.linspace(0, len(son) - 1, n)
+            morceau = np.column_stack([np.interp(x, np.arange(len(son)), son[:, c]) for c in (0, 1)]).astype(np.float32)
+        morceau *= 10 ** (GAINS.get(m['clip'], 0) / 20)
         morceau[:len(fondu)] *= fondu
         morceau[-len(fondu):] *= fondu[::-1]
         debut = round((f0 + RETARD) / 60 * sr)
@@ -133,8 +151,8 @@ def main():
     reel()
     if (PUBLIC / 'ui' / 'layout.json').exists():
         interrupteur()
-    for nom in ('sceau-casse', 'lettre-ouverte'):
-        clip(nom)
+    for m in ACCROCHE:
+        clip(m['clip'])
     geste()
     print('bruitages et prises prêts dans', PUBLIC)
 
