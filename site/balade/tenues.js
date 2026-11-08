@@ -145,13 +145,19 @@ const DESSINS = {
     <path d="M24 5 V25 M16 11 L14.5 25 M32 11 L33.5 25 M10.8 18 L9 25 M37.2 18 L39 25" fill="none" stroke="${ENCRE}" stroke-width="1.2"/>
     <circle cx="9" cy="28" r="2.1" fill="#f2c443" stroke="${ENCRE}" stroke-width="1.3"/><circle cx="16.5" cy="28" r="2.1" fill="#f2c443" stroke="${ENCRE}" stroke-width="1.3"/><circle cx="31.5" cy="28" r="2.1" fill="#f2c443" stroke="${ENCRE}" stroke-width="1.3"/><circle cx="39" cy="28" r="2.1" fill="#f2c443" stroke="${ENCRE}" stroke-width="1.3"/>
     <path d="M24 25 V44 Q24 46.5 21 46.5" fill="none" stroke="${ENCRE}" stroke-width="4.4" stroke-linecap="round"/><path d="M24 25 V44 Q24 46.5 21 46.5" fill="none" stroke="#c8a860" stroke-width="2.2" stroke-linecap="round"/>`,
-  // le shamisen de Sawaichi (Tsubosaka) : le corps carré et sa peau blanche, le long manche, la tête et ses chevilles, les trois cordes, le plectre
-  shamisen: `<path d="M27.5 6 L31.5 3.6 L33 6 L29.4 8.4 Z" fill="#3a2418" stroke="${ENCRE}" stroke-width="1.8" stroke-linejoin="round"/>
-    <path d="M30 7 L19 30" fill="none" stroke="${ENCRE}" stroke-width="4.6" stroke-linecap="round"/><path d="M30 7 L19 30" fill="none" stroke="#4a2e1e" stroke-width="2.4" stroke-linecap="round"/>
-    <path d="M31 4.6 L34.4 6.6 M32.2 7.4 L35.4 9.2 M27.6 5.4 L25.8 3.2" fill="none" stroke="#efe6cc" stroke-width="1.8" stroke-linecap="round"/>
-    <path d="M10.5 27.5 Q16 25 21.5 28.5 Q24.5 34 21 39.5 Q15 42 9.5 38.5 Q6.8 32.5 10.5 27.5 Z" fill="#f2ece0" stroke="${ENCRE}" stroke-width="2.4" stroke-linejoin="round"/>
-    <path d="M28.6 8.6 L16.2 35.4" fill="none" stroke="#f6eed4" stroke-width="0.8"/>
-    <path d="M33 33 L44 27 L44.6 33.6 Z" fill="#efe6cc" stroke="${ENCRE}" stroke-width="1.8" stroke-linejoin="round"/><path d="M38.6 31 L33 42" fill="none" stroke="${ENCRE}" stroke-width="2.6" stroke-linecap="round"/>`,
+  // le shamisen de Sawaichi (Tsubosaka) : le corps carré aux côtés un peu bombés, sa peau blanche, le chevalet ; le long manche (près de trois
+  // fois le corps) et ses cordes, la tête et ses trois chevilles ; à part, le plectre en éventail, couleur d'écaille. (2026-11-08, le
+  // propriétaire : « Le shamisen est mal fait sur son image de présentation » : le corps rond et le manche court en faisaient un banjo, et le
+  // plectre, un triangle sur un bâton)
+  shamisen: `<g transform="translate(12.5 36.5) rotate(35)">${trait('M0 -5.6 V-35.6', '#4a2e1e', 2)}${trait('M0 5.6 V7.8', '#4a2e1e', 1.4)}
+    ${trait('M-1.1 -37.2 L-5 -37.7', '#efe6cc', 1.4)}${trait('M1.1 -38.6 L5 -39.1', '#efe6cc', 1.4)}${trait('M-1.1 -40 L-5 -40.5', '#efe6cc', 1.4)}
+    <path d="M-1.7 -35.2 L-2 -41.2 Q0 -43.2 2 -41.2 L1.7 -35.2 Z" fill="#3a2418" stroke="${ENCRE}" stroke-width="1.7" stroke-linejoin="round"/>
+    <path d="M-5.6 -5.6 Q0 -6.55 5.6 -5.6 Q6.55 0 5.6 5.6 Q0 6.55 -5.6 5.6 Q-6.55 0 -5.6 -5.6 Z" fill="#3a2418" stroke="${ENCRE}" stroke-width="2.1" stroke-linejoin="round"/>
+    <path d="M-4.5 -4.5 Q0 -5.45 4.5 -4.5 Q5.45 0 4.5 4.5 Q0 5.45 -4.5 4.5 Q-5.45 0 -4.5 -4.5 Z" fill="#f2ece0"/>
+    <path d="M-2 3.1 H2" stroke="#3a2418" stroke-width="1.1" stroke-linecap="round"/>
+    <path d="M-0.7 3.1 L-0.5 -35.6 M0 3.1 V-35.6 M0.7 3.1 L0.5 -35.6" fill="none" stroke="#f6eed4" stroke-width="0.4"/></g>
+    <g transform="translate(36 40) rotate(-50)">${trait('M0 0 V4.2', '#2a1c12', 1.6)}
+    <path d="M-1.1 0.4 Q-2.2 -3.07 -5 -6.82 L5 -6.82 Q2.2 -3.07 1.1 0.4 Z" fill="#e9b85a" stroke="${ENCRE}" stroke-width="1.8" stroke-linejoin="round"/></g>`,
   // la cape du loup (Yakushima) : la peau grise au bas effiloché, la queue au bout noir, la tête du loup endormi et ses oreilles
   loup: `<path d="M37 34 Q45 36 44 43 Q43.5 46 41 47 Q39.5 43 36 41 Z" fill="#a9a9a6" stroke="${ENCRE}" stroke-width="2" stroke-linejoin="round"/>
     <path d="M41 47 Q39.8 44.2 37.8 42.8 L42.8 44.2 Q42.6 46 41 47 Z" fill="${ENCRE}"/>
