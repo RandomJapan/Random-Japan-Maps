@@ -199,11 +199,12 @@ export function shamisenSawaichi(THREE, atelier) {
  * bras d'une pièce, la main à 0,31 m de l'épaule. Trouvée par le calcul, d'après le devant de chaque tenue, case par case. Dans le repère du
  * corps : centre, le milieu du corps de l'instrument ; manche, vers sa tête ; peau, où elle regarde (redressée à angle droit du manche) ;
  * prise, où la main gauche tient le manche (depuis son pied) ; frappe, où le bord du plectre touche les cordes, et main, où est la main droite
- * (x, y de l'instrument ; sa distance aux cordes suit de la longueur du plectre) ; epaules, les épaules avancées.
+ * (x, y de l'instrument ; sa distance aux cordes suit de la longueur du plectre) ; epaules, les épaules avancées ; ecart, un peu écartées (les
+ * manches passent à côté des pattes de la cape du loup, sur la poitrine).
  */
 export const JEU_SHAMISEN = {
   centre: [-0.277, 0.46, 0.405], manche: [0.925, 0.362, -0.114], peau: [-0.241, 0.791, 0.562],
-  prise: 0.4, frappe: [-0.067, -0.086], main: [-0.13, -0.045], epaules: 0.075,
+  prise: 0.41, frappe: [-0.067, -0.086], main: [-0.14, -0.08], epaules: 0.085, ecart: 0.012,
 };
 
 export function capeCormoran(THREE, atelier, { y = 0.8, k = 1 } = {}) {
@@ -1500,9 +1501,10 @@ export function creerHeros(ctx, sorte = 'garcon') {
    */
   const manchesRetroussees = (s, tissu, doublure) => {
     const a = atelier();
-    a.cylindre(0.07, 0.078, 0.15, 12, tissu, { y: -0.065 })
-      .cylindre(0.083, 0.083, 0.034, 12, doublure, { y: -0.148 })
-      .cylindre(0.042, 0.038, 0.16, 8, PEAU, { y: -0.225 });
+    // (roulée haut, au-dessus du coude : plus bas, son bourrelet touchait le collier de crocs du loup sur un yukata)
+    a.cylindre(0.07, 0.075, 0.11, 12, tissu, { y: -0.045 })
+      .cylindre(0.079, 0.079, 0.03, 12, doublure, { y: -0.108 })
+      .cylindre(0.042, 0.038, 0.2, 8, PEAU, { y: -0.21 });
     return main(a, s);
   };
   /** Des pieds nus (sous une robe) dans des sandales : geta (de bois, deux dents) ou zōri (plates). */
@@ -1533,6 +1535,8 @@ export function creerHeros(ctx, sorte = 'garcon') {
       return {
         haut: a, garde: ['bas', 'sac'],
         bras: (s) => { const b = atelier(); manche(b, 0.074, 0.086, 0.16, IND).cylindre(0.088, 0.088, 0.03, 12, BL, { y: -0.155 }).cylindre(0.043, 0.039, 0.15, 8, PEAU, { y: -0.222 }); return main(b, s); },
+        // (retroussées pour le shamisen : évasées, elles frôlaient les pattes de la cape du loup, sur la poitrine)
+        brasRetrousses: (s) => { const b = atelier(); manche(b, 0.072, 0.077, 0.11, IND).cylindre(0.079, 0.079, 0.026, 12, BL, { y: -0.103 }).cylindre(0.043, 0.039, 0.2, 8, PEAU, { y: -0.205 }); return main(b, s); },
       };
     },
     // le yukata d'été : bleu nuit à fleurs roses et blanches (la fille), indigo à fines rayures (le garçon) ; la ceinture
@@ -2062,7 +2066,7 @@ export function creerHeros(ctx, sorte = 'garcon') {
       // suivante. Les bras visent leur point : rotation.z = asin(dx), rotation.x = atan2(−dz, −dy) ; ils s'allongent ou raccourcissent d'un rien
       // (scale.y) pour que la main y soit juste ; les épaules un peu en avant)
       const shamisenEnMain = shamisenPorte && !danse && !geste && rame === null && !assis;
-      for (const br of bras) { br.scale.y = 1; br.position.z = 0; }
+      bras.forEach((br, i) => { br.scale.y = 1; br.position.set(i ? 0.205 : -0.205, 0.75, 0); });
       // (les manches d'un kimono, retroussées tant qu'on le tient)
       if (habitPorte?.retrousses.length) {
         for (const m of habitPorte.retrousses) m.visible = shamisenEnMain;
@@ -2085,6 +2089,7 @@ export function creerHeros(ctx, sorte = 'garcon') {
           coupPlectre = Math.max(0, coupPlectre - dt * 6);
           const viser = (br, cible) => {
             br.position.z = JEU_SHAMISEN.epaules;
+            br.position.x += Math.sign(br.position.x) * JEU_SHAMISEN.ecart;
             const d = visee.copy(cible).sub(br.position), k = d.length();
             d.divideScalar(k);
             br.rotation.z = Math.asin(Math.max(-1, Math.min(1, d.x)));
