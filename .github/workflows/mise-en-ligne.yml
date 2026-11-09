@@ -65,8 +65,6 @@ jobs:
       - id: deployment
         uses: actions/deploy-pages@v4
         continue-on-error: true
-        with:
-          artifact_name: ${{ contains(github.event.head_commit.message, '[essai-echec]') && 'inexistant' || 'github-pages' }}
 
       # GitHub Pages se bloque parfois (10 minutes d'attente, puis « Timeout ») et le commit reste bloqué ensuite :
       # on relance donc une fois, sur un commit vide tout neuf. Le passage est en échec, et GitHub prévient par mail,
@@ -77,6 +75,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELANCE: ${{ inputs.relance }}
         run: |
+          if [ "$RELANCE" = "essai" ]; then
+            echo "Essai : publication bloquée."
+            exit 0
+          fi
           if [ "$RELANCE" = "oui" ]; then
             echo "::error::GitHub Pages a bloqué deux fois de suite : le site reste sur sa version précédente."
             exit 1
