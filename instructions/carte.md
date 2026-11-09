@@ -701,6 +701,7 @@ The owner asked to reread the whole code and remove what is useless. Method, to 
 
 ## Gotchas
 
+- **A GitHub Pages deployment that times out blocks its commit (2026-11-09).** After an Actions outage, `deploy-pages` waited 10 minutes in `syncing_files`, then « Timeout reached » and cancelled. Pages names a deployment after the commit, so that commit cannot be deployed again: a new manual run of the same commit answers an empty status for 10 minutes and fails too. `gh run rerun` fails at once (« Multiple artifacts named github-pages »). The way out is a new commit. During the outage itself the runs have no job at all and `gh` blames « a workflow file issue »: check githubstatus.com before looking for a bug.
 - Photos hosted by Google My Maps cannot be shown cross-site (CORP), so they are kept as local files in `site/photos/`.
 - `color-relief` palette: many mobile GPUs read the filtered DEM texture as float16, so the sea (exactly 0 m) decodes to about −0.5 m. The palette stops are read exactly, though. So never put stops within about 1 m of 0: stops at ±0.02 m once turned the whole sea green on phones. Headless Edge screenshots (SwiftShader) cannot catch this, because they decode exactly.
 - Noto Sans JP renders `ō`/`ū` with a misplaced macron. `--police` therefore lists `Noto Sans` first for Latin text. The display face Zen Antique (`--police-titre`) renders them correctly.
