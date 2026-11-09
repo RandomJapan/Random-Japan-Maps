@@ -435,6 +435,8 @@ body.tactile .feuille { padding-bottom: calc(var(--bas) + 250px); }
 }
 .feuille-papier svg { display: block; width: 100%; height: auto; }
 .feuille-papier.photo-classe { background: #fdfcf6; transform: rotate(1.5deg); }
+/* (sur un téléphone, quatre réponses au-dessus de la boîte de dialogue : la feuille plus petite, sinon elle les cachait : le tableau des yeux de Tsubosaka) */
+body.tactile .feuille-papier.avec-choix { width: min(220px, 56vw, 26dvh); }
 
 /* l'appareil photo : la barre des cadres et des poses, le déclencheur, le flash, la carte postale faite */
 body.en-photo .joystick, body.en-photo .bouton-a, body.en-photo .aide, body.en-photo .bulle-action, body.en-photo .boutons-haut, body.en-photo .titre { display: none !important; }

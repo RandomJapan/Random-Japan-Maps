@@ -2959,7 +2959,7 @@ const jeu = {
   /** Est-on dans la barque ? */
   get enBarque() { return !!M.barque?.actif; },
   /** Un son : 'magie' (son.js), ou un son du bruitage ('pelle', 'boite'). */
-  son: (nom) => { if (nom === 'magie') son.magie(); else if (nom.startsWith('oiseau/')) M.bruitage.oiseau(nom.slice(7)); else M.bruitage.jouerSon(nom); },
+  son: (nom, o) => { if (nom === 'magie') son.magie(); else if (nom.startsWith('oiseau/')) M.bruitage.oiseau(nom.slice(7), o); else M.bruitage.jouerSon(nom, o); },
   /** Des mottes de terre jetées en (x, y, z), qui retombent à la hauteur sol. */
   terre: (x, y, z, sol, n) => M.effets.terre(x, y, z, sol, n),
   /** Un petit nuage « pouf » en x, y, z (taille s), et son bruit (2026-10-28 : le renard blanc de Motonosumi). */
