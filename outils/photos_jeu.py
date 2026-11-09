@@ -8,6 +8,7 @@ et note son auteur, sa licence et sa page dans site/data/photos-jeu.json (le jeu
 - Pour un lieu qui n'y est pas : la photo principale de son élément Wikidata (cherché par son nom japonais puis
   anglais), seulement s'il est à moins de 3 km du lieu (20 km pour une montagne, un lac, une île…).
 - Sans photo libre, le lieu n'est pas dans le jeu. Ajouter une photo dans le tableau suffit à l'y mettre.
+  Ou une image tirée de la vidéo du propriétaire, recadrée sans le nom, notée « maVideo » dans le JSON (ce script n'y touche pas).
 Seules les photos qui manquent sont cherchées (ou celles dont le CHOIX a changé) : la GitHub Action le lance chaque nuit.
 Lancer :  python outils/photos_jeu.py      (il faut Pillow)
 """
@@ -37,7 +38,7 @@ GRANDS = {"Mountains", "Lakes & Ponds", "Islands", "Coast & Beaches", "Nature & 
 LIBRE = re.compile(r"^(CC[ -]?(BY|0|zero)|Public domain|PD|GFDL|Attribution)", re.I)
 
 # Identifiant du lieu (slug du nom anglais) → fichier Commons choisi à la main.
-# Restés sans photo libre convenable : inariyama-shrine, takasumi-shrine, ryusho-falls, hakuryu-lake,
+# Sans photo libre convenable, donc une image de leur vidéo (maVideo) : inariyama-shrine, takasumi-shrine, ryusho-falls, hakuryu-lake,
 # ishiharadake-fort, nagoro-scarecrow-village, human-beach-nagase-walkway-etajima,
 # monkey-d-luffy-statue, ibuki-tree-art-sculpture.
 CHOIX = {

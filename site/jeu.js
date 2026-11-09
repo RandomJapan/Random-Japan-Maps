@@ -215,7 +215,7 @@ export function brancherJeu(map, maplibregl, outils) {
   function imageDe(l, credits) {
     const c = credits[video(l)];
     if (photo(l) && !c?.avantTableau) return { src: photo(l), credit: null };
-    return c ? { src: `photos/jeu/${video(l)}.jpg`, credit: c } : null;
+    return c ? { src: `photos/jeu/${video(l)}.jpg`, credit: c.maVideo ? null : c } : null; // une image de ses vidéos : rien à créditer
   }
 
   /** Cinq lieux au hasard, bien éloignés les uns des autres, qui ont une photo. */
