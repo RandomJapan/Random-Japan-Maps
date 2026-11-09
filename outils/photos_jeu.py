@@ -7,8 +7,9 @@ et note son auteur, sa licence et sa page dans site/data/photos-jeu.json (le jeu
   autour du point GPS, recherche par nom), vérifiées une à une : le bon lieu, reconnaissable, sans son nom écrit.
 - Pour un lieu qui n'y est pas : la photo principale de son élément Wikidata (cherché par son nom japonais puis
   anglais), seulement s'il est à moins de 3 km du lieu (20 km pour une montagne, un lac, une île…).
-- Sans photo libre, le lieu n'est pas dans le jeu. Ajouter une photo dans le tableau suffit à l'y mettre.
-  Ou une image tirée de la vidéo du propriétaire, recadrée sans le nom, notée « maVideo » dans le JSON (ce script n'y touche pas).
+- Chaque nouveau lieu reçoit une image de sa vidéo, recadrée sans le nom (« maVideo » dans le JSON) : la tâche Windows
+  de couvertures_montage.py la fait sur le PC du propriétaire, et ce script n'y touche pas. S'il passe avant elle, sa photo
+  Wikidata est notée « wikidata » : provisoire, l'image de la vidéo la remplacera.
 Seules les photos qui manquent sont cherchées (ou celles dont le CHOIX a changé) : la GitHub Action le lance chaque nuit.
 Lancer :  python outils/photos_jeu.py      (il faut Pillow)
 """
@@ -218,6 +219,8 @@ def main():
             continue
         if lieu["photo"]:
             credit["avantTableau"] = True
+        if not voulu:
+            credit["wikidata"] = True  # provisoire : remplacée par une image de la vidéo dès que le PC la fait
         credits[video] = credit
         nouvelles += 1
         print(f"  {lieu['id']} → {cible.name} ({cible.stat().st_size // 1024} Ko, {credit['licence']}, {credit['auteur']})")

@@ -22,7 +22,7 @@ const TROUVE_KM = 20; // plus près, le lieu est trouvé
 // De froid à brûlant : [plus loin que (km), clé du texte, carré à partager, couleur]
 const TEMPERATURES = [[400, 'froid', '🟦', '#4f7fa6'], [150, 'tiede', '🟨', '#c9971c'], [60, 'chaud', '🟧', '#d9622b'], [0, 'brulant', '🟥', '#a8321f']];
 const FLOU = [11, 8, 5.5, 3.5, 2, 0.8]; // px de flou de la photo avant chaque essai : de plus en plus nette
-const NOUVEAU_LIEU = 3; // jours : un lieu tout juste ajouté au tableau n'entre dans le défi qu'après (sa photo libre arrive la nuit)
+const NOUVEAU_LIEU = 3; // jours : un lieu tout juste arrivé n'entre dans le défi qu'après, le temps que son image soit en ligne
 const MEMO = 'defi'; // localStorage : la partie du jour { jour, essais: [{ lng, lat }], fini, envoye } (app.js le lit aussi)
 const MEMO_STATS = 'defiStats'; // { joues, trouves, serie, record, dernierTrouve, repartition: [en 1 essai … en 6, perdu] }
 const FLECHES = ['⬆️', '↗️', '➡️', '↘️', '⬇️', '↙️', '⬅️', '↖️'];
@@ -125,22 +125,34 @@ export function brancherDefi(map, maplibregl, outils) {
   }
 
   /**
-   * Le même lieu pour tous ce jour-là : les lieux qui ont une photo sont rangés dans un ordre tiré au sort (le même
-   * partout, d'après leur nom), et on en prend un par jour ; quand tous sont passés, un nouvel ordre commence.
-   * Un lieu ajouté depuis moins de NOUVEAU_LIEU jours attend : sinon le lieu du jour changerait dans la journée.
+   * Le même lieu pour tous ce jour-là. On rejoue les jours depuis le défi n° 1 : chaque jour, le premier lieu pas encore
+   * passé d'un ordre tiré au sort (le même partout, d'après leur nom), parmi ceux qui ont une photo et sont arrivés depuis
+   * plus de NOUVEAU_LIEU jours ; quand tous sont passés, un nouvel ordre commence.
+   * Un nouveau lieu ne change donc ni les jours passés ni le jour même : il prend place parmi les prochains.
+   * (Avec « jour % nombre de lieux », un lieu de plus chaque jour refaisait tomber le même lieu plusieurs jours de suite.)
    */
   function lieuDuJour(jour, credits) {
-    const limite = debutDuJour(debut, jour) - NOUVEAU_LIEU * 864e5;
-    const liste = lieux().filter((l) => imageDe(l, credits) && (!l.date || l.date.getTime() < limite));
-    const n = liste.length;
-    if (!n) return null;
-    const ordre = (tour) => liste.map((l) => ({ l, h: hachage(`${tour}:${l.id}`) }))
+    const liste = lieux().filter((l) => imageDe(l, credits));
+    const melange = (tour) => liste.map((l) => ({ l, h: hachage(`${tour}:${l.id}`) }))
       .sort((a, b) => a.h - b.h || (a.l.id < b.l.id ? -1 : 1)).map((x) => x.l);
-    const tour = Math.floor(jour / n);
-    const celuiCi = ordre(tour);
-    // le dernier lieu d'un tour et le premier du suivant ne tombent pas deux jours de suite
-    if (tour > 0 && n > 1 && celuiCi[0] === ordre(tour - 1)[n - 1]) [celuiCi[0], celuiCi[1]] = [celuiCi[1], celuiCi[0]];
-    return celuiCi[jour % n];
+    // « ajoute » : le jour où le robot a mis l'image de la vidéo, quand un lieu arrive sur la carte bien après sa vidéo
+    const arrivee = (l) => Math.max(l.date?.getTime() || 0, Date.parse(credits[video(l)]?.ajoute) || 0);
+    let tour = 0, ordre = melange(0), passes = new Set(), lieu = null;
+    for (let j = 0; j <= jour; j++) {
+      const limite = debutDuJour(debut, j) - NOUVEAU_LIEU * 864e5;
+      const ouverts = () => ordre.filter((l) => arrivee(l) < limite);
+      if (!ouverts().length) continue;
+      let possibles = ouverts().filter((l) => !passes.has(l));
+      if (!possibles.length) {
+        ordre = melange(++tour);
+        passes = new Set();
+        possibles = ouverts();
+        if (possibles.length > 1) possibles = possibles.filter((l) => l !== lieu); // pas le même deux jours de suite
+      }
+      lieu = possibles[0];
+      passes.add(lieu);
+    }
+    return lieu;
   }
 
   // ---- La partie
