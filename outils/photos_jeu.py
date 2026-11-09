@@ -38,7 +38,7 @@ LIBRE = re.compile(r"^(CC[ -]?(BY|0|zero)|Public domain|PD|GFDL|Attribution)", r
 
 # Identifiant du lieu (slug du nom anglais) → fichier Commons choisi à la main.
 # Restés sans photo libre convenable : inariyama-shrine, takasumi-shrine, ryusho-falls, hakuryu-lake,
-# ishiharadake-fort, nagoro-scarecrow-village, iiyama-snow-festival, human-beach-nagase-walkway-etajima,
+# ishiharadake-fort, nagoro-scarecrow-village, human-beach-nagase-walkway-etajima,
 # monkey-d-luffy-statue, ibuki-tree-art-sculpture.
 CHOIX = {
     "ghibli-park": "File:Satsuki and Mei’s House from observation platform - 1.jpg",
@@ -69,8 +69,8 @@ CHOIX = {
     "kuroshima-church": "File:Kuroshima Church 20241030.jpg",
     "saiko-iyashi-no-sato-nenba": "File:Iyashinosato village 04.jpg",
     "yakushima": "File:Jhomonsugi in Yaku Island Japan 001.JPG",
-    "sendai-daikannon": "File:Sendai Daikannon (1870523730).jpg",
-    "iwami-ginzan-silver-mine": "File:180504 Shimizudani Refinery Ruins of Iwami Ginzan Silver Mine Oda Shimane pref Japan03s.jpg",
+    "sendai-daikannon": "File:SendaiDaikannon.jpg",
+    "iwami-ginzan-silver-mine": "File:Iwami Silver Mine Ryugenji Tunnel 001.jpg",
     "yuushien-garden": "File:140426 Yuushien Matsue Shimane pref Japan00b5s3.jpg",
     "hotel-iya-onsen": "File:ほぼ、秘境の温泉行き - panoramio.jpg",
     "pl-peace-tower": "File:Dai Heiwa Kinen Tō (Osaka Tondabayashi) Peace tower hdsr S5 03.jpg",
@@ -98,6 +98,21 @@ CHOIX = {
     "tozan-shrine": "File:Ceramic torii of Sueyama Shrine.jpg",
     "takaya-shrine": "File:Takayazinzya 02.jpg",
     "dogo-onsen-annex-asuka-no-yu": "File:【改】外観（昼②）asukanoyu go 12.jpg",
+    # 2026-11-09 : des photos qui montrent mieux le lieu (Wikidata donnait des avions de guerre pour Iwo Jima,
+    # la gare du lac Kurobe avec son nom écrit en grand), puis les nouveaux lieux de la carte.
+    "iwo-jima": "File:Iwo Jima Suribachi DN-SD-03-11845.JPEG",
+    "lake-kurobe": "File:Kurobe Dam - panoramio.jpg",
+    "koboyama-tumulus": "File:Koboyama Kofun enkei.JPG",
+    "izushi-castle-ruins": "File:Izushi castle09s4592.jpg",
+    "kabushima-shrine": "File:蕪嶋神社の風景20210403-P1170273.jpg",  # passe avant la photo du tableau, où son nom se lit sur une stèle
+    "echizen-daibutsu": "File:Main hall of Seidai-ji.jpg",
+    "fudo-falls": "File:Tsuketikyo hudotaki.jpg",
+    "yushun-sakura-road": "File:二十間道路櫻並木.jpg",
+    "toyokoro-ice-beach": "File:Jewelry-Ice.jpg",
+    "ghost-bridge": "File:Hokkaido-(Japanese National Railway Shihoro line) Taushubetsu River Bridge -m.jpg",
+    "taiyo-park": "File:Taiyo park Opening day 04.jpg",
+    "higashiyoshiwara": "File:Maizuru Yoshihara 2019-05 ac (7).jpg",
+    "iiyama-snow-festival": "File:福寿町雪像.jpg",
 }
 
 
@@ -183,7 +198,7 @@ def main():
     nouvelles = sans = 0
     for lieu in lire_lieux():
         video = lieu["video"]
-        if lieu["photo"] or not video:
+        if not video or (lieu["photo"] and lieu["id"] not in CHOIX):  # un CHOIX passe avant la photo du tableau, pour le jeu seulement
             continue
         cible = DOSSIER / f"{video}.jpg"
         voulu = CHOIX.get(lieu["id"])
@@ -200,6 +215,8 @@ def main():
             sans += 1
             print(f"  {lieu['id']} : pas de photo libre")
             continue
+        if lieu["photo"]:
+            credit["avantTableau"] = True
         credits[video] = credit
         nouvelles += 1
         print(f"  {lieu['id']} → {cible.name} ({cible.stat().st_size // 1024} Ko, {credit['licence']}, {credit['auteur']})")

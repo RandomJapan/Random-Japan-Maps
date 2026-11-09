@@ -119,8 +119,8 @@ export function brancherDefi(map, maplibregl, outils) {
   // ---- Le lieu du jour
   /** La photo d'un lieu : { src, credit } (credit = null pour une photo du tableau), ou null (pas dans le défi). */
   function imageDe(l, credits) {
-    if (photo(l)) return { src: photo(l), credit: null };
     const c = credits[video(l)];
+    if (photo(l) && !c?.avantTableau) return { src: photo(l), credit: null };
     return c ? { src: `photos/jeu/${video(l)}.jpg`, credit: c } : null;
   }
 
