@@ -57,9 +57,9 @@ const ICONES = {
  *            prefecture(lieu) → Promise du numéro de sa préfecture, langue() → 'en' | 'fr' | 'ja',
  *            vueDepart(), estTelephone(), afficherMessage(texte), adresse, avant(),
  *            amis (amis.js, ou null sans serveur), partager(texte) → partage (téléphone) ou copie (ordinateur) }
- * Les photos : celle du tableau, sinon une photo libre de Wikimedia Commons copiée par outils/photos_jeu.py
- * (photos/jeu/<numéro de la vidéo>.jpg ; auteur et licence dans data/photos-jeu.json). Un lieu sans photo
- * n'est pas dans le jeu.
+ * Les photos : une image de la vidéo du lieu (photos/jeu/<numéro de la vidéo>.jpg, outils/couvertures_montage.py) ;
+ * si sa vidéo n'est pas sur le PC, la photo du tableau ou une photo libre de Wikimedia Commons (outils/photos_jeu.py,
+ * auteur et licence dans data/photos-jeu.json). Un lieu sans photo n'est pas dans le jeu.
  */
 export function brancherJeu(map, maplibregl, outils) {
   const { t, enLangue, infos, lieux, reperes, modeles3d, photo, video, prefecture, langue, vueDepart, estTelephone,

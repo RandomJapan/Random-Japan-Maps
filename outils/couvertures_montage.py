@@ -16,8 +16,9 @@ celles que le propriétaire a demandées dans Vignettes.txt.
 
 L'image du jeu (demandé par le propriétaire le 2026-11-09 : « tous les lieux dans le jeu à chaque fois ») est la plus belle
 image de la vidéo, recadrée en 5:4 sous l'étiquette du nom, sur laquelle l'OCR de Windows ne lit aucun texte. Elle va dans
-site/photos/jeu/<numéro de la vidéo>.jpg, notée « maVideo » dans site/data/photos-jeu.json. Un lieu qui a une photo dans le
-tableau, ou une photo choisie à la main (photos_jeu.py), n'en a pas besoin.
+site/photos/jeu/<numéro de la vidéo>.jpg, notée « maVideo » dans site/data/photos-jeu.json. Elle remplace dans le jeu toute
+image venue d'ailleurs (« tous les lieux où on a utilisé les images de Wikipédia ou d'Internet ») ; une photo du tableau
+reste sur la fiche du lieu (« avantTableau » : pour le jeu seulement).
 
 À la main :  python outils/couvertures_montage.py                   (tous les lieux sans couverture)
              python outils/couvertures_montage.py "Lake Kagami=31.5"  (cette image-là pour ce lieu)
@@ -262,36 +263,48 @@ def textes_lus(images):
     return [lus[c] for c in chemins] if all(c in lus for c in chemins) else None
 
 
+def versions_a_lire(im):
+    """L'image telle quelle (petits textes), réduite de moitié (l'OCR ne lit pas les grands titres en pleine taille),
+    et son blanc seul (un titre blanc sur un décor chargé). Essayé sur 11 titres ratés et 12 images sans texte : tous lus, aucune fausse alerte."""
+    blanc = (np.asarray(im).min(axis=2) > 185).astype(np.uint8) * 255
+    return [im, im.resize((im.width // 2, im.height // 2), Image.LANCZOS), Image.fromarray(blanc).convert("RGB")]
+
+
+def a_un_mot(texte):
+    """Un mot d'au moins 4 lettres (sur une texture, l'OCR invente parfois « Wm » ou « .41 »)."""
+    return any(sum(c.isalpha() for c in mot) >= 4 for mot in texte.split())
+
+
 def image_du_jeu(video):
-    """(image, instant) : la plus belle image sur laquelle on ne lit aucun mot (l'OCR invente parfois « Wm » ou « .41 »)."""
+    """(image, instant) : la plus belle image sur laquelle on ne lit aucun mot."""
     cadres = cadres_du_jeu(video)
     images = [cadre_du_jeu(video, t, haut) for t, haut in cadres]
-    textes = textes_lus(images)
-    if textes is None:
+    n = len(versions_a_lire(images[0]))
+    lus = textes_lus([v for im in images for v in versions_a_lire(im)])
+    if lus is None:
         print(f"  {video.name} : l'OCR de Windows n'a pas répondu, on garde la plus belle image")
         return images[0], cadres[0][0]
-    for im, (t, _), texte in zip(images, cadres, textes):
-        if not any(sum(c.isalpha() for c in mot) >= 4 for mot in texte.split()):
+    for i, (im, (t, _)) in enumerate(zip(images, cadres)):
+        if not a_un_mot(" ".join(lus[i * n: (i + 1) * n])):
             return im, t
     print(f"  {video.name} : du texte sur toutes les images essayées, on garde la plus belle")
     return images[0], cadres[0][0]
 
 
 def images_du_jeu(notes, fichiers, noms_du_tableau, tout_seul):
-    """Fait l'image des lieux de la carte qui n'en ont pas dans le jeu. Renvoie les lieux faits et ceux sans vidéo trouvée.
-    Elle remplace une photo Wikidata prise en attendant (photos_jeu.py, « wikidata »), jamais une photo choisie à la main."""
+    """Fait l'image de tous les lieux de la carte qui n'ont pas encore dans le jeu une image de leur vidéo.
+    Renvoie les lieux faits et ceux sans vidéo trouvée (ils gardent l'image qu'ils avaient)."""
     credits = json.loads(CREDITS_JEU.read_text(encoding="utf-8")) if CREDITS_JEU.exists() else {}
     faites, sans_video = [], []
     for lieu in lire_lieux():
         numero, nom = lieu["video"], lieu["nom"]["en"]
         deja = credits.get(numero)
         cible = DOSSIER_JEU / f"{numero}.jpg"
-        if not numero or lieu["photo"] or (deja and not deja.get("wikidata") and cible.exists()):
+        if not numero or (deja and deja.get("maVideo") and cible.exists()):
             continue
         fichier = notes.get(numero, {}).get("video")  # un nom de fichier donné à la main pour sa couverture
         video = VIDEOS_LIEUX / fichier if fichier else trouver_video(nom, fichiers, noms_du_tableau - {cle(nom)})
         if not video or not video.exists():
-            print(f"  {nom} : pas de vidéo pour son image du jeu")
             sans_video.append((numero, nom))
             continue
         if tout_seul and time.time() - video.stat().st_mtime < REPOS_FICHIER:
@@ -303,13 +316,16 @@ def images_du_jeu(notes, fichiers, noms_du_tableau, tout_seul):
             continue
         image.thumbnail((JEU_COTE, JEU_COTE), Image.LANCZOS)
         image.save(cible, "JPEG", quality=80, optimize=True, progressive=True)
-        credits[numero] = {"fichier": f"Vidéo {video.name} à {instant:.1f} s", "maVideo": True,
-                           "ajoute": time.strftime("%Y-%m-%d", time.gmtime())}  # le défi du jour attend à partir de ce jour
+        credits[numero] = {"fichier": f"Vidéo {video.name} à {instant:.1f} s", "maVideo": True}
+        if lieu["photo"]:
+            credits[numero]["avantTableau"] = True  # la photo du tableau reste sur la fiche du lieu
+        if not lieu["photo"] and (not deja or deja.get("wikidata")):  # un lieu qui n'avait pas d'image : le défi du jour attend à partir de ce jour
+            credits[numero]["ajoute"] = time.strftime("%Y-%m-%d", time.gmtime())
         faites.append(nom)
         print(f"  {nom} : image du jeu à {instant:.1f} s de {video.name} -> {cible.name}")
     if faites:
         CREDITS_JEU.write_text(json.dumps(dict(sorted(credits.items())), ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
-    print(f"{len(faites)} image(s) du jeu faite(s) depuis le montage")
+    print(f"{len(faites)} image(s) du jeu faite(s) depuis le montage" + (f" ; sans vidéo : {', '.join(n for _, n in sans_video)}" if sans_video else ""))
     return faites, sans_video
 
 
