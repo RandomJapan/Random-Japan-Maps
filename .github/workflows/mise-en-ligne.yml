@@ -66,23 +66,20 @@ jobs:
         uses: actions/deploy-pages@v4
         continue-on-error: true
 
-      # GitHub Pages se bloque parfois (10 minutes d'attente, puis « Timeout ») et le commit reste bloqué ensuite :
-      # on relance donc une fois, sur un commit vide tout neuf. Le passage est en échec, et GitHub prévient par mail,
-      # seulement si la relance échoue aussi. (Un commit poussé avec ce jeton ne déclenche rien : il faut demander le passage.)
+      # GitHub Pages se bloque parfois (10 minutes d'attente, puis « Timeout »), pendant 25 à 35 minutes d'affilée :
+      # on attend 30 minutes et on relance une fois, sur un commit vide tout neuf. Le passage est en échec, et GitHub
+      # prévient par mail, seulement si la relance échoue aussi. (Un commit poussé avec ce jeton ne déclenche rien : il faut demander le passage.)
       - name: Relance si GitHub Pages a bloqué
         if: steps.deployment.outcome == 'failure'
         env:
           GH_TOKEN: ${{ github.token }}
           RELANCE: ${{ inputs.relance }}
         run: |
-          if [ "$RELANCE" = "essai" ]; then
-            echo "Essai : publication bloquée."
-            exit 0
-          fi
           if [ "$RELANCE" = "oui" ]; then
             echo "::error::GitHub Pages a bloqué deux fois de suite : le site reste sur sa version précédente."
             exit 1
           fi
+          sleep 1800
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit --allow-empty -m "Relance de la mise en ligne (GitHub Pages a bloqué)"
