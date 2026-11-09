@@ -5,6 +5,7 @@
 #   et dessine le contour des villes que le robot du tableau a ajoutées)
 # - à chaque fois : fabrique les pages des lieux (outils/fabriquer_pages.py)
 # - à la main : onglet « Actions » de GitHub > « Mise en ligne » > « Run workflow »
+# - si GitHub Pages bloque : une relance toute seule, voir la dernière étape
 name: Mise en ligne
 
 on:
@@ -13,8 +14,13 @@ on:
   schedule:
     - cron: "17 3 * * *"
   workflow_dispatch:
+    inputs:
+      relance:
+        description: "À laisser vide (le robot y met « oui » quand il relance après un blocage de GitHub Pages)"
+        required: false
 
 permissions:
+  actions: write
   contents: write
   pages: write
   id-token: write
@@ -58,3 +64,28 @@ jobs:
           path: site
       - id: deployment
         uses: actions/deploy-pages@v4
+        continue-on-error: true
+        with:
+          artifact_name: ${{ contains(github.event.head_commit.message, '[essai-echec]') && 'inexistant' || 'github-pages' }}
+
+      # GitHub Pages se bloque parfois (10 minutes d'attente, puis « Timeout ») et le commit reste bloqué ensuite :
+      # on relance donc une fois, sur un commit vide tout neuf. Le passage est en échec, et GitHub prévient par mail,
+      # seulement si la relance échoue aussi. (Un commit poussé avec ce jeton ne déclenche rien : il faut demander le passage.)
+      - name: Relance si GitHub Pages a bloqué
+        if: steps.deployment.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELANCE: ${{ inputs.relance }}
+        run: |
+          if [ "$RELANCE" = "oui" ]; then
+            echo "::error::GitHub Pages a bloqué deux fois de suite : le site reste sur sa version précédente."
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit --allow-empty -m "Relance de la mise en ligne (GitHub Pages a bloqué)"
+          if git push; then
+            gh workflow run mise-en-ligne.yml --ref main -f relance=oui
+          else
+            echo "Un commit plus récent est arrivé : sa propre mise en ligne s'en charge."
+          fi
