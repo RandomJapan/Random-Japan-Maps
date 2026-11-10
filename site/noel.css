@@ -1,0 +1,138 @@
+/* Noël sur la carte (noel.js) : le bonnet rouge des épingles, le bouton et le panneau du calendrier de l'Avent.
+   Chargée seulement pendant l'événement. Les couleurs des sortes de cadeaux : boutique (rouge), à télécharger
+   (bleu-vert), balade 3D (ocre), sur la carte (violet). */
+:root {
+  --k-boutique: var(--rouge);
+  --k-telecharger: var(--sarcelle);
+  --k-balade: #8c5f0e;
+  --k-carte: #57468a;
+}
+
+/* ---------- Les épingles portent un bonnet de Père Noël (sauf de loin, en petits points) ---------- */
+body.noel .repere-tete::after {
+  content: ""; position: absolute; left: calc(-4px * var(--t)); top: calc(-17px * var(--t));
+  width: calc(28px * var(--t)); height: calc(24px * var(--t)); pointer-events: none; transform: rotate(-14deg);
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 34'%3E%3Cpath d='M8.5 26C11.5 18 15.6 9.6 23.4 5.6 27.8 3.4 32.6 5 34.2 9.8 30.6 9.4 27.6 12.4 26.6 18.2L27.6 26Z' fill='%23b8261c' stroke='%236e140e' stroke-width='.9' stroke-linejoin='round'/%3E%3Cpath d='M16 21C18 15 20.6 10.6 24.6 7.8' stroke='%23d9493a' stroke-width='1.2' fill='none' stroke-linecap='round'/%3E%3Crect x='5' y='23.6' width='27' height='6.4' rx='3.2' fill='%23f7f1e4' stroke='%23b3a58e' stroke-width='.8'/%3E%3Ccircle cx='34.6' cy='10.6' r='3.7' fill='%23f7f1e4' stroke='%23b3a58e' stroke-width='.8'/%3E%3C/svg%3E") center / contain no-repeat;
+  filter: drop-shadow(0 1px 1px rgba(30, 20, 10, .4));
+}
+body.noel .repere-tete > .repere-nouveau, body.noel .repere-tete > .repere-coeur { z-index: 1; }
+body.noel #carte.loin .repere-tete::after { width: auto; height: auto; background: none; transform: none; filter: none; }
+
+/* ---------- Le bouton : un cadeau, et un point rouge tant que la case du jour n'est pas ouverte ---------- */
+.bouton-noel[hidden] { display: none; }
+.bouton-noel { position: relative; }
+.bouton-noel .cadeau { color: var(--rouge); }
+.bouton-noel.a-ouvrir::after {
+  content: ""; position: absolute; top: -3px; right: -3px; width: 10px; height: 10px; border-radius: 50%;
+  background: var(--rouge); box-shadow: 0 0 0 2px var(--papier);
+}
+
+/* ---------- Le panneau ---------- */
+.noel-panneau { max-width: 380px; }
+.noel-tete { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 12px; }
+.noel-tete > svg { width: 26px; height: 26px; color: var(--rouge); flex: none; margin-top: 2px; }
+.noel-tete .hasard-titre { margin: 0; }
+.noel-sous { margin: 2px 0 0; font-family: var(--police-carte); font-style: italic; font-size: 15px; color: var(--encre-douce, #6a5540); }
+
+.noel-portes { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 7px; }
+.noel-portes .porte {
+  position: relative; aspect-ratio: 1; perspective: 400px; border: 0; padding: 0; margin: 0; background: none;
+  cursor: pointer; font: inherit; color: var(--encre);
+}
+.noel-portes .porte.grande { grid-column: span 2; aspect-ratio: auto; }
+.porte[data-k="boutique"] { --k: var(--k-boutique); }
+.porte[data-k="telecharger"] { --k: var(--k-telecharger); }
+.porte[data-k="balade"] { --k: var(--k-balade); }
+.porte[data-k="carte"] { --k: var(--k-carte); }
+.porte .dedans, .porte .battant { position: absolute; inset: 0; border-radius: 2px; display: grid; place-items: center; }
+.porte .dedans {
+  background: color-mix(in srgb, var(--k) 16%, var(--papier-clair)); color: var(--k);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--k) 40%, transparent);
+}
+.porte .dedans svg { width: 22px; height: 22px; }
+.porte .num-petit { position: absolute; top: 2px; left: 5px; font-family: var(--police-titre); font-size: 11.5px; color: var(--encre); opacity: .75; }
+.porte .battant {
+  background: var(--papier-clair); background-image: var(--grain);
+  box-shadow: inset 0 0 0 2px var(--papier-clair), inset 0 0 0 3px color-mix(in srgb, var(--trait) 50%, transparent), 0 1px 2px rgba(52, 36, 18, .25);
+  transform-origin: left center; transition: transform .55s cubic-bezier(.16, 1, .3, 1), opacity .55s;
+  backface-visibility: hidden;
+}
+.porte .num { font-family: var(--police-titre); font-size: 21px; line-height: 1; }
+.porte.grande .num { font-size: 26px; }
+.porte .num::after { content: ""; display: block; width: 8px; height: 8px; margin: 5px auto 0; background: var(--rouge); opacity: .85; transform: rotate(45deg); }
+.porte.ouverte .battant { transform: rotateY(-105deg); opacity: 0; pointer-events: none; }
+.porte.choisie .dedans { box-shadow: inset 0 0 0 2px var(--k); }
+.porte.a-cle { cursor: default; }
+.porte.a-cle .battant { opacity: .5; }
+.porte.a-cle .num::after { display: none; }
+.porte.du-jour .battant { box-shadow: inset 0 0 0 2px var(--papier-clair), inset 0 0 0 3px var(--rouge), 0 0 0 2px color-mix(in srgb, var(--rouge) 35%, transparent); }
+@media (hover: hover) {
+  .porte:not(.a-cle):not(.ouverte):hover .battant { transform: rotateY(-16deg); }
+}
+.porte:focus-visible { outline: 3px solid var(--sarcelle); outline-offset: 2px; }
+
+/* le mode développeur : le jour simulé */
+.noel-dev { margin-top: 12px; padding-top: 10px; border-top: 1px dashed color-mix(in srgb, var(--trait) 60%, transparent); display: grid; gap: 6px; font-size: 13px; }
+.noel-dev label { display: flex; justify-content: space-between; gap: 8px; }
+.noel-dev output { font-weight: 700; color: var(--rouge); }
+.noel-dev input { width: 100%; accent-color: var(--rouge); }
+.noel-dev p { margin: 0; color: var(--encre-douce, #6a5540); font-size: 12px; }
+
+/* la case ouverte */
+.noel-case { --k: var(--encre); margin-top: 14px; padding-top: 12px; border-top: 1px solid color-mix(in srgb, var(--trait) 45%, transparent); display: grid; gap: 10px; }
+.noel-case[data-k="boutique"] { --k: var(--k-boutique); }
+.noel-case[data-k="telecharger"] { --k: var(--k-telecharger); }
+.noel-case[data-k="balade"] { --k: var(--k-balade); }
+.noel-case[data-k="carte"] { --k: var(--k-carte); }
+.noel-case > p { margin: 0; }
+.noel-case h3 { margin: 0; font-family: var(--police-titre); font-weight: 400; font-size: 20px; line-height: 1.25; text-wrap: balance; }
+.noel-date { font-family: var(--police-titre); font-size: 14px; color: var(--encre-douce, #6a5540); }
+.noel-sorte {
+  justify-self: start; display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px 2px 6px; border-radius: 99px;
+  font-size: 12.5px; font-weight: 600; color: var(--k); background: color-mix(in srgb, var(--k) 13%, var(--papier-clair));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--k) 35%, transparent);
+}
+.noel-sorte svg { width: 14px; height: 14px; }
+.noel-bloc { display: grid; gap: 2px; padding: 9px 11px; background: color-mix(in srgb, var(--papier-clair) 75%, transparent); box-shadow: inset 3px 0 0 color-mix(in srgb, var(--trait) 60%, transparent); border-radius: 2px; }
+.noel-etiquette { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; font-weight: 700; color: var(--encre-douce, #6a5540); }
+.noel-lieu { font-family: var(--police-titre); font-size: 17px; }
+.noel-aller { justify-self: start; margin-top: 3px; padding: 0; border: 0; background: none; font: 600 13.5px var(--police); color: var(--sarcelle); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.noel-preparation { margin: 0; padding: 7px 10px; font-size: 12.5px; background: color-mix(in srgb, var(--rouge) 8%, transparent); border: 1px dashed color-mix(in srgb, var(--rouge) 45%, transparent); border-radius: 2px; }
+
+/* case 1 : le prénom en japonais */
+.noel-prenom { display: grid; grid-template-columns: minmax(0, 1fr) 104px; gap: 8px 12px; align-items: start; }
+.noel-prenom > .btn-lancer { grid-column: 1 / -1; }
+.noel-champ { display: grid; gap: 4px; }
+.noel-champ label { font-size: 13px; font-weight: 600; }
+.noel-champ input { font: 16px var(--police); padding: 8px 10px; border: 0; border-radius: 2px; background: var(--papier-clair); color: var(--encre); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--trait) 70%, transparent); min-width: 0; }
+.noel-champ small { font-size: 11.5px; color: var(--encre-douce, #6a5540); }
+.noel-telephone { width: 104px; aspect-ratio: 9 / 19.5; border-radius: 16px; overflow: hidden; box-shadow: 0 0 0 4px #1d1814, 0 2px 8px rgba(40, 26, 12, .35); margin: 4px; }
+.noel-papier { position: relative; height: 100%; background-color: #ece0d0; background-image: var(--grain); display: grid; justify-items: center; align-content: center; gap: 5px; padding-top: 30%; }
+.noel-kata { font-family: "Inkami Pinceau", serif; color: #15100e; writing-mode: vertical-rl; text-orientation: upright; line-height: 1; white-space: nowrap; }
+.noel-latin { font: 600 6.5px/1 var(--police); letter-spacing: .3em; color: #15100e; text-transform: uppercase; }
+.noel-sceau { position: absolute; bottom: 6%; right: 8%; width: 17px; transform: rotate(-4deg); }
+.noel-adresse { position: absolute; bottom: 5%; left: 9%; font: 600 4.5px/1 var(--police); letter-spacing: .12em; color: #15100e; opacity: .6; }
+
+/* case 20 : le fond d'écran de la nuit de Noël */
+.noel-fond { display: grid; justify-items: center; gap: 10px; }
+.noel-fond img { width: 150px; height: auto; border-radius: 14px; box-shadow: 0 0 0 4px #1d1814, 0 2px 8px rgba(40, 26, 12, .35); }
+.noel-fond .btn-lancer { width: 100%; }
+
+/* les cases de la boutique Inkami */
+.noel-code { display: grid; gap: 8px; }
+.noel-code-ligne { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0; }
+.noel-code-texte { font: 700 15px/1 ui-monospace, Consolas, monospace; letter-spacing: .08em; color: var(--rouge); padding: 7px 10px; border: 2px dashed color-mix(in srgb, var(--rouge) 65%, transparent); border-radius: 2px; }
+.noel-boutique { text-decoration: none; text-align: center; }
+
+@font-face { font-family: "Inkami Pinceau"; src: url("noel/inkami-pinceau.woff2") format("woff2"); font-display: swap; }
+
+@media (prefers-reduced-motion: reduce) {
+  .porte .battant { transition: none; }
+}
+
+/* la case du menu du téléphone : le même point rouge */
+#menu-noel { position: relative; }
+#menu-noel.a-ouvrir::after {
+  content: ""; position: absolute; top: 6px; right: 8px; width: 10px; height: 10px; border-radius: 50%;
+  background: var(--rouge); box-shadow: 0 0 0 2px var(--papier);
+}

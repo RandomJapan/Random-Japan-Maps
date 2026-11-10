@@ -1191,6 +1191,9 @@ function ouvrirMenuMobile(ouvrir) {
   $('menu-halloween').hidden = $('btn-halloween').hidden;
   $('menu-txt-halloween').textContent = $('txt-halloween').textContent;
   $('menu-compteur-halloween').textContent = $('compteur-halloween').textContent;
+  $('menu-noel').hidden = $('btn-noel').hidden;
+  $('menu-txt-noel').textContent = $('txt-noel').textContent;
+  $('menu-noel').classList.toggle('a-ouvrir', $('btn-noel').classList.contains('a-ouvrir'));
   $('menu-musique').classList.toggle('joue', $('btn-musique').classList.contains('joue'));
 }
 
@@ -1208,6 +1211,7 @@ const PANNEAUX = {
   'panneau-saisons': ['btn-saisons', ouvrirSaisons],
   'panneau-musique': ['btn-musique', ouvrirMusique],
   'panneau-halloween': ['btn-halloween', ouvrirHalloween],
+  'panneau-noel': ['btn-noel', ouvrirNoel],
   'panneau-menu': ['btn-menu-mobile', ouvrirMenuMobile],
 };
 
@@ -1277,6 +1281,45 @@ function ouvrirHalloween(ouvrir) {
   if (!ouvrir) return;
   fermerPanneaux('panneau-halloween');
   halloween?.then((h) => h?.remplirPanneau());
+}
+
+// ---------------------------------------------------------------- Noël (noel.js)
+// Le calendrier de l'Avent : du CONFIG.noel.debut à minuit la veille de .fin (heure de l'appareil), seulement en mode
+// développeur tant que .public est faux ; le mode développeur le voit aussi avant le début, pour le préparer.
+let noel = null; // la promesse du module branché
+
+function noelVoulu() {
+  const n = CONFIG.noel;
+  if (!n || ambiance.classique) return false; // pas dans les films promo (?ambiance=non)
+  const maintenant = Date.now();
+  if (maintenant >= new Date(`${n.fin}T00:00`).getTime()) return false;
+  if (document.body.classList.contains('mode-dev')) return true;
+  return n.public && maintenant >= new Date(`${n.debut}T00:00`).getTime();
+}
+
+function majNoel() {
+  const voulu = noelVoulu();
+  if (!voulu && !noel) return;
+  noel ??= import('./noel.js')
+    .then(({ brancherNoel }) => brancherNoel({
+      langue: () => langue, afficherMessage, lieux: () => lieux, allerAuLieu, enLangue,
+      fermerPanneau: () => ouvrirNoel(false), estDev: () => document.body.classList.contains('mode-dev'), config: CONFIG.noel,
+    }))
+    .catch((e) => { console.warn('Noël indisponible', e); noel = null; });
+  noel.then((n) => {
+    if (!n) return;
+    if (noelVoulu()) { n.allumer(); n.majPoint(); } // le point rouge change à minuit, même la page ouverte
+    else n.eteindre();
+  });
+}
+
+/** Le panneau du calendrier de l'Avent : les 24 cases, et sous elles la case ouverte. */
+function ouvrirNoel(ouvrir) {
+  $('panneau-noel').hidden = !ouvrir;
+  $('btn-noel').setAttribute('aria-expanded', String(ouvrir));
+  if (!ouvrir) return;
+  fermerPanneaux('panneau-noel');
+  noel?.then((n) => n?.remplirPanneau());
 }
 
 // ---------------------------------------------------------------- Lieu au hasard (le dé)
@@ -1845,6 +1888,7 @@ function basculerDev(actif) {
     ambianceCarte?.reel(); // la date et l'heure choisies dans le réglage reviennent au vrai moment
   }
   if (ambianceCarte) majHalloween(); // l'événement d'Halloween, tant qu'il n'est que pour le mode développeur
+  if (ambianceCarte) majNoel(); // le calendrier de l'Avent, de même
 }
 
 function majBoutonDev() {
@@ -2551,6 +2595,7 @@ function appliquerLangue() {
   legendes?.majLangue();
   villes?.langue();
   halloween?.then((h) => h?.majLangue());
+  noel?.then((n) => n?.majLangue());
   nomsRegions.majLangue(langue);
   compteur?.majLangue();
   ambianceCarte?.majLangue();
@@ -2795,6 +2840,8 @@ async function demarrer() {
     if (!location.hash.startsWith('#ville-')) setTimeout(() => chargerVilles().catch(() => {}), 1200);
     setTimeout(majHalloween, 1700);
     setInterval(majHalloween, 60000); // l'événement s'arrête à minuit, même la page ouverte
+    setTimeout(majNoel, 1800);
+    setInterval(majNoel, 60000);
     if (lienVoyage) setTimeout(() => recevoirVoyage(lienVoyage), 300);
     if (liensJeu) setTimeout(() => lancerJeu(liensJeu).catch((e) => console.warn('Jeu indisponible', e)), 400);
     else if (lienDefi) setTimeout(() => lancerDefi().catch((e) => console.warn('Défi indisponible', e)), 400);

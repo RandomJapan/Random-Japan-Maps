@@ -156,6 +156,17 @@ Pendant l'événement, la carte se déguise :
 
 Pour voir le défilé ou les feux follets de jour, passe la carte en nuit avec le bouton soleil/lune à côté de l'heure.
 
+## Noël : le calendrier de l'Avent (en préparation, mode développeur)
+
+Du 1er au 24 décembre, une case s'ouvre chaque jour (à minuit chez chaque visiteur). On peut ouvrir les cases des jours passés. Chaque case donne un cadeau, emmène vers un lieu d'hiver de ta carte, ajoute une décoration et raconte une coutume japonaise (« Le savais-tu ? »). C'est la maquette que tu as validée le 10 novembre 2026.
+- Le bouton **Calendrier** (un cadeau) a un point rouge tant que la case du jour n'est pas ouverte. Sur téléphone, il est en haut à droite et dans le Menu.
+- Les épingles des lieux portent un **bonnet de Père Noël**.
+- **Déjà prêts :** la case 1 (« Ton prénom en japonais » : on tape son prénom, il s'écrit en katakana avec le pinceau de la boutique Inkami, et on télécharge un fond d'écran avec le sceau) et la case 20 (un fond d'écran de tout le Japon la nuit de Noël, fait avec ta carte).
+- **Les autres cadeaux** affichent « En préparation » (en mode développeur seulement). Ils seront faits un par un avant décembre.
+- **Les cases de la boutique Inkami** (4, 7, 10, 17 et 21) montrent un code d'exemple et un lien vers la boutique. Les vrais codes seront créés dans Shopify avec ton accord.
+- **Pour l'essayer maintenant :** passe en mode développeur. Le calendrier se voit déjà, comme si on était le 24 décembre. Une réglette « Jour simulé » montre comment il se présente un autre jour. Les cases ouvertes pendant ces essais sont gardées à part : ton vrai calendrier restera tout neuf le 1er décembre.
+- Le réglage `noel` de `config.js` : `public: false` = seulement en mode développeur ; `true` = pour tout le monde, du 1er décembre au 25 décembre au soir.
+
 ## Les grues
 
 Quand on zoome sur la carte, **trois grues du Japon** (blanches, à tête rouge) passent de temps en temps au-dessus d'un coin de la carte, dans une direction au hasard. Elles volent à hauteur fixe, un peu au-dessus des sommets ; leur ombre, elle, suit le relief en dessous. Si on déplace, tourne ou zoome la carte pendant leur vol, elles suivent la carte. Le premier vol arrive quelques secondes après avoir zoomé, puis un autre toutes les 25 à 60 secondes environ. Il n'y en a pas pendant un plongeon ni pendant le jeu.

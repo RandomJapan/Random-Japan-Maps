@@ -57,6 +57,13 @@ export const CONFIG = {
   // public: false → seulement en mode développeur (pour vérifier) ; true → pour tous les visiteurs.
   halloween: { debut: '2026-10-20', fin: '2026-11-01', public: true },
 
+  // --- Noël -------------------------------------------------------------------
+  // Le calendrier de l'Avent (noel.js) : une case par jour du 1er au 24 décembre, les bonnets rouges des épingles.
+  // Du jour « debut » jusqu'à minuit la veille du jour « fin » (à l'heure du visiteur).
+  // public: false → seulement en mode développeur (qui le voit aussi avant « debut », pour le préparer) ;
+  // true → pour tous les visiteurs.
+  noel: { debut: '2026-12-01', fin: '2026-12-26', public: false },
+
   // --- Badge « Nouveau » -----------------------------------------------
   // Un lieu dont la vidéo TikTok a moins de ce nombre de jours porte l'étiquette « Nouveau ».
   // La date vient du lien de la vidéo : rien à remplir dans le tableau.
