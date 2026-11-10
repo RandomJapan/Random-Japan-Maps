@@ -47,8 +47,8 @@ export const CONFIG = {
 
   // --- Défi du jour ------------------------------------------------------
   // Le jour du défi n° 1 (année-mois-jour, au Japon). Le numéro avance chaque jour à minuit, heure du Japon.
-  // À changer pour le jour où le défi sort, s'il doit commencer au n° 1.
-  debutDefi: '2026-10-13',
+  // Le défi est sorti pour tous le 2026-11-10 : c'est le n° 1.
+  debutDefi: '2026-11-10',
 
   // --- Halloween ------------------------------------------------------------
   // L'événement d'Halloween (halloween.js) : chapeaux de sorcière, chauves-souris, chat noir, toile d'araignée,
@@ -61,6 +61,10 @@ export const CONFIG = {
   // Un lieu dont la vidéo TikTok a moins de ce nombre de jours porte l'étiquette « Nouveau ».
   // La date vient du lien de la vidéo : rien à remplir dans le tableau.
   joursNouveau: 7,
+  // Les nouvelles fonctions de la carte portent aussi l'étiquette « Nouveau » sur leur bouton, jusqu'à ce que le
+  // visiteur les ouvre, et au plus tard jusqu'à ce jour (année-mois-jour). Sur téléphone, le bouton Menu la porte
+  // aussi, jusqu'à ce que le visiteur ouvre le menu.
+  nouveautes: { jeu: '2026-12-01', defi: '2026-12-01' },
 
   // --- Visite guidée ---------------------------------------------------
   // Tes vidéos commencent par un plongeon depuis le ciel vers le lieu (3 à 4 s) : pendant la visite,
@@ -208,6 +212,7 @@ export const TEXTES = {
     visitesInfo: 'Visits to the map (the total updates a few times a day)',
     // Nouveautés, favoris, visite guidée
     nouveau: 'New',
+    nouveauFonction: 'New',
     nouveautes: 'New places',
     videoDu: (date) => `Video from ${date}`,
     favoris: 'Favorites',
@@ -366,7 +371,7 @@ export const TEXTES = {
     pointErreurDepart: 'Paste the coordinates of the start first.',
     jeu: 'Guess the place',
     modeDev: 'Developer mode',
-    modeDevActif: 'Developer mode: your tools (dive, point to point, title card, game)',
+    modeDevActif: 'Developer mode: your tools (dive, point to point, title card)',
     modeDevNormal: 'Normal map, as visitors see it',
     modeDevOuvert: 'Developer mode is now available in this browser',
     jeuRegles: (n, s) => `${n} places from my videos, ${s} seconds each. Look at the photo, then tap the map where you think it is. The closer you are, the more points you get. Stuck? A hint shows the region, then the prefecture, but it costs points.`,
@@ -693,6 +698,7 @@ export const TEXTES = {
     visitesInfo: 'Visites de la carte (le total se met à jour plusieurs fois par jour)',
     // Nouveautés, favoris, visite guidée
     nouveau: 'Nouveau',
+    nouveauFonction: 'Nouveau',
     nouveautes: 'Nouveaux lieux',
     videoDu: (date) => `Vidéo du ${date}`,
     favoris: 'Favoris',
@@ -851,7 +857,7 @@ export const TEXTES = {
     pointErreurDepart: "Colle d'abord les coordonnées du départ.",
     jeu: 'Devine le lieu',
     modeDev: 'Mode développeur',
-    modeDevActif: 'Mode développeur : tes outils (plongeon, point à point, affiche, jeu)',
+    modeDevActif: 'Mode développeur : tes outils (plongeon, point à point, affiche)',
     modeDevNormal: 'Carte normale, comme la voient les visiteurs',
     modeDevOuvert: 'Le mode développeur est disponible dans ce navigateur',
     jeuRegles: (n, s) => `${n} lieux de mes vidéos, ${s} secondes pour chacun. Regarde la photo, puis touche la carte là où tu penses que c'est. Plus tu es près, plus tu marques de points. Bloqué ? Un indice te montre la région, puis la préfecture, mais il coûte des points.`,
@@ -1178,6 +1184,7 @@ export const TEXTES = {
     visitesInfo: '地図の訪問数（1日に数回更新）',
     // Nouveautés, favoris, visite guidée
     nouveau: '新着',
+    nouveauFonction: 'NEW',
     nouveautes: '新着スポット',
     videoDu: (date) => `${date}の動画`,
     favoris: 'お気に入り',
@@ -1336,7 +1343,7 @@ export const TEXTES = {
     pointErreurDepart: 'まず出発点の座標を貼り付けてね。',
     jeu: '場所当てクイズ',
     modeDev: '開発者モード',
-    modeDevActif: '開発者モード：あなた専用のツール（ダイブ、2地点間、タイトル画像、クイズ）',
+    modeDevActif: '開発者モード：あなた専用のツール（ダイブ、2地点間、タイトル画像）',
     modeDevNormal: '通常の地図（訪問者と同じ表示）',
     modeDevOuvert: 'このブラウザで開発者モードが使えるようになりました',
     jeuRegles: (n, s) => `動画に出てくる${n}つの場所、1問${s}秒。写真を見て、その場所だと思うところを地図でタップしてね。近いほど高得点！わからないときは、ヒントで地方、次に都道府県がわかるよ（点数は減るよ）。`,

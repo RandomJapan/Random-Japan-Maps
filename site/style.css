@@ -958,6 +958,16 @@ body.en-jeu .ville, body.plongeon .ville, body.enregistre .ville, body.mode-film
   font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; line-height: 17px;
 }
 .sous-liste .etiquette-nouveau { margin: 0 0 0 4px; font-size: 9.5px; line-height: 15px; }
+/* une fonction nouvelle (le jeu et le défi du jour, sortis le 2026-11-10 : CONFIG.nouveautes) : sur le coin de son bouton */
+.etiquette-fonction {
+  position: absolute; top: -8px; right: -7px; margin: 0; padding: 0 5px;
+  font-size: 9.5px; line-height: 15px; white-space: nowrap; pointer-events: none;
+  box-shadow: 0 0 0 2px var(--papier-clair), 0 1px 3px rgba(43, 31, 18, .35);
+}
+.etiquette-fonction[hidden] { display: none; }
+.bouton-jeu { position: relative; }
+/* le point rouge du défi attend que l'étiquette soit partie : un seul signal sur le bouton */
+.bouton-defi:has(.etiquette-fonction:not([hidden])) .defi-point { display: none; }
 .date-courte { margin-left: 4px; font-size: 12px; color: var(--encre-3); }
 .ligne-nouveaux { --c: var(--sarcelle); }
 .ligne-nouveaux .case { visibility: hidden; cursor: default; }
@@ -1687,6 +1697,11 @@ body.en-jeu .filtres, body.en-jeu .bandeau, body.en-jeu .aide { display: none; }
   .menu-mobile-grille .orange svg { color: #c8641e; }
   .menu-mobile-grille .compteur { position: absolute; top: 6px; right: 6px; font-size: 11px; }
   .menu-mobile-grille .compteur:empty { display: none; }
+  /* à cheval sur le bord de la case, comme sur ordinateur (dedans, elle cachait l'icône) : la grille s'aère pour elle */
+  .menu-mobile-grille .etiquette-fonction { top: -8px; right: 8px; }
+  .menu-mobile-grille:has(.etiquette-fonction:not([hidden])) { row-gap: 14px; }
+  .btn-rond .rond { position: relative; }
+  .btn-rond .etiquette-fonction { top: -6px; right: -16px; }
   .menu-mobile-ligne {
     display: flex; align-items: center; gap: 14px; min-height: 50px; padding: 0 4px;
     border: 0; border-top: 1px solid rgba(138, 107, 69, .35); background: none; color: var(--encre);

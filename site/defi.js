@@ -503,6 +503,8 @@ export function brancherDefi(map, maplibregl, outils) {
 
   function statistiques() {
     const s = lire(MEMO_STATS) || {};
+    // une série comptée avant que le défi reparte du n° 1 (sa sortie, 2026-11-10) finit dans « le futur » : elle s'arrête
+    if (s.dernierTrouve > jourDuDefi(debut)) { s.serie = 0; s.dernierTrouve = null; }
     return {
       joues: s.joues || 0, trouves: s.trouves || 0, serie: s.serie || 0, record: s.record || 0, dernierTrouve: s.dernierTrouve ?? null,
       repartition: Array.from({ length: ESSAIS + 1 }, (_, i) => s.repartition?.[i] || 0),

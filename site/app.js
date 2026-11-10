@@ -1184,6 +1184,7 @@ function ouvrirMenuMobile(ouvrir) {
   $('btn-menu-mobile').setAttribute('aria-expanded', String(ouvrir));
   if (!ouvrir) return;
   fermerPanneaux('panneau-menu');
+  vuNouveaute(...nouveautesEnCours().map((c) => `menu:${c}`)); // l'étiquette du bouton Menu : ses cases la portent
   $('menu-compteur-categories').textContent = $('compteur').textContent;
   $('menu-compteur-legendes').textContent = $('compteur-legendes').textContent;
   $('menu-compteur-favoris').textContent = $('compteur-favoris').textContent;
@@ -1839,9 +1840,7 @@ function basculerDev(actif) {
   majBoutonDev();
   if (actif) chargerOngletPlongeon();
   else {
-    // retour à la carte normale : rien des outils ne reste ouvert
-    if (jeu?.enCours()) jeu.arreter();
-    if (defi?.enCours()) defi.arreter();
+    // retour à la carte normale : rien des outils ne reste ouvert (le jeu et le défi sont publics depuis le 2026-11-10)
     ongletPlongeon?.then((o) => o.choisirOnglet('visite'));
     ambianceCarte?.reel(); // la date et l'heure choisies dans le réglage reviennent au vrai moment
   }
@@ -1876,14 +1875,13 @@ function brancherDev() {
   });
 }
 
-// ---------------------------------------------------------------- Jeu « Devine le lieu » (pas encore public)
-// Le bouton n'existe qu'en mode développeur (classe .dev) : le jeu sortira plus tard, avec un TikTok.
+// ---------------------------------------------------------------- Jeu « Devine le lieu » (public depuis le 2026-11-10)
 // À plusieurs (jeu.js, amis.js, serveur/) : un lien d'invitation …/?partie=FUJI42 ouvre le jeu dans cette partie,
-// et …/?ami=K7M2QX8P la liste d'amis avec ce code, pour tous les visiteurs (choix du propriétaire, 2026-10-09 :
-// il peut tester avec ses amis ; le bouton, lui, reste caché).
+// …/?ami=K7M2QX8P la liste d'amis avec ce code, et …/?jeu (celui du partage d'un score) l'accueil du jeu.
 let jeu = null;
 /** quoi : { partie: code } (rejoindre une partie), { ami: code } (ajouter un ami), ou rien (l'accueil du jeu) */
 async function lancerJeu(quoi = {}) {
+  vuNouveaute('jeu');
   if (!jeu) {
     const [{ brancherJeu }, lesAmis] = await Promise.all([import('./jeu.js'), chargerAmis().catch(() => null)]);
     jeu ??= brancherJeu(map, maplibregl, {
@@ -1933,11 +1931,11 @@ function aDejaJoueAPlusieurs() {
   try { return !!JSON.parse(localStorage.getItem('joueur'))?.pseudo; } catch { return false; }
 }
 
-// ---------------------------------------------------------------- Défi du jour (defi.js, pas encore public)
-// Un lieu mystère par jour, le même pour tous, en 6 essais. Comme le jeu, le bouton n'existe qu'en mode
-// développeur ; un lien …/?defi (celui du partage) l'ouvre pour tous.
+// ---------------------------------------------------------------- Défi du jour (defi.js, public depuis le 2026-11-10)
+// Un lieu mystère par jour, le même pour tous, en 6 essais. Un lien …/?defi (celui du partage) l'ouvre.
 let defi = null;
 async function lancerDefi() {
+  vuNouveaute('defi');
   if (!defi) {
     const { brancherDefi } = await import('./defi.js');
     defi ??= brancherDefi(map, maplibregl, {
@@ -1960,6 +1958,37 @@ async function lancerDefi() {
   }
   await preparerPrefectures().catch(() => {}); // la préfecture du lieu, écrite à la fin
   defi.lancer();
+}
+
+// ---------------------------------------------------------------- Les nouvelles fonctions (étiquette « Nouveau »)
+// Le bouton d'une fonction de CONFIG.nouveautes (et sa case du menu du téléphone) porte l'étiquette « Nouveau »
+// jusqu'à ce que ce visiteur l'ouvre, au plus tard jusqu'au jour dit. Sur téléphone, le bouton Menu la porte tant
+// que le menu n'a pas été ouvert depuis l'arrivée d'une nouveauté encore jamais ouverte.
+const MEMO_NOUVEAUTES = 'nouveautesVues'; // localStorage : les nouveautés ouvertes (« jeu »), vues dans le menu (« menu:jeu »)
+
+function nouveautesVues() {
+  try { return new Set(JSON.parse(localStorage.getItem(MEMO_NOUVEAUTES)) || []); } catch { return new Set(); }
+}
+
+/** Les nouveautés encore à montrer à ce visiteur. */
+function nouveautesEnCours(vues = nouveautesVues()) {
+  return Object.entries(CONFIG.nouveautes || {}).filter(([c, fin]) => !vues.has(c) && Date.now() < Date.parse(fin)).map(([c]) => c);
+}
+
+function majNouveautes() {
+  const vues = nouveautesVues();
+  const encore = nouveautesEnCours(vues);
+  for (const e of document.querySelectorAll('[data-nouveau]')) {
+    e.hidden = e.dataset.nouveau === 'menu' ? !encore.some((c) => !vues.has(`menu:${c}`)) : !encore.includes(e.dataset.nouveau);
+  }
+}
+
+function vuNouveaute(...cles) {
+  const vues = nouveautesVues();
+  if (cles.every((c) => vues.has(c))) return;
+  cles.forEach((c) => vues.add(c));
+  try { localStorage.setItem(MEMO_NOUVEAUTES, JSON.stringify([...vues])); } catch { /* pas grave */ }
+  majNouveautes();
 }
 
 /** Le point rouge du bouton Défi : le défi du jour n'est pas encore fini dans ce navigateur (localStorage « defi »). */
@@ -2037,10 +2066,11 @@ function demanderPosition() {
   });
 }
 
-/** Les liens …/?partie=CODE et …/?ami=CODE : lus au démarrage, et effacés de l'adresse. */
+/** Les liens …/?partie=CODE, …/?ami=CODE et …/?jeu : lus au démarrage, et effacés de l'adresse. */
 function lireLiensJeu() {
-  const quoi = retirerParametres('partie', 'ami');
-  return quoi.partie || quoi.ami ? quoi : null;
+  const quoi = retirerParametres('partie', 'ami', 'jeu');
+  if (quoi.partie || quoi.ami) return { partie: quoi.partie, ami: quoi.ami };
+  return quoi.jeu !== null ? {} : null;
 }
 
 /** Un texte à envoyer (jeu, amis) : la feuille de partage du téléphone, sinon copié (avec le message copie). */
@@ -2723,6 +2753,7 @@ async function demarrer() {
   const lienBalades = retirerParametres('balades').balades !== null;
   if (lienBalades) $('aide').classList.add('cachee');
   majPointDefi();
+  majNouveautes();
   const lienVoyage = lireLienVoyage();
   appliquerLangue();
   ambianceCarte = ambiance.brancher(map, { t, langue: () => langue, lieux: () => lieux });

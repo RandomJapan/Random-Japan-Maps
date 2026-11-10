@@ -308,7 +308,7 @@ C'est le troisième onglet du panneau Visite (mode développeur aussi), comme «
 
 ## Le mode développeur (rien que pour toi)
 
-Tes outils qui ne sont pas pour les visiteurs (pas encore, ou jamais) : le **plongeon**, le **point à point** et l'**affiche à incruster** (onglets Plongeon et Point à point de la visite), et le **jeu** et le **défi du jour**, pas encore sortis.
+Tes outils qui ne sont pas pour les visiteurs (pas encore, ou jamais) : le **plongeon**, le **point à point** et l'**affiche à incruster** (onglets Plongeon et Point à point de la visite). Le jeu et le défi du jour y étaient aussi, jusqu'à leur sortie le 10 novembre 2026.
 - **La première fois :** ouvre ton **lien secret** (celui que Claude t'a donné dans la conversation, qui finit par `?dev=…`) dans chaque navigateur où tu veux le mode : sur ton téléphone (Safari ou Chrome, pas le navigateur intégré de TikTok) et sur ton ordinateur. Le navigateur s'en souvient ensuite. Garde ce lien pour toi : il n'est écrit nulle part ailleurs.
 - **Ensuite :** un bouton `</>` apparaît en bas à droite, au-dessus de la rose des vents. **Rouge** = carte développeur (tes outils sont là). **Clair** = carte normale, exactement comme la voient les visiteurs. Un clic pour passer de l'une à l'autre ; la carte retient ton choix.
 - Ce bouton n'existe que dans tes navigateurs : les visiteurs ne le voient jamais.
@@ -325,9 +325,10 @@ Un PC portable ordinaire (vers 500 €) dessine avec une petite puce graphique, 
 - **En mode développeur**, un bouton en forme de compteur (au-dessus de `</>`) ouvre « Fluidité » : le nom de la puce graphique, le nombre d'images par seconde quand la carte bouge, et les boutons **Auto / Fine / Légère / Très légère** pour imposer un niveau et comparer. Laisse-le sur **Auto** pour retrouver le choix de la carte.
 - Le plongeon filmé et l'image « Partager mon voyage » sont toujours faits en qualité « fine ».
 
-## Le jeu « Devine le lieu » (pas encore public)
+## Le jeu « Devine le lieu » (pour tout le monde depuis le 10 novembre 2026)
 
-Il est prêt mais **caché** : il sortira le mois prochain, avec un TikTok. Pour l'essayer, passe en **mode développeur** : un bouton « Devine le lieu » apparaît à côté des autres. Les visiteurs ne le voient pas.
+Le bouton « Devine le lieu » est à côté des autres (sur téléphone : dans le **Menu**). Il est sorti le 10 novembre 2026, avec le défi du jour et le jeu à plusieurs.
+- **L'étiquette « Nouveau »** (bleu-vert, comme celle des nouveaux lieux) est posée sur les boutons du jeu et du défi, et sur téléphone sur le bouton **Menu** et leurs cases. Pour chaque visiteur, elle part dès qu'il a ouvert le jeu ou le défi (celle du bouton Menu : dès qu'il a ouvert le menu). Pour tout le monde, elle part le **1er décembre 2026** (le réglage `nouveautes` de `config.js`).
 - Une partie = 5 lieux tirés au hasard, éloignés les uns des autres. Pour chacun : une **photo nette** du lieu et **30 secondes**. Le joueur touche la carte là où il pense que c'est, puis valide. Le chrono devient rouge dans les 10 dernières secondes. À zéro, l'épingle posée compte ; sans épingle, c'est 0 point.
 - **Les photos :** depuis le 9 novembre 2026, chaque lieu montre **une image de sa propre vidéo**, sans son nom écrit. Avant, c'étaient des photos de Wikipédia ou d'Internet. Ces images ne servent qu'au jeu et au défi : sur la carte, la fiche du lieu garde sa photo ou sa vignette.
   - 6 lieux n'ont plus leur vidéo sur ton PC (Takuhi Shrine, Saidouji Temple, Tenkai Inari Shrine, Kegon Falls, Irabu Bridge, PL Peace Tower) : ils gardent leur ancienne photo. Si tu remets le fichier dans ton dossier de montage avec le nom du lieu (par exemple `Kegon Falls.mp4`), le robot la remplacera tout seul.
@@ -337,17 +338,18 @@ Il est prêt mais **caché** : il sortira le mois prochain, avec un TikTok. Pour
 - Le vrai lieu apparaît avec son nom, relié à l'épingle du joueur, avec la distance et les points (1 000 au plus par lieu : 670 à 100 km, 370 à 250 km). À la fin : le score sur 5 000, un titre (de « Touriste curieux » à « Expert du Japon ») et « Partager mon score ».
 - **Les records :** l'accueil et la fin du jeu montrent les 5 meilleurs scores, avec leur date, et le nombre de parties. « Nouveau record ! » s'affiche quand on bat son meilleur score. Ils restent dans le navigateur du joueur (chacun a les siens). Un classement commun à tous les joueurs demanderait des comptes ou un serveur : pas fait pour l'instant.
 - Pendant la partie, les épingles et les modèles 3D des lieux sont cachés, sinon ce serait trop facile.
-- Le jour de la sortie, demande à Claude de rendre le bouton visible pour tout le monde.
+- **À plusieurs :** « Jouer avec des amis » crée une partie avec un code (par exemple FUJI-42), un lien et un QR code à envoyer. Jusqu'à 10 joueurs, chacun sur son téléphone, ont les mêmes lieux en même temps, puis le classement. On peut aussi s'ajouter en amis (sans compte) et inviter ceux qui sont en ligne. Le petit serveur est chez Cloudflare (gratuit). Chaque joueur est retenu par son navigateur : sur un autre téléphone, ou dans le navigateur de TikTok, c'est un nouveau joueur.
+- « Partager mon score » envoie un lien (…/?jeu) qui ouvre directement le jeu.
 
-## Le défi du jour (pas encore public)
+## Le défi du jour (pour tout le monde depuis le 10 novembre 2026)
 
-Un **lieu mystère par jour, le même pour tout le monde**, comme le jeu Wordle. Comme le jeu, il est caché : en **mode développeur**, un bouton « Défi » apparaît (avec un point rouge tant que tu n'as pas joué aujourd'hui).
+Un **lieu mystère par jour, le même pour tout le monde**, comme le jeu Wordle. Son bouton « Défi » est à côté de celui du jeu (sur téléphone : « Défi du jour » dans le Menu), avec un point rouge tant qu'on n'a pas joué aujourd'hui.
 - On voit la photo du lieu, **floue**. On touche la carte là où on pense que c'est, puis on valide : on apprend la **distance**, une **flèche** vers le lieu, et si c'est froid, tiède, chaud ou brûlant. La photo devient plus nette à chaque essai. **6 essais** ; trouvé si on tombe à moins de 20 km.
 - À la fin : le lieu, les petits carrés à partager (🟦🟨🟧🟥🎯, sans dévoiler le lieu), **la comparaison avec les autres joueurs du jour** (« Aujourd'hui, 78 % des 9 joueurs l'ont trouvé, en 3,1 essais en moyenne. Tu fais mieux que 38 % des autres joueurs. »), les statistiques (parties, % trouvés, série de jours, record), le temps avant le prochain défi, et un bouton vers la vidéo du lieu.
 - La comparaison passe par le petit serveur du jeu à plusieurs, chez Cloudflare (gratuit). Il ne garde que le résultat de chaque joueur (trouvé ou non, en combien d'essais), sans nom, pendant 60 jours.
-- Le défi change **à minuit, heure du Japon** (16 h ou 17 h en France). Le défi n° 1 est celui du 13 octobre 2026 : le jour de la sortie, Claude peut faire repartir les numéros à 1.
+- Le défi change **à minuit, heure du Japon** (16 h ou 17 h en France). Le défi n° 1 est celui du 10 novembre 2026, le jour de sa sortie.
 - Les lieux du défi sont ceux qui ont une photo (comme le jeu). Un lieu tout juste ajouté attend 3 jours avant d'y entrer.
-- Le lien partagé (…/?defi) ouvre le défi pour tout le monde, même avant la sortie : c'est toi qui le partages.
+- Le lien partagé (…/?defi) ouvre directement le défi.
 
 ## La balade 3D (pour tout le monde depuis le 26 octobre 2026)
 
