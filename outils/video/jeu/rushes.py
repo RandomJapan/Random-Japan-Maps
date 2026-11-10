@@ -19,7 +19,7 @@ from rushes import ffmpeg, tourner  # noqa: E402
 
 PUBLIC = ICI.parents[2] / 'videos' / 'carte' / 'jeu' / 'public'
 COMMUN = {'scripts': ['jeu/plans.js'], 'halloween': False, 'heure': '10:30', 'date': '2026-11-08', 'page': (432, 768), 'echelle': 2.5}
-PLANS = {n: {} for n in ('jd-1', 'jd-2', 'jd-3', 'jd-score', 'df-essais')}
+PLANS = {n: {} for n in ('jd-1', 'jd-2', 'jd-3', 'jd-score', 'df-essais', 'cr-debut', 'cr-score', 'cr-defi')}
 # Les fichiers du site changés pendant les prises : [(texte d'origine, texte du film)]
 CHANGES = {
     '**/jeu.js': [

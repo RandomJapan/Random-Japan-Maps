@@ -292,8 +292,274 @@ def bruitages():
     ecrire(s / 'trouve.wav', mono(carillon(['E5', 'A5', 'B5', 'E6', 'F6', 'E6'], 0.06, 1.0)))
 
 
+# ---------------------------------------------------------------- « le créateur » (2026-11-10) : du lo-fi
+# 90 battements par minute (un temps = 40 images), en ré majeur, sur la « progression royale » de la J-pop (IV – V – iii – vi :
+# Sol7M, La7, Fa♯m7, Si m7). Un piano électrique feutré (synthèse FM), une basse ronde, une batterie douce et balancée, un koto en
+# pentatonique, le craquement d'un vinyle ; un filtre qui s'ouvre, un écho, une bande qui ralentit à la fin.
+# L'accroche (temps 0 → 4) : les accords étouffés, et des charlestons droits qui tombent sur chaque coupe du défilé et accélèrent avec
+# elles (croches, doubles, triples croches) ; la batterie tombe au temps 4.
+CR_TEMPS = 60 / 90
+CR_PAS = CR_TEMPS / 4  # une double croche
+CR_DUREE = 34 * CR_TEMPS
+# (les coupes du défilé, en images à 60 i/s : 2 plans de 20, 4 de 10, 16 de 5)
+CR_COUPES = [0, 20] + [40 + 10 * k for k in range(4)] + [80 + 5 * k for k in range(16)]
+
+
+def filtre(x, fc, ordre=2, haut=False):
+    """Un passe-bas (ou passe-haut) de Butterworth sans déphasage, dans le domaine des fréquences."""
+    n = len(x)
+    X = np.fft.rfft(x, axis=0)
+    f = np.fft.rfftfreq(n, 1 / SR)
+    r = (f / fc) ** (2 * ordre)
+    h = np.sqrt(r / (1 + r)) if haut else 1 / np.sqrt(1 + r)
+    return np.fft.irfft(X * (h[:, None] if X.ndim == 2 else h), n, axis=0)
+
+
+def reverb(st, duree=1.4, mix=0.2, graine=7):
+    """Une salle : la convolution par un bruit qui s'éteint, différent à gauche et à droite."""
+    r = np.random.default_rng(graine)
+    u = t(duree)
+    sortie = np.zeros((len(st) + len(u) - 1, 2))
+    for c in range(2):
+        ir = r.standard_normal(len(u)) * np.exp(-u / (duree / 4.5))
+        ir = filtre(ir, 4500)
+        ir[:int(0.012 * SR)] = 0  # un petit pré-délai
+        ir /= np.sqrt(np.sum(ir ** 2))
+        m = len(st[:, c]) + len(ir) - 1
+        N = 1 << (m - 1).bit_length()
+        sortie[:, c] = np.fft.irfft(np.fft.rfft(st[:, c], N) * np.fft.rfft(ir, N), N)[:m]
+    return st + mix * sortie[:len(st)]
+
+
+def rhodes(f, duree, force=1.0):
+    """Un piano électrique : une porteuse modulée en fréquence (rapport 1), l'indice qui retombe, un tintement bref à l'attaque."""
+    u = t(duree + 1.2)
+    indice = (1.6 * force + 0.3) * np.exp(-u / 0.3) + 0.4
+    x = np.sin(2 * np.pi * f * u + indice * np.sin(2 * np.pi * f * u))
+    x += 0.12 * force * np.sin(2 * np.pi * f * 7.02 * u) * np.exp(-u / 0.025)  # le tintement
+    env = np.minimum(1, u / 0.004) * np.exp(-u / 1.6)
+    env *= np.clip((duree + 0.25 - u) / 0.25, 0, 1)  # on lâche la touche
+    return x * env * (0.55 + 0.45 * force)
+
+
+def accord(notes, duree, force=0.8, ecart=0.012):
+    """Les notes d'un accord, plaquées presque ensemble (de la plus grave à la plus aiguë), en stéréo : (gauche, droite)."""
+    n = int((duree + 1.2 + ecart * len(notes)) * SR) + 1
+    g, d = np.zeros(n), np.zeros(n)
+    for k, nom in enumerate(notes):
+        x = rhodes(I.note(nom), duree, force)
+        i = int(k * ecart * SR)
+        pan = -0.35 + 0.7 * k / max(1, len(notes) - 1)
+        g[i:i + len(x)] += x * (1 - pan) ** 0.5
+        d[i:i + len(x)] += x * (1 + pan) ** 0.5
+    return g, d
+
+
+def kick_lofi():
+    # (pour un téléphone : peu de grave pur, un « toc » dans le médium)
+    u = t(0.4)
+    f = 56 + 90 * np.exp(-u / 0.03)
+    corps = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-u / 0.13)
+    toc = np.sin(2 * np.pi * 180 * u) * np.exp(-u / 0.025) * 0.35
+    clic = filtre(rng.standard_normal(len(u)), 2500) * np.exp(-u / 0.004) * 0.5
+    return np.tanh(2.0 * (corps + toc + clic)) * 0.85
+
+
+def caisse_lofi():
+    """Une caisse claire feutrée : un corps à 190 Hz, du bruit filtré (sans aigus), une queue."""
+    u = t(0.35)
+    corps = np.sin(2 * np.pi * 190 * u) * np.exp(-u / 0.05) * 0.6
+    b = rng.standard_normal(len(u))
+    b = filtre(b, 5200) - filtre(b, 900)
+    return (corps + b * np.exp(-u / 0.09) * 1.1) * 0.8
+
+
+def charleston_lofi(ouvert=False):
+    u = t(0.25)
+    b = filtre(rng.standard_normal(len(u)), 7000, haut=True)
+    b = filtre(b, 11000)
+    return b * np.exp(-u / (0.06 if ouvert else 0.016)) * 0.9
+
+
+def basse_ronde(f, duree):
+    u = t(duree + 0.08)
+    x = np.sin(2 * np.pi * f * u) + 0.45 * np.sin(2 * np.pi * 2 * f * u) + 0.25 * np.sin(2 * np.pi * 3 * f * u) + 0.1 * np.sin(2 * np.pi * 4 * f * u)
+    return np.tanh(2.0 * x) * 0.8 * np.minimum(1, u / 0.008) * np.clip((duree + 0.08 - u) / 0.08, 0, 1) * np.exp(-u / 1.2)
+
+
+def vinyle(duree):
+    """Le craquement d'un disque : des petits clics au hasard et un souffle."""
+    n = int(duree * SR)
+    x = np.zeros(n)
+    for i in rng.integers(0, n, int(duree * 9)):
+        k = rng.uniform(0.2, 1)
+        L = int(SR * 0.0015)
+        x[i:i + L] += k * rng.standard_normal(min(L, n - i)) * np.exp(-np.arange(min(L, n - i)) / (L / 4))
+    souffle = filtre(rng.standard_normal(n), 3000) * 0.05
+    return filtre(x, 9000) * 0.6 + souffle
+
+
+def montee_bruit(duree):
+    """Un souffle qui monte (le filtre s'ouvre) jusqu'à la retombée."""
+    u = t(duree)
+    k = (u / duree) ** 2.2
+    b = rng.standard_normal(len(u))
+    lent, vif = filtre(b, 700), filtre(b, 6000)
+    return (lent * (1 - k) + vif * k) * k * 0.5
+
+
+def ralentir(st, duree):
+    """La fin d'une bande qui s'arrête : la lecture ralentit jusqu'à zéro sur les `duree` dernières secondes."""
+    n = int(duree * SR)
+    debut = len(st) - n
+    u = np.arange(n) / n
+    position = debut + np.cumsum((1 - u) ** 1.4)  # la vitesse tombe de 1 à 0
+    fin = np.stack([np.interp(position, np.arange(len(st)), st[:, c]) for c in range(2)], 1)
+    fin *= (1 - u[:, None]) ** 0.5
+    return np.concatenate([st[:debut], fin])
+
+
+CR_ACCORDS = {  # (notes du piano, la basse)
+    'G': (['G3', 'B3', 'D4', 'F#4', 'A4'], 'G2'),
+    'A': (['A3', 'C#4', 'E4', 'G4', 'B4'], 'A2'),
+    'F#m': (['F#3', 'A3', 'C#4', 'E4'], 'F#2'),
+    'Bm': (['B3', 'D4', 'F#4', 'A4'], 'B1'),
+}
+# la mélodie du koto, par accord : (croche dans la mesure, note)
+CR_MELODIE = {
+    'G': [(0, 'B4'), (1.5, 'D5'), (3, 'E5'), (4, 'D5'), (5.5, 'B4'), (6, 'A4')],
+    'A': [(0, 'E5'), (1.5, 'F#5'), (3, 'E5'), (4, 'A4'), (6, 'B4')],
+    'F#m': [(0, 'F#5'), (1.5, 'E5'), (2, 'D5'), (4, 'A4'), (5, 'B4'), (6, 'D5')],
+    'Bm': [(0, 'D5'), (1.5, 'B4'), (3, 'A4'), (4, 'B4')],
+}
+
+
+def createur():
+    T, P = CR_TEMPS, CR_PAS
+    piano, rythme, koto_, fond = Piste(CR_DUREE + 1), Piste(CR_DUREE + 1), Piste(CR_DUREE + 1), Piste(CR_DUREE + 1)
+    SWING = 0.028  # s : les doubles croches paires en retard (le balancement)
+
+    def pas(k):
+        return k * P + (SWING if k % 2 else 0)
+
+    def jouer_accord(nom, temps, duree, force=0.8, vol=0.32):
+        g, d = accord(CR_ACCORDS[nom][0], duree, force)
+        i = int(temps * SR)
+        L = min(len(g), piano.n - i)
+        piano.g[i:i + L] += g[:L] * vol
+        piano.d[i:i + L] += d[:L] * vol
+
+    # l'accroche : Si m7 puis La7, étouffés (le filtre s'ouvre plus tard, sur tout le piano)
+    jouer_accord('Bm', 0, 2 * T - 0.05, 0.6)
+    jouer_accord('A', 2 * T, 2 * T - 0.05, 0.6)
+    rythme.poser(kick_lofi(), 0, 0.7)
+    for k, image in enumerate(CR_COUPES):  # un charleston sur chaque coupe du défilé, de plus en plus fort
+        rythme.poser(charleston_lofi(), image / 60, 0.18 + 0.32 * k / len(CR_COUPES), pan=0.3)
+    fond.poser(montee_bruit(2 * T), 2 * T, 0.5)
+
+    # le groove : un accord par mesure, du temps 4 à la fin
+    grille = ['G', 'A', 'F#m', 'Bm', 'G', 'A', 'F#m', 'Bm']
+    for m, nom in enumerate(grille):
+        T0 = (4 + 4 * m) * T
+        if T0 >= CR_DUREE:
+            break
+        # le piano : plaqué sur le 1, repris sur le « et » du 2 (une anticipation), plus doux
+        jouer_accord(nom, T0, 1.4 * T, 0.85)
+        jouer_accord(nom, T0 + 2.5 * T, 1.3 * T, 0.55, 0.24)
+        # la basse : la fondamentale sur le 1 (une noire pointée), rappelée sur le 3 et demi
+        f = I.note(CR_ACCORDS[nom][1])
+        rythme.poser(basse_ronde(f, 1.4 * T), T0, 0.42)
+        rythme.poser(basse_ronde(f * (2 if m % 2 else 1.5), 0.4 * T), T0 + 3.5 * T, 0.28)
+        # la batterie (16 pas)
+        for s in range(16):
+            k = (4 + 4 * m) * 4 + s
+            temps = pas(k)
+            if temps >= CR_DUREE - 0.55:
+                break
+            if s in (0, 7, 10):
+                rythme.poser(kick_lofi(), temps, 0.75 if s == 0 else 0.6)
+            if s in (4, 12):
+                rythme.poser(caisse_lofi(), temps, 0.55)
+            if s % 2 == 0:
+                rythme.poser(charleston_lofi(s == 14 and m % 2 == 1), temps, 0.2 if s % 4 == 0 else 0.13, pan=0.3)
+            elif s in (3, 11, 15):
+                rythme.poser(charleston_lofi(), temps, 0.07, pan=0.3)
+        # le koto, à partir de la manche (temps 8)
+        if T0 >= 8 * T:
+            for croche, n in CR_MELODIE[nom]:
+                koto_.poser(I.koto(n), T0 + croche * T / 2, 0.42, pan=-0.25)
+    # un roulement avant le défi (temps 17,5 → 18) et avant la fin (27,5 → 28)
+    for debut in (17.5, 27.5):
+        for k in range(4):
+            rythme.poser(caisse_lofi(), (debut + k / 8) * T, 0.18 + 0.1 * k)
+    # temps 28 : une cymbale douce, la fin commence
+    rythme.poser(filtre(I.cymbale(), 6000), 28 * T, 0.22)
+    # la dernière note (temps 32) : l'accord tenu, le koto
+    koto_.poser(I.koto('D5'), 32 * T, 0.4, pan=-0.25)
+    koto_.poser(I.koto('A5'), 32.5 * T, 0.32, pan=-0.25)
+
+    # le piano étouffé pendant l'accroche, le filtre qui s'ouvre jusqu'au temps 4
+    st_piano = np.stack([piano.g, piano.d], 1)
+    sourd, clair = filtre(st_piano, 650), filtre(st_piano, 5200)
+    u = np.arange(len(st_piano)) / SR
+    k = np.clip((u - 1.5 * T) / (2.5 * T), 0, 1)[:, None] ** 2
+    st_piano = sourd * (1 - k) + clair * k
+    st = (st_piano * 1.0 + np.stack([rythme.g, rythme.d], 1) + np.stack([koto_.g, koto_.d], 1) * 0.9
+          + np.stack([fond.g, fond.d], 1))
+    st = reverb(st, 1.5, 0.18)
+    craque = vinyle(len(st) / SR)
+    st += np.stack([craque, np.roll(craque, 311)], 1) * 0.05
+    # la bande : un léger pleurage (la hauteur qui ondule), la saturation, des aigus adoucis
+    u = np.arange(len(st)) / SR
+    position = np.arange(len(st)) + 0.0012 * SR * np.sin(2 * np.pi * 0.45 * u) / (2 * np.pi * 0.45)
+    st = np.stack([np.interp(position, np.arange(len(st)), st[:, c]) for c in range(2)], 1)
+    st = filtre(st, 9500)
+    st = filtre(st, 38, haut=True)
+    # un peu de présence (1 à 5 kHz) : sur un téléphone, c'est là qu'on entend tout
+    X = np.fft.rfft(st, axis=0)
+    fr = np.fft.rfftfreq(len(st), 1 / SR)
+    X *= (1 + 0.9 / (1 + (1400 / np.maximum(fr, 1)) ** 2) * (1 / (1 + (fr / 6000) ** 2)))[:, None]
+    X *= (1 - 0.45 / (1 + (fr / 90) ** 4))[:, None]  # moins de grave pur
+    st = np.fft.irfft(X, len(st), axis=0)
+    st = np.tanh(1.4 * st) / np.tanh(1.4)
+    st = st[:int(CR_DUREE * SR)]
+    st = ralentir(st, 0.55)
+    st *= 0.92 / np.abs(st).max()
+    ecrire(PUBLIC / 'musique' / 'createur.wav', st)
+
+
+def bruitages_createur():
+    """Les bruitages de la vidéo « le créateur », en ré majeur : l'appui (doux), l'épingle, la réponse, les températures, trouvé."""
+    s = PUBLIC / 'sfx'
+    u = t(0.06)
+    appui = np.sin(2 * np.pi * 1450 * u) * np.exp(-u / 0.006) * 0.6 + filtre(rng.standard_normal(len(u)), 4000) * np.exp(-u / 0.004) * 0.5
+    ecrire(s / 'cr-appui.wav', mono(np.concatenate([norme(appui, 0.7), np.zeros(int(0.3 * SR))])))
+    u = t(0.3)
+    epingle = np.sin(2 * np.pi * (300 + 600 * np.exp(-u / 0.02)) * u) * np.exp(-u / 0.06)
+    ecrire(s / 'cr-epingle.wav', mono(norme(epingle)))
+
+    def doux(notes, ecart, duree=1.6, force=0.6):
+        n = int((ecart * len(notes) + duree + 1.2) * SR)
+        x = np.zeros(n)
+        for k, nom in enumerate(notes):
+            r = rhodes(I.note(nom), duree, force)
+            i = int(k * ecart * SR)
+            x[i:i + len(r)] += r
+        return norme(x)
+    ecrire(s / 'cr-reponse.wav', mono(doux(['D5', 'F#5', 'A5', 'D6'], 0.07)))
+    ecrire(s / 'cr-froid.wav', mono(doux(['A4'], 0.1, 1.0)))
+    ecrire(s / 'cr-tiede.wav', mono(doux(['A4', 'D5'], 0.08, 1.0)))
+    ecrire(s / 'cr-brulant.wav', mono(doux(['A4', 'D5', 'F#5', 'A5'], 0.06, 1.0)))
+    ecrire(s / 'cr-trouve.wav', mono(doux(['D5', 'F#5', 'A5', 'D6', 'E6', 'F#6'], 0.06, 1.4)))
+
+
 if __name__ == '__main__':
-    devine()
-    defi()
-    bruitages()
+    import sys
+    if 'createur' in sys.argv:
+        createur()
+        bruitages_createur()
+    else:
+        devine()
+        defi()
+        bruitages()
     print('musique et bruitages prêts dans', PUBLIC)

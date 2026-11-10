@@ -1,6 +1,6 @@
-"""Fabrique les deux vidéos du jeu finies (9:16, 60 images/s) depuis le montage Remotion (montage/), avec la musique et sans (la voix et les
+"""Fabrique les vidéos du jeu finies (« Devine le lieu », le défi du jour, « le créateur ») (9:16, 60 images/s) depuis le montage Remotion (montage/), avec la musique et sans (la voix et les
 bruitages restent : pour y mettre un son TikTok), dans videos/carte/jeu/, et leurs miniatures.
-    python outils/video/jeu/finir.py                  # les deux vidéos, les deux versions
+    python outils/video/jeu/finir.py                  # les trois vidéos, les deux versions
     python outils/video/jeu/finir.py Devine           # une seule
     python outils/video/jeu/finir.py son Devine       # seulement le son (sur les images déjà rendues)
 
@@ -17,7 +17,8 @@ from pathlib import Path
 ICI = Path(__file__).resolve().parent
 MONTAGE = ICI / 'montage'
 SORTIE = ICI.parents[2] / 'videos' / 'carte' / 'jeu'
-VIDEOS = {'Devine': ('carte-japon-devine-le-lieu', 'MiniatureDevine'), 'Defi': ('carte-japon-defi-du-jour', 'MiniatureDefi')}
+VIDEOS = {'Devine': ('carte-japon-devine-le-lieu', 'MiniatureDevine'), 'Defi': ('carte-japon-defi-du-jour', 'MiniatureDefi'),
+          'Createur': ('carte-japon-jeu-createur', 'MiniatureCreateur')}
 OPTIONS = ['--concurrency=4', '--timeout=120000', '--offthreadvideo-cache-size-in-bytes=2000000000', '--log=error']
 
 

@@ -26,6 +26,23 @@ REELS = {
     'moai': ('Hill of the Buddha.mp4', 8.7, 4.2),
     'etang': ('Shirogane Blue Pond.mp4', 12.6, 5.6),
 }
+# la vidéo « le créateur » (2026-11-10) : le défilé de l'accroche (22 lieux, dans l'ordre, des plans sans titre choisis sur des
+# planches de contact), le Fuji Shibazakura (la photo de la manche 1), les gorges de Takachiho (le défi), le torii de Shirahige (la fin)
+DEFILE = [
+    ('SAKURAJIMA.mp4', 14.7), ('Motonosumi Shrine.mp4', 12.6), ('Okama.mov', 18.6), ('The Great Wisteria of Nakayama.mov', 11.6),
+    ('Shirogane Blue Pond.mp4', 25.8), ('Yellow Spring Road.mp4', 23.6), ('Inariyama Shrine.mp4', 36.8), ('Iiyama Snow Festival.mp4', 30.9),
+    ('Onaruto Bridge.mov', 37.2), ('Nakatsukasa Magotaro Inari Shrine.mov', 16.9), ('Mount Omuro.mov', 24.2), ('Kinkaku-ji.mp4', 22.3),
+    ('Haiya bridge.mp4', 14.0), ('Okuoi Rainbow Bridge.mp4', 21.7), ('Itsukushima Shrine.mp4', 28.7), ('Uradome Coast.mp4', 48.2),
+    ('Dōgo Onsen Annex Asuka-no-Yu.mp4', 15.9), ('Hakuryu Lake.mov', 17.1), ('Tottori Sand Dunes.mp4', 13.2), ('Hill of the Buddha.mp4', 13.7),
+    ('Akagi Nanmen Senbonzakura.mp4', 34.2), ('Iwaki Mount.mp4', 17.9),
+]
+REELS.update({f'defile/{k:02d}': (fichier, seconde, 0.45) for k, (fichier, seconde) in enumerate(DEFILE)})
+# (Takachiho : les barques vues d'en haut, la photo du défi, jusqu'à 11,7 s ; Shirahige : le torii au loin, puis sous le ciel rouge
+# à partir de 19,0 s, coupés sur le temps par le montage)
+REELS.update({'cr-fuji': ('Fuji Shibazakura Festival.mp4', 21.9, 1.2), 'cr-takachiho': ('Takachiho gorge.mp4', 9.6, 2.0),
+              'cr-shirahige-a': ('Shirahige Shrine.mp4', 17.0, 1.9), 'cr-shirahige-b': ('Shirahige Shrine.mp4', 19.1, 2.8)})
+# la vraie photo de la manche 1 (Fuji Shibazakura), posée sur la prise quand le montage zoome dessus
+PHOTOS_JEU = {'jeu-fuji.jpg': RACINE / 'site' / 'photos' / 'jeu' / '7659091697707633942.jpg'}
 # le numéro de la vidéo du lieu (le nom de sa photo dans le jeu) : (fichier, seconde de l'image, centre vertical de 0 à 1)
 PHOTOS = {
     '7660227940243737878': ('Kinkaku-ji.mp4', 31.7, 0.52),  # Kinkaku-ji
@@ -63,12 +80,14 @@ def photo(numero, fichier, seconde, centre):
 
 
 def main():
-    for dossier in ('reels', 'photos', 'rushes', 'ui', 'sfx', 'musique', 'voix'):
+    for dossier in ('reels', 'reels/defile', 'photos', 'rushes', 'ui', 'sfx', 'musique', 'voix'):
         (PUBLIC / dossier).mkdir(parents=True, exist_ok=True)
     for nom, (fichier, debut, duree) in REELS.items():
         reel(nom, fichier, debut, duree)
     for numero, (fichier, seconde, centre) in PHOTOS.items():
         photo(numero, fichier, seconde, centre)
+    for nom, f in PHOTOS_JEU.items():
+        shutil.copy2(f, PUBLIC / 'photos' / nom)
     for f in SFX:
         d = PUBLIC / 'sfx' / f.name
         if not d.exists():
