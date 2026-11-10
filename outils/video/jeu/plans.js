@@ -244,15 +244,17 @@
   // ---------------------------------------------------------------- la vidéo « noob vs pro » (2026-11-10)
   // Les mêmes manches jouées deux fois : le débutant pose tout à Tokyo, vite ; le pro réfléchit et vise juste, sauf aux chutes de
   // Nomizo (près de Tokyo), qu'il croit à Kyūshū. Les temps sont ceux de la musique (150 battements par minute, V = 0,4 s) ; la prise
-  // commence quand la photo de la manche 1 est déjà là (la première image de la vidéo).
+  // commence quand la photo de la manche 1 est déjà là (la première image de la vidéo). Refilmées plus lentes le même jour (le
+  // propriétaire : « ça va un peu trop vite ») : des manches de 12 temps, chacun appuie 5 temps après « Next place » (le temps que la
+  // carte revienne et que le personnage parle), valide un demi-temps après.
   const V = 60 / 150;
   const LIEUX_VS = ['shuri-castle', 'hill-of-the-buddha', 'kinkaku-ji', 'nomizo-falls', 'aogashima'];
   const TOKYO = [139.767, 35.681];
   const JOUEURS = {
-    noob: { pins: [TOKYO, TOKYO, TOKYO, TOKYO, TOKYO], appui: [1, 1, 1, 1], valide: [1.5, 1.5, 1.5, 1.5] },
-    pro: { pins: [[127.722, 26.219], [141.36, 42.925], [135.733, 35.042], [131.3, 32.7], [139.766, 32.46]], appui: [2.5, 2.5, 2.5, 3.5], valide: [3, 3, 3, 4] },
+    noob: { pins: [TOKYO, TOKYO, TOKYO, TOKYO, TOKYO], appui: [5, 5, 5, 5], valide: [5.5, 5.5, 5.5, 5.5] },
+    pro: { pins: [[127.722, 26.219], [141.36, 42.925], [135.733, 35.042], [131.3, 32.7], [139.766, 32.46]], appui: [5, 5, 5, 5], valide: [5.5, 5.5, 5.5, 5.5] },
   };
-  const DEBUTS_VS = [0, 8, 16, 24]; // le début de chaque manche filmée (en temps)
+  const DEBUTS_VS = [0, 12, 24, 36]; // le début de chaque manche filmée (en temps)
   async function lancerVs() {
     window.__LIEUX_JEU = LIEUX_VS;
     document.getElementById('btn-jeu').click();
@@ -263,7 +265,7 @@
   }
   const versus = (qui) => () => {
     const j = JOUEURS[qui];
-    const film = window.__creerFilm({ duree: 34 * V, css: CSS });
+    const film = window.__creerFilm({ duree: 48 * V, css: CSS });
     const { quand, toucher } = film;
     DEBUTS_VS.forEach((d, k) => {
       if (k) {

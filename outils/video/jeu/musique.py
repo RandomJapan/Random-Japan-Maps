@@ -557,11 +557,15 @@ def bruitages_createur():
 # 150 battements par minute (un temps = 24 images), en do, mélodie en gamme yo (do, ré, fa, sol, la) : un « jeu vidéo » japonais. Les
 # voix d'une vieille console : deux ondes carrées (la mélodie à 25 %, l'arpège rapide à 12,5 %), un triangle à la basse, du bruit pour la
 # batterie, un écho court sur la mélodie. La borne d'arcade (2026-11-10, le propriétaire : « deux téléphones côte à côte, c'est trop
-# petit ») : les joueurs jouent chacun leur tour, les manches s'allongent. Manches (temps 0 → 40, une manche commence toujours sur
-# une mesure) : tout le groove ; le score (40 → 48) : à moitié ; la fin (48 → 56) : tout, et l'accord final au temps 56.
+# petit »), puis plus lente (« ça va un peu trop vite et on ne se rend pas bien compte que c'est un noob vs un pro ») : les deux
+# personnages parlent, chacun son tour dure deux fois plus. La batterie en demi-temps (la grosse caisse sur le 1, la caisse claire sur le
+# 3) : le même tempo, un pas deux fois plus calme. L'écran « VS » (temps 0 → 4) : un accord frappé, un roulement ; les manches 1, 2 et 4 :
+# le demi-temps, une mélodie à la noire ; la manche 3 passée en avance rapide (32 → 36) : le double-temps ; le dernier tour du pro
+# (44 → 48) : le suspense, sans mélodie ; la victoire du débutant (48 → 52) : tout ; le score (52 → 56) : à moitié ; la fin (56 → 64) :
+# tout, et l'accord final au temps 64.
 VS_TEMPS = 60 / 150
 VS_PAS = VS_TEMPS / 4
-VS_DUREE = 57 * VS_TEMPS
+VS_DUREE = 65 * VS_TEMPS
 
 
 def carre(f, duree, rapport=0.25, vibrato=0.0, attaque=0.003, chute=0.25, tenue=0.65):
@@ -617,63 +621,98 @@ VS_A = [[(0, 'G4', 1), (1, 'A4', 1), (2, 'C5', 2), (4, 'D5', 1), (5, 'C5', 1), (
         [(0, 'A4', 2), (2, 'C5', 1), (3, 'D5', 1), (4, 'F5', 2), (6, 'D5', 1), (7, 'C5', 1)],
         [(0, 'F4', 1), (1, 'A4', 1), (2, 'C5', 1), (3, 'F5', 2), (5, 'D5', 1), (6, 'C5', 1), (7, 'A4', 1)],
         [(0, 'G4', 2), (2, 'A4', 1), (3, 'C5', 1), (4, 'D5', 4)]]
-VS_B = [[(0, 'C5', 1), (1, 'D5', 1), (2, 'F5', 2), (4, 'G5', 1), (5, 'F5', 1), (6, 'D5', 1), (7, 'C5', 1)],
-        [(0, 'A4', 2), (2, 'C5', 2), (4, 'D5', 1), (5, 'C5', 1), (6, 'A4', 2)],
-        [(0, 'F5', 2), (2, 'D5', 1), (3, 'C5', 1), (4, 'A4', 2), (6, 'C5', 1), (7, 'D5', 1)],
-        [(0, 'G5', 4), (4, 'F5', 1), (5, 'D5', 1), (6, 'C5', 1), (7, 'A4', 1)]]
+# la mélodie lente des manches (gamme yo), à la noire : (temps, note, durée en temps), une mesure par accord
+VS_LENT = {'C': [(0, 'C5', 1), (1, 'D5', 1), (2, 'G5', 2)], 'Am': [(0, 'A4', 1), (1, 'C5', 1), (2, 'D5', 1), (3, 'C5', 1)],
+           'F': [(0, 'F5', 1), (1, 'D5', 1), (2, 'C5', 2)], 'G': [(0, 'D5', 1), (1, 'G4', 1), (2, 'A4', 2)]}
+VS_LENT_B = {'C': [(0, 'G5', 1), (1, 'A5', 1), (2, 'G5', 1), (3, 'D5', 1)], 'Am': [(0, 'C5', 2), (2, 'A4', 1), (3, 'C5', 1)],
+             'F': [(0, 'D5', 1), (1, 'F5', 1), (2, 'G5', 2)], 'G': [(0, 'A5', 1), (1, 'G5', 1), (2, 'D5', 2)]}
 
 
 def versus():
     T, P = VS_TEMPS, VS_PAS
     lead, arp, bas, batt = Piste(VS_DUREE + 1), Piste(VS_DUREE + 1), Piste(VS_DUREE + 1), Piste(VS_DUREE + 1)
 
-    def mesure(temps0, accord, melodie=None, niveau=3):
-        """Une mesure (4 temps) à partir du temps temps0 ; niveau 3 : tout, 2 : sans caisse claire ni mélodie, 1 : basse et arpège."""
+    def mesure(temps0, accord, style, melodie=None):
+        """Une mesure (4 temps) à partir du temps temps0. Les styles : « demi » (le demi-temps des manches), « double » (l'avance
+        rapide), « suspense » (la grosse caisse seule, la basse tenue), « moitie » (le score), « plein » (la victoire, la fin)."""
         T0 = temps0 * T
-        # l'arpège rapide (triples croches) sur les notes de l'accord, une octave au-dessus du do 5
         notes = [I.note(n + '5') for n in VS_ACCORDS[accord]]
-        for k in range(32):
-            arp.poser(carre(notes[k % 3] * (2 if k % 6 >= 3 else 1), P / 2 - 0.004, 0.125, chute=0.03, tenue=0.4), T0 + k * P / 2, 0.11)
-        # la basse : croches, fondamentale et octave
         fb = I.note(VS_BASSE[accord])
-        for k in range(8):
-            bas.poser(triangle(fb * (2 if k % 2 else 1), T / 2 - 0.02), T0 + k * T / 2, 0.5)
+        if style != 'suspense':
+            # l'arpège : doubles croches (triples dans l'avance rapide), plus doux au demi-temps
+            pas, nb, v = (P / 2, 32, 0.1) if style == 'double' else (P, 16, 0.075 if style in ('demi', 'moitie') else 0.1)
+            for k in range(nb):
+                arp.poser(carre(notes[k % 3] * (2 if k % 6 >= 3 else 1), pas - 0.004, 0.125, chute=0.03, tenue=0.4), T0 + k * pas, v)
+        # la basse : à la noire au demi-temps, à la croche sinon, tenue (et qui monte un peu) au suspense
+        if style == 'suspense':
+            for k in range(4):
+                bas.poser(triangle(fb, T - 0.03), T0 + k * T, 0.42 + 0.04 * k)
+        elif style in ('demi', 'moitie'):
+            for k in range(4):
+                bas.poser(triangle(fb * (2 if k == 3 else 1), T * 0.9), T0 + k * T, 0.5)
+        else:
+            for k in range(8):
+                bas.poser(triangle(fb * (2 if k % 2 else 1), T / 2 - 0.02), T0 + k * T / 2, 0.5)
         # la batterie
-        for s in range(16):
-            temps = T0 + s * P
-            if s in (0, 8) or (niveau >= 3 and s in (6, 10)):
-                if niveau >= 2 or s == 0:
-                    batt.poser(kick_chip(), temps, 0.75)
-            if niveau >= 3 and s in (4, 12):
+        for x in range(16):
+            temps = T0 + x * P
+            if style == 'demi':
+                kick, caisse, charley = x in (0, 6, 10), x == 8, x % 2 == 0
+            elif style == 'double':
+                kick, caisse, charley = x % 4 == 0, x in (4, 12), True
+            elif style == 'suspense':
+                kick, caisse, charley = x in (0, 8), False, False
+            elif style == 'moitie':
+                kick, caisse, charley = x == 0, False, x % 4 == 0
+            else:
+                kick, caisse, charley = x in (0, 6, 8, 10), x in (4, 12), x % 2 == 0
+            if kick:
+                batt.poser(kick_chip(), temps, 0.75)
+            if caisse:
                 batt.poser(caisse_chip(), temps, 0.42)
-            if niveau >= 2 and s % 2 == 0:
-                batt.poser(charley_chip(), temps, 0.16 if s % 4 else 0.22, pan=0.25)
-        if melodie and niveau >= 3:
-            for croche, nom, d in melodie:
-                lead.poser(carre(I.note(nom), d * T / 2 - 0.02, 0.25, vibrato=0.006), T0 + croche * T / 2, 0.3, pan=-0.1)
+            if charley:
+                batt.poser(charley_chip(), temps, (0.12 if x % 2 else 0.16) if style == 'double' else (0.15 if x % 4 else 0.2), pan=0.25)
+        if melodie:
+            for debut, nom, d in melodie:
+                lead.poser(carre(I.note(nom), d * T - 0.03, 0.25, vibrato=0.006), T0 + debut * T, 0.3, pan=-0.1)
 
-    grille = ['C', 'Am', 'F', 'G']
-    for m in range(8):  # les manches 1 à 3 : A puis B, deux fois chacune… (temps 0 → 32)
-        mesure(4 * m, grille[m % 4], (VS_A if m < 4 else VS_B)[m % 4])
-    mesure(32, 'C', VS_A[0])  # la manche 4 (temps 32 → 40) : le retour du thème, puis la dominante qui reste en l'air
-    mesure(36, 'G', VS_A[3])
-    for m, nom in enumerate(['Am', 'F']):  # le score : à moitié (temps 40 → 48)
-        mesure(40 + 4 * m, nom, niveau=2 if m else 1)
-    for m, nom in enumerate(['F', 'G']):  # la fin (temps 48 → 56)
-        mesure(48 + 4 * m, nom, VS_A[2 + m])
-    # l'accord final (temps 56) : do, tenu
+    def croches(m):
+        """Une mélodie en croches (VS_A), dite en temps."""
+        return [(c / 2, n, d / 2) for c, n, d in m]
+
+    # l'écran « VS » (temps 0 → 4) : l'accord frappé, la basse en croches, un roulement de caisse claire qui monte
+    for n in ('C4', 'G4', 'C5', 'E5'):
+        lead.poser(carre(I.note(n), 1.4 * T, 0.25, chute=0.2, tenue=0.3), 0, 0.15)
+    batt.poser(kick_chip(), 0, 0.85)
+    batt.poser(caisse_chip(), 0, 0.5)
+    for k in range(8):
+        bas.poser(triangle(I.note('C3') * (2 if k % 2 else 1), T / 2 - 0.02), k * T / 2, 0.45)
+    for x in range(8, 16):
+        batt.poser(caisse_chip(), x * P, 0.12 + 0.04 * (x - 8))
+    # les manches 1 et 2 (temps 4 → 32) : le demi-temps, la mélodie lente puis sa variante
+    for m, a in enumerate(['C', 'Am', 'F', 'G', 'C', 'Am', 'F']):
+        mesure(4 + 4 * m, a, 'demi', (VS_LENT if m < 4 else VS_LENT_B)[a])
+    mesure(32, 'G', 'double', croches(VS_A[3]))   # la manche 3, en avance rapide
+    mesure(36, 'C', 'demi', VS_LENT['C'])          # la manche 4 : le débutant
+    mesure(40, 'Am', 'demi', VS_LENT['Am'])
+    mesure(44, 'G', 'suspense')                     # le pro, sûr de lui… et le « bonk » (temps 46,5)
+    mesure(48, 'C', 'plein', VS_LENT_B['C'])        # le débutant a gagné la manche
+    mesure(52, 'F', 'moitie')                       # le score
+    for m, nom in enumerate(['F', 'G']):            # la fin (temps 56 → 64)
+        mesure(56 + 4 * m, nom, 'plein', croches(VS_A[2 + m]))
+    # l'accord final (temps 64) : do, tenu
     for n in ('C4', 'E4', 'G4', 'C5'):
-        lead.poser(carre(I.note(n), 0.9 * T, 0.25, vibrato=0.008, chute=0.3, tenue=0.5), 56 * T, 0.16)
-    bas.poser(triangle(I.note('C3'), 0.9 * T), 56 * T, 0.55)
-    batt.poser(kick_chip(), 56 * T, 0.8)
-    batt.poser(caisse_chip(), 56 * T, 0.4)
+        lead.poser(carre(I.note(n), 0.9 * T, 0.25, vibrato=0.008, chute=0.3, tenue=0.5), 64 * T, 0.16)
+    bas.poser(triangle(I.note('C3'), 0.9 * T), 64 * T, 0.55)
+    batt.poser(kick_chip(), 64 * T, 0.8)
+    batt.poser(caisse_chip(), 64 * T, 0.4)
 
     # l'écho de la mélodie (trois doubles croches plus tard), puis le mélange
     pl = np.stack([lead.g, lead.d], 1)
     echo = np.zeros_like(pl)
     k = int(3 * P * SR)
     echo[k:] = pl[:-k] * 0.32
-    echo[:, 0], echo[:, 1] = np.roll(echo[:, 0], 0), np.roll(echo[:, 1], int(0.012 * SR))
+    echo[:, 1] = np.roll(echo[:, 1], int(0.012 * SR))
     st = pl + echo + np.stack([arp.g, arp.d], 1) + np.stack([bas.g, bas.d], 1) + np.stack([batt.g, batt.d], 1)
     st = filtre(st, 12000)
     st = filtre(st, 30, haut=True)
@@ -721,6 +760,11 @@ def bruitages_versus():
     f = 1400 * np.exp(-u / 0.03) + 300
     x = np.where((np.cumsum(f) / SR % 1) < 0.5, 1.0, -1.0) * np.exp(-u / 0.035) * 0.5 + bruit_chip(0.11, True) * np.exp(-u / 0.025) * 0.6
     ecrire(s / 'vs-bascule.wav', mono(np.concatenate([norme(x, 0.8), np.zeros(int(0.1 * SR))])))
+    # le texte d'un personnage qui s'écrit : un petit bip carré, aigu pour le débutant (à gauche), plus grave pour le pro (à droite)
+    x = suite(['A5'], 0.025, 0.5, queue=0.05)
+    ecrire(s / 'vs-texte-g.wav', np.stack([x * 0.95, x * 0.4], 1))
+    x = suite(['D5'], 0.025, 0.5, queue=0.05)
+    ecrire(s / 'vs-texte-d.wav', np.stack([x * 0.4, x * 0.95], 1))
     # ceux d'un joueur existent aussi à gauche (le débutant, -g) et à droite (le pro, -d)
     import wave as _w
     for nom in ('appui', 'valide', 'rate', 'reussi', 'chance', 'bonk', 'compte'):

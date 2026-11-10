@@ -1,0 +1,117 @@
+{
+ "palette": {
+  "k": "#1b1420",
+  "r": "#e0563f",
+  "R": "#a8321f",
+  "y": "#ffd23f",
+  "g": "#3cb44b",
+  "w": "#ffffff",
+  "s": "#f7c9a1",
+  "S": "#e2a57c",
+  "h": "#4a3020",
+  "p": "#f39a9a",
+  "m": "#8a2a2a",
+  "t": "#7fd0ff",
+  "b": "#4a8fd6",
+  "B": "#2c5f99"
+ },
+ "sprites": {
+  "noob": [
+   "........................",
+   "........kkkkkkkk........",
+   "......kkrrrrrrrrkk......",
+   ".....krrrrrygrrrrrk.....",
+   ".....krrrrrygrrrrrk.....",
+   ".....kRRRRRRRRRRRRk.....",
+   "..krrrrrrrrrrrrrrrrrrk..",
+   "..kkkkkkkkkkkkkkkkkkkk..",
+   ".....khhsssssssshhk.....",
+   ".....khsssssssssshk.....",
+   ".....kssssssssssssk.....",
+   ".....ksswksssswkssk.....",
+   ".....ksskksssskkssk.....",
+   ".....kspsssssssspsk.....",
+   ".....kssskkkkkksssk.....",
+   ".....kssskwwwwksssk.....",
+   ".....ksssskkkkssssk.....",
+   "......kssssssssssk......",
+   ".......kkkkkkkkkk.......",
+   "........kssssssk........",
+   "....kkwwwwkkkkwwwwkk....",
+   "...kwwwwrrwrrwwwwwwwk...",
+   "..kwwwwwrrrrrwwwwwwwwk..",
+   "..kwwwwwwrrrwwwwwwwwwk.."
+  ],
+  "pro": [
+   "........................",
+   "........kkkkkkkk........",
+   "......kkbbbbbbbbkk......",
+   ".....kbbbbbwwbbbbbk.....",
+   ".....kbbbbbbbbbbbbk.....",
+   ".....kBBBBBBBBBBBBk.....",
+   "...kBBBBBBBBBBBBBBBBk...",
+   "...kkkkkkkkkkkkkkkkkk...",
+   ".....khhsssssssshhk.....",
+   ".....kssssssssssssk.....",
+   ".....kkkkkkkkkkkkkk.....",
+   ".....kskwkksskwkksk.....",
+   ".....kskkkksskkkksk.....",
+   ".....kssssssssskssk.....",
+   ".....ksssskkkkksssk.....",
+   ".....kssssssssssssk.....",
+   "......kssssssssssk......",
+   ".......kkkkkkkkkk.......",
+   "........kssssssk........",
+   "....kkbbbbkwwkbbbbkk....",
+   "...kbbbbbbkwwkbbbbbbk...",
+   "..kbbbbbbbkwwkbbbbbbbk..",
+   "..kbbbbbbbkwwkbbybbbbk..",
+   "..kbbbbbbbkwwkbbbbbbbk.."
+  ]
+ },
+ "tetes": {
+  "noob": {
+   "content": {},
+   "pleure": {
+    "11": ".....ksskksssskkssk.....",
+    "12": ".....kssttssssttssk.....",
+    "13": ".....kssttssssttssk.....",
+    "14": ".....ksstskkkkstssk.....",
+    "15": ".....kssskmmmmksssk.....",
+    "16": ".....ksssskkkkssssk....."
+   },
+   "choque": {
+    "9": ".....khskksssskkshk.....",
+    "14": ".....ksssskkkkssssk.....",
+    "15": ".....ksssskmmkssssk.....",
+    "16": ".....ksssskkkkssssk....."
+   },
+   "fier": {
+    "11": ".....ksskksssskkssk.....",
+    "12": ".....kskssksskssksk....."
+   },
+   "parle": {
+    "14": ".....ksssskkkkssssk.....",
+    "15": ".....ksssskmmkssssk.....",
+    "16": ".....kssssskksssssk....."
+   }
+  },
+  "pro": {
+   "cool": {},
+   "choque": {
+    "8": ".....kkkkkkkkkkkkkk.....",
+    "9": ".....kskwkksskwkksk.....",
+    "10": ".....kssssssssssssk.....",
+    "11": ".....ksswksssskwssk.....",
+    "12": ".....ksskksssskktsk.....",
+    "13": ".....ksssskkkksstsk.....",
+    "14": ".....ksssskmmkssssk.....",
+    "15": ".....ksssskkkkssssk....."
+   },
+   "parle": {
+    "14": ".....kssssskkkssssk.....",
+    "15": ".....kssssskmkssssk....."
+   }
+  }
+ }
+}
