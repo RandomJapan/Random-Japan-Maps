@@ -128,7 +128,8 @@ const TEXTES = {
 };
 
 // Les 24 cases. lieu : l'identifiant du lieu sur la carte (son nom anglais en minuscules, comme dans ?voyage=).
-// pret : le cadeau existe vraiment ; special : ce que la case montre de plus (prenom, fond) ; code : boutique Inkami.
+// pret : le cadeau existe vraiment ; special : ce que la case montre de plus (prenom) ; fichier : un cadeau à télécharger
+// (blocFichier) ; code : boutique Inkami.
 // Les textes japonais des cases sont à écrire avant la sortie (en attendant : l'anglais).
 const CASES = [
   { j: 1, k: 'boutique', lieu: 'hill-of-the-buddha', pret: true, special: 'prenom',
@@ -179,9 +180,10 @@ const CASES = [
     texte: { en: 'A special round of the game with winter places only, to play alone or with friends.', fr: 'Une partie spéciale du jeu, avec seulement des lieux d’hiver, à jouer seul ou avec des amis.' },
     deco: { en: 'Swans land on the northern lakes.', fr: 'Des cygnes se posent sur les lacs du nord.' },
     savais: { en: 'Whooper swans spend the winter by the lake, where hot springs keep it from freezing.', fr: 'Des cygnes chanteurs passent l’hiver au bord du lac, là où des sources chaudes l’empêchent de geler.' } },
-  { j: 9, k: 'telecharger', lieu: 'kegon-falls', pret: false,
+  { j: 9, k: 'telecharger', lieu: 'kegon-falls', pret: true,
+    fichier: { apercu: 'noel/origami-{l}-apercu.jpg', url: 'noel/origami-{l}.pdf', nom: 'origami-grue.pdf', forme: 'page', bouton: 'pdf' },
     cadeau: { en: 'The map’s origami paper', fr: 'Le papier origami de la carte', ja: 'マップ柄の折り紙' },
-    texte: { en: 'A square sheet to print in the map’s colours, and how to fold the crane step by step.', fr: 'Une feuille carrée à imprimer aux couleurs de la carte, et le pliage de la grue pas à pas.' },
+    texte: { en: 'Two square sheets to print in the map’s colours (waves and hemp leaves), and how to fold the crane in 12 steps.', fr: 'Deux feuilles carrées à imprimer aux couleurs de la carte (les vagues et les feuilles de chanvre), et le pliage de la grue en 12 étapes.' },
     deco: { en: 'Paper cranes fly over the map.', fr: 'Des grues en papier volent au-dessus de la carte.' },
     savais: { en: 'In Japan, people fold a thousand cranes (senbazuru) to make a wish: healing, happiness or peace.', fr: 'Au Japon, on plie mille grues (senbazuru) pour faire un vœu : guérison, bonheur ou paix.' } },
   { j: 10, k: 'boutique', lieu: 'hirosaki-castle', pret: false, code: 'CALENDRIER10',
@@ -200,7 +202,8 @@ const CASES = [
     texte: { en: 'A new legend hidden on the map: the snow woman, somewhere in the snowy mountains.', fr: 'Une nouvelle légende cachée sur la carte : la femme des neiges, quelque part dans les montagnes enneigées.' },
     deco: { en: 'Sometimes a white figure passes in the storm…', fr: 'Parfois, une silhouette blanche passe dans la tempête…' },
     savais: { en: 'The path to the shrine is lined with cedars planted about 400 years ago.', fr: 'L’allée qui mène au sanctuaire est bordée de cèdres plantés il y a environ 400 ans.' } },
-  { j: 13, k: 'telecharger', lieu: 'gokayama', pret: false,
+  { j: 13, k: 'telecharger', lieu: 'gokayama', pret: true,
+    fichier: { apercu: 'noel/fond-gokayama-neige-apercu.jpg', url: 'noel/fond-gokayama-neige.jpg', nom: 'gokayama-sous-la-neige.jpg', forme: 'telephone', bouton: 'fond' },
     cadeau: { en: 'Wallpaper: Gokayama in the snow', fr: 'Fond d’écran : Gokayama sous la neige', ja: '壁紙：雪の五箇山' },
     texte: { en: 'The village of the 3D walk at night, white roofs and lit windows.', fr: 'Le village de la balade 3D la nuit, les toits blancs et les fenêtres allumées.' },
     deco: { en: 'The farmhouse windows light up at night.', fr: 'Les fenêtres des fermes s’allument la nuit.' },
