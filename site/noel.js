@@ -43,6 +43,9 @@ const TEXTES = {
     fondTelecharger: 'Download my wallpaper',
     fondPret: 'Your wallpaper is ready',
     fondTexte: 'My Christmas wallpaper from the 3D map of Japan',
+    pdfTelecharger: 'Download the PDF',
+    imageTelecharger: 'Download the image',
+    partageTexte: 'A Christmas gift from the 3D map of Japan',
     code: 'Code',
     copier: 'Copy',
     copie: 'Code copied',
@@ -74,6 +77,9 @@ const TEXTES = {
     fondTelecharger: 'Télécharger mon fond d’écran',
     fondPret: 'Ton fond d’écran est prêt',
     fondTexte: 'Mon fond d’écran de Noël, fait sur la carte 3D du Japon',
+    pdfTelecharger: 'Télécharger le PDF',
+    imageTelecharger: 'Télécharger l’image',
+    partageTexte: 'Un cadeau de Noël de la carte 3D du Japon',
     code: 'Code',
     copier: 'Copier',
     copie: 'Code copié',
@@ -105,6 +111,9 @@ const TEXTES = {
     fondTelecharger: '壁紙をダウンロード',
     fondPret: '壁紙ができました',
     fondTexte: '日本の3Dマップで作ったクリスマスの壁紙',
+    pdfTelecharger: 'PDFをダウンロード',
+    imageTelecharger: '画像をダウンロード',
+    partageTexte: '日本の3Dマップからのクリスマスプレゼント',
     code: 'コード',
     copier: 'コピー',
     copie: 'コピーしました',
@@ -134,10 +143,11 @@ const CASES = [
       fr: 'La nuit, les grandes villes de la carte s’allument, comme les illuminations d’hiver au Japon, et une musique d’hiver arrive dans le lecteur.' },
     deco: { en: 'The star of the Goryokaku fort lights up.', fr: 'L’étoile du fort de Goryokaku s’allume.' },
     savais: { en: 'Every winter, Hakodate’s star-shaped fort is lit up every evening.', fr: 'Chaque hiver, le fort en forme d’étoile de Hakodate est illuminé tous les soirs.' } },
-  { j: 3, k: 'telecharger', lieu: 'lake-kinrin', pret: false,
+  { j: 3, k: 'telecharger', lieu: 'lake-kinrin', pret: true,
+    fichier: { apercu: 'noel/calendrier-2027-apercu.jpg', url: 'noel/calendrier-2027.pdf', nom: 'calendrier-2027-carte-du-japon.pdf', forme: 'paysage', bouton: 'pdf' },
     cadeau: { en: 'The 2027 calendar to print', fr: 'Le calendrier 2027 à imprimer', ja: '2027年カレンダー' },
-    texte: { en: '12 months, 12 places from the map, each in its best season: snow in January, cherry blossoms in April, red maples in November. A4 PDF.',
-      fr: '12 mois, 12 lieux de la carte, chacun à sa plus belle saison : la neige en janvier, les cerisiers en avril, les érables rouges en novembre. En PDF, format A4.' },
+    texte: { en: '12 months, 12 places from the map, each in its season: snow in January, cherry blossoms in April, red maples in November, with Japan’s public holidays. A4 landscape PDF.',
+      fr: '12 mois, 12 lieux de la carte, chacun à sa saison : la neige en janvier, les cerisiers en avril, les érables rouges en novembre, avec les jours fériés du Japon. En PDF, format A4 à l’italienne.' },
     deco: { en: 'A garland hangs on the map’s title.', fr: 'Une guirlande s’accroche au titre de la carte.' },
     savais: { en: 'On winter mornings, mist rises from the lake, warmed by hot springs.', fr: 'Les matins d’hiver, une brume monte du lac, réchauffé par des sources chaudes.' } },
   { j: 4, k: 'boutique', lieu: 'fukuroda-falls', pret: false, code: 'CALENDRIER4',
@@ -152,7 +162,8 @@ const CASES = [
       fr: 'Une écharpe tricotée pour le voyageur de la balade 3D. La première pièce de la tenue d’hiver.' },
     deco: { en: 'Lanterns light up in the old village streets.', fr: 'Des lanternes s’allument dans les vieilles rues des villages.' },
     savais: { en: 'Tsumago was a stop on the Nakasendō road between Kyoto and Edo (Tokyo). The village is kept almost as it was then.', fr: 'Tsumago était une étape de la route Nakasendō entre Kyoto et Edo (Tokyo). Le village est gardé presque comme à l’époque.' } },
-  { j: 6, k: 'telecharger', lieu: 'lake-yamanaka', pret: false,
+  { j: 6, k: 'telecharger', lieu: 'lake-yamanaka', pret: true,
+    fichier: { apercu: 'noel/fond-fuji-hiver-apercu.jpg', url: 'noel/fond-fuji-hiver.jpg', nom: 'fuji-en-hiver.jpg', forme: 'telephone', bouton: 'fond' },
     cadeau: { en: 'Wallpaper: Mount Fuji in winter', fr: 'Fond d’écran : le Fuji en hiver', ja: '壁紙：冬の富士山' },
     texte: { en: 'Mount Fuji under the snow, seen from Lake Yamanaka, made with the map, for your phone.', fr: 'Le Fuji sous la neige, vu du lac Yamanaka, fait avec la carte, pour ton téléphone.' },
     deco: { en: 'The snow comes further down the mountains.', fr: 'La neige descend plus bas sur les montagnes.' },
@@ -200,7 +211,8 @@ const CASES = [
       fr: 'Chaque mois de décembre à Kyoto, le grand prêtre du temple Kiyomizu-dera écrit au pinceau géant le kanji qui résume l’année. La carte l’affiche au-dessus de Kyoto.' },
     deco: { en: 'The kanji of the year appears over Kyoto.', fr: 'Le kanji de l’année s’écrit au-dessus de Kyoto.' },
     savais: { en: 'The kanji of 2025 was 熊, the bear, after a year of many bear encounters.', fr: 'Le kanji de 2025 était 熊, l’ours, après une année de nombreuses rencontres avec des ours.' } },
-  { j: 15, k: 'telecharger', lieu: 'izumo-taisha', pret: false,
+  { j: 15, k: 'telecharger', lieu: 'izumo-taisha', pret: true,
+    fichier: { apercu: 'noel/nengajo-2027-{l}-apercu.jpg', url: 'noel/nengajo-2027-{l}.jpg', nom: 'carte-de-voeux-2027.jpg', forme: 'carte', bouton: 'image' },
     cadeau: { en: 'The 2027 New Year card', fr: 'La carte de vœux 2027', ja: '2027年の年賀状' },
     texte: { en: 'A Japanese-style New Year card (nengajō) for the Year of the Sheep, to print or to send by message.',
       fr: 'Une carte de vœux à la japonaise (nengajō) pour l’année du Mouton, à imprimer ou à envoyer par message.' },
@@ -219,10 +231,11 @@ const CASES = [
     deco: { en: 'Snow huts (kamakura) light up in the north.', fr: 'Des huttes de neige (kamakura) s’allument dans le nord.' },
     savais: { en: 'On the evening of December 31, on the Oga peninsula (Akita), masked demons, the Namahage, visit homes to scold lazy children.',
       fr: 'Le soir du 31 décembre, dans la péninsule d’Oga (Akita), des démons masqués, les Namahage, passent dans les maisons pour gronder les enfants paresseux.' } },
-  { j: 18, k: 'telecharger', lieu: 'saiko-iyashi-no-sato-nenba', pret: false,
+  { j: 18, k: 'telecharger', lieu: 'saiko-iyashi-no-sato-nenba', pret: true,
+    fichier: { apercu: 'noel/etiquettes-{l}-apercu.jpg', url: 'noel/etiquettes-{l}.pdf', nom: 'etiquettes-cadeaux.pdf', forme: 'page', bouton: 'pdf' },
     cadeau: { en: 'Gift tags', fr: 'Les étiquettes cadeaux', ja: 'ギフトタグ' },
-    texte: { en: 'Tags to print for your gifts (Fuji, a daruma, a crane, a Nara deer), and how to wrap a gift in cloth, the Japanese way.',
-      fr: 'Des étiquettes à imprimer pour tes cadeaux (le Fuji, un daruma, une grue, un cerf de Nara), et comment emballer un cadeau dans un tissu, à la japonaise.' },
+    texte: { en: 'Eight tags to print for your gifts, with the characters of the map’s legends (the tanuki, the fox, Yuki-onna…), and how to wrap a gift in cloth, the Japanese way.',
+      fr: 'Huit étiquettes à imprimer pour tes cadeaux, avec les personnages des légendes de la carte (le tanuki, le renard, Yuki-onna…), et comment emballer un cadeau dans un tissu, à la japonaise.' },
     deco: { en: 'Gifts pile up under the Christmas trees.', fr: 'Des cadeaux s’empilent au pied des sapins.' },
     savais: { en: 'In Japan, a gift is often wrapped in a knotted cloth, the furoshiki, which is used again.', fr: 'Au Japon, on emballe souvent un cadeau dans un tissu noué, le furoshiki, qui se réutilise.' } },
   { j: 19, k: 'balade', lieu: 'hirayu-waterfall', pret: false,
@@ -230,7 +243,8 @@ const CASES = [
     texte: { en: 'A lit paper lantern to hold in the hand, like the Tottori parasol.', fr: 'Une lanterne en papier allumée, à tenir à la main, comme l’ombrelle de Tottori.' },
     deco: { en: 'The frozen waterfalls light up at night.', fr: 'Les cascades gelées s’illuminent la nuit.' },
     savais: { en: 'In February, the great frozen Hirayu waterfall is lit up at night for its festival.', fr: 'En février, la grande cascade gelée de Hirayu est illuminée la nuit, pendant sa fête.' } },
-  { j: 20, k: 'telecharger', lieu: 'ghost-bridge', pret: true, special: 'fond',
+  { j: 20, k: 'telecharger', lieu: 'ghost-bridge', pret: true,
+    fichier: { apercu: 'noel/fond-nuit-de-noel-apercu.jpg', url: 'noel/fond-nuit-de-noel.jpg', nom: 'nuit-de-noel-japon.jpg', forme: 'telephone', bouton: 'fond' },
     cadeau: { en: 'Wallpaper: Christmas night over Japan', fr: 'Fond d’écran : la nuit de Noël sur le Japon', ja: '壁紙：クリスマスの夜の日本' },
     texte: { en: 'All of Japan at night, the places and the cities lit up, made with the map set to the night of December 24.',
       fr: 'Tout le Japon la nuit, les lieux et les villes allumés, fait avec la carte réglée sur la nuit du 24 décembre.' },
@@ -250,7 +264,8 @@ const CASES = [
     deco: { en: 'Yuzu float in the hot springs.', fr: 'Des yuzus flottent dans les onsens.' },
     savais: { en: 'On the winter solstice, the Japanese take a bath with yuzu and eat pumpkin, to get through winter without falling ill.',
       fr: 'Le jour du solstice, les Japonais prennent un bain avec des yuzus et mangent du potiron, pour passer l’hiver sans tomber malade.' } },
-  { j: 23, k: 'telecharger', lieu: 'fujisan-hongu-sengen-taisha', pret: false,
+  { j: 23, k: 'telecharger', lieu: 'fujisan-hongu-sengen-taisha', pret: true,
+    fichier: { apercu: 'noel/recette-{l}-apercu.jpg', url: 'noel/recette-{l}.pdf', nom: 'gateau-de-noel-japonais.pdf', forme: 'page', bouton: 'pdf' },
     cadeau: { en: 'The Japanese Christmas cake recipe', fr: 'La recette du gâteau de Noël japonais', ja: 'クリスマスケーキのレシピ' },
     texte: { en: 'Japan’s Christmas cake, a sponge with whipped cream and strawberries, as a card to print.', fr: 'Le gâteau de Noël du Japon, une génoise avec de la crème fouettée et des fraises, en fiche à imprimer.' },
     deco: { en: 'The sleigh gets ready in Nara.', fr: 'Le traîneau se prépare à Nara.' },
@@ -439,7 +454,7 @@ export function brancherNoel(outils) {
       <span class="noel-sorte">${svg(ICONES[c.k])}${echapper(tx('sortes')[c.k])}</span>
       <p>${echapper(enL(c.texte))}</p>`;
     if (c.special === 'prenom') s.append(blocPrenom());
-    if (c.special === 'fond') s.append(blocFond());
+    if (c.fichier) s.append(blocFichier(c.fichier));
     if (c.code) s.append(blocCode(c));
     if (!c.pret && estDev()) s.append(creer('p', 'noel-preparation', tx('enPreparation')));
 
@@ -557,20 +572,25 @@ export function brancherNoel(outils) {
     return new File([blob], nomFichier, { type: 'image/png' });
   }
 
-  // ---- Case 20 : le fond d'écran de la nuit de Noël (une image faite une fois avec la carte)
-  function blocFond() {
-    const div = creer('div', 'noel-fond');
-    div.innerHTML = '<img src="noel/fond-nuit-de-noel-apercu.jpg" alt="" width="150" height="324">';
-    const b = creer('button', 'btn-lancer', tx('fondTelecharger'));
+  // ---- Les cadeaux à télécharger : un aperçu et le bouton (fabriqués une fois : scratchpad/noel/fabriquer.py,
+  //      fond_noel.py, fond_fuji.py de la session du 2026-11-10). {l} : la langue du visiteur (fr, en, ja).
+  function blocFichier(f) {
+    const l = ['fr', 'en', 'ja'].includes(langue()) ? langue() : 'en';
+    const en = (s) => s.replace('{l}', l);
+    const div = creer('div', `noel-fichier forme-${f.forme}`);
+    div.innerHTML = `<img src="${en(f.apercu)}" alt="" loading="lazy">`;
+    const b = creer('button', 'btn-lancer', tx(f.bouton === 'fond' ? 'fondTelecharger' : f.bouton === 'image' ? 'imageTelecharger' : 'pdfTelecharger'));
     b.type = 'button';
     b.addEventListener('click', async () => {
       b.disabled = true;
       try {
-        const r = await fetch('noel/fond-nuit-de-noel.jpg');
-        const f = new File([await r.blob()], 'nuit-de-noel-japon.jpg', { type: 'image/jpeg' });
-        if (!(await partagerFichier(f, tx('fondTexte')))) telecharger(f);
+        const r = await fetch(en(f.url));
+        if (!r.ok) throw new Error(r.status);
+        const blob = await r.blob();
+        const fichier = new File([blob], f.nom, { type: blob.type || 'application/octet-stream' });
+        if (!(await partagerFichier(fichier, tx(f.bouton === 'fond' ? 'fondTexte' : 'partageTexte')))) telecharger(fichier);
       } catch (e) {
-        console.warn('Fond d’écran impossible', e);
+        console.warn('Téléchargement impossible', e);
       } finally { b.disabled = false; }
     });
     div.append(b);
