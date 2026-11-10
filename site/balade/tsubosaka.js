@@ -71,7 +71,9 @@ const KANNON = { x0: -45, x1: -25, z0: 78, z1: 93, y: 34.0, talus: 7 };
 const TERRASSES = [BAS, MILIEU, HAUT, NEHAN, KANNON];
 // les escaliers : du bas au milieu (sous la porte des Niō) ; du milieu au haut ; de la place du Bouddha couché au grand Kannon
 const ESC1 = { x0: -64, x1: -47, z0: -36, z1: -28, h0: BAS.y, h1: MILIEU.y, axe: 'x' };
-const ESC2 = { x0: -20, x1: -2, z0: -27, z1: -21, h0: MILIEU.y, h1: HAUT.y, axe: 'x' };
+// (le second escalier finit au bord de la cour haute : il y entrait de 4 m, dans un creux ; on descendait dans ce creux contre sa bordure, et le muret du bord
+// flottait au-dessus, vu au travers : 2026-11-10. Plus raide, 40°, comme bien des escaliers de temple)
+const ESC2 = { x0: -20, x1: -6, z0: -27, z1: -21, h0: MILIEU.y, h1: HAUT.y, axe: 'x' };
 const ESC3 = { x0: -38, x1: -32, z0: 62, z1: 78, h0: NEHAN.y, h1: KANNON.y, axe: 'z' };
 const ESCALIERS = [ESC1, ESC2, ESC3];
 for (const E of ESCALIERS) { E.n = Math.round((E.h1 - E.h0) / 0.18); E.long = E.axe === 'x' ? E.x1 - E.x0 : E.z1 - E.z0; }
@@ -126,15 +128,18 @@ function solBrut(x, z) {
     if (d < CLAIRIERE.r + 3) h = melange(CLAIRIERE.y, h, lisse(CLAIRIERE.r, CLAIRIERE.r + 3, d));
   }
   // les terrasses : à plat dedans ; dehors, le relief les rejoint sur un talus étroit (le mur de pierre est devant)
+  let dansTerrasse = false;
   for (const T of TERRASSES) {
     const dx = Math.max(T.x0 - x, 0, x - T.x1), dz = Math.max(T.z0 - z, 0, z - T.z1), d = Math.hypot(dx, dz);
-    if (d === 0) { h = T.y; break; }
+    if (d === 0) { h = T.y; dansTerrasse = true; break; }
     const tal = T.talus || TALUS;
     if (d < tal) h = melange(T.y, h, lisse(0, tal, d) ** (T.talus ? 1.6 : 1));
   }
   // sous les escaliers : 25 cm sous la ligne des nez des marches (les marches sont des blocs pleins) ; de chaque côté, le relief
   // rejoint leur pente sur 7 m (un escalier dans une tranchée de verdure, entre deux murs verts : 2026-11-05)
+  // (pas dans une terrasse : elle reste à plat jusqu'à son bord ; 2026-11-10, la cour haute creusée de 2,5 m autour du haut du second escalier)
   for (const E of ESCALIERS) {
+    if (dansTerrasse) break;
     const lat = E.axe === 'x' ? Math.max(E.z0 - z, 0, z - E.z1) : Math.max(E.x0 - x, 0, x - E.x1);
     const lon = E.axe === 'x' ? Math.max(E.x0 - x, 0, x - E.x1) : Math.max(E.z0 - z, 0, z - E.z1);
     if (lat > 7 || lon > 0.6) continue;
@@ -204,7 +209,7 @@ const OUVERTURES = [
   { x0: ESC1.x0 - OUV, x1: ESC1.x0 + 0.5, z0: ESC1.z0 + BORD_ESC, z1: ESC1.z1 - BORD_ESC },
   { x0: ESC1.x1 - 0.5, x1: ESC1.x1 + OUV, z0: NIOMON.z - 1.9, z1: NIOMON.z + 1.9 },
   { x0: ESC2.x0 - OUV, x1: ESC2.x0 + 0.5, z0: ESC2.z0 + BORD_ESC, z1: ESC2.z1 - BORD_ESC },
-  { x0: ESC2.x1 - 4.5, x1: HAUT.x0 + OUV, z0: ESC2.z0 + BORD_ESC, z1: ESC2.z1 - BORD_ESC },
+  { x0: ESC2.x1 - 0.5, x1: HAUT.x0 + OUV, z0: ESC2.z0 + BORD_ESC, z1: ESC2.z1 - BORD_ESC },
   { x0: ESC3.x0 + BORD_ESC, x1: ESC3.x1 - BORD_ESC, z0: ESC3.z0 - OUV, z1: ESC3.z0 + 0.5 },
   { x0: ESC3.x0 + BORD_ESC, x1: ESC3.x1 - BORD_ESC, z0: ESC3.z1 - 0.5, z1: ESC3.z1 + OUV },
 ];
@@ -830,9 +835,11 @@ export function construire(ctx) {
         // (0,57 : le corps du voyageur reste hors de la bordure ; à 0,17, il y entrait à mi-corps, et la caméra voyait au travers : 2026-11-10)
         if (E.axe === 'x') monde.mur(E.x0, off, E.x1, off, 0.57); else monde.mur(off, E.z0, off, E.z1, 0.57);
       }
-      // on y marche : une pente de pierre aux bouts droits
-      if (E.axe === 'x') monde.rampe(E.x0, E.x1, mid - demi, mid + demi, 'x', E.h0, E.h1, { sol: 'pierre' });
-      else monde.rampe(mid - demi, mid + demi, E.z0, E.z1, 'z', E.h0, E.h1, { sol: 'pierre' });
+      // on y marche : une pente de pierre aux bouts droits, au milieu de la hauteur des marches, la dernière à plat (2026-11-10 : la pente passait au pied des
+      // contremarches, et les pieds entraient de 9 à 26 cm dans chaque marche ; à mi-hauteur, ± 9 cm. Une marche avance de 10 cm sur la précédente : off)
+      const off = contre * (0.5 + 0.1 / giron), dH = giron * 0.5 + 0.1;
+      if (E.axe === 'x') { monde.rampe(E.x0, E.x1 - dH, mid - demi, mid + demi, 'x', E.h0 + off, E.h1, { sol: 'pierre' }); monde.surface(E.x1 - dH, E.x1, mid - demi, mid + demi, E.h1, { sol: 'pierre' }); }
+      else { monde.rampe(mid - demi, mid + demi, E.z0, E.z1 - dH, 'z', E.h0 + off, E.h1, { sol: 'pierre' }); monde.surface(mid - demi, mid + demi, E.z1 - dH, E.z1, E.h1, { sol: 'pierre' }); }
     }
   }
 
@@ -995,6 +1002,30 @@ export function construire(ctx) {
     monde.mur(x0, z0, x1, z0, 0.05); monde.mur(x1, z0, x1, z1, 0.05); monde.mur(x1, z1, x0, z1, 0.05); monde.mur(x0, z1, x0, z0, 0.05);
     monde.bloc(x0 + 0.3, x1 - 0.3, z0 + 0.3, z1 - 0.3, y - 1, y + haut);
   };
+  /**
+   * Une salle où l'on monte (salle + marchesDevant), pour le marcheur : ses marches (une surface chacune, à sa hauteur), sa galerie de planches tout autour (le socle
+   * entier), les murs de la salle (on en reste à 30 cm), le pied du socle pour qui est au sol ou sur les marches (à 30 cm aussi ; ouvert devant les marches) ; la
+   * caméra n'entre ni dans la salle ni dans le socle. (2026-11-10, « on peut rentrer aussi dans les escaliers » : un bloc plein s'arrêtait au bord du socle, ses marches
+   * restaient dehors, et l'on marchait au travers, à hauteur du sol, les pieds dedans ; trois fois plus bas que le socle, le bloc laissait entrer dans ses côtés.)
+   * R : le repère de la salle (façade vers +z, tourné d'un multiple de π/2) ; l, p, galerie, socle : ceux de salle ; zM, lM, nM : ceux de marchesDevant ; y : le sol.
+   */
+  const salleOuverte = (R, l, p, galerie, socle, zM, lM, nM, y, haut) => {
+    const rect = (lx0, lx1, lz0, lz1) => { const A = R(lx0, 0, lz0), B = R(lx1, 0, lz1); return [Math.min(A.x, B.x), Math.max(A.x, B.x), Math.min(A.z, B.z), Math.max(A.z, B.z)]; };
+    const S = galerie + 0.15, [sx0, sx1, sz0, sz1] = rect(-l / 2 - S, l / 2 + S, -p / 2 - S, p / 2 + S);
+    monde.surface(sx0, sx1, sz0, sz1, y + socle + 0.1, { sol: 'bois' });
+    for (let k = 0; k < nM; k++) {
+      const [a0, a1, b0, b1] = rect(-(lM - k * 0.02) / 2, (lM - k * 0.02) / 2, zM + 0.34 * k - 0.02, zM + 0.34 * (k + 1) - 0.02);
+      monde.surface(a0, a1, b0, b1, y + (socle * (nM - k)) / nM - 0.02, { sol: 'pierre' });
+    }
+    const ligne = (P, r, bas, hautM) => { for (let i = 0; i < P.length - 1; i++) { const A = R(P[i][0], 0, P[i][1]), B = R(P[i + 1][0], 0, P[i + 1][1]); monde.mur(A.x, A.z, B.x, B.z, r, bas, hautM); } };
+    ligne([[-l / 2, -p / 2], [l / 2, -p / 2], [l / 2, p / 2], [-l / 2, p / 2], [-l / 2, -p / 2]], 0.3, y + socle - 0.05, y + 60);
+    const L = l / 2 + S, Pz = p / 2 + S;
+    // (le pied du socle s'ouvre 30 cm plus loin que les marches de chaque côté : son bout rond s'arrête au bord des marches, et l'on ne descend pas de la galerie dedans)
+    ligne([[lM / 2 + 0.3, Pz], [L, Pz], [L, -Pz], [-L, -Pz], [-L, Pz], [-lM / 2 - 0.3, Pz]], 0.3, y - 60, y + socle + 0.05);
+    const [hx0, hx1, hz0, hz1] = rect(-l / 2, l / 2, -p / 2, p / 2);
+    monde.bloc(hx0 + 0.1, hx1 - 0.1, hz0 + 0.1, hz1 - 0.1, y + socle, y + haut);
+    monde.bloc(sx0 + 0.1, sx1 - 0.1, sz0 + 0.1, sz1 - 0.1, y - 1, y + socle - 0.05);
+  };
 
   // ---------------------------------------------------------------- La terrasse du bas : l'arrêt du bus, le grand pavillon, l'ancien foyer
   // le grand pavillon (大講堂, 2000 : plus de 500 personnes ; 弘法大師, époque Kamakura), au sud de l'allée, tourné vers elle : on y entre (refonte2.js : son dedans, le 大雛曼荼羅)
@@ -1066,6 +1097,14 @@ export function construire(ctx) {
       monde.mur(...[R(cx - l / 6, 0, p / 2 + 0.05), R(cx + l / 6, 0, p / 2 + 0.05)].flatMap((q) => [q.x, q.z]), 0.1);
       monde.mur(...[R(cx - l / 6, 0, -p / 2 - 0.05), R(cx + l / 6, 0, -p / 2 - 0.05)].flatMap((q) => [q.x, q.z]), 0.1);
       monde.mur(...[R(s * l / 2, 0, -p / 2 - 0.1), R(s * l / 2, 0, p / 2 + 0.1)].flatMap((q) => [q.x, q.z]), 0.3);
+      // (2026-11-10, « on peut rentrer à l'intérieur des socles des statues en haut de l'escalier » : du passage du milieu, on entrait dans la travée entre deux poteaux,
+      // jusque dans le socle du gardien. Une grille de bois ferme aussi ce côté, comme devant : on voit le gardien du passage, on ne passe pas)
+      {
+        const gx = s * (l / 6), z0g = -p / 2 + 0.14, z1g = p / 2 - 0.08, nb = 16;
+        for (let i = 0; i <= nb; i++) { const lz = z0g + (i * (z1g - z0g)) / nb; if (Math.abs(lz) < 0.26) continue; a.boite(0.07, h - 1.3, 0.07, b, R(gx, S0 + (h - 1.3) / 2, lz, { trait: false })); }
+        for (const yy of [S0 + h - 1.3, S0 + 0.06]) a.boite(0.1, 0.12, z1g - z0g, b, R(gx, yy, (z0g + z1g) / 2));
+        monde.mur(...[R(gx, 0, -p / 2 - 0.05), R(gx, 0, p / 2 + 0.05)].flatMap((q) => [q.x, q.z]), 0.3);
+      }
     }
     // le toit : quatre pans de tuiles grises, sur ses consoles
     a.toitJapon(l + 3.2, p + 3.0, 2.4, 0.42, { ...TUILES, creux: 1.6, releve: 0.3, epaisseur: 0.16, rangs: 22, ...R(0, h + 0.24, 0), murs: { l: l / 2 + 0.15, p: p / 2 + 0.15, y: 0, c: '#7a3a26' } });
@@ -1094,7 +1133,7 @@ export function construire(ctx) {
     salle(a, R, { l: K.p, p: K.l * 0.62, h: 3.6, socle: 0.55, galerie: 0.9, murs: { s: 'grille', n: 'platre', e: 'platre', o: 'platre' }, debord: 1.9, hToit: 4.0, ratio: 0.46 });
     marchesDevant(a, R, K.l * 0.31 + 0.9 + 0.15, 3.2, 0.55);
     poser(a.fin(), 0, 0, { y: MILIEU.y });
-    plein(K.x - K.l * 0.31 - 1.1, K.x + K.l * 0.31 + 1.1, K.z - K.p / 2 - 1.1, K.z + K.p / 2 + 1.1, MILIEU.y, 9);
+    salleOuverte(R, K.p, K.l * 0.62, 0.9, 0.55, K.l * 0.31 + 0.9 + 0.15, 3.2, 3, MILIEU.y, 9);
   }
   // le 多宝塔 (2002, pour les 1300 ans du temple) : un carré au rez-de-chaussée sous son toit, le dôme blanc (亀腹), le corps rond de
   // l'étage, son grand toit carré, la flèche ; tout de vermillon
@@ -1265,7 +1304,8 @@ export function construire(ctx) {
       }
       a.pignon(lc, 0.85, lw + 1.0, TUILES.tuile, R(0, yf + hw + 0.04, zm, { ry: PI / 2 }));
       a.boite(0.3, 0.14, lc + 0.1, '#5c6066', R(0, yf + hw + 0.04 + 0.85, zm));
-      plein(cx - lw / 2 - 0.1, cx + lw / 2 + 0.1, cz + zc1, cz + zc0 + 0.2, HAUT.y, 4);
+      // (à 30 cm de sa base de pierre, plus large que ses murs de 15 cm : on la frôlait le corps dedans ; 2026-11-10)
+      plein(cx - lw / 2 - 0.45, cx + lw / 2 + 0.45, cz + zc1, cz + zc0 + 0.2, HAUT.y, 4);
     }
     // le gong (鰐口) : pendu par deux cordelettes à une poutre sous l'avant-toit, devant le haut de la porte ; sa corde tressée rouge et blanc, son nœud, son gland ;
     // le tronc des offrandes (賽銭箱). (2026-11-10, « la corde lévite » : le gong flottait devant le bandeau, sans attache, et sa corde, grosse comme un bras, montait dans le toit)
@@ -1278,11 +1318,14 @@ export function construire(ctx) {
       a.boite(0.6, 0.02, 0.16, '#2a3028', R(0, yg - 0.08, zg, { trait: false }));
       a.tube([pt(R, 0, yg - 0.36, zg + 0.04), pt(R, 0.03, 2.5, zg + 0.1), pt(R, 0, 1.68, zg + 0.12)], 0.03, '#c8402c', { cotes: 6, pas: 12, teinte: (wx, wy) => (Math.floor(wy * 12 + 100) % 2 ? '#c8402c' : '#f2ece0') });
       a.ovale(0.065, '#c8402c', { ...R(0, 1.66, zg + 0.12), sy: 0.8 }, 8).cylindre(0.03, 0.055, 0.16, 8, '#c8402c', R(0, 1.52, zg + 0.12));
-      a.boite(1.8, 0.7, 0.8, '#4a3426', R(0, 0.7 + 0.35, p / 2 + 1.5)).boite(1.6, 0.06, 0.6, '#3a281c', R(0, 0.7 + 0.73, p / 2 + 1.5, { trait: false }));
+      // (le tronc des offrandes, sur la galerie devant la porte, la corde du gong devant lui ; posé au bord, il flottait à moitié au-dessus des marches : 2026-11-10)
+      a.boite(1.8, 0.7, 0.8, '#4a3426', R(0, 0.8 + 0.35, p / 2 + 0.55)).boite(1.6, 0.06, 0.6, '#3a281c', R(0, 0.8 + 0.73, p / 2 + 0.55, { trait: false }));
     }
     poser(a.fin(), 0, 0, { y: HAUT.y });
-    plein(D.x0 + 0.6, D.x1 - 0.6, D.z0 - 1.2, D.z1 - 0.15, HAUT.y, 12);
-    monde.cercle(R(0, 0, p / 2 + 1.5).x, R(0, 0, p / 2 + 1.5).z, 0.9);
+    salleOuverte(R, l, p, 1.0, 0.7, p / 2 + 1.15, 5, 4, HAUT.y, 12);
+    { const g = R(-0.9, 0, p / 2 + 0.55), d = R(0.9, 0, p / 2 + 0.55); monde.mur(g.x, g.z, d.x, d.z, 0.62, HAUT.y + 0.6, HAUT.y + 60); }
+    // (la corde du gong, au-dessus de la plus haute marche : on ne la traverse pas)
+    { const q = R(0, 0, p / 2 + 1.12); monde.cercle(q.x, q.z, 0.2, HAUT.y + 0.4, HAUT.y + 60); }
   }
   // ---------------------------------------------------------------- La pagode à trois étages (三重塔, 1497, trésor national important)
   /** Une pagode à n étages dans le repère R (son pied à y) : d'après celle d'Itsukushima, en plus élancé. k : l'échelle. */
@@ -1368,10 +1411,11 @@ export function construire(ctx) {
   // le 慈眼堂 : une petite salle à l'ouest de la cour, tournée vers l'est
   {
     const J = JIGENDO, a = atelier(), R = repere(J.x, J.z, PI / 2);
-    salle(a, R, { l: J.p, p: J.l * 0.55, h: 3.2, socle: 0.5, galerie: 0.8, murs: { s: 'grille', n: 'platre', e: 'platre', o: 'platre' }, debord: 1.6, hToit: 3.6, ratio: 0.46 });
-    marchesDevant(a, R, J.l * 0.275 + 0.8 + 0.15, 2.6, 0.5);
+    // (le socle à 55 cm : à 50, sa galerie était à 60 cm du sol, la hauteur d'une marche, et l'on en descendait au pied du socle, les pieds contre lui ; 2026-11-10)
+    salle(a, R, { l: J.p, p: J.l * 0.55, h: 3.2, socle: 0.55, galerie: 0.8, murs: { s: 'grille', n: 'platre', e: 'platre', o: 'platre' }, debord: 1.6, hToit: 3.6, ratio: 0.46 });
+    marchesDevant(a, R, J.l * 0.275 + 0.8 + 0.15, 2.6, 0.55);
     poser(a.fin(), 0, 0, { y: HAUT.y });
-    plein(J.x - J.l * 0.275 - 1.0, J.x + J.l * 0.275 + 1.0, J.z - J.p / 2 - 1.0, J.z + J.p / 2 + 1.0, HAUT.y, 8);
+    salleOuverte(R, J.p, J.l * 0.55, 0.8, 0.55, J.l * 0.275 + 0.8 + 0.15, 2.6, 3, HAUT.y, 8);
   }
   // le Kannon des lunettes (めがね供養観音, taillé en Inde) : on lui offre ses vieilles lunettes, posées sur son socle
   {
@@ -1502,7 +1546,8 @@ export function construire(ctx) {
       lumieres.push({ x, y: y + F.h + 1.3, z: F.z + 0.1, halo: 0.32, sol: y, r: 2.0 });
     }
     poser(a.fin(), 0, 0, { y: 0 });
-    monde.mur(F.x0 - 0.3, F.z - 0.12, F.x1 + 0.3, F.z - 0.12, 0.1);
+    // (à 30 cm des pilastres, comme ailleurs : à 10 cm, le corps y entrait ; 2026-11-10)
+    monde.mur(F.x0 - 0.3, F.z - 0.12, F.x1 + 0.3, F.z - 0.12, 0.3);
     monde.bloc(F.x0 - 0.3, F.x1 + 0.3, F.z - 0.1, F.z + 0.8, y - 1, y + F.h + 1.6);
   }
   // la grotte de pierre (天竺渡来 大石堂, 1 500 t, sur le modèle des grottes d'Ajanta : au fond, on garde les cendres) : sa façade taillée
@@ -1520,7 +1565,8 @@ export function construire(ctx) {
     a.piece(new THREE.CircleGeometry(1.0, 16, 0, PI), '#2e2a26', R(0, y + 4.05, 0.12, { trait: false }));
     a.boite(1.6, 2.5, 0.1, '#2a2622', R(0, y + 1.25, 0.12, { trait: false }));
     poser(a.fin(), 0, 0, { y: 0 });
-    monde.mur(S.x - l / 2, S.z - 0.6, S.x + l / 2, S.z - 0.6, 0.12);
+    // (devant les socles des piliers, à 30 cm, et depuis le bout de la fresque : on passait entre les deux, derrière la ligne, sur les socles ; 2026-11-10)
+    monde.mur(FRESQUE.x1 + 0.3, S.z - 0.6, S.x + l / 2, S.z - 0.6, 0.3);
   }
 
   // ---------------------------------------------------------------- La colline : la place du Bouddha couché ; le grand Kannon debout
@@ -1682,6 +1728,18 @@ export function construire(ctx) {
     const dx = x - 22, dz = z + 84, d = Math.hypot(dx, dz);
     return dz < -3 && Math.abs(Math.atan2(dx, -dz)) < 0.62 && haut > HAUT.y + 1.6 - d * 0.02;
   };
+  /**
+   * Le feuillage d'un arbre de la forêt (planté en x, z, à la hauteur y, haut de h ; un cèdre ou un feuillu) descend-il à hauteur du corps (2,4 m) là où l'on marche ?
+   * (2026-11-10 : plantés sur la pente, plus bas qu'une terrasse, des arbres y avançaient leurs branches basses ; on marchait dans leur feuillage.)
+   */
+  const feuillageGene = (x, z, y, h, cedreQ) => {
+    const bas = y + h * (cedreQ ? 0.27 : 0.38), r = h * (cedreQ ? 0.24 : 0.58);
+    for (let k = 0; k <= 16; k++) for (const f of [1, 0.55]) {
+      const t = (k / 16) * 2 * PI, d = k === 16 ? 0 : r * f, px = x + Math.sin(t) * d, pz = z + Math.cos(t) * d;
+      if (dansLeCadre(px, pz) && bas < terrain(px, pz) + 2.4) return true;
+    }
+    return false;
+  };
   const cedre = (a, x, z, h, y = terrain(x, z), o = {}) => {
     a.sugi(x, z, h, { y, loin: o.loin });
     return a;
@@ -1695,6 +1753,7 @@ export function construire(ctx) {
       if (loin && hasard(x * 0.31, z * 0.17) < 0.35) continue;
       const y = terrain(x, z), u = hasard(x * 1.7, z * 2.3), g = hasard(x, z), hA = u < 0.55 ? 15 + 9 * g : u < 0.9 ? 9 + 6 * g : 7 + 3 * g;
       if (cacheLaVue(x, z, y + hA)) continue;
+      if (feuillageGene(x, z, y, hA, u < 0.55)) continue;
       const a = morceau(x, z, loin ? 60 : 25);
       if (u < 0.55) cedre(a, x, z, hA, y, { loin });
       else if (u < 0.9) a.arbreTouffu(x, z, hA, VERTS_FEUILLU, { y, sorte: 'persistant', large: 1.2, loin });
@@ -1708,13 +1767,13 @@ export function construire(ctx) {
     for (const [x, z] of CERISIERS) {
       const y = terrain(x, z), g = hasard(x * 0.7, z * 1.3), h = 6.5 + 2.5 * g;
       a.arbreTouffu(x, z, h, VERTS_CERISIER, { y, sorte: 'houppierCerisier', caduc: true, graine: g, tronc: '#5a4334', large: 1.3 });
-      monde.cercle(x, z, 0.38);
+      monde.cercle(x, z, 0.061 * h + 0.15);
     }
     const ERABLES = [[-2.5, -40], [-3, -12], [47, -30], [47, -48], [-46, -24], [-22, -56], [-66, -46], [-66, -18], [-94, -42]];
     for (const [x, z] of ERABLES) {
       const y = terrain(x, z), h = 5.5 + 2 * hasard(x, z);
       a.arbreTouffu(x, z, h, ['#5f9a3e', '#6aa846', '#78b250'], { y, sorte: 'houppierErable', caduc: true, graine: hasard(z, x), large: 1.2 });
-      monde.cercle(x, z, 0.32);
+      monde.cercle(x, z, 0.061 * h + 0.15);
     }
     poser(a.fin(), 0, 0, { y: 0 });
   }
@@ -1757,9 +1816,11 @@ export function construire(ctx) {
       if (Math.abs(z - NIOMON.z) < 4.6) continue;
       const x = MILIEU.x0 + 1.3, g = hasard(z, 3.3), y = MILIEU.y;
       hortensia(a, x, z, y, 0.62 + 0.12 * g, g);
-      monde.cercle(x, z, 0.75);
-      if (n % 3 === 1) { jizo(THREE, a, repere(x + 0.75, z + 0.4, PI / 2), y, 0.62, (s) => tachee(s, 0.15)); monde.cercle(x + 0.75, z + 0.4, 0.3); }
-      if (n % 4 === 2) ombrelle(a, x - 0.1, z + 0.9, y, OMBRELLES[n % OMBRELLES.length], 0.3, PI / 2 + (hasard(n, 2) - 0.5), 1.15);
+      // (le buisson et ses fleurs débordent de 10 % : leur taille, et 15 cm pour le corps ; 2026-11-10)
+      monde.cercle(x, z, (0.62 + 0.12 * g) * 1.12 + 0.15);
+      if (n % 3 === 1) { jizo(THREE, a, repere(x + 0.75, z + 0.4, PI / 2), y, 0.62, (s) => tachee(s, 0.15)); monde.cercle(x + 0.75, z + 0.4, 0.36); }
+      // (penchée vers le passage entre deux buissons, plus haute qu'eux : penchée vers le sien, à 1,15 m, son bord entrait dans les fleurs ; 2026-11-10)
+      if (n % 4 === 2) { ombrelle(a, x - 0.1, z + 0.9, y, OMBRELLES[n % OMBRELLES.length], 0.2, -PI / 2 + (hasard(n, 2) - 0.5) * 0.6, 1.5); monde.cercle(x - 0.1, z + 0.9, 0.18); }
       n++;
     }
     // autour du grand Bouddha, des ombrelles plantées (on les voit de loin, allumées la nuit) : à un bon mètre des socles, penchées vers le dehors
@@ -1769,7 +1830,7 @@ export function construire(ctx) {
       monde.cercle(x, z, 0.3);
     }
     // dans la cour du pavillon octogonal, quelques hortensias le long du bord est
-    for (let z = -26; z < 18; z += 3.1) { const x = HAUT.x1 - 1.3, g = hasard(z, 7.1); hortensia(a, x, z, HAUT.y, 0.6, g); monde.cercle(x, z, 0.72); }
+    for (let z = -26; z < 18; z += 3.1) { const x = HAUT.x1 - 1.3, g = hasard(z, 7.1); hortensia(a, x, z, HAUT.y, 0.6, g); monde.cercle(x, z, 0.82); }
     poser(a.fin(), 0, 0, { y: 0 });
   }
 
@@ -1837,7 +1898,8 @@ export function construire(ctx) {
       for (const s of [-1, 1]) a.boite(0.08, 0.44, 0.44, P.boisFonce, R(s * 0.85, y + 0.22, 0));
       const A = R(-0.8, 0, 0), Bq = R(0.8, 0, 0), q = R(0, 0, 0.45);
       bancs.push({ de: [A.x, A.z], a: [Bq.x, Bq.z], y: y + 0.49, cap: ry, vue: 0.35 });
-      monde.mur(A.x, A.z, Bq.x, Bq.z, 0.28);
+      // (de l'avant de l'assise au dos du dossier, et 22 cm de plus : à 0,28 de la ligne de l'assise, on entrait dans le dossier : 2026-11-10)
+      { const g = R(-0.85, 0, -0.03), d = R(0.85, 0, -0.03); monde.mur(g.x, g.z, d.x, d.z, 0.5); }
       void q;
     }
     poser(a.fin(), 0, 0, { y: 0 });
@@ -1853,7 +1915,8 @@ export function construire(ctx) {
   // le coin de Bunbuku : à l'ouest de la place du Bouddha couché, sous deux pins ; son lampion rouge
   {
     const a = atelier(), y = NEHAN.y;
-    for (const [dx, dz, s] of [[-1.8, -2.6, 17], [-2.4, 2.2, 15]]) a.pinNuages(MARCHAND.x + dx, MARCHAND.z + dz, s, dx < -2 ? -1 : 1, { y });
+    // (leurs troncs arrêtent le marcheur : on y entrait, il n'y avait rien pour lui ; 2026-11-10)
+    for (const [dx, dz, s] of [[-1.8, -2.6, 17], [-2.4, 2.2, 15]]) { const sens = dx < -2 ? -1 : 1; a.pinNuages(MARCHAND.x + dx, MARCHAND.z + dz, s, sens, { y }); monde.cercle(MARCHAND.x + dx + 0.2 * sens, MARCHAND.z + dz, 0.026 * s + 0.3); }
     a.cylindre(0.03, 0.03, 2.4, 5, '#7a6a4a', { x: LAMPION.x, y: y + 1.2, z: LAMPION.z }).chochin(LAMPION.x, y + 2.2, LAMPION.z, 8, '#c8402c');
     lumieres.push({ x: LAMPION.x, y: y + 2.2, z: LAMPION.z, halo: 0.45, sol: y, r: 2.2 });
     poser(a.fin(), 0, 0, { y: 0 });
@@ -1864,15 +1927,22 @@ export function construire(ctx) {
   // les allées et les massifs (sol.js), le parking et ses voitures, l'abribus, les distributeurs, le guichet, les bannières, le tronc d'ablutions,
   // les arbres, les statues, le couloir des hortensias (あじさい回廊)
   const VERTS_ERABLE = ['#5f9a3e', '#6aa846', '#78b250'];
-  const cerisier = (a, x, z, y, h, g) => { a.arbreTouffu(x, z, h, VERTS_CERISIER, { y, sorte: 'houppierCerisier', caduc: true, graine: g, tronc: '#5a4334', large: 1.3 }); monde.cercle(x, z, 0.36); };
-  const erable = (a, x, z, y, h, g) => { a.arbreTouffu(x, z, h, VERTS_ERABLE, { y, sorte: 'houppierErable', caduc: true, graine: g, large: 1.2 }); monde.cercle(x, z, 0.3); };
-  const rocher = (a, x, z, y, r, g) => { a.ovale(r, g < 0.5 ? '#8a877e' : '#7c7970', { x, y: y + r * 0.28, z, sx: 1.05 + g * 0.5, sy: 0.62 + g * 0.3, sz: 0.85 + (1 - g) * 0.3, ry: g * 6, nuance: 0.05 }, 7); monde.cercle(x, z, r * 0.9); };
+  const cerisier = (a, x, z, y, h, g) => { a.arbreTouffu(x, z, h, VERTS_CERISIER, { y, sorte: 'houppierCerisier', caduc: true, graine: g, tronc: '#5a4334', large: 1.3 }); monde.cercle(x, z, 0.061 * h + 0.15); };
+  const erable = (a, x, z, y, h, g) => { a.arbreTouffu(x, z, h, VERTS_ERABLE, { y, sorte: 'houppierErable', caduc: true, graine: g, large: 1.2 }); monde.cercle(x, z, 0.061 * h + 0.15); };
+  const rocher = (a, x, z, y, r, g) => {
+    const sx = 1.05 + g * 0.5, sz = 0.85 + (1 - g) * 0.3, ry = g * 6;
+    a.ovale(r, g < 0.5 ? '#8a877e' : '#7c7970', { x, y: y + r * 0.28, z, sx, sy: 0.62 + g * 0.3, sz, ry, nuance: 0.05 }, 7);
+    // (pour le marcheur, une gélule le long du grand axe du rocher : sa demi-largeur et 15 cm. Un cercle plus petit que lui laissait entrer le corps ; un cercle
+    // de son grand rayon laissait, de travers, un mur invisible à 35-55 cm de sa face : 2026-11-10)
+    const [ux, uz] = sx >= sz ? [Math.cos(ry), -Math.sin(ry)] : [Math.sin(ry), Math.cos(ry)], d = r * Math.abs(sx - sz), e = r * Math.min(sx, sz) + 0.15;
+    monde.mur(x - ux * d, z - uz * d, x + ux * d, z + uz * d, e);
+  };
   /** Un buisson bas, taillé en boule (une azalée, des fleurs rose vif, blanches ou mauves). */
   const azalee = (a, x, z, y, r, g) => {
     a.houppe(r, g < 0.5 ? '#4e7a3c' : '#467036', { x, y: y + r * 0.72, z, sy: 0.82, sorte: 'buisson', graine: g * 9 });
     const c = ['#e87aa8', '#f2f0ea', '#d88ac8'][Math.floor(g * 3)];
     for (let i = 0; i < 6; i++) { const t = i * 2.4 + g * 6; a.ovale(r * 0.26, c, { x: x + Math.cos(t) * r * 0.68, y: y + r * (1.15 + 0.22 * (i % 2)), z: z + Math.sin(t) * r * 0.68, sy: 0.72, trait: false }, 5); }
-    monde.cercle(x, z, r * 0.92);
+    monde.cercle(x, z, r + 0.15);
   };
   /**
    * Un petit bouddha de pierre, assis (bouddhaAssis, léger s'il est petit : il y en a tout un rang) ou debout (kannonDebout), haut de h, ses pieds (ou son assise) à y.
@@ -1948,7 +2018,8 @@ export function construire(ctx) {
       // (le voyageur s'y assoit)
       const A = R(-lg / 2 + 0.3, 0, 0.1), B = R(lg / 2 - 0.3, 0, 0.1);
       bancs.push({ de: [A.x, A.z], a: [B.x, B.z], y: y + 0.49, cap: 0, vue: 0.3 });
-      monde.mur(A.x, A.z, B.x, B.z, 0.26);
+      // (de l'avant du banc jusqu'à la vitre du fond, sur toute la longueur : on se glissait entre le dossier et la vitre, ou dans les bouts du banc : 2026-11-10)
+      monde.mur(...[R(-lg / 2, 0, -0.18), R(lg / 2, 0, -0.18)].flatMap((p) => [p.x, p.z]), 0.68);
       monde.mur(...[R(-lg / 2, 0, -0.74), R(lg / 2, 0, -0.74)].flatMap((p) => [p.x, p.z]), 0.1);
       monde.toit(xs - lg / 2 - 0.2, xs + lg / 2 + 0.2, zs - 1, zs + 0.9, y + h, y + h + 0.2);
     }
@@ -2028,6 +2099,7 @@ export function construire(ctx) {
   }
 
   // ---------------------------------------------------------------- Les massifs : des arbres, des rochers, des buissons (MASSIFS, sol.js)
+  // (le cercle de chacun : sa taille et 15 cm, la moitié du corps du marcheur ; plus petit que le rocher, le buisson ou le pied du tronc, on y entrait à mi-corps : 2026-11-10)
   {
     MASSIFS.forEach((J, i) => {
       const a = morceau(J.x, J.z), y = terrain(J.x, J.z), long = J.rx > J.rz, n = Math.max(1, Math.round((J.rx * J.rz) / 13));
@@ -2037,7 +2109,7 @@ export function construire(ctx) {
         const e = (k + i) % 3;
         if (e === 0) cerisier(a, x, z, y, 6.5 + 2.2 * g, g);
         else if (e === 1) erable(a, x, z, y, 5.6 + 1.8 * g, g);
-        else { a.pinNuages(x, z, 16 + 3 * g, g < 0.5 ? -1 : 1, { y }); monde.cercle(x, z, 0.32); }
+        else { const s = 16 + 3 * g, sens = g < 0.5 ? -1 : 1; a.pinNuages(x, z, s, sens, { y }); monde.cercle(x + 0.2 * sens, z, 0.026 * s + 0.3); }
       }
       // le bord du massif : de petites pierres plates, jointives (le contour du sol est en dents de scie : elles le cachent, et dessinent l'allée)
       {
@@ -2088,7 +2160,8 @@ export function construire(ctx) {
       }
       // la bordure de pierre
       for (const dz of [-1.0, 1.0]) a.boite(xb - xa + 0.1, 0.14, 0.1, '#9a968a', { x: (xa + xb) / 2, y: y + 0.07, z: z + dz, nuance: 0.04 });
-      monde.mur(xa, z, xb, z, 1.05);
+      // (1,22 : les hortensias débordent de la plate-bande ; à 1,05, le corps y entrait ; 2026-11-10)
+      monde.mur(xa, z, xb, z, 1.22);
       // des ombrelles sur leurs hampes, tous les trois pas ; des jizō au bout
       for (let k = 0; k < 3; k++) { const x = xa + (xb - xa) * ((k + 0.5) / 3); ombrelle(a, x, z + 0.75, y + 0.14, OMBRELLES[(r * 2 + k) % OMBRELLES.length], 0.24, r % 2 ? PI * 0.1 : -PI * 0.1, 1.5); }
       const xj = r % 2 ? xb + 0.5 : xa - 0.5;
@@ -2489,7 +2562,7 @@ export function construire(ctx) {
     // le banc, le panneau
     a.boite(2.0, 0.08, 0.5, P.bois, { x: VUE.x + 3, y: y + 0.45 + 0.14, z: VUE.z + 1.4 }).boite(0.08, 0.44, 0.44, P.boisFonce, { x: VUE.x + 2.15, y: y + 0.36, z: VUE.z + 1.4 }).boite(0.08, 0.44, 0.44, P.boisFonce, { x: VUE.x + 3.85, y: y + 0.36, z: VUE.z + 1.4 });
     bancs.push({ de: [VUE.x + 2.2, VUE.z + 1.4], a: [VUE.x + 3.8, VUE.z + 1.4], y: y + 0.63, cap: PI, vue: PI - 0.5 });
-    monde.mur(VUE.x + 2.2, VUE.z + 1.4, VUE.x + 3.8, VUE.z + 1.4, 0.28);
+    monde.mur(VUE.x + 2.05, VUE.z + 1.4, VUE.x + 3.95, VUE.z + 1.4, 0.48);
     poser(a.fin(), 0, 0, { y: 0 });
   }
   // ---------------------------------------------------------------- L'ascenseur d'escalier (電動リフト) : son rail sur la bordure nord du grand escalier, sa plate-forme garée en bas
