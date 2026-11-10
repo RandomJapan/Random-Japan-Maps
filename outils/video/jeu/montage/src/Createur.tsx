@@ -91,7 +91,8 @@ const Bulle: React.FC<{ texte: string; de: number; a: number; y: number; taille?
 };
 
 const TEXTES: { texte: string; de: number; a: number; y: number; taille?: number }[] = [
-  { texte: "I filmed 160 places\nin Japan 🎥", de: 0, a: b(4), y: 470 },
+  // (le propriétaire, 2026-11-10 : « évite la formulation I filmed il vaut mieux que tu dises j'ai regroupé tant de lieux sur ma carte »)
+  { texte: "I gathered 160 places\nin Japan on my map 🗺️", de: 0, a: b(4), y: 470 },
   { texte: "so I turned them\ninto a game 🎮", de: b(4), a: b(8), y: 470 },
   { texte: "guess where the\nphoto was taken 📍", de: b(8), a: b(11), y: 1060 },
   { texte: "the closer you are,\nthe more points", de: b(11.5), a: b(15), y: 1220 },
@@ -143,7 +144,7 @@ export const MiniatureCreateur: React.FC = () => (
         <OffthreadVideo src={staticFile(`reels/defile/${String(k).padStart(2, "0")}.mp4`)} muted trimBefore={6} style={{ width: 360, height: 640, objectFit: "cover", marginTop: -128 }} />
       </div>
     ))}
-    <Bulle texte={"I filmed 160 places\nin Japan 🎥"} de={0} a={1} y={600} taille={70} />
+    <Bulle texte={"I gathered 160 places\nin Japan on my map 🗺️"} de={0} a={1} y={600} taille={70} />
     <Bulle texte={"so I turned them\ninto a game 🎮"} de={0} a={1} y={1010} taille={70} />
   </AbsoluteFill>
 );

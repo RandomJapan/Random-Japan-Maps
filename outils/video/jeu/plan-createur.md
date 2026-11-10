@@ -9,12 +9,13 @@ Celle-ci est l'inverse, le format le plus « humain » de TikTok : **l'histoire 
 textes natifs de TikTok (les petites bulles blanches à texte noir de l'appli), sur un **enregistrement d'écran** du vrai jeu sur
 téléphone (le rond gris des appuis, des coupes franches), et une **musique lo-fi** composée. Aucune voix, aucun effet 3D.
 
-- **L'angle** : « J'ai filmé 160 lieux au Japon… alors j'en ai fait un jeu. » C'est vrai (160 lieux sur la carte, et la photo de
+- **L'angle** : « J'ai regroupé 160 lieux du Japon sur ma carte… alors j'en ai fait un jeu. » (Le propriétaire, le même jour :
+  « évite la formulation I filmed il vaut mieux que tu dises j'ai regroupé tant de lieux sur ma carte ».) C'est vrai (160 lieux sur la carte, et la photo de
   chaque lieu dans le jeu est une image de sa vidéo), et le jeu le dit lui-même (« 5 places from my videos »).
 - **Pour qui** : les gens qui rêvent du Japon ou y sont allés.
 - **Ce qui le distingue** : les lieux sont ceux des vidéos du compte ; la réponse tombe sur une vraie carte en relief.
 - **L'accroche** : dès la première image, un défilé de plus en plus rapide des vrais plans du propriétaire (22 lieux en 2,7 s, des
-  croches aux triples croches), le texte déjà posé (« I filmed 160 places in Japan »). Il s'arrête net sur le Fuji Shibazakura :
+  croches aux triples croches), le texte déjà posé (« I gathered 160 places in Japan on my map »). Il s'arrête net sur le Fuji Shibazakura :
   c'est la photo de la première manche, qu'on retrouve dans le jeu.
 - **La légende à copier** : `partage-createur.txt`.
 
@@ -30,7 +31,7 @@ Les bruitages (appuis, épingle, réponse, températures) sont dans la tonalité
 
 | Temps | Plan | Texte (bulle native) |
 |---|---|---|
-| 0 → 4 | Le défilé : 2 plans d'une croche, 4 d'une double, 16 d'une triple | « I filmed 160 places in Japan 🇯🇵 » |
+| 0 → 4 | Le défilé : 2 plans d'une croche, 4 d'une double, 16 d'une triple | « I gathered 160 places in Japan on my map 🗺️ » |
 | 4 → 5 | Le Fuji Shibazakura, tenu ; la batterie tombe | « so I turned them into a game 🎮 » |
 | 5 → 8 | L'enregistrement d'écran : l'accueil, appui sur « Menu », la tuile « Guess the place » (NEW), « Play solo » | (le même) |
 | 8 → 11 | La première manche : la photo du Fuji dans la carte du jeu, le chrono qui tourne | « guess where the photo was taken 📍 » |
@@ -53,4 +54,4 @@ désormais toutes des images des vidéos du propriétaire (commit edb0de7) : plu
 
 ## La miniature
 
-À part : le défilé figé sur un plan, avec « I filmed 160 places in Japan… so I turned them into a game 🎮 ».
+À part : le défilé figé sur un plan, avec « I gathered 160 places in Japan on my map… so I turned them into a game 🎮 ».
