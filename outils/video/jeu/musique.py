@@ -553,9 +553,182 @@ def bruitages_createur():
     ecrire(s / 'cr-trouve.wav', mono(doux(['D5', 'F#5', 'A5', 'D6', 'E6', 'F#6'], 0.06, 1.4)))
 
 
+# ---------------------------------------------------------------- « noob vs pro » (2026-11-10) : du chiptune
+# 150 battements par minute (un temps = 24 images), en do, mélodie en gamme yo (do, ré, fa, sol, la) : un « jeu vidéo » japonais. Les
+# voix d'une vieille console : deux ondes carrées (la mélodie à 25 %, l'arpège rapide à 12,5 %), un triangle à la basse, du bruit pour la
+# batterie, un écho court sur la mélodie. Manches (temps 0 → 34) : tout le groove ; le score (34 → 42) : à moitié ; la fin (42 → 51) :
+# tout, et l'accord final au temps 50.
+VS_TEMPS = 60 / 150
+VS_PAS = VS_TEMPS / 4
+VS_DUREE = 51 * VS_TEMPS
+
+
+def carre(f, duree, rapport=0.25, vibrato=0.0, attaque=0.003, chute=0.25, tenue=0.65):
+    """Une onde carrée (rapport cyclique), son enveloppe (attaque, chute vers la tenue, relâche), un vibrato qui vient après 0,12 s."""
+    u = t(duree + 0.04)
+    v = vibrato * np.clip((u - 0.12) / 0.1, 0, 1) * np.sin(2 * np.pi * 6 * u)
+    phase = np.cumsum(f * (1 + v)) / SR
+    x = np.where((phase % 1) < rapport, 1.0, -1.0)
+    env = np.minimum(1, u / attaque) * (tenue + (1 - tenue) * np.exp(-u / chute))
+    env *= np.clip((duree + 0.04 - u) / 0.04, 0, 1)
+    return x * env
+
+
+def triangle(f, duree):
+    u = t(duree + 0.02)
+    x = 2 * np.abs(2 * ((f * u) % 1) - 1) - 1
+    return x * np.clip((duree + 0.02 - u) / 0.02, 0, 1) * np.minimum(1, u / 0.002)
+
+
+def bruit_chip(duree, clair=True):
+    """Le bruit d'une console : des valeurs tenues par paquets (plus courts = plus clair)."""
+    n = int(duree * SR)
+    pas = 2 if clair else 9
+    b = np.repeat(rng.choice([-1.0, 1.0], n // pas + 1), pas)[:n]
+    return b
+
+
+def kick_chip():
+    u = t(0.12)
+    f = 75 + 180 * np.exp(-u / 0.018)
+    return triangle_libre(f, u) * np.exp(-u / 0.06)
+
+
+def triangle_libre(f, u):
+    ph = np.cumsum(f) / SR
+    return 2 * np.abs(2 * (ph % 1) - 1) - 1
+
+
+def caisse_chip():
+    u = t(0.16)
+    return bruit_chip(0.16, False) * np.exp(-u / 0.05) * 0.8 + np.sin(2 * np.pi * 190 * u) * np.exp(-u / 0.03) * 0.5
+
+
+def charley_chip():
+    u = t(0.04)
+    return bruit_chip(0.04, True) * np.exp(-u / 0.012)
+
+
+VS_ACCORDS = {'C': ['C', 'E', 'G'], 'Am': ['A', 'C', 'E'], 'F': ['F', 'A', 'C'], 'G': ['G', 'B', 'D']}
+VS_BASSE = {'C': 'C3', 'Am': 'A2', 'F': 'F2', 'G': 'G2'}  # (une octave plus haut qu'à la console : un téléphone n'a pas de grave)
+# la mélodie, en croches (0 à 7) dans la mesure : (croche, note, durée en croches)
+VS_A = [[(0, 'G4', 1), (1, 'A4', 1), (2, 'C5', 2), (4, 'D5', 1), (5, 'C5', 1), (6, 'A4', 1), (7, 'G4', 1)],
+        [(0, 'A4', 2), (2, 'C5', 1), (3, 'D5', 1), (4, 'F5', 2), (6, 'D5', 1), (7, 'C5', 1)],
+        [(0, 'F4', 1), (1, 'A4', 1), (2, 'C5', 1), (3, 'F5', 2), (5, 'D5', 1), (6, 'C5', 1), (7, 'A4', 1)],
+        [(0, 'G4', 2), (2, 'A4', 1), (3, 'C5', 1), (4, 'D5', 4)]]
+VS_B = [[(0, 'C5', 1), (1, 'D5', 1), (2, 'F5', 2), (4, 'G5', 1), (5, 'F5', 1), (6, 'D5', 1), (7, 'C5', 1)],
+        [(0, 'A4', 2), (2, 'C5', 2), (4, 'D5', 1), (5, 'C5', 1), (6, 'A4', 2)],
+        [(0, 'F5', 2), (2, 'D5', 1), (3, 'C5', 1), (4, 'A4', 2), (6, 'C5', 1), (7, 'D5', 1)],
+        [(0, 'G5', 4), (4, 'F5', 1), (5, 'D5', 1), (6, 'C5', 1), (7, 'A4', 1)]]
+
+
+def versus():
+    T, P = VS_TEMPS, VS_PAS
+    lead, arp, bas, batt = Piste(VS_DUREE + 1), Piste(VS_DUREE + 1), Piste(VS_DUREE + 1), Piste(VS_DUREE + 1)
+
+    def mesure(temps0, accord, melodie=None, niveau=3):
+        """Une mesure (4 temps) à partir du temps temps0 ; niveau 3 : tout, 2 : sans caisse claire ni mélodie, 1 : basse et arpège."""
+        T0 = temps0 * T
+        # l'arpège rapide (triples croches) sur les notes de l'accord, une octave au-dessus du do 5
+        notes = [I.note(n + '5') for n in VS_ACCORDS[accord]]
+        for k in range(32):
+            arp.poser(carre(notes[k % 3] * (2 if k % 6 >= 3 else 1), P / 2 - 0.004, 0.125, chute=0.03, tenue=0.4), T0 + k * P / 2, 0.11)
+        # la basse : croches, fondamentale et octave
+        fb = I.note(VS_BASSE[accord])
+        for k in range(8):
+            bas.poser(triangle(fb * (2 if k % 2 else 1), T / 2 - 0.02), T0 + k * T / 2, 0.5)
+        # la batterie
+        for s in range(16):
+            temps = T0 + s * P
+            if s in (0, 8) or (niveau >= 3 and s in (6, 10)):
+                if niveau >= 2 or s == 0:
+                    batt.poser(kick_chip(), temps, 0.75)
+            if niveau >= 3 and s in (4, 12):
+                batt.poser(caisse_chip(), temps, 0.42)
+            if niveau >= 2 and s % 2 == 0:
+                batt.poser(charley_chip(), temps, 0.16 if s % 4 else 0.22, pan=0.25)
+        if melodie and niveau >= 3:
+            for croche, nom, d in melodie:
+                lead.poser(carre(I.note(nom), d * T / 2 - 0.02, 0.25, vibrato=0.006), T0 + croche * T / 2, 0.3, pan=-0.1)
+
+    grille = ['C', 'Am', 'F', 'G']
+    for m in range(8):  # les manches : A puis B, deux fois chacune… (temps 0 → 32)
+        mesure(4 * m, grille[m % 4], (VS_A if m < 4 else VS_B)[m % 4])
+    mesure(32, 'C', VS_A[0])  # la fin de la manche 4 (temps 32 → 34 : une demi-mesure)
+    for m, nom in enumerate(['Am', 'F']):  # le score : à moitié (temps 34 → 42)
+        mesure(34 + 4 * m, nom, niveau=2 if m else 1)
+    for m, nom in enumerate(['F', 'G']):  # la fin (temps 42 → 50)
+        mesure(42 + 4 * m, nom, VS_A[2 + m])
+    # l'accord final (temps 50) : do, tenu
+    for n in ('C4', 'E4', 'G4', 'C5'):
+        lead.poser(carre(I.note(n), 0.9 * T, 0.25, vibrato=0.008, chute=0.3, tenue=0.5), 50 * T, 0.16)
+    bas.poser(triangle(I.note('C3'), 0.9 * T), 50 * T, 0.55)
+    batt.poser(kick_chip(), 50 * T, 0.8)
+    batt.poser(caisse_chip(), 50 * T, 0.4)
+
+    # l'écho de la mélodie (trois doubles croches plus tard), puis le mélange
+    pl = np.stack([lead.g, lead.d], 1)
+    echo = np.zeros_like(pl)
+    k = int(3 * P * SR)
+    echo[k:] = pl[:-k] * 0.32
+    echo[:, 0], echo[:, 1] = np.roll(echo[:, 0], 0), np.roll(echo[:, 1], int(0.012 * SR))
+    st = pl + echo + np.stack([arp.g, arp.d], 1) + np.stack([bas.g, bas.d], 1) + np.stack([batt.g, batt.d], 1)
+    st = filtre(st, 12000)
+    st = filtre(st, 30, haut=True)
+    st = st[:int(VS_DUREE * SR)]
+    q = int(0.05 * SR)
+    st[-q:] *= np.linspace(1, 0, q)[:, None]
+    st *= 0.9 / np.abs(st).max()
+    ecrire(PUBLIC / 'musique' / 'versus.wav', st)
+
+
+def bruitages_versus():
+    """Les bruitages du duel, en do, avec les mêmes voix que la musique."""
+    s = PUBLIC / 'sfx'
+
+    def suite(notes, duree, rapport=0.5, ecart=None, vibrato=0.0, queue=0.3):
+        ecart = ecart or duree
+        x = np.zeros(int((ecart * len(notes) + duree + queue) * SR))
+        for k, nom in enumerate(notes):
+            c = carre(I.note(nom), duree, rapport, vibrato=vibrato, chute=0.08, tenue=0.5)
+            i = int(k * ecart * SR)
+            x[i:i + len(c)] += c
+        return np.concatenate([norme(x, 0.8), np.zeros(int(0.1 * SR))])
+
+    ecrire(s / 'vs-appui.wav', mono(suite(['C6'], 0.035, 0.5, queue=0.2)))
+    ecrire(s / 'vs-valide.wav', mono(suite(['G5', 'C6'], 0.04, 0.5)))
+    # le débutant rate : la plainte qui descend, la dernière note tremble
+    x = np.concatenate([suite(['G4'], 0.18, 0.5, queue=0)[:int(0.2 * SR)], suite(['F#4'], 0.18, 0.5, queue=0)[:int(0.2 * SR)],
+                        suite(['F4'], 0.18, 0.5, queue=0)[:int(0.2 * SR)], suite(['E4'], 0.7, 0.5, vibrato=0.02, queue=0.1)])
+    ecrire(s / 'vs-rate.wav', mono(norme(x, 0.8)))
+    # le pro réussit : un arpège qui monte et un do qui sonne
+    ecrire(s / 'vs-reussi.wav', mono(suite(['C6', 'E6', 'G6', 'C7'], 0.05, 0.25, vibrato=0.004, queue=0.4)))
+    # le débutant a de la chance : ça monte, et ça hésite
+    ecrire(s / 'vs-chance.wav', mono(suite(['C5', 'D5', 'F5', 'G5', 'A5', 'C6'], 0.05, 0.25, queue=0.3)))
+    # le pro se trompe : un « bonk » qui tombe
+    u = t(0.4)
+    f = 320 * np.exp(-u / 0.12) + 70
+    x = np.where((np.cumsum(f) / SR % 1) < 0.5, 1.0, -1.0) * np.exp(-u / 0.15)
+    ecrire(s / 'vs-bonk.wav', mono(norme(x, 0.8)))
+    # la manche commence ; les points qui défilent ; la pièce de la fin
+    ecrire(s / 'vs-manche.wav', mono(suite(['C5', 'G5'], 0.06, 0.5, queue=0.2)))
+    ecrire(s / 'vs-compte.wav', mono(suite(['C6'] * 10, 0.02, 0.5, ecart=0.045, queue=0.1)))
+    ecrire(s / 'vs-piece.wav', mono(suite(['G5', 'C6', 'G6'], 0.06, 0.25, queue=0.5)))
+    # ceux d'un joueur existent aussi à gauche (le débutant, -g) et à droite (le pro, -d)
+    import wave as _w
+    for nom in ('appui', 'valide', 'rate', 'reussi', 'chance', 'bonk', 'compte'):
+        with _w.open(str(s / f'vs-{nom}.wav')) as w:
+            x = np.frombuffer(w.readframes(w.getnframes()), dtype='<i2').reshape(-1, 2)[:, 0] / 32767
+        ecrire(s / f'vs-{nom}-g.wav', np.stack([x * 0.95, x * 0.4], 1))
+        ecrire(s / f'vs-{nom}-d.wav', np.stack([x * 0.4, x * 0.95], 1))
+
+
 if __name__ == '__main__':
     import sys
-    if 'createur' in sys.argv:
+    if 'versus' in sys.argv:
+        versus()
+        bruitages_versus()
+    elif 'createur' in sys.argv:
         createur()
         bruitages_createur()
     else:

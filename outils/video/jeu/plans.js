@@ -241,6 +241,77 @@
     return film;
   };
 
+  // ---------------------------------------------------------------- la vidéo « noob vs pro » (2026-11-10)
+  // Les mêmes manches jouées deux fois : le débutant pose tout à Tokyo, vite ; le pro réfléchit et vise juste, sauf aux chutes de
+  // Nomizo (près de Tokyo), qu'il croit à Kyūshū. Les temps sont ceux de la musique (150 battements par minute, V = 0,4 s) ; la prise
+  // commence quand la photo de la manche 1 est déjà là (la première image de la vidéo).
+  const V = 60 / 150;
+  const LIEUX_VS = ['shuri-castle', 'hill-of-the-buddha', 'kinkaku-ji', 'nomizo-falls', 'aogashima'];
+  const TOKYO = [139.767, 35.681];
+  const JOUEURS = {
+    noob: { pins: [TOKYO, TOKYO, TOKYO, TOKYO, TOKYO], appui: [1, 1, 1, 1], valide: [1.5, 1.5, 1.5, 1.5] },
+    pro: { pins: [[127.722, 26.219], [141.36, 42.925], [135.733, 35.042], [131.3, 32.7], [139.766, 32.46]], appui: [2.5, 2.5, 2.5, 3.5], valide: [3, 3, 3, 4] },
+  };
+  const DEBUTS_VS = [0, 8, 16, 24]; // le début de chaque manche filmée (en temps)
+  async function lancerVs() {
+    window.__LIEUX_JEU = LIEUX_VS;
+    document.getElementById('btn-jeu').click();
+    await attendre(() => jeu('.jeu-action') && !jeu('.jeu-action').closest('section').hidden);
+    await att(300);
+    jeu('.jeu-action').click(); // Play solo
+    await attendre(() => jeu('.jeu-photo').complete && jeu('.jeu-photo').getAttribute('src'));
+  }
+  const versus = (qui) => () => {
+    const j = JOUEURS[qui];
+    const film = window.__creerFilm({ duree: 34 * V, css: CSS });
+    const { quand, toucher } = film;
+    DEBUTS_VS.forEach((d, k) => {
+      if (k) {
+        toucher(d * V, () => milieu(jeu('.jeu-action')), 'telephone');
+        quand(d * V, () => jeu('.jeu-action').click()); // Next place
+      }
+      toucher((d + j.appui[k]) * V, surCarte(j.pins[k]), 'telephone');
+      quand((d + j.appui[k]) * V, () => appuiCarte(j.pins[k]));
+      toucher((d + j.valide[k]) * V, () => milieu(jeu('.jeu-action')), 'telephone');
+      quand((d + j.valide[k]) * V, () => jeu('.jeu-action').click()); // Confirm
+    });
+    film.exposer({
+      async preparer() {
+        await lancerVs();
+        await att(2300); // le vol jusqu'à tout le Japon
+        await tuiles();
+      },
+    });
+    return film;
+  };
+  /** Les cinq manches jouées vite avec les épingles du joueur, puis « See my score ». */
+  const versusScore = (qui) => () => {
+    const j = JOUEURS[qui];
+    const film = window.__creerFilm({ duree: 8.5 * V, css: CSS });
+    const { quand, toucher } = film;
+    toucher(0.5 * V, () => milieu(jeu('.jeu-action')), 'telephone');
+    quand(0.5 * V, () => jeu('.jeu-action').click());
+    film.exposer({
+      async preparer() {
+        await lancerVs();
+        for (let i = 0; i < 5; i++) {
+          await attendre(() => jeu('.jeu-photo').complete && jeu('.jeu-photo').getAttribute('src'));
+          await att(150);
+          appuiCarte(j.pins[i]);
+          await att(80);
+          jeu('.jeu-action').click(); // Confirm
+          await att(120);
+          if (i < 4) jeu('.jeu-action').click(); // Next place
+          await att(120);
+        }
+        await att(2300);
+        await tuiles();
+      },
+    });
+    return film;
+  };
+
   window.__plansSupp = { 'jd-1': manche(0, 3.4), 'jd-2': manche(1, 2.4), 'jd-3': manche(2, 1.4), 'jd-score': score, 'df-essais': essais,
-    'cr-debut': debut, 'cr-score': scoreCr, 'cr-defi': defiCr };
+    'cr-debut': debut, 'cr-score': scoreCr, 'cr-defi': defiCr,
+    'vs-noob': versus('noob'), 'vs-pro': versus('pro'), 'vs-noob-score': versusScore('noob'), 'vs-pro-score': versusScore('pro') };
 })();
