@@ -9,7 +9,8 @@
 //  Une étiquette : { texte, x, y, z, ry (tourné vers +z à 0), incline (penché en arrière, en radians : un texte couché sur un pupitre), l, h (en mètres), fond (ou null : transparent),
 //  encre, sous (un second texte plus petit dessous), vertical (de haut en bas), lignes (n traits d'écriture
 //  sous le titre : un panneau à lire), cadre (une bordure), lumineux (il ne prend pas l'ombre : un écran), forme
-//  ('rond' : un panneau rond, cadre en anneau), dessin(contexte, largeur, hauteur) : une image peinte par le lieu }.
+//  ('rond' : un panneau rond, cadre en anneau), dessin(contexte, largeur, hauteur) : une image peinte par le lieu, pixels : sa finesse,
+//  en pixels par mètre, quand elle se passe des 240 (une bannière lue de l'allée, une grande fresque : l'atlas est compté) }.
 // ================================================================
 const POLICE = '"M PLUS Rounded 1c", sans-serif';
 const PIXELS_PAR_METRE = 240;
@@ -17,20 +18,24 @@ const ATLAS = 2048, MARGE = 4;
 
 /** Les étiquettes du lieu, dans un groupe ; l'atlas se redessine dès que la police est là. */
 export function creerEtiquettes(THREE, liste, { anisotropie = 4 } = {}) {
-  // la taille de chaque image (au plus 1024 pixels de côté, sans la déformer), puis leur place dans l'atlas : par
-  // rangées, les plus hautes d'abord
-  const items = liste.map((e) => {
-    const k = Math.min(1, 1024 / (Math.max(e.l, e.h) * PIXELS_PAR_METRE));
-    return { e, W: Math.max(32, Math.round(e.l * PIXELS_PAR_METRE * k)), H: Math.max(32, Math.round(e.h * PIXELS_PAR_METRE * k)) };
-  });
-  let x = 0, y = 0, rang = 0;
-  for (const it of [...items].sort((a, b) => b.H - a.H)) {
-    if (x + it.W > ATLAS) { x = 0; y += rang + MARGE; rang = 0; }
-    Object.assign(it, { px: x, py: y });
-    x += it.W + MARGE;
-    rang = Math.max(rang, it.H);
+  // la taille de chaque image (au plus 1024 pixels de côté, sans la déformer ; e.pixels : sa propre finesse), puis leur place dans l'atlas : par
+  // rangées, les plus hautes d'abord. Si tout ne tient pas dans l'atlas (2048 × 4096), tout rapetisse un peu, plutôt que de couper les dernières :
+  // à Tsubosaka (2026-11-10), 53 étiquettes et 7 scènes de fresque débordaient de 300 pixels, cinq bannières finissaient en bloc de couleur, et six
+  // enseignes (納経所, 視力検査, つぼさか茶屋…) n'étaient plus qu'un aplat de la dernière ligne de l'image
+  const dimension = (e, k0) => { const ppm = (e.pixels || PIXELS_PAR_METRE) * k0, k = Math.min(1, 1024 / (Math.max(e.l, e.h) * ppm)); return [Math.max(32, Math.round(e.l * ppm * k)), Math.max(32, Math.round(e.h * ppm * k))]; };
+  let items, hauteur;
+  for (let k0 = 1; ; k0 *= 0.85) {
+    items = liste.map((e) => { const [W, H] = dimension(e, k0); return { e, W, H }; });
+    let x = 0, y = 0, rang = 0;
+    for (const it of [...items].sort((a, b) => b.H - a.H)) {
+      if (x + it.W > ATLAS) { x = 0; y += rang + MARGE; rang = 0; }
+      Object.assign(it, { px: x, py: y });
+      x += it.W + MARGE;
+      rang = Math.max(rang, it.H);
+    }
+    hauteur = 2 ** Math.ceil(Math.log2(Math.max(64, y + rang)));
+    if (hauteur <= ATLAS * 2 || k0 < 0.3) { hauteur = Math.min(ATLAS * 2, hauteur); break; }
   }
-  const hauteur = Math.min(ATLAS * 2, 2 ** Math.ceil(Math.log2(Math.max(64, y + rang))));
   const toile = document.createElement('canvas');
   toile.width = ATLAS;
   toile.height = hauteur;

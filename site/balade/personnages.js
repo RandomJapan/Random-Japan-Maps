@@ -1847,6 +1847,12 @@ export function creerHeros(ctx, sorte = 'garcon') {
       const s = Math.sin(Math.min(1, t / 1.2) * PI);
       corps.rotation.x = 0.55 * s; tete.rotation.x = 0.3 * s;
       B.rotation.x = G.rotation.x = -1.05 * s; B.rotation.z = 0.1; G.rotation.z = -0.1;
+    } else if (g === 'boire') {
+      // boire à petites gorgées (le thé de Tsubosaka, 2026-11-10) : les deux mains montent la tasse (tenir) jusqu'à la bouche, la tête se penche un peu en
+      // arrière le temps des gorgées, puis tout redescend
+      const m = lisseDanse(Math.min(1, t / 0.7)) * (t < 2.4 ? 1 : Math.max(0, 1 - (t - 2.4) / 0.5));
+      B.rotation.x = G.rotation.x = -0.55 - 1.35 * m; B.rotation.z = 0.5 * m; G.rotation.z = -0.5 * m;
+      tete.rotation.x = -0.14 * m * (t > 0.9 && t < 2.3 ? 1 + 0.4 * Math.sin((t - 0.9) * 6) : 1);
     } else if (g === 'baguettes') {
       // attraper des nouilles au vol (Takachiho) : le bol dans la main gauche, la droite plonge ses baguettes dans le
       // bambou, puis remonte
@@ -1857,7 +1863,7 @@ export function creerHeros(ctx, sorte = 'garcon') {
     }
   }
 
-  let phase = 0, salut = 0, foulee = 0, assis = false, danse = false, tDanse = 0, geste = null, tGeste = 0, rame = null;
+  let phase = 0, salut = 0, foulee = 0, assis = false, danse = false, tDanse = 0, geste = null, tGeste = 0, rame = null, enMain = null;
   return {
     objet: racine,
     /** Porte-t-il l'ombrelle de Shan-shan ? (ses grelots, à chaque pas : balade.js, unPas) */
@@ -1883,8 +1889,10 @@ export function creerHeros(ctx, sorte = 'garcon') {
     asseoir(oui) { assis = oui; },
     /** La danse des fêtes (oui), ou plus ; t0 : où en est la musique (en battements), pour danser en mesure. */
     danser(oui, t0 = 0) { danse = oui; tDanse = t0; },
-    /** Un geste ('victoire', 'saut', 'salut', 'coeur', 'coucou', 'creuser', 'offrir', 'prier', 'washi', 'kokiriko', 'grimper', 'baguettes'), ou null. */
+    /** Un geste ('victoire', 'saut', 'salut', 'coeur', 'coucou', 'creuser', 'offrir', 'prier', 'washi', 'kokiriko', 'grimper', 'baguettes', 'boire'), ou null. */
     geste(g) { if (g !== geste) tGeste = 0; geste = g; },
+    /** Tenir un objet (un Object3D, bâti autour de la main) dans la main droite, ou plus rien (null) : la tasse de thé de Tsubosaka, le temps du geste « boire ». Il suit la main. */
+    tenir(objet) { if (enMain && enMain !== objet) bras[0].remove(enMain); enMain = objet; if (objet) bras[0].add(objet); },
     /**
      * Porter la pièce id (tenues.js) à sa place ('tete', 'yeux', 'habit', 'dos', 'cou') : sur la tête, elle remplace la casquette ou
      * le chapeau ('defaut' : les remettre ; 'nue' : rien) ; 'aucune' : rien sur les yeux ; 'habit-defaut' : les habits de

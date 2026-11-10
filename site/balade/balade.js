@@ -2894,6 +2894,8 @@ const jeu = {
   prendre: (o) => { M.sac.delete(o); },
   /** Un geste du voyageur ('creuser', 'offrir', 'prier', 'washi', 'kokiriko'… : personnages.js), ou null. */
   geste: (g) => M.joueur.geste(g),
+  /** Un objet dans la main droite du voyageur (personnages.js, tenir), ou null. */
+  tenir: (o) => M.joueur.tenir(o),
   /**
    * Le voyageur posé en x, z, tourné vers cap (une scène où il doit se tenir à une place : à côté de la planche du
    * secret, sur l'estrade de la kokiriko) ; y : la hauteur du sol voulu (une estrade), sinon celle où il est.

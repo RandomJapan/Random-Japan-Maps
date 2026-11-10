@@ -90,13 +90,13 @@ const PARKING = { x0: -167, x1: -128, z0: -76, z1: -44 };
 const ALLEE = { x0: -130, x1: -64, z0: -40, z1: -24 };
 const JIBOEN = { x0: -122, x1: -74, z0: -76, z1: -60 };
 const KODO = { x0: -122, x1: -90, z0: -16, z1: 4 };
-const NIOMON = { x: -45.2, z: -32, l: 9.4, p: 5.0 };
+const NIOMON = { x: -44.6, z: -32, l: 8.8, p: 5.0 };
 const KANJODO = { x: -33, z: -51, l: 10, p: 8 };
 const TAHOTO = { x: -33.5, z: -13, c: 5.4 };
 const DAIBUTSU = { x: -26, z: 12, socle: 5.0, corps: 10.0 };
 const KORO = { x: -38.5, z: 12 };
 const RAIDO = { x0: 3, x1: 25, z0: -42, z1: -30 };
-const HAKKAKU = { x: 14, z: -49.6, r: 7.0 };
+const HAKKAKU = { x: 14, z: -52.4, r: 7.0 };
 const SANJU = { x: 36, z: -2, c: 5.2 };
 const JIGENDO = { x: 3.5, z: 8, l: 9, p: 7 };
 const MEGANE = { x: 22, z: 14 };
@@ -179,7 +179,7 @@ const MASSIFS = [
   // la terrasse haute
   { x: 8.4, z: -14, rx: 4.4, rz: 6.4 }, { x: 19.6, z: -14, rx: 4.4, rz: 6.4 }, { x: 40, z: -16, rx: 7, rz: 6 }, { x: 39, z: 15.6, rx: 7.4, rz: 5.2 }, { x: -1.2, z: -56, rx: 3.6, rz: 19 }, { x: 19, z: -66, rx: 13, rz: 4.6 }, { x: 44, z: -76, rx: 5.5, rz: 5 },
   // la colline
-  { x: -47.5, z: 45, rx: 3.6, rz: 5 }, { x: -22, z: 57, rx: 3.5, rz: 4 },
+  { x: -49.3, z: 50, rx: 2.2, rz: 2.8 }, { x: -22, z: 57, rx: 3.5, rz: 4 },
 ];
 const dansMassif = (x, z, m = 1) => MASSIFS.some((J) => ((x - J.x) / J.rx) ** 4 + ((z - J.z) / J.rz) ** 4 < m + 0.1 * (bruitDoux(x + 3, z - 2, 1.1) - 0.5));
 // le fin : 2 m (les terrasses sont plates) ; le grossier : 8 m (les collines) ; là où le sol plie (un talus, un bord de chemin), des cases de 50 cm
@@ -194,25 +194,28 @@ const solDetaille = (x0, z0, x1, z1) => {
 };
 
 // ---------------------------------------------------------------- Le cadre : les terrasses, les escaliers, les chemins
-const MARGE = 0.27;
+// (0,27 d'abord : le point du voyageur touchait la face du muret, et son corps, large de 50 cm, entrait dedans, la caméra avec ; 2026-11-10, « on rentre dans les murs qui délimitent le lieu »)
+const MARGE = 0.57;
 const dansRect = (R, x, z, m = MARGE) => x > R.x0 + m && x < R.x1 - m && z > R.z0 + m && z < R.z1 - m;
 // les ouvertures dans le bord des terrasses (vers un escalier, un chemin), qu'on traverse
+// (BORD_ESC : à cette distance des bordures d'un escalier, 30 cm de plus que leur face ; OUV : une ouverture passe la marge de la terrasse d'un côté)
+const BORD_ESC = 0.72, OUV = MARGE + 0.1;
 const OUVERTURES = [
-  { x0: ESC1.x0 - 0.5, x1: ESC1.x0 + 0.5, z0: ESC1.z0 + 0.5, z1: ESC1.z1 - 0.5 },
-  { x0: ESC1.x1 - 0.5, x1: ESC1.x1 + 0.5, z0: NIOMON.z - 1.9, z1: NIOMON.z + 1.9 },
-  { x0: ESC2.x0 - 0.5, x1: ESC2.x0 + 0.5, z0: ESC2.z0 + 0.5, z1: ESC2.z1 - 0.5 },
-  { x0: ESC2.x1 - 4.5, x1: HAUT.x0 + 0.5, z0: ESC2.z0 + 0.5, z1: ESC2.z1 - 0.5 },
-  { x0: ESC3.x0 + 0.5, x1: ESC3.x1 - 0.5, z0: ESC3.z0 - 0.5, z1: ESC3.z0 + 0.5 },
-  { x0: ESC3.x0 + 0.5, x1: ESC3.x1 - 0.5, z0: ESC3.z1 - 0.5, z1: ESC3.z1 + 0.5 },
+  { x0: ESC1.x0 - OUV, x1: ESC1.x0 + 0.5, z0: ESC1.z0 + BORD_ESC, z1: ESC1.z1 - BORD_ESC },
+  { x0: ESC1.x1 - 0.5, x1: ESC1.x1 + OUV, z0: NIOMON.z - 1.9, z1: NIOMON.z + 1.9 },
+  { x0: ESC2.x0 - OUV, x1: ESC2.x0 + 0.5, z0: ESC2.z0 + BORD_ESC, z1: ESC2.z1 - BORD_ESC },
+  { x0: ESC2.x1 - 4.5, x1: HAUT.x0 + OUV, z0: ESC2.z0 + BORD_ESC, z1: ESC2.z1 - BORD_ESC },
+  { x0: ESC3.x0 + BORD_ESC, x1: ESC3.x1 - BORD_ESC, z0: ESC3.z0 - OUV, z1: ESC3.z0 + 0.5 },
+  { x0: ESC3.x0 + BORD_ESC, x1: ESC3.x1 - BORD_ESC, z0: ESC3.z1 - 0.5, z1: ESC3.z1 + OUV },
 ];
 /** Peut-on être là ? Le voyageur, un point, s'arrête 27 cm avant ce qui est dessiné (les murets, les murs de pierre). */
 function dansLeCadre(x, z) {
   for (const T of TERRASSES) if (dansRect(T, x, z)) return true;
-  for (const E of ESCALIERS) if (x > E.x0 && x < E.x1 && z > E.z0 + 0.45 && z < E.z1 - 0.45 && E.axe === 'x') return true;
-  if (x > ESC3.x0 + 0.45 && x < ESC3.x1 - 0.45 && z > ESC3.z0 && z < ESC3.z1) return true;
+  for (const E of ESCALIERS) if (x > E.x0 && x < E.x1 && z > E.z0 + BORD_ESC && z < E.z1 - BORD_ESC && E.axe === 'x') return true;
+  if (x > ESC3.x0 + BORD_ESC && x < ESC3.x1 - BORD_ESC && z > ESC3.z0 && z < ESC3.z1) return true;
   for (const O of OUVERTURES) if (x > O.x0 && x < O.x1 && z > O.z0 && z < O.z1) return true;
-  if (surLaLigne(LIEN, x, z).d < DEMI_LIEN - MARGE && x < HAUT.x0 + 0.4 && x > NEHAN.x1 - 0.4) return true;
-  if (surLaLigne(SENTIER, x, z).d < DEMI_SENTIER - MARGE && x > HAUT.x1 - 0.4) return true;
+  if (surLaLigne(LIEN, x, z).d < DEMI_LIEN - MARGE && x < HAUT.x0 + OUV && x > NEHAN.x1 - OUV) return true;
+  if (surLaLigne(SENTIER, x, z).d < DEMI_SENTIER - MARGE && x > HAUT.x1 - OUV) return true;
   return Math.hypot(x - CLAIRIERE.x, z - CLAIRIERE.z) < CLAIRIERE.r - MARGE;
 }
 const dansLeCadreLarge = (x, z) => x > -172 && x < 110 && z > -90 && z < 100;
@@ -437,8 +440,9 @@ function agrandir(fin, k) {
  * robe sur les deux épaules et ses plis, les bras, le cou et ses trois plis, la tête aux boucles en coquilles (螺髪), la bosse de
  * la sagesse (肉髻), les yeux mi-clos, la marque entre les sourcils (白毫), les longs lobes d'oreilles. c : (graine) → teinte.
  */
-function bouddhaAssis(THREE, a, R, y, h, c, C) {
-  const k = h, t = c(3.1), f = Math.max(10, Math.min(18, Math.round(h * 1.6)));
+function bouddhaAssis(THREE, a, R, y, h, c, C, leger = false) {
+  // (leger : une petite statue parmi beaucoup (les rangs de bouddhas de Tsubosaka) : sept côtés, le crâne lisse sans ses boucles, pas les plis du cou)
+  const k = h, t = c(3.1), f = leger ? 7 : Math.max(10, Math.min(18, Math.round(h * 1.6)));
   const o = (lx, ly, lz, e = {}) => ({ ...R(lx * k, y + ly * k, lz * k, e), teinte: 'teinte' in e ? e.teinte : t, nuance: 0.012 });
   const p = (lx, ly, lz) => { const q = R(lx * k, y + ly * k, lz * k); return [q.x, q.y, q.z]; };
   const G = C.GRANIT, GF = C.GRANIT_F, OMBRE = C.GRANIT_O;
@@ -468,7 +472,7 @@ function bouddhaAssis(THREE, a, R, y, h, c, C) {
   a.ovale(0.17 * k, GF, { ...o(-0.03, 0.55, 0.11), sx: 0.75, sy: 0.32, sz: 0.25, rz: 0.55 }, 10);
   // le cou et ses trois plis (三道)
   a.cylindre(0.072 * k, 0.085 * k, 0.09 * k, 14, G, o(0, 0.7, 0));
-  for (let i = 0; i < 2; i++) a.piece(new THREE.TorusGeometry(0.075 * k, 0.006 * k, 4, 16), OMBRE, { ...o(0, 0.685 + i * 0.03, 0.005, { teinte: null }), rx: PI / 2 });
+  if (!leger) for (let i = 0; i < 2; i++) a.piece(new THREE.TorusGeometry(0.075 * k, 0.006 * k, 4, 16), OMBRE, { ...o(0, 0.685 + i * 0.03, 0.005, { teinte: null }), rx: PI / 2 });
   // la tête : le visage un peu allongé, les joues pleines ; les yeux mi-clos, les sourcils en arc, le nez, la bouche, la marque
   a.ovale(0.12 * k, G, { ...o(0, 0.83, 0.02), sx: 0.93, sy: 1.08, sz: 0.95 }, f);
   for (const u of [-1, 1]) {
@@ -491,6 +495,7 @@ function bouddhaAssis(THREE, a, R, y, h, c, C) {
       a.boule(0.016 * k, GF, { ...o(cx + nx * rx, cy + ny * ry, cz + nz * rz, { teinte: null }), trait: false }, 0);
     }
   };
+  if (leger) return;
   boucles(0, 0.865, -0.005, 0.117, 0.1, 0.12, 150, -0.25);
   boucles(0, 0.965, -0.012, 0.064, 0.056, 0.064, 44, -0.3);
 }
@@ -749,7 +754,7 @@ export function construire(ctx) {
     const bas = y - 0.006 * k, haut = y + 0.56 + 0.005 * k;
     a.boite(L + 0.02, haut - bas, 0.3 + 0.008 * k, PIERRE, { x: mx, y: (bas + haut) / 2, z: mz, ry, nuance: 0.05, teinte: tachee(mx * 0.3, 0.12) })
       .boite(L + 0.06, 0.08, 0.38 + 0.008 * k, PIERRE_F, { x: mx, y: y + 0.6 + 0.004 * k, z: mz, ry, nuance: 0.03 });
-    monde.mur(A[0], A[1], B[0], B[1], 0.17);
+    monde.mur(A[0], A[1], B[0], B[1], 0.47);
   }
   // les bords de chaque terrasse : (le côté, A, B, n vers dehors) ; les ouvertures, [de, à] le long du côté
   const COTES = (T) => ({
@@ -758,7 +763,7 @@ export function construire(ctx) {
   });
   const TROUS = new Map([
     [BAS, { est: [[ESC1.z0, ESC1.z1]], ouest: [[-40, -22]] }],
-    [MILIEU, { ouest: [[ESC1.z0 - 0.4, ESC1.z1 + 0.4]], est: [[ESC2.z0, ESC2.z1]] }],
+    [MILIEU, { ouest: [[ESC1.z0 - 1.0, ESC1.z1 + 1.0]], est: [[ESC2.z0, ESC2.z1]] }],
     [HAUT, { ouest: [[ESC2.z0, ESC2.z1], [19.2, 24.8]], sud: [[46.4, 50.5]], est: [[21.6, 28.5]] }],
     [NEHAN, { est: [[38.4, 42.8]], sud: [[ESC3.x0, ESC3.x1]] }],
     [KANNON, { nord: [[ESC3.x0, ESC3.x1]] }],
@@ -822,7 +827,8 @@ export function construire(ctx) {
         const off = mid + s * (demi + 0.15);
         if (E.axe === 'x') a.boite(L, 0.9, 0.3, PIERRE_F, { x: (E.x0 + E.x1) / 2, y: ym, z: off, rz: ang, nuance: 0.05, teinte: tachee(s * 7 + E.x0, 0.3) });
         else a.boite(0.3, 0.9, L, PIERRE_F, { x: off, y: ym, z: (E.z0 + E.z1) / 2, rx: -ang, nuance: 0.05, teinte: tachee(s * 7 + E.z0, 0.3) });
-        if (E.axe === 'x') monde.mur(E.x0, off, E.x1, off, 0.17); else monde.mur(off, E.z0, off, E.z1, 0.17);
+        // (0,57 : le corps du voyageur reste hors de la bordure ; à 0,17, il y entrait à mi-corps, et la caméra voyait au travers : 2026-11-10)
+        if (E.axe === 'x') monde.mur(E.x0, off, E.x1, off, 0.57); else monde.mur(off, E.z0, off, E.z1, 0.57);
       }
       // on y marche : une pente de pierre aux bouts droits
       if (E.axe === 'x') monde.rampe(E.x0, E.x1, mid - demi, mid + demi, 'x', E.h0, E.h1, { sol: 'pierre' });
@@ -1039,20 +1045,27 @@ export function construire(ctx) {
   // travées, le passage au milieu, les Niō de bois (一丈一尺, 3,3 m) derrière leurs grilles, dans les travées des côtés
   {
     const N = NIOMON, a = atelier(), R = repere(N.x, N.z, -PI / 2), y = MILIEU.y;
-    const l = N.l, p = N.p, h = 4.6, b = BOIS_F;
-    a.boite(l + 0.6, 0.3, p + 0.6, '#a49c8c', R(0, 0.12, 0, { nuance: 0.05 }));
+    const l = N.l, p = N.p, h = 4.6, b = BOIS_F, S0 = 0.14;
+    // (2026-11-10 : le socle était une dalle de 30 cm où l'on marchait les pieds dedans : une dalle mince, posée sur la dernière marche, et une surface pour le marcheur ;
+    // les Niô regardaient un mur de planches posé devant eux : il est derrière, côté terrasse, et l'on voit leurs visages depuis l'escalier, à travers les grilles ;
+    // les bouts des travées, ouverts, laissaient entrer dans leurs socles : fermés de planches, et d'un mur pour le marcheur)
+    a.boite(l + 0.4, S0, p + 0.6, '#a49c8c', R(0, S0 / 2, 0, { nuance: 0.05 }));
+    monde.surface(N.x - (p + 0.6) / 2, N.x + (p + 0.6) / 2, N.z - (l + 0.4) / 2, N.z + (l + 0.4) / 2, y + S0, { sol: 'pierre' });
     // les poteaux (quatre rangs de trois), les traverses, les grilles des travées des côtés
-    for (const lx of [-l / 2, -l / 6, l / 6, l / 2]) for (const lz of [-p / 2, 0, p / 2]) a.cylindre(0.2, 0.22, h, 10, '#7a3a26', R(lx, 0.27 + h / 2, lz, { nuance: 0.04 }));
+    for (const lx of [-l / 2, -l / 6, l / 6, l / 2]) for (const lz of [-p / 2, 0, p / 2]) a.cylindre(0.2, 0.22, h, 10, '#7a3a26', R(lx, S0 + h / 2, lz, { nuance: 0.04 }));
     for (const lz of [-p / 2, p / 2]) a.boite(l + 0.4, 0.34, 0.24, '#7a3a26', R(0, h + 0.05, lz)).boite(l + 0.2, 0.2, 0.18, '#7a3a26', R(0, h - 0.9, lz));
     for (const lx of [-l / 2, -l / 6, l / 6, l / 2]) a.boite(0.24, 0.34, p + 0.4, '#7a3a26', R(lx, h + 0.08, 0));
+    const planches = (lx, lz, lg, ry = 0) => a.boite(lg, h - 0.6, 0.08, '#6a4a34', R(lx, S0 + (h - 0.6) / 2, lz, { ry, teinte: (wx, wy, wz) => (Math.floor((wx + wz) * 4 + 99) % 2 ? '#6a4a34' : '#5e4230') }));
     for (const s of [-1, 1]) {
-      // (la grille de bois devant chaque gardien ; un mur de planches derrière lui)
+      // (la grille de bois devant chaque gardien, côté escalier ; derrière lui, côté terrasse, et au bout de la travée, un mur de planches)
       const cx = s * (l / 3);
-      for (let i = 0; i <= 10; i++) a.boite(0.07, h - 1.3, 0.07, b, R(cx - l / 6 + 0.1 + i * ((l / 3 - 0.2) / 10), 0.3 + (h - 1.3) / 2, p / 2 - 0.02, { trait: false }));
-      a.boite(l / 3 - 0.1, 0.12, 0.1, b, R(cx, 0.3 + h - 1.3, p / 2 - 0.02)).boite(l / 3 - 0.1, 0.12, 0.1, b, R(cx, 0.36, p / 2 - 0.02));
-      a.boite(l / 3 - 0.2, h - 0.6, 0.08, '#6a4a34', R(cx, 0.3 + (h - 0.6) / 2, 0.05, { teinte: (wx, wy, wz) => (Math.floor((wx + wz) * 4 + 99) % 2 ? '#6a4a34' : '#5e4230') }));
+      for (let i = 0; i <= 10; i++) a.boite(0.07, h - 1.3, 0.07, b, R(cx - l / 6 + 0.1 + i * ((l / 3 - 0.2) / 10), S0 + (h - 1.3) / 2, p / 2 - 0.02, { trait: false }));
+      a.boite(l / 3 - 0.1, 0.12, 0.1, b, R(cx, S0 + h - 1.3, p / 2 - 0.02)).boite(l / 3 - 0.1, 0.12, 0.1, b, R(cx, S0 + 0.06, p / 2 - 0.02));
+      planches(cx, -p / 2 + 0.06, l / 3 - 0.2);
+      planches(s * (l / 2 - 0.02), 0, p - 0.3, PI / 2);
       monde.mur(...[R(cx - l / 6, 0, p / 2 + 0.05), R(cx + l / 6, 0, p / 2 + 0.05)].flatMap((q) => [q.x, q.z]), 0.1);
       monde.mur(...[R(cx - l / 6, 0, -p / 2 - 0.05), R(cx + l / 6, 0, -p / 2 - 0.05)].flatMap((q) => [q.x, q.z]), 0.1);
+      monde.mur(...[R(s * l / 2, 0, -p / 2 - 0.1), R(s * l / 2, 0, p / 2 + 0.1)].flatMap((q) => [q.x, q.z]), 0.3);
     }
     // le toit : quatre pans de tuiles grises, sur ses consoles
     a.toitJapon(l + 3.2, p + 3.0, 2.4, 0.42, { ...TUILES, creux: 1.6, releve: 0.3, epaisseur: 0.16, rangs: 22, ...R(0, h + 0.24, 0), murs: { l: l / 2 + 0.15, p: p / 2 + 0.15, y: 0, c: '#7a3a26' } });
@@ -1068,7 +1081,7 @@ export function construire(ctx) {
       const g = atelier();
       nio(THREE, g, (lx, ly, lz, e = {}) => ({ ...e, x: lx, y: ly, z: lz }), 0, s < 0, -s, CB);
       const fin = agrandir(g.fin(), 1.62), q = R(s * (l / 3), 0, -0.6);
-      poser(fin, q.x, q.z, { y: y + 0.3 + 0.62 * 1.62 * 0.98, ry: q.ry });
+      poser(fin, q.x, q.z, { y: y + 0.14 + 0.64 * 1.62 - 0.02, ry: q.ry });
     }
     monde.bloc(N.x - p / 2 - 1.2, N.x + p / 2 + 1.2, N.z - l / 2 - 1.2, N.z + l / 2 + 1.2, y + h - 0.2, y + h + 4.4);
     monde.toit(N.x - p / 2 - 1.4, N.x + p / 2 + 1.4, N.z - l / 2 - 1.4, N.z + l / 2 + 1.4, y + h + 0.05, y + h + 4.4);
@@ -1225,7 +1238,7 @@ export function construire(ctx) {
       for (let j = 1; j < 6; j++) a.boite(0.035, hm - 1.18, 0.07, '#7a5a40', R(mx * 1.006 + Math.cos(ry) * (j / 6 - 0.5) * lg * 0.4, y + 0.65 + (hm - 1.2) / 2 + 0.1, mz * 1.006 - Math.sin(ry) * (j / 6 - 0.5) * lg * 0.4, { ry, trait: false }));
       a.boite(lg + 0.1, 0.3, 0.14, BOIS_F, R(mx, y + 0.65 + hm - 0.15, mz, { ry }));
     }
-    toitPans(a, R, y + 0.65 + hm, n, r + 2.4, 4.6, { murs: r + 0.07, cMur: P.platre, haut: 0.07 });
+    toitPans(a, R, y + 0.65 + hm, n, r + 2.2, 4.6, { murs: r + 0.07, cMur: P.platre, haut: 0.07 });
     poser(a.fin(), 0, 0, { y: 0 });
     for (let i = 0; i < n; i++) { const [x0, z0] = coin(i, r + 0.95), [x1, z1] = coin(i + 1, r + 0.95), A = R(x0, 0, z0), B = R(x1, 0, z1); monde.mur(A.x, A.z, B.x, B.z, 0.1); }
     monde.bloc(H8.x - r, H8.x + r, H8.z - r, H8.z + r, y - 1, y + 11);
@@ -1234,14 +1247,39 @@ export function construire(ctx) {
   // devant sa grande porte (le tampon : le gong 鰐口 et sa corde)
   {
     const D = RAIDO, a = atelier(), cx = (D.x0 + D.x1) / 2, cz = (D.z0 + D.z1) / 2, R = repere(cx, cz, 0), l = D.x1 - D.x0 - 2, p = D.z1 - D.z0 - 2;
-    salle(a, R, { l, p, h: 4.4, socle: 0.7, galerie: 1.0, murs: { s: 'grille', n: 'ouvert', e: 'platre', o: 'platre' }, debord: 2.2, hToit: 5.2, ratio: 0.44 });
+    salle(a, R, { l, p, h: 4.4, socle: 0.7, galerie: 1.0, murs: { s: 'grille', n: 'platre', e: 'platre', o: 'platre' }, debord: 2.2, hToit: 5.2, ratio: 0.44 });
     marchesDevant(a, R, p / 2 + 1.15, 5, 0.7);
-    // (entre le 礼堂 et le pavillon octogonal, le petit couloir couvert)
-    a.boite(4, 3.6, 2.6, P.platre, R(0, 0.7 + 1.8, -p / 2 - 1.6)).toitJapon(5.4, 3.8, 1.2, 0.3, { ...TUILES, rangs: 10, releve: 0.12, ...R(0, 4.4, -p / 2 - 1.6) });
-    // le gong (鰐口) sous l'avant-toit, sa corde de couleurs ; le tronc des offrandes (賽銭箱)
-    a.cylindre(0.38, 0.38, 0.16, 16, '#5a6a4a', R(0, 4.0, p / 2 + 1.0, { rx: PI / 2 }));
-    a.tube([pt(R, 0, 3.9, p / 2 + 1.06), pt(R, 0.05, 2.6, p / 2 + 1.12), pt(R, -0.02, 1.4, p / 2 + 1.14)], 0.045, '#c8402c', { cotes: 6 });
-    a.boite(1.8, 0.7, 0.8, '#4a3426', R(0, 0.7 + 0.35, p / 2 + 1.5)).boite(1.6, 0.06, 0.6, '#3a281c', R(0, 0.7 + 0.73, p / 2 + 1.5, { trait: false }));
+    // (entre le 礼堂 et le pavillon octogonal, le couloir couvert (渡り廊下) : du mur du fond au mur du pavillon, sur sa base de pierre, son plancher au niveau de la galerie ;
+    // son toit à deux pentes reste sous les deux avant-toits. 2026-11-10 : le premier était une boîte plantée dans le pavillon, dont le toit entrait dans celui du 礼堂, ouvert derrière)
+    {
+      const zc0 = -p / 2 - 0.03, zc1 = HAKKAKU.z - cz + (HAKKAKU.r + 0.07) * Math.cos(PI / 8) + 0.02, lc = zc0 - zc1, zm = (zc0 + zc1) / 2, lw = 3.0, hw = 2.5, yf = 0.8;
+      const zb0 = -p / 2 - 1.0 - 0.15, zb1 = HAKKAKU.z - cz + (HAKKAKU.r + 1.0) * Math.cos(PI / 8) - 0.02, lb = zb0 - zb1;
+      a.boite(lw + 0.3, 0.7, lb, '#a49c8c', R(0, 0.33, (zb0 + zb1) / 2, { nuance: 0.05 }));
+      a.boite(lw, 0.1, lc, '#8a6a4e', R(0, yf - 0.05, zm, { teinte: (x) => (Math.floor(x * 4 + 99) % 2 ? '#8a6a4e' : '#7a5c42') }));
+      for (const s of [-1, 1]) {
+        a.boite(0.1, hw, lc, P.platre, R(s * (lw / 2 - 0.05), yf + hw / 2, zm));
+        // (le lambris et la poutre dépassent le mur de 1 et 2 cm : dans son plan, leurs faces scintillaient avec la sienne)
+        a.boite(0.14, 0.8, lc + 0.02, '#6e5238', R(s * (lw / 2 - 0.06), yf + 0.4, zm, { nuance: 0.03, teinte: (x, yy, z) => (Math.floor((x + z) * 3.2 + 99) % 2 ? '#6e5238' : '#624830') }));
+        a.boite(0.2, 0.2, lc + 0.1, '#4a3a2e', R(s * (lw / 2 - 0.08), yf + hw - 0.1, zm));
+        for (const zz of [zc0 - 0.25, zm, zc1 + 0.25]) a.boite(0.22, hw, 0.22, '#4a3a2e', R(s * (lw / 2 + 0.06), yf + hw / 2, zz));
+      }
+      a.pignon(lc, 0.85, lw + 1.0, TUILES.tuile, R(0, yf + hw + 0.04, zm, { ry: PI / 2 }));
+      a.boite(0.3, 0.14, lc + 0.1, '#5c6066', R(0, yf + hw + 0.04 + 0.85, zm));
+      plein(cx - lw / 2 - 0.1, cx + lw / 2 + 0.1, cz + zc1, cz + zc0 + 0.2, HAUT.y, 4);
+    }
+    // le gong (鰐口) : pendu par deux cordelettes à une poutre sous l'avant-toit, devant le haut de la porte ; sa corde tressée rouge et blanc, son nœud, son gland ;
+    // le tronc des offrandes (賽銭箱). (2026-11-10, « la corde lévite » : le gong flottait devant le bandeau, sans attache, et sa corde, grosse comme un bras, montait dans le toit)
+    {
+      const zg = p / 2 + 1.0, yg = 3.92, BRZ = '#5a6a4a';
+      a.boite(2.2, 0.16, 0.16, '#4a3a2e', R(0, 4.66, zg));
+      for (const s of [-1, 1]) a.baton(pt(R, s * 0.2, 4.6, zg), pt(R, s * 0.2, yg + 0.36, zg), 0.012, '#d8c89a', 4, { trait: false }).cylindre(0.03, 0.03, 0.06, 6, '#43594c', R(s * 0.2, yg + 0.42, zg, { rx: PI / 2 }));
+      a.cylindre(0.42, 0.42, 0.14, 20, BRZ, R(0, yg, zg, { rx: PI / 2 }));
+      a.piece(new THREE.TorusGeometry(0.4, 0.035, 5, 20), '#43594c', R(0, yg, zg + 0.07));
+      a.boite(0.6, 0.02, 0.16, '#2a3028', R(0, yg - 0.08, zg, { trait: false }));
+      a.tube([pt(R, 0, yg - 0.36, zg + 0.04), pt(R, 0.03, 2.5, zg + 0.1), pt(R, 0, 1.68, zg + 0.12)], 0.03, '#c8402c', { cotes: 6, pas: 12, teinte: (wx, wy) => (Math.floor(wy * 12 + 100) % 2 ? '#c8402c' : '#f2ece0') });
+      a.ovale(0.065, '#c8402c', { ...R(0, 1.66, zg + 0.12), sy: 0.8 }, 8).cylindre(0.03, 0.055, 0.16, 8, '#c8402c', R(0, 1.52, zg + 0.12));
+      a.boite(1.8, 0.7, 0.8, '#4a3426', R(0, 0.7 + 0.35, p / 2 + 1.5)).boite(1.6, 0.06, 0.6, '#3a281c', R(0, 0.7 + 0.73, p / 2 + 1.5, { trait: false }));
+    }
     poser(a.fin(), 0, 0, { y: HAUT.y });
     plein(D.x0 + 0.6, D.x1 - 0.6, D.z0 - 1.2, D.z1 - 0.15, HAUT.y, 12);
     monde.cercle(R(0, 0, p / 2 + 1.5).x, R(0, 0, p / 2 + 1.5).z, 0.9);
@@ -1456,7 +1494,7 @@ export function construire(ctx) {
     for (let i = 0; i <= n; i++) a.boite(0.24, F.h + 0.2, 0.16, GRANIT, { x: F.x0 + (i * L) / n, y: y + (F.h + 0.2) / 2, z: F.z - 0.04, nuance: 0.03, teinte: granit(43 + i) });
     for (let i = 0; i < n; i++) {
       const cx = F.x0 + ((i + 0.5) * L) / n;
-      ecrire({ x: cx, y, z: F.z, ry: PI }, { x: 0, y: 0.25 + (F.h - 0.25) / 2, z: 0.004, l: L / n - 0.3, h: F.h - 0.25, fond: null, dessin: (c, W, H) => peindreScene(c, W, H, SCENES[i]) });
+      ecrire({ x: cx, y, z: F.z, ry: PI }, { x: 0, y: 0.25 + (F.h - 0.25) / 2, z: 0.004, l: L / n - 0.3, h: F.h - 0.25, fond: null, pixels: 140, dessin: (c, W, H) => peindreScene(c, W, H, SCENES[i]) });
     }
     // les lanternes rondes (提灯) sur le chaperon, tous les deux mètres
     for (let x = F.x0 + 1; x < F.x1; x += 2) {
@@ -1553,6 +1591,8 @@ export function construire(ctx) {
         deformer: (px, py, pz) => { const k = 1 + 0.1 * Math.sin(px * 3.1 + ir) * Math.cos(py * 2.7 - ir) + 0.05 * Math.sin(pz * 5.3); return [px * k, py * k, pz > 0.25 ? 0.25 + (pz - 0.25) * 0.12 : pz * k]; },
         teinte: (wx, wy, wz) => (wy > y0 + Rk.haut * 0.9 ? (hasard(wx * 3, wz * 3) > 0.35 ? MOUSSE : MOUSSE_F) : tachee(ir * 5)(wx, wy, wz)),
       });
+      // (on n'entre pas dans le rocher : un mur devant sa face, juste devant les rakan, un de chaque côté ; 2026-11-10, « traverser le rocher tout en haut du chemin » : celui de la clairière)
+      for (const [P0, P1] of [[[-0.55, 1.15], [0.55, 1.15]], [[-0.55, 1.15], [-0.6, -1.0]], [[0.55, 1.15], [0.6, -1.0]]]) { const A = Rr(P0[0] * Rk.large, 0, P0[1]), B = Rr(P1[0] * Rk.large, 0, P1[1]); monde.mur(A.x, A.z, B.x, B.z, 0.3); }
       // les rakan : deux rangs dans la face (le bas, le haut), à 62 cm les uns des autres
       const nb = Math.max(3, Math.floor((Rk.large * 0.92) / 0.62));
       for (const [rang, yR] of [[0, 0.3], [1, 1.36]]) {
@@ -1690,16 +1730,23 @@ export function construire(ctx) {
       a.boule(r * 0.32, tons[i % 3], { x: x + Math.cos(ang) * rr, y: y + r * (0.95 + 0.25 * hasard(g, i)), z: z + Math.sin(ang) * rr, sy: 0.85, trait: false }, 1);
     }
   };
-  /** Une ombrelle de papier huilé ouverte (和傘), sur son manche, un peu penchée : la toile, ses baleines, le cercle du milieu. */
+  /**
+   * Une ombrelle de papier huilé ouverte (和傘), sur son manche, un peu penchée (penche, vers l'avant de son repère tourné de ry) : la toile bombée et son anneau blanc (le
+   * 蛇の目), ses baleines de bambou dessous, le moyeu. (2026-11-10, refaite : « je pense que tu peux les refaire mieux que ça » : c'était un cône plat et un disque.)
+   */
   const ombrelle = (a, x, z, y, c, penche = 0.25, ry = 0, haut = 1.1) => {
-    const R = repere(x, z, ry), A = pt(R, 0, y, 0), B = pt(R, Math.sin(penche) * haut, y + Math.cos(penche) * haut, 0);
-    a.baton(A, B, 0.016, '#6a4a2a', 5);
-    const cap = R(B[0] - x, B[1], 0, { rz: -penche });
-    a.piece(new THREE.ConeGeometry(0.62, 0.2, 24, 1, true), c, {
-      x: B[0], y: B[1], z: B[2], rz: -penche, ry: cap.ry, nuance: 0.02,
-      teinte: (wx, wy, wz) => (Math.floor((Math.atan2(wz - B[2], wx - B[0]) / (2 * PI)) * 24 + 48) % 2 ? c : c),
-    });
-    a.cylindre(0.12, 0.12, 0.02, 12, '#f4ecd8', { x: B[0], y: B[1] + 0.09, z: B[2], rz: -penche, trait: false });
+    const R = repere(x, z, ry), A = pt(R, 0, y, 0), sp = Math.sin(penche), cp = Math.cos(penche);
+    // (le repère de la toile : u le long du manche ; e1 dans le sens où elle penche, e2 en travers)
+    const u = [sp * Math.cos(ry), cp, -sp * Math.sin(ry)], e1 = [cp * Math.cos(ry), -sp, -cp * Math.sin(ry)], e2 = [Math.sin(ry), 0, Math.cos(ry)];
+    const B = [A[0] + u[0] * haut, A[1] + u[1] * haut, A[2] + u[2] * haut];
+    const au = (hh, r, t) => [0, 1, 2].map((i) => B[i] + u[i] * hh + (e1[i] * Math.cos(t) + e2[i] * Math.sin(t)) * r);
+    a.baton(A, au(0.3, 0, 0), 0.016, '#6a4a2a', 5);
+    const PROFIL = [[0, 0.3], [0.2, 0.275], [0.4, 0.205], [0.5, 0.135], [0.58, 0.07], [0.66, 0]];
+    const radial = (wx, wy, wz) => { const dx = wx - B[0], dy = wy - B[1], dz = wz - B[2], l = dx * u[0] + dy * u[1] + dz * u[2]; return Math.hypot(dx - l * u[0], dy - l * u[1], dz - l * u[2]); };
+    a.piece(new THREE.LatheGeometry(PROFIL.map(([r, hh]) => new THREE.Vector2(r, hh)), 24), c, { x: B[0], y: B[1], z: B[2], rz: -penche, ry, nuance: 0.02, teinte: (wx, wy, wz) => { const d = radial(wx, wy, wz); return d > 0.4 && d < 0.5 ? '#f4ecd8' : c; } });
+    for (let i = 0; i < 12; i++) { const t = (i / 12) * 2 * PI; a.baton(au(0.26, 0.08, t), au(0.18, 0.4, t), 0.006, '#d8c8a0', 3, { trait: false }).baton(au(0.18, 0.4, t), au(-0.01, 0.65, t), 0.006, '#d8c8a0', 3, { trait: false }); }
+    const H = au(0.31, 0, 0);
+    a.cylindre(0.03, 0.035, 0.06, 8, '#c8b48a', { x: H[0], y: H[1], z: H[2], rz: -penche, ry, trait: false });
     lumieres.push({ x: B[0], y: B[1] - 0.1, z: B[2], halo: 0.5, sol: y, r: 1.6 });
   };
   {
@@ -1715,10 +1762,10 @@ export function construire(ctx) {
       if (n % 4 === 2) ombrelle(a, x - 0.1, z + 0.9, y, OMBRELLES[n % OMBRELLES.length], 0.3, PI / 2 + (hasard(n, 2) - 0.5), 1.15);
       n++;
     }
-    // autour du grand Bouddha, des ombrelles plantées (on les voit de loin, allumées la nuit)
-    for (const [dx, dz, i] of [[-5.5, -4.6, 0], [-5.5, 4.6, 1], [-6.6, 0.0, 2], [4.8, -5.6, 3], [4.8, 5.6, 4], [-2.0, -6.1, 5], [-2.0, 6.1, 1]]) {
-      const x = DAIBUTSU.x + dx, z = DAIBUTSU.z + dz;
-      ombrelle(a, x, z, MILIEU.y, OMBRELLES[i], 0.22, Math.atan2(dx, dz), 1.0);
+    // autour du grand Bouddha, des ombrelles plantées (on les voit de loin, allumées la nuit) : à un bon mètre des socles, penchées vers le dehors
+    // (2026-11-10 : trois sortaient des socles de Monju, de Fugen et du Kannon)
+    for (const [x, z, i, ry] of [[-34.4, 6.2, 0, PI], [-34.4, 17.8, 1, PI], [-35.3, 12.0, 2, PI], [-26.6, 4.9, 3, PI / 2], [-21.4, 5.2, 4, PI / 2], [-24.2, 18.8, 5, -PI / 2], [-20.8, 18.4, 1, -PI / 2]]) {
+      ombrelle(a, x, z, MILIEU.y, OMBRELLES[i], 0.22, ry, 1.0);
       monde.cercle(x, z, 0.3);
     }
     // dans la cour du pavillon octogonal, quelques hortensias le long du bord est
@@ -1776,12 +1823,15 @@ export function construire(ctx) {
       ecrire({ x: N.x, y, z: N.z, ry: N.ry }, { ...PAPIER_PANNEAU, texte: N.titre, lignes: 3 });
       const R = repere(N.x, N.z, N.ry);
       for (const s of [-1, 1]) { const q = R(s * 0.6, 0, 0); monde.cercle(q.x, q.z, 0.14); }
+      // (on ne traverse pas le panneau : un mur d'un poteau à l'autre ; 2026-11-10)
+      { const g = R(-0.78, 0, 0), d = R(0.78, 0, 0); monde.mur(g.x, g.z, d.x, d.z, 0.3); }
     }
   }
   // les bancs : au bord de l'allée, sur la place du grand Bouddha, dans la cour, devant le Bouddha couché
   {
     const a = atelier();
-    for (const [x, z, ry, y] of [[-110, -24.6, PI, BAS.y], [-80, -24.6, PI, BAS.y], [-31.4, 17.4, PI, MILIEU.y], [30, -18, PI / 2 + PI, HAUT.y], [-46, 46, PI / 2, NEHAN.y], [-46, 54, PI / 2, NEHAN.y]]) {
+    // (celui de la place du grand Bouddha : contre la façade de la maison de thé, tourné vers lui ; coincé entre le socle de Fugen et la maison, il gênait : 2026-11-10)
+    for (const [x, z, ry, y] of [[-110, -24.6, PI, BAS.y], [-80, -24.6, PI, BAS.y], [-32.6, 18.9, PI, MILIEU.y], [30, -18, PI / 2 + PI, HAUT.y], [-46, 46, PI / 2, NEHAN.y], [-46, 54, PI / 2, NEHAN.y]]) {
       const R = repere(x, z, ry);
       a.boite(2.0, 0.08, 0.5, P.bois, R(0, y + 0.45, 0)).boite(2.0, 0.4, 0.06, P.bois, R(0, y + 0.72, -0.24, { rx: -0.12 }));
       for (const s of [-1, 1]) a.boite(0.08, 0.44, 0.44, P.boisFonce, R(s * 0.85, y + 0.22, 0));
@@ -1824,13 +1874,13 @@ export function construire(ctx) {
     for (let i = 0; i < 6; i++) { const t = i * 2.4 + g * 6; a.ovale(r * 0.26, c, { x: x + Math.cos(t) * r * 0.68, y: y + r * (1.15 + 0.22 * (i % 2)), z: z + Math.sin(t) * r * 0.68, sy: 0.72, trait: false }, 5); }
     monde.cercle(x, z, r * 0.92);
   };
-  /** Un petit bouddha de pierre, assis (ou debout), sobre : ses facettes ne se voient pas de loin (dans les rangées, il y en a beaucoup). */
+  /**
+   * Un petit bouddha de pierre, assis (bouddhaAssis, léger s'il est petit : il y en a tout un rang) ou debout (kannonDebout), haut de h, ses pieds (ou son assise) à y.
+   * (2026-11-10, refaits : « c'est juste des formes géométriques », « des bonshommes de neige » : c'était une cloche, deux boules et un disque.)
+   */
   const bouddhaPierre = (a, R, y, h, debout = false) => {
-    if (debout) a.cylindre(0.13 * h, 0.2 * h, 0.82 * h, 8, GRANIT, R(0, y + 0.41 * h, 0, { nuance: 0.03 }));
-    else a.piece(new THREE.LatheGeometry([[0, 0], [0.42, 0], [0.46, 0.08], [0.42, 0.2], [0.3, 0.3], [0.24, 0.5], [0.16, 0.58], [0, 0.6]].map(([r, hh]) => new THREE.Vector2(r * h, hh * h)), 9), GRANIT, { ...R(0, y, 0), nuance: 0.03 });
-    a.ovale(0.18 * h, GRANIT, { ...R(0, y + (debout ? 0.92 : 0.72) * h, 0.02 * h), sy: 1.08, nuance: 0.02 }, 8)
-      .ovale(0.075 * h, GRANIT_F, { ...R(0, y + (debout ? 1.1 : 0.9) * h, 0.02 * h), nuance: 0.02 }, 6)
-      .cylindre(0.36 * h, 0.36 * h, 0.04 * h, 12, GRANIT_F, R(0, y + (debout ? 0.86 : 0.66) * h, -0.2 * h, { rx: PI / 2 }));
+    if (debout) kannonDebout(THREE, a, R, y, h, granit, CS);
+    else bouddhaAssis(THREE, a, R, y, h * 0.82, granit, CS, h < 1.2);
   };
   /** Un hortensia léger, pour le couloir (une touffe, quatre grosses fleurs) : moins de facettes, il y en a beaucoup. */
   const hortensiaLeger = (a, x, z, y, r, g) => {
@@ -1843,8 +1893,11 @@ export function construire(ctx) {
     const R = repere(x, z, ry), A = pt(R, -0.21, y, 0), B = pt(R, -0.21, y + 3.4, 0), lb = 0.42, hb = 2.5;
     a.baton(A, B, 0.018, '#c8c4bc', 5).baton(pt(R, -0.21, y + 3.32, 0), pt(R, 0.24, y + 3.32, 0), 0.01, '#c8c4bc', 4, { trait: false });
     a.boite(lb, hb, 0.012, c, R(0.02, y + 3.32 - hb / 2, 0, { nuance: 0.02 }));
-    for (const s of [0, PI]) ecrire({ x: R(0.02, 0, 0).x, y, z: R(0.02, 0, 0).z, ry: ry + s }, { texte: txt, vertical: true, x: 0, y: 3.32 - hb / 2, z: 0.012, l: lb * 0.78, h: hb * 0.86, fond: null, encre: ink });
+    // (pixels : 120 par mètre, assez pour la lire de l'allée ; à 240, les douze bannières faisaient déborder l'atlas des étiquettes, et finissaient en bloc de couleur : 2026-11-10)
+    for (const s of [0, PI]) ecrire({ x: R(0.02, 0, 0).x, y, z: R(0.02, 0, 0).z, ry: ry + s }, { texte: txt, vertical: true, x: 0, y: 3.32 - hb / 2, z: 0.012, l: lb * 0.78, h: hb * 0.86, fond: null, encre: ink, pixels: 120 });
     monde.cercle(pt(R, -0.21, y, 0)[0], pt(R, -0.21, y, 0)[2], 0.08);
+    // (on ne passe pas à travers l'étoffe : un mur mince le long d'elle)
+    { const g = pt(R, -0.22, y, 0), d = pt(R, 0.26, y, 0); monde.mur(g[0], g[2], d[0], d[2], 0.24); }
   };
   /** Un distributeur de boissons, le dos à x, l'écran vers −x. */
   const distributeur = (a, x, z, y, c) => {
@@ -1927,29 +1980,50 @@ export function construire(ctx) {
     {
       const x = -131.4, z = -42.3;
       a.boite(1.6, 0.4, 1.0, PIERRE_F, { x, y: y + 0.2, z, nuance: 0.04 }).boite(0.7, 3.1, 0.6, GRANIT, { x, y: y + 0.4 + 1.55, z, nuance: 0.02 });
-      ecrire({ x, y, z, ry: 0 }, { texte: '南法華寺 壺阪観世音', vertical: true, x: 0, y: 2.1, z: 0.31, l: 0.46, h: 2.5, fond: null, encre: '#3a3a40' });
+      ecrire({ x, y, z, ry: 0 }, { texte: '南法華寺 壺阪観世音', vertical: true, x: 0, y: 2.1, z: 0.31, l: 0.46, h: 2.5, fond: null, encre: '#3a3a40', pixels: 160 });
       plein(x - 0.85, x + 0.85, z - 0.55, z + 0.55, y, 3.6);
     }
     poser(a.fin(), 0, 0, { y: 0 });
   }
-  // ---- le tronc d'ablutions (手水舎) : au bout de l'allée, avant l'escalier ; on s'y lave les mains
+  // ---- le tronc d'ablutions (手水舎) : au bout de l'allée, avant l'escalier ; on s'y lave les mains. (2026-11-10, refait : « tu peux faire mieux que ça avec la fontaine » :
+  // une vasque taillée (水盤) et son bassin creusé, les louches (柄杓) couchées sur leur support de bambou, le dragon de bronze dressé sur sa pierre, son filet d'eau, les ronds dans l'eau)
   {
-    const T = CHOZU, y = BAS.y, a = atelier(), R = repere(T.x, T.z, PI), c = 2.6, h = 2.5;
-    for (const sx of [-1, 1]) for (const sz of [-1, 1]) a.cylindre(0.1, 0.12, h, 8, '#7a3a26', R(sx * c / 2, y + h / 2, sz * c / 2));
+    const T = CHOZU, y = BAS.y, a = atelier(), R = repere(T.x, T.z, PI), c = 2.6, h = 2.5, BRZ = '#4e7a6a', BRZ_F = '#3e6456', BAMBOU = '#c8b478';
+    a.boite(c + 1.2, 0.1, c + 1.2, '#a8a498', R(0, y + 0.05, 0, { nuance: 0.04 }));
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) a.boite(0.36, 0.14, 0.36, '#8a877e', R(sx * c / 2, y + 0.17, sz * c / 2, { nuance: 0.04 })).cylindre(0.1, 0.12, h - 0.24, 8, '#7a3a26', R(sx * c / 2, y + 0.24 + (h - 0.24) / 2, sz * c / 2));
     for (const s of [-1, 1]) a.boite(c + 0.3, 0.2, 0.18, '#7a3a26', R(0, y + h - 0.02, s * c / 2)).boite(0.18, 0.2, c + 0.3, '#7a3a26', R(s * c / 2, y + h, 0));
     a.toitJapon(c + 1.4, c + 1.4, 1.2, 0.2, { ...TUILES, rangs: 11, releve: 0.14, epaisseur: 0.1, ...R(0, y + h + 0.12, 0), murs: { l: c / 2 + 0.12, p: c / 2 + 0.12, y: -0.2, c: '#7a3a26' } });
-    a.boite(1.5, 0.62, 0.9, '#8a877e', R(0, y + 0.31, 0, { nuance: 0.05 })).boite(1.26, 0.06, 0.66, '#7fb4c8', R(0, y + 0.63, 0, { sorte: 'eau', trait: false }));
-    // le dragon de bronze qui crache l'eau ; les louches de bambou
-    a.ovale(0.15, '#4e7a6a', R(0, y + 1.06, -0.36, { sy: 1.1, sz: 1.5 }), 8).cone(0.05, 0.2, 5, '#4e7a6a', R(0, y + 1.1, -0.14, { rx: PI / 2 }));
-    a.baton(pt(R, 0, y + 1, -0.48), pt(R, 0, y + 0.58, -0.44), 0.05, '#4e7a6a', 6);
-    for (const dx of [-0.5, -0.22, 0.1, 0.38]) {
-      a.baton(pt(R, dx, y + 0.71, 0.36), pt(R, dx + 0.05, y + 0.73, -0.1), 0.012, '#c8b478', 4, { trait: false }).cylindre(0.05, 0.05, 0.1, 8, '#c8b478', R(dx + 0.05, y + 0.73, -0.14));
+    // la vasque : le bloc, son rebord en quatre pièces, et dedans, l'eau 8 cm sous le bord
+    const yv = y + 0.1, HV = 0.56, L = 1.6, Pf = 1.0, reb = 0.14;
+    a.boite(L, HV, Pf, '#8a877e', R(0, yv + HV / 2, 0, { nuance: 0.05, teinte: tachee(5, 0.06) }));
+    for (const s of [-1, 1]) a.boite(L, 0.12, reb, '#8a877e', R(0, yv + HV + 0.06, s * (Pf / 2 - reb / 2), { nuance: 0.05, teinte: tachee(6, 0.06) })).boite(reb, 0.12, Pf - 2 * reb, '#8a877e', R(s * (L / 2 - reb / 2), yv + HV + 0.06, 0, { nuance: 0.05, teinte: tachee(7, 0.06) }));
+    a.boite(L - 2 * reb, 0.03, Pf - 2 * reb, '#7fb4c8', R(0, yv + HV + 0.025, 0, { sorte: 'eau', trait: false }));
+    // le support de bambou en travers du bord, quatre louches couchées dessus : le godet vers le dragon, le manche vers qui se lave
+    const yr = yv + HV + 0.12;
+    for (const lz of [-0.16, 0.22]) a.cylindre(0.018, 0.018, L + 0.1, 6, BAMBOU, R(0, yr + 0.018, lz, { rz: PI / 2 }));
+    for (const dx of [-0.52, -0.2, 0.14, 0.44]) {
+      a.cylindre(0.045, 0.042, 0.07, 8, '#dccc9a', R(dx, yr + 0.036 + 0.035, -0.16));
+      a.baton(pt(R, dx, yr + 0.036 + 0.05, -0.12), pt(R, dx + 0.03, yr + 0.036 + 0.02, 0.56), 0.009, BAMBOU, 5);
     }
+    // le dragon (龍) de bronze dressé sur sa pierre, derrière la vasque : le cou qui se dresse, la tête, les cornes, les yeux, les moustaches, la crinière, la gueule d'où l'eau coule
+    a.ovale(0.3, '#7c7970', { ...R(0, y + 0.55, -0.78), sx: 0.9, sy: 1.5, sz: 0.75, nuance: 0.05 }, 8);
+    a.tube([pt(R, 0, y + 0.95, -0.78), pt(R, 0.02, y + 1.2, -0.72), pt(R, 0, y + 1.3, -0.58), pt(R, 0, y + 1.28, -0.44)], 0.05, BRZ, { cotes: 7, pas: 10 });
+    a.ovale(0.085, BRZ, { ...R(0, y + 1.28, -0.4), sx: 0.9, sy: 0.85, sz: 1.2 }, 8);
+    a.boite(0.1, 0.045, 0.16, BRZ, R(0, y + 1.3, -0.26, { rx: -0.3 })).boite(0.09, 0.03, 0.14, BRZ_F, R(0, y + 1.235, -0.27, { rx: 0.25 }));
+    for (const s of [-1, 1]) {
+      a.cone(0.018, 0.1, 4, BRZ_F, R(s * 0.045, y + 1.38, -0.45, { rx: -0.7 }));
+      a.boule(0.014, '#e8d8a0', R(s * 0.052, y + 1.31, -0.33), 0);
+      a.baton(pt(R, s * 0.05, y + 1.26, -0.28), pt(R, s * 0.16, y + 1.2, -0.2), 0.006, BRZ_F, 4, { trait: false });
+      a.cone(0.02, 0.09, 4, BRZ_F, R(s * 0.03, y + 1.3, -0.52, { rx: 1.9 }));
+    }
+    // le filet d'eau, de la gueule au bassin ; les ronds dans l'eau
+    a.tube([pt(R, 0, y + 1.235, -0.2), pt(R, 0, y + 1.0, -0.1), pt(R, 0, yv + HV + 0.03, -0.02)], 0.012, '#bfe0ec', { cotes: 5, pas: 8, trait: false });
+    for (const r of [0.07, 0.13]) a.piece(new THREE.TorusGeometry(r, 0.006, 3, 14), '#e4f2f8', { ...R(0, yv + HV + 0.045, -0.02), rx: PI / 2, trait: false });
     poser(a.fin(), 0, 0, { y: 0 });
-    plein(T.x - 0.95, T.x + 0.95, T.z - 0.65, T.z + 0.65, y, 1.6);
+    plein(T.x - L / 2 - 0.02, T.x + L / 2 + 0.02, T.z - Pf / 2 - 0.02, T.z + 1.1, y, 1.6);
     monde.bloc(T.x - c / 2 - 0.7, T.x + c / 2 + 0.7, T.z - c / 2 - 0.7, T.z + c / 2 + 0.7, y + h, y + h + 1.4);
     monde.toit(T.x - c / 2 - 0.7, T.x + c / 2 + 0.7, T.z - c / 2 - 0.7, T.z + c / 2 + 0.7, y + h, y + h + 1.4);
-    for (const sx of [-1, 1]) for (const sz of [-1, 1]) monde.cercle(T.x + sx * c / 2, T.z + sz * c / 2, 0.2);
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) monde.cercle(T.x + sx * c / 2, T.z + sz * c / 2, 0.26);
     lumieres.push({ x: T.x, y: y + 1.9, z: T.z, halo: 0.3, sol: y, r: 2 });
   }
 
@@ -2048,6 +2122,7 @@ export function construire(ctx) {
       a.cylindre(0.62, 0.74, 0.24, 14, GRANIT, R(0, y + 0.9, 0));
       for (let i = 0; i < 12; i++) { const t = (i / 12) * 2 * PI; a.ovale(0.2, GRANIT_F, { ...R(Math.sin(t) * 0.68, y + 0.97, Math.cos(t) * 0.68, { ry: t }), sx: 0.9, sy: 0.5, sz: 0.4, rx: -0.5, nuance: 0.03, trait: false }, 5); }
       bouddhaPierre(a, R, y + 1.02, h, !assis);
+      // (1,03 : le demi-diagonal du socle est 1,06 ; à 1,1, minces2.mjs voyait un mur invisible à 35 cm de sa face)
       monde.cercle(x, z, 1.03);
     };
     const R = repere(DAIBUTSU.x, DAIBUTSU.z, -PI / 2);
@@ -2085,16 +2160,35 @@ export function construire(ctx) {
       b.boite(1.0, 1.0, 0.8, '#7a3a26', { x: cx, y: Y + 0.62 + 0.5, z: zA });
       b.boite(1.1, 0.1, 0.9, '#3a2a20', { x: cx, y: Y + 0.62 + 1.04, z: zA });
       b.cylindre(0.86, 0.86, 0.05, 20, '#e0b83a', { x: cx, y: Y + 2.8, z: zA - 0.46 + 1.0, rx: PI / 2, nuance: 0.02, trait: false });
-      const R = repere(cx, zA, PI), y1 = Y + 1.72;
-      // (assis : la robe sombre, les genoux, les bras repliés, le vajra, le rosaire, la tête rasée, les oreilles)
-      b.piece(new THREE.LatheGeometry([[0, 0], [0.44, 0.02], [0.48, 0.12], [0.42, 0.3], [0.32, 0.5], [0.28, 0.72], [0.14, 0.82], [0, 0.84]].map(([r, hh]) => new THREE.Vector2(r, hh)), 12), '#5a3424', { ...R(0, y1, 0), nuance: 0.03 });
-      b.ovale(0.22, '#d8b894', { ...R(0, y1 + 0.98, 0.02), sy: 1.08, nuance: 0.02 }, 10);
+      const R = repere(cx, zA, PI), y1 = Y + 1.72, PEAU_D = '#e2c4a0', ROBE = '#3a2c28', KESA = '#9a6a2a', OR = '#e0b83a';
+      const p = (lx, ly, lz) => pt(R, lx, y1 + ly, lz);
+      // (2026-11-10, refait : « l'espèce de moine Bouddha, tu peux faire mieux que ça » : c'était une cloche de bois et une boule. Assis dans son fauteuil à haut dossier (曲彔), la
+      // robe sombre, le kesa ocre croisé de l'épaule gauche à la hanche droite et sa bande sur les genoux, les manches qui pendent ; la main droite tient le vajra (五鈷杵) devant la
+      // poitrine, la gauche le rosaire sur le genou ; le crâne rasé, les longues oreilles, les yeux baissés, comme sur les portraits du Daishi)
+      b.boite(0.9, 1.3, 0.07, '#5a3a2a', { ...R(0, y1 + 0.65, -0.42), nuance: 0.03 }).cylindre(0.05, 0.05, 1.0, 8, '#5a3a2a', R(0, y1 + 1.33, -0.42, { rz: PI / 2 }));
+      for (const s of [-1, 1]) b.boite(0.07, 1.3, 0.07, '#4a2e22', R(s * 0.46, y1 + 0.65, -0.42));
+      b.piece(new THREE.LatheGeometry([[0, 0], [0.4, 0.01], [0.46, 0.1], [0.44, 0.22], [0.36, 0.42], [0.3, 0.62], [0.26, 0.76], [0.12, 0.84], [0, 0.85]].map(([r, hh]) => new THREE.Vector2(r, hh)), 14), ROBE, { ...R(0, y1, 0), sz: 0.82, nuance: 0.025 });
+      for (const s of [-1, 1]) b.ovale(0.15, ROBE, { ...R(s * 0.22, y1 + 0.14, 0.26), sx: 1.1, sy: 0.7, sz: 1.0, nuance: 0.025 }, 9);
+      b.ovale(0.2, ROBE, { ...R(0, y1 + 0.1, 0.34), sx: 1.5, sy: 0.45, sz: 0.5, nuance: 0.025 }, 9);
+      b.tube([p(-0.24, 0.76, 0.12), p(-0.1, 0.62, 0.3), p(0.08, 0.46, 0.34), p(0.26, 0.3, 0.3)], 0.085, KESA, { cotes: 6, pas: 10, nuance: 0.02 })
+        .tube([p(-0.2, 0.84, 0.1), p(-0.04, 0.68, 0.32), p(0.14, 0.52, 0.36), p(0.3, 0.36, 0.3)], 0.014, OR, { cotes: 4, pas: 8, trait: false });
+      b.boite(0.56, 0.06, 0.36, KESA, { ...R(0, y1 + 0.24, 0.3), rx: -0.35, nuance: 0.02 });
+      b.tube([p(-0.3, 0.74, 0.02), p(-0.37, 0.5, 0.14), p(-0.16, 0.52, 0.34)], 0.07, ROBE, { cotes: 7, pas: 8, nuance: 0.025 });
+      b.tube([p(0.3, 0.74, 0.02), p(0.38, 0.48, 0.1), p(0.26, 0.3, 0.3)], 0.07, ROBE, { cotes: 7, pas: 8, nuance: 0.025 });
+      for (const s of [-1, 1]) b.ovale(0.11, ROBE, { ...R(s * 0.38, y1 + 0.36, 0.1), sx: 0.5, sy: 1.3, sz: 0.8, nuance: 0.025 }, 8);
+      b.ovale(0.05, PEAU_D, { ...R(-0.14, y1 + 0.54, 0.37), sx: 0.9, sy: 1.1 }, 7).ovale(0.05, PEAU_D, { ...R(0.26, y1 + 0.31, 0.34), sx: 1.1, sy: 0.7 }, 7);
+      b.cylindre(0.012, 0.012, 0.16, 6, OR, R(-0.14, y1 + 0.56, 0.4, { rz: PI / 2 }));
+      for (const s of [-1, 1]) for (const u of [-1, 0, 1]) b.cone(0.012, 0.045, 4, OR, R(-0.14 + s * 0.1, y1 + 0.56 + u * 0.018, 0.4 + (u ? u * 0.01 : 0), { rz: -s * PI / 2 }));
+      b.piece(new THREE.TorusGeometry(0.07, 0.012, 5, 16), '#5a4a3a', { ...R(0.26, y1 + 0.3, 0.37), rx: PI / 2 });
+      b.cylindre(0.07, 0.08, 0.08, 10, PEAU_D, R(0, y1 + 0.88, 0.02));
+      b.ovale(0.17, PEAU_D, { ...R(0, y1 + 1.06, 0.03), sx: 0.95, sy: 1.1, sz: 0.95, nuance: 0.015 }, 12);
+      b.ovale(0.165, '#c8a888', { ...R(0, y1 + 1.12, 0.0), sx: 0.97, sy: 0.8, sz: 0.97, nuance: 0.015 }, 12);
       for (const s of [-1, 1]) {
-        b.ovale(0.05, '#d8b894', { ...R(s * 0.21, y1 + 0.98, 0), sy: 1.6 }, 6);
-        b.baton(pt(R, s * 0.26, y1 + 0.68, 0.02), pt(R, s * 0.14, y1 + 0.34, 0.28), 0.075, '#5a3424', 6);
-        b.ovale(0.075, '#d8b894', { ...R(s * 0.11, y1 + 0.34, 0.31) }, 6);
+        b.ovale(0.035, PEAU_D, { ...R(s * 0.165, y1 + 1.02, 0.0), sx: 0.5, sy: 1.8, sz: 0.8 }, 6);
+        b.boite(0.05, 0.008, 0.01, '#2a2026', { ...R(s * 0.06, y1 + 1.07, 0.185), rz: -s * 0.1, trait: false });
+        b.boite(0.06, 0.01, 0.01, '#4a3a30', { ...R(s * 0.062, y1 + 1.11, 0.18), rz: -s * 0.15, trait: false });
       }
-      b.baton(pt(R, -0.11, y1 + 0.3, 0.34), pt(R, -0.09, y1 + 0.62, 0.42), 0.022, '#e0b83a', 6, { trait: false });
+      b.ovale(0.022, PEAU_D, { ...R(0, y1 + 1.04, 0.19), sy: 1.4 }, 6).boite(0.05, 0.008, 0.01, '#8a4a40', { ...R(0, y1 + 0.985, 0.185), trait: false });
       // les bougeoirs, les vases de lotus, la table d'offrandes, le tronc
       for (const s of [-1, 1]) {
         for (const lx of [1.8, 3.4]) { const x = cx + s * lx; b.cylindre(0.04, 0.09, 1.0, 6, '#c8a03a', { x, y: Y + 0.62 + 0.5, z: zA + 0.2 }).ovale(0.05, '#fff2c8', { x, y: Y + 0.62 + 1.08, z: zA + 0.2, sy: 1.8, sorte: 'lumiere', trait: false }, 5); }
@@ -2228,7 +2322,7 @@ export function construire(ctx) {
       const xr = T.x0 + 2.1, zr = T.z1 - 0.17;
       b.boite(0.72, 1.42, 0.03, '#efe6d0', { x: xr, y: F + 1.28, z: zr, trait: false }).boite(0.82, 0.05, 0.05, '#3a2a20', { x: xr, y: F + 2.0, z: zr }).boite(0.82, 0.05, 0.05, '#3a2a20', { x: xr, y: F + 0.56, z: zr });
       ecrire({ x: xr, y: F, z: zr, ry: PI }, { texte: '目', x: 0, y: 1.32, z: 0.02, l: 0.5, h: 0.5, fond: null, encre: '#2a2420' });
-      ombrelle(b, T.x0 + 0.62, T.z1 - 0.62, F, '#e0603a', 0.22, 0.6, 1.25);
+      ombrelle(b, T.x0 + 0.9, T.z1 - 0.9, F, '#e0603a', 0.22, 0.6, 1.25);
       const xa = T.x0 + 5.6, za = T.z1 - 0.17;
       b.boite(1.3, 0.86, 0.04, '#3a3a34', { x: xa, y: F + 1.5, z: za, trait: false }).boite(1.4, 0.96, 0.03, '#6a4a30', { x: xa, y: F + 1.5, z: za + 0.015 });
       ecrire({ x: xa, y: F, z: za, ry: PI }, { texte: 'お品書き', x: 0, y: 1.76, z: 0.03, l: 0.9, h: 0.18, fond: null, encre: '#f2ead8' });
@@ -2249,6 +2343,27 @@ export function construire(ctx) {
       o.visible = false;
       TASSE_CHAYA.maille = o;
       animes.push({ objet: o, maj: () => [] });
+      // (une seconde tasse, pour la main : le voyageur la tient (jeu.tenir) et la porte à sa bouche (le geste « boire ») ; chaque image, elle est remise droite, puis penchée le
+      // temps de la gorgée ; 2026-11-10, « tu peux animer le fait de boire le thé »)
+      const m2 = atelier();
+      m2.cylindre(0.055, 0.045, 0.08, 8, '#e8c88a', { y: 0.04 });
+      m2.cylindre(0.05, 0.05, 0.01, 8, '#8a9a5a', { y: 0.08, trait: false });
+      const o2 = ctx.maillage(m2.fin(0, false));
+      o2.position.set(0, -0.31, 0.04);
+      TASSE_CHAYA.main = o2;
+      TASSE_CHAYA.t = -1;
+      const qp = new THREE.Quaternion(), qv = new THREE.Quaternion(), ax = new THREE.Vector3(1, 0, 0);
+      animes.push({
+        objet: new THREE.Group(),
+        maj(dt) {
+          if (TASSE_CHAYA.t < 0 || !o2.parent) return [];
+          TASSE_CHAYA.t += dt;
+          const t = TASSE_CHAYA.t, gorgee = t > 0.9 && t < 2.3 ? 0.5 + 0.3 * Math.sin((t - 0.9) * 6) : 0;
+          o2.parent.getWorldQuaternion(qp);
+          o2.quaternion.copy(qp).invert().multiply(qv.setFromAxisAngle(ax, -gorgee));
+          return [];
+        },
+      });
     }
     poser(b.fin(), 0, 0, { y: 0, recoit: false, dedans: [T.x0 - 24, T.x1 + 18, T.z0 - 34, T.z1 + 6] });
   }
@@ -2281,19 +2396,20 @@ export function construire(ctx) {
     a.boite(1.5, 2.1, 0.08, '#6a4a34', R(0, y + 1.55, 0, { nuance: 0.03 })).boite(1.3, 1.85, 0.03, '#f6f2e8', R(0, y + 1.55, -0.055, { trait: false }));
     for (const s of [-1, 1]) a.baton(pt(R, s * 0.62, y, 0.04), pt(R, s * 0.62, y + 2.6, 0.04), 0.05, '#5a4030', 6);
     a.boite(1.7, 0.1, 0.32, '#5a4030', R(0, y + 2.65, 0.02));
-    ecrire({ x: T.x, y, z: T.z, ry: 0 }, { texte: '視力検査', x: 0, y: 2.4, z: 0.076, l: 0.8, h: 0.2, fond: null, encre: '#3a2a20' });
+    ecrire({ x: T.x, y, z: T.z, ry: 0 }, { texte: '視力検査', x: 0, y: 2.36, z: 0.076, l: 0.8, h: 0.2, fond: null, encre: '#3a2a20' });
     poser(a.fin(), 0, 0, { y: 0 });
     for (const s of [-1, 1]) { const q = R(s * 0.62, 0, 0.04); monde.cercle(q.x, q.z, 0.12); }
-    monde.mur(R(-0.75, 0, 0).x, R(-0.75, 0, 0).z, R(0.75, 0, 0).x, R(0.75, 0, 0).z, 0.14);
-    // (les anneaux, en noir sur blanc : des taches sur le papier ; ils rapetissent en descendant, le bas se lit à peine)
-    const b = atelier(), rangs = [[0.26, 1], [0.17, 2], [0.11, 3], [0.075, 4], [0.05, 5]];
-    let yy = y + 2.15;
+    monde.mur(R(-0.75, 0, 0).x, R(-0.75, 0, 0).z, R(0.75, 0, 0).x, R(0.75, 0, 0).z, 0.3);
+    // (les anneaux, en noir sur blanc : des taches sur le papier ; ils rapetissent en descendant, le bas se lit à peine. Quatre rangs, tous sur le papier : le premier
+    // montait dans le titre, les deux derniers sortaient du panneau, 2026-11-10)
+    const b = atelier(), rangs = [[0.2, 1], [0.125, 2], [0.08, 3], [0.05, 4]];
+    let yy = y + 2.02;
     for (const [r, n] of rangs) {
       for (let k = 0; k < n; k++) {
         const lx = (k - (n - 1) / 2) * (r * 2.6 + 0.1), ouvert = (k * 2 + n) % 4;
         b.piece(new THREE.TorusGeometry(r, r * 0.17, 5, 14, PI * 2 - 0.6), '#1a1a1e', { ...R(lx, yy, -0.074), rz: (ouvert * PI) / 2 + 0.3, trait: false });
       }
-      yy -= r * 2.9 + 0.12;
+      yy -= r * 2.5 + 0.12;
     }
     poser(b.fin(), 0, 0, { y: 0 });
   }
@@ -2892,11 +3008,18 @@ export function construire(ctx) {
         await jeu.fondu(false);
         jeu.son('bol');
         await jeu.attendre(700);
-        jeu.geste('offrir');
+        // (la tasse passe de la table à la main, montée à la bouche : le geste « boire », la gorgée à mi-chemin ; puis elle revient sur la table)
+        TASSE_CHAYA.maille.visible = false;
+        TASSE_CHAYA.t = 0;
+        jeu.tenir(TASSE_CHAYA.main);
+        jeu.geste('boire');
         await jeu.attendre(1100);
         jeu.son('slurp');
-        await jeu.attendre(900);
+        await jeu.attendre(1900);
         jeu.geste(null);
+        jeu.tenir(null);
+        TASSE_CHAYA.t = -1;
+        TASSE_CHAYA.maille.visible = true;
         await jeu.dire(jeu.tx('theServi'));
         if (!TASSE_CHAYA.bu) { TASSE_CHAYA.bu = true; await comp(jeu, 'theCompagnon'); }
         await jeu.fondu(true);
@@ -3063,7 +3186,7 @@ export function construire(ctx) {
     rakans: RAKANS.map(({ id, x, z, y, special }) => ({ id, x, z, y, special: special || null })),
     betes: {
       papillons: [[-40, 0], [-44, 14], [40, -10], [-30, 50], [38, -45], [-148, -6], [-112, -50], [18, -66], [-78, -9]],
-      chats: [{ id: 'chatChaya', x: -33.4, z: 18.4, cap: 2.0, robe: 'roux', dort: true }, { id: 'chatNokyo', x: 32.2, z: -26.6, cap: -1.0, robe: 'pie' }],
+      chats: [{ id: 'chatChaya', x: -30.4, z: 18.7, cap: 2.0, robe: 'roux', dort: true }, { id: 'chatNokyo', x: 32.2, z: -26.6, cap: -1.0, robe: 'pie' }],
       milans: [{ x: -60, z: -120, r: 50, h: 70, sens: 1 }],
     },
     feux: { x: -260, y: 0, z: -300, large: 120, haut: [60, 95], echelle: 1.6, loin: 300 },
