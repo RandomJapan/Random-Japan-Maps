@@ -556,11 +556,12 @@ def bruitages_createur():
 # ---------------------------------------------------------------- « noob vs pro » (2026-11-10) : du chiptune
 # 150 battements par minute (un temps = 24 images), en do, mélodie en gamme yo (do, ré, fa, sol, la) : un « jeu vidéo » japonais. Les
 # voix d'une vieille console : deux ondes carrées (la mélodie à 25 %, l'arpège rapide à 12,5 %), un triangle à la basse, du bruit pour la
-# batterie, un écho court sur la mélodie. Manches (temps 0 → 34) : tout le groove ; le score (34 → 42) : à moitié ; la fin (42 → 51) :
-# tout, et l'accord final au temps 50.
+# batterie, un écho court sur la mélodie. La borne d'arcade (2026-11-10, le propriétaire : « deux téléphones côte à côte, c'est trop
+# petit ») : les joueurs jouent chacun leur tour, les manches s'allongent. Manches (temps 0 → 40, une manche commence toujours sur
+# une mesure) : tout le groove ; le score (40 → 48) : à moitié ; la fin (48 → 56) : tout, et l'accord final au temps 56.
 VS_TEMPS = 60 / 150
 VS_PAS = VS_TEMPS / 4
-VS_DUREE = 51 * VS_TEMPS
+VS_DUREE = 57 * VS_TEMPS
 
 
 def carre(f, duree, rapport=0.25, vibrato=0.0, attaque=0.003, chute=0.25, tenue=0.65):
@@ -652,19 +653,20 @@ def versus():
                 lead.poser(carre(I.note(nom), d * T / 2 - 0.02, 0.25, vibrato=0.006), T0 + croche * T / 2, 0.3, pan=-0.1)
 
     grille = ['C', 'Am', 'F', 'G']
-    for m in range(8):  # les manches : A puis B, deux fois chacune… (temps 0 → 32)
+    for m in range(8):  # les manches 1 à 3 : A puis B, deux fois chacune… (temps 0 → 32)
         mesure(4 * m, grille[m % 4], (VS_A if m < 4 else VS_B)[m % 4])
-    mesure(32, 'C', VS_A[0])  # la fin de la manche 4 (temps 32 → 34 : une demi-mesure)
-    for m, nom in enumerate(['Am', 'F']):  # le score : à moitié (temps 34 → 42)
-        mesure(34 + 4 * m, nom, niveau=2 if m else 1)
-    for m, nom in enumerate(['F', 'G']):  # la fin (temps 42 → 50)
-        mesure(42 + 4 * m, nom, VS_A[2 + m])
-    # l'accord final (temps 50) : do, tenu
+    mesure(32, 'C', VS_A[0])  # la manche 4 (temps 32 → 40) : le retour du thème, puis la dominante qui reste en l'air
+    mesure(36, 'G', VS_A[3])
+    for m, nom in enumerate(['Am', 'F']):  # le score : à moitié (temps 40 → 48)
+        mesure(40 + 4 * m, nom, niveau=2 if m else 1)
+    for m, nom in enumerate(['F', 'G']):  # la fin (temps 48 → 56)
+        mesure(48 + 4 * m, nom, VS_A[2 + m])
+    # l'accord final (temps 56) : do, tenu
     for n in ('C4', 'E4', 'G4', 'C5'):
-        lead.poser(carre(I.note(n), 0.9 * T, 0.25, vibrato=0.008, chute=0.3, tenue=0.5), 50 * T, 0.16)
-    bas.poser(triangle(I.note('C3'), 0.9 * T), 50 * T, 0.55)
-    batt.poser(kick_chip(), 50 * T, 0.8)
-    batt.poser(caisse_chip(), 50 * T, 0.4)
+        lead.poser(carre(I.note(n), 0.9 * T, 0.25, vibrato=0.008, chute=0.3, tenue=0.5), 56 * T, 0.16)
+    bas.poser(triangle(I.note('C3'), 0.9 * T), 56 * T, 0.55)
+    batt.poser(kick_chip(), 56 * T, 0.8)
+    batt.poser(caisse_chip(), 56 * T, 0.4)
 
     # l'écho de la mélodie (trois doubles croches plus tard), puis le mélange
     pl = np.stack([lead.g, lead.d], 1)
@@ -714,6 +716,11 @@ def bruitages_versus():
     ecrire(s / 'vs-manche.wav', mono(suite(['C5', 'G5'], 0.06, 0.5, queue=0.2)))
     ecrire(s / 'vs-compte.wav', mono(suite(['C6'] * 10, 0.02, 0.5, ecart=0.045, queue=0.1)))
     ecrire(s / 'vs-piece.wav', mono(suite(['G5', 'C6', 'G6'], 0.06, 0.25, queue=0.5)))
+    # l'écran de la borne passe d'un joueur à l'autre : un souffle de bruit et un carré qui tombe
+    u = t(0.11)
+    f = 1400 * np.exp(-u / 0.03) + 300
+    x = np.where((np.cumsum(f) / SR % 1) < 0.5, 1.0, -1.0) * np.exp(-u / 0.035) * 0.5 + bruit_chip(0.11, True) * np.exp(-u / 0.025) * 0.6
+    ecrire(s / 'vs-bascule.wav', mono(np.concatenate([norme(x, 0.8), np.zeros(int(0.1 * SR))])))
     # ceux d'un joueur existent aussi à gauche (le débutant, -g) et à droite (le pro, -d)
     import wave as _w
     for nom in ('appui', 'valide', 'rate', 'reussi', 'chance', 'bonk', 'compte'):
