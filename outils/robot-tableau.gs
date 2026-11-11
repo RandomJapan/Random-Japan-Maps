@@ -32,6 +32,11 @@ const ESSAIS_MAX = 2;
 // Gemini débordé (503) ou quota atteint (429) : ça passe tout seul, alors un essai toutes les 10 minutes pendant 2 heures
 const ESSAIS_DEBORDE = 12;
 const DEBORDE = 'Gemini est débordé';
+// Google coupe un passage au bout de 6 minutes, sans laisser le robot écrire quoi que ce soit : après 4 minutes, on ne
+// pose plus de question à Gemini (le passage s'arrête proprement, « débordé », et on réessaie 10 minutes plus tard).
+// (le fichier est relu au début de chaque exécution : DEBUT_PASSAGE est l'heure où ce passage-ci a commencé)
+const DEBUT_PASSAGE = Date.now();
+const LIMITE_GEMINI_MS = 4 * 60 * 1000;
 const SANS_LEGENDE = 'TikTok ne donne pas la légende de cette vidéo au robot. Écris le nom du lieu dans « Nom (EN) », comme dans ta légende (par exemple « Koboyama Tumulus | Nagano »).';
 const COULEUR_A_VERIFIER = '#FFF2CC';
 const ONGLET_LIEUX = 'Lieux';
@@ -139,7 +144,7 @@ function traiterLigne_(feuille, col, tache, donnees) {
   const ecrire = (nomCol, valeur) => feuille.getRange(tache.ligne, col[nomCol]).setValue(valeur);
   const essai = (Number((tache.robot.match(/essai (\d+)/) || [])[1]) || 0) + 1;
   if (essai > essaisMax_(tache.robot)) {
-    ecrire(COLONNE_ROBOT, '❌ Le robot n\'y arrive pas. Remplis la ligne à la main, ou efface ce message pour réessayer.');
+    ecrire(COLONNE_ROBOT, abandon_(tache.robot, 'la ligne'));
     return false;
   }
   ecrire(COLONNE_ROBOT, `⏳ Le robot travaille… (essai ${essai})`);
@@ -432,6 +437,7 @@ function demanderGemini_(modeles, consignes, texte) {
   if (!cle) throw erreur_('Pas de clé IA : dans le projet « Robot carte », Paramètres du projet → Propriétés du script → CLE_GEMINI.');
   let derniere = null;
   for (const modele of modeles) {
+    if (Date.now() - DEBUT_PASSAGE > LIMITE_GEMINI_MS) throw erreur_('Gemini répond trop lentement.', true, true);
     let r;
     try {
       r = UrlFetchApp.fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modele}:generateContent`, {
@@ -620,7 +626,7 @@ function traiterVille_(feuille, col, ligne, donnees, feuilleLieux, faites) {
   }
   const essai = (Number((robot.match(/essai (\d+)/) || [])[1]) || 0) + 1;
   if (essai > essaisMax_(robot)) {
-    ecrire(COLONNE_ROBOT, `❌ Le robot n'y arrive pas. Remplis « ${ONGLET_LIEUX_VILLES} » à la main, ou efface ce message pour réessayer.`);
+    ecrire(COLONNE_ROBOT, abandon_(robot, `« ${ONGLET_LIEUX_VILLES} »`));
     return false;
   }
   ecrire(COLONNE_ROBOT, `⏳ Le robot travaille… (essai ${essai})`);
@@ -834,9 +840,21 @@ function erreur_(message, reessayer, deborde) {
   return e;
 }
 
-/** Le nombre d'essais permis, d'après le dernier message du robot : plus quand c'est Gemini qui était débordé. */
+/**
+ * Le nombre d'essais permis, d'après le dernier message du robot : plus quand c'est Gemini qui était débordé. Un message
+ * resté à « travaille » veut dire que Google a coupé le passage précédent au bout de 6 minutes (Gemini qui ne répondait
+ * pas) : c'est aussi une panne qui passe toute seule (2026-11-11 : la ligne Notsuke Peninsula avait reçu ❌ ainsi, après
+ * un « Gemini est débordé » puis un passage coupé).
+ */
 function essaisMax_(robot) {
-  return String(robot).includes(DEBORDE) ? ESSAIS_DEBORDE : ESSAIS_MAX;
+  return /travaille/.test(robot) || String(robot).includes(DEBORDE) ? ESSAIS_DEBORDE : ESSAIS_MAX;
+}
+
+/** Le message quand le robot abandonne (essais épuisés), pour un lieu ou un carrousel (aMain : ce qu'on remplit à la main). */
+function abandon_(robot, aMain) {
+  return essaisMax_(robot) === ESSAIS_DEBORDE
+    ? `❌ ${DEBORDE} depuis 2 heures. Efface ce message pour réessayer plus tard, ou remplis ${aMain} à la main.`
+    : `❌ Le robot n'y arrive pas. Remplis ${aMain} à la main, ou efface ce message pour réessayer.`;
 }
 
 /** Le message après une erreur : ⏳ un nouvel essai dans 10 minutes, ou ❌ (le robot attend qu'on efface le message). */
