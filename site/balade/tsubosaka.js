@@ -70,7 +70,9 @@ const NEHAN = { x0: -52, x1: -18, z0: 38, z1: 62, y: 24.7, talus: 6 };
 const KANNON = { x0: -45, x1: -25, z0: 78, z1: 93, y: 34.0, talus: 7 };
 const TERRASSES = [BAS, MILIEU, HAUT, NEHAN, KANNON];
 // les escaliers : du bas au milieu (sous la porte des Niō) ; du milieu au haut ; de la place du Bouddha couché au grand Kannon
-const ESC1 = { x0: -64, x1: -47, z0: -36, z1: -28, h0: BAS.y, h1: MILIEU.y, axe: 'x' };
+// (le premier finit sur la dalle de pierre de la porte des Niō, 14 cm au-dessus de la terrasse, posée sur sa dernière marche : il y monte. Jusqu'à la terrasse, sa
+// dernière marche, la dalle par-dessus, faisait 32 cm ; 2026-11-11)
+const ESC1 = { x0: -64, x1: -47, z0: -36, z1: -28, h0: BAS.y, h1: MILIEU.y + 0.14, axe: 'x' };
 // (le second escalier finit au bord de la cour haute : il y entrait de 4 m, dans un creux ; on descendait dans ce creux contre sa bordure, et le muret du bord
 // flottait au-dessus, vu au travers : 2026-11-10. Plus raide, 40°, comme bien des escaliers de temple)
 const ESC2 = { x0: -20, x1: -6, z0: -27, z1: -21, h0: MILIEU.y, h1: HAUT.y, axe: 'x' };
@@ -818,28 +820,34 @@ export function construire(ctx) {
     for (const E of ESCALIERS) {
       const a = morceau((E.x0 + E.x1) / 2, (E.z0 + E.z1) / 2, 40), n = E.n, contre = (E.h1 - E.h0) / n, giron = E.long / n;
       const large = E.axe === 'x' ? E.z1 - E.z0 : E.x1 - E.x0, demi = large / 2 - 0.3, mid = E.axe === 'x' ? (E.z0 + E.z1) / 2 : (E.x0 + E.x1) / 2;
+      // (les marches : de la pierre, chacune d'un gris un peu différent. Tachées de mousse triangle par triangle, une contremarche sur trois ou quatre
+      // était verte, et l'on voyait des bandes d'herbe entre les marches : 2026-11-11, « l'escalier n'a pas les bonnes surfaces pour monter »)
+      const GRIS = [PIERRE, '#85827a', '#8f8c83', '#817e76'];
       for (let k = 0; k < n; k++) {
-        // la marche k : son nez à k + 1 contremarches, au bout de son giron (du bas vers le haut)
-        const y = E.h0 + (k + 1) * contre, a0 = (E.axe === 'x' ? E.x0 : E.z0) + k * giron, prof = k === n - 1 ? giron + 0.02 : giron + 0.12;
+        // la marche k : son nez à k + 1 contremarches, à 10 cm avant le début de son giron (elle passe sous la suivante ; la dernière aussi, pour
+        // que toutes les marches aient le même giron sous les pieds)
+        const y = E.h0 + (k + 1) * contre, a0 = (E.axe === 'x' ? E.x0 : E.z0) + k * giron, prof = giron + 0.12;
         const larg = 2 * demi - (k % 2 ? 0.05 : 0);
-        const c = { nuance: 0.06, teinte: tachee(k * 3 + E.x0, 0.12) };
-        if (E.axe === 'x') a.boite(prof, 0.6, larg, PIERRE, { ...c, x: a0 + prof / 2 - (k === n - 1 ? 0 : 0.1), y: y - 0.3, z: mid });
-        else a.boite(larg, 0.6, prof, PIERRE, { ...c, x: mid, y: y - 0.3, z: a0 + prof / 2 - (k === n - 1 ? 0 : 0.1) });
+        const c = { nuance: 0.03 };
+        const ton = GRIS[Math.floor(hasard(k * 1.7 + E.x0, E.z0) * GRIS.length)];
+        if (E.axe === 'x') a.boite(prof, 0.6, larg, ton, { ...c, x: a0 + prof / 2 - 0.1, y: y - 0.3, z: mid });
+        else a.boite(larg, 0.6, prof, ton, { ...c, x: mid, y: y - 0.3, z: a0 + prof / 2 - 0.1 });
       }
       // les bordures de pierre, de chaque côté, le long de la pente (leur dessus 50 cm au-dessus des nez des marches)
       const ang = Math.atan2(E.h1 - E.h0, E.long), L = Math.hypot(E.long + 0.4, E.h1 - E.h0), ym = (E.h0 + E.h1) / 2 + 0.25;
       for (const s of [-1, 1]) {
         const off = mid + s * (demi + 0.15);
-        if (E.axe === 'x') a.boite(L, 0.9, 0.3, PIERRE_F, { x: (E.x0 + E.x1) / 2, y: ym, z: off, rz: ang, nuance: 0.05, teinte: tachee(s * 7 + E.x0, 0.3) });
-        else a.boite(0.3, 0.9, L, PIERRE_F, { x: off, y: ym, z: (E.z0 + E.z1) / 2, rx: -ang, nuance: 0.05, teinte: tachee(s * 7 + E.z0, 0.3) });
+        if (E.axe === 'x') a.boite(L, 0.9, 0.3, PIERRE_F, { x: (E.x0 + E.x1) / 2, y: ym, z: off, rz: ang, nuance: 0.04 });
+        else a.boite(0.3, 0.9, L, PIERRE_F, { x: off, y: ym, z: (E.z0 + E.z1) / 2, rx: -ang, nuance: 0.04 });
         // (0,57 : le corps du voyageur reste hors de la bordure ; à 0,17, il y entrait à mi-corps, et la caméra voyait au travers : 2026-11-10)
         if (E.axe === 'x') monde.mur(E.x0, off, E.x1, off, 0.57); else monde.mur(off, E.z0, off, E.z1, 0.57);
       }
-      // on y marche : une pente de pierre aux bouts droits, au milieu de la hauteur des marches, la dernière à plat (2026-11-10 : la pente passait au pied des
-      // contremarches, et les pieds entraient de 9 à 26 cm dans chaque marche ; à mi-hauteur, ± 9 cm. Une marche avance de 10 cm sur la précédente : off)
-      const off = contre * (0.5 + 0.1 / giron), dH = giron * 0.5 + 0.1;
-      if (E.axe === 'x') { monde.rampe(E.x0, E.x1 - dH, mid - demi, mid + demi, 'x', E.h0 + off, E.h1, { sol: 'pierre' }); monde.surface(E.x1 - dH, E.x1, mid - demi, mid + demi, E.h1, { sol: 'pierre' }); }
-      else { monde.rampe(mid - demi, mid + demi, E.z0, E.z1 - dH, 'z', E.h0 + off, E.h1, { sol: 'pierre' }); monde.surface(mid - demi, mid + demi, E.z1 - dH, E.z1, E.h1, { sol: 'pierre' }); }
+      // on y marche : sur chaque marche, à plat, du nez de la première (10 cm avant le bas de l'escalier) au haut (monde.js, marches). (2026-11-10 : une pente
+      // au pied des contremarches, les pieds de 9 à 26 cm dans chaque marche ; puis à mi-hauteur, ± 9 cm ; 2026-11-11, « l'escalier n'a pas les bonnes
+      // surfaces pour monter » : une marche à la fois)
+      const u0 = (E.axe === 'x' ? E.x0 : E.z0) - 0.1, M = { sol: 'pierre', marches: { u0, giron, contre, n, h0: E.h0 } };
+      if (E.axe === 'x') monde.rampe(u0, E.x1, mid - demi, mid + demi, 'x', E.h0, E.h1, M);
+      else monde.rampe(mid - demi, mid + demi, u0, E.z1, 'z', E.h0, E.h1, M);
     }
   }
 
@@ -1802,7 +1810,12 @@ export function construire(ctx) {
     a.baton(A, au(0.3, 0, 0), 0.016, '#6a4a2a', 5);
     const PROFIL = [[0, 0.3], [0.2, 0.275], [0.4, 0.205], [0.5, 0.135], [0.58, 0.07], [0.66, 0]];
     const radial = (wx, wy, wz) => { const dx = wx - B[0], dy = wy - B[1], dz = wz - B[2], l = dx * u[0] + dy * u[1] + dz * u[2]; return Math.hypot(dx - l * u[0], dy - l * u[1], dz - l * u[2]); };
-    a.piece(new THREE.LatheGeometry(PROFIL.map(([r, hh]) => new THREE.Vector2(r, hh)), 24), c, { x: B[0], y: B[1], z: B[2], rz: -penche, ry, nuance: 0.02, teinte: (wx, wy, wz) => { const d = radial(wx, wy, wz); return d > 0.4 && d < 0.5 ? '#f4ecd8' : c; } });
+    // la toile : son dessus (le profil du bord vers la pointe : ses faces regardent dehors), et son dessous, 12 mm plus bas, sans trait. (Le profil de la pointe
+    // vers le bord tournait ses faces vers le dedans : vue d'en haut, la moitié proche de la toile disparaissait, et l'on voyait le dessous de l'autre moitié à
+    // travers ; 2026-11-11, « quand on s'approche des parapluies, ils sont transparents »)
+    const bande = (wx, wy, wz) => { const d = radial(wx, wy, wz); return d > 0.4 && d < 0.5 ? '#f4ecd8' : c; };
+    a.piece(new THREE.LatheGeometry(PROFIL.slice().reverse().map(([r, hh]) => new THREE.Vector2(r, hh)), 24), c, { x: B[0], y: B[1], z: B[2], rz: -penche, ry, nuance: 0.02, teinte: bande });
+    a.piece(new THREE.LatheGeometry(PROFIL.map(([r, hh]) => new THREE.Vector2(r * 0.995, hh)), 24), c, { x: B[0] - u[0] * 0.012, y: B[1] - u[1] * 0.012, z: B[2] - u[2] * 0.012, rz: -penche, ry, nuance: 0.02, teinte: bande, trait: false });
     for (let i = 0; i < 12; i++) { const t = (i / 12) * 2 * PI; a.baton(au(0.26, 0.08, t), au(0.18, 0.4, t), 0.006, '#d8c8a0', 3, { trait: false }).baton(au(0.18, 0.4, t), au(-0.01, 0.65, t), 0.006, '#d8c8a0', 3, { trait: false }); }
     const H = au(0.31, 0, 0);
     a.cylindre(0.03, 0.035, 0.06, 8, '#c8b48a', { x: H[0], y: H[1], z: H[2], rz: -penche, ry, trait: false });
@@ -2499,7 +2512,12 @@ export function construire(ctx) {
     a.toitJapon(c + 2.8, c + 2.8, 1.8, 0.14, { ...TUILES, rangs: 14, releve: 0.2, epaisseur: 0.12, x: C.x, y: yp + 0.04, z: C.z, murs: { l: c / 2 - 0.08, p: c / 2 - 0.08, y: -0.2, c: '#5a3e2a' } });
     // la cloche de bronze, ses bandes ; la corde qui la tient
     const BR = '#4e6a58', yb = yp - 0.46;
-    a.piece(new THREE.LatheGeometry([[0, 0], [0.22, 0.02], [0.3, 0.2], [0.46, 0.45], [0.52, 0.95], [0.6, 1.5], [0.66, 1.64]].map(([r, hh]) => new THREE.Vector2(r, -hh)), 18), BR, { x: C.x, y: yb, z: C.z, nuance: 0.03 });
+    // (son dehors : le profil du bas vers le haut, ses faces regardent dehors ; du haut vers le bas, elles regardaient dedans, et l'on voyait l'intérieur de
+    // l'autre côté à travers celui qu'on avait devant soi. Son dedans, sombre, épais de 3 cm, et le bord qui les joint : on le voit d'en dessous ; 2026-11-11)
+    const PROFIL_CLOCHE = [[0, 0], [0.22, 0.02], [0.3, 0.2], [0.46, 0.45], [0.52, 0.95], [0.6, 1.5], [0.66, 1.64]];
+    a.piece(new THREE.LatheGeometry(PROFIL_CLOCHE.slice().reverse().map(([r, hh]) => new THREE.Vector2(r, -hh)), 18), BR, { x: C.x, y: yb, z: C.z, nuance: 0.03 });
+    const DEDANS = PROFIL_CLOCHE.map(([r, hh]) => new THREE.Vector2(Math.max(0, r - 0.03), -0.03 - hh * (1.61 / 1.64))).concat([new THREE.Vector2(0.66, -1.64)]);
+    a.piece(new THREE.LatheGeometry(DEDANS, 18), '#2c3a31', { x: C.x, y: yb, z: C.z, nuance: 0.02, trait: false });
     for (const t of [0.4, 0.8, 1.2]) a.cylindre(0.46 + t * 0.2, 0.46 + t * 0.2, 0.05, 18, '#43594c', { x: C.x, y: yb - t, z: C.z, trait: false });
     a.boule(0.1, BR, { x: C.x + 0.58, y: yb - 1.2, z: C.z }, 1);
     poser(a.fin(), 0, 0, { y: 0 });

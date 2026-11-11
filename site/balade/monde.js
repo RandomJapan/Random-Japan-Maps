@@ -48,7 +48,8 @@ const TETE = 2.6;
  * cette hauteur de sol, l'eau arrête (ou null) ; pente : sur le sol naturel, on ne monte pas une pente plus
  * raide (les parois d'un cratère ; null : pas de limite ; on peut toujours descendre). On y ajoute :
  * - des surfaces [x0, x1, z0, z1] à la hauteur h (planchers, ponts…), ou en pente (escaliers : rampe
- *   { axe: 'x' | 'z', h0, h1 }, de h0 au bord x0 / z0 à h1 au bord x1 / z1 ; ou chemin : le long d'une ligne
+ *   { axe: 'x' | 'z', h0, h1 }, de h0 au bord x0 / z0 à h1 au bord x1 / z1 ; marches { u0, giron, contre, n, h0 }
+ *   en plus : chaque marche à plat, à sa hauteur, le nez de la première en u0 le long de l'axe ; ou chemin : le long d'une ligne
  *   brisée [[x, z, h], …], un escalier en biais ; ou anneau : entre les rayons r0 et r1 d'un centre, un gradin
  *   rond) ; plein : un bloc du sol à h (un pavillon fermé : ni dessus,
  *   ni dessous) ; passage : un pont assez haut pour passer dessous ; sol : ce qu'on entend en y marchant
@@ -77,6 +78,12 @@ export function creerMonde({ terrain, cadre, profond = -0.6, pente = null }) {
     if (s.ligne) return surLaLigne(s.ligne, x, z).h;
     if (!s.rampe) return s.h;
     const { axe, h0, h1 } = s.rampe;
+    // (un escalier, o.marches : les pieds sur chaque marche, à plat. Sur une pente qui passait par le milieu des marches, ils
+    // flottaient au-dessus d'une moitié de marche et entraient dans l'autre : 2026-11-11, Tsubosaka-dera)
+    if (s.marches) {
+      const M = s.marches, k = Math.floor(((axe === 'x' ? x : z) - M.u0) / M.giron);
+      return M.h0 + M.contre * Math.min(M.n, Math.max(1, k + 1));
+    }
     const f = axe === 'x' ? (x - s.x0) / (s.x1 - s.x0) : (z - s.z0) / (s.z1 - s.z0);
     return h0 + (h1 - h0) * Math.min(1, Math.max(0, f));
   };

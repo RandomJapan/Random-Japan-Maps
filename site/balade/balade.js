@@ -3539,7 +3539,9 @@ function avancer(dt) {
     if (monde.libre(nx, etat.z, etat.y, autres, depuis)) { etat.x = nx; etat.vz *= 0.5; } else if (monde.libre(etat.x, nz, etat.y, autres, depuis)) { etat.z = nz; etat.vx *= 0.5; } else { etat.vx = etat.vz = 0; }
   }
   etat.vitesse = Math.hypot(etat.vx, etat.vz);
-  if (!grimpe) etat.y += (monde.hauteur(etat.x, etat.z, etat.y) - etat.y) * Math.min(1, dt * 18);
+  // (les pieds suivent le sol : une marche d'un coup en montant, vite en descendant ; la caméra, elle, monte en douceur. Lissés à 18 dans les deux sens, en
+  // montant un escalier, ils restaient 10 à 15 cm dans les marches, et autant au-dessus en descendant : 2026-11-11, Tsubosaka-dera)
+  if (!grimpe) { const h = monde.hauteur(etat.x, etat.z, etat.y); etat.y += (h - etat.y) * Math.min(1, dt * (h > etat.y ? 60 : 30)); }
   if (m > 0.05) etat.cap = tourner(etat.cap, Math.atan2(dx, dz), dt * 10);
   if (siege) Object.assign(etat, { x: siege.x, z: siege.z, y: siege.y - ASSIS, cap: siege.cap, vx: 0, vz: 0, vitesse: 0 });
   if (debout && siege) debout.t += dt;
@@ -3629,7 +3631,8 @@ function avancer(dt) {
       renard.bute = 0; renard.surPiste = false;
     }
     // (plus vite quand ça monte : à la traîne, ses pattes passaient sous les marches, et ce qu'il y a devant lui lui semblait trop haut)
-    { const h = monde.hauteur(renard.x, renard.z, renard.y); renard.y += (h - renard.y) * Math.min(1, dt * (h > renard.y ? 28 : 14)); }
+    // (comme le voyageur : à 28 et 14, dans un escalier, il flottait de 14 cm au-dessus des marches en descendant ; 2026-11-11)
+    { const h = monde.hauteur(renard.x, renard.z, renard.y); renard.y += (h - renard.y) * Math.min(1, dt * (h > renard.y ? 60 : 30)); }
     // la loutre nage là où l'eau lui monte au-dessus des pattes : elle flotte, la tête hors de l'eau
     renard.nage = false;
     if (espece === 'chapu' && L.eau) {
@@ -4194,14 +4197,16 @@ function dessiner(dt, temps) {
     camera.userData.place = false;
   } else {
   const deux = autre.objet.visible, ap = autre.objet.position;
-  const vise = deux ? new THREE.Vector3((etat.x + ap.x) / 2, etat.y + 1.05, (etat.z + ap.z) / 2) : new THREE.Vector3(etat.x, etat.y + 1.15, etat.z);
+  const saut = PHOTO || !camera.userData.place;
+  // (la hauteur qu'elle vise, lissée : dans un escalier, les pieds montent marche par marche, le regard ne tressaute pas à chaque marche ; 2026-11-11)
+  vue.y = saut || vue.y == null ? etat.y : vue.y + (etat.y - vue.y) * (1 - Math.exp(-dt * 12));
+  const vise = deux ? new THREE.Vector3((etat.x + ap.x) / 2, vue.y + 1.05, (etat.z + ap.z) / 2) : new THREE.Vector3(etat.x, vue.y + 1.15, etat.z);
   const abri = monde.abri(etat.x, etat.z, vise.y);
   let distance = cam.distance * (deux && innerWidth < innerHeight ? 1.55 : 1), tangage = cam.tangage;
   if (abri < Infinity) {
     distance = Math.min(distance, 4.8);
     tangage = Math.min(tangage, Math.asin(Math.min(1, Math.max(-0.25, (abri - 0.4 - vise.y) / distance))));
   }
-  const saut = PHOTO || !camera.userData.place;
   vue.tangage = saut ? tangage : vue.tangage + (tangage - vue.tangage) * (1 - Math.exp(-dt * 4));
   const cp = Math.cos(vue.tangage);
   const dir = new THREE.Vector3(Math.sin(cam.lacet) * cp, Math.sin(vue.tangage), Math.cos(cam.lacet) * cp);
