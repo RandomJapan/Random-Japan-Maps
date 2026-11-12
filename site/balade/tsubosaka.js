@@ -1887,27 +1887,48 @@ export function construire(ctx) {
     const tri3 = (q, A, B, C, c, n) => triC(q.pos, q.cols, A, B, C, c, n);
     const tonRoc = (u, y, v) => { const n = bruitDoux(X + u + v * 0.7, Y + y, 1.1); return n > 0.8 ? ROC[2] : n < 0.22 ? ROC[3] : n < 0.5 ? ROC[1] : ROC[0]; };
     // une colonne (à la manière d'Ajanta, simplifiée) : le socle carré, le vase d'abondance, le fût et ses deux bagues, le chapiteau en coussin côtelé
-    // (amalaka) sous son abaque, le corbeau qui porte la frise ; haute de h depuis le dallage, à (x, z), tournée de ry
+    // (amalaka) sous son abaque, le corbeau qui porte la frise ; haute de h depuis le dallage, à (x, z), tournée de ry. D'un seul tenant : le vase, le
+    // fût et ses bagues sont un seul tour (LatheGeometry), son pied à plat sur le socle ; le chapiteau, un deuxième tour, côtelé, sa collerette à plat
+    // sur le haut du fût, son haut dans l'abaque ; chaque pièce entre d'un centimètre dans celle d'en dessous. (2026-11-12, le propriétaire : « les
+    // piliers ne sont [pas] accrochés en bas et en haut » : le vase était une boule posée 4 cm au-dessus du socle, sous une collerette plus large
+    // qu'elle ; le coussin, une boule aplatie, 4 cm au-dessus du fût et 4 cm sous l'abaque)
+    // (les profils, du bas vers le haut (faces vers le dehors), pour une colonne de 3 m : [rayon, hauteur])
+    const PROFIL_FUT = [[0, 0.19], [0.205, 0.19], [0.21, 0.225], [0.185, 0.25], [0.22, 0.33], [0.228, 0.41], [0.205, 0.5], [0.15, 0.565], [0.128, 0.595],
+      [0.19, 0.64], [0.165, 0.675], [0.163, 0.97], [0.182, 0.97], [0.182, 1.03], [0.161, 1.03], [0.155, 1.92], [0.177, 1.92], [0.177, 1.98], [0.153, 1.98],
+      [0.15, 2.28], [0, 2.28]];
+    const PROFIL_TETE = [[0, 2.27], [0.172, 2.27], [0.172, 2.3], [0.21, 2.335], [0.232, 2.4], [0.232, 2.47], [0.2, 2.53], [0.172, 2.55], [0.172, 2.58], [0, 2.58]];
+    // (les côtes du coussin : un sommet sur deux de son tour poussé de 8 % vers le dehors, et ses pans d'un granit sur deux ; 16 côtés, 8 côtes)
+    const cotes = (px, py, pz) => (Math.hypot(px, pz) > 0.19 && Math.round((Math.atan2(px, pz) / (2 * PI)) * 16) % 2 ? [px * 1.08, py, pz * 1.08] : [px, py, pz]);
+    const tours = new Map();
     const colonne = (a, x, z, ry, h = G.plafond - G.sol) => {
       const k = h / 3.0, o = (y, e = {}) => ({ x, y: S0 + y * k, z, ry, nuance: 0.02, ...e });
-      const cotes = (wx, wy, wz) => (Math.floor(Math.atan2(wz - z, wx - x) * 3.2 + 20) % 2 ? GRANIT : GRANIT_F);
+      if (!tours.has(k)) {
+        const tour = (P, n) => new THREE.LatheGeometry(P.map(([r, y]) => new THREE.Vector2(r, y * k)), n);
+        tours.set(k, [tour(PROFIL_FUT, 10), tour(PROFIL_TETE, 16)]);
+      }
+      const [fut, tete] = tours.get(k);
+      // (le pied du vase, son col et sa lèvre, les bagues : le granit plus sombre ; la collerette et le col du chapiteau aussi, et un pan sur deux de son
+      // coussin, selon son angle autour de la colonne)
+      const teinte = (wx, wy) => { const t = (wy - S0) / k; return t < 0.25 || (t > 0.56 && t < 0.68) || (t > 0.96 && t < 1.04) || (t > 1.91 && t < 1.99) ? GRANIT_F : GRANIT; };
+      const teinteTete = (wx, wy, wz) => {
+        const t = (wy - S0) / k, pan = Math.floor(((Math.atan2(wx - x, wz - z) - ry) / (2 * PI)) * 16 + 64) % 2;
+        return t < 2.305 || t > 2.545 || pan ? GRANIT_F : GRANIT;
+      };
       a.boite(0.46, 0.2 * k, 0.46, GRANIT_F, o(0.1))
-        .ovale(0.22, GRANIT, { ...o(0.42), sy: 0.82 * k }, 8)
-        .cylindre(0.13, 0.15, 0.09 * k, 8, GRANIT_F, o(0.63))
-        .cylindre(0.15, 0.165, 1.62 * k, 10, GRANIT, o(1.48))
-        .cylindre(0.18, 0.18, 0.06, 8, GRANIT_F, o(1.0))
-        .cylindre(0.175, 0.175, 0.06, 8, GRANIT_F, o(1.95))
-        .ovale(0.24, GRANIT, { ...o(2.43), sy: 0.42 * k, teinte: cotes }, 10)
+        .piece(fut, GRANIT, { ...o(0), teinte })
+        .piece(tete, GRANIT, { ...o(0), deformer: cotes, teinte: teinteTete })
         .boite(0.46, 0.1 * k, 0.46, GRANIT_F, o(2.62))
         .boite(0.4, 0.36 * k, 0.44, GRANIT, o(2.84));
     };
-    // un petit bouddha assis (la frise de la salle) : le lotus, les jambes croisées, le corps, la tête et sa bosse, l'auréole derrière ; dans le repère R
-    // (face vers +z), à dz devant lui
+    // un petit bouddha assis (la frise de la salle) : le lotus, les jambes croisées, le buste, la tête et sa bosse, l'auréole derrière ; dans le repère R
+    // (face vers +z), à dz devant lui. Le buste est un tour : large en bas (les coudes, les mains sur les jambes), les épaules, le cou ; la tête plus petite
+    // que lui, dessus (2026-11-12 : un œuf sous une boule, il ressemblait à un bonhomme de neige)
+    const BUSTE = new THREE.LatheGeometry([[0, 0.215], [0.18, 0.225], [0.175, 0.31], [0.15, 0.53], [0.11, 0.585], [0.05, 0.62], [0, 0.66]].map(([r, y]) => new THREE.Vector2(r, y)), 6);
     const petitBouddha = (a, R, y, h, dz = 0) => {
       const o = (ly, lz, e = {}) => ({ ...R(0, y + ly * h, dz + lz * h), nuance: 0.015, ...e });
       a.ovale(0.3 * h, GRANIT_F, { ...o(0.05, 0), sx: 1.1, sy: 0.3, sz: 0.7 }, 6)
         .ovale(0.25 * h, GRANIT, { ...o(0.17, 0.04), sx: 1.1, sy: 0.4, sz: 0.75 }, 6)
-        .ovale(0.15 * h, GRANIT, { ...o(0.43, 0), sx: 1.0, sy: 1.3, sz: 0.72 }, 6)
+        .piece(BUSTE, GRANIT, { ...o(0, 0), sx: h, sy: h, sz: 0.62 * h })
         .ovale(0.105 * h, GRANIT, { ...o(0.74, 0.01), sx: 0.92, sy: 1.08, sz: 0.95 }, 8)
         .ovale(0.05 * h, GRANIT_F, o(0.85, -0.005), 6)
         .piece(new THREE.CircleGeometry(0.17 * h, 12), GRANIT_F, { ...o(0.74, -0.1), trait: false });
@@ -2034,20 +2055,7 @@ export function construire(ctx) {
     for (const s of [-1, 1]) quad(coque, P3(s * CENDRES.u, 0.1, CENDRES.v0), P3(s * CENDRES.u, 0.1, CENDRES.v1), P3(s * CENDRES.u, CENDRES.h, CENDRES.v1), P3(s * CENDRES.u, CENDRES.h, CENDRES.v0), PAROI_F, [-s, 0, 0]);
     quad(coque, P3(-CENDRES.u, 0.1, CENDRES.v1), P3(CENDRES.u, 0.1, CENDRES.v1), P3(CENDRES.u, CENDRES.h, CENDRES.v1), P3(-CENDRES.u, CENDRES.h, CENDRES.v1), PAROI_F, [0, 0, -1]);
     quad(coque, P3(-CENDRES.u, CENDRES.h, CENDRES.v0), P3(CENDRES.u, CENDRES.h, CENDRES.v0), P3(CENDRES.u, CENDRES.h, CENDRES.v1), P3(-CENDRES.u, CENDRES.h, CENDRES.v1), PLAFOND, [0, -1, 0]);
-    // ---- la doublure du roc : une boîte autour de la salle, tournée vers elle, sombre. De dehors et de la salle, on ne la voit jamais (dehors, on en voit
-    // l'envers, qui ne se dessine pas ; de la salle, ses murs la cachent) ; la caméra qui passe un instant derrière un mur y voit du roc, pas le ciel
-    {
-      const D = DOUBLURE, c = '#4f4a43', h0 = -0.5;
-      for (const s of [-1, 1]) quad(coque, P3(s * D.u, h0, D.v0), P3(s * D.u, h0, D.v1), P3(s * D.u, D.haut, D.v1), P3(s * D.u, D.haut, D.v0), c, [-s, 0, 0]);
-      quad(coque, P3(-D.u, h0, D.v1), P3(D.u, h0, D.v1), P3(D.u, D.haut, D.v1), P3(-D.u, D.haut, D.v1), c, [0, 0, -1]);
-      quad(coque, P3(-D.u, D.haut, D.v0), P3(D.u, D.haut, D.v0), P3(D.u, D.haut, D.v1), P3(-D.u, D.haut, D.v1), c, [0, -1, 0]);
-      quad(coque, P3(-D.u, h0, D.v0), P3(D.u, h0, D.v0), P3(D.u, h0, D.v1), P3(-D.u, h0, D.v1), c, [0, 1, 0]);
-    }
-    {
-      const a = atelier();
-      a.piece(geo(coque.pos), PAROI, { couleurs: coque.cols, nuance: 0.02, trait: false });
-      poser(a.fin(), 0, 0, { y: 0, trait: false });
-    }
+    // (la doublure du roc, dans la coque, vient plus bas : son haut suit le roc et la colline)
 
     // ================================================================ la façade et le roc
     // ---- la face taillée (le granit clair) : de chaque côté du porche, et au-dessus de lui ; la corniche ; le porche (ses côtés, son haut, son fond
@@ -2145,6 +2153,35 @@ export function construire(ctx) {
         quad(roc, P3(EST, bas(v0), v0), P3(EST, bas(v1), v1), P3(EST, y1, v1), P3(EST, y0, v0), tonRoc(EST, 2, (v0 + v1) / 2), n);
       }
     }
+    // ---- la doublure du roc (dans la coque) : une boîte autour de la salle, tournée vers elle, sombre. De dehors et de la salle, on ne la voit jamais
+    // (dehors, elle est sous ce qui la couvre, et on n'en verrait que l'envers, qui ne se dessine pas ; de la salle, ses murs la cachent) ; la caméra qui
+    // passe un instant derrière un mur y voit du roc, pas le ciel. Son haut suit ce qui la couvre, 40 cm dessous, au plus à 6,6 m : la pente du roc (sans
+    // sa bosse), le haut de la colline à l'ouest du roc, sa lèvre, puis le sol dessiné (le plus bas des deux qu'il peut être). (2026-11-12 : à 6,6 m
+    // partout, elle dépassait à l'est, au-dessus de la pente du roc et de la colline, plus basses de ce côté-là, et au coin de devant, à l'ouest, du
+    // talus : on en voyait un pan sombre au-dessus du rocher. grotte/couvre.mjs : son haut reste 14 cm au moins sous ce qui la couvre, 85 cm au moins
+    // au-dessus de la coque)
+    {
+      const D = DOUBLURE, c = '#4f4a43', h0 = -0.5, W0 = -G.demi - 0.05;
+      const couvre = (u, v) => {
+        const sol = solDessine(X + u, Z + v, false) - Y;
+        if (v <= ARR && u >= -FACE && u <= EST) { const w = Math.max(0, (v - 0.1) / (ARR - 0.1)); return devant(u) + (haut(u) - devant(u)) * w; }
+        if (v <= ARR && u >= W0) { const w = Math.max(0, (v - 1.15) / (ARR - 1.15)); return murHaut(u) + (haut(u) - murHaut(u)) * w; }
+        if (v <= LEVRE && u >= W0 && u <= EST) return Math.min(sol, haut(u) + ((levre(u) - haut(u)) * (v - ARR)) / (LEVRE - ARR));
+        return sol;
+      };
+      // (une grille, serrée à l'est, où ce qui la couvre descend ; de part et d'autre du bout ouest du roc, où il change d'un coup)
+      const US = [-D.u, W0 - 0.001, W0 + 0.001, -2.45, -1.2, 0, 1.2, 2.45, 3.25, 3.7, 4.2, D.u], VS = [D.v0, 1.9, ARR, LEVRE, 3.5, 4.0, 4.5, 5.0, 6.0, 8.0, 10.5, 13.0, D.v1];
+      const ht = US.map((u) => VS.map((v) => Math.min(D.haut, couvre(u, v) - 0.4))), q = (i, j) => P3(US[i], ht[i][j], VS[j]), jf = VS.length - 1;
+      for (let i = 0; i < US.length - 1; i++) for (let j = 0; j < jf; j++) quad(coque, q(i, j), q(i + 1, j), q(i + 1, j + 1), q(i, j + 1), c, [0, -1, 0]);
+      for (const [s, i] of [[-1, 0], [1, US.length - 1]]) for (let j = 0; j < jf; j++) quad(coque, P3(s * D.u, h0, VS[j]), P3(s * D.u, h0, VS[j + 1]), q(i, j + 1), q(i, j), c, [-s, 0, 0]);
+      for (let i = 0; i < US.length - 1; i++) quad(coque, P3(US[i], h0, D.v1), P3(US[i + 1], h0, D.v1), q(i + 1, jf), q(i, jf), c, [0, 0, -1]);
+      quad(coque, P3(-D.u, h0, D.v0), P3(D.u, h0, D.v0), P3(D.u, h0, D.v1), P3(-D.u, h0, D.v1), c, [0, 1, 0]);
+    }
+    {
+      const a = atelier();
+      a.piece(geo(coque.pos), PAROI, { couleurs: coque.cols, nuance: 0.02, trait: false });
+      poser(a.fin(), 0, 0, { y: 0, trait: false });
+    }
     {
       // (deux objets : le roc et les grandes pièces portent leur ombre ; les détails non, f : la face regarde le nord, elle est tout entière dans l'ombre
       // de la falaise, et leurs ombres n'y changeaient rien, pour 12 000 triangles de plus dans la carte des ombres)
@@ -2222,10 +2259,11 @@ export function construire(ctx) {
       // ---- les nervures de la voûte (la charpente de bois imitée dans la pierre) ; sur la demi-coupole, en éventail
       for (let v = G.v0 + 0.45; v < VC - 0.1; v += 0.55) d.piece(new THREE.TorusGeometry(G.nef - 0.03, 0.065, 4, 16, PI), NERVURE, { x: X, y: Y + G.frise, z: Z + v });
       for (let k = 1; k < 8; k++) d.piece(new THREE.TorusGeometry(G.nef - 0.03, 0.065, 4, 8, PI / 2), NERVURE, { x: X, y: Y + G.frise, z: Z + VC, ry: -(k * PI) / 8 });
-      // ---- les poutres sous les plafonds des bas-côtés, au droit des colonnes
+      // ---- les poutres sous les plafonds des bas-côtés, au droit des colonnes : du corbeau de la colonne (3 cm dedans) jusque dans le mur (2026-11-12 :
+      // elles commençaient 5 cm à côté du corbeau)
       for (const [u, v] of COLONNES) {
-        const a = v > VC ? Math.atan2(v - VC, u) : u > 0 ? 0 : PI, l = G.demi - FRISE_EXT, rm = FRISE_EXT + l / 2;
-        d.boite(l, 0.16, 0.16, GRANIT_F, { x: X + rm * Math.cos(a), y: Y + G.plafond - 0.08, z: Z + (v > VC ? VC + rm * Math.sin(a) : v), ry: -a, nuance: 0.02 });
+        const a = v > VC ? Math.atan2(v - VC, u) : u > 0 ? 0 : PI, r0 = G.col + 0.17, r1 = G.demi + 0.03, rm = (r0 + r1) / 2;
+        d.boite(r1 - r0, 0.16, 0.16, GRANIT_F, { x: X + rm * Math.cos(a), y: Y + G.plafond - 0.08, z: Z + (v > VC ? VC + rm * Math.sin(a) : v), ry: -a, nuance: 0.02 });
       }
       // ---- la frise : entre les colonnes, une niche sombre, son arc, un petit bouddha assis
       const nicheFrise = (u, v, ry) => {
@@ -2344,9 +2382,9 @@ export function construire(ctx) {
     for (const s of [-1, 1]) { B(s > 0 ? 2.0 : -G.demi, s > 0 ? G.demi : -2.0, G.v0, G.v1, 2.9, 20, true); B(s > 0 ? 1.7 : -2.0, s > 0 ? 2.0 : -1.7, G.v0, G.v1, 3.75, 20, true); }
     B(-2.0, 2.0, VC + 1.95, G.v1, 2.9, 20, true);
     B(-1.25, 1.25, VC - 1.6, VC + 1.25, -1, 5.1);
-    // (les colonnes aussi : dedans, on ne verrait que l'envers de leur trait d'encre, tout noir)
-    for (const [u, v] of COLONNES) B(u - 0.24, u + 0.24, v - 0.24, v + 0.24, -1, G.plafond);
-    for (const s of [-1, 1]) B(s * 1.5 - 0.24, s * 1.5 + 0.24, 0.45 - 0.24, 0.45 + 0.24, -1, 3.2);
+    // (les colonnes aussi : dedans, on ne verrait que l'envers de leur trait d'encre, tout noir ; jusqu'aux côtes de leur chapiteau, à 25 cm)
+    for (const [u, v] of COLONNES) B(u - 0.26, u + 0.26, v - 0.26, v + 0.26, -1, G.plafond);
+    for (const s of [-1, 1]) B(s * 1.5 - 0.26, s * 1.5 + 0.26, 0.45 - 0.26, 0.45 + 0.26, -1, 3.2);
   }
 
   // ---------------------------------------------------------------- Les arbres : la forêt de cèdres et de feuillus autour, les cerisiers et les érables du temple
