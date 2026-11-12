@@ -1,4 +1,4 @@
-"""Fabrique les vidéos de la balade 3D finies (30 à 55 s, 9:16, 60 images/s), depuis le montage Remotion (montage/) :
+"""Fabrique les vidéos de la balade 3D finies (19 à 55 s, 9:16, 60 images/s), depuis le montage Remotion (montage/) :
 chacune avec la musique (un air du jeu) et sans (la voix et les bruitages restent : pour y mettre un son TikTok), dans
 videos/balade/.
     python outils/video/balade/finir.py                    # toutes
@@ -22,7 +22,7 @@ SORTIE = ICI.parents[2] / 'videos' / 'balade'
 NOMS = {'BaladeTour': 'balade-3d-les-5-lieux', 'BaladeTakachiho': 'balade-3d-takachiho', 'BaladeSecrets': 'balade-3d-secrets',
         'BaladeKinkakuji': 'balade-3d-kinkakuji', 'BaladeBeppu': 'balade-3d-beppu',
         'BaladeMotonosumi': 'balade-3d-motonosumi', 'BaladeSanjubutsu': 'balade-3d-trente-bouddhas', 'BaladeUdoYakushima': 'balade-3d-udo-yakushima',
-        'BaladeTottori': 'balade-3d-tottori'}
+        'BaladeTottori': 'balade-3d-tottori', 'BaladeEnVrai': 'balade-3d-en-vrai'}
 
 
 def ffmpeg():
@@ -48,14 +48,19 @@ def volume(f):
     return float(json.loads(re.search(r'\{[^{}]*"input_i"[^{}]*\}', sortie).group(0))['input_i'])
 
 
-def finir(brut, f, gain):
+# Le plafond du limiteur, avant l'AAC (qui le dépasse un peu) : 0,84 ; « What if my game was real? » monte de 8 dB (sans voix,
+# ambiances aux transitoires vifs) et son AAC passait à +1,3 dB au-dessus du maximum : 0,7.
+LIMITES = {'BaladeEnVrai': 0.7}
+
+
+def finir(brut, f, gain, limite=0.84):
     subprocess.run([ffmpeg(), '-hide_banner', '-loglevel', 'error', '-y', '-i', str(brut),
                     '-vf', 'scale=in_range=pc:out_range=tv:in_color_matrix=bt601:out_color_matrix=bt709,format=yuv420p',
                     '-c:v', 'libx264', '-preset', 'slow', '-crf', '16', '-profile:v', 'high', '-r', '60',
                     '-color_range', 'tv', '-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709',
                     # (les options ci-dessus ne notaient que la matrice : primaires et transfert restaient « inconnus »)
                     '-bsf:v', 'h264_metadata=colour_primaries=1:transfer_characteristics=1:matrix_coefficients=1',
-                    '-af', f'volume={gain:.2f}dB,alimiter=limit=0.84:level=false', '-c:a', 'aac', '-b:a', '192k', '-ar', '48000',
+                    '-af', f'volume={gain:.2f}dB,alimiter=limit={limite}:level=false', '-c:a', 'aac', '-b:a', '192k', '-ar', '48000',
                     '-movflags', '+faststart', str(f)], check=True)
 
 
@@ -73,9 +78,9 @@ def main():
             rendre(compo, False, sans)
         gain = -14 - volume(avec)  # la version avec musique fixe le gain ; la version sans prend le même
         if 'avec' in versions:
-            finir(avec, SORTIE / f'{nom}.mp4', gain)
+            finir(avec, SORTIE / f'{nom}.mp4', gain, LIMITES.get(compo, 0.84))
         if 'sans' in versions:
-            finir(sans, SORTIE / f'{nom}-sans-musique.mp4', gain)
+            finir(sans, SORTIE / f'{nom}-sans-musique.mp4', gain, LIMITES.get(compo, 0.84))
         print('→', SORTIE / f'{nom}.mp4', f'(gain {gain:+.1f} dB)', flush=True)
 
 
