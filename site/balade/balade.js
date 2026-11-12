@@ -3855,9 +3855,13 @@ function niveauEau(x, z) {
   const e = L.eau;
   return e && x > e.x0 && x < e.x1 && z > e.z0 && z < e.z1 ? e.niveau || 0 : null;
 }
-/** Sous les pieds en x, z, à la hauteur y : le sol (bruitage-calcul.js, SOLS), la profondeur d'eau, la hauteur du sol naturel. */
+/**
+ * Sous les pieds en x, z, à la hauteur y : le sol (bruitage-calcul.js, SOLS), la profondeur d'eau, la hauteur du sol naturel. (Celui où l'on marche,
+ * monde.terrain : sous une colline qu'on dessine entière, la grotte de pierre de Tsubosaka-dera a le sien, et ses dalles sonnaient comme la terre de la
+ * forêt, au-dessus ; ailleurs, c'est le même que lieu.terrain. 2026-11-12)
+ */
 function sousLesPieds(x, z, y) {
-  const L = M.lieu, h = L.terrain(x, z);
+  const L = M.lieu, h = L.monde.terrain(x, z);
   if (y > h + 0.12) {
     const s = L.monde.solSous(x, z, y, h);
     if (s) return { sol: s, eau: 0, h };
