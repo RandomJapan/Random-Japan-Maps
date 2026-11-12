@@ -89,7 +89,16 @@ CHOIX = [
 AUTEURS = {
     'maou': {'nom': '魔王魂', 'site': 'https://maou.audio/', 'licence': 'CC BY 4.0'},
     'peritune': {'nom': 'PeriTune', 'site': 'https://peritune.com/', 'licence': 'CC BY 4.0'},
+    # la carte elle-même (pas de licence : le lecteur ne la met pas dans le crédit du bas)
+    'carte': {'nom': 'Random Japan Place', 'site': 'https://map.randomjapanplace.com/'},
 }
+
+# Les musiques composées pour la carte : (style, ambiance, id, titre, script qui écrit le .wav). Le style « noel »
+# n'apparaît dans le lecteur qu'une fois débloqué par le calendrier de l'Avent (case du 2 décembre, noel.js).
+# Pour une nouvelle version, effacer le .m4a et relancer : le script la refait (node) et l'encode.
+PROPRES = [
+    ('noel', 'enjouee', 'carte-yuki-akari', '雪あかり', 'composer_noel.mjs'),
+]
 LICENCE = 'https://creativecommons.org/licenses/by/4.0/'
 
 
@@ -197,6 +206,17 @@ def main():
         morceaux.append({'id': ident, 'style': style, 'ambiance': ambiance, 'titre': infos['titre'],
                          'auteur': infos['auteur'], **({'voix': infos['voix']} if infos['voix'] else {}),
                          'page': page, 'fichier': f'musique/{cible.name}', 'duree': duree(cible)})
+    for style, ambiance, ident, titre, script in PROPRES:
+        cible = DOSSIER / f'{ident}.m4a'
+        if not cible.exists():
+            print('…', ident, titre, flush=True)
+            CACHE.mkdir(exist_ok=True)
+            wav = CACHE / f'{ident}.wav'
+            subprocess.run(['node', str(RACINE / 'outils' / script), str(wav)], check=True)
+            encoder(wav, cible, '96k', {'titre': titre, 'auteur': 'carte'})  # 96k : les clochettes et les grelots
+        gardes.add(cible.name)
+        morceaux.append({'id': ident, 'style': style, 'ambiance': ambiance, 'titre': titre, 'auteur': 'carte',
+                         'fichier': f'musique/{cible.name}', 'duree': duree(cible)})
     for f in DOSSIER.glob('*.m4a'):  # un morceau retiré de CHOIX
         if f.name not in gardes:
             f.unlink()

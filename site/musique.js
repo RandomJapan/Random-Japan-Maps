@@ -5,16 +5,20 @@
 //  énergique), avec lecture/pause, morceau suivant et volume.
 //  Les morceaux sont dans data/musique.json (outils/preparer_musique.py) : des auteurs japonais sous
 //  licence CC BY 4.0, crédités (titre, auteur, lien) pendant chaque morceau.
+//  Le style « Noël » (la musique composée pour la carte, outils/composer_noel.mjs) n'apparaît qu'une fois
+//  débloqué : le cadeau de la case du 2 décembre du calendrier de l'Avent (noel.js appelle debloquer).
 // ================================================================
 
 import { echapper } from './commun.js';
 
 const STYLES = ['trad', 'pop', 'cafe'];
+const STYLES_CADEAUX = ['noel']; // seulement une fois débloqués (localStorage, MEMOIRE_CADEAUX)
 const AMBIANCES = ['calme', 'enjouee', 'energique'];
 const VOLUME_DEPART = 0.7; // position du curseur au premier passage ; le son suit son carré (l'oreille entend en logarithme)
 const FONDU = 0.6; // secondes : le son monte au départ et descend à la pause
 const FONDU_CHANGEMENT = 0.25; // secondes : on baisse le morceau avant d'en changer
 const MEMOIRE = 'musique'; // localStorage : { style, ambiance, volume } (le son, lui, est toujours coupé à l'arrivée)
+const MEMOIRE_CADEAUX = 'musiqueCadeaux'; // localStorage : les styles débloqués (['noel'])
 
 const SVG = {
   jouer: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5.2v13.6L19 12z"/></svg>',
@@ -37,6 +41,7 @@ const volumeFixe = (() => {
 export function brancherMusique({ t, bouton, panneau }) {
   let donnees = null; // data/musique.json, lu à la première ouverture du panneau
   let chargement = null;
+  const debloques = new Set(); // les styles débloqués pendant cette visite (si localStorage refuse de les garder)
   let reglages = lireReglages();
   let morceau = null; // celui qui est chargé dans le lecteur
   let file = []; // les prochains morceaux du style et de l'ambiance choisis (mélangés)
@@ -48,6 +53,13 @@ export function brancherMusique({ t, bouton, panneau }) {
   let minuterieFondu = 0;
   let avantMuet = 0; // le volume d'avant un appui sur le haut-parleur
 
+  /** Les styles proposés : les trois de départ, puis ceux qu'un cadeau a débloqués. */
+  function styles() {
+    let d = [];
+    try { d = JSON.parse(localStorage.getItem(MEMOIRE_CADEAUX)) || []; } catch { /* navigation privée */ }
+    return STYLES.concat(STYLES_CADEAUX.filter((s) => d.includes(s) || debloques.has(s)));
+  }
+
   const audio = new Audio();
   audio.preload = 'none';
   // le panneau est rempli à sa première ouverture (il n'a d'abord que la croix d'app.js)
@@ -57,7 +69,7 @@ export function brancherMusique({ t, bouton, panneau }) {
     let r = {};
     try { r = JSON.parse(localStorage.getItem(MEMOIRE)) || {}; } catch { /* navigation privée */ }
     return {
-      style: STYLES.includes(r.style) ? r.style : 'trad',
+      style: styles().includes(r.style) ? r.style : 'trad',
       ambiance: AMBIANCES.includes(r.ambiance) ? r.ambiance : 'calme',
       volume: Number.isFinite(r.volume) ? Math.min(1, Math.max(0, r.volume)) : VOLUME_DEPART,
     };
@@ -123,6 +135,9 @@ export function brancherMusique({ t, bouton, panneau }) {
   }
 
   // ---- Lecture
+  /** Les auteurs à créditer en bas du panneau (ceux qui ont une licence : pas la carte elle-même). */
+  const credites = () => Object.values(donnees.auteurs).filter((a) => a.licence);
+
   function changer(m) {
     morceau = m;
     audio.src = m.fichier;
@@ -238,6 +253,8 @@ export function brancherMusique({ t, bouton, panneau }) {
     bouton.classList.toggle('joue', voulu);
     bouton.classList.toggle('attente', voulu && retraits.size > 0);
     if ('mediaSession' in navigator) navigator.mediaSession.playbackState = voulu ? 'playing' : 'paused';
+    // pour le calendrier de l'Avent (le bouton « Écouter » de la case du 2 décembre)
+    document.dispatchEvent(new CustomEvent('musique-etat', { detail: { joue: voulu, style: reglages.style } }));
     const jouerBtn = panneau.querySelector('[data-jouer]');
     if (jouerBtn) {
       jouerBtn.innerHTML = voulu ? SVG.pause : SVG.jouer;
@@ -253,10 +270,11 @@ export function brancherMusique({ t, bouton, panneau }) {
 
   function construire() {
     const boutons = (liste, attribut, prefixe) => liste.map((v) => `<button type="button" data-${attribut}="${v}" aria-pressed="false">${echapper(t(prefixe + v))}</button>`).join('');
+    const lesStyles = styles();
     panneau.innerHTML = `
       <p class="hasard-titre">${echapper(t('musiqueTitre'))}</p>
       <p class="musique-etiquette" id="musique-txt-style">${echapper(t('musiqueStyle'))}</p>
-      <div class="onglets musique-onglets" role="group" aria-labelledby="musique-txt-style">${boutons(STYLES, 'style', 'style_')}</div>
+      <div class="onglets musique-onglets${lesStyles.length > 3 ? ' quatre' : ''}" role="group" aria-labelledby="musique-txt-style">${boutons(lesStyles, 'style', 'style_')}</div>
       <p class="musique-etiquette" id="musique-txt-ambiance">${echapper(t('musiqueAmbiance'))}</p>
       <div class="onglets musique-onglets" role="group" aria-labelledby="musique-txt-ambiance">${boutons(AMBIANCES, 'ambiance', 'ambiance_')}</div>
       <div class="musique-lecteur">
@@ -284,7 +302,7 @@ export function brancherMusique({ t, bouton, panneau }) {
     for (const b of panneau.querySelectorAll('[data-jouer], [data-suivant]')) b.disabled = !donnees;
     const credit = panneau.querySelector('.musique-credit');
     if (donnees && !credit.firstChild) {
-      const liens = Object.values(donnees.auteurs).map((a) => `<a href="${echapper(a.site)}" target="_blank" rel="noopener" lang="ja">${echapper(a.nom)}</a>`).join(' · ');
+      const liens = credites().map((a) => `<a href="${echapper(a.site)}" target="_blank" rel="noopener" lang="ja">${echapper(a.nom)}</a>`).join(' · ');
       credit.innerHTML = `${echapper(t('musiqueCredit'))} ${liens} · <a href="${echapper(donnees.licence)}" target="_blank" rel="noopener">${echapper(t('musiqueLicence'))}</a>`;
     }
   }
@@ -315,8 +333,11 @@ export function brancherMusique({ t, bouton, panneau }) {
     if (!zone) return;
     if (morceau) {
       const auteur = donnees.auteurs[morceau.auteur];
-      zone.innerHTML = `<a class="musique-titre" lang="ja" href="${echapper(morceau.page)}" target="_blank" rel="noopener">${echapper(morceau.titre)}</a>
-        <span class="musique-auteur"><span lang="ja">${echapper(auteur.nom)}</span>${morceau.voix ? ` · ${echapper(t('musiqueVoix', morceau.voix))}` : ''}</span>`;
+      const titre = morceau.page
+        ? `<a class="musique-titre" lang="ja" href="${echapper(morceau.page)}" target="_blank" rel="noopener">${echapper(morceau.titre)}</a>`
+        : `<span class="musique-titre" lang="ja">${echapper(morceau.titre)}</span>`;
+      zone.innerHTML = `${titre}
+        <span class="musique-auteur"><span${auteur.licence ? ' lang="ja"' : ''}>${echapper(auteur.licence ? auteur.nom : t('musiqueComposee'))}</span>${morceau.voix ? ` · ${echapper(t('musiqueVoix', morceau.voix))}` : ''}</span>`;
     } else {
       zone.innerHTML = `<span class="musique-titre musique-coupee">${echapper(t('musiqueCoupee'))}</span>`;
     }
@@ -356,5 +377,23 @@ export function brancherMusique({ t, bouton, panneau }) {
     majVolumeAffiche();
   }
 
-  return { remplir, majLangue, retrait };
+  /** Un cadeau débloque un style : il s'ajoute aux onglets (le panneau se refait s'il est déjà construit). */
+  function debloquer(style) {
+    if (!STYLES_CADEAUX.includes(style) || styles().includes(style)) return;
+    try {
+      const d = JSON.parse(localStorage.getItem(MEMOIRE_CADEAUX)) || [];
+      localStorage.setItem(MEMOIRE_CADEAUX, JSON.stringify([...d, style]));
+    } catch { /* navigation privée : le style reste là jusqu'au rechargement */ }
+    debloques.add(style);
+    if (construit()) { panneau.innerHTML = ''; construire(); }
+  }
+  /** Joue un style tout de suite (pendant l'appui : la liste doit déjà être lue, voir precharger) ; un second appui met en pause. */
+  function ecouter(style) {
+    if (voulu && reglages.style === style) { arreter(); return; }
+    if (donnees) { choisir(style, reglages.ambiance); if (!voulu) jouer(); return; }
+    charger().then(() => { choisir(style, reglages.ambiance); if (!voulu) jouer(); });
+  }
+  const joue = (style) => voulu && (!style || reglages.style === style);
+
+  return { remplir, majLangue, retrait, debloquer, ecouter, precharger: charger, joue };
 }

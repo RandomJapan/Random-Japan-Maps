@@ -18,7 +18,10 @@ const ICONES = {
   telecharger: '<path d="M12 4v10M8 10.5l4 4 4-4M5 19h14"/>',
   balade: '<path d="M8 4l4 3 4-3 4 3-2 4h-2v9H8v-9H6L4 7z"/>',
   carte: '<path d="M12 21s-6-6.2-6-11a6 6 0 0 1 12 0c0 4.8-6 11-6 11z"/><circle cx="12" cy="10" r="2.2"/>',
+  musique: '<path d="M9 18V6.5l10-2.2V16"/><circle cx="6.6" cy="18" r="2.4"/><circle cx="16.6" cy="16" r="2.4"/>',
 };
+const LECTURE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5.2v13.6L19 12z"/></svg>';
+const PAUSE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6.5 5h4v14h-4zM13.5 5h4v14h-4z"/></svg>';
 const svg = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 export const ICONE_CADEAU = '<svg class="cadeau" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M4 10h16v10.5H4zM3 6.8h18V10H3zM12 6.8v13.7"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 6.8C10.8 4 7.6 3 6.9 4.9 6.2 6.6 9.6 6.8 12 6.8ZM12 6.8c1.2-2.8 4.4-3.8 5.1-1.9.7 1.7-2.7 1.9-5.1 1.9Z"/></svg>';
 
@@ -27,7 +30,7 @@ const TEXTES = {
     bouton: 'Advent calendar',
     titre: 'Advent calendar',
     sousTitre: 'One box a day, until Christmas Eve',
-    sortes: { boutique: 'Inkami shop', telecharger: 'To download', balade: '3D walk', carte: 'On the map' },
+    sortes: { boutique: 'Inkami shop', telecharger: 'To download', balade: '3D walk', carte: 'On the map', musique: 'Music' },
     ouvrir: (j) => `Open the box of December ${j}`,
     voir: (j, c) => `Box of December ${j}: ${c}`,
     fermee: (j) => `Opens on December ${j}`,
@@ -50,6 +53,9 @@ const TEXTES = {
     copier: 'Copy',
     copie: 'Code copied',
     boutiqueAller: 'Go to the Inkami shop',
+    ecouter: 'Listen',
+    pause: 'Pause',
+    musiqueLecteur: 'It now plays in the map’s music player too (the ♪ button), style « Christmas ».',
     enPreparation: 'Being made: this gift will be ready before December (developer mode only).',
     codeAFaire: 'Code to create in Shopify before December (developer mode only).',
     devJour: 'Simulated day',
@@ -61,7 +67,7 @@ const TEXTES = {
     bouton: 'Calendrier',
     titre: 'Calendrier de l’Avent',
     sousTitre: 'Une case par jour, jusqu’au soir de Noël',
-    sortes: { boutique: 'Boutique Inkami', telecharger: 'À télécharger', balade: 'Balade 3D', carte: 'Sur la carte' },
+    sortes: { boutique: 'Boutique Inkami', telecharger: 'À télécharger', balade: 'Balade 3D', carte: 'Sur la carte', musique: 'Musique' },
     ouvrir: (j) => `Ouvrir la case du ${j === 1 ? '1er' : j} décembre`,
     voir: (j, c) => `Case du ${j === 1 ? '1er' : j} décembre : ${c}`,
     fermee: (j) => `S’ouvre le ${j === 1 ? '1er' : j} décembre`,
@@ -84,6 +90,9 @@ const TEXTES = {
     copier: 'Copier',
     copie: 'Code copié',
     boutiqueAller: 'Aller à la boutique Inkami',
+    ecouter: 'Écouter',
+    pause: 'Pause',
+    musiqueLecteur: 'Elle est aussi dans le lecteur de musique de la carte (le bouton ♪), style « Noël ».',
     enPreparation: 'En préparation : ce cadeau sera prêt avant décembre (visible seulement en mode développeur).',
     codeAFaire: 'Code à créer dans Shopify avant décembre (visible seulement en mode développeur).',
     devJour: 'Jour simulé',
@@ -95,7 +104,7 @@ const TEXTES = {
     bouton: 'アドベント',
     titre: 'アドベントカレンダー',
     sousTitre: '毎日ひとつ、クリスマスイブまで',
-    sortes: { boutique: 'Inkamiショップ', telecharger: 'ダウンロード', balade: '3Dさんぽ', carte: 'マップ' },
+    sortes: { boutique: 'Inkamiショップ', telecharger: 'ダウンロード', balade: '3Dさんぽ', carte: 'マップ', musique: '音楽' },
     ouvrir: (j) => `12月${j}日の窓を開ける`,
     voir: (j, c) => `12月${j}日：${c}`,
     fermee: (j) => `12月${j}日に開きます`,
@@ -118,6 +127,9 @@ const TEXTES = {
     copier: 'コピー',
     copie: 'コピーしました',
     boutiqueAller: 'Inkamiのショップへ',
+    ecouter: '聴く',
+    pause: '一時停止',
+    musiqueLecteur: 'マップの音楽プレーヤー（♪ボタン）の「クリスマス」でも聴けます。',
     enPreparation: '準備中（開発者モードのみ表示）',
     codeAFaire: 'Shopifyでコードを作成（開発者モードのみ表示）',
     devJour: '日付のシミュレーション',
@@ -128,7 +140,7 @@ const TEXTES = {
 };
 
 // Les 24 cases. lieu : l'identifiant du lieu sur la carte (son nom anglais en minuscules, comme dans ?voyage=).
-// pret : le cadeau existe vraiment ; special : ce que la case montre de plus (prenom) ; fichier : un cadeau à télécharger
+// pret : le cadeau existe vraiment ; special : ce que la case montre de plus (prenom, musique) ; fichier : un cadeau à télécharger
 // (blocFichier) ; code : boutique Inkami.
 // Les textes japonais des cases sont à écrire avant la sortie (en attendant : l'anglais).
 const CASES = [
@@ -138,11 +150,14 @@ const CASES = [
       fr: 'Tape ton prénom : il s’écrit en katakana au pinceau, sur un fond d’écran de téléphone, avec le sceau Inkami. Inkami peint ainsi un prénom sur chacun de ses portraits.' },
     deco: { en: 'The first snow falls, and the pins put on a red hat.', fr: 'La première neige tombe, et les épingles mettent un bonnet rouge.' },
     savais: { en: 'December is also called shiwasu (師走): « the month when even monks run ».', fr: 'Décembre se dit aussi shiwasu (師走) : « le mois où même les moines courent ».' } },
-  { j: 2, k: 'carte', lieu: 'goryokaku-park', pret: false,
-    cadeau: { en: 'The illuminations', fr: 'Les illuminations', ja: 'イルミネーション' },
-    texte: { en: 'At night, the big cities on the map light up, like Japan’s winter illuminations, and a winter tune comes to the music player.',
-      fr: 'La nuit, les grandes villes de la carte s’allument, comme les illuminations d’hiver au Japon, et une musique d’hiver arrive dans le lecteur.' },
-    deco: { en: 'The star of the Goryokaku fort lights up.', fr: 'L’étoile du fort de Goryokaku s’allume.' },
+  // la case 2 (le propriétaire, 2026-11-12 : « une musique de Noël qui s'ajoute à l'onglet musique, que tu composeras
+  // toi-même ») : outils/composer_noel.mjs ; les illuminations, qu'elle offrait avant, restent sa décoration.
+  { j: 2, k: 'musique', lieu: 'goryokaku-park', pret: true, special: 'musique',
+    cadeau: { en: 'The map’s Christmas song', fr: 'La musique de Noël de la carte', ja: 'マップのクリスマス曲' },
+    texte: { en: 'A tune composed for the map: « Yuki akari » (雪あかり, the light of the snow), with a music box, a koto, a flute and sleigh bells.',
+      fr: 'Une musique composée pour la carte : « Yuki akari » (雪あかり, la lumière de la neige), avec une boîte à musique, un koto, une flûte et des grelots.' },
+    deco: { en: 'At night, the big cities light up, like Japan’s winter illuminations, and so does the star of the Goryokaku fort.',
+      fr: 'La nuit, les grandes villes s’allument, comme les illuminations d’hiver au Japon, et l’étoile du fort de Goryokaku aussi.' },
     savais: { en: 'Every winter, Hakodate’s star-shaped fort is lit up every evening.', fr: 'Chaque hiver, le fort en forme d’étoile de Hakodate est illuminé tous les soirs.' } },
   { j: 3, k: 'telecharger', lieu: 'lake-kinrin', pret: true,
     fichier: { apercu: 'noel/calendrier-2027-apercu.jpg', url: 'noel/calendrier-2027.pdf', nom: 'calendrier-2027-carte-du-japon.pdf', forme: 'paysage', bouton: 'pdf' },
@@ -247,10 +262,10 @@ const CASES = [
     deco: { en: 'The frozen waterfalls light up at night.', fr: 'Les cascades gelées s’illuminent la nuit.' },
     savais: { en: 'In February, the great frozen Hirayu waterfall is lit up at night for its festival.', fr: 'En février, la grande cascade gelée de Hirayu est illuminée la nuit, pendant sa fête.' } },
   { j: 20, k: 'telecharger', lieu: 'ghost-bridge', pret: true,
-    fichier: { apercu: 'noel/fond-nuit-de-noel-apercu.jpg', url: 'noel/fond-nuit-de-noel.jpg', nom: 'nuit-de-noel-japon.jpg', forme: 'telephone', bouton: 'fond' },
+    fichier: { apercu: 'noel/fond-nuit-de-noel-{l}-apercu.jpg', url: 'noel/fond-nuit-de-noel-{l}.jpg', nom: 'nuit-de-noel-japon.jpg', forme: 'telephone', bouton: 'fond' },
     cadeau: { en: 'Wallpaper: Christmas night over Japan', fr: 'Fond d’écran : la nuit de Noël sur le Japon', ja: '壁紙：クリスマスの夜の日本' },
-    texte: { en: 'All of Japan at night, the places and the cities lit up, made with the map set to the night of December 24.',
-      fr: 'Tout le Japon la nuit, les lieux et les villes allumés, fait avec la carte réglée sur la nuit du 24 décembre.' },
+    texte: { en: 'All of Japan on Christmas night, made with the map: snow in the north, the cities lit up, a garland of lights and falling snowflakes.',
+      fr: 'Tout le Japon la nuit de Noël, fait avec la carte : la neige au nord, les villes illuminées, une guirlande lumineuse et des flocons qui tombent.' },
     deco: { en: 'All of Japan shines at night.', fr: 'Tout le Japon brille la nuit.' },
     savais: { en: 'In winter the lake freezes, and you can walk on the ice to the old bridge.', fr: 'L’hiver, le lac gèle, et l’on peut marcher sur la glace jusqu’au vieux pont.' } },
   { j: 21, k: 'boutique', lieu: 'tsuru-no-maihashi-bridge', pret: false, code: 'CALENDRIER21',
@@ -328,7 +343,7 @@ const creer = (balise, classe, texte) => {
  * calendrier), estDev(), config (CONFIG.noel) }. Renvoie { allumer(), eteindre(), majLangue(), remplirPanneau() }.
  */
 export function brancherNoel(outils) {
-  const { langue, afficherMessage, lieux, allerAuLieu, enLangue, fermerPanneau, estDev, config } = outils;
+  const { langue, afficherMessage, lieux, allerAuLieu, enLangue, fermerPanneau, estDev, config, musique } = outils;
   const typo = (s) => (langue() === 'fr' ? typoFr(s) : s);
   const tx = (cle, ...args) => {
     const v = TEXTES[langue()]?.[cle] ?? TEXTES.en[cle];
@@ -457,6 +472,7 @@ export function brancherNoel(outils) {
       <span class="noel-sorte">${svg(ICONES[c.k])}${echapper(tx('sortes')[c.k])}</span>
       <p>${echapper(enL(c.texte))}</p>`;
     if (c.special === 'prenom') s.append(blocPrenom());
+    if (c.special === 'musique' && musique) s.append(blocMusique());
     if (c.fichier) s.append(blocFichier(c.fichier));
     if (c.code) s.append(blocCode(c));
     if (!c.pret && estDev()) s.append(creer('p', 'noel-preparation', tx('enPreparation')));
@@ -574,6 +590,26 @@ export function brancherNoel(outils) {
     const nomFichier = `prenom-japonais-${nom.normalize('NFD').replace(/[^\w-]/g, '').toLowerCase() || 'noel'}.png`;
     return new File([blob], nomFichier, { type: 'image/png' });
   }
+
+  // ---- Case 2 : la musique de Noël. Ouvrir la case l'ajoute au lecteur (style « Noël ») ; le bouton la joue ou la met
+  //      en pause. La liste des morceaux est lue dès que la case se montre : l'iPhone ne joue un son que pendant l'appui.
+  function blocMusique() {
+    musique.debloquer('noel');
+    musique.precharger();
+    const div = creer('div', 'noel-musique');
+    const b = creer('button', 'btn-lancer');
+    b.type = 'button';
+    b.addEventListener('click', () => musique.ecouter('noel'));
+    div.append(b, creer('p', null, tx('musiqueLecteur')));
+    majBoutonMusique(b);
+    return div;
+  }
+  function majBoutonMusique(b = panneau.querySelector('.noel-musique .btn-lancer')) {
+    if (!b) return;
+    const j = musique.joue('noel');
+    b.innerHTML = `${j ? PAUSE : LECTURE}<span>${echapper(tx(j ? 'pause' : 'ecouter'))}</span>`;
+  }
+  document.addEventListener('musique-etat', () => majBoutonMusique());
 
   // ---- Les cadeaux à télécharger : un aperçu et le bouton (fabriqués une fois : scratchpad/noel/fabriquer.py,
   //      fond_noel.py, fond_fuji.py de la session du 2026-11-10). {l} : la langue du visiteur (fr, en, ja).

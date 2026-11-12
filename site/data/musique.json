@@ -10,6 +10,10 @@
    "nom": "PeriTune",
    "site": "https://peritune.com/",
    "licence": "CC BY 4.0"
+  },
+  "carte": {
+   "nom": "Random Japan Place",
+   "site": "https://map.randomjapanplace.com/"
   }
  },
  "morceaux": [
@@ -437,6 +441,15 @@
    "page": "https://maou.audio/bgm_acoustic41/",
    "fichier": "musique/maou-bgm-acoustic41.m4a",
    "duree": 146
+  },
+  {
+   "id": "carte-yuki-akari",
+   "style": "noel",
+   "ambiance": "enjouee",
+   "titre": "雪あかり",
+   "auteur": "carte",
+   "fichier": "musique/carte-yuki-akari.m4a",
+   "duree": 180
   }
  ]
 }

@@ -1,11 +1,12 @@
 /* Noël sur la carte (noel.js) : le bonnet rouge des épingles, le bouton et le panneau du calendrier de l'Avent.
    Chargée seulement pendant l'événement. Les couleurs des sortes de cadeaux : boutique (rouge), à télécharger
-   (bleu-vert), balade 3D (ocre), sur la carte (violet). */
+   (bleu-vert), balade 3D (ocre), sur la carte (violet), musique (vert sapin). */
 :root {
   --k-boutique: var(--rouge);
   --k-telecharger: var(--sarcelle);
   --k-balade: #8c5f0e;
   --k-carte: #57468a;
+  --k-musique: #2f6b3c;
 }
 
 /* ---------- Les épingles portent un bonnet de Père Noël (sauf de loin, en petits points) ---------- */
@@ -44,6 +45,7 @@ body.noel #carte.loin .repere-tete::after { width: auto; height: auto; backgroun
 .porte[data-k="telecharger"] { --k: var(--k-telecharger); }
 .porte[data-k="balade"] { --k: var(--k-balade); }
 .porte[data-k="carte"] { --k: var(--k-carte); }
+.porte[data-k="musique"] { --k: var(--k-musique); }
 .porte .dedans, .porte .battant { position: absolute; inset: 0; border-radius: 2px; display: grid; place-items: center; }
 .porte .dedans {
   background: color-mix(in srgb, var(--k) 16%, var(--papier-clair)); color: var(--k);
@@ -84,6 +86,12 @@ body.noel #carte.loin .repere-tete::after { width: auto; height: auto; backgroun
 .noel-case[data-k="telecharger"] { --k: var(--k-telecharger); }
 .noel-case[data-k="balade"] { --k: var(--k-balade); }
 .noel-case[data-k="carte"] { --k: var(--k-carte); }
+.noel-case[data-k="musique"] { --k: var(--k-musique); }
+/* case 2 : écouter la musique de Noël (elle s'ajoute au lecteur) */
+.noel-musique { display: grid; gap: 8px; }
+.noel-musique .btn-lancer { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.noel-musique .btn-lancer svg { width: 18px; height: 18px; flex: none; }
+.noel-musique p { margin: 0; font-size: 13px; line-height: 1.45; color: var(--encre-2); }
 .noel-case > p { margin: 0; }
 .noel-case h3 { margin: 0; font-family: var(--police-titre); font-weight: 400; font-size: 20px; line-height: 1.25; text-wrap: balance; }
 .noel-date { font-family: var(--police-titre); font-size: 14px; color: var(--encre-douce, #6a5540); }

@@ -148,6 +148,8 @@ body:not(.mode-dev) .dev { display: none !important; }
 .musique-etiquette { margin: 0 2px 6px; font-size: 13px; color: var(--encre-2); }
 .onglets.musique-onglets { margin-bottom: 12px; }
 .onglets.musique-onglets button { padding: 8px 6px; font-size: 13.5px; }
+/* quatre styles (Noël débloqué par le calendrier de l'Avent) : deux rangées de deux */
+.onglets.musique-onglets.quatre { display: grid; grid-template-columns: 1fr 1fr; }
 /* (deux classes : le choix reste rouge sous le doigt, malgré le survol des .onglets plus bas) */
 .onglets.musique-onglets button[aria-pressed="true"] { background: var(--rouge); color: var(--papier-clair); }
 .onglets.musique-onglets button:disabled { opacity: .4; cursor: default; background: transparent; color: var(--encre-2); }

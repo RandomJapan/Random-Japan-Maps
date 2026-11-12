@@ -1304,6 +1304,7 @@ function majNoel() {
     .then(({ brancherNoel }) => brancherNoel({
       langue: () => langue, afficherMessage, lieux: () => lieux, allerAuLieu, enLangue,
       fermerPanneau: () => ouvrirNoel(false), estDev: () => document.body.classList.contains('mode-dev'), config: CONFIG.noel,
+      musique, // la case du 2 décembre débloque le style « Noël » du lecteur et le joue
     }))
     .catch((e) => { console.warn('Noël indisponible', e); noel = null; });
   noel.then((n) => {
