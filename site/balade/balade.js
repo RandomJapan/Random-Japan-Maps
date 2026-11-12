@@ -3449,6 +3449,25 @@ function auPlusPresDe(points, x, z) {
   return q;
 }
 
+/**
+ * La nouvelle hauteur de qui (le voyageur, le compagnon : x, y, z) qui va à vx, vz (sa vitesse, vitesse) : ses pieds suivent le sol, une marche d'un coup
+ * en montant, vite en descendant. Dans un escalier (monde.js, marches), en marchant, la ligne qui passe par le milieu des marches, suivie sans retard
+ * (prise un peu plus loin devant : là où il sera quand ses pieds l'auront rejointe) ; à l'arrêt, la marche sous ses pieds. Une marche d'un coup,
+ * en montant vite, cela faisait de petits sauts, au voyageur comme au compagnon : 2026-11-12, Tsubosaka-dera, « les escaliers sont un peu trop
+ * violents […] ça fait des petits sautillements, et le compagnon a du mal à suivre ».
+ */
+function suivreLeSol(qui, vx, vz, vitesse, dt) {
+  const monde = M.lieu.monde, p = monde.pied ? monde.pied(qui.x, qui.z, qui.y) : { h: monde.hauteur(qui.x, qui.z, qui.y) };
+  let h = p.h, r = h > qui.y ? 60 : 30;
+  qui.escalier = !!p.surface?.marches;
+  if (qui.escalier) {
+    const a = Math.min(1, dt * 30), t = Math.min(0.1, (dt * (1 - a)) / a), w = Math.min(1, Math.max(0, (vitesse - 0.2) / 0.4));
+    if (w > 0) h += (monde.hauteur(qui.x, qui.z, qui.y, { dx: vx * t, dz: vz * t }) - h) * w;
+    r = 30;
+  }
+  return qui.y + (h - qui.y) * Math.min(1, dt * r);
+}
+
 function avancer(dt) {
   const L = M.lieu, monde = L.monde;
   // (quelqu'un à un autre étage n'arrête pas : 2026-11-04, à Tottori, la caissière et les clients de la salle arrêtaient, 7,5 m au-dessus d'eux, qui marchait sur le toit)
@@ -3541,7 +3560,7 @@ function avancer(dt) {
   etat.vitesse = Math.hypot(etat.vx, etat.vz);
   // (les pieds suivent le sol : une marche d'un coup en montant, vite en descendant ; la caméra, elle, monte en douceur. Lissés à 18 dans les deux sens, en
   // montant un escalier, ils restaient 10 à 15 cm dans les marches, et autant au-dessus en descendant : 2026-11-11, Tsubosaka-dera)
-  if (!grimpe) { const h = monde.hauteur(etat.x, etat.z, etat.y); etat.y += (h - etat.y) * Math.min(1, dt * (h > etat.y ? 60 : 30)); }
+  if (!grimpe) etat.y = suivreLeSol(etat, etat.vx, etat.vz, etat.vitesse, dt);
   if (m > 0.05) etat.cap = tourner(etat.cap, Math.atan2(dx, dz), dt * 10);
   if (siege) Object.assign(etat, { x: siege.x, z: siege.z, y: siege.y - ASSIS, cap: siege.cap, vx: 0, vz: 0, vitesse: 0 });
   if (debout && siege) debout.t += dt;
@@ -3601,6 +3620,7 @@ function avancer(dt) {
     if (renard.surPiste) { const q = suiteDePiste(renard.x, renard.z); vx = q[0]; vz = q[1]; reste = Math.max(d, q[2]); }
     const ex = vx - renard.x, ez = vz - renard.z, dv = Math.hypot(ex, ez), vr = reste > 0.35 ? Math.min(COURSE * 1.15, reste * 2.8) : 0;
     renard.vitesse += (vr - renard.vitesse) * Math.min(1, dt * 6);
+    const avantX = renard.x, avantZ = renard.z;
     if (dv > 0.01 && renard.vitesse > 0.05) {
       // (comme le joueur : le pas entier, sinon tourné de plus en plus d'un côté puis de l'autre, moins vite : il longe ce qui le gêne)
       const ux = ex / dv, uz = ez / dv, pas = renard.vitesse * dt, de = [renard.x, renard.z];
@@ -3624,15 +3644,23 @@ function avancer(dt) {
       else if (renard.surPiste && (d < 1.2 || cheminLibre(renard.x, renard.z, cx, cz, renard.y))) renard.surPiste = false;
     }
     // resté coincé (un escalier, un coin), ou en bas d'une échelle : il rejoint
-    if (d > 8 || (!grimpe && Math.abs(renard.y - etat.y) > 2.2) || renard.bute >= 1.6) {
+    // (pas dans un escalier, où l'un ou l'autre marche : 3 ou 4 m derrière le voyageur, le compagnon y est 2 m plus bas sans être coincé, et en courant
+    // il sautait sans cesse pour le rejoindre, jusqu'à sept fois dans un escalier ; 2026-11-12, Tsubosaka-dera, « le compagnon a du mal à suivre ». Dans
+    // un escalier, il retombe sur la marche de sa place, jusqu'à 1,8 m au-dessus du voyageur : en descendant, elle était trop haute pour celui-ci, et il
+    // retombait sur le sol caché sous l'escalier, 1,4 m sous les marches, où il marchait ensuite dedans. Ailleurs, comme avant : à la hauteur du voyageur)
+    if (d > 8 || (!grimpe && !etat.escalier && !renard.escalier && Math.abs(renard.y - etat.y) > 2.2) || renard.bute >= 1.6) {
       const q = renard.placeLibre ? [cx, cz] : dansLaPiste(1.2) || [etat.x, etat.z];
       if (renard.bute >= 1.6) M.kon.sauter();
-      renard.x = q[0]; renard.z = q[1]; renard.y = etat.y;
+      const marche = monde.pied ? monde.pied(q[0], q[1], etat.y + 1.2) : null;
+      renard.x = q[0]; renard.z = q[1]; renard.y = marche?.surface?.marches ? marche.h : monde.hauteur(q[0], q[1], etat.y);
       renard.bute = 0; renard.surPiste = false;
     }
     // (plus vite quand ça monte : à la traîne, ses pattes passaient sous les marches, et ce qu'il y a devant lui lui semblait trop haut)
     // (comme le voyageur : à 28 et 14, dans un escalier, il flottait de 14 cm au-dessus des marches en descendant ; 2026-11-11)
-    { const h = monde.hauteur(renard.x, renard.z, renard.y); renard.y += (h - renard.y) * Math.min(1, dt * (h > renard.y ? 60 : 30)); }
+    {
+      const k = 1 / Math.max(dt, 1e-4), sx = (renard.x - avantX) * k, sz = (renard.z - avantZ) * k, s = Math.hypot(sx, sz);
+      renard.y = s > 12 ? monde.hauteur(renard.x, renard.z, renard.y) : suivreLeSol(renard, sx, sz, s, dt);
+    }
     // la loutre nage là où l'eau lui monte au-dessus des pattes : elle flotte, la tête hors de l'eau
     renard.nage = false;
     if (espece === 'chapu' && L.eau) {

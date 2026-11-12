@@ -79,8 +79,19 @@ const ESC2 = { x0: -20, x1: -6, z0: -27, z1: -21, h0: MILIEU.y, h1: HAUT.y, axe:
 const ESC3 = { x0: -38, x1: -32, z0: 62, z1: 78, h0: NEHAN.y, h1: KANNON.y, axe: 'z' };
 const ESCALIERS = [ESC1, ESC2, ESC3];
 for (const E of ESCALIERS) { E.n = Math.round((E.h1 - E.h0) / 0.18); E.long = E.axe === 'x' ? E.x1 - E.x0 : E.z1 - E.z0; }
-// le chemin de la terrasse haute à la place du Bouddha couché : à plat, le long de la colline (du bord ouest de l'une au bord est de l'autre)
-const LIEN = [[-5.4, 22], [-10, 28], [-15, 34.4], [-18.6, 40.6]];
+// le chemin de la terrasse haute à la place du Bouddha couché (le pont rouge) : à plat, le long de la colline, du bord ouest de l'une au bord est de l'autre.
+// Il part tout droit du bord de la terrasse, tourne en douceur vers le sud, et arrive tout droit au bord de la place. (Jusqu'au 2026-11-12, trois
+// tronçons droits, qui passaient ces bords en biais : ses murets entraient de 2 m dans une terrasse d'un côté, s'arrêtaient 1 m avant de l'autre, et
+// celui du bord nord de la place lui barrait un coin ; « quelques blocs […] qui dépassent du pont, soit qui manquent sur le pont »)
+const LIEN = (() => {
+  const A = [-7.2, 21.8], B = [-12.2, 21.8], C = [-11.8, 42.4], D = [-16.8, 42.4], P = [[-4.6, 21.8]];
+  for (let i = 0; i <= 6; i++) {
+    const t = i / 6, u = 1 - t, k = [u * u * u, 3 * u * u * t, 3 * u * t * t, t * t * t];
+    P.push([0, 1].map((j) => Math.round((k[0] * A[j] + k[1] * B[j] + k[2] * C[j] + k[3] * D[j]) * 100) / 100));
+  }
+  P.push([-19.4, 42.4]);
+  return P;
+})();
 const DEMI_LIEN = 1.8;
 // le sentier des rakan (奥の院) : du coin sud-est de la terrasse haute, il monte dans la forêt vers le sud-est
 const SENTIER = [[49, 26, HAUT.y], [55, 36, 27.6], [61, 46, 30.6], [69, 54, 33.6], [79, 60, 36.6], [89, 66, 39.6], [97, 74, 42.2], [101, 82, 43.4]];
@@ -226,6 +237,27 @@ function dansLeCadre(x, z) {
   return Math.hypot(x - CLAIRIERE.x, z - CLAIRIERE.z) < CLAIRIERE.r - MARGE;
 }
 const dansLeCadreLarge = (x, z) => x > -172 && x < 110 && z > -90 && z < 100;
+/**
+ * Un côté du pont rouge (LIEN), à e de sa ligne (e > 0 : à droite en allant vers le Bouddha couché ; e < 0 : à gauche) : la ligne brisée, ses coudes
+ * en onglet (les deux tronçons s'y rejoignent), coupée au bord de la terrasse haute (x = HAUT.x0) et à celui de la place du Bouddha couché (x = NEHAN.x1).
+ * (Le pont passe ces deux bords en biais : coupés à 30 cm de ses bouts, ses murets continuaient de 2 m dans une terrasse d'un côté et s'arrêtaient
+ * 1 m avant de l'autre ; 2026-11-12, « quelques blocs […] qui dépassent du pont, soit qui manquent sur le pont »)
+ */
+function coteDuPont(e) {
+  const L = LIEN, n = L.length, P = [];
+  const normale = (k) => { const [x0, z0] = L[k], [x1, z1] = L[k + 1], l = Math.hypot(x1 - x0, z1 - z0); return [-(z1 - z0) / l, (x1 - x0) / l]; };
+  for (let k = 0; k < n; k++) {
+    let m;
+    if (k === 0) m = normale(0);
+    else if (k === n - 1) m = normale(n - 2);
+    else { const a = normale(k - 1), b = normale(k), sx = a[0] + b[0], sz = a[1] + b[1], d = sx * a[0] + sz * a[1]; m = [sx / d, sz / d]; }
+    P.push([L[k][0] + m[0] * e, L[k][1] + m[1] * e]);
+  }
+  const couper = (A, B, X) => { const f = (X - A[0]) / (B[0] - A[0]); return [X, A[1] + (B[1] - A[1]) * f]; };
+  P[0] = couper(P[0], P[1], HAUT.x0);
+  P[n - 1] = couper(P[n - 2], P[n - 1], NEHAN.x1);
+  return P;
+}
 
 // ---------------------------------------------------------------- Le sol, sa couleur
 /** Le sol (sa couleur et sa matière, textures.js) en x, z, à la hauteur h. */
@@ -551,29 +583,108 @@ function kannonDebout(THREE, a, R, y, h, c, C) {
   a.ovale(0.034 * k, G, { ...o(0, 0.99, -0.01), sx: 0.9, sy: 1.5, sz: 0.9 }, 10);
 }
 /**
- * Un bouddha couché (涅槃), sur le côté droit, la tête dans la main droite, dans le repère R : la tête vers −x, le visage vers
- * +z, long de L, couché sur son socle à y.
+ * Un bouddha couché (涅槃), dans la pose du nirvana (頭北面西右脇臥) : couché sur le côté droit, la tête sur la main droite, posée sur un coussin,
+ * le visage paisible, les yeux clos ; dans le repère R : la tête vers −x, le visage vers +z, long de L, sur son socle à y. Le bras droit replié devant
+ * la poitrine, la paume sous la joue ; le gauche le long du flanc, la main sur la cuisse ; la robe sur les deux épaules, son col, ses plis en relief, ses
+ * manches, son ourlet aux chevilles ; les jambes allongées l'une sur l'autre, les pieds joints, leurs plantes au bout, leurs orteils ; la tête aux
+ * boucles en coquilles (螺髪), la bosse de la sagesse (肉髻), la marque entre les sourcils (白毫), les longs lobes. Le corps, couché : son « haut » (la
+ * tête) vers −x, son devant vers +z, sa gauche vers le haut. (Refait le 2026-11-12, « la statue de la dame qui est couchée, refais-la avec plus de
+ * détails » : cinq ovales et un bloc, où l'on ne voyait ni visage, ni mains, ni pieds.)
  */
 function bouddhaCouche(THREE, a, R, y, L, c, C) {
   const k = L, t = c(7.7);
   const o = (lx, ly, lz, e = {}) => ({ ...R(lx * k, y + ly * k, lz * k, e), teinte: 'teinte' in e ? e.teinte : t, nuance: 0.012 });
   const p = (lx, ly, lz) => { const q = R(lx * k, y + ly * k, lz * k); return [q.x, q.y, q.z]; };
   const G = C.GRANIT, GF = C.GRANIT_F, OMBRE = C.GRANIT_O;
-  const plis = (wx, wy, wz) => (Math.sin(wx * (30 / k) + wy * (8 / k)) > 0.86 ? OMBRE : (t ? t(wx, wy, wz) : G));
-  // le corps couché : du bassin aux pieds (deux jambes l'une sur l'autre), le torse, l'épaule droite contre le coussin
-  a.ovale(0.2 * k, G, { ...o(0.05, 0.075, 0), sx: 1.4, sy: 0.38, sz: 0.36, teinte: plis }, 16)
-    .ovale(0.16 * k, G, { ...o(0.3, 0.06, 0.005), sx: 1.35, sy: 0.32, sz: 0.3, teinte: plis }, 14);
-  for (const u of [0, 1]) a.ovale(0.03 * k, G, { ...o(0.47, 0.04 + u * 0.045, 0.012), sx: 0.7, sy: 0.6, sz: 1.2 }, 8);
-  a.ovale(0.11 * k, G, { ...o(-0.17, 0.09, 0.0), sx: 1.2, sy: 0.72, sz: 0.62, teinte: plis }, 14);
-  // le coussin, le bras droit replié sous la tête, la main contre la joue ; le bras gauche allongé sur le flanc
-  a.boite(0.13 * k, 0.07 * k, 0.12 * k, GF, { ...o(-0.34, 0.035, -0.01), nuance: 0.03 });
-  a.fut(p(-0.27, 0.06, 0.02), p(-0.35, 0.12, 0.05), 0.022 * k, 0.018 * k, G, 8).ovale(0.024 * k, G, o(-0.36, 0.15, 0.055), 8);
-  a.fut(p(-0.18, 0.14, 0.04), p(0.12, 0.11, 0.06), 0.02 * k, 0.017 * k, G, 8).ovale(0.02 * k, G, { ...o(0.14, 0.105, 0.065), sx: 1.4 }, 8);
-  // la tête (de côté, le visage vers +z), les boucles, la bosse de la sagesse, le lobe
-  a.ovale(0.055 * k, G, { ...o(-0.4, 0.15, 0.025), sx: 1.0, sy: 0.92, sz: 1.08 }, 14).ovale(0.056 * k, GF, { ...o(-0.415, 0.165, 0.015), sx: 0.85, sy: 0.95, sz: 1.0 }, 14)
-    .ovale(0.03 * k, GF, o(-0.465, 0.17, 0.01), 10)
-    .boite(0.022 * k, 0.003 * k, 0.005 * k, OMBRE, { ...o(-0.405, 0.16, 0.084, { teinte: null }), trait: false })
-    .ovale(0.012 * k, G, { ...o(-0.4, 0.118, 0.02), sx: 1.0, sy: 0.6, sz: 2.2 }, 6);
+  // les volumes du corps (centre, rayons) : la poitrine (sa largeur d'épaules dressée), la taille, les hanches ; couché sur le côté, le dessus monte à
+  // l'épaule, descend à la taille, remonte à la hanche, et tout le dessous touche le socle
+  const POITRINE = { c: [-0.235, 0.12, 0.0], r: [0.088, 0.12, 0.068] }, TAILLE = { c: [-0.115, 0.093, 0.004], r: [0.08, 0.0928, 0.064] };
+  const HANCHES = { c: [0.0, 0.105, 0.0], r: [0.0855, 0.105, 0.072] };
+  for (const E of [POITRINE, TAILLE, HANCHES]) a.ovale(k, G, { ...o(...E.c), sx: E.r[0], sy: E.r[1], sz: E.r[2] }, 18);
+  a.ovale(0.048 * k, G, { ...o(-0.282, 0.205, 0.0), sx: 1.0, sy: 0.9, sz: 1.05 }, 12);
+  // le dos, sous la robe, de l'épaule à la hanche : il comble par derrière le creux de la taille (vu de dos, sinon, trois boules)
+  a.ovale(k, G, { ...o(-0.12, 0.095, -0.016), sx: 0.2, sy: 0.085, sz: 0.058 }, 16);
+  // (le devant du corps en x, y : le plus en avant des trois volumes ; pour poser le col et les plis de la robe dessus)
+  const devant = (x, yy) => Math.max(...[POITRINE, TAILLE, HANCHES].map((E) => E.c[2] + E.r[2] * Math.sqrt(Math.max(0, 1 - ((x - E.c[0]) / E.r[0]) ** 2 - ((yy - E.c[1]) / E.r[1]) ** 2))));
+  const pli = (pts, r = 0.0055) => a.tube(pts.map(([x, yy]) => p(x, yy, devant(x, yy) + r * 0.45)), r * k, GF, { cotes: 5, pas: 14 });
+  // le col de la robe, en U sur la poitrine, d'une épaule à l'autre ; ses plis, en biais de l'épaule gauche vers la hanche droite
+  pli([[-0.3, 0.19], [-0.275, 0.155], [-0.262, 0.12], [-0.275, 0.085], [-0.3, 0.05]], 0.007);
+  for (const [x0, x1] of [[-0.24, -0.15], [-0.19, -0.09], [-0.13, -0.03], [-0.07, 0.03]]) pli([[x0, 0.2], [x0 + (x1 - x0) * 0.45, 0.13], [x1, 0.05]]);
+  // le cou et ses plis
+  a.fut(p(-0.365, 0.1225, 0.0), p(-0.3, 0.122, -0.002), 0.033 * k, 0.04 * k, G, 12);
+  for (const x of [-0.346, -0.334]) a.piece(new THREE.TorusGeometry(0.0345 * k, 0.003 * k, 4, 16), OMBRE, { ...o(x, 0.1225, 0.0, { teinte: null, ry: PI / 2 }), trait: false });
+  // les jambes, sous la robe, l'une sur l'autre (la droite en dessous) : de la hanche au genou et à la cheville ; la robe entre elles, derrière
+  const JAMBES = [[[-0.03, 0.055, 0.0], [0.215, 0.047, 0.012], [0.4, 0.033, 0.004]], [[-0.03, 0.15, 0.0], [0.215, 0.125, 0.012], [0.4, 0.085, 0.004]]], RJ = [0.056, 0.043, 0.03];
+  for (const J of JAMBES) a.tronc(J.map((q) => p(...q)), RJ.map((r) => r * k), G, 14);
+  a.ovale(0.1 * k, G, { ...o(0.2, 0.09, -0.02), sx: 2.0, sy: 0.6, sz: 0.45 }, 12);
+  // les plis de la robe sur les jambes : en biais, de la hanche vers les chevilles, sur le dessus et le devant
+  const surJambe = (J, f, ang) => {
+    const s = f < 0.5 ? f * 2 : (f - 0.5) * 2, A = J[f < 0.5 ? 0 : 1], B = J[f < 0.5 ? 1 : 2], r = f < 0.5 ? RJ[0] + (RJ[1] - RJ[0]) * s : RJ[1] + (RJ[2] - RJ[1]) * s;
+    const cx = A[0] + (B[0] - A[0]) * s, cy = A[1] + (B[1] - A[1]) * s, cz = A[2] + (B[2] - A[2]) * s, e = r + 0.0025;
+    return p(cx, cy + Math.sin(ang) * e, cz + Math.cos(ang) * e);
+  };
+  for (const [J, a0, a1] of [[JAMBES[1], 0.15, 0.95], [JAMBES[1], -0.25, 0.55], [JAMBES[1], 0.75, 1.35], [JAMBES[0], -0.1, 0.5], [JAMBES[0], 0.35, 0.9]]) {
+    a.tube([0.04, 0.3, 0.55, 0.8].map((f, i) => surJambe(J, f, a0 + ((a1 - a0) * i) / 3)), 0.005 * k, GF, { cotes: 5, pas: 14 });
+  }
+  // l'ourlet de la robe, aux chevilles, autour des deux jambes
+  a.ovale(0.065 * k, GF, { ...o(0.398, 0.06, 0.003), sx: 0.22, sy: 1.0, sz: 0.85 }, 14);
+  // les pieds, joints, l'un sur l'autre : leurs plantes au bout (vers +x), les orteils vers +z, le gros du côté de l'autre pied
+  for (const [fy, sens] of [[0.027, 1], [0.081, -1]]) {
+    a.ovale(0.032 * k, G, { ...o(0.436, fy, 0.03), sx: 0.85, sy: 0.82, sz: 2.1 }, 12);
+    for (let i = 0; i < 5; i++) a.ovale((i === 0 ? 0.0095 : 0.0074 - i * 0.0004) * k, G, { ...o(0.438, fy + sens * (2 - i) * 0.0102, 0.094 - i * 0.004), sx: 1.0, sy: 0.9, sz: 1.3 }, 8);
+  }
+  // le bras droit : de l'épaule (en dessous) vers l'avant, le coude posé sur le socle ; l'avant-bras remonte vers la tête ; la paume sous la joue, le
+  // pouce le long de la joue ; la large manche qui pend sous l'avant-bras
+  a.tronc([p(-0.3, 0.042, 0.01), p(-0.27, 0.03, 0.12), p(-0.372, 0.064, 0.04)], [0.034 * k, 0.03 * k, 0.022 * k], G, 12)
+    .ovale(0.04 * k, G, { ...o(-0.3, 0.045, 0.01) }, 12)
+    .ovale(0.031 * k, G, o(-0.27, 0.031, 0.12), 12)
+    .ovale(0.03 * k, G, { ...o(-0.405, 0.07, 0.02), sx: 1.55, sy: 0.36, sz: 1.05 }, 12)
+    .ovale(0.0085 * k, G, { ...o(-0.398, 0.077, 0.051), sx: 2.2, sy: 0.9, sz: 0.9 }, 8)
+    .ovale(0.045 * k, GF, { ...o(-0.318, 0.027, 0.083, { ry: -0.665 }), sx: 1.6, sy: 0.5, sz: 0.8 }, 12);
+  // le bras gauche, le long du flanc, la main sur la cuisse, le pouce devant ; sa manche qui pend devant
+  a.tronc([p(-0.285, 0.222, 0.006), p(-0.135, 0.2, 0.03), p(0.03, 0.188, 0.04)], [0.035 * k, 0.03 * k, 0.022 * k], G, 12)
+    .ovale(0.03 * k, G, o(-0.135, 0.2, 0.03), 12)
+    .ovale(0.026 * k, G, { ...o(0.068, 0.186, 0.042), sx: 1.85, sy: 0.42, sz: 0.95 }, 12)
+    .ovale(0.009 * k, G, { ...o(0.05, 0.19, 0.066), sx: 1.8, sy: 0.9, sz: 0.9 }, 8)
+    .ovale(0.042 * k, GF, { ...o(-0.07, 0.172, 0.066, { ry: 0.1 }), sx: 2.0, sy: 0.6, sz: 0.55 }, 12);
+  // le coussin sous la tête : carré, son dessus bombé, un liseré
+  a.boite(0.17 * k, 0.05 * k, 0.15 * k, GF, { ...o(-0.43, 0.025, 0.0), nuance: 0.02 })
+    .ovale(0.085 * k, GF, { ...o(-0.43, 0.05, 0.0), sx: 1.0, sy: 0.16, sz: 0.88 }, 14)
+    .boite(0.176 * k, 0.006 * k, 0.156 * k, OMBRE, { ...o(-0.43, 0.03, 0.0, { teinte: null }), trait: false });
+  // la tête : le crâne et le visage, de côté ; le front vers −x
+  const H = [-0.415, 0.1225, 0.004], RH = [0.0642, 0.0432, 0.0552];
+  a.ovale(k, G, { ...o(...H), sx: RH[0], sy: RH[1], sz: RH[2] }, 18);
+  // (un point du visage : x le long du corps, dy de côté (vers le haut, la gauche du visage) ; sur sa surface, un peu en avant)
+  const visage = (x, dy, e = 0) => [x, H[1] + dy, H[2] + RH[2] * Math.sqrt(Math.max(0, 1 - ((x - H[0]) / RH[0]) ** 2 - (dy / RH[1]) ** 2)) + e];
+  // (un trait en arc sur le visage, en x, dy : sa corde (de côté), sa flèche (> 0 : bombé vers le menton, < 0 : vers le front), son épaisseur ; couché
+  // sur la joue comme elle)
+  const arc = (x, dy, corde, fleche, epais, couleur) => {
+    const ang = 4 * Math.atan((2 * Math.abs(fleche)) / corde), Rr = corde / (2 * Math.sin(ang / 2)), q = visage(x, dy, 0.0005), s = Math.sign(fleche);
+    const incl = Math.atan2(dy / RH[1] ** 2, (q[2] - H[2]) / RH[2] ** 2);
+    a.piece(new THREE.TorusGeometry(Rr * k, epais * k, 4, 12, ang), couleur, { ...o(q[0] - s * Rr, q[1], q[2], { teinte: null, rx: -incl, rz: s > 0 ? -ang / 2 : PI - ang / 2 }), trait: false });
+  };
+  // les yeux clos (la ligne des paupières, bombée vers le bas), les sourcils en arc au-dessus, la bouche (un léger sourire)
+  for (const u of [-1, 1]) { arc(-0.417, u * 0.017, 0.022, 0.0035, 0.0022, OMBRE); arc(-0.4275, u * 0.018, 0.027, -0.004, 0.0026, GF); }
+  arc(-0.381, 0, 0.017, 0.002, 0.0018, OMBRE);
+  // le nez, la lèvre, la marque entre les sourcils
+  a.ovale(0.0085 * k, G, { ...o(...visage(-0.402, 0, -0.0015)), sx: 1.9, sy: 0.9, sz: 1.0 }, 8)
+    .ovale(0.006 * k, G, { ...o(...visage(-0.3765, 0, -0.002)), sx: 0.7, sy: 1.8, sz: 0.8 }, 6)
+    .ovale(0.0045 * k, G, o(...visage(-0.433, 0, -0.001)), 6);
+  // l'oreille du dessus (la gauche) : le long lobe qui descend vers la mâchoire
+  a.ovale(0.014 * k, G, { ...o(-0.396, 0.162, 0.002), sx: 3.0, sy: 0.5, sz: 1.1 }, 10);
+  // les cheveux : leur calotte, la bosse de la sagesse, les boucles en coquilles (pas sur le côté posé sur la main, qu'on ne voit pas)
+  const CAL = { c: [-0.428, 0.1225, -0.004], r: [0.0605, 0.0468, 0.0581] }, BOSSE = { c: [-0.482, 0.1225, -0.008], r: [0.0248, 0.0295, 0.031] };
+  for (const E of [CAL, BOSSE]) a.ovale(k, GF, { ...o(...E.c), sx: E.r[0], sy: E.r[1], sz: E.r[2] }, 16);
+  const boucles = (E, n, min) => {
+    for (let i = 0; i < n; i++) {
+      // (dans le repère de la tête debout : haut, gauche, avant ; couchée : le haut vers −x, la gauche vers +y, l'avant vers +z)
+      const haut = 1 - (2 * (i + 0.5)) / n, r = Math.sqrt(1 - haut * haut), ang = i * 2.39996, gauche = Math.cos(ang) * r, avant = Math.sin(ang) * r;
+      if (haut < min || (avant > 0.55 && haut < 0.3) || gauche < -0.7) continue;
+      a.boule(0.005 * k, GF, { ...o(E.c[0] - haut * E.r[0], E.c[1] + gauche * E.r[1], E.c[2] + avant * E.r[2], { teinte: null }), trait: false }, 0);
+    }
+  };
+  boucles(CAL, 130, -0.25);
+  boucles(BOSSE, 40, -0.3);
 }
 /** Un petit jizō de pierre (地蔵), son bavoir rouge et son bonnet, dans le repère R (face vers +z), à y, haut de h. */
 function jizo(THREE, a, R, y, h, c) {
@@ -768,11 +879,13 @@ export function construire(ctx) {
     nord: { A: [T.x0, T.z0], B: [T.x1, T.z0], n: [0, -1], le: 'x' }, sud: { A: [T.x0, T.z1], B: [T.x1, T.z1], n: [0, 1], le: 'x' },
     ouest: { A: [T.x0, T.z0], B: [T.x0, T.z1], n: [-1, 0], le: 'z' }, est: { A: [T.x1, T.z0], B: [T.x1, T.z1], n: [1, 0], le: 'z' },
   });
+  // (le pont : de la face de dehors d'un de ses murets à celle de l'autre, là où elles passent le bord de la terrasse)
+  const pontG = coteDuPont(DEMI_LIEN + 0.17), pontD = coteDuPont(-(DEMI_LIEN + 0.17)), bouts = (k) => [Math.min(pontG[k][1], pontD[k][1]), Math.max(pontG[k][1], pontD[k][1])];
   const TROUS = new Map([
     [BAS, { est: [[ESC1.z0, ESC1.z1]], ouest: [[-40, -22]] }],
     [MILIEU, { ouest: [[ESC1.z0 - 1.0, ESC1.z1 + 1.0]], est: [[ESC2.z0, ESC2.z1]] }],
-    [HAUT, { ouest: [[ESC2.z0, ESC2.z1], [19.2, 24.8]], sud: [[46.4, 50.5]], est: [[21.6, 28.5]] }],
-    [NEHAN, { est: [[38.4, 42.8]], sud: [[ESC3.x0, ESC3.x1]] }],
+    [HAUT, { ouest: [[ESC2.z0, ESC2.z1], bouts(0)], sud: [[46.4, 50.5]], est: [[21.6, 28.5]] }],
+    [NEHAN, { est: [bouts(LIEN.length - 1)], sud: [[ESC3.x0, ESC3.x1]] }],
     [KANNON, { nord: [[ESC3.x0, ESC3.x1]] }],
   ]);
   {
@@ -823,15 +936,20 @@ export function construire(ctx) {
       // (les marches : de la pierre, chacune d'un gris un peu différent. Tachées de mousse triangle par triangle, une contremarche sur trois ou quatre
       // était verte, et l'on voyait des bandes d'herbe entre les marches : 2026-11-11, « l'escalier n'a pas les bonnes surfaces pour monter »)
       const GRIS = [PIERRE, '#85827a', '#8f8c83', '#817e76'];
+      // (en haut du premier, la dalle de la porte des Niō commence au nez de la dernière marche, à sa hauteur : les marches s'arrêtent devant elle.
+      // Elles passaient dessous, et leur dessus, dans le même plan que le sien, scintillait : 2026-11-12, « en haut du premier escalier, il y a une
+      // surface qui scintille »)
+      const coupe = E === ESC1 ? NIOMON.x - (NIOMON.p + 0.6) / 2 : Infinity;
       for (let k = 0; k < n; k++) {
         // la marche k : son nez à k + 1 contremarches, à 10 cm avant le début de son giron (elle passe sous la suivante ; la dernière aussi, pour
         // que toutes les marches aient le même giron sous les pieds)
-        const y = E.h0 + (k + 1) * contre, a0 = (E.axe === 'x' ? E.x0 : E.z0) + k * giron, prof = giron + 0.12;
+        const y = E.h0 + (k + 1) * contre, a0 = (E.axe === 'x' ? E.x0 : E.z0) + k * giron, deb = a0 - 0.1, fin = Math.min(a0 + giron + 0.02, coupe), prof = fin - deb;
+        if (prof < 0.004) continue;
         const larg = 2 * demi - (k % 2 ? 0.05 : 0);
         const c = { nuance: 0.03 };
         const ton = GRIS[Math.floor(hasard(k * 1.7 + E.x0, E.z0) * GRIS.length)];
-        if (E.axe === 'x') a.boite(prof, 0.6, larg, ton, { ...c, x: a0 + prof / 2 - 0.1, y: y - 0.3, z: mid });
-        else a.boite(larg, 0.6, prof, ton, { ...c, x: mid, y: y - 0.3, z: a0 + prof / 2 - 0.1 });
+        if (E.axe === 'x') a.boite(prof, 0.6, larg, ton, { ...c, x: (deb + fin) / 2, y: y - 0.3, z: mid });
+        else a.boite(larg, 0.6, prof, ton, { ...c, x: mid, y: y - 0.3, z: (deb + fin) / 2 });
       }
       // les bordures de pierre, de chaque côté, le long de la pente (leur dessus 50 cm au-dessus des nez des marches)
       const ang = Math.atan2(E.h1 - E.h0, E.long), L = Math.hypot(E.long + 0.4, E.h1 - E.h0), ym = (E.h0 + E.h1) / 2 + 0.25;
@@ -844,32 +962,34 @@ export function construire(ctx) {
       }
       // on y marche : sur chaque marche, à plat, du nez de la première (10 cm avant le bas de l'escalier) au haut (monde.js, marches). (2026-11-10 : une pente
       // au pied des contremarches, les pieds de 9 à 26 cm dans chaque marche ; puis à mi-hauteur, ± 9 cm ; 2026-11-11, « l'escalier n'a pas les bonnes
-      // surfaces pour monter » : une marche à la fois)
+      // surfaces pour monter » : une marche à la fois ; 2026-11-12, « des petits sautillements » : à l'arrêt, une marche à la fois ; en marchant, la ligne
+      // qui passe par leur milieu, qui commence une demi-marche avant la première : la surface aussi)
       const u0 = (E.axe === 'x' ? E.x0 : E.z0) - 0.1, M = { sol: 'pierre', marches: { u0, giron, contre, n, h0: E.h0 } };
-      if (E.axe === 'x') monde.rampe(u0, E.x1, mid - demi, mid + demi, 'x', E.h0, E.h1, M);
-      else monde.rampe(mid - demi, mid + demi, u0, E.z1, 'z', E.h0, E.h1, M);
+      if (E.axe === 'x') monde.rampe(u0 - giron / 2, E.x1, mid - demi, mid + demi, 'x', E.h0, E.h1, M);
+      else monde.rampe(mid - demi, mid + demi, u0 - giron / 2, E.z1, 'z', E.h0, E.h1, M);
     }
   }
 
   // ---------------------------------------------------------------- Le chemin vers la place du Bouddha couché ; le sentier des rakan
   {
-    // le chemin, sur son remblai : des dalles, un muret de chaque côté
-    const a = atelier(), L = LIEN;
-    for (let k = 0; k < L.length - 1; k++) {
-      const [x0, z0] = L[k], [x1, z1] = L[k + 1], l = Math.hypot(x1 - x0, z1 - z0), tx = (x1 - x0) / l, tz = (z1 - z0) / l, nx = -tz, nz = tx;
-      a.boite(l + 0.4, 0.3, 2 * DEMI_LIEN, '#a8a49a', { x: (x0 + x1) / 2, y: HAUT.y - 0.12, z: (z0 + z1) / 2, ry: Math.atan2(tx, tz), nuance: 0.04 });
-      for (const s of [-1, 1]) {
-        const e = s * (DEMI_LIEN + 0.02);
-        // (aux bouts, les murets s'arrêtent sur le bord des terrasses)
-        const A = [x0 + nx * e + (k === 0 ? tx * 0.3 : 0), z0 + nz * e + (k === 0 ? tz * 0.3 : 0)], B = [x1 + nx * e - (k === L.length - 2 ? tx * 0.3 : 0), z1 + nz * e - (k === L.length - 2 ? tz * 0.3 : 0)];
-        muret(a, A, B, HAUT.y, [nx * s, nz * s]);
+    // le chemin, sur son remblai : le sol dallé (sol.js, aspectSol), un muret de chaque côté, de la terrasse haute à la place du Bouddha couché
+    // (2026-11-12, « sur tout le pont, il y a des surfaces qui scintillent » : ses dalles, des blocs tournés d'un quart de tour, faisaient 8 m de large et
+    // 3,6 m de long, dépassaient de 2 m de chaque côté et laissaient des trous entre elles ; leur dessus, à la hauteur du sol dallé, scintillait avec lui.
+    // Le sol dallé suffit : on y marchait déjà)
+    const a = atelier();
+    for (const s of [-1, 1]) {
+      const C = coteDuPont(s * (DEMI_LIEN + 0.02)), Cm = coteDuPont(s * (DEMI_LIEN + 0.18));
+      for (let k = 0; k < C.length - 1; k++) {
+        const A = C[k], B = C[k + 1], l = Math.hypot(B[0] - A[0], B[1] - A[1]), nx = (-(B[1] - A[1]) / l) * s, nz = ((B[0] - A[0]) / l) * s;
+        muret(a, A, B, HAUT.y, [nx, nz]);
         // (sous le muret, le mur de pierre du remblai, jusqu'au relief)
-        const bas = (u) => terrain(A[0] + (B[0] - A[0]) * u + nx * s * 1.6, A[1] + (B[1] - A[1]) * u + nz * s * 1.6) - 0.3;
-        murPierre(a, [A[0] + nx * s * 0.16, A[1] + nz * s * 0.16], [B[0] + nx * s * 0.16, B[1] + nz * s * 0.16], () => HAUT.y - 0.05, (u) => Math.min(HAUT.y - 0.3, bas(u)), [nx * s, nz * s], [nx * s, nz * s], 0, 0.45);
+        const P = Cm[k], Q = Cm[k + 1];
+        const bas = (u) => terrain(P[0] + (Q[0] - P[0]) * u + nx * 1.45, P[1] + (Q[1] - P[1]) * u + nz * 1.45) - 0.3;
+        murPierre(a, P, Q, () => HAUT.y - 0.05, (u) => Math.min(HAUT.y - 0.3, bas(u)), [nx, nz], [nx, nz], 0, 0.45);
       }
     }
     poser(a.fin(), 0, 0, { y: 0 });
-    monde.chemin(L.map(([x, z]) => [x, z, HAUT.y]), DEMI_LIEN, { sol: 'pierre' });
+    monde.chemin(LIEN.map(([x, z]) => [x, z, HAUT.y]), DEMI_LIEN, { sol: 'pierre' });
   }
   {
     // le sentier : de la terre, une corde sur des piquets de bois de chaque côté (on ne touche pas aux rakan)
@@ -1581,10 +1701,15 @@ export function construire(ctx) {
   // le Bouddha couché (天竺渡来 大涅槃石像, 1999) : 8 m, la tête au nord, le visage vers l'ouest, sur un long socle de granit
   {
     const Nz = NEHANZO, y = NEHAN.y, R = repere(Nz.x, Nz.z, -PI / 2), a = atelier();
-    a.boite(9.6, 0.9, 3.0, GRANIT_F, R(0.2, y + 0.45, 0, { teinte: granit(61), nuance: 0.03 })).boite(10.0, 0.16, 3.4, GRANIT, R(0.2, y + 0.08, 0));
+    // le socle : sa base, le long bloc, son chaperon (débordant de 12 cm) ; sous le chaperon, devant et aux deux bouts, une frise de pétales de lotus
+    a.boite(10.0, 0.16, 3.4, GRANIT, R(-0.1, y + 0.08, 0))
+      .boite(9.6, 0.74, 3.0, GRANIT_F, R(-0.1, y + 0.37, 0, { teinte: granit(61), nuance: 0.03 }))
+      .boite(9.84, 0.16, 3.24, GRANIT, R(-0.1, y + 0.82, 0, { nuance: 0.03 }));
+    for (let i = 0; i < 15; i++) a.ovale(0.27, GRANIT, { ...R(-4.51 + i * 0.63, y + 0.57, 1.508), sx: 1.0, sy: 0.85, sz: 0.16, nuance: 0.02 }, 8);
+    for (const bout of [-1, 1]) for (let i = 0; i < 4; i++) a.ovale(0.27, GRANIT, { ...R(-0.1 + bout * 4.808, y + 0.57, -1.08 + i * 0.72, { ry: PI / 2 }), sx: 1.0, sy: 0.85, sz: 0.16, nuance: 0.02 }, 8);
     bouddhaCouche(THREE, a, R, y + 0.9, Nz.l, granit, CS);
     poser(a.fin(), 0, 0, { y: 0 });
-    plein(Nz.x - 1.8, Nz.x + 1.8, Nz.z - 5.2, Nz.z + 5.6, y, 3.5);
+    plein(Nz.x - 1.8, Nz.x + 1.8, Nz.z - 5.2, Nz.z + 5.0, y, 3.5);
   }
   // le grand Kannon (天竺渡来 大観音石像, 1983) : 20 m, 1 200 t, en 66 morceaux de la pierre de Karkala ; tourné vers le temple
   {
@@ -1872,7 +1997,7 @@ export function construire(ctx) {
     // le poteau de l'arrêt : un disque à deux faces
     const b = atelier(), px = B.x + 1.4, pz = B.z + 3.2;
     b.cylindre(0.04, 0.05, 2.1, 8, '#c8c4bc', { x: px, y: y + 1.05, z: pz }).cylindre(0.3, 0.3, 0.03, 18, '#2f6a9a', { x: px, y: y + 2.4, z: pz, rx: PI / 2 });
-    for (const ry of [0, PI]) ecrire({ x: px, y, z: pz, ry }, { texte: '壷阪寺', fond: '#ffffff', encre: '#2f6a9a', cadre: '#2f6a9a', x: 0, y: 2.4, z: 0.018, l: 0.58, h: 0.58, forme: 'rond' });
+    for (const ry of [0, PI]) ecrire({ x: px, y, z: pz, ry }, { texte: '壷阪寺', fond: '#ffffff', encre: '#2f6a9a', cadre: '#2f6a9a', x: 0, y: 2.4, z: 0.022, l: 0.58, h: 0.58, forme: 'rond' });
     poser(b.fin(), 0, 0, { y: 0 });
     monde.cercle(px, pz, 0.2);
   }
@@ -2602,21 +2727,36 @@ export function construire(ctx) {
   }
   // ---------------------------------------------------------------- Le pont rouge (le plan du temple : un pont vermillon mène à la place du Bouddha couché) : une balustrade rouge sur les murets du chemin, ses pommeaux de bronze
   {
-    const a = atelier(), L = LIEN, y = HAUT.y + 0.64, ROUGE_P = '#c8402c', ROUGE_F = '#a8321f';
-    for (let k = 0; k < L.length - 1; k++) {
-      const [x0, z0] = L[k], [x1, z1] = L[k + 1], l = Math.hypot(x1 - x0, z1 - z0), tx = (x1 - x0) / l, tz = (z1 - z0) / l, nx = -tz, nz = tx;
-      for (const s of [-1, 1]) {
-        const e = s * (DEMI_LIEN + 0.02), A = [x0 + nx * e + (k === 0 ? tx * 0.3 : 0), z0 + nz * e + (k === 0 ? tz * 0.3 : 0)], B = [x1 + nx * e - (k === L.length - 2 ? tx * 0.3 : 0), z1 + nz * e - (k === L.length - 2 ? tz * 0.3 : 0)];
+    // (le long des côtés du pont, coteDuPont : d'un bord de terrasse à l'autre ; à chaque bout, sur le muret qui rejoint celui de la terrasse, un pilier
+    // de pierre et le grand poteau rouge du pont, coiffé de bronze (親柱 et 擬宝珠) : ils couvrent le coin où les deux murets se rencontrent ; une lanterne
+    // sur un tronçon sur deux)
+    const a = atelier(), y = HAUT.y + 0.64, ROUGE_P = '#c8402c', ROUGE_F = '#a8321f', BRONZE = '#c8a03a';
+    for (const s of [-1, 1]) {
+      const C = coteDuPont(s * (DEMI_LIEN + 0.02));
+      for (let k = 0; k < C.length - 1; k++) {
+        const A = C[k], B = C[k + 1];
         const lg = Math.hypot(B[0] - A[0], B[1] - A[1]), ry = Math.atan2(B[0] - A[0], B[1] - A[1]) + PI / 2, mx = (A[0] + B[0]) / 2, mz = (A[1] + B[1]) / 2, n = Math.max(2, Math.round(lg / 1.8));
         for (let j = 0; j <= n; j++) {
+          // (aux deux bouts du pont, le grand poteau à la place du petit ; aux coudes, un seul poteau pour les deux tronçons)
+          if ((k === 0 && j === 0) || (k === C.length - 2 && j === n) || (k > 0 && j === 0)) continue;
           const px = A[0] + ((B[0] - A[0]) * j) / n, pz = A[1] + ((B[1] - A[1]) * j) / n;
           a.boite(0.13, 0.66, 0.13, ROUGE_P, { x: px, y: y + 0.33, z: pz, ry, nuance: 0.03 });
-          if (j === Math.floor(n / 2)) {
+          if (k % 2 === 1 && j === Math.floor(n / 2)) {
             a.cylindre(0.02, 0.02, 0.24, 5, '#3a2a20', { x: px, y: y + 0.76, z: pz }).chochin(px, y + 1.02, pz, 6, '#e8d8b0');
             lumieres.push({ x: px, y: y + 1.02, z: pz, halo: 0.4, sol: HAUT.y, r: 3.2 });
-          } else a.ovale(0.085, '#c8a03a', { x: px, y: y + 0.74, z: pz, sy: 1.3 }, 7);
+          } else a.ovale(0.085, BRONZE, { x: px, y: y + 0.74, z: pz, sy: 1.3 }, 7);
         }
         a.boite(lg + 0.02, 0.08, 0.1, ROUGE_P, { x: mx, y: y + 0.56, z: mz, ry, nuance: 0.03 }).boite(lg + 0.02, 0.06, 0.07, ROUGE_F, { x: mx, y: y + 0.28, z: mz, ry, nuance: 0.03 });
+      }
+      for (const [px, pz] of [C[0], C[C.length - 1]]) {
+        // le pilier de pierre (carré, dans l'axe des terrasses), le poteau rouge, sa coiffe de bronze en bouton de lotus
+        a.boite(0.6, 0.78, 0.6, PIERRE_F, { x: px, y: HAUT.y + 0.37, z: pz, nuance: 0.04 })
+          .boite(0.66, 0.06, 0.66, PIERRE, { x: px, y: HAUT.y + 0.79, z: pz, nuance: 0.03 })
+          .boite(0.2, 0.62, 0.2, ROUGE_P, { x: px, y: HAUT.y + 1.13, z: pz, nuance: 0.03 })
+          .cylindre(0.13, 0.13, 0.05, 10, BRONZE, { x: px, y: HAUT.y + 1.46, z: pz })
+          .ovale(0.13, BRONZE, { x: px, y: HAUT.y + 1.6, z: pz, sy: 1.05 }, 10)
+          .cone(0.06, 0.16, 8, BRONZE, { x: px, y: HAUT.y + 1.78, z: pz });
+        // (le mur du muret, autour de son bout, l'entoure déjà)
       }
     }
     poser(a.fin(), 0, 0, { y: 0 });
@@ -2759,27 +2899,48 @@ export function construire(ctx) {
     { id: 'tahoto', x: TAHOTO.x - 4.4, z: TAHOTO.z, y: MILIEU.y, rayon: 1.2, haut: 2.0, verbe: 'regarder', vers: [TAHOTO.x, TAHOTO.z], action: (jeu) => jeu.dire(jeu.txn('tahoto')) },
     ...interactionsBancs(bancs),
   ];
-  // ---- les rakan : chacun se regarde ; trois sont à part (le secret)
+  // ---- les rakan : on regarde un rocher à la fois, cadré tout entier ; sur trois des huit, un rakan à part (le secret), que la caméra va voir
+  // (2026-11-12, « c'est compliqué à trouver le bon qu'il faut sur les pierres, la bonne statue ; étant donné qu'il y en a à chaque fois dix, il faut
+  // cliquer exactement au bon endroit » : chaque rakan se regardait d'un point à lui, à 62 cm de ses voisins, et il fallait se tenir devant le bon. Et ceux
+  // du dernier rocher, dans la clairière, se regardaient de points posés à 7 m de lui, de l'autre côté : « pour la dernière pierre, je n'ai pas la
+  // possibilité de regarder les statues »)
   const RESTE_RAKAN = { compagnon: 'cedre', chapeau: 'plat', visage: 'clairiere' };
   const trouvesRakan = () => ['compagnon', 'chapeau', 'visage'].filter((s) => indiceVu(`rakan-${s}`));
-  for (const r of RAKANS) {
-    // (le point d'où on le regarde : sur le sentier, à 60 cm de son milieu, en face de lui)
-    const s0 = surLaLigne(SENTIER, r.x, r.z), q = repere(r.x, r.z, r.ry)(0, 0, Math.max(0.4, s0.d - 0.6));
+  // (ce que fait un rakan, d'après ce que sa pierre montre : les mêmes tirages que rakan())
+  const decrireRakan = (jeu, r) => {
+    const hg = (n) => hasard(r.g * 31.7 + n, n * 1.9 + 2.3), mains = Math.floor(hg(1) * 8), air = ['calme', 'sourire', 'rire', 'severe', 'dort', 'sourire'][Math.floor(hg(2) * 6)];
+    return jeu.tx('rakanUn').replace('{air}', jeu.tx('rakanAir')[air]).replace('{mains}', jeu.tx('rakanMains')[mains]);
+  };
+  for (const Rk of ROCHERS) {
+    // (on le regarde du sentier, en face de lui, de n'importe où sur sa largeur ; celui de la clairière, de la clairière)
+    const ang = Math.atan2(-Rk.n[0], -Rk.n[1]), Rr = repere(Rk.x, Rk.z, ang), y0 = Math.min(terrain(Rk.x, Rk.z), Rk.y) - 0.4;
+    const P = Rr(0, 0, Rk.nom === 'clairiere' ? 2.6 : surLaLigne(SENTIER, Rk.x, Rk.z).d);
+    const siens = RAKANS.filter((r) => r.rocher === Rk.nom), special = siens.find((r) => r.special);
     interactions.push({
-      id: `rakan-${r.id}`, x: q.x, z: q.z, y: surLaLigne(SENTIER, q.x, q.z).h, rayon: 0.5, haut: 2.2, verbe: 'regarder', vers: [r.x, r.z],
+      id: `rakan-rocher-${Rk.nom}`, x: P.x, z: P.z, y: terrain(P.x, P.z), rayon: 1.7, haut: 2.2, verbe: 'regarder', vers: [Rk.x, Rk.z],
       async action(jeu) {
-        if (!r.special) {
-          // (ce qu'il fait, d'après ce que la pierre montre : les mêmes tirages que rakan())
-          const hg = (n) => hasard(r.g * 31.7 + n, n * 1.9 + 2.3), mains = Math.floor(hg(1) * 8), air = ['calme', 'sourire', 'rire', 'severe', 'dort', 'sourire'][Math.floor(hg(2) * 6)];
-          await jeu.dire([jeu.tx('rakanUn').replace('{air}', jeu.tx('rakanAir')[air]).replace('{mains}', jeu.tx('rakanMains')[mains])]);
-          return;
-        }
-        const R = repere(r.x, r.z, r.ry), de = R(0.25, 0, 1.6), vu = indiceVu(`rakan-${r.special}`);
-        // (le voyageur caché le temps du gros plan : il était entre la caméra et le rocher)
+        // (le voyageur caché le temps des gros plans : il était entre la caméra et le rocher ; la caméra, sur le sentier, entre ses deux cordes, assez haut
+        // pour que celle du côté du rocher passe sous les rakan)
+        const de = Rr(0.4, 0, Rk.nom === 'clairiere' ? 4.0 : surLaLigne(SENTIER, Rk.x, Rk.z).d + 0.8), vers = Rr(0, 0, 0.7);
         jeu.cacherVoyageur(true);
-        jeu.cadrer({ de: [de.x, r.y + 0.9, de.z], vers: [r.x, r.y + 0.55, r.z], champ: 34 });
-        await jeu.attendre(600);
-        if (vu || secretTrouve('rakan')) { await jeu.dire(jeu.tx(`rakanDeja`)); jeu.cadrer(null); jeu.cacherVoyageur(false); return; }
+        jeu.cadrer({ de: [de.x, y0 + 3.4, de.z], vers: [vers.x, y0 + 1.25, vers.z], champ: 52 });
+        await jeu.attendre(500);
+        const enCours = indiceVu('rakan-dicton') || trouvesRakan().length > 0;
+        const vu = special && (indiceVu(`rakan-${special.special}`) || secretTrouve('rakan'));
+        const lignes = [jeu.tx('rakanRocher')[0].replace('{n}', siens.length)];
+        if (!special || vu) {
+          // deux d'entre eux, au hasard
+          const a1 = Math.floor(Math.random() * siens.length), a2 = (a1 + 1 + Math.floor(Math.random() * (siens.length - 1))) % siens.length;
+          lignes.push(decrireRakan(jeu, siens[a1]), decrireRakan(jeu, siens[a2]));
+          if (!special && enCours) lignes.push(...jeu.tx('rakanAucun'));
+          await jeu.dire(lignes);
+          if (!special) { jeu.cadrer(null); jeu.cacherVoyageur(false); return; }
+        } else await jeu.dire([...lignes, ...jeu.tx('rakanAutre')]);
+        // l'un d'eux n'est pas comme les autres : la caméra s'en approche (d'assez haut pour que la corde du sentier passe sous lui)
+        const r = special, R = repere(r.x, r.z, r.ry), d2 = R(0.25, 0, 1.75);
+        jeu.cadrer({ de: [d2.x, r.y + 1.65, d2.z], vers: [r.x, r.y + 0.5, r.z], champ: 36 });
+        await jeu.attendre(700);
+        if (vu) { await jeu.dire(jeu.tx('rakanDeja')); jeu.cadrer(null); jeu.cacherVoyageur(false); return; }
         // celui du compagnon, celui du chapeau, celui du visage
         const perso = jeu.perso === 'fille' ? 'fille' : 'garcon';
         if (r.special === 'compagnon') { const tc = jeu.tx('rakanCompagnon'); await jeu.dire(tc[jeu.compagnon] || tc.kon); await comp(jeu, 'rakanCompagnonDit'); }
@@ -2805,7 +2966,7 @@ export function construire(ctx) {
     if (v) {
       const R = repere(v.x, v.z, v.ry), de = R(0.6, 0, 2.2);
       jeu.cacherVoyageur(true);
-      jeu.cadrer({ de: [de.x, v.y + 1.1, de.z], vers: [v.x, v.y + 0.45, v.z], champ: 36 });
+      jeu.cadrer({ de: [de.x, v.y + 1.8, de.z], vers: [v.x, v.y + 0.45, v.z], champ: 36 });
       await jeu.attendre(500);
       jeu.son('magie');
       KOBAN_RAKAN.visible = true;
@@ -3274,7 +3435,7 @@ export function construire(ctx) {
     // (le secret, tresors.js ; le marchand ; les sons à fabriquer en plus ; les feux d'artifice, au-dessus de la plaine de Nara, au nord-ouest)
     secret: 'rakan', marchand: MARCHAND, sons: ['waniguchi', 'magie', 'pouf', 'papier', 'kane', 'caillou', 'bol', 'slurp', 'pinceau', 'tampon', 'oiseau/goutte', 'oiseau/shamisen0', 'oiseau/shamisen2', 'oiseau/shamisen4'],
     // (pour les essais : où sont les rakan, et les trois à part)
-    rakans: RAKANS.map(({ id, x, z, y, special }) => ({ id, x, z, y, special: special || null })),
+    rakans: RAKANS.map(({ id, x, z, y, special, rocher }) => ({ id, x, z, y, special: special || null, rocher })),
     betes: {
       papillons: [[-40, 0], [-44, 14], [40, -10], [-30, 50], [38, -45], [-148, -6], [-112, -50], [18, -66], [-78, -9]],
       chats: [{ id: 'chatChaya', x: -30.4, z: 18.7, cap: 2.0, robe: 'roux', dort: true }, { id: 'chatNokyo', x: 32.2, z: -26.6, cap: -1.0, robe: 'pie' }],
@@ -3370,6 +3531,9 @@ const TEXTES = {
     rakanMains: ['les mains dans le giron', 'les mains jointes', 'appuyé sur son bâton à anneaux', 'qui tient un bol', 'qui lit un rouleau', 'la main à la joue', 'le ventre tout rond', 'qui se gratte l’oreille'],
     rakanUn: 'Un rakan {air}, {mains}.',
     rakanDeja: ['Il te regarde, et il sourit.'],
+    rakanRocher: ['Sur ce rocher, {n} rakan sculptés, assis côte à côte.'],
+    rakanAutre: ['Mais l’un d’eux n’est pas comme les autres…'],
+    rakanAucun: ['Aucun visage connu, sur ce rocher.'],
     rakanCompagnon: { kon: ['Ce rakan a deux oreilles pointues sur la tête, et une queue enroulée à ses pieds… Comme Kon !'], pon: ['Ce rakan a deux oreilles rondes, une feuille sur la tête et un gros ventre… Comme Pon !'], chapu: ['Ce rakan a de petites oreilles, des moustaches, et un poisson dans les mains… Comme Chapu !'], gao: ['Ce rakan a une crinière toute bouclée autour du visage… Comme Gao !'], fuwa: ['Ce rakan a deux petites cornes, et une perle dans les mains… Comme Fuwa !'], saya: ['Ce rakan a un bonnet de mousse, et une petite pousse sur la tête… Comme Saya !'] },
     rakanCompagnonDit: { kon: ['« C’est… moi ? En pierre ? Il a mes oreilles, et même ma queue. Je suis très flatté. »'], pon: ['« Pooon ! C’est moi ! Avec mon ventre ! …Il est un peu gros, non ? Non ? Bon. »'], chapu: ['« Chapu ! C’est moi, avec un poisson ! Il a tout compris, ce rakan ! »'], gao: ['« Gao ! Ma crinière ! Un rakan gardien… comme moi. »'], fuwa: ['« Fuwaaa ! Mes cornes ! Et ma perle ! Je suis dans la pierre ! »'], saya: ['« Oh… ma pousse. Ma mousse. Quelqu’un pensait à moi, ici. »'] },
     rakanChapeau_garcon: ['Ce rakan porte une casquette. Une vraie casquette, en pierre, avec sa visière… Comme la tienne !'],
@@ -3379,7 +3543,7 @@ const TEXTES = {
     rakanVisage_fille: ['Ce rakan a de grands yeux ronds, des joues rondes, tes deux couettes… C’est ton visage ! Et dans ses mains, il garde quelque chose.'],
     rakanVisageDit: { kon: ['« C’est toi. Exactement toi. Il t’attendait depuis combien de temps ? »'], pon: ['« Pooon ! Il te ressemble plus que toi ! »'], chapu: ['« Chapu ! C’est toi ! En pierre ! Tu ne bouges pas, pour une fois ! »'], gao: ['« Gao. Ton visage. Je le garderai en mémoire, comme lui. »'], fuwa: ['« Fuwaaa… C’est toi, mais en tout calme. »'], saya: ['« Ton visage, sous les arbres. La forêt t’a reconnu. »'] },
     rakanDicton: { kon: ['« On dit que parmi les 500 rakan, on trouve toujours le visage de quelqu’un qu’on aime… Cherchons les autres. »'], pon: ['« Pon ! Mon oncle dit qu’ici, on trouve toujours le visage de quelqu’un qu’on aime ! Il y en a d’autres, alors ! »'], chapu: ['« Chapu ! On dit qu’on trouve toujours un visage qu’on aime, chez les rakan ! Cherchons ! »'], gao: ['« Gao. On dit qu’ici chacun retrouve un visage aimé. Continuons. »'], fuwa: ['« Fuwa… On dit que les rakan gardent les visages qu’on aime. Il y en a d’autres… »'], saya: ['« Les arbres disent que les rakan gardent les visages qu’on aime. Cherchons encore. »'] },
-    rakanEncore: { kon: ['« Il y en a sûrement d’autres. Regardons-les bien, un par un. »'], pon: ['« Pon ! Encore ! Je veux tous les voir ! »'], chapu: ['« Chapu ! On continue ! »'], gao: ['« Gao. Restons attentifs. »'], fuwa: ['« Fuwa… Il en reste, je crois. »'], saya: ['« Il en reste. Je les entends presque. »'] },
+    rakanEncore: { kon: ['« Il y en a sûrement d’autres. Regardons bien chaque rocher. »'], pon: ['« Pon ! Encore ! Je veux tous les voir ! »'], chapu: ['« Chapu ! On continue ! »'], gao: ['« Gao. Restons attentifs. »'], fuwa: ['« Fuwa… Il en reste, je crois. »'], saya: ['« Il en reste. Je les entends presque. »'] },
     rakanReste: {
       cedre: { kon: ['« Il en reste un… Je le sens, près du rocher au pied du vieux cèdre, au début de la montée. »'], pon: ['« Pon ! Le dernier, il est près du rocher sous le vieux cèdre, au début du sentier ! Mon nez le sait ! »'], chapu: ['« Chapu ! Le dernier : le rocher sous le grand cèdre, au début du sentier ! »'], gao: ['« Gao. Le dernier : le rocher au pied du vieux cèdre, en bas du sentier. »'], fuwa: ['« Fuwa… Le dernier est au rocher du vieux cèdre, au début de la montée. »'], saya: ['« Le vieux cèdre, au début du sentier, me dit que le dernier est contre son rocher. »'] },
       plat: { kon: ['« Il en reste un… Sur le rocher plat, à mi-chemin du sentier. »'], pon: ['« Pon ! Le dernier, il est sur le rocher plat, au milieu du sentier ! »'], chapu: ['« Chapu ! Le rocher plat, à mi-chemin ! C’est là ! »'], gao: ['« Gao. Le dernier : le rocher plat, à mi-chemin. »'], fuwa: ['« Fuwa… Le rocher plat, au milieu du sentier. »'], saya: ['« Le rocher plat, à mi-chemin. La mousse me le dit. »'] },
@@ -3528,6 +3692,9 @@ const TEXTES = {
     rakanMains: ['his hands in his lap', 'his hands joined', 'leaning on his ringed staff', 'holding a bowl', 'reading a scroll', 'his hand on his cheek', 'his belly all round', 'scratching his ear'],
     rakanUn: 'A rakan {air}, {mains}.',
     rakanDeja: ['He looks at you, and smiles.'],
+    rakanRocher: ['On this rock, {n} carved rakan, sitting side by side.'],
+    rakanAutre: ['But one of them is not like the others…'],
+    rakanAucun: ['No familiar face on this rock.'],
     rakanCompagnon: { kon: ['This rakan has two pointed ears on his head, and a tail curled at his feet… Like Kon!'], pon: ['This rakan has two round ears, a leaf on his head and a big belly… Like Pon!'], chapu: ['This rakan has little ears, whiskers, and a fish in his hands… Like Chapu!'], gao: ['This rakan has a curly mane all round his face… Like Gao!'], fuwa: ['This rakan has two little horns, and a pearl in his hands… Like Fuwa!'], saya: ['This rakan has a cap of moss, and a little sprout on his head… Like Saya!'] },
     rakanCompagnonDit: { kon: ['“Is that… me? In stone? He has my ears, even my tail. I’m very flattered.”'], pon: ['“Pooon! It’s me! With my belly! …It’s a bit big, isn’t it? No? Fine.”'], chapu: ['“Chapu! It’s me, with a fish! This rakan gets it!”'], gao: ['“Gao! My mane! A guardian rakan… like me.”'], fuwa: ['“Fuwaaa! My horns! And my pearl! I’m in the stone!”'], saya: ['“Oh… my sprout. My moss. Someone was thinking of me, here.”'] },
     rakanChapeau_garcon: ['This rakan is wearing a cap. A real cap, in stone, with its peak… Like yours!'],
@@ -3537,7 +3704,7 @@ const TEXTES = {
     rakanVisage_fille: ['This rakan has big round eyes, round cheeks, your two pigtails… It’s your face! And in his hands, he’s keeping something.'],
     rakanVisageDit: { kon: ['“It’s you. Exactly you. How long has he been waiting for you?”'], pon: ['“Pooon! He looks more like you than you do!”'], chapu: ['“Chapu! It’s you! In stone! You’re keeping still, for once!”'], gao: ['“Gao. Your face. I’ll keep it in mind, like him.”'], fuwa: ['“Fuwaaa… It’s you, but very calm.”'], saya: ['“Your face, under the trees. The forest recognised you.”'] },
     rakanDicton: { kon: ['“They say that among the 500 rakan, you always find the face of someone you love… Let’s look for the others.”'], pon: ['“Pon! My uncle says here you always find the face of someone you love! So there are others!”'], chapu: ['“Chapu! They say you always find a face you love among the rakan! Let’s look!”'], gao: ['“Gao. They say everyone finds a beloved face here. Let’s go on.”'], fuwa: ['“Fuwa… They say the rakan keep the faces we love. There are others…”'], saya: ['“The trees say the rakan keep the faces we love. Let’s keep looking.”'] },
-    rakanEncore: { kon: ['“There must be others. Let’s look at them carefully, one by one.”'], pon: ['“Pon! More! I want to see them all!”'], chapu: ['“Chapu! Let’s keep going!”'], gao: ['“Gao. Let’s stay watchful.”'], fuwa: ['“Fuwa… There are more, I think.”'], saya: ['“There are more. I can almost hear them.”'] },
+    rakanEncore: { kon: ['“There must be others. Let’s look carefully at every rock.”'], pon: ['“Pon! More! I want to see them all!”'], chapu: ['“Chapu! Let’s keep going!”'], gao: ['“Gao. Let’s stay watchful.”'], fuwa: ['“Fuwa… There are more, I think.”'], saya: ['“There are more. I can almost hear them.”'] },
     rakanReste: {
       cedre: { kon: ['“One left… I can feel it, by the rock at the foot of the old cedar, where the climb begins.”'], pon: ['“Pon! The last one is by the rock under the old cedar, at the start of the path! My nose knows!”'], chapu: ['“Chapu! The last one: the rock under the big cedar, at the start of the path!”'], gao: ['“Gao. The last one: the rock at the foot of the old cedar, at the bottom of the path.”'], fuwa: ['“Fuwa… The last one is at the old cedar’s rock, where the climb begins.”'], saya: ['“The old cedar at the start of the path tells me the last one is against its rock.”'] },
       plat: { kon: ['“One left… On the flat rock, halfway along the path.”'], pon: ['“Pon! The last one is on the flat rock, in the middle of the path!”'], chapu: ['“Chapu! The flat rock, halfway! That’s where!”'], gao: ['“Gao. The last one: the flat rock, halfway.”'], fuwa: ['“Fuwa… The flat rock, in the middle of the path.”'], saya: ['“The flat rock, halfway. The moss tells me.”'] },
@@ -3686,6 +3853,9 @@ const TEXTES = {
     rakanMains: ['手を　ひざに　おいて', '手を　あわせて', 'しゃくじょうに　もたれて', 'おわんを　もって', 'まきものを　よんで', 'ほおに　手を　あてて', 'おなかを　まんまるに　して', 'みみを　かきながら'],
     rakanUn: '{air}　羅漢さん。{mains}　いる。',
     rakanDeja: ['こちらを　見て、にっこり　わらっている。'],
+    rakanRocher: ['この　岩には、羅漢さんが　{n}人、ならんで　すわっている。'],
+    rakanAutre: ['でも、ひとりだけ、ほかと　ちがう　羅漢さんが　いる……。'],
+    rakanAucun: ['この　岩には、しっている　かおは　ないみたい。'],
     rakanCompagnon: { kon: ['この　羅漢さん、あたまに　とがった　みみが　二つ、足もとに　まるまった　しっぽ……コンみたい！'], pon: ['この　羅漢さん、まるい　みみに、あたまの　はっぱに、大きな　おなか……ポンみたい！'], chapu: ['この　羅漢さん、ちいさな　みみに　ひげ、手には　さかな……チャプみたい！'], gao: ['この　羅漢さん、かおの　まわりに　くるくるの　たてがみ……ガオみたい！'], fuwa: ['この　羅漢さん、ちいさな　つのが　二つ、手には　しんじゅ……フワみたい！'], saya: ['この　羅漢さん、こけの　ぼうしに、あたまの　ちいさな　め……サヤみたい！'] },
     rakanCompagnonDit: { kon: ['「これ……ぼく？　石の？　みみも　しっぽも　ある。とても　うれしいな」'], pon: ['「ポーン！　ぼくだ！　おなかも！　……ちょっと　大きすぎない？　ない？　そう」'], chapu: ['「チャプ！　ぼくだ、さかなも　もってる！　この　羅漢さん、わかってる！」'], gao: ['「ガオ！　ぼくの　たてがみ！　まもりの　羅漢さん……ぼくと　おなじだ」'], fuwa: ['「フワァ！　つの！　しんじゅも！　ぼく、石の　中に　いる！」'], saya: ['「あ……わたしの　め。わたしの　こけ。ここで　だれかが　おもって　くれてた」'] },
     rakanChapeau_garcon: ['この　羅漢さん、ぼうしを　かぶってる。石の、ちゃんと　つばの　ある　ぼうし……きみのと　おなじ！'],
@@ -3695,7 +3865,7 @@ const TEXTES = {
     rakanVisage_fille: ['この　羅漢さん、大きな　まるい　目、まるい　ほっぺ、きみの　ふたつの　おさげ……きみの　かおだ！　手には　なにかを　だいじに　もっている。'],
     rakanVisageDit: { kon: ['「きみだ。きみ　そのもの。いつから　まってたんだろう」'], pon: ['「ポーン！　きみより　きみに　にてる！」'], chapu: ['「チャプ！　きみだ！　石の！　きょうは　じっと　してるね！」'], gao: ['「ガオ。きみの　かお。この　羅漢さんと　おなじに　おぼえておくぞ」'], fuwa: ['「フワァ……きみだ。でも　すごく　おだやか」'], saya: ['「木の　下の　きみの　かお。森が　きみを　おぼえたんだ」'] },
     rakanDicton: { kon: ['「五百羅漢の　中には、かならず　すきな　人に　にた　かおが　あるって……ほかのも　さがそう」'], pon: ['「ポン！　おじさんが　いってた、ここには　かならず　すきな　人の　かおが　あるって！　じゃあ　まだ　いる！」'], chapu: ['「チャプ！　羅漢さんの　中には　すきな　かおが　かならず　あるって！　さがそう！」'], gao: ['「ガオ。ここでは　だれもが　すきな　かおに　会えるという。つづけよう」'], fuwa: ['「フワ……羅漢さんは　すきな　かおを　まもってるって。まだ　いるよ……」'], saya: ['「木たちが　いってる。羅漢さんは　すきな　かおを　まもってるって。もっと　さがそう」'] },
-    rakanEncore: { kon: ['「きっと　まだ　いる。ひとりずつ　よく　見よう」'], pon: ['「ポン！　もっと！　ぜんぶ　見たい！」'], chapu: ['「チャプ！　つづけよう！」'], gao: ['「ガオ。ゆだんするな」'], fuwa: ['「フワ……まだ　いるみたい」'], saya: ['「まだ　いる。こえが　きこえそう」'] },
+    rakanEncore: { kon: ['「きっと　まだ　いる。岩を　ひとつずつ　よく　見よう」'], pon: ['「ポン！　もっと！　ぜんぶ　見たい！」'], chapu: ['「チャプ！　つづけよう！」'], gao: ['「ガオ。ゆだんするな」'], fuwa: ['「フワ……まだ　いるみたい」'], saya: ['「まだ　いる。こえが　きこえそう」'] },
     rakanReste: {
       cedre: { kon: ['「あと　ひとり……のぼりはじめの、ふるい　すぎの　木の　ねもとの　岩だ」'], pon: ['「ポン！　さいごは、山道の　はじめの、ふるい　すぎの　下の　岩！　はなで　わかる！」'], chapu: ['「チャプ！　さいごは、山道の　はじめの　大きな　すぎの　下の　岩！」'], gao: ['「ガオ。さいごは、山道の　下の　ふるい　すぎの　岩だ」'], fuwa: ['「フワ……さいごは、のぼりはじめの　ふるい　すぎの　岩」'], saya: ['「山道の　はじめの　ふるい　すぎが　いってる。さいごの　ひとりは　その　岩に　いるって」'] },
       plat: { kon: ['「あと　ひとり……山道の　なかほどの、たいらな　岩だ」'], pon: ['「ポン！　さいごは、山道の　まんなかの　たいらな　岩！」'], chapu: ['「チャプ！　なかほどの　たいらな　岩！　そこだ！」'], gao: ['「ガオ。さいごは、なかほどの　たいらな　岩だ」'], fuwa: ['「フワ……山道の　まんなかの　たいらな　岩」'], saya: ['「なかほどの　たいらな　岩。こけが　おしえて　くれた」'] },

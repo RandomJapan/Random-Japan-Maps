@@ -49,7 +49,8 @@ const TETE = 2.6;
  * raide (les parois d'un cratère ; null : pas de limite ; on peut toujours descendre). On y ajoute :
  * - des surfaces [x0, x1, z0, z1] à la hauteur h (planchers, ponts…), ou en pente (escaliers : rampe
  *   { axe: 'x' | 'z', h0, h1 }, de h0 au bord x0 / z0 à h1 au bord x1 / z1 ; marches { u0, giron, contre, n, h0 }
- *   en plus : chaque marche à plat, à sa hauteur, le nez de la première en u0 le long de l'axe ; ou chemin : le long d'une ligne
+ *   en plus : chaque marche à plat, à sa hauteur, le nez de la première en u0 le long de l'axe (pour qui marche, hauteur(…, lisse) :
+ *   la ligne qui passe par le milieu des marches ; la rampe commence une demi-marche avant u0) ; ou chemin : le long d'une ligne
  *   brisée [[x, z, h], …], un escalier en biais ; ou anneau : entre les rayons r0 et r1 d'un centre, un gradin
  *   rond) ; plein : un bloc du sol à h (un pavillon fermé : ni dessus,
  *   ni dessous) ; passage : un pont assez haut pour passer dessous ; sol : ce qu'on entend en y marchant
@@ -74,15 +75,21 @@ export function creerMonde({ terrain, cadre, profond = -0.6, pente = null }) {
     const L = s.ligne, [ax, az] = L[0], [bx, bz] = L[1], [cx, cz] = L[L.length - 2], [dx, dz] = L[L.length - 1];
     return (x - ax) * (bx - ax) + (z - az) * (bz - az) >= 0 && (x - dx) * (dx - cx) + (z - dz) * (dz - cz) <= 0;
   };
-  const hauteurDe = (s, x, z) => {
+  const hauteurDe = (s, x, z, lisse) => {
     if (s.ligne) return surLaLigne(s.ligne, x, z).h;
     if (!s.rampe) return s.h;
     const { axe, h0, h1 } = s.rampe;
     // (un escalier, o.marches : les pieds sur chaque marche, à plat. Sur une pente qui passait par le milieu des marches, ils
-    // flottaient au-dessus d'une moitié de marche et entraient dans l'autre : 2026-11-11, Tsubosaka-dera)
+    // flottaient au-dessus d'une moitié de marche et entraient dans l'autre : 2026-11-11, Tsubosaka-dera. Avant le nez de la
+    // première, le sol d'en bas.)
+    // (lisse : pour qui marche, la ligne qui passe par le milieu de chaque marche, de la moitié d'une marche avant la première à
+    // la dernière : une marche d'un coup, en marchant vite, c'étaient de petits sauts, 2026-11-12 ; lisse.dx, lisse.dz : la
+    // prendre un peu plus loin devant, là où l'on sera quand les pieds l'auront rejointe)
     if (s.marches) {
-      const M = s.marches, k = Math.floor(((axe === 'x' ? x : z) - M.u0) / M.giron);
-      return M.h0 + M.contre * Math.min(M.n, Math.max(1, k + 1));
+      const M = s.marches, u = axe === 'x' ? x : z;
+      if (lisse) return M.h0 + M.contre * Math.min(M.n, Math.max(0, (u + ((axe === 'x' ? lisse.dx : lisse.dz) || 0) - M.u0) / M.giron + 0.5));
+      if (u < M.u0) return M.h0;
+      return M.h0 + M.contre * Math.min(M.n, Math.floor((u - M.u0) / M.giron) + 1);
     }
     const f = axe === 'x' ? (x - s.x0) / (s.x1 - s.x0) : (z - s.z0) / (s.z1 - s.z0);
     return h0 + (h1 - h0) * Math.min(1, Math.max(0, f));
@@ -95,12 +102,12 @@ export function creerMonde({ terrain, cadre, profond = -0.6, pente = null }) {
    * d'étage (etage : un grenier, où l'on monte par une échelle) ne compte que pour qui vient de quelque part (y
    * fini) : sans y, on cherche le sol, pas l'étage (un passant, un départ).
    */
-  function poserPied(x, z, y) {
+  function poserPied(x, z, y, lisse) {
     const sol = terrain(x, z);
     let choix = sol <= y + PAS ? sol : -Infinity, bas = sol, surface = null;
     for (const s of surfaces) {
       if (s.plein || (s.etage && y === Infinity) || !dedans(s, x, z)) continue;
-      const h = hauteurDe(s, x, z);
+      const h = hauteurDe(s, x, z, lisse);
       // (à 2 cm près, une surface l'emporte sur le sol naturel : là où le sol passait à peine au-dessus d'un escalier,
       // c'est lui qu'on suivait, et sa pente arrêtait le voyageur ; 2026-10-24, le haut de l'escalier du sanctuaire de
       // Gokayama)
@@ -109,8 +116,8 @@ export function creerMonde({ terrain, cadre, profond = -0.6, pente = null }) {
     }
     return choix > -Infinity ? { h: choix, surface } : { h: bas, surface: null };
   }
-  /** La hauteur où se tient quelqu'un en x, z qui arrive de la hauteur y (poserPied). */
-  const hauteur = (x, z, y = Infinity) => poserPied(x, z, y).h;
+  /** La hauteur où se tient quelqu'un en x, z qui arrive de la hauteur y (poserPied) ; lisse : qui marche (un escalier : hauteurDe). */
+  const hauteur = (x, z, y = Infinity, lisse) => poserPied(x, z, y, lisse).h;
 
   /** Le point x, z le plus proche sur le segment, et la distance. */
   function versMur(m, x, z) {
@@ -239,6 +246,8 @@ export function creerMonde({ terrain, cadre, profond = -0.6, pente = null }) {
 
   return {
     terrain, cadre, surfaces, cercles, murs, blocs, toits, hauteur, libre, enferme, abri, visee, raideur, solSous,
+    /** Où se tient quelqu'un en x, z qui arrive de la hauteur y : { h, surface } (poserPied ; surface.marches : dans un escalier). */
+    pied: (x, z, y = Infinity) => poserPied(x, z, y),
     surface(x0, x1, z0, z1, h, o = {}) { surfaces.push({ x0, x1, z0, z1, h, ...o }); },
     rampe(x0, x1, z0, z1, axe, h0, h1, o = {}) { surfaces.push({ x0, x1, z0, z1, h: Math.max(h0, h1), rampe: { axe, h0, h1 }, ...o }); },
     /**
