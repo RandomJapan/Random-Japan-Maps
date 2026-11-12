@@ -1,0 +1,6 @@
+{
+  "morceaux": [
+    { "clip": "piece-envers", "s0": 0.833, "f0": 0, "f1": 190, "v": 1 },
+    { "clip": "piece-envers", "s0": 4.0, "f0": 190, "f1": 250, "v": 0 }
+  ]
+}
