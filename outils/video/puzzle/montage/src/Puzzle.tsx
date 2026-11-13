@@ -22,7 +22,8 @@ const sec = (n: number) => t(n) / FPS;
 const MUSIQUE = 0.42;
 /** [seconde où le bruit doit s'entendre (son attaque déduite), fichier, volume, durée (s) : coupé et fondu au bout]. */
 const SFX: [number, string, number, number?][] = [
-  // l'accroche : le son d'origine du plan, à l'envers et coupé comme lui, déjà calé sur l'image (preparer.py : geste)
+  // l'accroche : le souffle de la pièce, le clic de la pièce qui rentre, le pouce qui l'appuie, à l'endroit et déjà calés sur
+  // l'image (preparer.py : geste)
   [0, "sfx/geste.wav", 1, T.ouvre / FPS],
   // la montée vers la plongée : après la main, il ne restait que le souffle de la pièce (1,5 s à −45 LUFS : on aurait cru le son
   // coupé) ; un scintillement et un souffle qui montent et culminent quand la musique éclate (« COME ALIVE »)

@@ -6,8 +6,9 @@ montage Remotion (outils/video/puzzle/montage).
   (deux fois, le trou faisait plusieurs pièces et la main posait la sienne à côté) : il a fait le puzzle fini (Nano Banana), puis
   une main qui en soulève une pièce (VP2a1, dans videos/higgsfield/videos), qu'on passe ici à l'envers. Réencodée en 1080 × 1920,
   une image clé toutes les 6 (voir « The Higgsfield videos » dans instructions/videos.md).
-- Le son de l'accroche (sfx/geste.wav) : le son d'origine du plan, à l'envers lui aussi (le « pop » de la pièce qu'on arrache
-  devient le clic de la pièce qui rentre), coupé comme lui.
+- Le son de l'accroche (sfx/geste.wav) : les sons des essais de Seedance, à l'endroit (à l'envers, chaque bruit enflait puis
+  s'arrêtait net) : le souffle de la pièce, un clic de carton sur l'image où la pièce rentre, le pouce qui l'appuie.
+    python -c "import preparer; preparer.geste()"   (dans outils/video/puzzle : refait seulement ce son)
 - Tout le reste vient de la vidéo « sceau » (videos/carte/sceau/public) : les prises de la carte et de la balade, le vrai plan des
   dunes, l'interface, les bruitages, le logo.
 """
@@ -58,70 +59,109 @@ def clip(nom):
                     '-color_primaries', 'bt709', '-color_trc', 'bt709', str(PUBLIC / 'clips' / f'{nom}.mp4')], check=True)
 
 
-# Le son de l'accroche : les morceaux des plans, coupés comme dans le montage (montage/src/accroche.json : le fichier, sa seconde à la
-# première image, les images de début et de fin dans la vidéo, la vitesse ; une vitesse 0 : l'image arrêtée, sur le souffle de la
-# pièce)
+# Le son de l'accroche (refait le 2026-11-13, le propriétaire : « Juste le son du début quand il pose la pièce est mal fait »). Le
+# premier était le son du plan à l'envers, comme son image : chaque bruit y enflait puis s'arrêtait net (le clic montait pendant
+# 6 images avant que la pièce rentre), et le limiteur fort remontait les grattements des doigts, à l'envers eux aussi, presque au
+# niveau du clic (−12 dB, une demi-seconde après lui). Tout est maintenant à l'endroit, pris dans les sons des quatre essais de
+# Seedance (la même pièce, la même table) :
+# - le souffle de la pièce : les passages calmes de VP2a1 mis bout à bout, du début jusqu'à l'éclat de la musique, sans saut ;
+# - le clic : celui de VP2a2 (du carton : 1,2 kHz ; le pop de VP2a1 était sourd, presque tout sous 200 Hz, perdu sur un téléphone),
+#   avec l'attaque sèche de VP2b2 dessous, son sommet sur l'image où la pièce est rentrée ;
+# - le pouce qui appuie la pièce, juste après : le frottement de VP2a1, bien en dessous.
 ACCROCHE = json.loads((ICI / 'montage' / 'src' / 'accroche.json').read_text(encoding='utf-8'))['morceaux']
-# (dB par plan)
-GAINS = {'piece-envers': 0}
 FIN_GESTE = 250  # image : le temps 12 de la musique, où elle éclate (la vidéo commence à son temps 2 : voir theme.ts)
-# Images : à 24 images/s, l'image d'un choc arrive juste après lui dans le son d'origine (mesuré sur la jarre : 2 images à 60).
-RETARD = 2
-# (images, dB) : des nuances à la main, si un bruit couvre le geste qu'on doit entendre
-NUANCES = ()
-# Le limiteur, avant de tout remonter à −1 dB : le clic de la pièce (−6 dB) est bien plus fort que le reste (la main, la pièce qui
-# frotte : −30 à −45 dB ; la fléchette : 0,12 ; le sceau : 0,08).
-LIMITE = 0.12
+SOUFFLE = ('VP2a1', ((2.66, 3.84), (0.20, 1.10), (1.50, 1.84)))  # (secondes du fichier, sans aucun choc)
+NIVEAU_SOUFFLE = -44  # dBFS efficaces (le clic culmine à −1 dB)
+CLIC = (('VP2a2', 2.159, 0), ('VP2b2', 1.897, -8))  # (fichier, seconde de son sommet, dB)
+# Le clic : sur la première image du plan à l'envers où la pièce est dans son trou (sa 37e, 1,542 s : sur la 36e, le bois de la
+# table se voit encore dessous ; l'image 43 de la vidéo). Son sommet une image plus tard : sa montée (25 ms) commence ainsi sur
+# cette image (mesuré dans le MP4 fini : le clic part à l'image 42,8 et culmine à 44,3).
+POSE = 37 / 24
+APRES = 1
+COMPRESSION = 0.6  # le limiteur du clic seul (−4,4 dB sur son sommet : il prend du corps)
+FROTTEMENT = ('VP2a1', 1.86, 2.24, -16, 8)  # (fichier, de, à (s), dB sous le sommet du clic, images après lui)
 
 
-def son_de(plan, sr):
-    """Le son d'un plan (stéréo, sr), à l'envers comme son image, ou None s'il n'en a pas."""
-    source, envers = PLANS[plan]
-    r = subprocess.run([ffmpeg(), '-hide_banner', '-loglevel', 'error', '-i', str(SOURCES / f'{source}.mp4'), '-vn', '-ac', '2', '-ar', str(sr)]
-                       + (['-af', 'areverse'] if envers else []) + ['-f', 'f32le', '-'], capture_output=True)
-    return np.frombuffer(r.stdout, dtype=np.float32).reshape(-1, 2) if r.returncode == 0 and r.stdout else None
+def son_brut(source, sr):
+    """Le son d'un fichier de Higgsfield, à l'endroit (stéréo, sr)."""
+    r = subprocess.run([ffmpeg(), '-hide_banner', '-loglevel', 'error', '-i', str(SOURCES / f'{source}.mp4'), '-vn', '-ac', '2', '-ar', str(sr),
+                        '-f', 'f32le', '-'], capture_output=True, check=True)
+    return np.frombuffer(r.stdout, dtype=np.float32).reshape(-1, 2)
+
+
+def fondre(x, entree, sortie, sr):
+    """Fondus en cosinus (secondes) au début et à la fin."""
+    x = x.copy()
+    for n, sens in ((int(entree * sr), 1), (int(sortie * sr), -1)):
+        if n:
+            c = (0.5 - 0.5 * np.cos(np.linspace(0, np.pi, n, dtype=np.float32)))[:, None]
+            if sens > 0:
+                x[:n] *= c
+            else:
+                x[-n:] *= c[::-1]
+    return x
+
+
+def limiter(x, limite, sr):
+    return np.frombuffer(subprocess.run([ffmpeg(), '-hide_banner', '-loglevel', 'error', '-f', 'f32le', '-ar', str(sr), '-ac', '2', '-i', '-',
+                                         '-af', f'alimiter=limit={limite}:attack=0.5:release=30:level=false:latency=1', '-f', 'f32le', '-'],
+                                        input=np.ascontiguousarray(x, dtype=np.float32).tobytes(), capture_output=True, check=True).stdout,
+                         dtype=np.float32).reshape(-1, 2).copy()
+
+
+def souffle(n, sr):
+    """n échantillons du souffle de la pièce : ses passages calmes enchaînés en fondus de puissance constante (80 ms)."""
+    source, passages = SOUFFLE
+    son = son_brut(source, sr)
+    morceaux = [son[int(a * sr):int(b * sr)] for a, b in passages]
+    x = int(0.08 * sr)
+    monte = np.sin(np.linspace(0, np.pi / 2, x, dtype=np.float32))[:, None]
+    sortie, i = morceaux[0], 1
+    while len(sortie) < n:
+        m = morceaux[i % len(morceaux)]
+        i += 1
+        sortie = np.concatenate([sortie[:-x], sortie[-x:] * monte[::-1] + m[:x] * monte, m[x:]])
+    return sortie[:n]
+
+
+def clic(sr):
+    """Le clic, son sommet à 30 ms du début, déjà à −1 dB."""
+    avant, apres = int(0.03 * sr), int(0.22 * sr)
+    total = np.zeros((avant + apres, 2), dtype=np.float32)
+    for source, sommet, db in CLIC:
+        son = son_brut(source, sr)
+        i = int(sommet * sr)
+        i += int(np.abs(son[i - avant:i + avant]).sum(1).argmax()) - avant  # (le sommet exact, à l'échantillon près)
+        m = son[i - avant:i + apres]
+        total += m / np.abs(m).max() * 10 ** (db / 20)
+    total = fondre(total, 0.006, 0.08, sr)
+    total = limiter(total / np.abs(total).max(), COMPRESSION, sr)
+    return total * 10 ** (-1 / 20) / np.abs(total).max()
 
 
 def geste():
-    """Le son de l'accroche. Seedance génère le son avec l'image : la main, la pièce qui frotte et qui sort (ici, qui rentre) y
-    tombent déjà avec l'image. On le prend tel quel, coupé comme l'image (la leçon de la jarre : les bruitages posés à la main
-    sonnaient faux), puis un limiteur fort qui fait monter tous les petits bruits. L'image arrêtée reçoit le souffle de la pièce
-    (piece.wav)."""
+    """Le son de l'accroche (sfx/geste.wav, de l'image 0 à l'éclat de la musique) : le souffle de la pièce, le clic, le pouce."""
     sr = 48000
-    sortie = np.zeros((round(FIN_GESTE / 60 * sr), 2), dtype=np.float32)
-    fondu = np.linspace(0, 1, int(0.004 * sr), dtype=np.float32)[:, None]
-    piece = None
-    for m in ACCROCHE:
-        f0, f1, v = m['f0'], min(m['f1'], FIN_GESTE), m['v']
-        son = son_de(m['clip'], sr) if v > 0 else None
-        n = round((f1 - f0) / 60 * sr)
-        if son is None:
-            if piece is None:
-                brut = subprocess.run([ffmpeg(), '-hide_banner', '-loglevel', 'error', '-i', str(PUBLIC / 'sfx' / 'piece.wav'), '-ac', '2', '-ar', str(sr), '-f', 'f32le', '-'],
-                                      capture_output=True, check=True).stdout
-                piece = np.frombuffer(brut, dtype=np.float32).reshape(-1, 2)
-            morceau = np.resize(piece, (n, 2)).astype(np.float32) * 0.3  # (le souffle de la pièce, au niveau de celui du plan)
-        else:
-            son = son[int(m['s0'] * sr):int((m['s0'] + (f1 - f0) / 60 * v) * sr)]
-            x = np.linspace(0, len(son) - 1, n)
-            morceau = np.column_stack([np.interp(x, np.arange(len(son)), son[:, c]) for c in (0, 1)]).astype(np.float32)
-        morceau *= 10 ** (GAINS.get(m['clip'], 0) / 20)
-        morceau[:len(fondu)] *= fondu
-        morceau[-len(fondu):] *= fondu[::-1]
-        debut = round((f0 + RETARD) / 60 * sr)
-        fin = min(len(sortie), debut + n)
-        sortie[debut:fin] += morceau[:fin - debut]
-    sortie = np.frombuffer(subprocess.run([ffmpeg(), '-hide_banner', '-loglevel', 'error', '-f', 'f32le', '-ar', str(sr), '-ac', '2', '-i', '-',
-                                           '-af', f'alimiter=limit={LIMITE}:attack=1:release=40:level=false:latency=1', '-f', 'f32le', '-'],
-                                          input=sortie.tobytes(), capture_output=True, check=True).stdout, dtype=np.float32).reshape(-1, 2).copy()
-    enveloppe = np.ones(len(sortie), dtype=np.float32)
-    for a, z, db in NUANCES:
-        enveloppe[round(a / 60 * sr):round(z / 60 * sr)] = 10 ** (db / 20)
-    enveloppe = np.convolve(enveloppe, np.ones(240, dtype=np.float32) / 240, mode='same')  # (5 ms de transition)
-    sortie *= enveloppe[:, None]
-    sortie *= 10 ** (-1 / 20) / np.abs(sortie).max()
-    subprocess.run([ffmpeg(), '-hide_banner', '-loglevel', 'error', '-y', '-f', 'f32le', '-ar', str(sr), '-ac', '2', '-i', '-', '-c:a', 'pcm_s16le', str(PUBLIC / 'sfx' / 'geste.wav')],
-                   input=sortie.tobytes(), check=True)
+    n = round(FIN_GESTE / 60 * sr)
+    bruit = souffle(n, sr)
+    sortie = bruit * (10 ** (NIVEAU_SOUFFLE / 20) / np.sqrt((bruit ** 2).mean()))
+    sortie = fondre(sortie, 0.01, 0, sr)
+    # le clic : l'image où la pièce est rentrée, dans la vidéo (le premier morceau de accroche.json joue le plan dès sa seconde s0)
+    s0 = ACCROCHE[0]['s0']
+    image_pose = int(np.ceil((POSE - s0) * 60)) + ACCROCHE[0]['f0']
+    c = clic(sr)
+    debut = round((image_pose + APRES) / 60 * sr) - int(0.03 * sr)
+    sortie[debut:debut + len(c)] += c
+    # le pouce qui appuie la pièce
+    source, a, z, db, apres = FROTTEMENT
+    f = fondre(son_brut(source, sr)[int(a * sr):int(z * sr)], 0.015, 0.06, sr)
+    f *= 10 ** ((-1 + db) / 20) / np.abs(f).max()
+    debut = round((image_pose + APRES + apres) / 60 * sr)
+    sortie[debut:debut + len(f)] += f[:len(sortie) - debut]
+    sortie *= 10 ** (-1 / 20) / max(np.abs(sortie).max(), 10 ** (-1 / 20))
+    subprocess.run([ffmpeg(), '-hide_banner', '-loglevel', 'error', '-y', '-f', 'f32le', '-ar', str(sr), '-ac', '2', '-i', '-', '-c:a', 'pcm_s16le',
+                    str(PUBLIC / 'sfx' / 'geste.wav')], input=np.ascontiguousarray(sortie, dtype=np.float32).tobytes(), check=True)
+    print('la pièce rentre sur l\'image', image_pose, ': le clic culmine à', image_pose + APRES)
 
 
 def main():

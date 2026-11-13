@@ -20,7 +20,8 @@ for bgm, nom in ((True, f'{finir.NOM}-brut'), (False, f'{finir.NOM}-sans-brut'))
     props = M / 'out' / f'props-{"bgm" if bgm else "sans"}.json'
     props.write_text(json.dumps({'bgm': bgm}), encoding='utf-8')
     wav = M / 'out' / f'{nom}.wav'
-    subprocess.run([npx, 'remotion', 'render', 'Puzzle', str(wav), '--codec=wav', '--log=error', f'--props={props}'], cwd=M, check=True, shell=True)
+    # (4 onglets, 2 min par image : le 2026-11-13, le disque C: presque plein, le rendu par défaut se bloquait sur une image)
+    subprocess.run([npx, 'remotion', 'render', 'Puzzle', str(wav), '--codec=wav', '--log=error', '--timeout=120000', '--concurrency=4', f'--props={props}'], cwd=M, check=True, shell=True)
     nouveau = M / 'out' / f'{nom}-son.mp4'
     subprocess.run([finir.ffmpeg(), '-hide_banner', '-loglevel', 'error', '-y', '-i', str(M / 'out' / f'{nom}.mp4'), '-i', str(wav),
                     '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'pcm_s16le', str(nouveau.with_suffix('.mov'))], check=True)

@@ -18,7 +18,9 @@ Seedance 2.0 n'a jamais su finir un puzzle : deux fois (textes 2 et 3), le trou 
 pièce à côté. Le texte 4 a fait l'inverse : le puzzle fini (Nano Banana, sur l'image du puzzle d'avant et une capture de la
 carte), puis une main qui en **soulève** une pièce (4 essais). On garde VP2a1 (une seule pièce, de la taille des autres, la main
 propre ; P2b, l'autre puzzle fini, a des pièces en vrac sur la table), joué **à l'envers** : la pièce descend dans son trou, clic,
-la main s'en va. Le son aussi est à l'envers : le « pop » de la pièce qu'on arrache devient le clic de la pièce qui rentre.
+la main s'en va. Le son, lui, est à l'endroit (2026-11-13, le propriétaire : « Juste le son du début quand il pose la pièce est mal
+fait » : à l'envers, le clic enflait puis s'arrêtait net) : le souffle de la pièce, le clic de carton d'un autre essai sur l'image où
+la pièce rentre, le pouce qui l'appuie.
 
 ## Le découpage (144 BPM, un temps = 25 images à 60 images/s)
 
@@ -27,7 +29,7 @@ Les temps sont numérotés comme dans le sceau, mais la vidéo commence à son t
 
 | Temps | Image | Son | Mots |
 |---|---|---|---|
-| 2 → 12 | VP2a1 à l'envers, depuis sa 76e image (la pièce tenue au-dessus de son trou, au milieu de Honshū, descend déjà) : elle rentre (image 42), la main appuie, s'en va par le bas à droite (image 168) ; le puzzle fini, le téléphone s'en approche de plus en plus vite (× 1,2) | le souffle de la pièce, le clic, le carton | « THE LAST PIECE OF / MY JAPAN PUZZLE 🧩 », déjà posé à la première image ; « NOW WATCH IT / COME ALIVE 👀 » (image 150) |
+| 2 → 12 | VP2a1 à l'envers, depuis sa 76e image (la pièce tenue au-dessus de son trou, au milieu de Honshū, descend déjà) : elle rentre (image 43), la main appuie, s'en va par le bas à droite (image 168) ; le puzzle fini, le téléphone s'en approche de plus en plus vite (× 1,2) | le souffle de la pièce, le clic, le carton | « THE LAST PIECE OF / MY JAPAN PUZZLE 🧩 », déjà posé à la première image ; « NOW WATCH IT / COME ALIVE 👀 » (image 150) |
 | 12 | Le Japon du puzzle devient la vraie carte, posée exactement sur lui (`PAPIER` : les deux Japon ont presque la même forme, le puzzle a été fait sur une capture de la carte) ; elle glisse à sa place, ses points surgissent | la musique éclate, un souffle | |
 | 12 → 48 | Comme le sceau : la plongée sur les dunes de Tottori, l'épingle, la fiche, la vidéo du propriétaire, Fukuoka, les quatre saisons, jour/nuit, la mer, la légende, la route, l'arrêt sur image en trame, « Visit in 3D » et le portail vers la balade, la fin | | « 150+ PLACES », « ONE 3D MAP »… |
 
