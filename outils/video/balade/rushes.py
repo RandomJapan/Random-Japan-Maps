@@ -46,6 +46,9 @@ BATEAU = {'baladeYakushima': 'oui'}
 # Tottori : l'ombrelle en main ; le chrono des petits jeux, plus grand, sous la boîte de texte du montage
 OMBRELLE = {'baladeTampons': {'tottori': ['crete', 'chameau', 'planche', 'musee', 'oasis']}, 'baladeTenue': {'fille': {'main': 'ombrelle'}}, 'baladeTenuesVues': ['ombrelle']}
 CHRONO = '.chrono { top: 232px !important; transform: translateX(-50%) scale(1.5) !important; transform-origin: 50% 0; }'
+# Tsubosaka-dera : le shamisen de Sawaichi en main ; la feuille du test des yeux et ses réponses, plus petites et plus bas que dans le jeu
+SHAMISEN = {'baladeTampons': {'tsubosaka': ['kannon', 'daibutsu', 'yeux', 'fresque', 'osato']}, 'baladeTenue': {'fille': {'main': 'shamisen'}}, 'baladeTenuesVues': ['shamisen']}
+TEST_YEUX = '.feuille { padding: 205px 14px calc(var(--bas) + 150px) !important; } .feuille-papier { width: 290px !important; }'
 AMI_SUIT = {**BATEAU, 'baladeSecrets': {'trouves': ['esprits'], 'indices': ['ami-demande', 'ami-arrose', 'ami-suit', 'ami-dos']}}
 PRISES = {
     # Vidéo 1 : la balade, les cinq lieux
@@ -176,6 +179,29 @@ PRISES = {
     'tt-grelot': {'lieu': 'tottori', 'ui': 'rien'},
     'tt-lune': {'lieu': 'tottori', 'ui': 'rien', 'stockage': {'baladeSecrets': {'trouves': ['caravane'], 'indices': []}}},
     'tt-fin': {'lieu': 'tottori', 'ui': 'rien', 'stockage': OMBRELLE},
+    # Vidéo 10 : Tsubosaka-dera (les textes du jeu cachés, sauf le test des yeux : sa feuille et ses quatre réponses, la feuille plus petite et
+    # plus bas que dans le jeu, sous la boîte de texte du montage)
+    'ts-place': {'lieu': 'tsubosaka', 'ui': 'rien'},
+    'ts-bus': {'lieu': 'tsubosaka', 'ui': 'rien'},
+    'ts-nio': {'lieu': 'tsubosaka', 'ui': 'rien'},
+    'ts-encens': {'lieu': 'tsubosaka', 'ui': 'rien'},
+    'ts-gong': {'lieu': 'tsubosaka', 'ui': 'rien'},
+    'ts-test': {'lieu': 'tsubosaka', 'ui': 'dialogue', 'css': TEST_YEUX, 'garder': [[4.5, 10]]},
+    'ts-lunettes': {'lieu': 'tsubosaka', 'ui': 'rien'},
+    'ts-poupees': {'lieu': 'tsubosaka', 'ui': 'rien'},
+    'ts-the': {'lieu': 'tsubosaka', 'ui': 'rien', 'garder': [[5, 12]]},
+    'ts-grotte': {'lieu': 'tsubosaka', 'ui': 'rien'},
+    'ts-stupa': {'lieu': 'tsubosaka', 'ui': 'rien'},
+    'ts-nehan': {'lieu': 'tsubosaka', 'ui': 'rien'},
+    'ts-kannon': {'lieu': 'tsubosaka', 'ui': 'rien'},
+    'ts-couloir': {'lieu': 'tsubosaka', 'ui': 'rien'},
+    'ts-sawaichi': {'lieu': 'tsubosaka', 'ui': 'rien', 'garder': [[5, 15]]},
+    'ts-tampon': {'lieu': 'tsubosaka', 'ui': 'rien', 'garder': [[12.5, 26]], 'stockage': {'baladeTampons': {'tsubosaka': ['kannon', 'daibutsu', 'yeux', 'fresque']}}},
+    'ts-shamisen': {'lieu': 'tsubosaka', 'ui': 'rien', 'stockage': SHAMISEN},
+    'ts-nuit': {'lieu': 'tsubosaka', 'ui': 'rien'},
+    'ts-sentier': {'lieu': 'tsubosaka', 'ui': 'rien'},
+    'ts-rocher': {'lieu': 'tsubosaka', 'ui': 'rien'},
+    'ts-fin': {'lieu': 'tsubosaka', 'ui': 'rien'},
 }
 DEFAUT = {'perso': 'fille', 'compagnon': 'kon', 'stockage': {}, 'ui': 'dialogue'}
 

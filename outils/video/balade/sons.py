@@ -34,7 +34,9 @@ CALCULES = ['pouf', 'cri/kon', 'cri/pon', 'cri/chapu', 'cri/gao', 'cri/fuwa', 'c
             # (Udo et Yakushima : la corne du bateau, le singe, le petit esprit, le grand cerf)
             'oiseau/corne', 'oiseau/singe', 'oiseau/esprit', 'oiseau/cerf',
             # (les dunes de Tottori : le chameau, les grelots, la planche, le compte à rebours et les portes, les poulies du télésiège, la pièce des jumelles, le vent)
-            'oiseau/chameau', 'oiseau/grelots', 'oiseau/glisse', 'oiseau/top', 'oiseau/depart', 'oiseau/porte', 'oiseau/arrivee', 'oiseau/poulies', 'oiseau/clac', 'oiseau/trouve', 'boucle/ventFort', 'boucle/ventDoux']
+            'oiseau/chameau', 'oiseau/grelots', 'oiseau/glisse', 'oiseau/top', 'oiseau/depart', 'oiseau/porte', 'oiseau/arrivee', 'oiseau/poulies', 'oiseau/clac', 'oiseau/trouve', 'boucle/ventFort', 'boucle/ventDoux',
+            # (Tsubosaka-dera : les six notes du shamisen de Sawaichi, la goutte du tronc d'ablutions)
+            'oiseau/shamisen0', 'oiseau/shamisen1', 'oiseau/shamisen2', 'oiseau/shamisen3', 'oiseau/shamisen4', 'oiseau/shamisen5', 'oiseau/goutte']
 # (deux sons du même nom : le « tampon » de bruitage-calcul.js, les deux sceaux du goshuin, devient sceaux.wav ; celui de
 # son.js, la petite note du carnet, reste tampon.wav)
 RENOMMER = {'tampon': 'sceaux'}

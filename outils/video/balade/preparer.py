@@ -75,6 +75,15 @@ REELS = {
     'tt-planche': ('Tottori Sand Dunes.mp4', 33.1, 1.3),
     'tt-musee': ('Tottori Sand Dunes.mp4', 22.62, 0.42, 0.4),
     'tt-oasis': ('Tottori Sand Dunes.mp4', 19.92, 0.85, 0.7),
+    # Tsubosaka-dera (vidéo 10) : le visage du grand Bouddha dans les cerisiers, le grand Kannon d'en bas (l'accroche : ralentis, les images
+    # intermédiaires calculées, minterpolate) ; la place du grand Bouddha en été, les hortensias, les ombrelles allumées la nuit. Le titre du
+    # propriétaire (« Tsubosaka-dera · Statues & Monuments · Nara ») est incrusté en haut à gauche de tous ses plans : chacun est agrandi
+    # ×1,3 vers le bas (recadre : zoom, centre vertical de 0 à 1), le titre sort de l'image
+    'ts-visage': ('Tsubosaka-dera.mp4', 14.42, 0.74, 0.5, {'zoom': 1.3, 'cy': 0.59, 'lisse': True}),
+    'ts-kannon': ('Tsubosaka-dera.mp4', 18.42, 1.30, 0.40, {'zoom': 1.3, 'cy': 0.59, 'lisse': True}),
+    'ts-place': ('Tsubosaka-dera.mp4', 36.2, 1.5, 1.0, {'zoom': 1.3, 'cy': 0.59}),
+    'ts-hortensias': ('Tsubosaka-dera.mp4', 46.0, 1.4, 1.0, {'zoom': 1.3, 'cy': 0.59}),
+    'ts-ombrelles': ('Tsubosaka-dera.mp4', 30.5, 1.4, 1.0, {'zoom': 1.3, 'cy': 0.59}),
 }
 SFX = {
     'promo30': ['whoosh-fast', 'swoosh-quick', 'air-whoosh-powerful', 'zoom-air-fast', 'transition-snap', 'impact-deep-whoosh',
@@ -127,12 +136,22 @@ def cadenas():
 def main():
     (PUBLIC / 'reels').mkdir(parents=True, exist_ok=True)
     couleurs = ['-color_range', 'tv', '-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709']
-    for lieu, (fichier, debut, duree, *vitesse) in REELS.items():
+    for lieu, (fichier, debut, duree, *reste) in REELS.items():
         f = PUBLIC / 'reels' / f'{lieu}.mp4'
         if not f.exists():
-            lent = f'setpts=PTS/{vitesse[0]},' if vitesse else ''
+            vitesse = reste[0] if reste else 1
+            o = reste[1] if len(reste) > 1 else {}
+            # (un recadrage : agrandi vers un centre ; lisse : un ralenti dont les images manquantes sont calculées, pas répétées)
+            recadre = ''
+            if 'zoom' in o:
+                z, cy = o['zoom'], o.get('cy', 0.5)
+                recadre = f'crop={round(1080 / z)}:{round(1920 / z)}:{round((1080 - 1080 / z) / 2)}:{round(min(1920 - 1920 / z, max(0, cy * 1920 - 960 / z)))},'
+            if o.get('lisse') and vitesse != 1:
+                lent = f'setpts=PTS/{vitesse},minterpolate=fps=60:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1,'
+            else:
+                lent = f'setpts=PTS/{vitesse},' if vitesse != 1 else ''
             subprocess.run([ffmpeg(), '-hide_banner', '-loglevel', 'error', '-y', '-ss', str(debut), '-t', str(duree), '-i', str(VIDEOS_LIEUX / fichier),
-                            '-an', '-vf', f'{lent}scale=1080:1920,fps=60,format=yuv420p', '-c:v', 'libx264', '-preset', 'slow', '-crf', '15', '-g', '15',
+                            '-an', '-vf', f'{recadre}{lent}scale=1080:1920:flags=lanczos,fps=60,format=yuv420p', '-c:v', 'libx264', '-preset', 'slow', '-crf', '15', '-g', '15',
                             *couleurs, '-movflags', '+faststart', str(f)], check=True)
     (PUBLIC / 'sfx').mkdir(exist_ok=True)
     for dossier, noms in SFX.items():

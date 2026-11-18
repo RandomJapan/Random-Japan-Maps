@@ -1392,6 +1392,225 @@
         o.cadre([e.x + 1.2, e.y + 2.6, e.z + 6.2], [e.x - 0.6, e.y - 1, e.z - 8], 52);
       },
     },
+    // la place du grand Bouddha, de face (comme le vrai plan d'été) : le Bouddha, ses statues devant, le brûle-parfum
+    'ts-place': {
+      duree: 4,
+      preparer(o) { o.placer(-38.5, 4.6, -26, 12, { y: 30, compagnon: false }); o.compagnon(-37.6, 3.7, PI / 2, 30); },
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [-47.6, 14.6, 9.9], [-26, 20.2, 11.8], 60], [4, [-46.6, 14.6, 10.0], [-26, 20.3, 11.8], 58]], t));
+      },
+    },
+    // l'arrivée en bus : le voyageur descend de l'arrêt, vers nous ; le bus derrière lui
+    'ts-bus': {
+      duree: 3.4,
+      preparer(o) { o.placer(-154, -32.2, -140, -30.4, { y: 10, compagnon: false }); o.compagnon(-154.8, -30.9, PI / 2, 10); },
+      debut(o) { o.jeu.marcher([[-154, -32.2], [-145, -30.6]], 2.2); },
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [-140.6, 4.75, -29.0], [-156, 4.3, -35.4], 54], [3.4, [-141.6, 4.7, -29.3], [-156, 4.3, -35.4], 52]], t));
+      },
+    },
+    // l'escalier et la porte des Niō : le voyageur monte, la caméra le suit dans l'axe, passe la porte derrière lui et se tourne vers le grand Bouddha
+    // (la mélodie entre là)
+    'ts-nio': {
+      duree: 5.4,
+      preparer(o) { o.placer(-50.5, -32, -44.6, -32, { y: 20, compagnon: false }); o.compagnon(-51.5, -31.2, PI / 2, 20); },
+      debut(o) { o.jeu.marcher([[-50.5, -32], [-44.6, -32], [-40.5, -30.5], [-37, -26], [-35, -20]], 2.8); },
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([
+          [0, [-66, 8.6, -32], [-46, 15.6, -32], 50],
+          [1.6, [-59, 12.4, -32], [-44.6, 16.2, -32], 50],
+          [2.8, [-50.5, 14.6, -32], [-38, 15.2, -32], 56],
+          [3.6, [-45.8, 14.5, -32], [-30, 15.6, -32], 60],
+          [4.3, [-42.0, 14.6, -32], [-30, 16.5, -24], 60],
+          [5.4, [-40.5, 15.0, -31.0], [-27, 19.5, 8], 58],
+        ], t));
+      },
+    },
+    // le bâton d'encens au grand brûle-parfum : le voyageur l'offre, la fumée monte, le grand Bouddha au-dessus (la caméra de l'action, qui
+    // montait vers le Bouddha à 3,2 s, coupée : elle passait une image avant la nôtre ; le voyageur 60 cm avant le point de l'action : posé
+    // dessus, il se tournait vers nous, agir() le tournant vers ce point)
+    'ts-encens': {
+      duree: 4.6,
+      preparer(o) {
+        const I = o.inter('daibutsu'); o.placer(I.x - 0.6, I.z, I.vers[0], I.vers[1], { y: 30, compagnon: false }); o.compagnon(I.x - 1.2, I.z + 1.4, PI / 2, 30);
+        o.jeu.cadrer = () => {};
+      },
+      quand: [[0.2, (o) => o.agir('daibutsu')]],
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [-47.2, 14.1, 10.0], [-30, 19.6, 11.6], 60], [4.6, [-46.8, 14.1, 10.1], [-30, 19.7, 11.6], 58]], t));
+      },
+    },
+    // la prière pour les yeux : devant le 礼堂, le gong, les mains jointes (le voyageur 60 cm devant le point de l'action, tourné vers le gong)
+    'ts-gong': {
+      duree: 4.4,
+      preparer(o) { const I = o.inter('yeux'); o.placer(I.x, I.z + 0.6, I.vers[0], I.vers[1], { y: 40, compagnon: false }); o.compagnon(I.x + 1.4, I.z + 1.5, PI, 40); },
+      quand: [[0.2, (o) => o.agir('yeux')]],
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [12.6, 27.0, -22.6], [14.0, 26.9, -30], 50], [4.4, [12.7, 27.0, -23.1], [14.0, 26.95, -30], 48]], t));
+      },
+    },
+    // le test des yeux : les anneaux de Landolt, de plus en plus petits ; la prise répond juste (elle lit le trou de l'anneau dans la feuille)
+    'ts-test': {
+      duree: 10,
+      preparer(o) { const I = o.inter('epreuve'); o.placer(I.x, I.z, I.vers[0], I.vers[1], { y: 40, compagnon: false }); o.compagnon(I.x - 1.3, I.z + 0.6, 0, 40); },
+      quand: [[0.2, (o) => o.agir('epreuve')]],
+      chaque(t, dt, o) {
+        // (le trou : le second rectangle de la feuille ; plus large que haut, il est à droite ou à gauche ; 0 en haut, 1 à droite, 2 en bas, 3 à gauche)
+        const r = document.querySelectorAll('.feuille svg rect')[1];
+        let dir = 0;
+        if (r) {
+          const x = +r.getAttribute('x'), y = +r.getAttribute('y'), w = +r.getAttribute('width'), h = +r.getAttribute('height');
+          dir = w > h ? (x + w / 2 > 100 ? 1 : 3) : (y + h / 2 > 100 ? 2 : 0);
+        }
+        o.lire(t, { delai: 0.45, choix: dir });
+        o.cadre([34.0, 26.7, -22.8], [35.4, 26.4, -27.6], 50);
+      },
+    },
+    // les lunettes perdues : le petit jizō des hortensias les porte
+    'ts-lunettes': {
+      duree: 3.6,
+      preparer(o) { o.placer(32.0, -41.3, 33.1, -43, { y: 40, compagnon: false }); o.compagnon(31.1, -42.6, PI / 2, 40); },
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [33.7, 25.78, -40.4], [33.05, 25.25, -43], 38], [3.6, [33.6, 25.72, -40.85], [33.05, 25.25, -43], 33]], t));
+      },
+    },
+    // le grand pavillon : ses gradins rouges et leurs centaines de poupées
+    'ts-poupees': {
+      duree: 3.8,
+      preparer(o) { o.placer(-114.0, -8.0, -120, -8, { y: 6, compagnon: false }); o.compagnon(-112.6, -7.0, -PI / 2, 6); },
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [-110.6, 5.3, -6.2], [-119.5, 5.1, -8.6], 60], [3.8, [-111.4, 5.3, -6.6], [-119.5, 5.1, -8.6], 58]], t));
+      },
+    },
+    // le thé de l'arbre à collyre, à la maison de thé : assis, la tasse, on boit ; la caméra près d'elle, de trois quarts, une fois assise
+    'ts-the': {
+      duree: 12,
+      preparer(o) { const p = o.passant('chaya'); o.placer(p.etat.x - 1.4, p.etat.z - 0.4, p.etat.x, p.etat.z, { y: 30, compagnon: false }); o.compagnon(p.etat.x - 2.4, p.etat.z - 1.2, PI / 2, 30); },
+      quand: [[0.2, (o) => o.agir('chaya')]],
+      chaque(t, dt, o) {
+        o.lire(t, { delai: 0.25, choix: 0 });
+        // (assise : le jeu a posé sa caméra ; la nôtre, plus près)
+        if (o.M().cadre && !o.M().cadre.prise && !o.assise) o.assise = [e.x, e.y, e.z];
+        if (o.assise) { const [x, y, z] = o.assise; o.cadre([x + 1.3, y + 1.3, z + 1.95], [x, y + 0.8, z + 0.1], 44); }
+      },
+    },
+    // la grotte de pierre : on y entre, les colonnes, le stupa au fond
+    'ts-grotte': {
+      duree: 5,
+      preparer(o) { o.placer(41.7, 21.5, 41.7, 30, { y: 40, compagnon: false }); o.compagnon(42.6, 20.6, 0, 40); },
+      debut(o) { o.jeu.marcher([[41.7, 21.5], [41.7, 33.5]], 2.2); },
+      chaque(t, dt, o) {
+        o.cadre([41.4, e.y + 2.05, e.z - 4.6], [41.7, e.y + 1.75, e.z + 7], 60);
+      },
+    },
+    // le tour du stupa : le voyageur en fait le tour par devant, de l'ouest à l'est, le stupa à sa droite ; la caméra haute, dans la nef (derrière le
+    // stupa, le jeu rend le dôme transparent autour de lui : on voyait la grille de la salle des cendres au travers ; la caméra du jeu, elle, collait
+    // à son dos dans le déambulatoire)
+    'ts-stupa': {
+      duree: 6.2,
+      preparer(o) {
+        const I = o.inter('stupa'); o.sx = I.x; o.sz = I.z + 3.1; o.y0 = I.y;
+        const a0 = -0.6 * PI, a1 = a0 + 0.08;
+        o.placer(o.sx + 2.95 * Math.sin(a0), o.sz - 2.95 * Math.cos(a0), o.sx + 2.95 * Math.sin(a1), o.sz - 2.95 * Math.cos(a1), { y: 40, compagnon: false });
+        o.compagnon(o.sx + 2.95 * Math.sin(a0 - 0.4), o.sz - 2.95 * Math.cos(a0 - 0.4), 0, 40);
+      },
+      debut(o) {
+        const pts = []; for (let k = 0; k <= 16; k++) { const a = -0.6 * PI + (k / 16) * PI * 1.2; pts.push([o.sx + 2.95 * Math.sin(a), o.sz - 2.95 * Math.cos(a)]); }
+        o.jeu.marcher(pts, 1.8);
+      },
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [o.sx - 0.3, o.y0 + 2.6, o.sz - 7.8], [o.sx, o.y0 + 1.3, o.sz + 0.2], 62], [6.2, [o.sx + 0.3, o.y0 + 2.6, o.sz - 7.4], [o.sx, o.y0 + 1.3, o.sz + 0.2], 60]], t));
+      },
+    },
+    // le Bouddha couché, vu de l'ouest, du côté de sa tête ; le voyageur devant lui
+    'ts-nehan': {
+      duree: 3.8,
+      preparer(o) { o.placer(-39.6, 51.8, -35, 51.8, { y: 40, compagnon: false }); o.compagnon(-40.6, 50.6, PI / 2, 40); },
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [-43.0, 26.1, 56.4], [-35.5, 25.5, 48.5], 56], [3.8, [-42.4, 26.0, 55.6], [-35.5, 25.5, 48.5], 54]], t));
+      },
+    },
+    // le grand Kannon de 20 m : du haut de son escalier, on lève les yeux (comme le vrai plan)
+    'ts-kannon': {
+      duree: 4.4,
+      preparer(o) { o.placer(-35.4, 77.5, -35, 86.5, { y: 40, compagnon: false }); o.compagnon(-34.4, 76.9, 0, 40); },
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [-35.6, 32.0, 68.0], [-35, 44, 86.5], 62], [4.4, [-35.6, 32.6, 69.4], [-35, 47, 86.5], 60]], t));
+      },
+    },
+    // la marche de Sawaichi : les yeux fermés (le masque du jeu, le ♪ qui guide) ; la caméra du jeu, derrière le voyageur
+    'ts-sawaichi': {
+      duree: 16,
+      preparer(o) { const p = o.passant('marcheuse'); o.placer(p.etat.x - 1.4, p.etat.z + 0.8, p.etat.x, p.etat.z, { y: 40, compagnon: false }); o.compagnon(p.etat.x - 2.2, p.etat.z + 1.8, 0, 40); },
+      quand: [[0.2, (o) => o.agir('marcheuse')]],
+      chaque(t, dt, o) {
+        o.lire(t, { delai: 0.25, choix: 0 });
+        if (!o.parti && document.querySelector('#jeu + div canvas') && e.mode === 'jeu') { o.parti = true; o.jeu.marcher([[e.x, e.z], [31.2, -57.4], [31.2, -52], [47, -52], [47, -46], [31.2, -46]], 1.7); }
+        if (o.parti) o.viser(e.x + Math.sin(e.cap) * 5, e.z + Math.cos(e.cap) * 5, 0.06);
+      },
+    },
+    // le cinquième tampon (Osato et Sawaichi), la carte de la récompense : le shamisen
+    'ts-tampon': {
+      duree: 26,
+      preparer(o) { const I = o.inter('osato'); o.placer(I.x, I.z, I.vers[0], I.vers[1], { y: 40, compagnon: false }); o.compagnon(I.x - 1.2, I.z + 0.6, 0, 40); },
+      quand: [[0.2, (o) => o.agir('osato')]],
+      chaque(t, dt, o) { o.lire(t, { delai: 0.4 }); },
+    },
+    // le shamisen de Sawaichi : immobile, le voyageur en joue ; de face, le grand Bouddha derrière
+    'ts-shamisen': {
+      duree: 7,
+      preparer(o) { o.placer(-40.5, 9.6, -46, 9.6, { y: 30, compagnon: false }); o.compagnon(-40.2, 11.2, -PI / 2, 30); },
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [-44.4, 13.8, 9.2], [-38, 15.6, 10.4], 56], [7, [-44.0, 13.75, 9.25], [-38, 15.6, 10.4], 53]], t));
+      },
+    },
+    // la nuit : les ombrelles allumées dans le couloir des hortensias, la cloche, les étoiles
+    'ts-nuit': {
+      duree: 4,
+      async preparer(o) { o.placer(39, -41.5, 39, -50, { y: 40, compagnon: false }); o.compagnon(38, -40.6, PI, 40); await o.nuitTout(true); },
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [39.1, 27.5, -36.2], [39, 25.6, -50], 56], [4, [39.05, 27.4, -37.2], [39, 25.6, -50], 54]], t));
+      },
+    },
+    // le secret, montré sans être résolu : le sentier de la forêt et ses rochers de rakan
+    'ts-sentier': {
+      duree: 4.6,
+      preparer(o) { o.placer(50.5, 28.5, 55, 36, { y: 40, compagnon: false }); o.compagnon(49.6, 27.4, 0.5, 40); },
+      debut(o) { o.jeu.marcher([[50.5, 28.5], [55, 36], [58.5, 41]], 1.5); },
+      chaque(t, dt, o) {
+        o.cadre([e.x - 2.6, e.y + 2.2, e.z - 3.9], [e.x + 2.8, e.y + 0.8, e.z + 5.4], 56);
+      },
+    },
+    // un rocher de rakan, de près (pas un des trois qui cachent le secret)
+    'ts-rocher': {
+      duree: 4.6,
+      preparer(o) {
+        const R = o.M().lieu.rakans.filter((r) => r.rocher === 'moussu');
+        o.c = [R.reduce((s, r) => s + r.x, 0) / R.length, R.reduce((s, r) => s + r.y, 0) / R.length, R.reduce((s, r) => s + r.z, 0) / R.length];
+        o.placer(53.6, 33.7, o.c[0], o.c[2], { y: 40, compagnon: false }); o.compagnon(52.6, 33.0, 0, 40); o.jeu.cacherVoyageur(true);
+      },
+      chaque(t, dt, o) {
+        const [cx, cy, cz] = o.c, dx = cx - 53.6, dz = cz - 33.7;
+        o.cadre(...o.chemin([[0, [53.6 - dx * 0.7, cy + 1.9, 33.7 - dz * 0.7], [cx, cy + 0.7, cz], 54], [4.6, [53.6 - dx * 0.3, cy + 1.5, 33.7 - dz * 0.3], [cx, cy + 0.65, cz], 50]], t));
+      },
+    },
+    // le couloir des hortensias, de jour : le voyageur y marche, vers la cloche (avant la marche de Sawaichi)
+    'ts-couloir': {
+      duree: 4,
+      preparer(o) { o.placer(31.4, -42.5, 31.2, -55, { y: 40, compagnon: false }); o.compagnon(32.4, -41.6, PI, 40); },
+      debut(o) { o.jeu.marcher([[31.4, -42.5], [31.2, -52]], 1.6); },
+      chaque(t, dt, o) {
+        o.cadre([e.x + 0.4, e.y + 2.5, e.z + 5.0], [e.x + 0.1, e.y + 0.9, e.z - 9], 56);
+      },
+    },
+    // la fin : tout le temple, de haut, la caméra recule lentement
+    'ts-fin': {
+      duree: 7,
+      preparer(o) { o.placer(14, -20, 14, -30, { y: 40 }); },
+      chaque(t, dt, o) {
+        o.cadre(...o.chemin([[0, [-56, 74, 64], [5, 14, -15], 52], [7, [-62, 79, 71], [5, 14, -15], 52]], t));
+      },
+    },
   };
 
   // ---------------------------------------------------------------- le déroulé

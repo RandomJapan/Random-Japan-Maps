@@ -1,4 +1,4 @@
-"""La voix off des vidéos de la balade 3D, générée le 2026-10-26 (le 2026-10-27 pour la vidéo du Pavillon d'or, le 2026-10-28 pour Beppu, le 2026-10-29 pour Motonosumi, le 2026-10-30 pour les Trente Bouddhas, le 2026-11-02 pour Udo et Yakushima, le 2026-11-04 pour les dunes de Tottori) avec Flora (le connecteur du propriétaire) :
+"""La voix off des vidéos de la balade 3D, générée le 2026-10-26 (le 2026-10-27 pour la vidéo du Pavillon d'or, le 2026-10-28 pour Beppu, le 2026-10-29 pour Motonosumi, le 2026-10-30 pour les Trente Bouddhas, le 2026-11-02 pour Udo et Yakushima, le 2026-11-04 pour les dunes de Tottori, le 2026-11-18 pour Tsubosaka-dera) avec Flora (le connecteur du propriétaire) :
 ElevenLabs v4, voix « Sarah » (celle de la promo de 30 s et de la vidéo « tunnel »), en anglais, stabilité 0,45
 (environ 0,05 $ la réplique). Ce script les retélécharge dans videos/balade/public/voix (pas dans git) et resserre
 chacune dans voix/court/<nom>.wav : silences du début et de la fin coupés, pauses ramenées à 0,2 s, un peu accélérée
@@ -159,6 +159,43 @@ COUPES = {
     'j11': {'j11a': (0, 1.24), 'j11b': (1.46, 2.21), 'j11c': (2.57, None)},  # The Tottori Sand Dunes, / in 3D. / Link in bio.
 }
 
+# Tsubosaka-dera (2026-11-18) : toute la voix d'une seule génération (0,096 $), une ligne par paragraphe ; chaque morceau en est coupé
+# directement, en secondes du fichier de Flora (k0.mp3) : les phrases ont été retrouvées en alignant la voix sur la même phrase dite par
+# la voix anglaise de Windows (MFCC et DTW : aucune reconnaissance vocale sur ce PC), les coupes au milieu des pauses.
+# (« Nee-oh » : écrit ainsi pour qu'elle prononce Niō comme il faut ; le texte à l'écran dit « Niō »)
+LONGUES = {'k0': ('m172rftq5qedb4rk8d7fdv8yt98je410', '11/18')}
+# morceau : (génération, de, à (s), accélération, texte)
+MORCEAUX = {
+    'k1a': ('k0', 0.00, 1.72, 1.15, 'A temple for your eyes,'),
+    'k1b': ('k0', 1.80, 4.50, 1.15, 'with giant statues carved in India!'),
+    'k2a': ('k0', 4.75, 5.85, 1.1, 'Tsubosaka-dera...'),
+    'k2b': ('k0', 6.02, 8.12, 1.1, 'is now in my 3D game!'),
+    'k3a': ('k0', 8.44, 9.72, 1.1, 'Arrive by bus,'),
+    'k3b': ('k0', 9.76, 11.36, 1.1, 'walk through the Nee-oh gate,'),
+    'k3c': ('k0', 11.48, 13.70, 1.1, 'offer incense to the Great Buddha,'),
+    'k3d': ('k0', 13.86, 16.42, 1.1, 'ring the gong and pray for your eyes,'),
+    'k3e': ('k0', 16.55, 17.80, 1.1, 'take the eye test,'),
+    'k3f': ('k0', 17.88, 20.18, 1.1, "find an old man's lost glasses,"),
+    'k3g': ('k0', 20.30, 22.92, 1.15, 'see hundreds of dolls in the great hall,'),
+    'k3h': ('k0', 22.93, 24.80, 1.1, 'and have tea at the tea house.'),
+    'k4a': ('k0', 25.02, 27.75, 1.15, 'Step inside a stone cave from India,'),
+    'k4b': ('k0', 27.85, 29.32, 1.1, 'walk around its stupa,'),
+    'k4c': ('k0', 29.42, 31.20, 1.1, 'meet the reclining Buddha...'),
+    'k4d': ('k0', 31.36, 33.85, 1.1, 'and look up at the twenty-metre Kannon!'),
+    'k5a': ('k0', 34.00, 35.62, 1.1, "Walk Sawaichi's path..."),
+    'k5b': ('k0', 35.80, 37.32, 1.1, 'with your eyes closed.'),
+    'k6a': ('k0', 37.45, 38.905, 1.1, 'Get all five stamps,'),
+    'k6b': ('k0', 38.905, 40.48, 1.1, 'and earn his shamisen.'),
+    'k6c': ('k0', 40.62, 42.90, 1.1, 'Stand still... and you play it!'),
+    'k7': ('k0', 43.08, 45.45, 1.1, 'At night, the umbrellas light up...'),
+    'k8a': ('k0', 45.58, 49.25, 1.2, 'But in the forest, stone monks are carved into the rocks.'),
+    'k8b': ('k0', 49.40, 52.00, 1.1, 'They say one of them has a face you know...'),
+    'k9': ('k0', 52.12, 53.12, 1.0, 'Can you find it?'),
+    'k10a': ('k0', 53.25, 54.40, 1.0, 'Tsubosaka-dera,'),
+    'k10b': ('k0', 54.45, 55.58, 1.0, 'in 3D.'),
+    'k10c': ('k0', 55.62, 56.80, 1.0, 'Link in bio.'),
+}
+
 
 def ffmpeg():
     return shutil.which('ffmpeg') or __import__('imageio_ffmpeg').get_ffmpeg_exe()
@@ -211,6 +248,19 @@ def main():
             subprocess.run([ffmpeg(), '-loglevel', 'error', '-y', '-i', str(court), '-af',
                             f'atrim=start={de}{fin},asetpts=PTS-STARTPTS,afade=t=in:d=0.01,areverse,afade=t=in:d=0.01,areverse',
                             '-ar', '48000', str(court.with_name(f'{morceau}.wav'))], check=True)
+    for nom, (gen, jour) in LONGUES.items():
+        f = PUBLIC / 'voix' / f'{nom}.mp3'
+        if not f.exists():
+            urllib.request.urlretrieve(f'{B.format(jour=jour)}{gen}-0.mp3', f)
+    for morceau, (nom, de, a, vitesse, _texte) in MORCEAUX.items():
+        # le passage, ses silences du bout coupés, ses pauses ramenées à 0,2 s, accéléré, un fondu de 10 ms à chaque bout
+        filtre = (f'atrim=start={de}:end={a},asetpts=PTS-STARTPTS,silenceremove=start_periods=1:start_threshold=-45dB:stop_periods=-1:stop_duration=0.2:'
+                  'stop_threshold=-42dB:stop_silence=0.2,areverse,silenceremove=start_periods=1:start_threshold=-45dB,areverse')
+        if vitesse != 1:
+            filtre += f',atempo={vitesse}'
+        filtre += ',afade=t=in:d=0.01,areverse,afade=t=in:d=0.01,areverse'
+        subprocess.run([ffmpeg(), '-loglevel', 'error', '-y', '-i', str(PUBLIC / 'voix' / f'{nom}.mp3'), '-af', filtre, '-ar', '48000',
+                        str(PUBLIC / 'voix' / 'court' / f'{morceau}.wav')], check=True)
     print('voix prêtes dans', PUBLIC / 'voix')
 
 
