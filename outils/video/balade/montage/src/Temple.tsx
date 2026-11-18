@@ -63,7 +63,7 @@ const DOUX = 0.6;
 // Chaque morceau de réplique (voix.py, MORCEAUX) tombe avec son texte à l'écran ; Son vérifie qu'ils ne se superposent pas.
 const BANDE: Bande = {
   musique: [
-    // rien avant le sceau, le vent seul ; l'introduction de l'air, plus douce, jusqu'à la porte des Niō, où sa mélodie entre
+    // rien avant le sceau, la voix seule ; l'introduction de l'air, plus douce, jusqu'à la porte des Niō, où sa mélodie entre
     { fichier: "tsubosaka.wav", debut: 0.15, volume: 3.0, de: T0, a: sec(8) + 0.05 },
     { fichier: "tsubosaka.wav", debut: 0.15 + 8 * B, volume: 2.1, de: sec(8) },
   ],
@@ -86,13 +86,13 @@ const BANDE: Bande = {
     k10a: 0.87, k10b: 0.85, k10c: 0.83,
   },
   sfx: ([
-    // les fonds : les feuilles (l'accroche : elles seules), les insectes la nuit
-    [0.0, "sfx-jeu/boucle-feuilles.wav", 0.07, T0 + 0.5],
-    [T0, "sfx-jeu/boucle-feuilles.wav", 0.035, sec(54) - T0],
+    // les fonds : les insectes la nuit, les feuilles dans la forêt. Plus de feuilles sous l'accroche (le propriétaire, 2026-11-18 : « des
+    // bruits… peut-être des frottements… au début, trop forts ») : seules avant la musique, ce souffle tout en aigus n'était qu'à 11 dB
+    // sous la voix ; et sa boucle de 7 s s'arrêtait net à 10 s.
     [sec(54) - 0.2, "sfx-jeu/boucle-insectes.wav", 0.04, sec(57) - sec(54) + 0.2],
     [sec(57), "sfx-jeu/boucle-feuilles.wav", 0.04, sec(66) - sec(57)],
     // l'accroche : le passage au Kannon ; le sceau
-    [1.46 - 0.05, "sfx/swoosh-quick.mp3", 0.5],
+    [1.46 - 0.05, "sfx/swoosh-quick.mp3", 0.3],
     [T0 - 0.02, "sfx/tampon.mp3", 0.9], [T0, "sfx/bass-hit-short.mp3", 0.55], [T0 + 0.02, "sfx-jeu/pouf.wav", 0.4],
     // la place, le bus
     [sec(2) - 0.14, "sfx/whoosh-fast.mp3", 0.9], [sec(3) - 0.05, "sfx/shimmer-sparkle-sweep.mp3", 0.6],
