@@ -147,30 +147,30 @@ JOURNAUX = {
 
 # id, lieu, kana, réglages (large : la largeur du portrait sur la toile ; cx, cy : son milieu ; bas : la part du bas qui se défait)
 T = [
-    ('shika', 'itsukushima', 'シカ', dict(large=0.62, cy=0.6, cx=0.42, bas=0.24, clair=0.2, hautNom=0.3)),
+    ('kannushi', 'itsukushima', 'カンヌシ', dict(large=0.5, cy=0.6, hautNom=0.52, graine=241)),
     ('campeur', 'aogashima', 'キャンパー', dict(large=0.58, cy=0.63, hautNom=0.62)),
     ('kokiriko', 'gokayama', 'コキリコ', dict(large=0.52, cy=0.6, hautNom=0.56)),
-    ('pon', 'gokayama', 'ポン', dict(large=0.5, cy=0.64, bas=0.1, hautNom=0.3, clair=0.1)),
+    ('paysan', 'gokayama', 'ミノガサ', dict(large=0.66, cy=0.62, cx=0.42, hautNom=0.52, clair=0.12, graine=232)),
     ('samourai', 'himeji', 'サムライ', dict(large=0.6, cy=0.62, hautNom=0.52)),
     ('voyageur', 'himeji', 'タビビト', dict(large=0.6, cy=0.62, hautNom=0.52)),
     ('voyageuse', 'himeji', 'タビビト', dict(large=0.62, cy=0.63, hautNom=0.52)),
     ('uzume', 'takachiho', 'ウズメ', dict(large=0.56, cy=0.62, hautNom=0.42)),
-    ('chapu', 'takachiho', 'チャプ', dict(large=0.38, cy=0.62, bas=0.1, hautNom=0.42, cx=0.42, clair=0.14)),
+    ('somen', 'takachiho', 'ソウメン', dict(large=0.58, cy=0.63, hautNom=0.52)),
     ('kimono', 'kinkakuji', 'キモノ', dict(large=0.58, cy=0.63, hautNom=0.42)),
     ('tamago', 'beppu', 'タマゴ', dict(large=0.58, cy=0.63, hautNom=0.42)),
-    ('bunbuku', 'beppu', 'ブンブク', dict(large=0.66, cy=0.62, hautNom=0.52, clair=0.12)),
-    ('kon', 'motonosumi', 'コン', dict(large=0.56, cy=0.63, bas=0.1, hautNom=0.3)),
+    ('yukata', 'beppu', 'ユカタ', dict(large=0.58, cy=0.63, hautNom=0.42)),
+    ('pecheur', 'motonosumi', 'リョウシ', dict(large=0.7, cy=0.63, cx=0.4, hautNom=0.5, clair=0.1, graine=220)),
     ('yamabushi', 'sanjubutsu', 'ヤマブシ', dict(large=0.58, cy=0.63, hautNom=0.52, clair=0.16)),
     ('miko', 'udo', 'ミコ', dict(large=0.58, cy=0.63, hautNom=0.3)),
-    ('fuwa', 'udo', 'フワ', dict(large=0.6, cy=0.6, bas=0.06, hautNom=0.3)),
-    ('saya', 'yakushima', 'サヤ', dict(large=0.5, cy=0.63, bas=0.1, hautNom=0.3, clair=0.2)),
-    ('rakuda', 'tottori', 'ラクダ', dict(large=0.74, cy=0.62, cx=0.46, bas=0.22, clair=0.22, hautNom=0.42)),
+    ('batelier', 'udo', 'センドウ', dict(large=0.6, cy=0.63, hautNom=0.52, clair=0.1)),
+    ('guide', 'yakushima', 'ヤマガイド', dict(large=0.64, cy=0.63, hautNom=0.62, clair=0.12)),
+    ('chamelier', 'tottori', 'ラクダツカイ', dict(large=0.66, cy=0.63, hautNom=0.72, clair=0.12)),
     ('junrei', 'tsubosaka', 'ジュンレイ', dict(large=0.6, cy=0.63, hautNom=0.62)),
-    ('gao', 'tsubosaka', 'ガオ', dict(large=0.56, cy=0.63, bas=0.1, hautNom=0.3, clair=0.2, graine=211)),
+    ('jardinier', 'tsubosaka', 'ニワシ', dict(large=0.64, cy=0.63, hautNom=0.42, clair=0.2, graine=212)),
 ]
 sortie = []
 for i, (id, lieu, kana, o) in enumerate(T):
-    # (graine : le tirage du journal et de l'encre ; une autre quand un gros titre tombe sous le nom — celui de Gao)
+    # (graine : le tirage du journal et de l'encre ; une autre, donnée dans ses réglages, quand un gros titre tombe sous le nom)
     sortie.append({'id': id, 'kana': kana, 'graine': 11 + i * 7, **JOURNAUX[lieu], **o})
 json.dump(sortie, io.open(pathlib.Path(__file__).resolve().parent / 'tableaux.json', 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
 print(len(sortie), 'tableaux')

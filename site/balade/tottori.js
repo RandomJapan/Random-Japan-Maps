@@ -2029,7 +2029,7 @@ export function construire(ctx) {
     // juste après les vagues ; de grosses bombes, assez haut pour passer la crête vues de chez Bunbuku, à 380 m : de petites gerbes n'y faisaient que quelques
     // points ; jamais à moins de 300 m : depuis la crête ou la plage, elles sortiraient du haut de l'image)
     // (Sumi, le peintre d'Inkami, son étal et son tableau — inkami.js, 2026-11-19 : sur le palier du haut du grand escalier, côté nord : les dunes et la mer derrière)
-    peintre: { x: 196.9, z: 35.4, cap: 0.64, tableau: 'rakuda' },
+    peintre: { x: 196.9, z: 35.4, cap: 0.64, tableau: 'chamelier' },
     secret: 'caravane', marchand: MARCHAND, sons: ['oiseau/chameau', 'oiseau/grelots', 'oiseau/glisse', 'oiseau/poudre', 'oiseau/poulies', 'oiseau/top', 'oiseau/depart', 'oiseau/porte', 'oiseau/rate', 'oiseau/arrivee', 'oiseau/clac', 'oiseau/trouve'],
     feux: { x: 30, y: 0, z: -235, large: 170, haut: [85, 120], echelle: 2.2, loin: 300 },
     mouettes: {

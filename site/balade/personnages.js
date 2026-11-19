@@ -2177,6 +2177,9 @@ export function creerHeros(ctx, sorte = 'garcon') {
  * col (le col croisé d'un kimono), bas { sorte : 'short', 'jupe', 'hakama', 'pantalon' ; c, c2 }, chaussures,
  * semelle, sac { sorte : 'dos', 'randoseru' ; c, c2 }, tablier, lunettes, appareil (photo, au cou), canne,
  * yeux ('plisses' : un sourire). pose 'peindre' (2026-11-19, le peintre d'Inkami : un pinceau à la main, devant son chevalet ; repos : baissé).
+ * Pour ce peintre, fait à l'image du propriétaire d'après sa photo (2026-11-19) : chapeau 'taches' (son chapeau de polaire blanche à taches
+ * grises : chapeauTaches), barbe (sa couleur : le collier, le menton, la moustache, et les cheveux courts sur la nuque : barbeCourte),
+ * sourcils 'epais', colRond (la couleur du tee-shirt qui dépasse du pull).
  * Pour le nō (Itsukushima) : coiffure 'kazura' (la longue perruque noire et son bandeau), chapeau 'tengan' (la
  * petite couronne d'or), masque (le masque blanc d'une jeune femme, ko-omote), pose ('seiza' : assis sur les
  * talons ; 'danse' : l'acteur, son éventail ; 'jouer' : un musicien, assis aussi) et instrument ('fue', la flûte ;
@@ -2199,6 +2202,129 @@ export function creerHeros(ctx, sorte = 'garcon') {
 // (la pose 'peche' : le bras droit levé de PECHE_BRAS, sans bouger ; la canne monte de PECHE_ANGLE au-dessus de l'horizontale ;
 // sa longueur depuis la main ; la ligne est calculée pour cette pose)
 const PECHE_BRAS = -0.95, PECHE_ANGLE = 0.55, PECHE_CANNE = 3.3;
+
+/** Des triangles (des points [x, y, z], trois par trois) → une forme pour atelier().piece. */
+function formeDe(THREE, tri) {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(tri.flat(), 3));
+  return g;
+}
+
+/**
+ * Le chapeau du peintre d'Inkami (chapeau { sorte: 'taches', c, c2, c3 } ; 2026-11-19, le propriétaire : « le personnage qui est en train de
+ * faire le tableau doit être plus reconnaissable […] un personnage vraiment atypique […] une photo de moi avec un chapeau que tu peux essayer
+ * d'utiliser pour me reproduire dans le jeu ») : un chapeau de polaire blanche à taches grises — une calotte haute et molle, un gros bord
+ * roulé tout autour, bien plus large que la tête ; des taches ovales sur le bord (une rangée dehors, une dessus) et sur la calotte.
+ * Dans le repère de la tête (son milieu à y = 0,25, son rayon 0,3). Le bord et la calotte sont deux surfaces écrites ici (bord(a, t),
+ * calotte(a, e) : a, le tour de la tête, 0 devant) ; les taches sont des morceaux de ces mêmes surfaces, 3 mm au-dessus : elles épousent le
+ * chapeau comme un imprimé (des bosses posées dessus décollaient sur le bord, trop courbe).
+ */
+function chapeauTaches(THREE, t, H) {
+  const PI = Math.PI;
+  const BLANC = H.c || '#f6f3ec', GRIS = [H.c2 || '#8e9096', H.c3 || '#7c7f87'];
+  // le bord : un boudin (son grand rayon RM, son petit rayon RT, un peu aplati) qui ondule à peine ; le chapeau penche (K) : le devant relevé
+  const RM = 0.325, RT = 0.105, APLATI = 0.93, YB = 0.447, K = 0.09;
+  const vague = (a) => 0.011 * Math.sin(3 * a + 0.8) + 0.006 * Math.sin(5 * a + 2.1);
+  const bord = (a, tt, e = 0) => {
+    const r = RM + (RT + e) * Math.cos(tt), x = r * Math.sin(a), z = r * Math.cos(a);
+    return [x, YB + (RT + e) * APLATI * Math.sin(tt) + vague(a) + K * z, z];
+  };
+  // la calotte : un dôme plus haut que large, deux lobes à peine marqués (un chapeau mou), le sommet un peu en arrière
+  const RC = 0.3, HC = 0.335, YC = 0.44, ARRIERE = 0.05;
+  const calotte = (a, el, e = 0) => {
+    const k = (RC + e) * (1 + 0.03 * Math.sin(2 * a + 0.6) * Math.cos(el)), s = Math.sin(el);
+    const x = k * Math.cos(el) * Math.sin(a), z = k * Math.cos(el) * Math.cos(a) - ARRIERE * s * s;
+    return [x, YC + (HC + e) * s + K * z, z];
+  };
+  t.piece(new THREE.TorusGeometry(RM, RT, 12, 24), BLANC, {
+    nuance: 0.02,
+    // (l'anneau naît dans le plan xy, son axe en z : (x, y, z) → (x, z, −y), une vraie rotation — l'autre sens le retournait, l'intérieur dehors)
+    deformer: (x, y, z) => { const a = Math.atan2(x, -y); return [x, YB + z * APLATI + vague(a) + K * -y, -y]; },
+  }).piece(new THREE.SphereGeometry(1, 20, 7, 0, 2 * PI, 0, PI * 0.56), BLANC, {
+    nuance: 0.02,
+    deformer: (x, y, z) => calotte(Math.atan2(x, z), Math.asin(Math.max(-1, Math.min(1, y)))),
+  });
+  // une tache : un disque dans le repère de sa surface (a0, v0 : son milieu ; l, h : ses demi-largeurs en mètres), au bord un peu irrégulier
+  const tri = [], couleurs = [];
+  const tache = (S, a0, v0, l, h, parA, parV, graine) => {
+    const N = 9, c = GRIS[graine % 2], p0 = S(a0, v0, 0.003), anneaux = [0.55, 1].map((k) => Array.from({ length: N }, (_, i) => {
+      const f = (i / N) * 2 * PI + graine, r = k * (1 + 0.13 * Math.sin(3 * f + graine * 1.7));
+      return S(a0 + (r * l * Math.cos(f)) / parA, v0 + (r * h * Math.sin(f)) / parV, 0.003);
+    }));
+    // (vers le dehors : le milieu de la tache, vu depuis l'axe du chapeau)
+    const dehors = [p0[0], p0[1] - (S === calotte ? YC : YB), p0[2]];
+    const face = (A, B, C) => {
+      const u = [B[0] - A[0], B[1] - A[1], B[2] - A[2]], v = [C[0] - A[0], C[1] - A[1], C[2] - A[2]];
+      const n = [u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]];
+      if (n[0] * dehors[0] + n[1] * dehors[1] + n[2] * dehors[2] < 0) tri.push(A, C, B); else tri.push(A, B, C);
+      couleurs.push(c);
+    };
+    for (let i = 0; i < N; i++) {
+      const j = (i + 1) % N;
+      face(p0, anneaux[0][i], anneaux[0][j]);
+      face(anneaux[0][i], anneaux[1][i], anneaux[1][j]);
+      face(anneaux[0][i], anneaux[1][j], anneaux[0][j]);
+    }
+  };
+  // le bord : quatorze taches dehors, plus hautes que larges, une sur deux plus petite ; sept dessus, entre elles
+  for (let i = 0; i < 14; i++) tache(bord, (i / 14) * 2 * PI + 0.1, -0.12 + 0.1 * Math.sin(i * 2.3), i % 2 ? 0.03 : 0.037, i % 2 ? 0.044 : 0.058, RM + RT, RT, i + 1);
+  for (let i = 0; i < 7; i++) tache(bord, ((i + 0.5) / 7) * 2 * PI + 0.25, 0.95 + 0.08 * Math.sin(i * 1.9), 0.03, 0.03, RM + RT * 0.6, RT, i + 21);
+  // la calotte : huit grosses taches au-dessus du bord, cinq plus haut, une au sommet
+  for (let i = 0; i < 8; i++) tache(calotte, (i / 8) * 2 * PI + 0.4, 0.56 + 0.07 * Math.sin(i * 2.9), i % 2 ? 0.052 : 0.04, i % 2 ? 0.04 : 0.05, RC * Math.cos(0.56), HC, i + 31);
+  for (let i = 0; i < 5; i++) tache(calotte, ((i + 0.5) / 5) * 2 * PI, 0.98 + 0.05 * Math.sin(i * 1.3), 0.036, 0.034, RC * Math.cos(0.98), HC, i + 41);
+  tache(calotte, 0.7, 1.42, 0.03, 0.03, RC * 0.5, HC, 50);
+  t.piece(formeDe(THREE, tri), GRIS[0], { couleurs, trait: false, nuance: 0.015 });
+}
+
+/**
+ * La barbe courte du peintre d'Inkami (barbe : sa couleur ; 2026-11-19, d'après la photo du propriétaire) : le collier le long de la mâchoire,
+ * d'une patte à l'autre (il monte devant chaque oreille jusque sous le chapeau), le menton couvert, et la moustache qui fait le tour de la
+ * bouche pour le rejoindre ; derrière, les cheveux courts sur la nuque (avec coiffure 'rase' : le chapeau cache le reste).
+ * o : { R, CY, machoire, surVisage } de la tête.
+ */
+function barbeCourte(THREE, t, C, { R, CY, machoire, surVisage }) {
+  const PI = Math.PI;
+  // un point de la peau de la tête (a : le tour, 0 devant ; y : la hauteur depuis son milieu), e au-dessus d'elle
+  const peau = (a, y, e = 0.006) => {
+    const r = Math.sqrt(Math.max(0, R * R - y * y)), x = r * Math.sin(a), z = r * Math.cos(a), [mx, my, mz] = machoire(x, y, z);
+    return [(mx + (e * x) / R) * 1.04, CY + my + (e * y) / R, mz + (e * z) / R];
+  };
+  // (une courbe par points : [u, valeur], adoucie d'un point à l'autre)
+  const courbe = (pts) => (u) => {
+    let i = 0;
+    while (i < pts.length - 2 && u > pts[i + 1][0]) i++;
+    const [u0, v0] = pts[i], [u1, v1] = pts[i + 1], f = Math.max(0, Math.min(1, (u - u0) / (u1 - u0)));
+    return v0 + (v1 - v0) * f * f * (3 - 2 * f);
+  };
+  // le collier : du menton (u = 0) à la patte devant l'oreille (u = 1) ; son haut passe sous la bouche et sous les joues, puis monte ; son bas
+  // suit la mâchoire
+  const A = 1.42, haut = courbe([[0, -0.143], [0.3, -0.158], [0.6, -0.15], [0.74, -0.128], [0.87, -0.02], [1, 0.11]]);
+  // (sous le menton, le bas se referme au pôle de la tête : un petit anneau y laissait un point de peau)
+  const bas = courbe([[0, -R], [0.12, -R], [0.35, -0.272], [0.6, -0.222], [0.8, -0.178], [1, -0.13]]);
+  // (les rangs sont espacés en angle depuis le pôle du bas, pas en hauteur : à hauteurs égales, le premier rang couvrait 34° d'un seul
+  // tenant, sa corde passait 13 mm sous la peau — plus que les 6 mm d'écart — et la peau ressortait au milieu de la barbe, sous le menton)
+  const NA = 40, NV = 4, tri = [];
+  const angle = (y) => Math.acos(Math.max(-1, Math.min(1, -y / R)));
+  const pt = (i, j) => {
+    const a = -A + (2 * A * i) / NA, u = Math.abs(a) / A, f0 = angle(bas(u)), f1 = angle(haut(u));
+    return peau(a, -R * Math.cos(f0 + ((f1 - f0) * j) / NV));
+  };
+  const meme = (p, q) => Math.abs(p[0] - q[0]) + Math.abs(p[1] - q[1]) + Math.abs(p[2] - q[2]) < 1e-6;
+  for (let i = 0; i < NA; i++) {
+    for (let j = 0; j < NV; j++) {
+      const p00 = pt(i, j), p10 = pt(i + 1, j), p11 = pt(i + 1, j + 1), p01 = pt(i, j + 1);
+      // (a croît vers la droite de la tête, v vers le haut : vus de dehors, dans le sens inverse des aiguilles d'une montre ; au pôle, les
+      // points du bas se confondent : pas de triangle sans surface)
+      if (!meme(p00, p10)) tri.push(p00, p10, p11);
+      tri.push(p00, p11, p01);
+    }
+  }
+  t.piece(formeDe(THREE, tri), C, { trait: false, nuance: 0.02 });
+  // la moustache : un arc au-dessus de la bouche, dont les deux bouts descendent jusqu'au menton
+  t.piece(new THREE.TorusGeometry(0.047, 0.0105, 4, 12, PI * 1.24), C, { ...surVisage(0, -0.139, -0.003), rz: -PI * 0.12, sz: 0.55, trait: false });
+  // les cheveux courts sur la nuque, d'une oreille à l'autre, jusque sous le chapeau
+  t.piece(new THREE.SphereGeometry(R * 1.027, 12, 4, PI * 1.06, PI * 0.88, PI * 0.36, PI * 0.42), C, { y: CY, sx: 1.04, deformer: machoire, nuance: 0.02 });
+}
 export function creerPersonnage(ctx, T) {
   const { THREE, atelier, P, maillage } = ctx;
   const PI = Math.PI;
@@ -2267,6 +2393,9 @@ export function creerPersonnage(ctx, T) {
     // le col croisé (gauche sur droite) du kimono
     for (const s of [-1, 1]) b.boite(0.05, 0.24, 0.02, T.col, { x: s * 0.04, y: 0.7, z: 0.165, rz: s * 0.42, trait: false });
   }
+  // le col rond d'un tee-shirt qui dépasse d'un pull (le peintre d'Inkami, 2026-11-19) : un croissant clair au bas du cou, devant, posé sur le
+  // haut de la poitrine (le menton cache le cou)
+  if (T.colRond) b.piece(new THREE.TorusGeometry(0.158, 0.013, 4, 8, PI * 0.5), T.colRond, { y: 0.8, rx: PI / 2 + 0.45, rz: PI / 4, trait: false });
   if (T.tablier) {
     // le tablier (2026-10-24 : une plaque plate qui flottait devant le buste, comme une feuille tenue à la main) : un pan
     // courbe qui suit le devant du corps, de la taille aux genoux (plus ample sur une jupe), et sa ceinture nouée
@@ -2432,8 +2561,10 @@ export function creerPersonnage(ctx, T) {
   const SOURCILS = T.coiffure === 'chauve' || /^#[cdef]/i.test(T.cheveux || '') ? '#8a7f74' : T.cheveux;
   const cercle = (r, c, o, n = 14) => t.piece(new THREE.CircleGeometry(r, n), c, { trait: false, ...o });
   for (const s of [-1, 1]) {
-    t.ovale(0.034, P.joue, { ...surVisage(s * 0.168, -0.088, -0.004), sx: 1.3, sy: 0.62, sz: 0.25, trait: false }, 8)
-      .piece(new THREE.TorusGeometry(0.042, 0.0068, 3, 8, PI * 0.6), SOURCILS, { ...surVisage(s * 0.108, 0.075, 0.002), rz: PI * 0.2 - s * 0.08, trait: false });
+    t.ovale(0.034, P.joue, { ...surVisage(s * 0.168, -0.088, -0.004), sx: 1.3, sy: 0.62, sz: 0.25, trait: false }, 8);
+    // (sourcils 'epais' : deux barres pleines, presque droites, un peu plus basses vers le nez — ceux du peintre d'Inkami ; sinon un arc fin)
+    if (T.sourcils === 'epais') t.ovale(0.05, SOURCILS, { ...surVisage(s * 0.108, 0.072, 0), sx: 1, sy: 0.3, sz: 0.13, rz: s * 0.07, trait: false }, 8);
+    else t.piece(new THREE.TorusGeometry(0.042, 0.0068, 3, 8, PI * 0.6), SOURCILS, { ...surVisage(s * 0.108, 0.075, 0.002), rz: PI * 0.2 - s * 0.08, trait: false });
     if (T.masque) continue;
     const q = surVisage(s * 0.104, -0.022, 0.001), sur = (dx, dy, dz) => {
       // (un point du plan de l'œil, tourné comme lui : la rotation y, puis x, comme les angles d'Euler « XYZ »)
@@ -2577,7 +2708,10 @@ export function creerPersonnage(ctx, T) {
   } else if (H?.sorte === 'bandeau') {
     t.piece(new THREE.TorusGeometry(0.31, 0.035, 5, 20), H.c, { y: 0.38, rx: PI / 2 - 0.25 })
       .boite(0.08, 0.06, 0.06, H.c, { y: 0.44, z: -0.3 });
+  } else if (H?.sorte === 'taches') {
+    chapeauTaches(THREE, t, H);
   }
+  if (T.barbe) barbeCourte(THREE, t, T.barbe, { R, CY, machoire, surVisage });
   const tete = pivot(ctx, 0, 0.82, 0, maillage(t.fin(0, false)));
   corps.add(tete);
 

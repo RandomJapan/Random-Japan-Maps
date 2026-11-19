@@ -2422,7 +2422,7 @@ export function construire(ctx) {
     // (le secret, tresors.js ; le marchand, dans le bambou du sentier de Shibaseki ; les sons à fabriquer en plus ; les feux
     // d'artifice, au-dessus de la baie de Beppu, à l'est : de la rue, on les voit au bout)
     // (Sumi, le peintre d'Inkami, son étal et son tableau — inkami.js, 2026-11-19 : au bout est de la rue de Kannawa, contre une façade à claire-voie ; le second tableau devant la haie, près de l'entrée de l'enfer de la Marmite)
-    peintre: { x: 79.6, z: 0.6, cap: 0.0, tableau: 'tamago', autre: { x: 7.0, z: -3.4, cap: 0.0, tableau: 'bunbuku' } },
+    peintre: { x: 79.6, z: 0.6, cap: 0.0, tableau: 'tamago', autre: { x: 7.0, z: -3.4, cap: 0.0, tableau: 'yukata' } },
     secret: 'ippen', marchand: MARCHAND, sons: ['claque', 'papier', 'plouf', 'bulle', 'pschitt', 'oiseau/geyser', 'oiseau/ronfle'],
     feux: { x: 175, y: 0, z: -10, large: 70, haut: [45, 70] },
     // les bêtes (betes.js) : deux chats qui se chauffent sur le sol tiède, des papillons (les asagimadara de l'enfer de la

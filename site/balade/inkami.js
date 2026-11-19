@@ -5,8 +5,11 @@
 //  atterrir sur la boutique […] Potentiellement un vendeur qui vendrait ses tableaux »).
 //  Inkami est la marque des tableaux du propriétaire : un portrait à l'encre noire (en samouraï ou en geisha) collé sur de vrais
 //  journaux japonais, le prénom calligraphié en katakana, un ornement de bambou dans le coin. Ici, Sumi peint de la même façon
-//  les personnages du jeu (le cerf d'Itsukushima, le samouraï de Himeji, le chameau de Tottori, les compagnons…) : les images
-//  sont dans tableaux/ (fabriquées hors du jeu à partir des vrais modèles : voir instructions/balade.md).
+//  les personnages du jeu (le prêtre d'Itsukushima, le samouraï de Himeji, le chamelier de Tottori…) : les images sont dans tableaux/
+//  (fabriquées hors du jeu à partir des vrais modèles : voir instructions/balade.md). Des humains seulement, ni bête, ni compagnon, ni
+//  esprit : le propriétaire, le même jour, « ne mets pas d'animaux parce qu'on ne peut pas avoir d'animaux sur les tableaux qu'on vend
+//  […] Il faut que ce soit absolument des humains » (les neuf premiers de ce genre — le cerf, le chameau, les compagnons, Bunbuku,
+//  l'esprit de Yakushima — ont été remplacés).
 //  Un lieu a son peintre s'il rend `peintre` : { x, z, cap, tableau, autre? } — (x, z) : le pied du chevalet ; cap : vers où la
 //  toile est tournée (d'où l'on vient la regarder) ; tableau : son image (TABLEAUX) ; autre { x, z, cap, tableau } : dans les
 //  grands lieux, un second tableau, seul sur son chevalet, ailleurs. 'voyageur' : le portrait du voyageur qu'on a choisi (en
@@ -33,11 +36,22 @@ export function lienBoutique(lieu, tableau, langue) {
 
 /** Les tableaux : le nom écrit au pinceau sur chacun (son image : tableaux/<id>.webp, 800 × 1131). */
 export const TABLEAUX = {
-  shika: 'シカ', campeur: 'キャンパー', kokiriko: 'コキリコ', pon: 'ポン', samourai: 'サムライ', voyageur: 'タビビト', voyageuse: 'タビビト',
-  uzume: 'ウズメ', chapu: 'チャプ', kimono: 'キモノ', tamago: 'タマゴ', bunbuku: 'ブンブク', kon: 'コン', yamabushi: 'ヤマブシ', miko: 'ミコ',
-  fuwa: 'フワ', saya: 'サヤ', rakuda: 'ラクダ', junrei: 'ジュンレイ', gao: 'ガオ',
+  kannushi: 'カンヌシ', campeur: 'キャンパー', kokiriko: 'コキリコ', paysan: 'ミノガサ', samourai: 'サムライ', voyageur: 'タビビト', voyageuse: 'タビビト',
+  uzume: 'ウズメ', somen: 'ソウメン', kimono: 'キモノ', tamago: 'タマゴ', yukata: 'ユカタ', pecheur: 'リョウシ', yamabushi: 'ヤマブシ', miko: 'ミコ',
+  batelier: 'センドウ', guide: 'ヤマガイド', chamelier: 'ラクダツカイ', junrei: 'ジュンレイ', jardinier: 'ニワシ',
 };
 const image = (id) => `tableaux/${id}.webp`;
+
+// Le peintre, fait à l'image du propriétaire d'après sa photo (2026-11-19 : « le personnage qui est en train de faire le tableau doit être plus
+// reconnaissable […] un personnage vraiment atypique qu'on retrouve dans tous les lieux. Je t'ai envoyé une photo de moi avec un chapeau que tu
+// peux essayer d'utiliser pour me reproduire dans le jeu ») : son chapeau de polaire blanche à taches grises, sa barbe courte et ses sourcils
+// noirs, son pull noir d'où dépasse un tee-shirt blanc ; et le tablier du peintre. (Avant : un vieux peintre en kimono, chignon gris et
+// lunettes, qu'on prenait de dos pour n'importe quel passant.)
+const TENUE_PEINTRE = {
+  taille: 1.04, peau: '#f0c9a6', cheveux: '#2a2420', coiffure: 'rase', chapeau: { sorte: 'taches' }, barbe: '#2a2420', sourcils: 'epais', iris: '#6a4830',
+  haut: '#25242a', manches: 'longues', colRond: '#f4f0e6', tablier: '#e8dcc0', bas: { sorte: 'pantalon', c: '#3d4456' }, chaussures: '#f4f0e6', semelle: '#cfcac0',
+  pose: 'peindre',
+};
 
 // la toile : un carton de 64 × 90,5 cm (bien plus grand que le vrai, un A3 : on le regarde de loin), penché sur son chevalet
 const TOILE = { l: 0.64, h: 0.905, e: 0.02, y: 1.1994, z: -0.0007, penche: 0.213 };
@@ -178,7 +192,7 @@ export function installerInkami(lieu, ctx, actions) {
     const ps = R(0.47, 0.62);
     lieu.passants.push({
       id: 'sumi', x: ps.x, z: ps.z, cap: Q.cap + Math.atan2(0.2 - 0.47, 0.05 - 0.62), retour: true,
-      tenue: { taille: 1.04, peau: '#e8bf98', cheveux: '#b8b4ac', coiffure: 'chignon', lunettes: true, haut: '#2f4a7a', manches: 'kimono', col: '#e8dcc0', tablier: '#e8dcc0', bas: { sorte: 'hakama', c: '#3a3f4a', c2: '#4a505c' }, chaussures: '#f4f0e6', semelle: '#c9b48a', pose: 'peindre', yeux: 'plisses' },
+      tenue: TENUE_PEINTRE,
     });
     lieu.interactions.push({ id: 'sumi', passant: 'sumi', verbe: 'parler', action: (jeu) => actions.parler(jeu) });
   }
@@ -252,7 +266,7 @@ export function poserToiles(THREE, toiles, { anisotropie = 4, nom = (id) => id, 
 export const TEXTES = {
   fr: {
     nom: 'Sumi, le peintre',
-    intro: ['Bonjour ! Je suis Sumi, peintre ambulant. Je voyage avec mon chevalet, mon encre noire… et de vieux journaux japonais.', 'Je peins les gens et les bêtes que je croise, directement sur le journal. Regarde !'],
+    intro: ['Salut ! Moi, c’est Sumi, peintre ambulant. Je voyage avec mon chevalet, mon encre noire… et de vieux journaux japonais.', 'Je peins les gens que je croise, directement sur le journal. Regarde !'],
     revoir: ['Tiens, te revoilà ! On se croise partout, toi et moi.'],
     nuit: ['La nuit, je peins à la lueur de mon lampion. L’encre noire aime bien le noir !'],
     atelier: ['Dans mon atelier, Inkami, c’est le visage des voyageurs qu’on met sur le journal : en samouraï ou en geisha, avec leur prénom calligraphié en japonais.'],
@@ -262,30 +276,30 @@ export const TEXTES = {
     offre: 'Chez Inkami, ce tableau existe pour de vrai : ton visage en samouraï ou en geisha, à l’encre noire, collé à la main sur de vrais journaux japonais, avec ton prénom calligraphié au pinceau.',
     bouton: 'Voir la boutique Inkami', fermer: 'Fermer',
     tableaux: {
-      shika: ['Le cerf de Miyajima', 'Ce cerf est venu poser tout seul. Il n’a pas bougé d’un poil… puis il a voulu manger mon journal !'],
+      kannushi: ['Le prêtre d’Itsukushima', 'Le prêtre du sanctuaire a gardé la pose jusqu’à la marée haute. Son grand chapeau noir, lui, dépassait presque du journal !'],
       campeur: ['Le campeur d’Aogashima', 'Le campeur m’a montré les étoiles toute la nuit. Je l’ai peint au matin, les yeux encore pleins de ciel.'],
       kokiriko: ['Le danseur de kokiriko', 'Le danseur de kokiriko ne tient pas en place : j’ai dû peindre aussi vite qu’il fait claquer son sasara !'],
-      pon: ['Pon, le tanuki'],
+      paysan: ['Le paysan au manteau de paille'],
       samourai: ['Le samouraï de Himeji', 'Le samouraï du château a posé sans cligner des yeux. Un vrai guerrier… jusqu’à ce qu’une mouche se pose sur son nez.'],
       voyageur: ['Toi, en samouraï'], voyageuse: ['Toi, en kimono d’or'],
       uzume: ['Uzume, la danseuse du kagura', 'Uzume a dansé pour faire sortir le soleil de sa grotte. Moi, je l’ai fait entrer dans mon journal !'],
-      chapu: ['Chapu, la loutre'],
+      somen: ['La cuisinière des sōmen'],
       kimono: ['La promeneuse en kimono', 'Une promeneuse en kimono passait devant le Pavillon d’or. De l’or, je n’en ai pas : alors j’ai tout dit avec du noir.'],
       tamago: ['La dame des œufs', 'La dame des œufs m’a offert un œuf cuit dans l’eau bleue de l’enfer. En échange : son portrait !'],
-      bunbuku: ['Bunbuku, le marchand'],
-      kon: ['Kon, le renard d’Inari', 'Ici, les renards sont les messagers du dieu Inari. J’ai peint Kon : il paraît qu’il porte bonheur.'],
+      yukata: ['La promeneuse en yukata'],
+      pecheur: ['Le pêcheur de Motonosumi', 'On raconte qu’un renard blanc est apparu en rêve à un pêcheur d’ici, et lui a demandé ce sanctuaire. Alors j’ai peint un pêcheur !'],
       yamabushi: ['Le yamabushi', 'Le yamabushi a marché toute sa vie dans ces montagnes. J’ai essayé de mettre tous ces chemins dans son regard.'],
       miko: ['La miko d’Udo', 'La miko du sanctuaire m’a donné un ema en forme de lapin pour y écrire un vœu. Pour la remercier, son portrait !'],
-      fuwa: ['Fuwa, le petit dragon'],
-      saya: ['Saya, l’esprit de l’arbre', 'Dans cette forêt, on dit que chaque vieux cèdre a son esprit. J’en ai aperçu un… et je l’ai peint avant qu’il ne file.'],
-      rakuda: ['Le chameau des dunes', 'Le chameau a posé une heure sans bouger. Sauf la mâchoire : il mâchait, il mâchait…'],
+      batelier: ['Le batelier d’Udo'],
+      guide: ['La guide du Jōmon Sugi', 'La guide emmène les marcheurs jusqu’au Jōmon Sugi : dix heures de marche, aller et retour. Je l’ai peinte à l’aube, juste avant le départ !'],
+      chamelier: ['Le chamelier des dunes', 'Le chamelier a posé une heure sans bouger. Derrière lui, son chameau, lui, n’a pas arrêté de mâcher !'],
       junrei: ['Le pèlerin', 'Le pèlerin fait le tour des trente-trois temples de Kannon. Celui-ci est le sixième : je l’ai peint pendant sa pause.'],
-      gao: ['Gao, le shisa'],
+      jardinier: ['Le jardinier de Tsubosaka'],
     },
   },
   en: {
     nom: 'Sumi the painter',
-    intro: ['Hello! I’m Sumi, a travelling painter. I journey with my easel, my black ink… and old Japanese newspapers.', 'I paint the people and animals I meet, right on the newspaper. Look!'],
+    intro: ['Hi! I’m Sumi, a travelling painter. I journey with my easel, my black ink… and old Japanese newspapers.', 'I paint the people I meet, right on the newspaper. Look!'],
     revoir: ['Oh, you again! We keep running into each other.'],
     nuit: ['At night, I paint by the light of my lantern. Black ink rather likes the dark!'],
     atelier: ['At my workshop, Inkami, it’s travellers’ faces we put on the newspaper: as a samurai or a geisha, with their name brushed in Japanese.'],
@@ -295,58 +309,58 @@ export const TEXTES = {
     offre: 'At Inkami, this painting is real: your face as a samurai or a geisha, in black ink, hand-collaged on real Japanese newspapers, with your name brushed in Japanese calligraphy.',
     bouton: 'Visit the Inkami shop', fermer: 'Close',
     tableaux: {
-      shika: ['The Miyajima deer', 'This deer came to pose all by himself. He didn’t move a hair… then he tried to eat my newspaper!'],
+      kannushi: ['The priest of Itsukushima', 'The shrine’s priest held his pose until high tide. His tall black hat nearly stuck out of my newspaper!'],
       campeur: ['The Aogashima camper', 'The camper showed me the stars all night. I painted him in the morning, his eyes still full of sky.'],
       kokiriko: ['The kokiriko dancer', 'The kokiriko dancer never stands still: I had to paint as fast as he clacks his sasara!'],
-      pon: ['Pon the tanuki'],
+      paysan: ['The farmer in a straw cape'],
       samourai: ['The samurai of Himeji', 'The castle’s samurai posed without blinking. A true warrior… until a fly landed on his nose.'],
       voyageur: ['You, as a samurai'], voyageuse: ['You, in a golden kimono'],
       uzume: ['Uzume, the kagura dancer', 'Uzume danced to bring the sun out of its cave. I just brought her into my newspaper!'],
-      chapu: ['Chapu the otter'],
+      somen: ['The sōmen cook'],
       kimono: ['The stroller in a kimono', 'A stroller in a kimono was passing by the Golden Pavilion. I have no gold: so I said it all in black.'],
       tamago: ['The egg lady', 'The egg lady gave me an egg cooked in the hell’s blue water. In return: her portrait!'],
-      bunbuku: ['Bunbuku the merchant'],
-      kon: ['Kon, Inari’s fox', 'Here, foxes are the messengers of the god Inari. I painted Kon: they say he brings good luck.'],
+      yukata: ['The stroller in yukata'],
+      pecheur: ['The fisherman of Motonosumi', 'They say a white fox appeared in a local fisherman’s dream and asked him for this shrine. So I painted a fisherman!'],
       yamabushi: ['The yamabushi', 'The yamabushi has walked these mountains all his life. I tried to put all those trails into his eyes.'],
       miko: ['The miko of Udo', 'The shrine’s miko gave me a rabbit-shaped ema to write a wish on. To thank her: her portrait!'],
-      fuwa: ['Fuwa the little dragon'],
-      saya: ['Saya, the tree spirit', 'In this forest, they say every old cedar has its spirit. I glimpsed one… and painted it before it slipped away.'],
-      rakuda: ['The camel of the dunes', 'The camel posed for an hour without moving. Except his jaw: he chewed, and chewed…'],
+      batelier: ['The boatman of Udo'],
+      guide: ['The Jōmon Sugi guide', 'The guide takes hikers up to Jōmon Sugi: ten hours of walking, there and back. I painted her at dawn, just before they set off!'],
+      chamelier: ['The camel driver of the dunes', 'The camel driver posed for an hour without moving. Behind him, his camel never stopped chewing!'],
       junrei: ['The pilgrim', 'The pilgrim is walking the thirty-three temples of Kannon. This one is the sixth: I painted him during his break.'],
-      gao: ['Gao the shisa'],
+      jardinier: ['The gardener of Tsubosaka'],
     },
   },
   ja: {
     nom: '絵かきの　スミ',
-    intro: ['こんにちは！　わたしは　スミ、たびの　絵かきだよ。イーゼルと　墨と……　古い　日本の　新聞を　もって、たびを　して　いるんだ。', '出会った　人や　どうぶつを、新聞の　上に　そのまま　かくんだ。ほら、見て！'],
+    intro: ['やあ！　ぼくは　スミ、たびの　絵かきだよ。イーゼルと　墨と……　古い　日本の　新聞を　もって、たびを　して　いるんだ。', '出会った　人を、新聞の　上に　そのまま　かくんだ。ほら、見て！'],
     revoir: ['おや、また　会ったね！　どこでも　会うなあ。'],
     nuit: ['夜は　ちょうちんの　あかりで　かくんだ。墨の　黒は、くらやみと　なかよしさ！'],
-    atelier: ['わたしの　アトリエ「インカミ」では、たびびとの　顔を　新聞に　のせるんだ。サムライか　芸者の　すがたで、名前も　筆で　書くよ。'],
-    question: 'わたしの　絵を　近くで　見るかい？', oui: 'はい', non: 'いいえ',
+    atelier: ['ぼくの　アトリエ「インカミ」では、たびびとの　顔を　新聞に　のせるんだ。サムライか　芸者の　すがたで、名前も　筆で　書くよ。'],
+    question: 'ぼくの　絵を　近くで　見てみる？', oui: 'はい', non: 'いいえ',
     refus: ['いつでも　おいで。墨は　にげないからね！'],
     sous: '墨と　日本の　新聞　·　スミ　作', titreOffre: 'つぎは　きみの　ばん？',
     offre: 'インカミでは、この　絵が　ほんものに　なります。あなたの　写真から、侍か　芸者の　すがたを　墨で　えがき、本物の　日本の　新聞に　手作業で　はりあわせます。お名前は　筆で　書き入れます。',
     bouton: 'インカミの　お店を　見る', fermer: 'とじる',
     tableaux: {
-      shika: ['宮島の　シカ', 'この　シカは、じぶんから　モデルに　なって　くれた。じっと　して　いたのに……　さいごは　新聞を　たべようと　したんだ！'],
+      kannushi: ['厳島の　神主さん', '神主さんは、しおが　みちるまで　じっと　モデルに　なって　くれた。高い　黒い　ぼうしは、新聞から　はみだしそうだったよ！'],
       campeur: ['青ヶ島の　キャンパー', 'キャンパーさんは　ひとばんじゅう　星を　見せて　くれた。朝に　なって　かいたんだ。目には　まだ　星空が　のこって　いたよ。'],
       kokiriko: ['こきりこの　おどり手', 'こきりこの　おどり手は　じっと　して　くれない。ささらの　音と　同じ　はやさで　筆を　うごかしたよ！'],
-      pon: ['たぬきの　ポン'],
+      paysan: ['みのがさの　お百姓さん'],
       samourai: ['姫路の　おさむらいさん', 'お城の　おさむらいさんは、まばたきも　しないで　モデルに　なって　くれた。さすが　武士……　はなに　ハエが　とまるまではね。'],
       voyageur: ['サムライの　きみ'], voyageuse: ['金の　着物の　きみ'],
-      uzume: ['神楽の　ウズメ', 'ウズメは　おどって、お日さまを　岩戸から　出した。わたしは　ウズメを　新聞の　中に　入れたんだ！'],
-      chapu: ['かわうその　チャプ'],
+      uzume: ['神楽の　ウズメ', 'ウズメは　おどって、お日さまを　岩戸から　出した。ぼくは　ウズメを　新聞の　中に　入れたんだ！'],
+      somen: ['流しそうめんの　おばさん'],
       kimono: ['着物の　おさんぽさん', '着物の　人が　金閣の　前を　あるいて　いた。金の　えのぐは　ないから、ぜんぶ　墨の　黒で　かいたよ。'],
       tamago: ['たまごの　おばさん', 'たまごの　おばさんが、じごくの　青い　お湯で　ゆでた　たまごを　くれた。おれいに　にがお絵を　かいたんだ！'],
-      bunbuku: ['あきんどの　ブンブク'],
-      kon: ['おいなりさんの　きつね　コン', 'ここでは、きつねは　おいなりさんの　おつかい。コンを　かいたよ。しあわせを　はこんで　くれるんだって。'],
+      yukata: ['ゆかたの　おねえさん'],
+      pecheur: ['元乃隅の　りょうしさん', 'むかし、ここの　りょうしさんの　ゆめに　白い　キツネが　出て、お社を　たてるように　言ったんだって。だから　りょうしさんを　かいたよ！'],
       yamabushi: ['山伏さん', '山伏さんは　ずっと　この　山を　あるいて　きた。その　道を　ぜんぶ、目の　中に　かこうと　したんだ。'],
       miko: ['鵜戸の　みこさん', 'みこさんが、ねがいごとを　書く　うさぎの　絵馬を　くれた。おれいに　にがお絵を　かいたよ！'],
-      fuwa: ['ちび竜の　フワ'],
-      saya: ['木の　せい　サヤ', 'この　森では、古い　杉には　せいれいが　いるって　いうんだ。ちらっと　見えたから……　にげる　前に　かいたよ。'],
-      rakuda: ['砂丘の　ラクダ', 'ラクダは　一時間、じっと　モデルに　なって　くれた。口だけは　もぐもぐ、もぐもぐ……'],
+      batelier: ['鵜戸の　せんどうさん'],
+      guide: ['縄文杉の　ガイドさん', 'ガイドさんは　縄文杉まで　みんなを　つれて　いく。行って　帰って　十時間も　あるくんだ。夜明けに、出発の　前に　かいたよ！'],
+      chamelier: ['砂丘の　らくだつかい', 'らくだつかいさんは　一時間、じっと　モデルに　なって　くれた。うしろの　ラクダは、ずっと　もぐもぐ　していたけどね！'],
       junrei: ['じゅんれいさん', 'じゅんれいさんは　観音さまの　三十三の　お寺を　めぐって　いる。ここは　六ばんめ。ひとやすみの　あいだに　かいたんだ。'],
-      gao: ['シーサーの　ガオ'],
+      jardinier: ['壷阪寺の　にわしさん'],
     },
   },
 };

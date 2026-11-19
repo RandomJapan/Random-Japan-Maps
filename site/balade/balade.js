@@ -214,7 +214,7 @@ function construire() {
   else if (params.get('peintre')) {
     const v = params.get('peintre').split(',').map(Number);
     lieu.peintre = { tableau: 'samourai', ...lieu.peintre, x: v[0], z: v[1], cap: v[2] || 0 };
-    if (v.length >= 6) lieu.peintre.autre = { tableau: 'pon', ...lieu.peintre.autre, x: v[3], z: v[4], cap: v[5] };
+    if (v.length >= 6) lieu.peintre.autre = { tableau: 'voyageur', ...lieu.peintre.autre, x: v[3], z: v[4], cap: v[5] };
   }
   const inkami = installerInkami(lieu, ctx, { parler: () => parlerPeintre(), regarder: (id) => regarderTableau(id) });
   // le vent du lieu : d'où il pousse, sa force

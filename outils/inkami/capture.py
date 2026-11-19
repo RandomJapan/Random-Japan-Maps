@@ -4,7 +4,7 @@ blanc, cadré en buste, pris dans la vraie balade (il passe sur un calque que la
     python outils/inkami/capture.py outils/inkami/sujets.json <dossier des images brutes> [--seul id,id] [--port 8123]
 Un sujet : { id, lieu, perso?, compagnon?, objet (une expression JS qui rend l'Object3D ; M = balade.monde()), angle (radians, autour du
 sujet, 0 = de face), haut (part du haut de la boîte gardée : 0.55 = la tête et les épaules), marge, nuit?, avant? (JS à lancer d'abord),
-stockage? { clé: valeur } }."""
+stockage? { clé: valeur }, corps? { h, l? } (cadrer le corps seul, de ses pieds à h mètres : qui tient une canne à pêche) }."""
 import sys, json, io
 from pathlib import Path
 from playwright.sync_api import sync_playwright
@@ -43,6 +43,12 @@ ISOLER = """(s) => {
     const P = o.geometry.attributes.position;
     for (let i = 0; i < P.count; i += 3) { v.fromBufferAttribute(P, i).applyMatrix4(o.matrixWorld); B.x0 = Math.min(B.x0, v.x); B.x1 = Math.max(B.x1, v.x); B.y0 = Math.min(B.y0, v.y); B.y1 = Math.max(B.y1, v.y); B.z0 = Math.min(B.z0, v.z); B.z1 = Math.max(B.z1, v.z); }
   });
+  // (corps { h, l? } : la boîte n'est plus celle des maillages mais le corps seul, depuis ses pieds — pour qui tient une longue chose : la canne
+  // et la ligne du pêcheur faisaient une boîte de plusieurs mètres, et lui tout petit dedans)
+  if (s.corps) {
+    const p = sujet.getWorldPosition(new THREE_V()), l = s.corps.l ?? 0.9;
+    Object.assign(B, { x0: p.x - l / 2, x1: p.x + l / 2, z0: p.z - l / 2, z1: p.z + l / 2, y0: p.y, y1: p.y + s.corps.h });
+  }
   const hTot = B.y1 - B.y0, part = s.haut ?? 0.6, h = hTot * part, cx = (B.x0 + B.x1) / 2 + (s.dx || 0), cz = (B.z0 + B.z1) / 2 + (s.dz || 0);
   const cy = B.y1 - h / 2 + (s.dy || 0) * hTot;
   // le cap du sujet (sa rotation dans le monde), la caméra devant lui, tournée de s.angle

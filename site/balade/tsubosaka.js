@@ -4022,7 +4022,7 @@ export function construire(ctx) {
     objets, monde, terrain, etiquettes, passants, daims: [], interactions, actionDaim: null, vapeurs, bancs, lumieres, actionBete, animes,
     // (le secret, tresors.js ; le marchand ; les sons à fabriquer en plus ; les feux d'artifice, au-dessus de la plaine de Nara, au nord-ouest)
     // (Sumi, le peintre d'Inkami, son étal et son tableau — inkami.js, 2026-11-19 : au bord de l'esplanade de l'arrivée, devant le massif aux pins ; le second tableau au pied du mur, à côté du grand Bouddha)
-    peintre: { x: -155.0, z: -20.0, cap: 2.88, tableau: 'junrei', autre: { x: -23.2, z: 4.8, cap: 3.14, tableau: 'gao' } },
+    peintre: { x: -155.0, z: -20.0, cap: 2.88, tableau: 'junrei', autre: { x: -23.2, z: 4.8, cap: 3.14, tableau: 'jardinier' } },
     secret: 'rakan', marchand: MARCHAND, sons: ['waniguchi', 'magie', 'pouf', 'papier', 'kane', 'caillou', 'bol', 'slurp', 'pinceau', 'tampon', 'oiseau/goutte', 'oiseau/shamisen0', 'oiseau/shamisen2', 'oiseau/shamisen4'],
     // (pour les essais : où sont les rakan, et les trois à part)
     rakans: RAKANS.map(({ id, x, z, y, special, rocher }) => ({ id, x, z, y, special: special || null, rocher })),

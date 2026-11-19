@@ -1429,7 +1429,7 @@ export function construire(ctx) {
     herbes: HERBES,
     // (le secret, tresors.js ; le marchand ; les sons à fabriquer en plus ; les feux d'artifice, sur la mer derrière le torii)
     // (Sumi, le peintre d'Inkami, son étal et son tableau — inkami.js, 2026-11-19 : sur l'herbe au bord de l'allée de sable, devant le sanctuaire ; le grand torii derrière)
-    peintre: { x: 24.0, z: 17.5, cap: 0.79, tableau: 'shika' },
+    peintre: { x: 24.0, z: 17.5, cap: 0.79, tableau: 'kannushi' },
     secret: 'corbeaux', marchand: MARCHAND, sons: ['oiseau/corbeau'],
     feux: { x: 0, y: 0, z: -108, large: 70, haut: [30, 52] },
     aspectSol: (x, z, h) => aspectSol(P, x, z, h),

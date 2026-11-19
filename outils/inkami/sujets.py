@@ -10,36 +10,39 @@ def arreter(i):
     # (comme quand on lui parle : il s'arrête)
     return f"(() => {{ const p = balade.monde().passants.find((q) => q.id === '{i}'); p.quand = null; p.etat.parle = true; }})()"
 
-CHAMEAU = "M.lieu.animes.map((a) => a.objet).find((o) => o && o.children.length === 4).children[0]"
+def pres(i):
+    # (il s'arrête, et le voyageur est posé à trois pas : à Tsubosaka, un passant loin du voyageur n'est pas dessiné — sa photo était vide)
+    return f"(() => {{ const p = balade.monde().passants.find((q) => q.id === '{i}'); p.quand = null; p.etat.parle = true; const e = balade.etat; e.x = p.etat.x + 3; e.z = p.etat.z + 3; e.y = balade.monde().lieu.monde.hauteur(e.x, e.z); }})()"
 
 def P(id, lieu, qui, **k):
     return {"id": id, "lieu": lieu, "objet": passant(qui), "avant": arreter(qui), "attente": 1200, "haut": 0.66, "angle": 0.4, "marge": 1.3, **k}
 
-def C(id, lieu, espece, **k):
-    return {"id": id, "lieu": lieu, "compagnon": espece, "objet": "M.kon.objet", "haut": 1.0, "angle": 0.5, "marge": 1.25, "avant": "1", "attente": 4000, "pause": 220, **k}
-
+# Des humains seulement (le propriétaire, 2026-11-19 : « ne mets pas d'animaux parce qu'on ne peut pas avoir d'animaux sur les tableaux qu'on
+# vend […] Il faut que ce soit absolument des humains ») : ni bête, ni compagnon, ni esprit, ni Bunbuku. (Les neuf premiers de ce genre —
+# le cerf, Pon, Chapu, Bunbuku, Kon, Fuwa, Saya, le chameau, Gao — ont été remplacés le jour même.)
 S = [
-    {"id": "shika", "lieu": "itsukushima", "objet": "M.daims.find((d) => d.male).b.objet", "haut": 1.0, "angle": 0.8, "marge": 1.32, "kl": 0.3, "devant": 0.42, "dy": 0.36, "rafale": 5},
+    P("kannushi", "itsukushima", "pretre"),
     P("campeur", "aogashima", "campeur"),
     P("kokiriko", "gokayama", "danseur"),
-    C("pon", "gokayama", "pon"),
+    P("paysan", "gokayama", "paysan"),
     P("samourai", "himeji", "samourai"),
     {"id": "voyageur", "lieu": "himeji", "perso": "garcon", "stockage": {"baladeAchats": '["armure"]', "baladeTenue": '{"garcon":{"tete":"kabuto","habit":"armure"}}'}, "objet": "M.joueur.objet", "haut": 0.7, "angle": 0.4, "marge": 1.25},
     {"id": "voyageuse", "lieu": "himeji", "perso": "fille", "stockage": {"baladeAchats": '["kimonoOr"]', "baladeTenue": '{"fille":{"habit":"kimonoOr"}}'}, "objet": "M.joueur.objet", "haut": 0.7, "angle": 0.4, "marge": 1.25},
     P("uzume", "takachiho", "uzume"),
-    C("chapu", "takachiho", "chapu"),
+    P("somen", "takachiho", "chiho"),
     P("kimono", "kinkakuji", "kimono"),
     P("chajin", "kinkakuji", "chajin"),
     P("tamago", "beppu", "tamago"),
-    {"id": "bunbuku", "lieu": "beppu", "objet": "M.marchand.perso.objet", "haut": 0.8, "angle": 0.4, "marge": 1.2},
-    C("kon", "motonosumi", "kon", marge=1.08),
+    P("yukata", "beppu", "yukata"),
+    # (le pêcheur : cadré sur son corps — sa canne et sa ligne faisaient une boîte de plusieurs mètres, et lui tout petit dedans)
+    P("pecheur", "motonosumi", "pecheur", corps={"h": 1.42, "l": 0.9}),
     P("yamabushi", "sanjubutsu", "yamabushi"),
     P("miko", "udo", "miko"),
-    C("fuwa", "udo", "fuwa", marge=1.0, kl=0.62),
-    C("saya", "yakushima", "saya"),
-    {"id": "rakuda", "lieu": "tottori", "objet": CHAMEAU, "haut": 0.62, "angle": 0.85, "marge": 1.42, "kl": 0.54, "devant": 0.5, "avant": "(() => { const e = balade.etat; e.x = 181; e.z = 26; })()", "attente": 1500},
+    P("batelier", "udo", "batelier"),
+    P("guide", "yakushima", "guideJomon"),
+    P("chamelier", "tottori", "chamelier", avant=pres("chamelier"), attente=2200),
     P("junrei", "tsubosaka", "pelerin"),
-    C("gao", "tsubosaka", "gao"),
+    P("jardinier", "tsubosaka", "jardinier", avant=pres("jardinier"), attente=2200),
 ]
 json.dump(S, io.open(pathlib.Path(__file__).resolve().parent / 'sujets.json', 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
 print(len(S), 'sujets')

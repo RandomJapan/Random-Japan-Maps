@@ -4100,7 +4100,7 @@ export function construire(ctx) {
     // (le secret, tresors.js : les petits esprits et le grand cerf ; le marchand, à l'abri de Kosugidani ; les sons en plus ; les feux
     // d'artifice au-dessus de la mer, au nord)
     // (Sumi, le peintre d'Inkami, son étal et son tableau — inkami.js, 2026-11-19 : au bout du quai de Miyanoura, devant le muret, la mer derrière)
-    peintre: { x: -45.6, z: -52.4, cap: 1.57, tableau: 'saya' },
+    peintre: { x: -45.6, z: -52.4, cap: 1.57, tableau: 'guide' },
     secret: 'esprits', esprits: secretEsprits, marchand: MARCHAND, sons: ['claque', 'cloche', 'papier', 'oiseau/singe', 'oiseau/corne', 'oiseau/esprit', 'oiseau/cerf'],
     // (le bassin caché : son eau, qui reflète le cerf ; le reflet ne se fait que la caméra tout près)
     // (2026-11-02, « de l'eau qui sort du lac » : un rectangle au niveau de l'eau ; partout où le sol y passait plus bas, en haut des marches, on le voyait
