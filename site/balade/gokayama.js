@@ -3130,6 +3130,8 @@ export function construire(ctx) {
     objets, monde, terrain, etiquettes, passants, daims: [], interactions, actionDaim: null, vapeurs, bancs, lumieres, actionBete, animes,
     // (le secret, tresors.js ; le marchand, sous les cèdres du sanctuaire ; les sons à fabriquer en plus ; les feux
     // d'artifice, tirés au-dessus de la gorge de la rivière, à l'est)
+    // (Sumi, le peintre d'Inkami, son étal et son tableau — inkami.js, 2026-11-19 : sous l'arbre du pré, à côté de l'arrêt du car ; le second tableau au carrefour du village)
+    peintre: { x: 38.0, z: -51.0, cap: 3.14, tableau: 'kokiriko', autre: { x: 6.0, z: -18.0, cap: 3.14, tableau: 'pon' } },
     secret: 'heike', marchand: MARCHAND, sons: ['jets', 'papier', 'cloche', 'claque'],
     feux: { x: 95, y: 6, z: 8, large: 44, haut: [42, 64] },
     // la danse de la kokiriko : on l'entend en s'approchant (et la musique de la balade baisse)

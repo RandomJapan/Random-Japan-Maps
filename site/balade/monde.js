@@ -307,10 +307,11 @@ export function interactionsBancs(bancs) {
  * Un passant qui va d'un point à l'autre de sa ronde (et s'y arrête un moment), ou reste sur place ; il
  * s'arrête et se tourne vers le joueur quand on lui parle. assis : le dessus du banc où il est assis (il n'en
  * bouge pas, sa racine ASSIS × sa taille plus bas : 2026-10-28, la grand-mère et l'enfant du bain de pieds de Beppu,
- * petits, s'enfonçaient dans leur banc de 5 et 11 cm). Renvoie l'état à faire avancer chaque image.
+ * petits, s'enfonçaient dans leur banc de 5 et 11 cm). retour : la conversation finie, il se retourne vers ce qu'il faisait (2026-11-19, Sumi, le
+ * peintre d'Inkami, vers sa toile ; les autres restent tournés vers là où était le joueur). Renvoie l'état à faire avancer chaque image.
  */
-export function creerPassant({ x, z, cap = 0, ronde = null, vitesse = 1.1, attente = [2, 6], assis = null, tenue = null, fixe = false }) {
-  return { x, z, y: assis ?? 0, cap, ronde, vitesse, attente, etape: 0, sens: 1, pause: 1 + Math.random() * 2, v: 0, parle: false, assis, hanche: ASSIS * (tenue?.taille || 1), fixe };
+export function creerPassant({ x, z, cap = 0, ronde = null, vitesse = 1.1, attente = [2, 6], assis = null, tenue = null, fixe = false, retour = false }) {
+  return { x, z, y: assis ?? 0, cap, ronde, vitesse, attente, etape: 0, sens: 1, pause: 1 + Math.random() * 2, v: 0, parle: false, assis, hanche: ASSIS * (tenue?.taille || 1), fixe, cap0: retour ? cap : null };
 }
 /** Assis, la racine d'un personnage est à cette hauteur sous le dessus du siège (personnages.js : asseoir). */
 export const ASSIS = 0.38;
@@ -322,6 +323,8 @@ export function avancerPassant(p, dt, monde, joueur, autres) {
   if (p.parle) {
     // (fixe : il ne se tourne pas vers le joueur, le pêcheur de Motonosumi, sa ligne dans l'eau, 2026-10-29)
     if (!p.fixe) p.cap = tourner(p.cap, Math.atan2(joueur.x - p.x, joueur.z - p.z), dt * 6);
+  } else if (p.cap0 != null) {
+    if (p.cap !== p.cap0) p.cap = Math.abs(p.cap - p.cap0) < 0.002 ? p.cap0 : tourner(p.cap, p.cap0, dt * 5);
   } else if (p.ronde && p.ronde.length) {
     if (p.pause > 0) p.pause -= dt;
     else {

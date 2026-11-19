@@ -1725,6 +1725,8 @@ export function construire(ctx) {
     objets, monde, terrain, trouSol, etiquettes, passants, daims: [], interactions, actionDaim: null, vapeurs, bancs, lumieres, actionBete, animes,
     // (le secret, tresors.js ; le marchand, dans sa clairière, tourné vers la trouée ; les sons à fabriquer en plus ; les feux d'artifice,
     // tirés du cratère du petit volcan)
+    // (Sumi, le peintre d'Inkami, son étal et son tableau — inkami.js, 2026-11-19 : au bord de la route, à la sortie du tunnel)
+    peintre: { x: -43.4, z: -26.0, cap: 2.09, tableau: 'campeur' },
     secret: 'tresor', marchand: { x: MARCHAND.x, z: MARCHAND.z, cap: MARCHAND.ouverture }, sons: ['pelle', 'boite'],
     feux: { x: MARUYAMA.x, y: 9, z: MARUYAMA.z, large: 46, haut: [40, 62] },
     // les bêtes (betes.js) : trois grives des îles d'Izu (chacune entre ses coins : le bois près du sauna, l'herbe

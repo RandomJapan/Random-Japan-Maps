@@ -88,6 +88,8 @@ export function creerEtiquettes(THREE, liste, { anisotropie = 4 } = {}) {
   if (document.fonts) {
     Promise.all([700, 800].map((g) => document.fonts.load(`${g} 48px ${POLICE}`, texte))).then(() => { toutDessiner(); texture.needsUpdate = true; }, () => {});
   }
+  // (une image peinte qui arrive après coup — le sceau de l'enseigne du peintre, inkami.js : tout redessiner)
+  groupe.userData.redessiner = () => { toutDessiner(); texture.needsUpdate = true; };
   return groupe;
 }
 

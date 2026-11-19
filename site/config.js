@@ -36,6 +36,8 @@ export const CONFIG = {
   // langues : les langues publiées sur la boutique en plus de l'anglais (qui est à la racine du site). Avec ['fr', 'ja'],
   // un visiteur en français arrive sur inkami.art/fr et un visiteur en japonais sur inkami.art/ja.
   // Mettre adresse: '' pour retirer le lien.
+  // La balade 3D s'en sert aussi : le bouton « Voir la boutique Inkami » de la fenêtre où l'on regarde un tableau de Sumi, le
+  // peintre (balade/inkami.js ; utm_medium=balade, puis le lieu et le tableau).
   boutique: { adresse: 'https://inkami.art/', langues: [] },
 
   // --- Mode développeur ------------------------------------------------

@@ -483,3 +483,35 @@ body.en-danse .aide { bottom: var(--bas); }
    sont placés par balade.js, jeu.jumelles) */
 .jumelles-ecran { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0; transition: opacity 0.35s ease; }
 .jumelles-ecran.visible { opacity: 1; }
+
+/* ---- le tableau d'Inkami qu'on regarde (inkami.js, 2026-11-19) : l'image en grand, ce que fait la boutique, le bouton qui y mène */
+.fond-tableau { z-index: 30; }
+.cadre-tableau {
+  box-sizing: border-box; width: min(430px, 100%); max-height: calc(100dvh - 24px); overflow: auto; background: var(--papier-2);
+  display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 16px 16px; text-align: center;
+}
+.tableau-nom { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 2px 10px; font-size: 17px; line-height: 1.25; }
+.tableau-kana { font-size: 22px; letter-spacing: 0.06em; }
+.tableau-image {
+  display: block; height: min(50dvh, 560px); max-width: 100%; aspect-ratio: 800 / 1131; object-fit: contain; background: #e0d2b6;
+  border: 3px solid var(--encre); border-radius: 4px; box-shadow: 0 4px 0 rgba(58, 50, 54, 0.25);
+}
+.tableau-sous { margin: -2px 0 0; font-size: 12.5px; color: var(--encre-2); }
+.tableau-offre { margin: 2px 0 0; font-size: 14px; line-height: 1.45; text-align: left; }
+.tableau-offre b { display: block; font-size: 16.5px; }
+.tableau-boutique {
+  display: flex; flex-direction: column; align-items: center; margin-top: 2px; padding: 9px 24px 7px; background: #b03526; color: #fff;
+  border: 3px solid var(--encre); border-radius: 8px; box-shadow: 0 3px 0 rgba(58, 50, 54, 0.35); text-decoration: none; font-size: 17px; font-weight: 800; line-height: 1.25;
+}
+.tableau-boutique small { font-size: 12px; font-weight: 700; opacity: 0.88; }
+.tableau-boutique:hover, .tableau-boutique:focus-visible { background: #c43f2e; outline: none; }
+.tableau-fermer { background: var(--papier); border: 3px solid var(--encre); border-radius: 8px; padding: 5px 18px; font-size: 15px; }
+/* (un écran large : l'image à gauche, le reste à droite) */
+@media (min-width: 760px) and (min-height: 480px) {
+  .cadre-tableau { width: min(780px, 100%); display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto 1fr auto auto; column-gap: 22px; padding: 18px 22px; justify-items: center; align-items: center; }
+  .tableau-image { grid-column: 1; grid-row: 1 / 6; height: min(calc(100dvh - 72px), 640px); }
+  .tableau-nom { flex-direction: column; align-items: center; font-size: 19px; }
+  .tableau-kana { font-size: 30px; }
+  .tableau-offre { font-size: 15px; align-self: start; margin-top: 10px; }
+  .tableau-offre b { font-size: 18px; margin-bottom: 4px; }
+}

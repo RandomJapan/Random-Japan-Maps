@@ -1994,6 +1994,8 @@ export function construire(ctx) {
     ...infos, textes: TEXTES,
     objets, monde, terrain, etiquettes, passants, daims: [], interactions, actionDaim: null, vapeurs, bancs, lumieres, actionBete, animes,
     // (le secret, tresors.js ; le marchand ; les sons à fabriquer en plus ; les feux d'artifice, au-dessus de la mer, au nord)
+    // (Sumi, le peintre d'Inkami, son étal et son tableau — inkami.js, 2026-11-19 : dans le coin sud-est de l'esplanade, entre le bureau des amulettes et la haie)
+    peintre: { x: 10.2, z: 28.0, cap: -2.45, tableau: 'kon' },
     secret: 'torii124', marchand: MARCHAND, sons: ['claque', 'papier', 'piece', 'tombe', 'saisen', 'oiseau/shiofuki'],
     feux: { x: -10, y: 0, z: -185, large: 80, haut: [40, 64] },
     // les mouettes (mouettes.js) : au-dessus de la mer et de la crique ; posées sur les buttes, au bord du plateau, et sur le

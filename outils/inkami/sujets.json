@@ -1,0 +1,233 @@
+[
+ {
+  "id": "shika",
+  "lieu": "itsukushima",
+  "objet": "M.daims.find((d) => d.male).b.objet",
+  "haut": 1.0,
+  "angle": 0.8,
+  "marge": 1.32,
+  "kl": 0.3,
+  "devant": 0.42,
+  "dy": 0.36,
+  "rafale": 5
+ },
+ {
+  "id": "campeur",
+  "lieu": "aogashima",
+  "objet": "M.passants.find((p) => p.id === 'campeur').perso.objet",
+  "avant": "(() => { const p = balade.monde().passants.find((q) => q.id === 'campeur'); p.quand = null; p.etat.parle = true; })()",
+  "attente": 1200,
+  "haut": 0.66,
+  "angle": 0.4,
+  "marge": 1.3
+ },
+ {
+  "id": "kokiriko",
+  "lieu": "gokayama",
+  "objet": "M.passants.find((p) => p.id === 'danseur').perso.objet",
+  "avant": "(() => { const p = balade.monde().passants.find((q) => q.id === 'danseur'); p.quand = null; p.etat.parle = true; })()",
+  "attente": 1200,
+  "haut": 0.66,
+  "angle": 0.4,
+  "marge": 1.3
+ },
+ {
+  "id": "pon",
+  "lieu": "gokayama",
+  "compagnon": "pon",
+  "objet": "M.kon.objet",
+  "haut": 1.0,
+  "angle": 0.5,
+  "marge": 1.25,
+  "avant": "1",
+  "attente": 4000,
+  "pause": 220
+ },
+ {
+  "id": "samourai",
+  "lieu": "himeji",
+  "objet": "M.passants.find((p) => p.id === 'samourai').perso.objet",
+  "avant": "(() => { const p = balade.monde().passants.find((q) => q.id === 'samourai'); p.quand = null; p.etat.parle = true; })()",
+  "attente": 1200,
+  "haut": 0.66,
+  "angle": 0.4,
+  "marge": 1.3
+ },
+ {
+  "id": "voyageur",
+  "lieu": "himeji",
+  "perso": "garcon",
+  "stockage": {
+   "baladeAchats": "[\"armure\"]",
+   "baladeTenue": "{\"garcon\":{\"tete\":\"kabuto\",\"habit\":\"armure\"}}"
+  },
+  "objet": "M.joueur.objet",
+  "haut": 0.7,
+  "angle": 0.4,
+  "marge": 1.25
+ },
+ {
+  "id": "voyageuse",
+  "lieu": "himeji",
+  "perso": "fille",
+  "stockage": {
+   "baladeAchats": "[\"kimonoOr\"]",
+   "baladeTenue": "{\"fille\":{\"habit\":\"kimonoOr\"}}"
+  },
+  "objet": "M.joueur.objet",
+  "haut": 0.7,
+  "angle": 0.4,
+  "marge": 1.25
+ },
+ {
+  "id": "uzume",
+  "lieu": "takachiho",
+  "objet": "M.passants.find((p) => p.id === 'uzume').perso.objet",
+  "avant": "(() => { const p = balade.monde().passants.find((q) => q.id === 'uzume'); p.quand = null; p.etat.parle = true; })()",
+  "attente": 1200,
+  "haut": 0.66,
+  "angle": 0.4,
+  "marge": 1.3
+ },
+ {
+  "id": "chapu",
+  "lieu": "takachiho",
+  "compagnon": "chapu",
+  "objet": "M.kon.objet",
+  "haut": 1.0,
+  "angle": 0.5,
+  "marge": 1.25,
+  "avant": "1",
+  "attente": 4000,
+  "pause": 220
+ },
+ {
+  "id": "kimono",
+  "lieu": "kinkakuji",
+  "objet": "M.passants.find((p) => p.id === 'kimono').perso.objet",
+  "avant": "(() => { const p = balade.monde().passants.find((q) => q.id === 'kimono'); p.quand = null; p.etat.parle = true; })()",
+  "attente": 1200,
+  "haut": 0.66,
+  "angle": 0.4,
+  "marge": 1.3
+ },
+ {
+  "id": "chajin",
+  "lieu": "kinkakuji",
+  "objet": "M.passants.find((p) => p.id === 'chajin').perso.objet",
+  "avant": "(() => { const p = balade.monde().passants.find((q) => q.id === 'chajin'); p.quand = null; p.etat.parle = true; })()",
+  "attente": 1200,
+  "haut": 0.66,
+  "angle": 0.4,
+  "marge": 1.3
+ },
+ {
+  "id": "tamago",
+  "lieu": "beppu",
+  "objet": "M.passants.find((p) => p.id === 'tamago').perso.objet",
+  "avant": "(() => { const p = balade.monde().passants.find((q) => q.id === 'tamago'); p.quand = null; p.etat.parle = true; })()",
+  "attente": 1200,
+  "haut": 0.66,
+  "angle": 0.4,
+  "marge": 1.3
+ },
+ {
+  "id": "bunbuku",
+  "lieu": "beppu",
+  "objet": "M.marchand.perso.objet",
+  "haut": 0.8,
+  "angle": 0.4,
+  "marge": 1.2
+ },
+ {
+  "id": "kon",
+  "lieu": "motonosumi",
+  "compagnon": "kon",
+  "objet": "M.kon.objet",
+  "haut": 1.0,
+  "angle": 0.5,
+  "marge": 1.08,
+  "avant": "1",
+  "attente": 4000,
+  "pause": 220
+ },
+ {
+  "id": "yamabushi",
+  "lieu": "sanjubutsu",
+  "objet": "M.passants.find((p) => p.id === 'yamabushi').perso.objet",
+  "avant": "(() => { const p = balade.monde().passants.find((q) => q.id === 'yamabushi'); p.quand = null; p.etat.parle = true; })()",
+  "attente": 1200,
+  "haut": 0.66,
+  "angle": 0.4,
+  "marge": 1.3
+ },
+ {
+  "id": "miko",
+  "lieu": "udo",
+  "objet": "M.passants.find((p) => p.id === 'miko').perso.objet",
+  "avant": "(() => { const p = balade.monde().passants.find((q) => q.id === 'miko'); p.quand = null; p.etat.parle = true; })()",
+  "attente": 1200,
+  "haut": 0.66,
+  "angle": 0.4,
+  "marge": 1.3
+ },
+ {
+  "id": "fuwa",
+  "lieu": "udo",
+  "compagnon": "fuwa",
+  "objet": "M.kon.objet",
+  "haut": 1.0,
+  "angle": 0.5,
+  "marge": 1.0,
+  "avant": "1",
+  "attente": 4000,
+  "pause": 220,
+  "kl": 0.62
+ },
+ {
+  "id": "saya",
+  "lieu": "yakushima",
+  "compagnon": "saya",
+  "objet": "M.kon.objet",
+  "haut": 1.0,
+  "angle": 0.5,
+  "marge": 1.25,
+  "avant": "1",
+  "attente": 4000,
+  "pause": 220
+ },
+ {
+  "id": "rakuda",
+  "lieu": "tottori",
+  "objet": "M.lieu.animes.map((a) => a.objet).find((o) => o && o.children.length === 4).children[0]",
+  "haut": 0.62,
+  "angle": 0.85,
+  "marge": 1.42,
+  "kl": 0.54,
+  "devant": 0.5,
+  "avant": "(() => { const e = balade.etat; e.x = 181; e.z = 26; })()",
+  "attente": 1500
+ },
+ {
+  "id": "junrei",
+  "lieu": "tsubosaka",
+  "objet": "M.passants.find((p) => p.id === 'pelerin').perso.objet",
+  "avant": "(() => { const p = balade.monde().passants.find((q) => q.id === 'pelerin'); p.quand = null; p.etat.parle = true; })()",
+  "attente": 1200,
+  "haut": 0.66,
+  "angle": 0.4,
+  "marge": 1.3
+ },
+ {
+  "id": "gao",
+  "lieu": "tsubosaka",
+  "compagnon": "gao",
+  "objet": "M.kon.objet",
+  "haut": 1.0,
+  "angle": 0.5,
+  "marge": 1.25,
+  "avant": "1",
+  "attente": 4000,
+  "pause": 220
+ }
+]

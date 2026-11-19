@@ -49,6 +49,7 @@ import { creerFeux } from './feux.js';
 import { creerChutes, SAISONS } from './calendrier.js';
 import { creerPhoto } from './photo.js';
 import { carteTraversee, animerTraversee } from './traversee.js';
+import { installerInkami, poserToiles, montrerTableau, quandSceau, TEXTES as TEXTES_INKAMI } from './inkami.js';
 import * as itsukushima from './itsukushima.js';
 import * as aogashima from './aogashima.js';
 import * as gokayama from './gokayama.js';
@@ -77,6 +78,9 @@ import * as tsubosaka from './tsubosaka.js';
 // (les dunes de Tottori, en essai depuis le 2026-11-02, sorties le 2026-11-04 : « Tu peux mettre en ligne Tottori »)
 // (Tsubosaka-dera, en essai depuis le 2026-11-05, sorti le 2026-11-12 : « Tu peux mettre en ligne pour tout le monde »)
 const EN_ESSAI = [];
+// Sumi, le peintre d'Inkami, et ses tableaux (inkami.js) : en essai depuis le 2026-11-19, en mode développeur seulement, comme le lien de la
+// boutique posé le même jour sur la carte (la boutique inkami.art était encore fermée par son mot de passe). Pour le sortir : false.
+const INKAMI_EN_ESSAI = true;
 // (les îles où l'on n'arrive qu'en bateau : Yakushima, depuis Udo, une fois ses cinq tampons pris ; le propriétaire, le 2026-10-30 :
 // « On peut pas débloquer Yakushima sans avoir fait ce lieu-là… à partir du moment où tu as pris le bateau… la petite icône visiter
 // en 3D… elle apparaît ». Prendre le bateau (jeu.partir) écrit localStorage.baladeYakushima = 'oui', que lit aussi la carte, app.js)
@@ -204,6 +208,15 @@ function construire() {
   const ctxKon = { ...ctx, maillage: maillageDe(mouilleKon.materiel, mats.traitPerso) };
   // (perso : pour ce que le lieu anime à la manière des personnages : les corbeaux)
   const lieu = LIEUX[LIEU].construire({ ...ctx, perso: ctxPerso });
+  // Sumi, le peintre d'Inkami, et ses tableaux (inkami.js, 2026-11-19) : son étal s'ajoute au décor du lieu, à ses passants, à ce qu'on y fait
+  // (?peintre=x,z,cap[,x2,z2,cap2] : pour les essais, son étal posé ailleurs, et le second tableau ; ?peintre=non : le lieu sans lui)
+  if (params.get('peintre') === 'non' || (INKAMI_EN_ESSAI && !modeDev())) lieu.peintre = null;
+  else if (params.get('peintre')) {
+    const v = params.get('peintre').split(',').map(Number);
+    lieu.peintre = { tableau: 'samourai', ...lieu.peintre, x: v[0], z: v[1], cap: v[2] || 0 };
+    if (v.length >= 6) lieu.peintre.autre = { tableau: 'pon', ...lieu.peintre.autre, x: v[3], z: v[4], cap: v[5] };
+  }
+  const inkami = installerInkami(lieu, ctx, { parler: () => parlerPeintre(), regarder: (id) => regarderTableau(id) });
   // le vent du lieu : d'où il pousse, sa force
   mats.vent.ventDir.value.set(...(lieu.vent?.dir || [0.6, 0.8])).normalize();
   mats.vent.ventForce.value = lieu.vent?.force ?? 1;
@@ -230,7 +243,13 @@ function construire() {
     if (m.children[1]) { m.updateWorldMatrix(true, true); traitsDecor.push([m.children[1], new THREE.Box3().setFromObject(m.children[0])]); }
   }
   // les textes des plaques et des enseignes (le nom du tunnel…)
-  if (lieu.etiquettes?.length && params.get('etiquettes') !== '0') groupe.add(creerEtiquettes(THREE, lieu.etiquettes, { anisotropie: Math.min(8, rendu.capabilities.getMaxAnisotropy()) }));
+  const etiquettes = lieu.etiquettes?.length && params.get('etiquettes') !== '0' ? creerEtiquettes(THREE, lieu.etiquettes, { anisotropie: Math.min(8, rendu.capabilities.getMaxAnisotropy()) }) : null;
+  if (etiquettes) groupe.add(etiquettes);
+  // (l'enseigne du peintre d'Inkami : son sceau est une image, qui peut arriver après ce premier dessin)
+  if (etiquettes && inkami) quandSceau(etiquettes.userData.redessiner);
+  // (les images des tableaux, sur leurs toiles)
+  const toiles = inkami && poserToiles(THREE, inkami.toiles, { anisotropie: Math.min(8, rendu.capabilities.getMaxAnisotropy()), nom: tableauDe, pret: (t) => rendu.initTexture(t) });
+  if (toiles) groupe.add(toiles.groupe);
   const carte = carteDuSol(lieu, lieu.etendue.fin);
   mats.carte.carteSol.value = carte.texture;
   mats.carte.zoneSol.value.set(carte.x0, carte.z0, carte.pas, 1);
@@ -416,6 +435,7 @@ function construire() {
   // (lieu.flou : [début, fin] du lointain flou, en mètres ; 2026-10-29, Motonosumi : « le fond est un peu flou », ses falaises
   // à 50–150 m)
   if (lieu.flou) M.finale.reglerFlou(...lieu.flou);
+  M.toiles = toiles;
   choisirVoyageur(sorte || 'garcon');
   choisirCompagnon(espece || 'kon');
   for (const s of ['garcon', 'fille']) habiller(s);
@@ -681,6 +701,8 @@ function choisirVoyageur(s) {
   M.autre = M.voyageurs[s === 'garcon' ? 'fille' : 'garcon'];
   M.joueur.objet.visible = true;
   M.autre.objet.visible = false;
+  // (le portrait du voyageur, chez le peintre d'Inkami : le sien)
+  if (M.toiles && M.voyageurPeint !== s) { M.voyageurPeint = s; M.toiles.changer('voyageur', s === 'fille' ? 'voyageuse' : 'voyageur'); }
 }
 /** Le nombre de tampons d'un lieu (pour savoir si sa récompense est gagnée). */
 const totalTampons = (id) => LIEUX[id]?.infos.tampons.length || 0;
@@ -3226,6 +3248,40 @@ function acheterArticle(id) {
   majBoutique('.boutique-message');
 }
 
+// ---------------------------------------------------------------- Sumi, le peintre d'Inkami, et ses tableaux (inkami.js, 2026-11-19)
+/** L'image d'un tableau : 'voyageur' est le portrait de celui qu'on joue (le garçon en samouraï, la fille en kimono d'or). */
+function tableauDe(id) { return id === 'voyageur' && sorte === 'fille' ? 'voyageuse' : id; }
+/**
+ * On regarde un tableau : la fenêtre (l'image en grand, ce que fait Inkami, le bouton qui ouvre la boutique) ; se résout quand on la ferme.
+ * Le jeu reste en mode dialogue (agir) : on ne marche pas, et les touches vont à la fenêtre.
+ */
+async function regarderTableau(id) {
+  touches.clear();
+  etat.vx = etat.vz = 0;
+  son.choix();
+  await montrerTableau($('.fond-tableau'), TEXTES_INKAMI[langue] || TEXTES_INKAMI.en, tableauDe(id), M.lieu.id, langue);
+}
+/**
+ * On parle à Sumi : la première fois, il se présente et dit ce que fait son atelier ; il dit un mot du tableau qu'il peint ici (la nuit, de son
+ * lampion), puis propose de le regarder de près. Son pinceau baissé tant qu'on lui parle (tenue.repos : la pose 'peindre').
+ */
+async function parlerPeintre() {
+  const T = TEXTES_INKAMI[langue] || TEXTES_INKAMI.en, qui = { qui: T.nom }, id = M.lieu.peintre.tableau;
+  const p = M.passants.find((q) => q.id === 'sumi');
+  if (p) p.tenue.repos = true;
+  try {
+    const vu = memoire.lire('baladePeintreVu') === 'oui';
+    await dialogue.dire(!vu ? T.intro : M.nuit.cible === 1 ? T.nuit : T.revoir, qui);
+    await dialogue.dire([T.tableaux[tableauDe(id)][1], ...(vu ? [] : T.atelier)], qui);
+    memoire.ecrire('baladePeintreVu', 'oui');
+    if ((await dialogue.choisir([T.question], [T.oui, T.non], qui)) === 0) await regarderTableau(id);
+    else await dialogue.dire(T.refus, qui);
+  } finally {
+    // (il se retourne vers sa toile — monde.js, retour — puis reprend son pinceau)
+    if (p) setTimeout(() => { if (!p.etat.parle) p.tenue.repos = false; }, 900);
+  }
+}
+
 // ---- la danse des fêtes (bon-odori) : la caméra de face, l'air de la fête ; une touche, un appui, et l'on s'arrête
 function commencerDanse() {
   if (etat.mode !== 'jeu' || M.barque?.actif || M.lieu.conduite?.actif || (siege && !siege.libre)) return;
@@ -4214,6 +4270,8 @@ function dessiner(dt, temps) {
     appliquerNuit(N.v);
   }
   M.lueurs.maj(N.v, toile.height / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2)), camera);
+  // (les tableaux d'Inkami : la nuit, la lueur du lampion sur la toile)
+  M.toiles?.nuit(N.v);
   if (N.fin && N.v === N.cible) { const fin = N.fin; N.fin = null; fin(); }
 
   // la caméra derrière le joueur. Sous un toit (une galerie), elle se rapproche et passe sous le plafond ;

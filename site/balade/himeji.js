@@ -2613,6 +2613,8 @@ export function construire(ctx) {
     objets, monde, terrain, etiquettes, passants, daims: [], interactions, actionDaim: null, vapeurs, bancs, lumieres, actionBete, animes,
     // (le secret, tresors.js ; le marchand, sous les cerisiers de l'esplanade ; les sons à fabriquer en plus ; les feux
     // d'artifice, tirés derrière le donjon)
+    // (Sumi, le peintre d'Inkami, son étal et son tableau — inkami.js, 2026-11-19 : sur l'herbe à droite de l'allée, après la grande porte ; le second tableau (le portrait du voyageur) contre le rempart de la première terrasse)
+    peintre: { x: 3.2, z: 16.2, cap: 5.76, tableau: 'samourai', autre: { x: -8.1, z: -18.6, cap: 0.0, tableau: 'voyageur' } },
     secret: 'okiku', marchand: MARCHAND, sons: ['assiette', 'plouf', 'cloche', 'claque', 'papier'],
     feux: { x: 0, y: 0, z: -125, large: 60, haut: [50, 74] },
     // les douves : une eau calme, verte, où l'on voit passer les carpes ; le long des bords, le reflet gris des murs

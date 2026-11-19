@@ -2018,6 +2018,8 @@ export function construire(ctx) {
     ...infos, textes: TEXTES,
     objets, monde, terrain, etiquettes, passants, daims: [], interactions, actionDaim: null, vapeurs, bancs, lumieres, actionBete, animes,
     // (le secret, tresors.js ; le marchand ; les sons à fabriquer en plus ; les feux d'artifice, au-dessus de la vallée, au sud)
+    // (Sumi, le peintre d'Inkami, son étal et son tableau — inkami.js, 2026-11-19 : au bord de la clairière de l'arrivée, sous le plaqueminier, près de la ferme)
+    peintre: { x: -7.6, z: 56.4, cap: 0.0, tableau: 'yamabushi' },
     secret: 'oni', marchand: MARCHAND, sons: ['claque', 'papier', 'kane', 'pouf', 'roc', 'oiseau/goutte'],
     // (sous la cascade, on est trempé : balade.js ; sur les pierres de gué et dans la bouche de la grotte, qui avance le long de
     // la ligne y est ramené vers son milieu)

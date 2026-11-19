@@ -2903,6 +2903,8 @@ export function construire(ctx) {
     eauCalme: { clair: '#55673e', profond: '#2c3a25', clarte: 0.36, teinteReflet: '#eef2e0', refletMin: 0.5 },
     // (le secret, tresors.js ; le marchand, sous les érables entre le pavillon du thé et le salon ; les sons à fabriquer en plus ;
     // les feux d'artifice, au-dessus de la forêt derrière le pavillon : du belvédère, on les voit aussi dans l'étang)
+    // (Sumi, le peintre d'Inkami, son étal et son tableau — inkami.js, 2026-11-19 : au bord de l'allée d'entrée, près du départ)
+    peintre: { x: 34.7, z: 55.0, cap: -2.5, tableau: 'kimono' },
     secret: 'phenix', marchand: MARCHAND, sons: ['cloche', 'claque', 'papier', 'plouf', 'piece', 'bol', 'tombe', 'chasen', 'pinceau', 'tampon', 'waniguchi'],
     feux: { x: -26, y: 0, z: -112, large: 50, haut: [42, 62] },
     // les bêtes (betes.js) : un héron cendré sur les îles, des libellules, des papillons, un milan au-dessus de l'étang ; les

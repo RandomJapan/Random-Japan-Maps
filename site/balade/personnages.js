@@ -2176,7 +2176,7 @@ export function creerHeros(ctx, sorte = 'garcon') {
  * 'eboshi', 'ecolier', 'foulard', 'bob', 'bandeau' ; c, c2 }, haut, manches ('courtes', 'longues', 'kimono'),
  * col (le col croisé d'un kimono), bas { sorte : 'short', 'jupe', 'hakama', 'pantalon' ; c, c2 }, chaussures,
  * semelle, sac { sorte : 'dos', 'randoseru' ; c, c2 }, tablier, lunettes, appareil (photo, au cou), canne,
- * yeux ('plisses' : un sourire).
+ * yeux ('plisses' : un sourire). pose 'peindre' (2026-11-19, le peintre d'Inkami : un pinceau à la main, devant son chevalet ; repos : baissé).
  * Pour le nō (Itsukushima) : coiffure 'kazura' (la longue perruque noire et son bandeau), chapeau 'tengan' (la
  * petite couronne d'or), masque (le masque blanc d'une jeune femme, ko-omote), pose ('seiza' : assis sur les
  * talons ; 'danse' : l'acteur, son éventail ; 'jouer' : un musicien, assis aussi) et instrument ('fue', la flûte ;
@@ -2383,6 +2383,8 @@ export function creerPersonnage(ctx, T) {
       for (const d of [-1, 1]) a.baton([d * 0.01, -0.3, 0.03], [d * 0.035, -0.78, 0.05], 0.01, '#a8b0b8', 4, { trait: false });
       a.baton([0, -0.27, 0.03], [0, -0.36, 0.03], 0.018, '#7a5232', 5);
     }
+    // (2026-11-19, Sumi, le peintre d'Inkami : pose 'peindre') son pinceau prolonge la main : le manche de bambou, la touffe noire d'encre
+    if (T.pose === 'peindre' && s === -1) a.baton([0, -0.27, 0.03], [0, -0.52, 0.03], 0.009, '#b89a5e', 5, { trait: false }).cone(0.017, 0.075, 6, '#15100e', { y: -0.555, z: 0.03, rx: PI, trait: false });
     if (T.instrument === 'pinceau' && s === -1) a.baton([0, -0.3, 0.03], [0.01, -0.25, 0.2], 0.008, '#4a3020', 4, { trait: false }).cone(0.012, 0.04, 5, '#1c1714', { x: 0.01, y: -0.255, z: 0.215, rx: PI / 2, trait: false });
     // la canne à pêche (la main droite, la gauche dessous) : la poignée de liège, le scion, le moulinet sous la canne ; la
     // ligne, de la pointe jusqu'à l'eau visée (T.ligne), droite (2026-10-29, Motonosumi : sa canne lui sortait de la tête, et
@@ -2742,6 +2744,16 @@ export function creerPersonnage(ctx, T) {
         bras[0].rotation.x = bras[1].rotation.x = -1.2 - 0.12 * o;
         bras[0].rotation.z = -0.1; bras[1].rotation.z = 0.1;
         corps.rotation.x = 0.16 + 0.04 * o + courbe;
+      } else if (T.pose === 'peindre') {
+        // peindre debout devant son chevalet (2026-11-19, Sumi) : le bras droit tendu vers la toile, de petits coups de pinceau lents, puis un
+        // temps où il regarde ; T.repos (on lui parle : inkami.js) : le pinceau baissé
+        if (T.repos) { bras[0].rotation.x = -0.4; bras[0].rotation.z = 0.06; bras[1].rotation.z = 0; }
+        else {
+          const u = temps * 0.9 + decalage, geste = Math.max(0, Math.sin(u)) ** 0.6;
+          bras[0].rotation.x = -1.2 - 0.16 * Math.sin(u * 2.3) * geste; bras[0].rotation.z = 0.08 + 0.14 * Math.sin(u * 1.7) * geste;
+          bras[1].rotation.x = -0.3; bras[1].rotation.z = -0.12;
+          tete.rotation.x = -0.05 + 0.04 * Math.sin(u * 0.5) + courbe * 0.3;
+        }
       }
       return pose;
     },

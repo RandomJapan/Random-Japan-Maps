@@ -3421,6 +3421,8 @@ export function construire(ctx) {
     // (le secret, tresors.js : les plumes de cormoran ; le marchand, sous les camphriers au sud de l'allée ; les sons à fabriquer
     // en plus (le cri du cormoran : celui du héron de Gokayama, un « gwaa » rauque) ; les feux d'artifice au-dessus de la mer, à
     // l'est, devant la grotte)
+    // (Sumi, le peintre d'Inkami, son étal et son tableau — inkami.js, 2026-11-19 : dans le coin du parking, contre le pignon de la première boutique, à côté de l'arrêt du car ; le second tableau sur la terrasse du pont rouge, la mer derrière)
+    peintre: { x: -88.0, z: 5.2, cap: -2.75, tableau: 'miko', autre: { x: 27.2, z: 2.2, cap: -2.21, tableau: 'fuwa' } },
     secret: 'plumes', marchand: MARCHAND, sons: ['claque', 'cloche', 'pinceau', 'papier', 'piece', 'caillou', 'tombe', 'oiseau/goutte', 'oiseau/aosagi', 'oiseau/corne'],
     feux: { x: 150, y: 0, z: -30, large: 90, haut: [42, 66] },
     // les mouettes (mouettes.js) : au-dessus de la mer, de la crique du port et du platier ; posées près du rocher de la tortue,
