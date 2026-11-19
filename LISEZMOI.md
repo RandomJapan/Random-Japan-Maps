@@ -317,20 +317,20 @@ C'est le troisième onglet du panneau Visite (mode développeur aussi), comme «
 - Appuie sur **Voler** : la carte montre le départ, avec son nom en bas, la caméra déjà tournée vers l'arrivée. Puis le nom du départ s'en va et la caméra vole jusqu'à l'arrivée (en prenant de la hauteur si c'est loin), en 2,5 à 5,5 secondes selon la distance. À l'arrivée, le nom s'affiche et la caméra tourne autour, comme pour le plongeon. Seuls ces deux lieux sont sur la carte.
 - **Rejouer** et **Arrêter** marchent comme pour le plongeon.
 
-## Le lien vers ta boutique Inkami (en essai, mode développeur)
+## Le lien vers ta boutique Inkami
 
-Un petit lien **« Mes tableaux »**, avec le sceau rouge 墨紙 de ta marque, mène à **inkami.art** (dans un nouvel onglet). Pas de prix ni de « acheter » : il se voit, sans pousser.
+Un petit lien **« Mes tableaux »**, avec le sceau rouge 墨紙 de ta marque, mène à **inkami.art** (dans un nouvel onglet). Pas de prix ni de « acheter » : il se voit, sans pousser. Tout le monde le voit depuis l'ouverture de ta boutique, le 19 novembre 2026.
 - **Sur ordinateur :** en haut à droite, juste à gauche de la langue : « Mes tableaux · inkami.art ».
 - **Sur téléphone :** un petit sceau rond en bas à gauche, avec « Mes tableaux » dessous, et une ligne dans le **Menu** (sous Musique). Au premier passage d'un visiteur, il attend que le conseil « Touche un lieu pour voir sa vidéo » s'efface, puis il apparaît en fondu. Il s'efface pendant la visite guidée, le jeu et le défi.
 - En anglais « My paintings », en japonais « 私の作品 ».
 - **Dans Shopify**, les visites et les ventes venues de la carte sont comptées à part : le lien porte `utm_source=map` (le bouton : `utm_content=carte` ; la ligne du menu : `utm_content=menu`).
-- **La langue :** pour l'instant, tout le monde arrive sur la boutique en anglais. Quand le français (et le japonais) seront publiés sur la boutique, dis-le à Claude : un visiteur en français arrivera alors directement sur inkami.art/fr (le réglage `boutique` de `config.js`, `langues: ['fr', 'ja']`).
-- **Pour le sortir pour tout le monde :** dis-le à Claude (il enlève le mode développeur de ses deux morceaux).
+- **La langue :** un visiteur en français arrive directement sur inkami.art/fr, en japonais sur inkami.art/ja, et en anglais sur inkami.art (le réglage `boutique` de `config.js`, `langues: ['fr', 'ja']`).
+- **Pour le cacher ou l'enlever :** dis-le à Claude.
 - **Dans la balade 3D aussi :** Sumi, le peintre, et ses tableaux mènent à ta boutique (voir « La balade 3D », plus bas).
 
 ## Le mode développeur (rien que pour toi)
 
-Tes outils qui ne sont pas pour les visiteurs (pas encore, ou jamais) : le **plongeon**, le **point à point** et l'**affiche à incruster** (onglets Plongeon et Point à point de la visite), et pour l'instant le **lien « Mes tableaux »** vers ta boutique (voir plus haut). Le jeu et le défi du jour y étaient aussi, jusqu'à leur sortie le 10 novembre 2026.
+Tes outils qui ne sont pas pour les visiteurs (pas encore, ou jamais) : le **plongeon**, le **point à point** et l'**affiche à incruster** (onglets Plongeon et Point à point de la visite). Le jeu et le défi du jour y étaient aussi, jusqu'à leur sortie le 10 novembre 2026, et le lien « Mes tableaux » vers ta boutique, jusqu'à son ouverture le 19 novembre.
 - **La première fois :** ouvre ton **lien secret** (celui que Claude t'a donné dans la conversation, qui finit par `?dev=…`) dans chaque navigateur où tu veux le mode : sur ton téléphone (Safari ou Chrome, pas le navigateur intégré de TikTok) et sur ton ordinateur. Le navigateur s'en souvient ensuite. Garde ce lien pour toi : il n'est écrit nulle part ailleurs.
 - **Ensuite :** un bouton `</>` apparaît en bas à droite, au-dessus de la rose des vents. **Rouge** = carte développeur (tes outils sont là). **Clair** = carte normale, exactement comme la voient les visiteurs. Un clic pour passer de l'une à l'autre ; la carte retient ton choix.
 - Ce bouton n'existe que dans tes navigateurs : les visiteurs ne le voient jamais.
