@@ -29,7 +29,9 @@ Tout seul :  pythonw outils/couvertures_montage.py --publier, toutes les 30 min 
              origin/main, fait les couvertures qui manquent et celles demandées dans Vignettes.txt (dans le dossier
              du montage, une ligne « Nom = secondes » ou « Nom = fichier @ secondes »), les images du jeu qui manquent,
              pousse, et prévient par une
-             notification Windows. Journal : journal-vignettes.txt à côté du clone.
+             notification Windows. Journal : journal-vignettes.txt à côté du clone. Un verrou de git laissé par un
+             passage coupé net (PC éteint) est retiré au passage suivant ; si les passages échouent depuis plus de
+             3 heures, une notification le dit.
 Il faut Pillow, numpy et ffmpeg (celui du système, sinon pip install imageio-ffmpeg).
 """
 import csv
@@ -403,6 +405,20 @@ def prevenir(titre, texte):
                    creationflags=SANS_FENETRE, env={**os.environ, "TITRE_VIGNETTES": titre, "TEXTE_VIGNETTES": texte})
 
 
+def retirer_verrous():
+    """Les verrous qu'un git coupé net laisse derrière lui (PC éteint pendant un passage) : du 13 au 19/11/2026,
+    .git/index.lock a bloqué chaque passage. La tâche ne se lance jamais deux fois à la fois et une commande git de ce
+    clone dure quelques secondes : un verrou de plus de 10 minutes est abandonné."""
+    depot = RACINE / ".git"
+    for verrou in [*depot.glob("*.lock"), *(depot / "refs").rglob("*.lock")]:
+        try:
+            if time.time() - verrou.stat().st_mtime > 600:
+                verrou.unlink()
+                print(f"verrou abandonné retiré : {verrou.relative_to(depot)}")
+        except OSError as e:
+            print(f"verrou {verrou.name} : {e}")
+
+
 def publier():
     """Le passage automatique : dans le clone à part, à jour d'origin/main ; pousse les nouvelles couvertures."""
     if not (RACINE / ".git" / "vignettes-auto").exists():
@@ -415,6 +431,7 @@ def publier():
     etat_fichier = RACINE.parent / "etat-vignettes.json"
     etat = json.loads(etat_fichier.read_text(encoding="utf-8")) if etat_fichier.exists() else {"signales": []}
     try:
+        retirer_verrous()
         try:
             git("rebase", "--abort")  # un passage d'avant arrêté en plein rebase
         except RuntimeError:
@@ -444,9 +461,19 @@ def publier():
                      + ", ".join(f"« {nom} »" for _, nom in recents)
                      + ". Renomme le fichier comme dans Nom (EN), ou écris-le dans Vignettes.txt.")
             etat["signales"] += [n for n, _ in recents]
-            etat_fichier.write_text(json.dumps(etat), encoding="utf-8")
+        etat.pop("panne", None)
+        etat.pop("panneSignalee", None)
     except Exception as e:
         print(f"erreur : {e}")
+        # une panne qui dure (du 13 au 19/11/2026, personne ne l'a vue pendant six jours) : on le dit, une fois
+        etat.setdefault("panne", time.time())
+        if time.time() - etat["panne"] > 3 * 3600 and not etat.get("panneSignalee"):
+            prevenir("Carte du Japon : vignettes en panne",
+                     "Les vignettes et les images du jeu ne se font plus depuis "
+                     + time.strftime("%d/%m à %H:%M", time.localtime(etat["panne"]))
+                     + ". Demande à Claude de regarder journal-vignettes.txt.")
+            etat["panneSignalee"] = True
+    etat_fichier.write_text(json.dumps(etat), encoding="utf-8")
 
 
 def main():
