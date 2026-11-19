@@ -38,7 +38,7 @@ export const CONFIG = {
   // Mettre adresse: '' pour retirer le lien.
   // La balade 3D s'en sert aussi : le bouton « Voir la boutique Inkami » de la fenêtre où l'on regarde un tableau de Sumi, le
   // peintre (balade/inkami.js ; utm_medium=balade, puis le lieu et le tableau).
-  boutique: { adresse: 'https://inkami.art/', langues: [] },
+  boutique: { adresse: 'https://inkami.art/', langues: ['fr', 'ja'] },
 
   // --- Mode développeur ------------------------------------------------
   // Les outils qui ne sont pas pour les visiteurs (plongeon, affiche, jeu pas encore sorti) n'apparaissent que dans
