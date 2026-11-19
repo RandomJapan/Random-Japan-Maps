@@ -78,9 +78,11 @@ import * as tsubosaka from './tsubosaka.js';
 // (les dunes de Tottori, en essai depuis le 2026-11-02, sorties le 2026-11-04 : « Tu peux mettre en ligne Tottori »)
 // (Tsubosaka-dera, en essai depuis le 2026-11-05, sorti le 2026-11-12 : « Tu peux mettre en ligne pour tout le monde »)
 const EN_ESSAI = [];
-// Sumi, le peintre d'Inkami, et ses tableaux (inkami.js) : en essai depuis le 2026-11-19, en mode développeur seulement, comme le lien de la
-// boutique posé le même jour sur la carte (la boutique inkami.art était encore fermée par son mot de passe). Pour le sortir : false.
-const INKAMI_EN_ESSAI = true;
+// Sumi, le peintre d'Inkami, et ses tableaux (inkami.js) : en essai le 2026-11-19, en mode développeur seulement, comme le lien de la boutique posé
+// le même jour sur la carte (la boutique inkami.art était encore fermée par son mot de passe) ; sorti le soir même pour tout le monde, la boutique
+// ouverte et le peintre refait à l'image du propriétaire : « Ok, et dès que tu mettras en ligne, du coup, tu pourras mettre en ligne pour tout le
+// monde directement. » (true : il repasse en mode développeur seulement, et un visiteur n'en voit ni n'en charge plus rien.)
+const INKAMI_EN_ESSAI = false;
 // (les îles où l'on n'arrive qu'en bateau : Yakushima, depuis Udo, une fois ses cinq tampons pris ; le propriétaire, le 2026-10-30 :
 // « On peut pas débloquer Yakushima sans avoir fait ce lieu-là… à partir du moment où tu as pris le bateau… la petite icône visiter
 // en 3D… elle apparaît ». Prendre le bateau (jeu.partir) écrit localStorage.baladeYakushima = 'oui', que lit aussi la carte, app.js)
