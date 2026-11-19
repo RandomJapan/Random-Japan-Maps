@@ -117,6 +117,23 @@ body:not(.mode-dev) .dev { display: none !important; }
 .langues button:hover { color: var(--encre); background: var(--papier-fonce); }
 .langues button[aria-pressed="true"] { background: var(--rouge); color: var(--papier-clair); }
 
+/* ---------- La boutique Inkami (app.js, majBoutique) : un lien discret, à gauche de la langue ----------
+   Le sceau rouge de la marque et « Mes tableaux · inkami.art », comme un petit cartouche de la carte. Sur téléphone :
+   un sceau rond en bas à gauche, au-dessus de la bulle des sources, son nom dessous (voir plus bas). */
+.boutique {
+  position: fixed; top: var(--haut); right: 166px; z-index: 5; height: 40px;
+  display: flex; align-items: center; gap: 9px; padding: 0 10px 0 9px;
+  color: var(--encre); text-decoration: none; transition: background-color .2s;
+}
+.boutique:hover { background-color: var(--papier-fonce); }
+.boutique-rond { display: grid; place-items: center; flex: none; }
+.boutique-sceau { display: block; width: 20px; height: auto; }
+.boutique-textes { display: flex; flex-direction: column; line-height: 1.15; }
+.boutique-nom { font-family: var(--police-titre); font-size: 15px; white-space: nowrap; }
+.boutique-adresse { font-size: 11.5px; color: var(--encre-2); }
+.boutique-sortie { width: 12px; height: 12px; flex: none; align-self: flex-start; margin: 8px 0 0 -3px; color: var(--encre-3); }
+body.mode-film .boutique { display: none; }
+
 /* ---------- Musique (musique.js) : le bouton juste sous la langue, son panneau en dessous ---------- */
 .musique {
   position: fixed; top: calc(var(--haut) + 48px); right: 12px; z-index: 5;
@@ -1720,6 +1737,34 @@ body.en-jeu .filtres, body.en-jeu .bandeau, body.en-jeu .aide { display: none; }
   }
   .langues-menu button + button { border-left: 1px solid rgba(138, 107, 69, .4); }
   .langues-menu button[aria-pressed="true"] { background: var(--rouge); color: var(--papier-clair); font-weight: 600; }
+  /* la ligne de la boutique : le sceau à la place d'une icône, l'adresse en petit à droite */
+  a.menu-mobile-ligne { text-decoration: none; }
+  .menu-boutique > img { width: 17px; height: auto; flex: none; margin: 0 2.5px; }
+  .menu-boutique > small { color: var(--encre-3); font-size: 13px; }
+  .menu-boutique > .boutique-sortie { width: 13px; height: 13px; margin: 0 2px 0 -8px; align-self: center; }
+
+  /* le lien de la boutique : un sceau rond en bas à gauche, au-dessus de la bulle des sources (ouverte au départ),
+     à l'écart de la barre du bas et du conseil du premier passage ; son nom dessous, comme ceux de la barre */
+  .boutique {
+    top: auto; right: auto; left: 12px; bottom: calc(var(--bas) + 142px); height: auto; padding: 0;
+    flex-direction: column; gap: 4px; background: none; border: 0; box-shadow: none; transition: opacity .6s;
+  }
+  .boutique:hover { background: none; }
+  /* au premier passage, le conseil « Touche un lieu… » s'affiche juste à côté : le sceau vient en fondu après lui */
+  .aide:not(.cachee) ~ .boutique { opacity: 0; visibility: hidden; }
+  .boutique-rond {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: var(--grain) 0 0 / 240px 240px, var(--papier); box-shadow: var(--filet), var(--ombre);
+    transition: transform .15s;
+  }
+  .boutique:active .boutique-rond { transform: scale(.94); }
+  .boutique-sceau { width: 18px; }
+  .boutique-adresse, .boutique > .boutique-sortie { display: none; }
+  .boutique-nom {
+    padding: 1px 6px; border-radius: var(--rayon); background: rgba(239, 228, 200, .92);
+    font: 600 11px/1.25 var(--police);
+  }
+  body.en-visite .boutique, body.en-jeu .boutique, body.video-visible .boutique { display: none; }
 }
 @media (max-width: 380px) {
   /* l'heure seule, sans « au Japon » : elle laisse la place aux raccourcis du haut */

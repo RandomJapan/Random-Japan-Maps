@@ -2562,6 +2562,7 @@ function appliquerLangue() {
   for (const el of document.querySelectorAll('[data-t-aria]')) el.setAttribute('aria-label', t(el.dataset.tAria));
   $('recherche').placeholder = t('chercher');
   $('lien-liste').href = `${langue}/`;
+  majBoutique();
   for (const m of MERS) {
     m.el.lang = langue;
     m.el.textContent = enLangue(m.nom);
@@ -2600,6 +2601,18 @@ function appliquerLangue() {
   nomsRegions.majLangue(langue);
   compteur?.majLangue();
   ambianceCarte?.majLangue();
+}
+
+// La boutique Inkami (CONFIG.boutique) : l'adresse dans la langue du visiteur quand la boutique la publie, et d'où vient
+// la visite (utm_source=map ; utm_content : « carte » pour le bouton, « menu » pour la ligne du menu du téléphone).
+function majBoutique() {
+  const b = CONFIG.boutique;
+  for (const a of document.querySelectorAll('[data-boutique]')) {
+    if (!b?.adresse) { a.remove(); continue; }
+    const url = new URL(b.langues?.includes(langue) ? langue : '', b.adresse);
+    url.search = new URLSearchParams({ utm_source: 'map', utm_medium: 'button', utm_content: a.dataset.boutique });
+    a.href = url.href;
+  }
 }
 
 // ---------------------------------------------------------------- Démarrage

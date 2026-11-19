@@ -28,6 +28,16 @@ export const CONFIG = {
   // L'adresse de la carte, écrite à l'écran quand on filme (mode film de la visite et plongeon)
   adresse: 'map.randomjapanplace.com',
 
+  // --- Ta boutique ----------------------------------------------------------
+  // Le lien « Mes tableaux » vers ta boutique Inkami : en haut à droite, à côté de la langue ; sur téléphone, le petit
+  // sceau rouge en bas à gauche et une ligne du menu. Il s'ouvre dans un nouvel onglet et porte utm_source=map : dans
+  // Shopify, les visites et les ventes venues de la carte sont comptées à part (utm_content : « carte » pour le bouton,
+  // « menu » pour la ligne du menu du téléphone).
+  // langues : les langues publiées sur la boutique en plus de l'anglais (qui est à la racine du site). Avec ['fr', 'ja'],
+  // un visiteur en français arrive sur inkami.art/fr et un visiteur en japonais sur inkami.art/ja.
+  // Mettre adresse: '' pour retirer le lien.
+  boutique: { adresse: 'https://inkami.art/', langues: [] },
+
   // --- Mode développeur ------------------------------------------------
   // Les outils qui ne sont pas pour les visiteurs (plongeon, affiche, jeu pas encore sorti) n'apparaissent que dans
   // un navigateur où le lien secret (…/?dev=<code>) a été ouvert une fois. Ici, seulement le condensé
@@ -173,6 +183,8 @@ export const TEXTES = {
     fermer: 'Close',
     chargement: 'Loading the map…',
     suivre: 'Follow on TikTok',
+    boutique: 'My paintings',
+    boutiqueTitre: 'My hand-made paintings, in my Inkami shop (opens in a new tab)',
     aide: 'Click a place to watch its video · Right-click to rotate & tilt',
     aideTel: 'Tap a place to watch its video',
     navigateurSur: 'For a smoother map',
@@ -662,6 +674,8 @@ export const TEXTES = {
     fermer: 'Fermer',
     chargement: 'Chargement de la carte…',
     suivre: 'Suivre sur TikTok',
+    boutique: 'Mes tableaux',
+    boutiqueTitre: 'Mes tableaux faits main, dans ma boutique Inkami (s’ouvre dans un nouvel onglet)',
     aide: 'Clique sur un lieu pour voir sa vidéo · Clic droit pour tourner et incliner',
     aideTel: 'Touche un lieu pour voir sa vidéo',
     navigateurSur: 'Pour une meilleure fluidité',
@@ -1150,6 +1164,8 @@ export const TEXTES = {
     fermer: '閉じる',
     chargement: '地図を読み込み中…',
     suivre: 'TikTokをフォロー',
+    boutique: '私の作品',
+    boutiqueTitre: '手作りの作品：Inkamiのショップ（新しいタブで開きます）',
     aide: '場所をクリックして動画を見よう・右クリックで回転と傾き',
     aideTel: '場所をタップして動画を見よう',
     navigateurSur: 'もっとなめらかに',
