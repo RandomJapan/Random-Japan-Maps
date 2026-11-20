@@ -934,6 +934,29 @@ export function etoleYamabushi(THREE, a, { devant, dos = null, arriere = null })
   return a;
 }
 
+/**
+ * Le masque du grand tengu (2026-11-20, Iiyama), posé sur le visage d'une tête de rayon 0,3 (son centre 0,25 au-dessus du cou) : celui du grand
+ * danseur de Narazawa (k = 1) et la récompense du voyageur. Rouge, les pommettes, les gros sourcils blancs en bataille, les yeux d'or, le long nez
+ * qui pointe un peu vers le haut, la bouche serrée sous la moustache blanche, la barbe blanche qui descend sous le menton.
+ */
+function masqueTengu(THREE, a, k = 1) {
+  const PI = Math.PI, CY = 0.25, RG = '#c8372d', RGF = '#b02e25', BL = '#f4f0e6', N = '#2a2420';
+  const q = (x, y, z, o = {}) => ({ ...o, x: x * k, y: CY + (y - CY) * k, z: z * k });
+  a.ovale(0.22 * k, RG, q(0, 0.19, 0.13, { sx: 1.08, sy: 1.18, sz: 0.95 }), 16);
+  for (const s of [-1, 1]) {
+    a.ovale(0.062 * k, RG, q(s * 0.125, 0.15, 0.29, { sy: 0.8, sz: 0.62 }), 8)
+      .ovale(0.072 * k, BL, q(s * 0.1, 0.335, 0.282, { sx: 1.5, sy: 0.55, sz: 0.55, rz: s * 0.5 }), 8)
+      .ovale(0.04 * k, '#f2c443', q(s * 0.082, 0.255, 0.318, { sx: 1.25, sy: 0.85, sz: 0.4, trait: false }), 8)
+      .ovale(0.018 * k, N, q(s * 0.082, 0.255, 0.335, { sz: 0.4, trait: false }), 6)
+      .ovale(0.05 * k, BL, q(s * 0.062, 0.1, 0.318, { sx: 1.45, sy: 0.5, sz: 0.5, rz: -s * 0.32 }), 8);
+  }
+  a.piece(new THREE.CylinderGeometry(0.032 * k, 0.058 * k, 0.42 * k, 9), RGF, q(0, 0.21, 0.5, { rx: PI / 2 - 0.12 }))
+    .boule(0.034 * k, RGF, q(0, 0.235, 0.71), 1)
+    .boite(0.15 * k, 0.022 * k, 0.016 * k, '#3a1414', q(0, 0.072, 0.318, { trait: false }))
+    .ovale(0.09 * k, BL, q(0, -0.03, 0.25, { sx: 1.25, sy: 1.6, sz: 0.55 }), 10);
+  return a;
+}
+
 export function creerHeros(ctx, sorte = 'garcon') {
   const { THREE, atelier, P, maillage } = ctx;
   const PI = Math.PI, fille = sorte === 'fille', PEAU = P.peau, H = fille ? P.cheveuxFille : P.cheveux;
@@ -1341,24 +1364,12 @@ export function creerHeros(ctx, sorte = 'garcon') {
       p.addScaledVector(n, 0.035);
       return { a, p: [p.x, CY + p.y, p.z], q: [q.x, q.y, q.z, q.w] };
     },
-    // le masque du grand tengu de Narazawa (la fête de la neige d'Iiyama, 2026-11-20 : la récompense de ses tampons, choisie par le propriétaire) :
-    // rouge, les gros sourcils blancs, les yeux d'or, le long nez droit, la barbiche blanche. Porté sur le côté gauche de la tête, à la tempe, comme
-    // aux fêtes : de dos (comme on joue) et de face, on le voit de profil, son nez qui pointe (le masque de renard, lui, est devant à droite)
+    // le masque du grand tengu de Narazawa (la fête de la neige d'Iiyama, 2026-11-20 : la récompense de ses tampons, choisie par le propriétaire),
+    // porté sur le visage comme le danseur : rouge, les pommettes, les gros sourcils blancs en bataille, les yeux d'or, le long nez qui pointe, la
+    // bouche serrée sous la moustache blanche, la barbe blanche. (Le même jour, d'abord un petit masque sur le côté de la tête, comme aux fêtes ;
+    // le propriétaire : « plus gros, et qui recouvre le visage, comme le tengu qui fait la danse ».)
     tengu() {
-      const a = atelier(), RG = '#c8372d', RGF = '#a82a22', BL = '#f4f0e6', N = '#2a2420';
-      a.ovale(0.105, RG, { sx: 0.95, sy: 1.14, sz: 0.5 }, 14);
-      a.piece(new THREE.CylinderGeometry(0.017, 0.027, 0.2, 8), RGF, { y: -0.012, z: 0.14, rx: PI / 2 - 0.1 }).boule(0.019, RGF, { y: -0.001, z: 0.243 }, 1);
-      for (const s of [-1, 1]) {
-        a.ovale(0.03, BL, { x: s * 0.046, y: 0.054, z: 0.038, sx: 1.35, sy: 0.6, sz: 0.5, rz: s * 0.45 }, 8)
-          .ovale(0.019, '#f2c443', { x: s * 0.04, y: 0.018, z: 0.045, sx: 1.2, sy: 0.85, sz: 0.4, trait: false }, 8)
-          .ovale(0.008, N, { x: s * 0.04, y: 0.018, z: 0.053, sz: 0.4, trait: false }, 6);
-      }
-      a.boite(0.062, 0.01, 0.01, '#3a1414', { y: -0.054, z: 0.04, trait: false }).ovale(0.03, BL, { y: -0.096, z: 0.02, sx: 1.0, sy: 1.5, sz: 0.5 }, 8);
-      const p = new THREE.Vector3(0.286, 0.085, -0.02), n = p.clone().normalize(), haut = new THREE.Vector3(0, 1, 0).addScaledVector(n, -n.y).normalize();
-      const m = new THREE.Matrix4().makeBasis(new THREE.Vector3().crossVectors(haut, n), haut, n);
-      const q = new THREE.Quaternion().setFromRotationMatrix(m);
-      p.addScaledVector(n, 0.035);
-      return { a, p: [p.x, CY + p.y, p.z], q: [q.x, q.y, q.z, q.w] };
+      return { a: masqueTengu(THREE, atelier(), 0.96), p: [0, 0, 0], q: [0, 0, 0, 1] };
     },
   };
   const pieces = {}, portees = {};
@@ -2225,9 +2236,11 @@ export function creerHeros(ctx, sorte = 'garcon') {
  * (fixe, monde.js) : sa ligne reste dans l'eau.
  * Pour la fête de la neige d'Iiyama (2026-11-20) : doudoune (sa couleur : un manteau matelassé par-dessus le buste ; doudoune2 : sa fermeture),
  * echarpe (un gros tour de cou, noué devant, deux pans ; echarpe2 : ses franges), chapeau 'bonnet' (à pompon : c, le bonnet ; c2, le revers et
- * le pompon) ou 'oreilles' (une chapka, ses rabats sur les oreilles) ; pour le grand tengu de Narazawa : masque 'tengu' (rouge, le long nez, les
- * sourcils et la barbe blancs), pose 'torche' (une torche de plus de deux mètres tenue à deux mains, qu'il lève et abat : T.repos l'arrête,
- * T.moulinet dit où en est le geste, de 0 à 1 ; le bout de la torche est un Object3D nommé 'torche-bout', pour y poser la flamme).
+ * le pompon) ou 'oreilles' (une chapka, ses rabats sur les oreilles) ; pour le grand tengu de Narazawa : masque 'tengu' (masqueTengu : rouge, le
+ * long nez, les sourcils, la moustache et la barbe blancs), coiffure 'tengu' (la longue chevelure dans le dos et le tokin noir), bonbons (la
+ * couleur des six pompons du yuigesa), pose 'torche' (une torche de plus de deux mètres, levée devant lui et sur sa droite puis abattue :
+ * T.repos la dresse à côté de lui, T.moulinet dit où en est le geste, 1 quand elle frappe la neige ; son bout est un Object3D nommé
+ * 'torche-bout', pour y poser la flamme).
  * Renvoie { objet, animer(dt, vitesse, temps), saluer(), asseoir(oui) }.
  */
 // (la pose 'peche' : le bras droit levé de PECHE_BRAS, sans bouger ; la canne monte de PECHE_ANGLE au-dessus de l'horizontale ;
@@ -2423,6 +2436,13 @@ export function creerPersonnage(ctx, T) {
   if (T.col) {
     // le col croisé (gauche sur droite) du kimono
     for (const s of [-1, 1]) b.boite(0.05, 0.24, 0.02, T.col, { x: s * 0.04, y: 0.7, z: 0.165, rz: s * 0.42, trait: false });
+  }
+  // le yuigesa des yamabushi (le grand tengu d'Iiyama, 2026-11-20) : deux bandes sur la poitrine et leurs six gros pompons, trois de chaque côté
+  if (T.bonbons) {
+    for (const s of [-1, 1]) {
+      b.boite(0.045, 0.3, 0.02, T.col || T.bonbons, { x: s * 0.09, y: 0.665, z: 0.158, rx: -0.06, trait: false });
+      for (const [y, z] of [[0.765, 0.17], [0.665, 0.178], [0.565, 0.188]]) b.ovale(0.042, T.bonbons, { x: s * 0.09, y, z, sz: 0.8 }, 8);
+    }
   }
   // le col rond d'un tee-shirt qui dépasse d'un pull (le peintre d'Inkami, 2026-11-19) : un croissant clair au bas du cou, devant, posé sur le
   // haut de la poitrine (le menton cache le cou)
@@ -2673,19 +2693,8 @@ export function creerPersonnage(ctx, T) {
       .ovale(0.05, '#3a1414', { y: 0.075, z: 0.29, sx: 1.6, sy: 0.75, sz: 0.5, trait: false }, 8)
       .boite(0.1, 0.018, 0.012, '#f4f0e6', { y: 0.098, z: 0.312, trait: false });
   } else if (T.masque === 'tengu') {
-    // le masque du grand tengu (2026-11-20, le grand tengu de Narazawa, à la fête de la neige d'Iiyama) : rouge, les gros sourcils blancs
-    // en bataille, les yeux d'or, le long nez droit, la bouche serrée, la barbiche blanche
-    const MQ = '#c8372d';
-    t.ovale(0.212, MQ, { y: 0.2, z: 0.12, sx: 1.06, sy: 1.14, sz: 0.95 }, 16);
-    for (const s of [-1, 1]) {
-      t.ovale(0.05, '#f4f0e6', { x: s * 0.088, y: 0.322, z: 0.282, sx: 1.4, sy: 0.6, sz: 0.5, rz: s * 0.45 }, 8)
-        .ovale(0.034, '#f2c443', { x: s * 0.075, y: 0.25, z: 0.3, sx: 1.25, sy: 0.85, sz: 0.4, trait: false }, 8)
-        .ovale(0.015, '#2a2420', { x: s * 0.075, y: 0.25, z: 0.316, sz: 0.4, trait: false }, 6);
-    }
-    t.piece(new THREE.CylinderGeometry(0.03, 0.046, 0.32, 8), '#b8322a', { y: 0.196, z: 0.44, rx: PI / 2 - 0.1 })
-      .boule(0.033, '#b8322a', { y: 0.212, z: 0.598 }, 1)
-      .boite(0.13, 0.02, 0.014, '#3a1414', { y: 0.092, z: 0.302, trait: false })
-      .ovale(0.05, '#f4f0e6', { y: 0.03, z: 0.262, sx: 1.1, sy: 1.5, sz: 0.5 }, 8);
+    // le masque du grand tengu (2026-11-20, le grand tengu de Narazawa, à la fête de la neige d'Iiyama) : masqueTengu
+    masqueTengu(THREE, t, 1);
   } else if (T.masque) {
     // le masque blanc (ko-omote) : un ovale un peu plus petit que le visage, les sourcils peints haut sur le
     // front, les yeux fendus, la petite bouche rouge
@@ -2737,6 +2746,16 @@ export function creerPersonnage(ctx, T) {
       const l = 0.22 + 0.1 * ((k * 0.37) % 1), n = Math.hypot(dx, dy, dz);
       t.cone(0.075, l, 4, C1, { x: (dx / n) * (0.3 + l * 0.35), y: CY + (dy / n) * (0.3 + l * 0.35), z: (dz / n) * (0.3 + l * 0.35), rx: Math.acos(dy / n) * (dz > 0 ? 1 : -1), rz: -Math.atan2(dx, dy) * 0.6, sz: 0.55 });
     }
+  } else if (T.coiffure === 'tengu') {
+    // la grande chevelure du grand tengu (2026-11-20, Iiyama) : une masse sur le crâne, qui déborde autour du masque, et de longues mèches en
+    // pointe qui tombent dans le dos (seulement dans le dos : sur les côtés, ses bras qui tournoient les traversaient) ; sur le front, le tokin
+    // noir des yamabushi, le petit bonnet à douze plis. (Avant, la crinière en épis du kagura, brune : une boule hérissée autour du masque.)
+    t.ovale(0.31, C1, { y: 0.25, z: -0.07, sx: 1.13, sy: 1.04, sz: 0.98 }, 14);
+    for (let k = 0; k < 9; k++) {
+      const a = -0.9 + (k / 8) * 1.8, l = 0.5 + 0.14 * ((k * 0.618) % 1), x = Math.sin(a) * 0.25, z = -Math.cos(a) * 0.24 - 0.07;
+      t.cone(0.09, l, 5, C1, { x, y: CY - 0.02 - l / 2, z, rx: PI - 0.12, rz: -x * 0.4, sz: 0.55 });
+    }
+    t.cylindre(0.07, 0.085, 0.085, 12, '#1e1c22', { y: CY + 0.31, z: 0.15, rx: 0.41 }).boule(0.03, '#f4f0e6', { y: CY + 0.365, z: 0.174 }, 1);
   } else if (T.coiffure === 'kazura') {
     // la perruque du nō : de longs cheveux noirs qui tombent dans le dos, et le bandeau rouge et or
     t.ovale(0.28, C1, { y: 0.14, z: -0.09, sx: 1.06, sy: 1.02, sz: 0.88 }, 14)
@@ -2972,19 +2991,24 @@ export function creerPersonnage(ctx, T) {
         // le grand tengu (2026-11-20, Iiyama) : la torche tenue à deux mains, levée par-dessus la tête puis abattue devant lui, en grands moulinets ;
         // le corps suit, les genoux plient à chaque coup. T.repos : la torche tenue droite devant lui (on lui parle). T.moulinet : où en est le
         // geste (le lieu le lit pour ses braises : au plus bas, la torche frappe la neige)
+        // (2026-11-20, le propriétaire : « ses bras vont dans sa tête ». Les deux bras montaient jusque derrière la tête en se rejoignant au-dessus
+        // d'elle : la torche se lève maintenant devant lui et sur sa droite, jamais plus haut que 40° au-dessus de l'horizon, le bras qui la tient
+        // écarté du corps ; le gauche accompagne la perche plus bas ; le buste tourne avec le geste.)
         if (T.repos) {
-          bras[0].rotation.x = -1.5; bras[1].rotation.x = -1.52; bras[0].rotation.z = 0.34; bras[1].rotation.z = -0.34;
-          corps.rotation.x = courbe; T.moulinet = 0;
+          // (la torche dressée à sa droite, comme une bannière, la flamme au-dessus de lui)
+          bras[0].rotation.x = -2.5; bras[0].rotation.z = -0.62; bras[1].rotation.x = -1.1; bras[1].rotation.z = -0.25;
+          corps.rotation.x = courbe; corps.rotation.y = 0; T.moulinet = 0;
         } else {
-          // (au plus bas, −1,35 : le bout de la torche rase la neige, devant lui ; au plus haut, −3,29 : elle passe derrière sa tête)
-          const u = temps * 2.3 + decalage, o = Math.sin(u + 0.4 * Math.sin(u)), a = -2.32 + 0.97 * o;
-          bras[0].rotation.x = a; bras[1].rotation.x = a - 0.04;
-          bras[0].rotation.z = 0.34; bras[1].rotation.z = -0.34;
-          corps.rotation.x = 0.13 * o + courbe;
-          corps.position.y = -0.045 * Math.max(0, o) + respire;
-          jambes[0].rotation.x = -0.28 * Math.max(0, o); jambes[1].rotation.x = 0.2 * Math.max(0, o);
-          tete.rotation.x = -0.1 * o;
-          T.moulinet = o;
+          // (o : au plus haut, 1 ; au plus bas, −1, la torche rase la neige devant lui et frappe : T.moulinet = 1)
+          const u = temps * 2.3 + decalage, o = Math.sin(u + 0.4 * Math.sin(u)), haut = 0.5 + 0.5 * o;
+          bras[0].rotation.x = -1.38 - 1.0 * haut; bras[0].rotation.z = -0.16 - 0.22 * (0.5 + 0.5 * Math.sin(u * 0.5));
+          bras[1].rotation.x = -0.95 - 0.45 * haut; bras[1].rotation.z = -0.3;
+          corps.rotation.y = -0.38 * Math.sin(u * 0.5);
+          corps.rotation.x = 0.13 * (1 - haut) + courbe;
+          corps.position.y = -0.045 * (1 - haut) + respire;
+          jambes[0].rotation.x = -0.28 * (1 - haut); jambes[1].rotation.x = 0.2 * (1 - haut);
+          tete.rotation.x = 0.08 * (1 - haut) - 0.06;
+          T.moulinet = -o;
         }
       }
       return pose;

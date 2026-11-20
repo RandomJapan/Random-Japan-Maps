@@ -54,6 +54,8 @@ const TERRASSE = { x0: -40, x1: 40, z0: -56, z1: -11 };
 const ENFANTS = { x0: -74, x1: -52, z0: -42, z1: -12 };
 const HONMARU = { x: 12, z: -88, rx: 19, rz: 11 };
 const DEPART = { x: 0, z: 47.2 };
+// les deux braseros de la place (où l'on se chauffe les mains)
+const BRASEROS = [[-8.5, 31.5], [9.5, 37.5]];
 // la descente en bouée : du bord nord du haut du château jusqu'au replat du bas (on n'y marche pas : on y glisse)
 const PISTE = [[2.5, -98.6, Y3], [1.5, -106, 8.1], [-4.5, -116, 6.3], [2.5, -127, 4.4], [9, -138, 2.6], [2.5, -149, 1.1], [-1, -158, 0.3], [-1, -168, 0.2]];
 
@@ -474,6 +476,15 @@ export function construire(ctx) {
     ecrire({ x: xa, y: Y0, z: za + 0.09, ry: 0 }, { texte: 'シャトルバス', x: 0, y: 2.0, z: 0, l: 0.54, h: 0.2, fond: null, encre: '#f4f2ea' });
     ecrire({ x: xa, y: Y0, z: za + 0.09, ry: 0 }, { texte: 'かまくらの里', sous: '信濃平 ゆき', x: 0, y: 1.36, z: 0, l: 0.5, h: 0.4, fond: null, encre: '#2a3a4a' });
     monde.cercle(xa, za, 0.25);
+    // (2026-11-20, le propriétaire : « si tu ne le sais pas, des gens vont louper une des deux parties ») une grande bannière (のぼり) bleue à
+    // l'arrêt, qu'on voit dès le départ : « かまくらの里 シャトルバス »
+    // (la toile tournée vers l'ouest, vers la place et le départ : d'abord tournée vers la rue, on la voyait de profil en arrivant)
+    const xn = 19.6, zn = 46.5;
+    a.baton([xn, Y0, zn], [xn, Y0 + 3.6, zn], 0.03, ACIER, 6).baton([xn, Y0 + 3.48, zn], [xn, Y0 + 3.48, zn - 0.72], 0.018, ACIER, 5)
+      .cylindre(0.18, 0.2, 0.3, 10, NEIGE, { x: xn, y: Y0 + 0.12, z: zn });
+    a.boite(0.03, 2.7, 0.66, '#2f6aa0', { x: xn, y: Y0 + 2.12, z: zn - 0.38, nuance: 0.02 });
+    for (const sens of [1, -1]) ecrire({ x: xn + sens * 0.025, y: Y0, z: zn - 0.38, ry: sens > 0 ? PI / 2 : -PI / 2 }, { texte: 'かまくらの里', sous: 'シャトルバス', x: 0, y: 2.18, z: 0, l: 0.5, h: 2.4, fond: null, encre: '#f4f2ea', vertical: true });
+    monde.cercle(xn, zn, 0.42); monde.mur(xn, zn, xn, zn - 0.72, 0.24);
   }
 
   // ---------------------------------------------------------------- La place du bas (弓道場下駐車場) : les tentes de la fête
@@ -514,15 +525,18 @@ export function construire(ctx) {
     for (const xm of [-9.6, 9.6]) { b.baton([xm, Y0 - 0.2, zb], [xm, Y0 + 5.45, zb], 0.075, BOIS, 8); b.cylindre(0.2, 0.26, 0.5, 8, NEIGE, { x: xm, y: Y0 + 0.2, z: zb }); monde.cercle(xm, zb, 0.42); }
     b.boite(19.1, 0.98, 0.05, '#f6f3ea', { x: 0, y: yb, z: zb }).boite(19.2, 0.07, 0.07, ROUGE, { x: 0, y: yb + 0.51, z: zb }).boite(19.2, 0.07, 0.07, ROUGE, { x: 0, y: yb - 0.51, z: zb });
     for (const sens of [1, -1]) ecrire({ x: 0, y: Y0, z: zb + sens * 0.04, ry: sens > 0 ? 0 : PI }, { texte: 'いいやま雪まつり', sous: 'IIYAMA SNOW FESTIVAL', x: 0, y: 4.82, z: 0, l: 9.2, h: 0.86, fond: null, encre: '#2f5aa0', pixels: 120 });
-    // deux braseros (des bidons où brûle du bois) : on s'y chauffe les mains
-    for (const [bx, bz] of [[-8.5, 31.5], [9.5, 37.5]]) {
-      const q = morceau(bx, bz);
-      q.cylindre(0.3, 0.28, 0.78, 12, '#4a4038', { x: bx, y: Y0 + 0.42, z: bz }).cylindre(0.31, 0.31, 0.04, 12, '#2f2a26', { x: bx, y: Y0 + 0.8, z: bz });
-      for (let j = 0; j < 4; j++) q.baton([bx + 0.12 * Math.cos(j * 1.7), Y0 + 0.7, bz + 0.12 * Math.sin(j * 1.7)], [bx - 0.1 * Math.cos(j * 1.7 + 0.6), Y0 + 0.98, bz - 0.1 * Math.sin(j * 1.7 + 0.6)], 0.035, '#3a2c22', 5, { trait: false });
-      q.cone(0.17, 0.42, 7, '#ffb347', { x: bx, y: Y0 + 1.02, z: bz, sorte: 'lampe', trait: false }).cone(0.09, 0.3, 6, '#fff0a8', { x: bx + 0.03, y: Y0 + 1.0, z: bz - 0.02, sorte: 'lampe', trait: false });
+    // deux braseros (des bidons où brûle du bois) : on s'y chauffe les mains. Le bidon ouvert, les braises rouges dedans, les bûches en
+    // croix ; le feu lui-même : des flammes qui montent et des braises qui volent, comme la torche du tengu (BRASEROS, plus bas ; jusqu'au
+    // 2026-11-20, deux cônes jaunes immobiles : « si tu peux faire un vrai feu comme ce qu'on a avec la torche »)
+    for (const [bx, bz] of BRASEROS) {
+      const q = morceau(bx, bz), V = (r, h) => new THREE.Vector2(r, h);
+      q.piece(new THREE.LatheGeometry([V(0.001, 0.03), V(0.28, 0.03), V(0.3, 0.81), V(0.27, 0.81), V(0.25, 0.55)], 12), '#4a4038', { x: bx, y: Y0, z: bz, nuance: 0.02 });
+      for (const h of [0.2, 0.6]) q.cylindre(0.305, 0.3, 0.035, 12, '#2f2a26', { x: bx, y: Y0 + h, z: bz, trait: false });
+      q.cylindre(0.252, 0.252, 0.03, 12, '#e8562a', { x: bx, y: Y0 + 0.58, z: bz, sorte: 'lampe', trait: false });
+      for (let j = 0; j < 4; j++) q.baton([bx + 0.17 * Math.cos(j * 1.7), Y0 + 0.62, bz + 0.17 * Math.sin(j * 1.7)], [bx - 0.12 * Math.cos(j * 1.7 + 0.6), Y0 + 0.9, bz - 0.12 * Math.sin(j * 1.7 + 0.6)], 0.035, '#3a2c22', 5, { trait: false });
       monde.cercle(bx, bz, 0.56);
       lumieres.push({ x: bx, y: Y0 + 1.15, z: bz, halo: 0.55, sol: Y0, r: 5, c: '#ff9a4a' });
-      vapeurs.push({ x: bx, z: bz, y: Y0 + 1.25, n: 5, haut: 2.0, large: 0.22, taille: 0.5, opacite: 0.35 });
+      vapeurs.push({ x: bx, z: bz, y: Y0 + 1.7, n: 5, haut: 2.0, large: 0.22, taille: 0.5, opacite: 0.3 });
     }
     // le poteau du parc, au pied de la montée
     const xp = 3.9, zp = 18.9;
@@ -645,8 +659,9 @@ export function construire(ctx) {
     for (const sz of [-1, 1]) for (const sx of [-1, 1]) a.boite(0.14, 4.2, 0.14, ACIER_F, { x: X + sx * (SCENE.p / 2 - 0.12), y: y + SCENE.h + 2.1, z: Z + sz * (SCENE.l / 2 - 0.12) });
     a.boite(SCENE.p + 0.5, 0.16, SCENE.l + 0.5, '#e9e6de', { x: X, y: y + SCENE.h + 4.28, z: Z, rz: -0.06 });
     manteau(outils, a, SCENE.p + 0.6, SCENE.l + 0.6, 0.34, { x: X, y: y + SCENE.h + 4.52, z: Z, rz: -0.06 });
-    a.boite(0.06, 3.5, SCENE.l - 0.2, '#f4f1ea', { x: X + SCENE.p / 2 - 0.16, y: y + SCENE.h + 2.0, z: Z, nuance: 0.02 });
-    ecrire({ x: X + SCENE.p / 2 - 0.2, y, z: Z, ry: -PI / 2 }, { texte: 'いいやま雪まつり', sous: '特設ステージ', x: 0, y: SCENE.h + 2.5, z: 0, l: 6.4, h: 1.5, fond: null, encre: '#2f5aa0', pixels: 110 });
+    // (la toile du fond, tendue 2 cm devant ses deux poteaux : jusqu'au 2026-11-20, sa face et la leur étaient dans le même plan, et scintillaient)
+    a.boite(0.06, 3.5, SCENE.l - 0.2, '#f4f1ea', { x: X + SCENE.p / 2 - 0.24, y: y + SCENE.h + 2.0, z: Z, nuance: 0.02 });
+    ecrire({ x: X + SCENE.p / 2 - 0.28, y, z: Z, ry: -PI / 2 }, { texte: 'いいやま雪まつり', sous: '特設ステージ', x: 0, y: SCENE.h + 2.5, z: 0, l: 6.4, h: 1.5, fond: null, encre: '#2f5aa0', pixels: 110 });
     for (const sz of [-1, 1]) a.boite(0.6, 1.3, 0.7, '#2f2c30', { x: X - SCENE.p / 2 + 0.6, y: y + SCENE.h + 0.66, z: Z + sz * (SCENE.l / 2 - 0.6) }).cylindre(0.2, 0.2, 0.03, 12, '#5a5a5e', { x: X - SCENE.p / 2 + 0.285, y: y + SCENE.h + 0.9, z: Z + sz * (SCENE.l / 2 - 0.6), rz: PI / 2, trait: false });
     a.baton([X - 1.0, y + SCENE.h, Z], [X - 1.0, y + SCENE.h + 1.25, Z], 0.014, ACIER_F, 5).boule(0.045, '#2f2c30', { x: X - 1.0, y: y + SCENE.h + 1.28, z: Z }, 1);
     // (les marches du côté, pour ceux qui montent sur scène : du décor)
@@ -935,14 +950,21 @@ export function construire(ctx) {
     monde.bloc(C.x - C.l / 2 - 0.5, C.x + C.l / 2 + 0.5, C.z - C.p / 2 - 0.7, C.z + C.p / 2 + 0.7, y - 1, y + 5.2);
     // devant, la grande marmite de démonstration sur son fourneau, sous un auvent : c'est là qu'on commande sa のろし鍋
     const M0 = MARMITE, c = morceau(M0.x, M0.z);
-    for (const sx of [-1, 1]) for (const sz of [-1, 1]) c.boite(0.1, 2.5, 0.1, BOIS_F, { x: M0.x + sx * 1.6, y: y + 1.2, z: M0.z + sz * 1.1 });
+    // (l'auvent penche vers le sud : chaque poteau monte jusque dans lui — ceux du nord s'arrêtaient 11 cm dessous)
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) { const hp = 2.5 - sz * 1.1 * Math.sin(0.1) + 0.02; c.boite(0.1, hp, 0.1, BOIS_F, { x: M0.x + sx * 1.6, y: y + hp / 2 - 0.05, z: M0.z + sz * 1.1 }); }
     c.boite(3.7, 0.1, 2.9, '#8a6a4a', { x: M0.x, y: y + 2.5, z: M0.z, rx: 0.1 });
     manteau(outils, c, 3.9, 3.1, 0.36, { x: M0.x, y: y + 2.76, z: M0.z, rx: 0.1 });
-    c.boite(1.5, 0.75, 0.9, '#5a5a5e', { x: M0.x, y: y + 0.37, z: M0.z }).cylindre(0.52, 0.46, 0.5, 16, '#2f2c30', { x: M0.x, y: y + 0.99, z: M0.z }).cylindre(0.49, 0.49, 0.02, 16, '#b8763a', { x: M0.x, y: y + 1.23, z: M0.z, trait: false });
-    for (let k = 0; k < 7; k++) c.boule(0.07, ['#e8e0c8', '#d8452e', '#3f8a4a', '#c8a06a'][k % 4], { x: M0.x + 0.28 * Math.cos(k * 0.9), y: y + 1.25, z: M0.z + 0.28 * Math.sin(k * 0.9), sy: 0.5, trait: false }, 1);
+    c.boite(1.5, 0.75, 0.9, '#5a5a5e', { x: M0.x, y: y + 0.37, z: M0.z });
+    const ys = marmite(outils, c, { x: M0.x, y: y + 0.745, z: M0.z }, 0.46, 0.52, 0.5, '#2f2c30', '#b8763a', 16);
+    for (let k = 0; k < 7; k++) c.boule(0.07, ['#e8e0c8', '#d8452e', '#3f8a4a', '#c8a06a'][k % 4], { x: M0.x + 0.28 * Math.cos(k * 0.9), y: ys + 0.012, z: M0.z + 0.28 * Math.sin(k * 0.9), sy: 0.5, trait: false }, 1);
     vapeurs.push({ x: M0.x, z: M0.z, y: y + 1.35, n: 7, haut: 2.6, large: 0.3, taille: 0.7, opacite: 0.5 });
-    c.boite(0.05, 0.9, 1.3, '#b8322a', { x: M0.x - 1.7, y: y + 1.5, z: M0.z });
-    ecrire({ x: M0.x - 1.73, y, z: M0.z, ry: -PI / 2 }, { texte: 'のろし鍋', x: 0, y: 1.5, z: 0, l: 0.3, h: 1.1, fond: null, encre: '#fbf6ea', vertical: true });
+    // l'enseigne rouge, pendue par deux cordes à une traverse entre les deux poteaux de l'ouest (jusqu'au 2026-11-20, elle flottait à côté d'eux)
+    c.boite(0.08, 0.08, 2.26, BOIS_F, { x: M0.x - 1.6, y: y + 2.2, z: M0.z });
+    c.boite(0.05, 0.9, 1.3, '#b8322a', { x: M0.x - 1.6, y: y + 1.56, z: M0.z });
+    for (const s of [-1, 1]) c.baton([M0.x - 1.6, y + 2.0, M0.z + s * 0.5], [M0.x - 1.6, y + 2.17, M0.z + s * 0.5], 0.008, '#e8dcc0', 4, { trait: false });
+    ecrire({ x: M0.x - 1.632, y, z: M0.z, ry: -PI / 2 }, { texte: 'のろし鍋', x: 0, y: 1.56, z: 0, l: 0.3, h: 1.1, fond: null, encre: '#fbf6ea', vertical: true });
+    // (elle pend à hauteur de tête : on ne passe pas dessous)
+    monde.mur(M0.x - 1.6, M0.z - 0.65, M0.x - 1.6, M0.z + 0.65, 0.24);
     murRect(M0.x, M0.z, 0.8, 0.5, 0.25);
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) monde.cercle(M0.x + sx * 1.6, M0.z + sz * 1.1, 0.3);
     lumieres.push({ x: M0.x, y: y + 2.2, z: M0.z, halo: 0.35, sol: y, r: 4.5 });
@@ -1092,7 +1114,29 @@ export function construire(ctx) {
   const poudre = creerParticules(THREE, { n: 260, couleur: '#f4f8ff', base: 0.075, gravite: 2.2 });
   const braises = creerParticules(THREE, { n: 520, couleur: '#ffb04a', additif: true, base: 0.06, gravite: 2.6 });
   const flammes = creerParticules(THREE, { n: 360, couleur: '#ff9a3a', additif: true, base: 0.2, gravite: -1.6 });
-  animes.push(poudre, braises, flammes);
+  // (le jour, des flammes qui brillent, additives, se perdaient dans le blanc de la neige : celles des braseros, le jour, sont peintes, orange
+  // et leur cœur jaune)
+  const flammesJour = creerParticules(THREE, { n: 160, couleur: '#ff7a1e', base: 0.2, gravite: -1.4 });
+  const coeursJour = creerParticules(THREE, { n: 100, couleur: '#ffd23e', base: 0.14, gravite: -1.2 });
+  animes.push(poudre, braises, flammes, flammesJour, coeursJour);
+  // le feu des deux braseros : il brûle tant qu'on est de ce côté-ci de la crête
+  animes.push({
+    objet: new THREE.Group(), f: 0, b: 0,
+    maj(dt, temps, c) {
+      if (c.joueur.z < Z_CRETE) return [];
+      const nuit = c.nuit > 0.5;
+      this.f += dt * 30; this.b += dt * 4;
+      while (this.f > 1) {
+        this.f -= 1;
+        for (const [x, z] of BRASEROS) {
+          (nuit ? flammes : flammesJour).emettre(x, Y0 + 0.86, z, 1, { large: 0.15, vy: 1.2, ecart: 0.45, vie: 0.55, alpha: nuit ? 0.7 : 0.85, taille: 0.4 });
+          if (!nuit) coeursJour.emettre(x, Y0 + 0.84, z, 1, { large: 0.07, vy: 0.9, ecart: 0.25, vie: 0.36, alpha: 0.95, taille: 0.24 });
+        }
+      }
+      while (this.b > 1) { this.b -= 1; for (const [x, z] of BRASEROS) braises.emettre(x, Y0 + 0.95, z, 1, { large: 0.12, vy: 1.5, ecart: 1.1, vie: 1.1, alpha: 1 }); }
+      return [];
+    },
+  });
   // (les scènes à jouer dès que le voyageur est libre : la fin d'une descente…)
   const suite = { objet: new THREE.Group(), file: [], maj(dt, temps, c) { while (this.file.length) c.scene(this.file.shift()); return []; } };
   animes.push(suite);
@@ -1129,9 +1173,12 @@ export function construire(ctx) {
     { id: 'lapine', x: -23.6, z: -15.0, cap: -2.2, dedans: A, tenue: hiver('#f59aa6', { taille: 0.7, cheveux: BRUNC, coiffure: 'queue', chapeau: bonnet('#f4f2ea', '#f59aa6') }) },
     { id: 'benevole', x: 2.4, z: -14.0, cap: 0.4, dedans: A, tenue: hiver('#e8b23a', { taille: 1.0, cheveux: NOIRC, chapeau: bonnet('#2f5aa0', '#f4f2ea'), echarpe: '#2f5aa0' }) },
     // ---- le coin des enfants
-    { id: 'animatrice', x: -58.6, z: -14.45, cap: PI, dedans: A, tenue: hiver('#3f8a4a', { taille: 0.96, cheveux: BRUNC, coiffure: 'queue', chapeau: bonnet('#e8452e', '#f4f2ea'), echarpe: '#f4f2ea', tablier: '#e8e0cc' }) },
-    { id: 'grimpeur', x: BUTTE.x - 0.1, z: BUTTE.z, cap: PI / 2, etage: Y2 + BUTTE.h + 0.06, dedans: A, tenue: hiver('#2f6ab0', { taille: 0.62, chapeau: bonnet('#e8b23a', '#e8b23a'), yeux: 'plisses' }) },
-    { id: 'glisseur', x: -60.4, z: -33.6, cap: -PI / 2, dedans: A, tenue: hiver('#e8452e', { taille: 0.64, cheveux: BRUNC, chapeau: bonnet('#2f8a4a', '#f4f2ea') }) },
+    // (à 32 cm derrière sa table : à 72 cm, qui se tenait devant la table était à 1,8 m d'elle, trop loin pour lui parler, 2026-11-20)
+    { id: 'animatrice', x: -58.6, z: -14.85, cap: PI, dedans: A, tenue: hiver('#3f8a4a', { taille: 0.96, cheveux: BRUNC, coiffure: 'queue', chapeau: bonnet('#e8452e', '#f4f2ea'), echarpe: '#f4f2ea', tablier: '#e8e0cc' }) },
+    // (au fond de la plate-forme, qui attend son tour : au milieu, le voyageur qui s'assied pour glisser était dans lui, 2026-11-20)
+    { id: 'grimpeur', x: BUTTE.x - 0.75, z: BUTTE.z + 0.55, cap: PI / 2 - 0.3, etage: Y2 + BUTTE.h + 0.06, dedans: A, tenue: hiver('#2f6ab0', { taille: 0.62, chapeau: bonnet('#e8b23a', '#e8b23a'), yeux: 'plisses' }) },
+    // (à côté du bas du toboggan, pas devant : on y glisse, 2026-11-20)
+    { id: 'glisseur', x: -60.9, z: -35.7, cap: -PI / 2 + 0.5, dedans: A, tenue: hiver('#e8452e', { taille: 0.64, cheveux: BRUNC, chapeau: bonnet('#2f8a4a', '#f4f2ea') }) },
     { id: 'maman', x: -59.4, z: -30.6, cap: -2.0, dedans: A, tenue: hiver('#8ac4e8', { taille: 0.96, cheveux: NOIRC, coiffure: 'chignon', chapeau: bonnet('#3a4a6a', '#f4f2ea'), echarpe: '#3a4a6a' }) },
     { id: 'igloo', x: -59.2, z: -37.2, cap: -2.2, dedans: A, tenue: hiver('#5a6a4a', { taille: 1.06, peau: PEAU2, chapeau: { sorte: 'oreilles', c: '#4a3a2a' } }) },
     // ---- le haut du château
@@ -1270,13 +1317,95 @@ export function construire(ctx) {
     });
   };
 
+  // ---------------------------------------------------------------- Le toboggan du coin des enfants (2026-11-20, le propriétaire : « ce serait bien qu'on puisse faire du
+  // toboggan, vu que tu l'as rajouté ») : assis en haut de la butte, on se laisse partir, on file dans la glissière et l'on s'arrête dans la neige
+  // du bas. Vu de côté, du sud (derrière, la caméra serait dans la butte). Le lieu mène le voyageur le temps de la glissade (glisse.autre).
+  const TOBO = { x0: BUTTE.x + 0.9, x1: BUTTE.x + 6.3, h0: Y2 + BUTTE.h - 0.12, h1: Y2 + 0.12, z: BUTTE.z, haut: Y2 + BUTTE.h + 0.05 };
+  // (le dessus de la glissière : 8,5 cm au-dessus de sa ligne, la planche penchée de 23°)
+  const surToboggan = (x) => TOBO.h0 + (TOBO.h1 - TOBO.h0) * Math.min(1, Math.max(0, (x - TOBO.x0) / (TOBO.x1 - TOBO.x0))) + 0.085;
+  const glissade = (jeu) => new Promise((fin) => {
+    const sg = { x: BUTTE.x + 0.4, z: TOBO.z, y: TOBO.haut + 0.04, cap: PI / 2 };
+    let t = 0, x = sg.x, v = 0, gerbe = 0, cri = false;
+    glisse.actif = true;
+    glisse.autre = (dt, pousse, vire, etat, cam, renard) => {
+      t += dt;
+      if (t > 0.7) {
+        if (x < TOBO.x1) v = Math.min(4.6, v + 2.6 * dt); else v = Math.max(0, v - 4.6 * dt);
+        x += v * dt;
+        if (!cri && x > TOBO.x0) { cri = true; jeu.son('oiseau/glisse'); }
+      }
+      const sol = x < TOBO.x0 ? TOBO.haut : x < TOBO.x1 ? surToboggan(x) : Y2;
+      Object.assign(sg, { x, y: sol + 0.04 });
+      Object.assign(etat, { x, z: TOBO.z, y: sol + 0.04 - ASSIS, cap: PI / 2, vx: v, vz: 0, vitesse: 0 });
+      Object.assign(renard, { x: TOBO.x1 + 1.3, z: TOBO.z + 1.5, y: Y2, cap: -2.2, vitesse: 0 });
+      gerbe += dt * v * 3;
+      while (gerbe > 1) { gerbe -= 1; poudre.emettre(x - 0.35, sol + 0.06, TOBO.z, 1, { large: 0.22, vx: -0.4 - 0.2 * v, vy: 0.9 + 0.15 * v, vz: 0, vie: 0.5, alpha: 0.85 }); }
+      if (t > 0.7 && x >= TOBO.x1 && v <= 0) { glisse.actif = false; glisse.autre = null; fin(x); }
+      return v;
+    };
+    jeu.asseoir(sg);
+  });
+  const toboggan = async (jeu) => {
+    await jeu.fondu(true);
+    jeu.rangerOmbrelle(true);
+    jeu.cadrer({ de: [BUTTE.x + 3.4, Y2 + 2.5, BUTTE.z + 8.2], vers: [BUTTE.x + 3.4, Y2 + 1.0, BUTTE.z], champ: 52 });
+    const fin = glissade(jeu);
+    await jeu.attendre(300);
+    await jeu.fondu(false);
+    const x = await fin;
+    jeu.asseoir(null);
+    jeu.placer(x, TOBO.z, PI / 2);
+    await jeu.attendre(500);
+    jeu.cadrer(null);
+    jeu.cameraDerriere(0.4);
+    jeu.rangerOmbrelle(false);
+    await comp(jeu, 'tobogganCompagnon');
+  };
+
+  // ---------------------------------------------------------------- Les deux parties du lieu (2026-11-20, le propriétaire : « si tu ne le sais pas, il faut forcément aller
+  // parler au chauffeur, et des gens vont louper une des deux parties ») : en arrivant, on montre la navette ; le chauffeur appelle qui passe
+  // près de lui ; les trois tampons de la fête faits, le compagnon rappelle le village. Tant qu'aucun tampon du village n'est fait.
+  const villageVu = () => aLeTampon('iiyama', 'nabe') || aLeTampon('iiyama', 'jinja');
+  // (pas dans les films ni les photos de la balade : ?demo, ?photo)
+  const ANNONCES = { accueil: false, chauffeur: false, compagnon: false, navette: /[?&](demo|photo)=/.test(location.search) };
+  if (!villageVu() && !ANNONCES.navette) {
+    suite.file.push(async (j) => {
+      if (ANNONCES.navette) return;
+      ANNONCES.accueil = true;
+      // (la navette, au bout de la rue, et la grande bannière bleue de son arrêt)
+      j.cadrer({ de: [DEPART.x + 3.0, Y0 + 2.4, DEPART.z - 3.5], vers: [NAVETTE_A.x - 1.5, Y0 + 1.3, NAVETTE_A.z - 0.5], champ: 50 });
+      await j.attendre(400);
+      await j.dire(j.tx('deuxParties'));
+      j.cadrer(null);
+    });
+  }
+  animes.push({
+    objet: new THREE.Group(),
+    maj(dt, temps, c) {
+      if (ANNONCES.navette || c.joueur.z < Z_CRETE || villageVu()) return [];
+      // le chauffeur appelle, une fois, qui passe à moins de 7 m de lui
+      if (!ANNONCES.chauffeur && Math.hypot(c.joueur.x - 24.4, c.joueur.z - 46.75) < 7) {
+        ANNONCES.chauffeur = true;
+        c.scene(async (j) => { await j.dire(j.tx('chauffeurAppel'), 'chauffeur'); });
+      }
+      // les trois tampons de la fête faits : le compagnon pense au village
+      if (!ANNONCES.compagnon && ['yukizo', 'toro', 'slider'].every((id) => aLeTampon('iiyama', id))) {
+        ANNONCES.compagnon = true;
+        c.scene(async (j) => { await comp(j, 'villageCompagnon'); });
+      }
+      return [];
+    },
+  });
+
   // ---------------------------------------------------------------- Le grand tengu de Narazawa (奈良澤大天狗) : le soir, il danse dans son cercle, sa torche en feu
   // Le masque rouge au long nez, la grande crinière, l'habit blanc aux cordons rouges ; sa torche de plus de deux mètres, qu'il fait tournoyer :
   // ses étincelles chassent le mauvais sort, et l'on dit qu'en recevoir porte bonheur.
   // (où est le voyageur, d'une image à l'autre : la partie du lieu décide d'où partent les feux d'artifice)
   let zJoueur = DEPART.z;
   const tengu = (() => {
-    const tenue = { taille: 1.12, peau: '#e8bf98', cheveux: '#7a3220', coiffure: 'criniere', masque: 'tengu', haut: '#f4f0e6', manches: 'kimono', col: '#c8372d', obi: '#c8372d', bas: { sorte: 'pantalon', c: '#f1ece0' }, chaussures: '#c8a65a', semelle: '#8a6a3a', pose: 'torche', repos: false, moulinet: 0 };
+    // (2026-11-20, le propriétaire : « revois un petit peu son design » : le masque plus grand, la longue chevelure blanche au lieu de la crinière
+    // brune en épis, le tokin noir sur le front, les pompons du yuigesa sur la poitrine, le pantalon indigo sous l'habit blanc)
+    const tenue = { taille: 1.12, peau: '#e8bf98', cheveux: '#eeeae2', coiffure: 'tengu', masque: 'tengu', haut: '#f4f0e6', manches: 'kimono', col: '#c8372d', obi: '#c8372d', bonbons: '#f08a2c', bas: { sorte: 'pantalon', c: '#2f3a5a' }, chaussures: '#c8a65a', semelle: '#8a6a3a', pose: 'torche', repos: false, moulinet: 0 };
     const perso = creerPersonnage(ctx.perso, tenue), g = perso.objet;
     g.visible = false;
     const bout = g.getObjectByName('torche-bout'), v = new THREE.Vector3();
@@ -1459,6 +1588,7 @@ export function construire(ctx) {
   const navette = async (jeu, qui, vers) => {
     const r = await jeu.choisir(jeu.tx(qui), [jeu.t('oui'), jeu.t('non')], qui);
     if (r !== 0) return;
+    ANNONCES.navette = true;
     await jeu.fondu(true);
     if (vers === 'B') jeu.placer(-3.4, -292.2, PI); else jeu.placer(15.6, 48.0, PI);
     jeu.cameraDerriere(0);
@@ -1535,7 +1665,7 @@ export function construire(ctx) {
     parler('sasa'), parler('soba'), parler('pork'), parler('frileux'), parler('frileuse'), parler('gourmand'), parler('promeneur'),
     { id: 'boissons', x: -18.6, z: 20.6, rayon: 2.6, haut: 1.1, verbe: 'regarder', action: (jeu) => jeu.dire(jeu.tx('boissons')) },
     { id: 'poteauParc', x: 3.9, z: 18.9, rayon: 2.0, haut: 1.6, verbe: 'lire', action: (jeu) => jeu.dire(jeu.tx('poteauParc')) },
-    ...[[-8.5, 31.5], [9.5, 37.5]].map(([x, z], k) => ({ id: `brasero${k}`, x, z, rayon: 1.7, haut: 1.0, verbe: 'chauffer', si: (jeu) => !jeu.aDansSac('torche'), async action(jeu) { jeu.geste('offrir'); await jeu.attendre(1300); jeu.geste(null); await comp(jeu, 'braseroCompagnon'); } })),
+    ...BRASEROS.map(([x, z], k) => ({ id: `brasero${k}`, x, z, rayon: 1.7, haut: 1.0, verbe: 'chauffer', si: (jeu) => !jeu.aDansSac('torche'), async action(jeu) { jeu.geste('offrir'); await jeu.attendre(1300); jeu.geste(null); await comp(jeu, 'braseroCompagnon'); } })),
     // ---- la grande terrasse
     {
       id: 'chef', passant: 'chef', verbe: 'parler', tampon: 'yukizo',
@@ -1589,6 +1719,7 @@ export function construire(ctx) {
       },
     },
     parler('glisseur'), parler('maman'), parler('igloo'),
+    { id: 'toboggan', x: TOBO.x1 + 0.9, z: TOBO.z, y: Y2, rayon: 1.9, haut: 1.2, verbe: 'glisser', vers: [BUTTE.x, BUTTE.z], action: (jeu) => toboggan(jeu) },
     // ---- le haut du château
     {
       id: 'liftier', passant: 'liftier', verbe: 'parler', tampon: 'slider',
@@ -1643,7 +1774,7 @@ export function construire(ctx) {
     {
       id: 'cuisiniere', passant: 'cuisiniere', verbe: 'parler',
       async action(jeu) {
-        if (jeu.aTampon('nabe') || jeu.aDansSac('nabe')) { await jeu.dire(jeu.txn(jeu.aTampon('nabe') ? 'cuisiniereEncore' : 'cuisiniereAttend'), 'cuisiniere'); await soirOuMatin(jeu, 'cuisiniere'); return; }
+        if (jeu.aTampon('nabe') || jeu.aDansSac('nabe')) { await jeu.dire(jeu.txn(jeu.aTampon('nabe') ? 'cuisiniereEncore' : 'cuisiniereAttend'), 'cuisiniere'); return; }
         const r = await jeu.choisir(jeu.txn('cuisiniere'), [jeu.tx('cuisiniereOui'), jeu.t('non')], 'cuisiniere');
         if (r !== 0) return;
         jeu.donner('nabe');
@@ -1657,7 +1788,9 @@ export function construire(ctx) {
         await repas(jeu);
       },
     },
-    parler('ancien'), parler('visiteuse'), parler('serveuse'),
+    // (l'ancien, près de l'arche, fait venir le soir au village : on n'a plus à reprendre la navette pour cela, 2026-11-20)
+    { id: 'ancien', passant: 'ancien', verbe: 'parler', async action(jeu) { await jeu.dire(jeu.txn('ancien'), 'ancien'); await soirOuMatin(jeu, 'ancien'); } },
+    parler('visiteuse'), parler('serveuse'),
     { id: 'panneauKamakura', x: 16.5, z: -308.0, rayon: 2.2, haut: 1.6, verbe: 'lire', vers: [16.5, -309.0], action: (jeu) => jeu.dire(jeu.tx('panneauKamakura')) },
     { id: 'arche', x: 0, z: -308.4, rayon: 2.6, haut: 2.6, verbe: 'regarder', vers: [0, -312], action: (jeu) => jeu.dire(jeu.txn('arche')) },
     {
@@ -1690,7 +1823,7 @@ export function construire(ctx) {
     // château, la toile tournée vers qui arrive ; le second tableau, seul, au village des kamakura : contre le talus, à gauche de l'arche)
     peintre: { x: 4.6, z: 32.4, cap: -0.3, tableau: 'yukizo', autre: { x: -9.5, z: -309.6, cap: 0.25, tableau: 'kamakura' } },
     get feux() { return zJoueur > Z_CRETE ? { x: 150, y: 0, z: -40, large: 90, haut: [70, 105], echelle: 1.5, loin: 150 } : { x: 0, y: YB, z: -490, large: 90, haut: [70, 105], echelle: 1.5, loin: 150 }; },
-    sons: ['pelle', 'saisen', 'claque', 'slurp', 'pouf', 'oiseau/top', 'oiseau/depart', 'oiseau/rate', 'oiseau/arrivee', 'oiseau/torche', 'oiseau/feu'],
+    sons: ['pelle', 'saisen', 'claque', 'slurp', 'pouf', 'oiseau/top', 'oiseau/depart', 'oiseau/rate', 'oiseau/arrivee', 'oiseau/torche', 'oiseau/feu', 'oiseau/glisse'],
     aspectSol: (x, z, h) => aspectSol(P, x, z, h),
     solDetaille,
     etendue: ETENDUE,
@@ -1763,15 +1896,16 @@ function barriere(o, a, x, y, z, ry) {
 function maisonArcade(o, a, cx, cz, y, { l, p, h, mur, bois, toit, ecrire, enseigne, graine }) {
   const { P, NEIGE, hasard } = o, zf = cz - p / 2, hf = 2.3, pente = Math.atan2(hf, p / 2 + 0.7), lp = Math.hypot(hf, p / 2 + 0.7);
   a.boite(l, h, p, mur, { x: cx, y: y + h / 2, z: cz, nuance: 0.03 });
-  a.pignon(l, hf * (p / 2) / (p / 2 + 0.7), p, mur, { x: cx, y: y + h - 0.01, z: cz });
+  // (le pignon et les rouleaux de neige, 1 à 2 cm en retrait des bouts du mur et des pans : leurs bouts étaient dans le même plan, 2026-11-20)
+  a.pignon(l - 0.02, hf * (p / 2) / (p / 2 + 0.7), p - 0.02, mur, { x: cx, y: y + h - 0.01, z: cz });
   // les deux pans de tuiles, et leur neige (épaisse : on la descend à la pelle deux ou trois fois par hiver)
   for (const s of [-1, 1]) {
     const zm = cz + s * (p / 2 + 0.7) / 2, ym = y + h + hf / 2 + 0.05;
     a.boite(l + 0.9, 0.12, lp + 0.25, toit[graine % 3], { x: cx, y: ym, z: zm, rx: s * pente, nuance: 0.03 });
     a.boite(l + 1.0, 0.46, lp + 0.3, NEIGE, { x: cx, y: ym + 0.29, z: zm, rx: s * pente, nuance: 0.015 });
-    a.cylindre(0.27, 0.27, l + 1.0, 8, NEIGE, { x: cx, y: y + h + 0.3, z: cz + s * (p / 2 + 0.84), rz: Math.PI / 2, nuance: 0.015 });
+    a.cylindre(0.27, 0.27, l + 0.96, 8, NEIGE, { x: cx, y: y + h + 0.3, z: cz + s * (p / 2 + 0.84), rz: Math.PI / 2, nuance: 0.015 });
   }
-  a.cylindre(0.3, 0.3, l + 1.0, 8, NEIGE, { x: cx, y: y + h + hf + 0.38, z: cz, rz: Math.PI / 2, nuance: 0.015 });
+  a.cylindre(0.3, 0.3, l + 0.96, 8, NEIGE, { x: cx, y: y + h + hf + 0.38, z: cz, rz: Math.PI / 2, nuance: 0.015 });
   // l'étage : ses fenêtres (du papier, allumé la nuit) ; le rez-de-chaussée : la devanture de bois, sa porte à claire-voie, son noren
   const nf = Math.max(2, Math.round(l / 4.2));
   for (let k = 0; k < nf; k++) {
@@ -1782,7 +1916,7 @@ function maisonArcade(o, a, cx, cz, y, { l, p, h, mur, bois, toit, ecrire, ensei
   a.boite(l - 0.4, 2.3, 0.08, bois, { x: cx, y: y + 1.2, z: zf - 0.04, nuance: 0.03 });
   const xd = cx + (hasard(graine, 21) - 0.5) * (l - 5);
   a.boite(1.9, 1.95, 0.05, P.shoji, { x: xd, y: y + 1.02, z: zf - 0.09, trait: false });
-  for (let j = 0; j < 9; j++) a.boite(0.035, 1.95, 0.04, bois, { x: xd - 0.9 + j * 0.225, y: y + 1.02, z: zf - 0.105, trait: false });
+  for (let j = 0; j < 9; j++) a.boite(0.035, 1.93, 0.04, bois, { x: xd - 0.9 + j * 0.225, y: y + 1.01, z: zf - 0.105, trait: false });
   a.boite(2.0, 0.5, 0.03, enseigne[1], { x: xd, y: y + 1.98, z: zf - 0.16, trait: false });
   // l'arcade : l'auvent en pente douce, ses poteaux au bord du trottoir, sa sablière, sa neige
   const za = zf - 1.15, zb = zf - 2.25;
@@ -1802,20 +1936,33 @@ function minibus(o, a, R, y, ecrire, pose) {
   a.boite(2.05, 1.9, 6.2, BLANC, R(0, y + 1.45, 0, { nuance: 0.02 })).boite(2.07, 0.34, 6.22, BLEU, R(0, y + 0.95, 0)).boite(2.0, 0.3, 6.0, '#3a3d42', R(0, y + 0.42, 0));
   a.boite(1.9, 0.14, 5.6, BLANC, R(0, y + 2.46, -0.1));
   // les vitres des côtés, le pare-brise, la vitre arrière ; la porte, à gauche du sens de la marche (on roule à gauche au Japon)
+  // (la porte, juste derrière la roue avant : jusqu'au 2026-11-20, elle était au-dessus de la roue, sa face dans le plan du pneu, et le pneu
+  // scintillait au travers — « au niveau de la roue de la navette »)
   for (const s of [-1, 1]) {
-    for (let k = 0; k < 4; k++) a.boite(0.04, 0.72, 1.12, VITRE, R(s * 1.03, y + 1.85, -2.25 + k * 1.28, { trait: false }));
-    for (const z of [-1.95, 2.05]) a.cylindre(0.4, 0.4, 0.26, 12, PNEU, R(s * 0.93, y + 0.4, z, { rz: Math.PI / 2 })).cylindre(0.2, 0.2, 0.28, 10, '#b8bcc0', R(s * 0.93, y + 0.4, z, { rz: Math.PI / 2, trait: false }));
+    for (const [z, l] of s > 0 ? [[-2.25, 1.12], [-0.97, 1.12], [2.2, 0.72]] : [[-2.25, 1.12], [-0.97, 1.12], [0.31, 1.12], [1.59, 1.12]]) a.boite(0.04, 0.72, l, VITRE, R(s * 1.03, y + 1.85, z, { trait: false }));
+    for (const z of [-1.95, 2.05]) a.cylindre(0.4, 0.4, 0.24, 12, PNEU, R(s * 0.92, y + 0.4, z, { rz: Math.PI / 2 })).cylindre(0.2, 0.2, 0.26, 10, '#b8bcc0', R(s * 0.92, y + 0.4, z, { rz: Math.PI / 2, trait: false }));
   }
   a.boite(1.8, 0.86, 0.05, VITRE, R(0, y + 1.82, 3.1, { trait: false })).boite(1.7, 0.7, 0.05, VITRE, R(0, y + 1.85, -3.1, { trait: false }));
-  a.boite(0.05, 1.75, 0.95, '#dfe1e2', R(1.035, y + 1.28, 1.95)).boite(0.06, 0.8, 0.75, VITRE, R(1.04, y + 1.72, 1.95, { trait: false }));
+  a.boite(0.05, 1.75, 0.95, '#dfe1e2', R(1.035, y + 1.28, 1.1)).boite(0.05, 0.8, 0.75, VITRE, R(1.047, y + 1.72, 1.1, { trait: false }));
   for (const s of [-1, 1]) a.boite(0.36, 0.16, 0.06, '#f8e9a8', R(s * 0.7, y + 0.82, 3.11, { sorte: 'lumiere', trait: false })).boite(0.3, 0.14, 0.06, '#c8372d', R(s * 0.72, y + 0.9, -3.11, { trait: false }));
   // sa destination, au-dessus du pare-brise et sur son flanc gauche
   a.boite(1.5, 0.26, 0.05, '#2a2a2c', R(0, y + 2.3, 3.11, { trait: false }));
   ecrire({ x: pose.x, y, z: pose.z, ry: pose.ry }, { texte: 'かまくらの里', x: 0, y: 2.3, z: 3.14, l: 1.4, h: 0.22, fond: null, encre: '#ffcf5a' });
-  ecrire({ x: pose.x, y, z: pose.z, ry: pose.ry }, { texte: 'いいやま雪まつり　シャトルバス', x: 1.048, y: 0.95, z: -0.6, ry: Math.PI / 2, l: 3.4, h: 0.26, fond: null, encre: '#f4f2ea' });
+  ecrire({ x: pose.x, y, z: pose.z, ry: pose.ry }, { texte: 'いいやま雪まつり　シャトルバス', x: 1.048, y: 0.95, z: -0.9, ry: Math.PI / 2, l: 2.9, h: 0.24, fond: null, encre: '#f4f2ea' });
   // (la neige sur son toit)
   manteau(o, a, 1.95, 5.7, 0.2, R(0, y + 2.6, -0.1));
   return a;
+}
+/**
+ * Une marmite ouverte (le fond, la paroi qui s'évase, le bord, l'intérieur) et ce qu'il y a dedans, 7 cm sous le bord ; pose : son pied.
+ * Rend la hauteur de la soupe (pour ce qu'on y pose). (Une marmite d'un seul cylindre fermé et un disque de soupe posé sur son couvercle,
+ * dans le même plan : la soupe scintillait — la cuisinière du village des kamakura, 2026-11-20.)
+ */
+function marmite(o, a, pose, rb, rh, h, c, soupe, n = 14) {
+  const { THREE } = o, V = (r, y) => new THREE.Vector2(r, y), e = Math.min(0.035, rh * 0.12);
+  a.piece(new THREE.LatheGeometry([V(0.001, 0), V(rb * 0.92, 0), V(rb, 0.03), V(rh, h), V(rh - e, h), V(rh - e, h - 0.08)], n), c, pose);
+  a.piece(new THREE.CircleGeometry(rh - e + 0.003, n), soupe, { x: pose.x, y: pose.y + h - 0.07, z: pose.z, rx: -Math.PI / 2, trait: false });
+  return pose.y + h - 0.07;
 }
 /**
  * Une tente de la fête (les grandes tentes blanches des fêtes japonaises) : quatre montants, un toit à deux pans, un lambrequin, trois côtés de
@@ -1831,9 +1978,11 @@ function tente(o, a, R, y, T, ecrire) {
   // la toile du fond et des deux côtés (jusqu'au comptoir)
   a.boite(L - 0.1, H - 0.06, 0.025, BACHE, R(0, y + H / 2, -D / 2 + 0.05, { nuance: 0.02 }));
   for (const sx of [-1, 1]) a.boite(0.025, H - 0.06, D * 0.62, BACHE, R(sx * (L / 2 - 0.05), y + H / 2, -D * 0.19, { nuance: 0.02 }));
-  // le comptoir : deux tables bout à bout sous une nappe
-  a.boite(L - 0.3, 0.05, 0.74, '#d8d2c4', R(0, y + 0.76, D / 2 - 0.4)).boite(L - 0.28, 0.7, 0.03, T.bande, R(0, y + 0.4, D / 2 - 0.035, { nuance: 0.02 })).boite(L - 0.28, 0.12, 0.035, BACHE, R(0, y + 0.68, D / 2 - 0.03, { trait: false }));
-  for (const sx of [-1, 1]) a.boite(0.03, 0.7, 0.72, T.bande, R(sx * (L / 2 - 0.15), y + 0.4, D / 2 - 0.4, { nuance: 0.02 }));
+  // le comptoir : deux tables bout à bout sous une nappe. (Jusqu'au 2026-11-20, la nappe montait 1,5 cm plus haut que le bas du plateau et
+  // passait devant lui : un fil rouge entre le plateau et le liseré blanc, qui scintillait — « en dessous des échoppes ». Maintenant le plateau
+  // déborde un peu devant, et la nappe, ses côtés et son liseré s'arrêtent dessous.)
+  a.boite(L - 0.3, 0.05, 0.78, '#d8d2c4', R(0, y + 0.76, D / 2 - 0.39)).boite(L - 0.28, 0.68, 0.03, T.bande, R(0, y + 0.39, D / 2 - 0.035, { nuance: 0.02 })).boite(L - 0.28, 0.11, 0.035, BACHE, R(0, y + 0.677, D / 2 - 0.03, { trait: false }));
+  for (const sx of [-1, 1]) a.boite(0.03, 0.66, 0.72, T.bande, R(sx * (L / 2 - 0.16), y + 0.39, D / 2 - 0.4, { nuance: 0.02 }));
   // l'enseigne, dressée sur le bord du toit
   a.boite(2.7, 0.56, 0.05, T.bande, R(0, y + H + 0.36, D / 2 + 0.1));
   const q0 = R(0, 0, 0);
@@ -1848,9 +1997,11 @@ function tente(o, a, R, y, T, ecrire) {
     for (const x of [-1.05, 0, 1.05]) { plat(x, zc, 0.84, 0.52, '#3a2c24'); for (let k = 0; k < 8; k++) { const px = x - 0.3 + (k % 4) * 0.2, pz = zc - 0.12 + Math.floor(k / 4) * 0.24; a.boite(0.17, 0.012, 0.2, '#3f8a4a', R(px, yc + 0.04, pz, { ry: 0.3, trait: false })).boite(0.1, 0.03, 0.12, '#f6f2e6', R(px, yc + 0.06, pz, { trait: false })).boite(0.04, 0.012, 0.05, k % 3 ? '#e8c84a' : '#d8452e', R(px, yc + 0.082, pz, { trait: false })); } }
   } else if (T.id === 'kinoko' || T.id === 'amazake') {
     // une grande marmite sur son réchaud, sa louche, des bols (ou des gobelets) empilés
+    // (la marmite ouverte, la soupe dedans : jusqu'au 2026-11-20, un cylindre fermé, la soupe cachée sous son couvercle)
     const c = T.id === 'kinoko' ? '#8a6a48' : '#f3ead6';
-    a.cylindre(0.3, 0.3, 0.2, 10, '#5a5a5e', R(-0.9, yc + 0.1, zc)).cylindre(0.4, 0.36, 0.42, 14, '#3a3a3e', R(-0.9, yc + 0.41, zc)).cylindre(0.37, 0.37, 0.02, 14, c, R(-0.9, yc + 0.6, zc, { trait: false }));
-    a.baton([R(-0.9, 0, zc).x, yc + 0.58, R(-0.9, 0, zc).z], [R(-0.55, 0, zc - 0.25).x, yc + 0.92, R(-0.55, 0, zc - 0.25).z], 0.014, '#c8ccd0', 5, { trait: false });
+    a.cylindre(0.3, 0.3, 0.2, 10, '#5a5a5e', R(-0.9, yc + 0.1, zc));
+    const ys = marmite(o, a, R(-0.9, yc + 0.2, zc), 0.36, 0.4, 0.42, '#3a3a3e', c, 14);
+    a.baton([R(-0.9, 0, zc).x, ys + 0.02, R(-0.9, 0, zc).z], [R(-0.55, 0, zc - 0.25).x, yc + 0.92, R(-0.55, 0, zc - 0.25).z], 0.014, '#c8ccd0', 5, { trait: false });
     for (let k = 0; k < 3; k++) for (let j = 0; j < 4; j++) a.cylindre(0.07, 0.05, 0.05, 8, T.id === 'kinoko' ? '#2f2a28' : '#f8f6f0', R(0.35 + k * 0.3, yc + 0.03 + j * 0.022, zc + 0.05, { trait: false }));
   } else if (T.id === 'soba') {
     for (const x of [-1.0, -0.2, 0.6]) { plat(x, zc, 0.62, 0.5, '#3a2c24'); for (let k = 0; k < 2; k++) a.cylindre(0.11, 0.07, 0.07, 10, '#2f2a28', R(x - 0.14 + k * 0.28, yc + 0.065, zc, { trait: false })).cylindre(0.095, 0.095, 0.01, 10, '#b8a888', R(x - 0.14 + k * 0.28, yc + 0.1, zc, { trait: false })); }
@@ -1865,7 +2016,8 @@ function tente(o, a, R, y, T, ecrire) {
     a.cone(0.11, 0.28, 10, '#e8452e', R(0.95, yc + 0.11, zc, { rx: Math.PI / 2 })).cylindre(0.04, 0.04, 0.12, 8, '#f4f2ea', R(0.95, yc + 0.11, zc - 0.18, { rx: Math.PI / 2, trait: false }));
   }
   // (la neige du toit : deux pans épais)
-  for (const s of [-1, 1]) a.boite(L + 0.3, 0.2, Math.hypot(D / 2 + 0.12, 0.78) + 0.1, NEIGE, R(0, y + H + 0.39 + 0.13, s * (D / 4 + 0.06), { rx: s * Math.atan2(0.78, D / 2 + 0.12), nuance: 0.015 }));
+  // (les deux pans un rien plus longs l'un que l'autre : leurs bouts se croisaient au faîte, dans le même plan)
+  for (const s of [-1, 1]) a.boite(L + 0.29 + 0.01 * s, 0.2, Math.hypot(D / 2 + 0.12, 0.78) + 0.1, NEIGE, R(0, y + H + 0.39 + 0.13, s * (D / 4 + 0.06), { rx: s * Math.atan2(0.78, D / 2 + 0.12), nuance: 0.015 }));
   void THREE;
   return a;
 }
@@ -1902,7 +2054,8 @@ function kamakura(o, a, K, y, porte = 0.56, hp = 1.5, vide = false) {
     g.setAttribute('position', new THREE.Float32BufferAttribute(tri.flat(), 3));
     a.piece(g, TAILLEE, { trait: false, nuance: 0.02 });
   }
-  a.boite(2 * porte + 0.1, 0.08, ep, TAILLEE, L(0, hp + 0.03, zm, { trait: false, nuance: 0.02 }));
+  // (le linteau s'arrête 1 cm avant le dehors des deux montants : ses bouts et eux étaient dans le même plan)
+  a.boite(2 * porte + 0.08, 0.08, ep, TAILLEE, L(0, hp + 0.03, zm, { trait: false, nuance: 0.02 }));
   if (vide) return a;
   // la natte de paille, la table basse, le réchaud à gaz et la marmite de fonte, les coussins autour
   a.cylindre(r * 0.82, r * 0.82, 0.03, 14, '#c8b27a', L(0, 0.03, 0, { trait: false }));
@@ -2049,6 +2202,10 @@ const TEXTES = {
     // ---- la navette
     chauffeur: ['La navette pour le village des kamakura, à Shinanodaira (信濃平) ? Un quart d’heure de route entre deux murs de neige.', 'On y va ?'],
     chauffeurB: ['On rentre à la fête, au parc du château ?'],
+    deuxParties: ['La fête de la neige d’Iiyama se passe en deux endroits : ici, au parc du château, et au village des kamakura, à un quart d’heure de route.', 'La navette blanche, au bout de la rue, fait l’aller-retour : parle à son chauffeur.'],
+    chauffeurAppel: ['Navette pour le village des kamakura ! Le départ, c’est ici !'],
+    villageCompagnon: { kon: ['« Il nous reste le village des kamakura ! On prend la navette, au bout de la rue ? »'], pon: ['« Pon ! Au village des kamakura, il y a une marmite qui nous attend. La navette, vite ! »'], chapu: ['« Chapu ! Il reste les igloos ! La navette est au bout de la rue ! »'], gao: ['« Gao. La fête est faite. Reste le village des kamakura : la navette nous y mène. »'], fuwa: ['« Fuwaaa… Le village des maisons de neige… La navette, au bout de la rue… »'], saya: ['« Au-delà de la crête, les kamakura nous attendent. Prenons la navette. »'] },
+    tobogganCompagnon: { kon: ['« Waouh ! Encore ! »'], pon: ['« Pon ! Tu as glissé comme un mochi sur une assiette ! »'], chapu: ['« Chapu ! Plus vite que la rivière ! »'], gao: ['« Gao. Une belle glissade. »'], fuwa: ['« Fuwaaa… On a volé un tout petit peu… »'], saya: ['« La neige t’a porté comme une feuille sur le vent. »'] },
     arriveeB: ['Shinanodaira. Derrière l’arche blanche : le village des kamakura (かまくらの里).'],
     arriveeA: ['Te revoilà au pied du château d’Iiyama. La fête bat son plein !'],
     arriveeBCompagnon: { kon: ['« Des maisons toutes rondes, en neige ! On peut entrer dedans ? »'], pon: ['« Pon ! Ça sent la marmite… Suis mon nez ! »'], chapu: ['« Chapu ! Des igloos ! J’en veux un au bord de ma rivière. »'], gao: ['« Gao. Des dômes bien ronds. Du beau travail. »'], fuwa: ['« Fuwaaa… Des bulles de neige posées sur le blanc… »'], saya: ['« Les cèdres dorment sous la neige. Écoute : même le vent chuchote. »'] },
@@ -2152,8 +2309,8 @@ const TEXTES = {
     cuisiniereCommande: ['C’est parti ! Installe-toi dans le kamakura au lampion rouge, le premier à droite de l’allée. On te l’apporte.', 'Tu sais pourquoi « noroshi » ? Sa vapeur monte tout droit, comme les feux d’alerte d’autrefois (のろし). Au temps des guerres, le camp d’Uesugi Kenshin avait un poste de feu sur le mont Kuroiwa (黒岩山), juste là, derrière nous.'],
     cuisiniereAttend: ['Ta marmite t’attend dans le kamakura au lampion rouge, le premier à droite de l’allée !'],
     cuisiniereEncore: ['Alors, cette marmite ? Reviens quand tu veux : il y a toujours une place au chaud.'],
-    cuisiniereSoir: ['Le soir, chaque kamakura a sa lumière. Tu veux attendre la nuit ?'],
-    cuisiniereMatin: ['Tu veux que le jour revienne ?'],
+    ancienSoir: ['Le soir, chaque kamakura a sa lumière, et tout le village brille dans la neige. Tu veux attendre la nuit ?'],
+    ancienMatin: ['Tu veux que le jour revienne ?'],
     kamakuraPasCommande: ['Un kamakura réservé, avec son lampion rouge. Il faut d’abord commander sa marmite à la cuisinière, près de l’arche.'],
     repas1: ['Et voilà ta noroshi nabe ! Attention, c’est brûlant. Les boulettes de riz, c’est du Koshihikari d’Iiyama.'],
     repas2: ['Dehors, il neige. Dedans, la marmite fume, et les murs de neige gardent la chaleur. On est bien.'],
@@ -2188,6 +2345,10 @@ const TEXTES = {
     arrivee: null,
     chauffeur: ['The shuttle to the kamakura village, at Shinanodaira (信濃平)? A quarter of an hour between two walls of snow.', 'Shall we go?'],
     chauffeurB: ['Back to the festival, at the castle park?'],
+    deuxParties: ['The Iiyama Snow Festival takes place in two spots: here, at the castle park, and at the kamakura village, a quarter of an hour away.', 'The white shuttle at the end of the street goes back and forth: talk to its driver.'],
+    chauffeurAppel: ['Shuttle to the kamakura village! It leaves from here!'],
+    villageCompagnon: { kon: ['“We still have the kamakura village! Shall we take the shuttle at the end of the street?”'], pon: ['“Pon! A hot pot is waiting for us at the kamakura village. Quick, the shuttle!”'], chapu: ['“Chapu! The igloos are left! The shuttle is at the end of the street!”'], gao: ['“Gao. The festival is done. The kamakura village remains: the shuttle will take us.”'], fuwa: ['“Fuwaaa… The village of snow houses… The shuttle, at the end of the street…”'], saya: ['“Beyond the ridge, the kamakura are waiting for us. Let us take the shuttle.”'] },
+    tobogganCompagnon: { kon: ['“Wow! Again!”'], pon: ['“Pon! You slid like a mochi on a plate!”'], chapu: ['“Chapu! Faster than the river!”'], gao: ['“Gao. A fine slide.”'], fuwa: ['“Fuwaaa… We flew, just a tiny bit…”'], saya: ['“The snow carried you like a leaf on the wind.”'] },
     arriveeB: ['Shinanodaira. Behind the white arch: the kamakura village (かまくらの里).'],
     arriveeA: ['Back at the foot of Iiyama Castle. The festival is in full swing!'],
     arriveeBCompagnon: { kon: ['“Round little houses, made of snow! Can we go inside?”'], pon: ['“Pon! I smell a hot pot… Follow my nose!”'], chapu: ['“Chapu! Igloos! I want one by my river.”'], gao: ['“Gao. Nice round domes. Fine work.”'], fuwa: ['“Fuwaaa… Snow bubbles resting on the white…”'], saya: ['“The cedars are asleep under the snow. Listen: even the wind is whispering.”'] },
@@ -2285,8 +2446,8 @@ const TEXTES = {
     cuisiniereCommande: ['Coming up! Settle into the kamakura with the red lantern, the first one on the right of the alley. We will bring it to you.', 'Do you know why “noroshi”? Its steam rises straight up, like the beacon fires of old (のろし). In the age of wars, Uesugi Kenshin’s camp had a beacon post on Mount Kuroiwa (黒岩山), right there, behind us.'],
     cuisiniereAttend: ['Your hot pot is waiting in the kamakura with the red lantern, the first one on the right of the alley!'],
     cuisiniereEncore: ['So, how was that hot pot? Come back whenever you like: there is always a warm seat.'],
-    cuisiniereSoir: ['In the evening every kamakura has its light. Do you want to wait for the night?'],
-    cuisiniereMatin: ['Do you want the day to come back?'],
+    ancienSoir: ['In the evening every kamakura has its light, and the whole village glows in the snow. Do you want to wait for the night?'],
+    ancienMatin: ['Do you want the day to come back?'],
     kamakuraPasCommande: ['A reserved kamakura, with its red lantern. First you must order your hot pot from the cook, near the arch.'],
     repas1: ['Here is your noroshi nabe! Careful, it is boiling hot. The rice balls are Koshihikari from Iiyama.'],
     repas2: ['Outside, it is snowing. Inside, the pot is steaming and the snow walls keep the warmth in. It feels good.'],
@@ -2321,6 +2482,10 @@ const TEXTES = {
     arrivee: null,
     chauffeur: ['信濃平の　かまくらの里まで　シャトルバスだよ。雪の　かべの　あいだを　15分。', 'のっていくかい？'],
     chauffeurB: ['城あと公園の　雪まつりへ　もどるかい？'],
+    deuxParties: ['いいやま雪まつりの　会場は　ふたつ。ここ、城あと公園と、車で　15分の　かまくらの里。', '通りの　はしの　白い　シャトルバスが　行ったり　来たり　しているよ。うんてんしゅさんに　話しかけよう。'],
+    chauffeurAppel: ['かまくらの里ゆきの　シャトルバスだよ！　ここから　出るよ！'],
+    villageCompagnon: { kon: ['「まだ　かまくらの里が　あるよ！　通りの　はしの　バスに　のろうか？」'], pon: ['「ポン！　かまくらの里で　なべが　まってる。はやく　バスへ！」'], chapu: ['「チャプ！　かまくらが　まだだよ！　バスは　通りの　はし！」'], gao: ['「ガオ。まつりは　見た。あとは　かまくらの里だ。バスで　行こう」'], fuwa: ['「フワァ……雪の　おうちの　里……バスは　通りの　はし……」'], saya: ['「山の　むこうで　かまくらが　まっている。バスに　のろう」'] },
+    tobogganCompagnon: { kon: ['「わあ！　もう一回！」'], pon: ['「ポン！　おさらの　上の　おもちみたいに　すべったね！」'], chapu: ['「チャプ！　川より　はやい！」'], gao: ['「ガオ。いい　すべりだ」'], fuwa: ['「フワァ……ちょっとだけ　とんだね……」'], saya: ['「雪が　きみを　風の　木の葉のように　はこんだ」'] },
     arriveeB: ['信濃平。白い　アーチの　むこうが　かまくらの里。'],
     arriveeA: ['飯山城の　ふもとに　もどってきた。雪まつりは　まだまだ　にぎやか！'],
     arriveeBCompagnon: { kon: ['「まるい　雪の　おうちだ！　中に　入れるのかな？」'], pon: ['「ポン！　なべの　においが　する……ぼくの　はなに　ついてきて！」'], chapu: ['「チャプ！　かまくらだ！　川の　そばに　ひとつ　ほしいな」'], gao: ['「ガオ。まんまるで　いい　ドームだ。いい　しごとだな」'], fuwa: ['「フワァ……白の　上に　雪の　あわが　ならんでる……」'], saya: ['「杉は　雪の　下で　ねむっている。ほら、風まで　ひそひそ声だ」'] },
@@ -2418,8 +2583,8 @@ const TEXTES = {
     cuisiniereCommande: ['はいよ！　赤い　ちょうちんの　かまくらで　まっていて。道の　右がわ、いちばん　手前だよ。もっていくからね。', 'どうして　「のろし」か　しってる？　ゆげが　まっすぐ　のぼって、むかしの　のろしみたいだから。いくさの　時代、上杉謙信の　がわは、すぐ　うしろの　黒岩山に　のろし台を　もっていたんだよ。'],
     cuisiniereAttend: ['なべは　赤い　ちょうちんの　かまくらで　まっているよ。道の　右がわ、いちばん　手前！'],
     cuisiniereEncore: ['なべは　どうだった？　いつでも　おいで。あたたかい　せきは　いつも　あるからね。'],
-    cuisiniereSoir: ['夜は　かまくら　ひとつずつに　あかりが　ともるよ。夜まで　まつかい？'],
-    cuisiniereMatin: ['朝を　まつかい？'],
+    ancienSoir: ['夜は　かまくら　ひとつずつに　あかりが　ともって、里じゅうが　雪の　中で　ひかるんじゃ。夜まで　まつかい？'],
+    ancienMatin: ['朝を　まつかい？'],
     kamakuraPasCommande: ['赤い　ちょうちんの、よやくの　かまくら。まず　アーチの　そばの　りょうりの　おばさんに　なべを　たのもう。'],
     repas1: ['はい、のろし鍋！　あついから　気を　つけてね。おにぎりは　飯山の　コシヒカリだよ。'],
     repas2: ['外は　雪。中では　なべが　ゆげを　立てて、雪の　かべが　あたたかさを　にがさない。いい　きもち。'],

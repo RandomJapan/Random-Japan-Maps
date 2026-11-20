@@ -990,21 +990,21 @@ const OISEAUX = {
     c.bruit(0.0, { f: 420, q: 0.6, duree: 3.0, forme: ad(0.6, 1.4, 3.0), gain: 0.16 });
     return cadrer([echo(c.b, sr)], sr, 0.3);
   },
-  // (Iiyama, 2026-11-20) la torche du grand tengu qui s'abat : le souffle du feu qui file, grave puis plus clair, et les braises qui
-  // crépitent en retombant sur la neige
+  // (Iiyama, 2026-11-20) la torche du grand tengu qui s'abat : le souffle du feu qui file, grave puis un peu plus clair. (Le même jour, le
+  // propriétaire : « on entend le bruit de la flamme, et un bruit un peu spécial juste après » — vingt-quatre petits claquements aigus, des
+  // braises qui devaient crépiter, et qui sonnaient comme un grésillement électrique : ôtés.)
   torche(sr, r) {
-    const c = composer(sr, r, 1.5);
-    c.bruit(0.0, { f: 300, q: 0.5, duree: 0.72, forme: ad(0.2, 0.34, 0.72), gain: 0.55 });
-    c.bruit(0.06, { f: 1300, q: 0.6, duree: 0.6, forme: ad(0.2, 0.28, 0.6), gain: 0.28 });
-    for (let k = 0; k < 24; k++) c.bruit(0.26 + 1.1 * r() ** 0.7, { f: 2600 + 3800 * r(), q: 2.5, duree: 0.03, forme: ad(0.002, 0.02, 0.03), gain: 0.22 + 0.3 * r() });
-    return cadrer([c.b], sr, 0.26);
+    const c = composer(sr, r, 1.0);
+    c.bruit(0.0, { f: 260, q: 0.5, duree: 0.72, forme: ad(0.22, 0.32, 0.72), gain: 0.55 });
+    c.bruit(0.08, { f: 850, q: 0.5, duree: 0.5, forme: ad(0.2, 0.22, 0.5), gain: 0.16 });
+    return cadrer([c.b], sr, 0.24);
   },
   // le grand feu qui prend, et chaque feu qui répond sur une montagne : un souffle sourd, comme un grand drap qu'on secoue au loin
   feu(sr, r) {
     const c = composer(sr, r, 1.8);
     c.bruit(0.0, { f: 180, q: 0.5, duree: 1.6, forme: ad(0.35, 1.0, 1.6), gain: 0.6 });
     c.bruit(0.1, { f: 700, q: 0.6, duree: 1.2, forme: ad(0.3, 0.7, 1.2), gain: 0.22 });
-    for (let k = 0; k < 10; k++) c.bruit(0.3 + 1.2 * r(), { f: 2200 + 3000 * r(), q: 2.5, duree: 0.03, forme: ad(0.002, 0.02, 0.03), gain: 0.2 + 0.2 * r() });
+    // (sans les petits claquements aigus de la torche, ôtés le 2026-11-20 : le même grésillement)
     return cadrer([echo(c.b, sr)], sr, 0.26);
   },
   // (Yakushima, 2026-11-01) les petits esprits : du tout petit bois creux qu'on frappe, « tok, tok », un rien plus aigu que Saya, leur cousin
