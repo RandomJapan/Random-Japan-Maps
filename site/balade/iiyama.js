@@ -1147,7 +1147,9 @@ export function construire(ctx) {
     // ---- le village des kamakura
     { id: 'chauffeurB', x: 3.4, z: -290.6, cap: -PI / 2, dedans: B, tenue: TENUE_CHAUFFEUR },
     { id: 'cuisiniere', x: MARMITE.x, z: MARMITE.z + 1.25, cap: PI, dedans: B, tenue: hiver('#b8322a', { taille: 0.95, peau: '#f0c8a6', cheveux: GRISC, coiffure: 'chignon', chapeau: { sorte: 'foulard', c: '#f4f0e6' }, tablier: '#f4f0e6', yeux: 'plisses' }) },
-    { id: 'serveuse', x: -5.2, z: -307.6, cap: 0, ronde: [[-5.2, -307.6], [-1.3, -316], [-1.3, -338.2]], vitesse: 0.9, attente: [5, 9], dedans: B, tenue: hiver('#2f4a6a', { taille: 0.95, cheveux: NOIRC, coiffure: 'queue', chapeau: { sorte: 'bandeau', c: '#b8322a' }, tablier: '#b8322a' }) },
+    // (sa ronde : de la cuisine au milieu de l'allée, puis l'allée, et retour par le même coin — en biais, elle coupait par la neige du bord
+    // de l'allée, où l'on ne marche pas : jouée un quart d'heure, elle restait bloquée 211 s sur 543 et faisait cinquante demi-tours)
+    { id: 'serveuse', x: -5.2, z: -307.6, cap: 0, ronde: [[-5.2, -307.6], [-2.2, -308.2, true], [-2.2, -338.2], [-2.2, -308.2, true]], vitesse: 0.9, attente: [5, 9], dedans: B, tenue: hiver('#2f4a6a', { taille: 0.95, cheveux: NOIRC, coiffure: 'queue', chapeau: { sorte: 'bandeau', c: '#b8322a' }, tablier: '#b8322a' }) },
     { id: 'ancien', x: 14.3, z: -307.3, cap: -0.6, dedans: B, tenue: hiver('#5a6a4a', { taille: 0.98, peau: PEAU3, cheveux: BLANCC, chapeau: { sorte: 'oreilles', c: '#4a4a3a' }, echarpe: '#c8b27a', yeux: 'plisses' }) },
     { id: 'visiteuse', x: 5.6, z: -304.6, cap: PI - 0.5, dedans: B, tenue: hiver('#e8a0a8', { taille: 0.95, cheveux: BRUNC, coiffure: 'queue', chapeau: bonnet('#f4f2ea', '#e8a0a8'), echarpe: '#f4f2ea', appareil: true }) },
     ...[['k00', '#6a8a5a', '#c8783a'], ['k14', '#3a4a6a', '#e88aa0'], ['k22', '#8a5a4a', '#5a7a9a']].flatMap(([id, c1, c2], k) => {
