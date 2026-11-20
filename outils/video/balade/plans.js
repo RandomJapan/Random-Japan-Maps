@@ -105,6 +105,8 @@
     },
   };
   const lu = { depuis: null, texte: '' };
+  // (pour les repérages : les outils des prises, depuis la console ou un script)
+  window.__O = O;
   /** Ce que fait une interaction du lieu (comme si l'on avait appuyé sur A devant elle). */
   O.agir = async (id) => {
     const i = O.inter(id), p = i.passant ? O.passant(i.passant) : null;
@@ -1611,6 +1613,158 @@
         o.cadre(...o.chemin([[0, [-56, 74, 64], [5, 14, -15], 52], [7, [-62, 79, 71], [5, 14, -15], 52]], t));
       },
     },
+
+    // ================================================================ Vidéo 11 : Sumi, le peintre Inkami (2026-11-20)
+    // Toutes dans le jeu en ligne, en simple visiteur (rushes.py, 'site'). Les caméras sont écrites dans le repère de l'étal (o.etal) :
+    // u à droite de celui qui regarde la toile, v vers lui, h au-dessus du sol du chevalet ; Sumi se tient en (0,47 ; 0,62), tourné vers
+    // sa toile. Le voyageur et son compagnon sont mis hors du champ (loin), sauf quand il parle à Sumi.
+    // l'accroche : Sumi en gros plan qui peint, vu de derrière sa toile (son visage, sa barbe, le chapeau, le pinceau), la caméra approche
+    'sm-visage': {
+      duree: 3.4,
+      preparer(o) { o.etal().loin(-1); },
+      chaque(t, dt, o) {
+        const E = o.E;
+        o.cadre(...o.chemin([[0, ...E.vue(1.6, -1.5, 1.53, 0.47, 0.62, 1.22), 46], [3.4, ...E.vue(1.38, -1.28, 1.48, 0.47, 0.62, 1.2), 41]], t));
+      },
+    },
+    // Itsukushima en grand : le chevalet, Sumi qui peint, le sanctuaire rouge et le grand torii dans la mer (le voyageur qui arrivait passait
+    // devant la caméra)
+    'sm-large': {
+      duree: 3.4,
+      preparer(o) { o.etal().loin(1); },
+      chaque(t, dt, o) {
+        const E = o.E;
+        o.cadre(...o.chemin([[0, ...E.vue(-2.3, 4.1, 1.85, 0.25, 0.25, 1.0), 46], [3.4, ...E.vue(-1.6, 4.3, 1.8, 0.25, 0.25, 1.0), 44]], t));
+      },
+    },
+    // on lui parle : il se retourne vers le voyageur (sa boîte de dialogue cachée) ; la caméra de côté, à 40° du voyageur (derrière lui, son
+    // chapeau de paille remplissait l'image)
+    'sm-salut': {
+      duree: 3.8,
+      preparer(o) {
+        const E = o.etal(), [x, z] = E.R(-0.15, 1.95);
+        o.placer(x, z, ...E.sumi, { compagnon: false });
+        o.compagnon(...E.R(-1.3, 2.6), E.Q.cap + PI);
+        o.jeu.cadrer = () => {};
+      },
+      quand: [[0.15, (o) => o.agir('sumi')]],
+      chaque(t, dt, o) {
+        const E = o.E;
+        o.cadre(...o.chemin([[0, ...E.vue(1.1, 2.9, 1.38, 0.45, 0.62, 1.1), 40], [3.8, ...E.vue(1.0, 2.7, 1.35, 0.45, 0.62, 1.1), 35]], t));
+      },
+    },
+    // Himeji : Sumi et son étal au premier plan, le donjon au-dessus (le monde, pas le repère de l'étal)
+    'sm-himeji': {
+      duree: 3.2,
+      preparer(o) { o.etal().loin(1); },
+      chaque(t, dt, o) {
+        const y = o.E.y;
+        o.cadre(...o.chemin([[0, [3.8, y + 1.45, 22.6], [2.6, y + 8, -40], 46], [3.2, [3.6, y + 1.85, 22.0], [2.6, y + 9.2, -40], 44]], t));
+      },
+    },
+    // les dunes de Tottori : l'étal sur le palier du haut, la mer et le sable derrière
+    'sm-tottori': {
+      duree: 3.2,
+      preparer(o) { o.etal().loin(1); },
+      chaque(t, dt, o) {
+        const E = o.E;
+        o.cadre(...o.chemin([[0, ...E.vue(-2.0, 3.7, 1.8, 0.25, 0.25, 1.05), 46], [3.2, ...E.vue(-1.4, 3.9, 1.75, 0.25, 0.25, 1.05), 44]], t));
+      },
+    },
+    // Tsubosaka-dera : l'étal sur le côté de la grande allée, la toile tournée vers le départ (déplacé le 2026-11-20 par la session de la
+    // balade, à la demande du propriétaire : la caméra suit l'étal, dans son repère, et regarde vers l'allée derrière lui)
+    'sm-tsubosaka': {
+      duree: 3.2,
+      preparer(o) { o.etal().loin(1); },
+      chaque(t, dt, o) {
+        const E = o.E;
+        o.cadre(...o.chemin([[0, ...E.vue(-2.2, 4.2, 1.85, 0.25, 0.25, 1.1), 48], [3.2, ...E.vue(-1.6, 4.4, 1.8, 0.25, 0.25, 1.1), 46]], t));
+      },
+    },
+    // la toile et le pinceau de près, vus de devant à gauche : la peinture du lieu, le pinceau qui la touche, le lieu derrière (les neuf
+    // autres lieux défilent ainsi, un demi-temps chacun ; Itsukushima, plus long, pour « He paints the people he meets »)
+    ...Object.fromEntries(['aogashima', 'gokayama', 'takachiho', 'kinkakuji', 'beppu', 'motonosumi', 'sanjubutsu', 'udo', 'yakushima', 'itsukushima'].map((lieu) => [
+      lieu === 'itsukushima' ? 'sm-pinceau' : `sm-p-${lieu}`, {
+        duree: lieu === 'itsukushima' ? 4.2 : 1.6,
+        preparer(o) { o.etal().loin(lieu === 'yakushima' ? -1 : 1); },
+        chaque(t, dt, o) {
+          const E = o.E, d = this.duree;
+          // (Yakushima : depuis que son étal est à l'entrée de la forêt, derrière la toile vue de devant, il y a les toilettes et leur
+          // écriteau ; Sumi y est filmé de derrière sa toile, la forêt derrière lui)
+          if (lieu === 'yakushima') o.cadre(...o.chemin([[0, ...E.vue(2.0, -2.6, 1.65, 0.3, 0.6, 1.05), 44], [d, ...E.vue(1.8, -2.3, 1.6, 0.3, 0.6, 1.05), 41]], t));
+          else o.cadre(...o.chemin([[0, ...E.vue(-1.05, 1.85, 1.5, 0.15, 0.1, 1.15), 40], [d, ...E.vue(-0.85, 1.6, 1.45, 0.15, 0.1, 1.15), 37]], t));
+        },
+      }])),
+    // le journal de près : la caméra glisse sur la toile du samouraï de Himeji, du nom en katakana au visage
+    'sm-journal': {
+      duree: 4.6,
+      preparer(o) { o.etal().loin(1); },
+      chaque(t, dt, o) {
+        const E = o.E;
+        o.cadre(...o.chemin([[0, ...E.vue(0.42, 1.2, 1.5, 0.08, 0, 1.42), 30], [4.6, ...E.vue(0.3, 1.1, 1.2, -0.02, 0, 1.08), 30]], t));
+      },
+    },
+    // on lui parle (ses boîtes de dialogue lues toutes seules ; déjà rencontré : « Oh, you again! ») ; « Want a closer look at my painting? »,
+    // « Yes », la fenêtre du tableau (le prêtre d'Itsukushima)
+    'sm-parler': {
+      duree: 11,
+      preparer(o) {
+        const E = o.etal(), [x, z] = E.R(-0.15, 1.95);
+        o.placer(x, z, ...E.sumi, { compagnon: false });
+        o.compagnon(...E.R(-1.3, 2.6), E.Q.cap + PI);
+        o.jeu.cadrer = () => {};
+      },
+      quand: [[0.15, (o) => o.agir('sumi')]],
+      chaque(t, dt, o) {
+        o.lire(t, { delai: 0.9, choix: 0 });
+        const E = o.E;
+        o.cadre(...E.vue(1.0, 4.5, 1.9, 0.1, 1.0, 1.0), 44);
+      },
+    },
+    // « Regarder » un tableau : la fenêtre s'ouvre aussitôt ; derrière le voile, le lieu
+    ...Object.fromEntries([['samourai', 'himeji'], ['chamelier', 'tottori'], ['voyageur', 'himeji']].map(([id, lieu]) => [`sm-${id}`, {
+      duree: id === 'voyageur' ? 8 : 3.4,
+      preparer(o) {
+        const E = o.etal(id === 'voyageur'), [x, z] = E.R(0, 1.15);
+        o.placer(x, z, E.Q.x, E.Q.z, { compagnon: false });
+        o.compagnon(...E.R(-1.1, 1.6), E.Q.cap + PI);
+        o.jeu.cadrer = () => {};
+      },
+      quand: [[0.3, (o) => o.agir(`tableau-${id}`)]],
+      chaque(t, dt, o) { o.cadre(...o.E.vue(-2.6, 4.6, 1.9, 0.2, 0.2, 1.0), 48); },
+    }])),
+    // la fin : Sumi la nuit, à la lumière de son lampion, à Itsukushima
+    'sm-nuit': {
+      duree: 5,
+      preparer(o) { o.etal().loin(1); return o.nuitTout(true); },
+      chaque(t, dt, o) {
+        const E = o.E;
+        o.cadre(...o.chemin([[0, ...E.vue(-2.3, 4.4, 1.8, 0.2, 0.3, 1.05), 46], [5, ...E.vue(-2.9, 5.0, 2.0, 0.2, 0.3, 1.05), 48]], t));
+      },
+    },
+  };
+
+  /**
+   * L'étal de Sumi (le premier chevalet du lieu, ou le second : autre) : o.E = { Q, y, R(u, v) → [x, z], sumi : [x, z], vue(u, v, h, cu, cv, ch)
+   * → [[x, y, z], [x, y, z]] }, et loin(cote) : le voyageur et son compagnon à 10 m de l'étal, derrière la caméra (cote +1 : devant la
+   * toile, pour une caméra devant elle ; −1 : derrière, pour une caméra derrière la toile).
+   */
+  O.etal = (autre = false) => {
+    const L = M().lieu, Q = autre ? L.peintre.autre : L.peintre, c = Math.cos(Q.cap), s = Math.sin(Q.cap);
+    const R = (u, v) => [Q.x + u * c + v * s, Q.z - u * s + v * c];
+    const y = Q.y ?? L.monde.hauteur(Q.x, Q.z);
+    const E = {
+      Q, y, R, sumi: R(0.47, 0.62),
+      vue: (u, v, h, cu, cv, ch) => { const [x0, z0] = R(u, v), [x1, z1] = R(cu, cv); return [[x0, y + h, z0], [x1, y + ch, z1]]; },
+      loin(cote) {
+        const [x, z] = R(3, 10 * cote), [x1, z1] = R(3, 12 * cote);
+        O.placer(x, z, x1, z1, { compagnon: false });
+        O.compagnon(...R(4.5, 10 * cote), Q.cap);
+        return E;
+      },
+    };
+    O.E = E;
+    return E;
   };
 
   // ---------------------------------------------------------------- le déroulé

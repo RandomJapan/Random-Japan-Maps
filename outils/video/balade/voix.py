@@ -163,7 +163,7 @@ COUPES = {
 # directement, en secondes du fichier de Flora (k0.mp3) : les phrases ont été retrouvées en alignant la voix sur la même phrase dite par
 # la voix anglaise de Windows (MFCC et DTW : aucune reconnaissance vocale sur ce PC), les coupes au milieu des pauses.
 # (« Nee-oh » : écrit ainsi pour qu'elle prononce Niō comme il faut ; le texte à l'écran dit « Niō »)
-LONGUES = {'k0': ('m172rftq5qedb4rk8d7fdv8yt98je410', '11/18')}
+LONGUES = {'k0': ('m172rftq5qedb4rk8d7fdv8yt98je410', '11/18'), 'm0': ('m17agbyfm8y6pxmtcb08vx181h8jjfmv', '11/20')}
 # morceau : (génération, de, à (s), accélération, texte)
 MORCEAUX = {
     'k1a': ('k0', 0.00, 1.72, 1.15, 'A temple for your eyes,'),
@@ -194,6 +194,28 @@ MORCEAUX = {
     'k10a': ('k0', 53.25, 54.40, 1.0, 'Tsubosaka-dera,'),
     'k10b': ('k0', 54.45, 55.58, 1.0, 'in 3D.'),
     'k10c': ('k0', 55.62, 56.80, 1.0, 'Link in bio.'),
+    # Sumi, le peintre Inkami (2026-11-20) : une génération de 37,7 s (0,096 $), huit lignes ; ses 21 passages de parole (séparés par plus
+    # de 0,12 s sous −40 dB) collent un à un aux phrases du texte, par leur nombre et leurs durées (comparées à celles de la voix de
+    # Windows) ; « on the Tottori dunes, » et « at Tsubosaka-dera » se suivent sans pause : coupés au creux de 10,03 à 10,30 s.
+    # « game » commence à 1,31 s (la tenue du /g/, à −67 dB, de 1,26 à 1,31 s) : le sceau tombe dessus.
+    'm1': ('m0', 0.00, 2.40, 1.0, "I put myself... in my own game!"),
+    'm2a': ('m0', 2.60, 5.02, 1.1, 'Meet Sumi, a travelling painter...'),
+    'm2b': ('m0', 5.02, 6.55, 1.1, "yes, that's me!"),
+    'm3a': ('m0', 6.60, 8.80, 1.1, "You'll find him at Himeji Castle,"),
+    'm3b': ('m0', 8.82, 10.15, 1.1, 'on the Tottori dunes,'),
+    'm3c': ('m0', 10.18, 11.50, 1.1, 'at Tsubosaka-dera...'),
+    'm3d': ('m0', 11.55, 13.90, 1.1, 'in all thirteen places!'),
+    'm4a': ('m0', 13.95, 15.90, 1.1, 'He paints the people he meets...'),
+    'm4b': ('m0', 15.92, 19.08, 1.1, 'in black ink, on old Japanese newspapers.'),
+    'm5': ('m0', 19.10, 21.78, 1.1, 'Talk to him, and see his painting up close!'),
+    'm6a': ('m0', 21.80, 23.58, 1.1, 'The priest of Itsukushima,'),
+    'm6b': ('m0', 23.60, 25.40, 1.1, 'the samurai of Himeji,'),
+    'm6c': ('m0', 25.42, 27.38, 1.1, 'the camel driver of the dunes...'),
+    'm6d': ('m0', 27.40, 29.80, 1.1, 'and even you, as a samurai!'),
+    'm7a': ('m0', 29.90, 33.00, 1.15, 'Want your own face on real Japanese newspapers?'),
+    'm7b': ('m0', 33.05, 35.15, 1.1, 'This red button takes you to my shop!'),
+    'm8a': ('m0', 35.25, 36.50, 1.0, 'Go say hi to him.'),
+    'm8b': ('m0', 36.52, 37.68, 1.0, 'Link in bio!'),
 }
 
 

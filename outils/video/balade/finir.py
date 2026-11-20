@@ -4,6 +4,9 @@ videos/balade/.
     python outils/video/balade/finir.py                    # toutes
     python outils/video/balade/finir.py BaladeTakachiho    # une seule
     python outils/video/balade/finir.py BaladeTour avec    # une seule, seulement avec la musique
+    python outils/video/balade/finir.py BaladeSumi --lent  # deux pages au lieu de quatre, 5 min par image (2026-11-20 : le rendu de la
+                                                          # vidéo de Sumi, 34 prises, s'arrêtait sur « Could not extract frame from
+                                                          # compositor: Request closed »)
 
 Il faut d'abord preparer.py, musique.py, sons.py, voix.py, rushes.py et carte.py, et `npm install` dans montage/.
 Après Remotion : le son à −14 LUFS (le niveau de TikTok), le même gain pour la version sans musique ; l'image en BT.709
@@ -19,11 +22,12 @@ from pathlib import Path
 ICI = Path(__file__).resolve().parent
 MONTAGE = ICI / 'montage'
 SORTIE = ICI.parents[2] / 'videos' / 'balade'
+LENT = '--lent' in sys.argv
 NOMS = {'BaladeTour': 'balade-3d-les-5-lieux', 'BaladeTakachiho': 'balade-3d-takachiho', 'BaladeSecrets': 'balade-3d-secrets',
         'BaladeKinkakuji': 'balade-3d-kinkakuji', 'BaladeBeppu': 'balade-3d-beppu',
         'BaladeMotonosumi': 'balade-3d-motonosumi', 'BaladeSanjubutsu': 'balade-3d-trente-bouddhas', 'BaladeUdoYakushima': 'balade-3d-udo-yakushima',
         'BaladeTottori': 'balade-3d-tottori', 'BaladeEnVrai': 'balade-3d-en-vrai',
-        'BaladeTsubosaka': 'balade-3d-tsubosaka'}
+        'BaladeTsubosaka': 'balade-3d-tsubosaka', 'BaladeSumi': 'balade-3d-sumi'}
 
 
 def ffmpeg():
@@ -39,7 +43,7 @@ def rendre(compo, bgm, f):
     # panoramiques éclair ; avec les réglages par défaut, le rendu de la vidéo « tunnel » manquait de mémoire) ; une image
     # peut attendre 2 min (28 s par défaut : le rendu du Pavillon d'or s'est arrêté en attendant une image d'une prise)
     subprocess.run([npx, 'remotion', 'render', compo, str(f), '--codec=h264', '--crf=12', '--log=error', f'--props={props}',
-                    '--concurrency=4', '--offthreadvideo-cache-size-in-bytes=2000000000', '--timeout=120000'],
+                    f'--concurrency={2 if LENT else 4}', '--offthreadvideo-cache-size-in-bytes=2000000000', f'--timeout={300000 if LENT else 120000}'],
                    cwd=MONTAGE, check=True, shell=sys.platform == 'win32')
 
 

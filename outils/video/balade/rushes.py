@@ -4,7 +4,8 @@
     python outils/video/balade/rushes.py it-plage tk-rame   # seulement celles-là
     python outils/video/balade/rushes.py it-plage --brouillon   # vite (×0,5, 15 images/s, 540 × 960) + une planche
 
-Il faut le site en local (python -m http.server 8123 --directory site ; --port pour un autre), Microsoft Edge,
+Il faut le site en local (python -m http.server 8123 --directory site ; --port pour un autre ; --site, ou 'site' dans la prise : le jeu
+en ligne), Microsoft Edge,
 Playwright et ffmpeg (celui du système, sinon imageio-ffmpeg). Chaque prise devient
 videos/balade/public/rushes/<prise>.mp4, le dossier « public » du montage (pas dans git).
 La page fait 540 × 960 px CSS à ×2 (1080 × 1920) : la balade telle qu'on la voit sur un téléphone en hauteur, mais
@@ -15,6 +16,7 @@ chaque prise soit la même à chaque tournage.
 """
 import base64
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -30,6 +32,9 @@ SORTIE = RACINE / 'videos' / 'balade' / 'public' / 'rushes'
 BROUILLONS = RACINE / 'videos' / 'balade' / 'brouillons'
 PORT = sys.argv[sys.argv.index('--port') + 1] if '--port' in sys.argv else '8123'
 BROUILLON = '--brouillon' in sys.argv
+# Le jeu en ligne, tel qu'un simple visiteur le voit (--site, ou 'site': True dans la prise ; le propriétaire, 2026-11-20, pour la vidéo de
+# Sumi : « À filmer dans le jeu en ligne, en simple visiteur »). Rien n'y part : ni le compteur de visites (GoatCounter), ni la boutique.
+EN_LIGNE = 'https://map.randomjapanplace.com'
 
 # Les prises : le lieu, le voyageur, le compagnon (None : on le choisit au départ, la scène du trio), ce qui est
 # déjà dans la mémoire du jeu (tampons, secrets, achats…), et l'interface montrée (dialogue : la boîte de dialogue,
@@ -203,6 +208,21 @@ PRISES = {
     'ts-rocher': {'lieu': 'tsubosaka', 'ui': 'rien'},
     'ts-fin': {'lieu': 'tsubosaka', 'ui': 'rien'},
 }
+# Vidéo 11 : Sumi, le peintre Inkami (2026-11-20), dans le jeu en ligne (site) ; « You, as a samurai » : le portrait du garçon. La fenêtre
+# du tableau réduite à 0,8 et remontée en haut de l'écran : son bouton rouge passe au-dessus de la légende de TikTok, et le montage garde la
+# place d'écrire sous le tableau.
+FENETRE = '.fond-tableau { place-items: start center !important; padding-top: 6px !important; } .cadre-tableau { zoom: 0.8; } .bulle-action { display: none !important; }'
+PRISES.update({
+    **{n: {'lieu': l, 'ui': 'rien', 'site': True} for n, l in [('sm-visage', 'itsukushima'), ('sm-large', 'itsukushima'), ('sm-salut', 'itsukushima'),
+                                                               ('sm-himeji', 'himeji'), ('sm-tottori', 'tottori'), ('sm-tsubosaka', 'tsubosaka'),
+                                                               ('sm-pinceau', 'itsukushima'), ('sm-journal', 'himeji'), ('sm-nuit', 'itsukushima')]},
+    **{f'sm-p-{l}': {'lieu': l, 'ui': 'rien', 'site': True, **({'stockage': BATEAU} if l == 'yakushima' else {})}
+       for l in ['aogashima', 'gokayama', 'takachiho', 'kinkakuji', 'beppu', 'motonosumi', 'sanjubutsu', 'udo', 'yakushima']},
+    'sm-parler': {'lieu': 'itsukushima', 'site': True, 'stockage': {'baladePeintreVu': 'oui'}, 'css': FENETRE},
+    'sm-samourai': {'lieu': 'himeji', 'site': True, 'css': FENETRE},
+    'sm-chamelier': {'lieu': 'tottori', 'site': True, 'css': FENETRE},
+    'sm-voyageur': {'lieu': 'himeji', 'site': True, 'perso': 'garcon', 'css': FENETRE},
+})
 DEFAUT = {'perso': 'fille', 'compagnon': 'kon', 'stockage': {}, 'ui': 'dialogue'}
 
 GRAINE = """(() => { let s = 20261026; Math.random = () => { s = (s + 0x6d2b79f5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s);
@@ -240,11 +260,14 @@ def tourner(nav, nom, r, facteur, ips, echelle):
     ctx.add_init_script(f'window.__FACTEUR_RALENTI = {facteur};')
     ctx.add_init_script((RACINE / 'outils' / 'video' / 'ralenti.js').read_text(encoding='utf-8'))
     ctx.add_init_script(GRAINE)
+    ctx.route(re.compile(r'^https://([a-z0-9-]+\.)*goatcounter\.com/'), lambda route: route.abort())
+    ctx.route(re.compile(r'^https://([a-z0-9-]+\.)*inkami\.art/'), lambda route: route.fulfill(status=200, content_type='text/html', body='<!doctype html><title>.</title>'))
     p = ctx.new_page()
     erreurs = []
     p.on('pageerror', lambda ex: erreurs.append(str(ex)))
     compagnon = f'&compagnon={r["compagnon"]}' if r['compagnon'] else ''
-    p.goto(f'http://localhost:{PORT}/balade/?lieu={r["lieu"]}&perso={r["perso"]}&langue=en{compagnon}')
+    site = EN_LIGNE if r.get('site') or '--site' in sys.argv else f'http://localhost:{PORT}'
+    p.goto(f'{site}/balade/?lieu={r["lieu"]}&perso={r["perso"]}&langue=en{compagnon}')
     p.wait_for_function('window.__pret === true', timeout=120000)
     p.add_style_tag(content=CSS[r['ui']] + r.get('css', ''))
     if r['compagnon']:
