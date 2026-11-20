@@ -10,9 +10,10 @@
 
 /** Les matières (le numéro de leur couche). Le sol (aspectSol des lieux) et les objets (matiereDe). */
 // (le Pavillon d'or, 2026-10-26 : la feuille d'or, or ; la mousse des jardins de Kyoto, mousse)
-export const MATIERES = { sable: 1, herbe: 2, estran: 3, dalles: 4, terre: 5, roche: 6, route: 7, sousBois: 8, bois: 9, tuiles: 10, pierre: 11, enduit: 12, feuillage: 13, laque: 14, tole: 15, chaume: 16, or: 17, mousse: 18 };
+// (la fête de la neige d'Iiyama, 2026-11-20 : la neige, neige — le sol du lieu, ses congères, ses sculptures et ses kamakura)
+export const MATIERES = { sable: 1, herbe: 2, estran: 3, dalles: 4, terre: 5, roche: 6, route: 7, sousBois: 8, bois: 9, tuiles: 10, pierre: 11, enduit: 12, feuillage: 13, laque: 14, tole: 15, chaume: 16, or: 17, mousse: 18, neige: 19 };
 /** La taille d'une répétition de chaque couche, en mètres (la couche 0 ne change rien). */
-export const ECHELLES = [1, 1.3, 1.7, 2.6, 3, 2, 3.2, 2.2, 1.8, 1.3, 1, 1.6, 2.2, 1.1, 2, 1, 2.4, 1.09, 1.5];
+export const ECHELLES = [1, 1.3, 1.7, 2.6, 3, 2, 3.2, 2.2, 1.8, 1.3, 1, 1.6, 2.2, 1.1, 2, 1, 2.4, 1.09, 1.5, 2.7];
 
 const N = 256; // texels par côté
 
@@ -373,6 +374,15 @@ const COUCHES = {
       const x = h() * N, y = h() * N, t = h() * 6.28, l = 5 + h() * 4;
       for (const e of [-0.22, 0.22]) f.trait(x, y, x + Math.cos(t + e) * l, y + Math.sin(t + e) * l, 0.9, (px, py, couv) => f.poser(px, py, aiguille, couv * 0.8));
     }
+  },
+  // la neige (la fête de la neige d'Iiyama, 2026-11-20) : presque unie. De larges ondes à peine plus sombres (ce que le vent a creusé),
+  // un grain très fin, des paillettes plus claires, de rares points plus sombres (un grain de glace à l'ombre)
+  neige(f) {
+    const g = f.grille(4), g2 = f.grille(16), h = f.hasard;
+    f.partout((x, y) => 1 + (g(x, y) - 0.5) * 0.05 + (g2(x, y) - 0.5) * 0.034 + (h() - 0.5) * 0.018);
+    semer(f, 240, 1.09);
+    semer(f, 110, 1.15);
+    semer(f, 420, 0.968);
   },
 };
 

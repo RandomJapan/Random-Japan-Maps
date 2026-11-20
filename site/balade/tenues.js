@@ -33,6 +33,8 @@ export const PIECES = [
   { id: 'aucune', place: 'yeux' },
   { id: 'etoiles', place: 'yeux', lieu: 'aogashima' },
   { id: 'masque', place: 'yeux', achat: 'masque' },
+  // (le masque du grand tengu de Narazawa : les cinq tampons de la fête de la neige d'Iiyama, 2026-11-20)
+  { id: 'tengu', place: 'yeux', lieu: 'iiyama' },
   { id: 'habit-defaut', place: 'habit' },
   { id: 'happi', place: 'habit', achat: 'happi' },
   { id: 'yukata', place: 'habit', achat: 'yukata' },
@@ -214,6 +216,15 @@ const DESSINS = {
     <path d="M13 21 Q17 17 20 21 M35 21 Q31 17 28 21" fill="none" stroke="#d8302c" stroke-width="1.6" stroke-linecap="round"/>
     <path d="M21 33 Q24 36 27 33" fill="none" stroke="${ENCRE}" stroke-width="1.8" stroke-linecap="round"/><circle cx="24" cy="31" r="1.8" fill="${ENCRE}"/>
     <path d="M24 9 V15" stroke="#d8302c" stroke-width="2" stroke-linecap="round"/>`,
+  // le masque du grand tengu (Iiyama) : rouge, les gros sourcils blancs, les yeux d'or, le long nez, la barbiche blanche
+  tengu: `<path d="M24 4.5 Q38.5 5.5 39.5 20 Q40 33 24 41 Q8 33 8.5 20 Q9.5 5.5 24 4.5 Z" fill="#c8372d" stroke="${ENCRE}" stroke-width="2.2" stroke-linejoin="round"/>
+    <path d="M24 38 Q21 44 24 46 Q27 44 24 38 Z" fill="#f4f0e6" stroke="${ENCRE}" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M11.5 15.5 Q16.5 10.5 21.5 15 M36.5 15.5 Q31.5 10.5 26.5 15" fill="none" stroke="${ENCRE}" stroke-width="5.2" stroke-linecap="round"/>
+    <path d="M11.5 15.5 Q16.5 10.5 21.5 15 M36.5 15.5 Q31.5 10.5 26.5 15" fill="none" stroke="#f4f0e6" stroke-width="3" stroke-linecap="round"/>
+    <ellipse cx="16.5" cy="20.5" rx="3.5" ry="2.5" fill="#f2c443" stroke="${ENCRE}" stroke-width="1.3"/><ellipse cx="31.5" cy="20.5" rx="3.5" ry="2.5" fill="#f2c443" stroke="${ENCRE}" stroke-width="1.3"/>
+    <circle cx="16.5" cy="20.5" r="1.2" fill="${ENCRE}"/><circle cx="31.5" cy="20.5" r="1.2" fill="${ENCRE}"/>
+    <path d="M21.5 21.5 L26 21 L36 35 Q35 40 30 38 Z" fill="#a82a22" stroke="${ENCRE}" stroke-width="1.8" stroke-linejoin="round"/>
+    <path d="M14.5 31 Q19 34.5 23.5 32.5" fill="none" stroke="${ENCRE}" stroke-width="1.9" stroke-linecap="round"/>`,
   // les habits de chaque jour : la veste rouge ouverte du garçon ; le chemisier au col marin de la fille
   habitGarcon: `<path d="M10 14 L18 9 Q24 13 30 9 L38 14 L44 26 L37 29 L35 24 V42 H13 V24 L11 29 L4 26 Z" fill="#e8583e" stroke="${ENCRE}" stroke-width="2.2" stroke-linejoin="round"/>
     <path d="M19 11 L24 22 L29 11 V42 H19 Z" fill="#fbf6ea" stroke="${ENCRE}" stroke-width="1.8" stroke-linejoin="round"/>`,

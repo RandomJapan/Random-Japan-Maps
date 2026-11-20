@@ -218,5 +218,25 @@
   "haut": 0.66,
   "angle": 0.4,
   "marge": 1.3
+ },
+ {
+  "id": "yukizo",
+  "lieu": "iiyama",
+  "objet": "M.passants.find((p) => p.id === 'sculptrice').perso.objet",
+  "avant": "(() => { const p = balade.monde().passants.find((q) => q.id === 'sculptrice'); p.quand = null; p.etat.parle = true; const e = balade.etat; e.x = p.etat.x + 3; e.z = p.etat.z + 3; e.y = balade.monde().lieu.monde.hauteur(e.x, e.z); })()",
+  "attente": 2200,
+  "haut": 0.66,
+  "angle": 0.4,
+  "marge": 1.3
+ },
+ {
+  "id": "kamakura",
+  "lieu": "iiyama",
+  "objet": "M.passants.find((p) => p.id === 'ancien').perso.objet",
+  "avant": "(() => { const p = balade.monde().passants.find((q) => q.id === 'ancien'); p.quand = null; p.etat.parle = true; const e = balade.etat; e.x = p.etat.x + 3; e.z = p.etat.z + 3; e.y = balade.monde().lieu.monde.hauteur(e.x, e.z); })()",
+  "attente": 2200,
+  "haut": 0.66,
+  "angle": 0.4,
+  "marge": 1.3
  }
 ]

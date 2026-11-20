@@ -77,6 +77,9 @@ const PALETTE = {
   // (la revue du 2026-10-27 : les planches grises des caillebotis, usées par la vapeur ; le crépi gris, les planches des
   // palissades de la ville)
   caillebotis: '#8f7860', caillebotisClair: '#9d876b', caillebotisFonce: '#7c6750', crepiGris: '#d2cabb', planche: '#6e5a48', plancheFonce: '#5a4a3c',
+  // Iiyama (2026-11-20), la fête de la neige : la neige fraîche, celle qu'on a tassée en marchant, celle qui reste à l'ombre (bleutée),
+  // celle des sculptures et des kamakura (taillée, un peu plus grise), celle du bord des routes ; la glace
+  neige: '#f2f5fb', neigeTassee: '#e1e7f0', neigeOmbre: '#ccd8ec', neigeTaillee: '#e8edf6', neigeSale: '#cdd1d6', glace: '#b9d4e6',
 };
 const PARCHEMIN = { cielHaut: '#ead9b4', horizon: '#f0ead2', nuage: '#fbf4e2' };
 
@@ -129,6 +132,8 @@ function matieres(P) {
   mettre(M.bois, 'caillebotis', 'caillebotisClair', 'caillebotisFonce', 'planche', 'plancheFonce');
   // (Tottori : les sculptures de sable du musée, le grain du sable)
   mettre(M.sable, '#dcc595', '#ceb583', '#efe0bd', '#b39868', '#86704a');
+  // (Iiyama : la neige des congères, des sculptures, des kamakura, des toits)
+  mettre(M.neige, 'neige', 'neigeTassee', 'neigeOmbre', 'neigeTaillee', 'neigeSale');
   return t;
 }
 
@@ -731,7 +736,8 @@ const SOL_SAISON_GLSL = `
     return 1.0 - smoothstep(-w, w, e);
   }
   vec3 solSaison(vec3 c, float couche, vec3 p, vec3 n) {
-    if (saisons.x + saisons.y + saisons.z < 0.001) return c;
+    // (la neige d'Iiyama est déjà de la neige : ses teintes — la fraîche, la tassée des chemins — restent telles que le lieu les a peintes)
+    if (saisons.x + saisons.y + saisons.z < 0.001 || couche == ${MATIERES.neige}.0) return c;
     // (à l'abri sous un toit : lu seulement s'il le faut, sous les arbres ou l'hiver ; −1 : pas encore lu)
     float ab = -1.0;
     vec3 pr = c, au = c;

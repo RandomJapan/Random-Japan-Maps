@@ -21,7 +21,7 @@
 //  donne un koban, la monnaie de Bunbuku, le marchand ambulant (tresors.js), qui vend des objets précieux : la danse des
 //  fêtes, la traînée sous les pas, les accessoires du compagnon, les feux d'artifice (feux.js), des tenues entières,
 //  l'appareil photo (photo.js), trois compagnons secrets et le calendrier magique (calendrier.js : les saisons).
-//  ?lieu=itsukushima|aogashima|gokayama|himeji|takachiho|kinkakuji|beppu|motonosumi|sanjubutsu|udo|yakushima|tottori|tsubosaka ; ?perso=garcon|fille ; ?compagnon=kon|pon|chapu ; ?langue=en|fr|ja ;
+//  ?lieu=itsukushima|aogashima|gokayama|himeji|takachiho|kinkakuji|beppu|motonosumi|sanjubutsu|udo|yakushima|tottori|tsubosaka|iiyama ; ?perso=garcon|fille ; ?compagnon=kon|pon|chapu ; ?langue=en|fr|ja ;
 //  ?arrivee=bateau : on arrive au quai par le bateau d'un autre lieu (jeu.partir : sans le choix du compagnon) ;
 //  ?photo=heros|perso : une image fixe (captures) ; ?demo : une partie jouée image par image (vidéos) ;
 //  ?ciel=parchemin : un essai du style (styles.js) ; ?flou=0 : sans le flou du lointain ; ?aa=0 : sans anticrénelage.
@@ -63,6 +63,7 @@ import * as udo from './udo.js';
 import * as yakushima from './yakushima.js';
 import * as tottori from './tottori.js';
 import * as tsubosaka from './tsubosaka.js';
+import * as iiyama from './iiyama.js';
 
 // chaque lieu : { infos (noms, tampons, textes : sans rien construire), construire(ctx) }
 // (EN_ESSAI : les lieux en cours, qu'on ne voit qu'en mode développeur, localStorage.modeDev = 'oui', celui de la carte ; le
@@ -77,7 +78,8 @@ import * as tsubosaka from './tsubosaka.js';
 // 2026-10-30, et Yakushima, en essai depuis le 2026-10-31, sortis le 2026-11-02 : « tu peux mettre en ligne Udo et Yakushima »)
 // (les dunes de Tottori, en essai depuis le 2026-11-02, sorties le 2026-11-04 : « Tu peux mettre en ligne Tottori »)
 // (Tsubosaka-dera, en essai depuis le 2026-11-05, sorti le 2026-11-12 : « Tu peux mettre en ligne pour tout le monde »)
-const EN_ESSAI = [];
+// (la fête de la neige d'Iiyama, en essai depuis le 2026-11-20 : « Ok maintenant tu peux commencer à faire Iiyama Snow Festival en Balade »)
+const EN_ESSAI = ['iiyama'];
 // Sumi, le peintre d'Inkami, et ses tableaux (inkami.js) : en essai le 2026-11-19, en mode développeur seulement, comme le lien de la boutique posé
 // le même jour sur la carte (la boutique inkami.art était encore fermée par son mot de passe) ; sorti le soir même pour tout le monde, la boutique
 // ouverte et le peintre refait à l'image du propriétaire : « Ok, et dès que tu mettras en ligne, du coup, tu pourras mettre en ligne pour tout le
@@ -90,7 +92,7 @@ const ILES = { yakushima: 'baladeYakushima' };
 const ileOuverte = (id) => { try { return !ILES[id] || localStorage.getItem(ILES[id]) === 'oui'; } catch { return false; } };
 /** Peut-on aller à ce lieu (en bateau) ? Pas s'il est en essai et qu'on n'est pas en mode développeur. */
 const peutPartir = (id) => !EN_ESSAI.includes(id) || modeDev();
-const LIEUX = Object.fromEntries(Object.entries({ itsukushima, aogashima, gokayama, himeji, takachiho, kinkakuji, beppu, motonosumi, sanjubutsu, udo, yakushima, tottori, tsubosaka }).filter(([id]) => (!EN_ESSAI.includes(id) || modeDev()) && ileOuverte(id)));
+const LIEUX = Object.fromEntries(Object.entries({ itsukushima, aogashima, gokayama, himeji, takachiho, kinkakuji, beppu, motonosumi, sanjubutsu, udo, yakushima, tottori, tsubosaka, iiyama }).filter(([id]) => (!EN_ESSAI.includes(id) || modeDev()) && ileOuverte(id)));
 const params = new URLSearchParams(location.search);
 const PHOTO = params.get('photo');
 const DEMO = params.has('demo');
@@ -441,8 +443,11 @@ function construire() {
   choisirVoyageur(sorte || 'garcon');
   choisirCompagnon(espece || 'kon');
   for (const s of ['garcon', 'fille']) habiller(s);
-  // la saison du calendrier magique (s'il est à nous), gardée d'une visite à l'autre
-  if (aAchete('calendrier')) changerSaison(memoire.lire('baladeSaison') || 'ete', { tout: true });
+  // la saison du calendrier magique (s'il est à nous), gardée d'une visite à l'autre ; ou celle du lieu, s'il a la sienne pour toujours
+  // (lieu.saison, 2026-11-20 : la fête de la neige d'Iiyama, en hiver quoi qu'on ait choisi ailleurs ; le calendrier n'y change rien, et ce
+  // qu'on avait choisi reste noté pour les autres lieux)
+  if (lieu.saison) changerSaison(lieu.saison, { tout: true, noter: false });
+  else if (aAchete('calendrier')) changerSaison(memoire.lire('baladeSaison') || 'ete', { tout: true });
   M.hemiBase.intensite = hemi.intensity;
   M.hemiBase.couleur.copy(hemi.color);
   // la brume posée au fond de la vallée (Gokayama), de la couleur de la brume (elle suit la nuit)
@@ -2503,7 +2508,7 @@ function ouvrirMenu() {
     <button type="button" class="menu-tenue">${t('tenue').titre} <small>${PIECES_VUES.filter((p) => p.lieu && gagnee(p, totalTampons)).length}/${PIECES_VUES.filter((p) => p.lieu).length}</small></button>
     ${kobanTrouves() > 0 ? `<p class="menu-koban">${dessinKoban(22, 'menu')}<span>${T.menuKoban}</span><b>${koban()}</b></p>` : ''}
     ${['danse', 'feux', 'photo'].filter(aAchete).map((id) => `<button type="button" class="menu-action" data-action="${id}">${iconeArticle(id, 28)}<span>${T[{ danse: 'menuDanser', feux: 'menuFeux', photo: 'menuPhoto' }[id]]}</span></button>`).join('')}
-    ${aAchete('calendrier') ? `<div class="menu-ligne"><span>${T.menuSaison}</span><div>${SAISONS.map((k) => `<button type="button" data-menusaison="${k}" class="${k === M.saison ? 'actif' : ''}">${T.saisons[k]}</button>`).join('')}</div></div>` : ''}
+    ${aAchete('calendrier') && !M.lieu.saison ? `<div class="menu-ligne"><span>${T.menuSaison}</span><div>${SAISONS.map((k) => `<button type="button" data-menusaison="${k}" class="${k === M.saison ? 'actif' : ''}">${T.saisons[k]}</button>`).join('')}</div></div>` : ''}
     ${choix('menuVoyageur', [['garcon', t('garcon')], ['fille', t('fille')]], sorte)}
     ${choix('menuCompagnon', compagnonsDispo().map((e) => [e, tcDe(e, 'nom')]), espece)}
     ${choix('menuSon', [['oui', t('sonOui')], ['non', t('sonNon')]], son.actif() ? 'oui' : 'non')}
@@ -2818,13 +2823,14 @@ const jeu = {
   cameraDerriere(decalage = 0) { cam.lacet = etat.cap + Math.PI + decalage; camera.userData.place = false; },
   /**
    * La caméra posée ailleurs, le temps d'un regard : { de: [x, y, z], vers: [x, y, z], champ (en degrés) }, ou null :
-   * elle revient derrière le joueur.
+   * elle revient derrière le joueur. entier : ce qui est devant le voyageur reste entier (une scène posée, où la table et la marmite
+   * sont entre l'œil et lui : sans cela elles s'effaçaient en pointillés, comme tout ce qui le cache — Iiyama, 2026-11-20).
    */
   cadrer(c) {
     // (champ : pour un écran large ; plus étroit, le champ s'ouvre en hauteur pour voir autant de large)
     const k = Math.max(1, 1.68 / (innerWidth / innerHeight));
     const champ = c?.champ && THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(c.champ) / 2) * k));
-    M.cadre = c && { de: new THREE.Vector3(...c.de), vers: new THREE.Vector3(...c.vers), champ };
+    M.cadre = c && { de: new THREE.Vector3(...c.de), vers: new THREE.Vector3(...c.vers), champ, entier: !!c.entier };
     camera.userData.place = false;
   },
   /**
@@ -2918,8 +2924,8 @@ const jeu = {
   prendre: (o) => { M.sac.delete(o); },
   /** Un geste du voyageur ('creuser', 'offrir', 'prier', 'washi', 'kokiriko'… : personnages.js), ou null. */
   geste: (g) => M.joueur.geste(g),
-  /** Un objet dans la main droite du voyageur (personnages.js, tenir), ou null. */
-  tenir: (o) => M.joueur.tenir(o),
+  /** Un objet dans la main droite du voyageur (personnages.js, tenir), ou null ; opt.leve : le bras reste levé (une torche). */
+  tenir: (o, opt) => M.joueur.tenir(o, opt),
   /**
    * Le voyageur posé en x, z, tourné vers cap (une scène où il doit se tenir à une place : à côté de la planche du
    * secret, sur l'estrade de la kokiriko) ; y : la hauteur du sol voulu (une estrade), sinon celle où il est.
@@ -3408,10 +3414,10 @@ function fermerPhoto() {
 
 // ---- le calendrier magique : la saison de la balade (les couleurs, ce qui tombe du ciel, la neige sous les pas)
 const POIDS_SAISON = { ete: [0, 0, 0], printemps: [1, 0, 0], automne: [0, 1, 0], hiver: [0, 0, 1] };
-function changerSaison(s, { tout = false } = {}) {
+function changerSaison(s, { tout = false, noter = true } = {}) {
   if (!SAISONS.includes(s)) s = 'ete';
   M.saison = s;
-  memoire.ecrire('baladeSaison', s);
+  if (noter) memoire.ecrire('baladeSaison', s);
   M.saisonCible = POIDS_SAISON[s];
   if (tout) M.mats.saisons.value.set(...M.saisonCible);
   M.effets.effacerEmpreintes();
@@ -3893,7 +3899,7 @@ async function daimSauvage() {
 const SON_DU_SOL = {
   [MATIERES.sable]: 'sable', [MATIERES.herbe]: 'herbe', [MATIERES.estran]: 'estran', [MATIERES.dalles]: 'pierre',
   [MATIERES.terre]: 'terre', [MATIERES.roche]: 'roche', [MATIERES.route]: 'route', [MATIERES.sousBois]: 'sousBois',
-  [MATIERES.bois]: 'bois', [MATIERES.pierre]: 'pierre',
+  [MATIERES.bois]: 'bois', [MATIERES.pierre]: 'pierre', [MATIERES.neige]: 'neige',
 };
 // mouillé : v (0 à 1 : sèche en quelques secondes après la sortie de l'eau), ligne (jusqu'où, en m au-dessus
 // des pieds), hors (secondes hors de l'eau) ; goutte et rond : les comptes à rebours des gouttes et des ronds
@@ -4333,8 +4339,9 @@ function dessiner(dt, temps) {
   }
   M.ciel.position.copy(camera.position);
   // ce qui cache le joueur s'efface en pointillés (styles.js) ; un passant collé à la caméra s'efface tout entier
-  M.mats.coupe.oeil.value.copy(camera.position);
-  M.mats.coupe.cible.value.set(etat.x, etat.y + 0.95, etat.z);
+  // (sauf dans une scène posée qui le demande, jeu.cadrer({ entier: true }) : l'œil et la cible partent au loin, plus rien ne s'efface)
+  if (M.cadre?.entier) { M.mats.coupe.oeil.value.set(0, -1e4, 0); M.mats.coupe.cible.value.set(0, -1e4, 0); }
+  else { M.mats.coupe.oeil.value.copy(camera.position); M.mats.coupe.cible.value.set(etat.x, etat.y + 0.95, etat.z); }
   for (const p of M.passants) {
     const d = Math.hypot(camera.position.x - p.etat.x, camera.position.z - p.etat.z), loin = d > TRAIT_PASSANT;
     // (un passant dans une maison, dedans : [x0, x1, z0, z1] : caché, et immobile, quand la caméra est dehors à plus de

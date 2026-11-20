@@ -488,6 +488,42 @@ const AIRS = {
     jour: { tempo: 80, lead: 'shakuhachi', arpege: 'koto', basse: 'pizzDoux', nappe: true, batterie: 'legere' },
     nuit: { tempo: 60, lead: 'boite', arpege: 'kotoDoux', basse: 'pizzDoux', nappe: true, batterie: null },
   },
+  // Do majeur, sa pentatonique (do ré mi sol la), un fa de passage (2026-11-20) : la fête de la neige d'Iiyama, les flocons, les
+  // sculptures et les kamakura ; un air clair et douillet, qui tourne comme une ronde d'enfants dans la neige. Le jour, la flûte sur le
+  // koto doux, à 96 battements ; la nuit, la boîte à musique, à 66 (les lanternes de neige)
+  iiyama: {
+    gamme: [0, 2, 4, 5, 7, 9, 11], // do majeur (pour la seconde voix)
+    intro: ['C', 'G'],
+    A: {
+      accords: ['C', 'Am', 'F', 'G', 'C', 'Am', 'F G', 'C'],
+      melodie: [
+        [72, 4], [76, 4], [79, 6], [76, 2],
+        [81, 6], [79, 2], [76, 8],
+        [77, 4], [76, 4], [72, 4], [74, 4],
+        [74, 12], [null, 4],
+        [72, 4], [76, 4], [79, 6], [81, 2],
+        [84, 6], [81, 2], [79, 4], [76, 4],
+        [77, 4], [76, 2], [74, 2], [72, 4], [74, 4],
+        [72, 12], [null, 4],
+      ],
+      fin2: [[72, 8], [76, 4], [79, 4]],
+    },
+    B: {
+      accords: ['F', 'C', 'Dm', 'G', 'F', 'C', 'Dm G', 'C'],
+      melodie: [
+        [81, 6], [79, 2], [77, 4], [81, 4],
+        [79, 6], [76, 2], [72, 8],
+        [74, 4], [77, 4], [81, 4], [77, 4],
+        [79, 12], [null, 4],
+        [77, 4], [81, 4], [84, 6], [81, 2],
+        [79, 4], [76, 4], [72, 4], [67, 4],
+        [69, 4], [72, 4], [74, 4], [71, 4],
+        [72, 12], [null, 4],
+      ],
+    },
+    jour: { tempo: 96, lead: 'flute', arpege: 'kotoDoux', basse: 'pizzDoux', nappe: true, batterie: 'legere' },
+    nuit: { tempo: 66, lead: 'boite', arpege: 'kotoDoux', basse: 'pizzDoux', nappe: true, batterie: null },
+  },
   // Ré majeur, la gamme yo (ré mi sol la si) : l'air de la danse des fêtes d'été, sautillant (112 battements : la
   // danse du voyageur est réglée dessus, personnages.js)
   odori: {

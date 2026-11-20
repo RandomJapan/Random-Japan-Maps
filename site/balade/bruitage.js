@@ -59,6 +59,8 @@ const V = {
   shamisen0: 0.07, shamisen1: 0.07, shamisen2: 0.07, shamisen3: 0.07, shamisen4: 0.065, shamisen5: 0.06,
   // (le chrono de la planche, Tottori ; les jumelles du toit)
   top: 0.05, depart: 0.06, porte: 0.05, rate: 0.05, arrivee: 0.06, clac: 0.06, trouve: 0.055,
+  // (Iiyama) la torche du grand tengu qui s'abat, le grand feu qui prend et ceux qui lui répondent (oiseau())
+  torche: 0.085, feu: 0.1,
 };
 const lisse = (a, b, v) => { const t = Math.min(1, Math.max(0, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
 

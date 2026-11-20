@@ -39,6 +39,8 @@ export const TABLEAUX = {
   kannushi: 'カンヌシ', campeur: 'キャンパー', kokiriko: 'コキリコ', paysan: 'ミノガサ', samourai: 'サムライ', voyageur: 'タビビト', voyageuse: 'タビビト',
   uzume: 'ウズメ', somen: 'ソウメン', kimono: 'キモノ', tamago: 'タマゴ', yukata: 'ユカタ', pecheur: 'リョウシ', yamabushi: 'ヤマブシ', miko: 'ミコ',
   batelier: 'センドウ', guide: 'ヤマガイド', chamelier: 'ラクダツカイ', junrei: 'ジュンレイ', jardinier: 'ニワシ',
+  // (Iiyama, 2026-11-20 : la sculptrice de neige de la fête ; l'ancien de la brigade des kamakura, au village)
+  yukizo: 'ユキゾウ', kamakura: 'カマクラ',
 };
 const image = (id) => `tableaux/${id}.webp`;
 
@@ -295,6 +297,8 @@ export const TEXTES = {
       chamelier: ['Le chamelier des dunes', 'Le chamelier a posé une heure sans bouger. Derrière lui, son chameau, lui, n’a pas arrêté de mâcher !'],
       junrei: ['Le pèlerin', 'Le pèlerin fait le tour des trente-trois temples de Kannon. Celui-ci est le sixième : je l’ai peint pendant sa pause.'],
       jardinier: ['Le jardinier de Tsubosaka'],
+      yukizo: ['La sculptrice de neige', 'La sculptrice a tassé la neige, puis l’a taillée pendant des jours. Au printemps, sa statue aura fondu… mais pas mon encre !'],
+      kamakura: ['L’ancien du village des kamakura'],
     },
   },
   en: {
@@ -328,6 +332,8 @@ export const TEXTES = {
       chamelier: ['The camel driver of the dunes', 'The camel driver posed for an hour without moving. Behind him, his camel never stopped chewing!'],
       junrei: ['The pilgrim', 'The pilgrim is walking the thirty-three temples of Kannon. This one is the sixth: I painted him during his break.'],
       jardinier: ['The gardener of Tsubosaka'],
+      yukizo: ['The snow sculptor', 'The sculptor packed the snow, then carved it for days. In spring her statue will have melted… but not my ink!'],
+      kamakura: ['The elder of the kamakura village'],
     },
   },
   ja: {
@@ -361,6 +367,8 @@ export const TEXTES = {
       chamelier: ['砂丘の　らくだつかい', 'らくだつかいさんは　一時間、じっと　モデルに　なって　くれた。うしろの　ラクダは、ずっと　もぐもぐ　していたけどね！'],
       junrei: ['じゅんれいさん', 'じゅんれいさんは　観音さまの　三十三の　お寺を　めぐって　いる。ここは　六ばんめ。ひとやすみの　あいだに　かいたんだ。'],
       jardinier: ['壷阪寺の　にわしさん'],
+      yukizo: ['雪像づくりの　おねえさん', '雪像の　おねえさんは、雪を　かためて、何日も　かけて　けずったんだ。春には　雪像は　とけて　しまうけど、ぼくの　墨は　とけないよ！'],
+      kamakura: ['かまくらの里の　おじいさん'],
     },
   },
 };

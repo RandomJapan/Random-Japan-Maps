@@ -295,6 +295,31 @@ const MOTIFS = {
     <circle cx="40" cy="66" r="3.4" class="vide"/><circle cx="80" cy="66" r="3.4" class="vide"/>
     <path d="M40 74 Q36 82 40 86 Q44 82 40 74 Z M80 78 Q76 86 80 90 Q84 86 80 78 Z"/>
     <path d="M28 98 H92 L86 112 H34 Z"/><path d="M36 102 Q60 98 84 102" class="vide" fill="none" stroke-width="2.2"/>`,
+  // La fête de la neige d'Iiyama (2026-11-20) : le daruma de neige et la pelle ; la bouée qui dévale la pente ; la lanterne de neige et sa
+  // flamme ; la marmite qui fume tout droit ; le sanctuaire de neige derrière son torii
+  yukizo: `<path d="M14 112 L14 80 H106 V112 Z" opacity="0.35"/><path d="M30 82 Q24 30 60 26 Q96 30 90 82 Z"/>
+    <ellipse cx="60" cy="57" rx="19" ry="17" class="vide"/><path d="M45 46 q6 -6 12 0 M63 46 q6 -6 12 0" fill="none" stroke-width="4.4" stroke-linecap="round"/>
+    <circle cx="51" cy="56" r="3.4"/><circle cx="69" cy="56" r="3.4"/><path d="M52 66 Q60 72 68 66" fill="none" stroke-width="2.6" stroke-linecap="round"/>
+    <path d="M102 28 V100" fill="none" stroke-width="3.6" stroke-linecap="round"/><path d="M94 92 h16 l-2 16 h-12 Z"/>
+    <path d="M16 20 v10 M11 25 h10 M12.5 21.5 l7 7 M19.5 21.5 l-7 7 M22 50 v8 M18 54 h8" fill="none" stroke-width="2.2" stroke-linecap="round"/>`,
+  bouee: `<path d="M2 44 L118 104 L118 116 L2 116 Z" opacity="0.35"/>
+    <g transform="rotate(27 60 78)"><ellipse cx="60" cy="82" rx="30" ry="11"/><ellipse cx="60" cy="80" rx="13" ry="4.4" class="vide"/></g>
+    <circle cx="56" cy="47" r="10"/><path d="M47 59 Q56 54 67 61 L71 78 L50 76 Z"/><path d="M46 41 Q56 29 66 41 Z"/><circle cx="56" cy="29" r="3.4"/>
+    <path d="M22 40 l-12 -6 M28 30 l-10 -8 M16 52 l-10 -3" fill="none" stroke-width="2.8" stroke-linecap="round"/>
+    <path d="M100 26 l-9 16 h18 Z M100 40 l-11 18 h22 Z"/><rect x="98" y="58" width="4" height="12"/>`,
+  toro: `<path d="M30 104 Q28 44 60 36 Q92 44 90 104 Z"/><path d="M48 100 V78 Q48 62 60 62 Q72 62 72 78 V100 Z" class="vide"/>
+    <path d="M60 68 Q51 82 60 92 Q69 82 60 68 Z"/><rect x="56.5" y="91" width="7" height="9"/>
+    <path d="M10 104 H110" fill="none" stroke-width="4" stroke-linecap="round"/>
+    <path d="M22 28 v10 M17 33 h10 M96 18 v10 M91 23 h10 M104 58 v8 M100 62 h8 M14 64 v8 M10 68 h8" fill="none" stroke-width="2.2" stroke-linecap="round"/>`,
+  nabe: `<path d="M18 64 H102 Q102 102 60 102 Q18 102 18 64 Z"/><rect x="8" y="60" width="104" height="8" rx="4"/>
+    <path d="M26 60 Q60 40 94 60" fill="none" stroke-width="3"/><circle cx="44" cy="54" r="5"/><circle cx="60" cy="50" r="6"/><circle cx="76" cy="54" r="5"/>
+    <path d="M44 36 q-6 -8 0 -14 q6 -6 0 -14 M60 32 q-6 -8 0 -14 q6 -6 0 -12 M76 36 q-6 -8 0 -14 q6 -6 0 -14" fill="none" stroke-width="3" stroke-linecap="round" opacity="0.55"/>
+    <rect x="40" y="102" width="40" height="7" rx="2"/><path d="M28 113 H92" fill="none" stroke-width="4" stroke-linecap="round"/>`,
+  kamakura: `<path d="M12 104 Q10 30 60 26 Q110 30 108 104 Z" opacity="0.38"/>
+    <path d="M46 104 V80 Q46 64 60 64 Q74 64 74 80 V104 Z"/>
+    <path d="M38 56 V106 M82 56 V106" fill="none" stroke-width="6" stroke-linecap="round"/><path d="M30 68 H90" fill="none" stroke-width="5" stroke-linecap="round"/>
+    <path d="M24 54 Q60 44 96 54" fill="none" stroke-width="6.5" stroke-linecap="round"/>
+    <path d="M6 106 H114" fill="none" stroke-width="4" stroke-linecap="round"/>`,
   // Tsubosaka-dera (2026-11-05) : le grand Kannon debout sur la colline ; le grand Bouddha assis sur son lotus ; l'œil sous le toit du pavillon
   // octogonal ; la fresque et ses scènes ; Osato qui mène Sawaichi par la main, au-dessus du vallon
   kannon: `<path d="M2 98 Q28 72 52 76 L68 76 Q92 72 118 94 L118 116 L2 116 Z" opacity="0.35"/>

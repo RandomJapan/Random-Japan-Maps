@@ -143,6 +143,17 @@ JOURNAUX = {
             '山の中腹にある寺からは、奈良盆地を見わたすことができる。',
         ],
     },
+    'iiyama': {
+        'titres': ['いいやま雪まつり、雪像がならぶ', '雪像は市民の手づくり', '夜は雪見灯ろうの明かり', 'かまくらの里でのろし鍋', '飯山城は謙信がきずいた', 'スノースライダーで一気に'],
+        'corps': [
+            'いいやま雪まつりは、毎年二月の第二土曜と日曜にひらかれる。町のあちこちに、大きな雪像がならぶ。',
+            '雪像は、すべて市民の手でつくられる。雪をかためて、何日もかけてけずっていく。',
+            '夜になると、雪像はライトアップされ、雪見灯ろうの明かりが道をてらす。',
+            '信濃平の「かまくらの里」には、二十ほどのかまくらがならぶ。中で食べる「のろし鍋」は、きのこと野菜、みゆきポークを信州みそで煮こむ。',
+            '飯山城は、上杉謙信が川中島の戦いにそなえてきずいたと伝えられる。いまは石垣がのこり、城址公園になっている。',
+            '城址公園のスノースライダーでは、タイヤのチューブに乗って雪の坂をすべりおりる。',
+        ],
+    },
 }
 
 # id, lieu, kana, réglages (large : la largeur du portrait sur la toile ; cx, cy : son milieu ; bas : la part du bas qui se défait)
@@ -167,6 +178,8 @@ T = [
     ('chamelier', 'tottori', 'ラクダツカイ', dict(large=0.66, cy=0.63, hautNom=0.72, clair=0.12)),
     ('junrei', 'tsubosaka', 'ジュンレイ', dict(large=0.6, cy=0.63, hautNom=0.62)),
     ('jardinier', 'tsubosaka', 'ニワシ', dict(large=0.64, cy=0.63, hautNom=0.42, clair=0.2, graine=212)),
+    ('yukizo', 'iiyama', 'ユキゾウ', dict(large=0.6, cy=0.63, hautNom=0.52, graine=256)),
+    ('kamakura', 'iiyama', 'カマクラ', dict(large=0.62, cy=0.63, hautNom=0.52, clair=0.12, graine=194)),
 ]
 sortie = []
 for i, (id, lieu, kana, o) in enumerate(T):

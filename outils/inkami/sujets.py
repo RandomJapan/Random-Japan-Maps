@@ -43,6 +43,9 @@ S = [
     P("chamelier", "tottori", "chamelier", avant=pres("chamelier"), attente=2200),
     P("junrei", "tsubosaka", "pelerin"),
     P("jardinier", "tsubosaka", "jardinier", avant=pres("jardinier"), attente=2200),
+    # (Iiyama, 2026-11-20 : la sculptrice de neige, son bonnet à pompon ; l'ancien du village des kamakura, sa chapka)
+    P("yukizo", "iiyama", "sculptrice", avant=pres("sculptrice"), attente=2200),
+    P("kamakura", "iiyama", "ancien", avant=pres("ancien"), attente=2200),
 ]
 json.dump(S, io.open(pathlib.Path(__file__).resolve().parent / 'sujets.json', 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
 print(len(S), 'sujets')
