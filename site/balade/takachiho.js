@@ -4004,8 +4004,10 @@ export function construire(ctx) {
     objets, monde, terrain, etiquettes, passants, daims: [], interactions, actionDaim: null, vapeurs, bancs, lumieres, actionBete, animes, courants, cascades, eauxCalmes,
     // (le secret, tresors.js ; le marchand, dans la cour du sanctuaire ; les sons à fabriquer en plus ; les feux
     // d'artifice, tirés au-dessus de la forêt, au nord-est de la gorge)
-    // (Sumi, le peintre d'Inkami, son étal et son tableau — inkami.js, 2026-11-19 : au bout du pont, côté ouest ; le second tableau au bord de l'étang des carpes)
-    peintre: { x: -13.6, z: 66.2, cap: 1.57, tableau: 'uzume', autre: { x: -34.3, z: 12.6, cap: 0.0, tableau: 'somen' } },
+    // (Sumi, le peintre d'Inkami, son étal et son tableau — inkami.js, 2026-11-19 : sur l'herbe du pré, cinq mètres en retrait du bout ouest du pont,
+    // la toile tournée vers le pont ; avant, juste à la sortie du pont, sur le chemin : le propriétaire, le 2026-11-20 : « il est juste à la sortie du
+    // pont, donc c'est compliqué de passer sur le pont et tout, tu peux le reculer juste de quelques mètres ». Le second tableau au bord de l'étang des carpes)
+    peintre: { x: -18.5, z: 66.2, cap: 1.57, tableau: 'uzume', autre: { x: -34.3, z: 12.6, cap: 0.0, tableau: 'somen' } },
     secret: 'miroir', marchand: MARCHAND, sons: ['rame', 'coq', 'caillou', 'roc', 'slurp', 'cloche', 'claque'],
     feux: { x: 34, y: 0, z: -92, large: 50, haut: [45, 66] },
     // la barque qu'on loue (balade.js : embarquer, piloter)

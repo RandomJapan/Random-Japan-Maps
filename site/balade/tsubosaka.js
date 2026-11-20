@@ -4021,8 +4021,11 @@ export function construire(ctx) {
     ...infos, textes: TEXTES,
     objets, monde, terrain, etiquettes, passants, daims: [], interactions, actionDaim: null, vapeurs, bancs, lumieres, actionBete, animes,
     // (le secret, tresors.js ; le marchand ; les sons à fabriquer en plus ; les feux d'artifice, au-dessus de la plaine de Nara, au nord-ouest)
-    // (Sumi, le peintre d'Inkami, son étal et son tableau — inkami.js, 2026-11-19 : au bord de l'esplanade de l'arrivée, devant le massif aux pins ; le second tableau au pied du mur, à côté du grand Bouddha)
-    peintre: { x: -155.0, z: -20.0, cap: 2.88, tableau: 'junrei', autre: { x: -23.2, z: 4.8, cap: 3.14, tableau: 'jardinier' } },
+    // (Sumi, le peintre d'Inkami, son étal et son tableau — inkami.js, 2026-11-19 : sur le côté gauche de la grande allée, devant le départ, la toile
+    // tournée vers celui qui arrive : on le voit dès l'arrivée, sur ordinateur et sur téléphone. Avant, au bord de l'esplanade, derrière à droite :
+    // le propriétaire, le 2026-11-20 : « quand on spawn, on est obligé de tourner la caméra pour le voir […] l'allée elle est grande au début, donc il
+    // pourrait être sur l'allée ». Le second tableau au pied du mur, à côté du grand Bouddha)
+    peintre: { x: -134.0, z: -35.0, cap: -1.35, tableau: 'junrei', autre: { x: -23.2, z: 4.8, cap: 3.14, tableau: 'jardinier' } },
     secret: 'rakan', marchand: MARCHAND, sons: ['waniguchi', 'magie', 'pouf', 'papier', 'kane', 'caillou', 'bol', 'slurp', 'pinceau', 'tampon', 'oiseau/goutte', 'oiseau/shamisen0', 'oiseau/shamisen2', 'oiseau/shamisen4'],
     // (pour les essais : où sont les rakan, et les trois à part)
     rakans: RAKANS.map(({ id, x, z, y, special, rocher }) => ({ id, x, z, y, special: special || null, rocher })),
