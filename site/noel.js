@@ -45,7 +45,10 @@ const TEXTES = {
     prenomAide: 'Common first names are exact; the others follow a rule.',
     fondTelecharger: 'Download my wallpaper',
     fondPret: 'Your wallpaper is ready',
-    fondTexte: 'My Christmas wallpaper from the 3D map of Japan',
+    fondTexte: 'My Christmas wallpaper, a gift from the 3D map of Japan',
+    creditPhoto: 'Photo: ',
+    creditSource: ', Wikimedia Commons, ',
+    creditSuite: ', cropped. This wallpaper is shared under the same licence.',
     pdfTelecharger: 'Download the PDF',
     imageTelecharger: 'Download the image',
     partageTexte: 'A Christmas gift from the 3D map of Japan',
@@ -82,7 +85,10 @@ const TEXTES = {
     prenomAide: 'Les prénoms courants sont justes ; les autres suivent une règle.',
     fondTelecharger: 'Télécharger mon fond d’écran',
     fondPret: 'Ton fond d’écran est prêt',
-    fondTexte: 'Mon fond d’écran de Noël, fait sur la carte 3D du Japon',
+    fondTexte: 'Mon fond d’écran de Noël, offert par la carte 3D du Japon',
+    creditPhoto: 'Photo : ',
+    creditSource: ', Wikimedia Commons, ',
+    creditSuite: ', recadrée. Ce fond d’écran est sous la même licence.',
     pdfTelecharger: 'Télécharger le PDF',
     imageTelecharger: 'Télécharger l’image',
     partageTexte: 'Un cadeau de Noël de la carte 3D du Japon',
@@ -119,7 +125,10 @@ const TEXTES = {
     prenomAide: 'よくある名前は正確です。ほかの名前は規則で変換します。',
     fondTelecharger: '壁紙をダウンロード',
     fondPret: '壁紙ができました',
-    fondTexte: '日本の3Dマップで作ったクリスマスの壁紙',
+    fondTexte: '日本の3Dマップからのクリスマスの壁紙',
+    creditPhoto: '写真：',
+    creditSource: '、Wikimedia Commons、',
+    creditSuite: '（トリミング）。この壁紙も同じライセンスで公開しています。',
     pdfTelecharger: 'PDFをダウンロード',
     imageTelecharger: '画像をダウンロード',
     partageTexte: '日本の3Dマップからのクリスマスプレゼント',
@@ -179,15 +188,21 @@ const CASES = [
     deco: { en: 'Lanterns light up in the old village streets.', fr: 'Des lanternes s’allument dans les vieilles rues des villages.' },
     savais: { en: 'Tsumago was a stop on the Nakasendō road between Kyoto and Edo (Tokyo). The village is kept almost as it was then.', fr: 'Tsumago était une étape de la route Nakasendō entre Kyoto et Edo (Tokyo). Le village est gardé presque comme à l’époque.' } },
   { j: 6, k: 'telecharger', lieu: 'lake-yamanaka', pret: true,
-    fichier: { apercu: 'noel/fond-fuji-hiver-apercu.jpg', url: 'noel/fond-fuji-hiver.jpg', nom: 'fuji-en-hiver.jpg', forme: 'telephone', bouton: 'fond' },
+    // une vraie photo (le propriétaire, 2026-11-12 : « les vrais lieux et pas les lieux de la carte ») : CC BY-SA 4.0
+    fichier: { apercu: 'noel/fond-fuji-hiver-apercu.jpg', url: 'noel/fond-fuji-hiver.jpg', nom: 'fuji-en-hiver.jpg', forme: 'telephone', bouton: 'fond',
+      credit: { auteur: 'Alpsdake', page: 'https://commons.wikimedia.org/wiki/File:Cygnus_olor_and_Mount_Fuji.JPG' } },
     cadeau: { en: 'Wallpaper: Mount Fuji in winter', fr: 'Fond d’écran : le Fuji en hiver', ja: '壁紙：冬の富士山' },
-    texte: { en: 'Mount Fuji under the snow, seen from Lake Yamanaka, made with the map, for your phone.', fr: 'Le Fuji sous la neige, vu du lac Yamanaka, fait avec la carte, pour ton téléphone.' },
+    texte: { en: 'Mount Fuji under the snow, seen from Lake Yamanaka, with a swan: a real photo, for your phone.', fr: 'Le Fuji sous la neige, vu du lac Yamanaka, avec un cygne : une vraie photo, pour ton téléphone.' },
     deco: { en: 'The snow comes further down the mountains.', fr: 'La neige descend plus bas sur les montagnes.' },
     savais: { en: 'In winter, seen from the lake, the sun sometimes sets right on Fuji’s summit: the « Diamond Fuji ».', fr: 'En hiver, vu du lac, le soleil se couche parfois pile sur le sommet du Fuji : c’est le « Fuji diamant ».' } },
-  { j: 7, k: 'boutique', lieu: 'toyokoro-ice-beach', pret: false, code: 'CALENDRIER7',
-    cadeau: { en: 'Free gift wrapping', fr: 'L’emballage cadeau offert', ja: 'ギフト包装無料' },
-    texte: { en: 'The portrait arrives wrapped, ready to give, with a handwritten card. For the first 10 orders.',
-      fr: 'Le tableau arrive emballé, prêt à offrir, avec une carte écrite à la main. Pour les 10 premières commandes.' },
+  // la case 7 (le propriétaire, 2026-11-21 : « un petit document où il y a marqué des mots japonais en rapport avec l'hiver
+  // et Noël avec la traduction en anglais et français et une petite description explicative ») ; elle offrait avant
+  // l'emballage cadeau, que la boutique Inkami ne propose pas.
+  { j: 7, k: 'telecharger', lieu: 'toyokoro-ice-beach', pret: true,
+    fichier: { apercu: 'noel/mots-hiver-{l}-apercu.jpg', url: 'noel/mots-hiver-{l}.pdf', nom: 'mots-japonais-de-l-hiver.pdf', forme: 'page', bouton: 'pdf' },
+    cadeau: { en: 'Japanese winter words', fr: 'Les mots japonais de l’hiver', ja: '冬のことば' },
+    texte: { en: '24 Japanese words for winter, Christmas and the New Year, one for each day of Advent, with their English and French translations and a short explanation. A PDF to print or keep on your phone.',
+      fr: '24 mots japonais de l’hiver, de Noël et du Nouvel An, un pour chaque jour de l’Avent, avec leur traduction en anglais et en français et une petite explication. En PDF, à imprimer ou à garder sur ton téléphone.' },
     deco: { en: 'Christmas trees light up in the big cities.', fr: 'Des sapins s’allument dans les grandes villes.' },
     savais: { en: 'In January and February, clear blocks of ice wash up on the beach and shine like jewels at sunrise.', fr: 'En janvier et février, des blocs de glace transparents s’échouent sur la plage et brillent comme des bijoux au lever du soleil.' } },
   { j: 8, k: 'carte', lieu: 'lake-kussharo', pret: false,
@@ -218,9 +233,10 @@ const CASES = [
     deco: { en: 'Sometimes a white figure passes in the storm…', fr: 'Parfois, une silhouette blanche passe dans la tempête…' },
     savais: { en: 'The path to the shrine is lined with cedars planted about 400 years ago.', fr: 'L’allée qui mène au sanctuaire est bordée de cèdres plantés il y a environ 400 ans.' } },
   { j: 13, k: 'telecharger', lieu: 'gokayama', pret: true,
-    fichier: { apercu: 'noel/fond-gokayama-neige-apercu.jpg', url: 'noel/fond-gokayama-neige.jpg', nom: 'gokayama-sous-la-neige.jpg', forme: 'telephone', bouton: 'fond' },
+    fichier: { apercu: 'noel/fond-gokayama-neige-apercu.jpg', url: 'noel/fond-gokayama-neige.jpg', nom: 'gokayama-sous-la-neige.jpg', forme: 'telephone', bouton: 'fond',
+      credit: { auteur: 'Solarisjapan', page: 'https://commons.wikimedia.org/wiki/File:%E4%B8%96%E7%95%8C%E9%81%BA%E7%94%A3%E8%8F%85%E6%B2%BC%E5%90%88%E6%8E%8C%E9%9B%86%E8%90%BD.jpg' } },
     cadeau: { en: 'Wallpaper: Gokayama in the snow', fr: 'Fond d’écran : Gokayama sous la neige', ja: '壁紙：雪の五箇山' },
-    texte: { en: 'The village of the 3D walk at night, white roofs and lit windows.', fr: 'Le village de la balade 3D la nuit, les toits blancs et les fenêtres allumées.' },
+    texte: { en: 'The real Gokayama: the thatched farmhouses of Suganuma village under deep snow, for your phone.', fr: 'Gokayama en vrai : les fermes aux toits de chaume du village de Suganuma sous la neige, pour ton téléphone.' },
     deco: { en: 'The farmhouse windows light up at night.', fr: 'Les fenêtres des fermes s’allument la nuit.' },
     savais: { en: 'On December 13, Japan starts preparing the New Year, with the big end-of-year cleaning (susuharai).', fr: 'Le 13 décembre, le Japon commence à préparer le Nouvel An, avec le grand ménage de fin d’année (susuharai).' } },
   { j: 14, k: 'carte', lieu: 'kinkaku-ji', pret: false,
@@ -633,7 +649,22 @@ export function brancherNoel(outils) {
       } finally { b.disabled = false; }
     });
     div.append(b);
+    if (f.credit) div.append(blocCredit(f.credit, l));
     return div;
+  }
+
+  // Le crédit d'une photo libre (Wikimedia Commons, CC BY-SA 4.0) : l'auteur, la licence, et le fond d'écran recadré
+  // partagé sous la même licence (ce que la licence demande).
+  function blocCredit(c, l) {
+    const p = creer('p', 'noel-credit');
+    const lien = (texte, href) => {
+      const a = creer('a', '', texte);
+      a.href = href; a.target = '_blank'; a.rel = 'noopener';
+      return a;
+    };
+    p.append(tx('creditPhoto'), lien(c.auteur, c.page), tx('creditSource'),
+      lien('CC BY-SA 4.0', `https://creativecommons.org/licenses/by-sa/4.0/deed.${l}`), tx('creditSuite'));
+    return p;
   }
 
   // ---- Les cases de la boutique Inkami : le code et le lien

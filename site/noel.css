@@ -128,6 +128,8 @@ body.noel #carte.loin .repere-tete::after { width: auto; height: auto; backgroun
 .noel-fichier.forme-page img { width: 170px; }
 .noel-fichier.forme-carte img, .noel-fichier.forme-paysage img { width: 100%; max-width: 300px; }
 .noel-fichier .btn-lancer { width: 100%; }
+.noel-credit { margin: 0; font-size: 12px; line-height: 1.45; color: var(--encre-2); text-align: center; }
+.noel-credit a { color: inherit; }
 
 /* les cases de la boutique Inkami */
 .noel-code { display: grid; gap: 8px; }
