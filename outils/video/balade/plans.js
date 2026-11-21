@@ -1742,6 +1742,185 @@
         o.cadre(...o.chemin([[0, ...E.vue(-2.3, 4.4, 1.8, 0.2, 0.3, 1.05), 46], [5, ...E.vue(-2.9, 5.0, 2.0, 0.2, 0.3, 1.05), 48]], t));
       },
     },
+
+    // ================================================================ Vidéo 12 : la fête de la neige d'Iiyama (2026-11-21)
+    // Toutes dans le jeu en ligne, en simple visiteur (rushes.py, 'site'). Repères (iiyama.js) : x à l'est, z au sud ; la rue et la place y 0,
+    // la terrasse des sculptures y 4, le coin des enfants y 2, le haut du château y 9, le village des kamakura y 14 (250 m au nord, derrière
+    // la crête boisée ; la navette y mène).
+    // le vieil homme au chapeau de paille (笠地蔵), de face comme le vrai plan ; puis la caméra recule et monte : la terrasse, le voyageur
+    'iy-vieux': {
+      duree: 4.6,
+      preparer(o) { o.placer(-21.2, -45.0, -24.5, -50.4, { compagnon: false }); o.compagnon(-19.6, -44.4, PI); },
+      chaque(t, dt, o) {
+        // (le vieux promeneur au chapeau de paille se tenait juste devant la sculpture)
+        const p = o.passant('papi'); if (p) Object.assign(p.etat, { x: -12.5, z: -44.2 });
+        // (deux clés égales avant le départ : avec une seule, la tangente de Catmull-Rom faisait déjà glisser la caméra avant 2 s)
+        o.cadre(...o.chemin([[0, [-22.3, 5.5, -41.4], [-24.4, 5.9, -50.4], 40], [2.3, [-22.3, 5.5, -41.4], [-24.4, 5.9, -50.4], 40], [2.4, [-22.3, 5.5, -41.4], [-24.4, 5.9, -50.4], 40], [4.4, [-12, 11, -28], [2, 4.5, -48], 56]], t));
+      },
+    },
+    // l'arrivée sous la neige : le voyageur entre sur la place, vu de dos, la grande banderole いいやま雪まつり devant lui ; les flocons
+    'iy-arrivee': {
+      duree: 3.2,
+      preparer(o) { o.placer(0.3, 51.5, 0.3, 30); o.compagnon(-1.1, 51.0, PI); },
+      debut(o) { o.jeu.marcher([[0.3, 51.5], [0.3, 38]], 1.4); },
+      chaque(t, dt, o) { o.cadre([e.x + 0.6, e.y + 1.55, e.z + 4.6 - 0.25 * t], [e.x - 0.2, e.y + 2.6, e.z - 17], 50); },
+    },
+    // la rue aux arcades (雁木) : le voyageur la longe ; vu de la place, les maisons et leur arcade derrière lui (la caméra le suit)
+    'iy-rue': {
+      duree: 3.4,
+      preparer(o) { o.placer(-4, 50.4, 6, 50.4); o.compagnon(-5.2, 49.4, PI / 2); },
+      debut(o) { o.jeu.marcher([[-4, 50.4], [6, 50.4]], 1.4); },
+      chaque(t, dt, o) { o.cadre([e.x - 0.8, 1.75, e.z - 5.2], [e.x - 0.3, 2.3, e.z + 8], 50); },
+    },
+    // les étals de la place (きのこ汁, 笹寿司, バナナボート…) : le voyageur longe leur rang, la caméra le suit depuis la place (de dos, à un étal, on
+    // ne voyait que son chapeau)
+    'iy-etal': {
+      duree: 4,
+      preparer(o) { o.placer(-18.2, 24, -18.2, 40); o.compagnon(-17, 23, PI); },
+      debut(o) { o.jeu.marcher([[-18.2, 24], [-18.2, 40]], 1.4); },
+      chaque(t, dt, o) { o.cadre([e.x + 6.5, 2.4, e.z - 3.2], [e.x - 4, 1.6, e.z + 2.0], 50); },
+    },
+    // le dragon de neige de vingt mètres (昇り龍), en travelling le long de lui ; le voyageur le regarde
+    'iy-dragon': {
+      duree: 3.4,
+      preparer(o) { o.placer(-2.5, -42.6, -1, -50, { compagnon: false }); o.compagnon(-3.8, -42.0, PI); },
+      chaque(t, dt, o) { o.cadre(...o.chemin([[0, [-13, 8.4, -38.5], [-7, 6.2, -51], 46], [3.4, [-5, 8.6, -37.5], [5, 6.2, -51], 46]], t)); },
+    },
+    // les six Jizō de neige (六地蔵), comme le vrai plan
+    'iy-jizo': {
+      duree: 3.4,
+      preparer(o) { o.placer(10, -30, 10, -20, { compagnon: false }); o.compagnon(11, -30, 0); },
+      chaque(t, dt, o) {
+        const p = o.passant('mere'); if (p) Object.assign(p.etat, { x: 27.5, z: -44.0 });
+        o.cadre(...o.chemin([[0, [20.6, 7.0, -40.0], [21.2, 5.8, -50.6], 45], [3.4, [20.7, 6.9, -41.0], [21.2, 5.8, -50.6], 44]], t));
+      },
+    },
+    // le daruma qu'une équipe finit encore : on aide, trois coups de pelle (le tampon 雪像)
+    'iy-daruma': {
+      duree: 10,
+      preparer(o) { const p = o.passant('chef'); o.placer(p.etat.x + 0.6, p.etat.z - 1.6, p.etat.x, p.etat.z, { compagnon: false }); o.compagnon(-25.6, -36.4, PI); },
+      quand: [[0.2, (o) => o.agir('chef')]],
+      chaque(t, dt, o) { o.lire(t, { delai: 0.3, choix: 0 }); o.cadre([-25.2, 5.9, -34.6], [-32, 6.6, -33.8], 58); },
+    },
+    // l'atelier des lanternes de neige (雪灯ろう) : on fait la sienne, deux coups de pelle, un nuage, la voilà allumée (le tampon 雪灯ろう)
+    'iy-lanterne': {
+      duree: 13,
+      preparer(o) { const p = o.passant('animatrice'); o.placer(p.etat.x, p.etat.z - 1.6, p.etat.x, p.etat.z, { compagnon: false }); o.compagnon(-56, -18, 0); },
+      quand: [[0.2, (o) => o.agir('animatrice')]],
+      chaque(t, dt, o) { o.lire(t, { delai: 0.3, choix: 0 }); o.cadre([-52.6, 2.9, -11.4], [-54.6, 2.3, -13.9], 50); },
+    },
+    // le toboggan de la butte des enfants : assis en haut, on file dans la glissière, de côté
+    'iy-toboggan': {
+      duree: 5,
+      preparer(o) { o.placer(-60.2, -33.4, -68.4, -33.4, { compagnon: false }); o.compagnon(-60, -30.6, PI); },
+      quand: [[0.2, (o) => o.agir('toboggan')]],
+      chaque(t, dt, o) { o.lire(t, { delai: 0.3 }); o.cadre([-64.2, 4.9, -25.0], [-65.4, 3.0, -33.4], 50); },
+    },
+    // la descente en bouée (スノースライダー), chronométrée : la prise la pilote (elle tient le milieu en se penchant : l'or), la caméra du jeu
+    // derrière elle, puis devant, à l'arrivée ; on ne recommence pas
+    'iy-bouee': {
+      duree: 38,
+      preparer(o) {
+        const p = o.passant('liftier'); o.placer(p.etat.x + 1.2, p.etat.z + 1.0, p.etat.x, p.etat.z, { compagnon: false }); o.compagnon(p.etat.x + 2.2, p.etat.z + 1.8, 0);
+        const c = o.M().lieu.conduite, maj = c.maj;
+        c.maj = function (dt, pousse, vire, etat, cam, renard) {
+          if (c.autre) return maj.call(this, dt, pousse, vire, etat, cam, renard);
+          return maj.call(this, dt, 1, Math.max(-1, Math.min(1, -3.2 * c.u)), etat, cam, renard);
+        };
+      },
+      quand: [[0.2, (o) => o.agir('liftier')]],
+      chaque(t, dt, o) { o.lire(t, { delai: 0.45, choix: o.M().lieu.conduite.fini ? 1 : 0 }); },
+    },
+    // la navette, au village des kamakura : le bus à l'arrêt, le voyageur va vers l'arche かまくらの里
+    'iy-navette': {
+      duree: 3.8,
+      preparer(o) { o.placer(-3.4, -292.2, -1, -310); o.compagnon(-4.6, -291.2, PI); },
+      debut(o) { o.jeu.marcher([[-3.4, -292.2], [-1, -304]], 1.5); },
+      chaque(t, dt, o) { o.cadre(...o.chemin([[0, [17, 19, -276], [2, 15.5, -305], 48], [3.8, [13.5, 18.2, -280.5], [1, 15.6, -307], 48]], t)); },
+    },
+    // la marmite (のろし鍋), dans le kamakura au lampion rouge : assis au fond, on mange (le tampon のろし鍋) ; la caméra près de la table
+    // (entier : la table et la marmite, entre l'œil et le voyageur, ne s'effacent pas en pointillés)
+    'iy-nabe': {
+      duree: 9,
+      preparer(o) {
+        const I = o.inter('monKamakura'); o.placer(I.x, I.z + 0.6, I.x, I.z - 2, { compagnon: false }); o.compagnon(I.x + 1.4, I.z + 1.2, PI);
+        o.jeu.donner('nabe'); o.jeu.cadrer = () => {};
+      },
+      quand: [[0.2, (o) => o.agir('monKamakura')]],
+      chaque(t, dt, o) {
+        o.lire(t, { delai: 0.4 });
+        const I = o.inter('monKamakura');
+        if (!o.assis && e.z < I.z - 2.4) o.assis = [e.x, e.z];
+        if (o.assis) { const [x, z] = o.assis; o.cadre([x + 0.45, 15.2, z + 2.15], [x, 14.62, z + 0.2], 60); o.M().cadre.entier = true; }
+        else o.cadre([I.x - 2.2, 15.4, I.z + 3.2], [I.x + 0.3, 15.6, I.z - 1.2], 45);
+      },
+    },
+    // le sanctuaire de neige (かまくら神社) : sous le torii rouge, le voyageur va vers sa porte
+    'iy-torii': {
+      duree: 3.4,
+      preparer(o) { o.placer(0, -371.5, 0, -381, { compagnon: false }); o.compagnon(1.4, -372, PI); },
+      debut(o) { o.jeu.marcher([[0, -371.5], [0, -378.6]], 1.3); },
+      chaque(t, dt, o) { o.cadre(...o.chemin([[0, [0.4, 15.5, -368.6], [0, 15.4, -381], 50], [3.4, [0.3, 15.45, -369.6], [0, 15.4, -381], 48]], t)); },
+    },
+    // la prière, dedans : la pièce dans le tronc, les mains jointes (le tampon かまくら神社) ; le voyageur 60 cm avant le point de l'action
+    'iy-priere': {
+      duree: 7,
+      preparer(o) { const I = o.inter('offrande'); o.placer(I.x, I.z + 0.6, I.vers[0], I.vers[1], { compagnon: false }); o.compagnon(0.8, -376.2, PI); },
+      quand: [[0.2, (o) => o.agir('offrande')]],
+      chaque(t, dt, o) { o.lire(t, { delai: 0.3 }); o.cadre([-1.5, 15.7, -378.9], [0.9, 14.95, -382.7], 60); },
+    },
+    // la nuit au village : les kamakura allumés ; la porte de l'un d'eux, sa table et sa marmite (comme le vrai plan)
+    'iy-nuit': {
+      duree: 4.4,
+      async preparer(o) { o.placer(4, -322, 4, -340, { compagnon: false }); o.compagnon(5, -321, PI); await o.nuitTout(true); },
+      chaque(t, dt, o) { o.cadre(...o.chemin([[0, [-9.5, 15.6, -324.6], [-9.5, 14.9, -331], 50], [4.4, [-7.5, 15.7, -325.0], [-12.5, 14.9, -331], 50]], t)); },
+    },
+    // le grand tengu (奈良澤大天狗) qui danse dans son cercle, la nuit, sa torche de plus de deux mètres ; la caméra devant lui, hors du cercle
+    'iy-tengu': {
+      duree: 5.4,
+      async preparer(o) { o.placer(-2, -22, -2, -30, { compagnon: false }); o.compagnon(-3, -22, PI); await o.nuitTout(true); },
+      chaque(t, dt, o) {
+        const T = o.M().lieu.animes.find((a) => a.tenue && a.tenue.pose === 'torche'), S = T.S;
+        const a = S.t * 0.34 + 1.65;
+        if (!o.v) o.v = { a, x: S.x, z: S.z };
+        const k = Math.min(1, dt * 2.5);
+        o.v.a += (a - o.v.a) * k; o.v.x += (S.x - o.v.x) * k; o.v.z += (S.z - o.v.z) * k;
+        o.cadre([13.6 + Math.cos(o.v.a) * 7.8, 5.5, -31.5 + Math.sin(o.v.a) * 7.8], [o.v.x, 6.6, o.v.z], 64);
+      },
+    },
+    // le masque du grand tengu (les cinq tampons) : le voyageur devant son cercle, la nuit ; un nuage, et le voilà masqué
+    'iy-masque': {
+      duree: 5.2,
+      async preparer(o) { o.placer(13.6, -24.5, 13.6, -20, { compagnon: false }); o.compagnon(15.0, -24.2, 0); await o.nuitTout(true); },
+      quand: [[2.0, (o) => o.jeu.nuage(e.x, e.y + 1.05, e.z, 1.3)], [2.12, (o) => { o.M().joueur.porter('yeux', 'tengu'); o.M().joueur.saluer(); }]],
+      chaque(t, dt, o) { o.cadre([14.4, 5.3, -21.3], [13.9, 5.15, -24.5], 44); },
+    },
+    // le secret, montré sans être résolu : le grand tengu donne une flamme ; on la porte vers le haut du château (rien ne s'y allume)
+    'iy-flamme': {
+      duree: 21,
+      async preparer(o) { o.placer(13.6, -24.6, 13.6, -31.5, { compagnon: false }); o.compagnon(15, -24.2, PI); await o.nuitTout(true); },
+      quand: [[0.3, (o) => o.agir('tengu')]],
+      chaque(t, dt, o) {
+        o.lire(t, { delai: 0.25 });
+        if (!o.monte && t >= 16 && o.jeu.aDansSac('torche') && e.mode === 'jeu') {
+          o.monte = true; o.placer(39.0, -69.6, 31.5, -81.5, { compagnon: false }); o.compagnon(41, -68, PI);
+          o.jeu.marcher([[39.0, -69.6], [31.5, -81.5], [28, -84], [25.6, -88.6]], 1.25);
+        }
+        if (o.monte) {
+          if (!o.d) o.d = [Math.sin(e.cap), Math.cos(e.cap)];
+          const k = Math.min(1, dt * 2); o.d[0] += (Math.sin(e.cap) - o.d[0]) * k; o.d[1] += (Math.cos(e.cap) - o.d[1]) * k;
+          const [dx, dz] = o.d;
+          // (de trois quarts et d'un peu plus bas : la flamme sur le ciel, et le visage à côté de la torche, pas derrière)
+          o.cadre([e.x + dx * 2.6 - dz * 2.0, e.y + 0.95, e.z + dz * 2.6 + dx * 2.0], [e.x, e.y + 1.55, e.z], 48);
+        } else o.cadre([13.6, 5.6, -21.0], [13.6, 5.4, -30], 50);
+      },
+    },
+    // la fin : le village des kamakura la nuit, de haut, ses lanternes de neige
+    'iy-fin': {
+      duree: 7,
+      async preparer(o) { o.placer(0, -318, 0, -340, { compagnon: false }); o.compagnon(1, -318, PI); await o.nuitTout(true); },
+      chaque(t, dt, o) { o.cadre(...o.chemin([[0, [0, 24, -303], [0, 14, -338], 55], [7, [0, 27, -299], [0, 14, -338], 55]], t)); },
+    },
   };
 
   /**

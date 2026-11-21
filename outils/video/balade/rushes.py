@@ -223,6 +223,22 @@ PRISES.update({
     'sm-chamelier': {'lieu': 'tottori', 'site': True, 'css': FENETRE},
     'sm-voyageur': {'lieu': 'himeji', 'site': True, 'perso': 'garcon', 'css': FENETRE},
 })
+# Vidéo 12 : la fête de la neige d'Iiyama (2026-11-21), dans le jeu en ligne (site). Tant qu'aucun tampon du village n'est fait, le lieu
+# montre la navette à l'arrivée et son chauffeur appelle qui passe : un tampon du village noté fait (nabe, ou jinja pour la prise du repas)
+# l'en empêche. Le masque : les cinq tampons, la récompense déjà vue (sinon sa fiche s'ouvre à l'arrivée).
+IIYAMA_VU = {'baladeTampons': {'iiyama': ['nabe']}}
+CINQ_IIYAMA = {'baladeTampons': {'iiyama': ['yukizo', 'slider', 'toro', 'nabe', 'jinja']}, 'baladeTenuesVues': ['tengu']}
+PRISES.update({
+    **{n: {'lieu': 'iiyama', 'ui': 'rien', 'site': True, 'stockage': IIYAMA_VU} for n in [
+        'iy-vieux', 'iy-arrivee', 'iy-rue', 'iy-etal', 'iy-dragon', 'iy-jizo', 'iy-toboggan', 'iy-navette', 'iy-torii', 'iy-nuit', 'iy-tengu', 'iy-fin']},
+    'iy-daruma': {'lieu': 'iiyama', 'ui': 'rien', 'site': True, 'stockage': IIYAMA_VU},
+    'iy-lanterne': {'lieu': 'iiyama', 'ui': 'rien', 'site': True, 'stockage': IIYAMA_VU},
+    'iy-bouee': {'lieu': 'iiyama', 'ui': 'dialogue', 'site': True, 'stockage': IIYAMA_VU, 'css': CHRONO, 'garder': [[11.0, 37.5]]},
+    'iy-nabe': {'lieu': 'iiyama', 'ui': 'rien', 'site': True, 'stockage': {'baladeTampons': {'iiyama': ['jinja']}}},
+    'iy-priere': {'lieu': 'iiyama', 'ui': 'rien', 'site': True, 'stockage': IIYAMA_VU},
+    'iy-masque': {'lieu': 'iiyama', 'ui': 'rien', 'site': True, 'stockage': CINQ_IIYAMA},
+    'iy-flamme': {'lieu': 'iiyama', 'ui': 'rien', 'site': True, 'stockage': IIYAMA_VU, 'garder': [[15.9, 20.8]]},
+})
 DEFAUT = {'perso': 'fille', 'compagnon': 'kon', 'stockage': {}, 'ui': 'dialogue'}
 
 GRAINE = """(() => { let s = 20261026; Math.random = () => { s = (s + 0x6d2b79f5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s);

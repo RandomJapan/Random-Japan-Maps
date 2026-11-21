@@ -27,7 +27,7 @@ NOMS = {'BaladeTour': 'balade-3d-les-5-lieux', 'BaladeTakachiho': 'balade-3d-tak
         'BaladeKinkakuji': 'balade-3d-kinkakuji', 'BaladeBeppu': 'balade-3d-beppu',
         'BaladeMotonosumi': 'balade-3d-motonosumi', 'BaladeSanjubutsu': 'balade-3d-trente-bouddhas', 'BaladeUdoYakushima': 'balade-3d-udo-yakushima',
         'BaladeTottori': 'balade-3d-tottori', 'BaladeEnVrai': 'balade-3d-en-vrai',
-        'BaladeTsubosaka': 'balade-3d-tsubosaka', 'BaladeSumi': 'balade-3d-sumi'}
+        'BaladeTsubosaka': 'balade-3d-tsubosaka', 'BaladeSumi': 'balade-3d-sumi', 'BaladeIiyama': 'balade-3d-iiyama'}
 
 
 def ffmpeg():

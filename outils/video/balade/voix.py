@@ -163,7 +163,8 @@ COUPES = {
 # directement, en secondes du fichier de Flora (k0.mp3) : les phrases ont été retrouvées en alignant la voix sur la même phrase dite par
 # la voix anglaise de Windows (MFCC et DTW : aucune reconnaissance vocale sur ce PC), les coupes au milieu des pauses.
 # (« Nee-oh » : écrit ainsi pour qu'elle prononce Niō comme il faut ; le texte à l'écran dit « Niō »)
-LONGUES = {'k0': ('m172rftq5qedb4rk8d7fdv8yt98je410', '11/18'), 'm0': ('m17agbyfm8y6pxmtcb08vx181h8jjfmv', '11/20')}
+LONGUES = {'k0': ('m172rftq5qedb4rk8d7fdv8yt98je410', '11/18'), 'm0': ('m17agbyfm8y6pxmtcb08vx181h8jjfmv', '11/20'),
+           'n0': ('m175d5dtywmm9ffdgz7j3n4ssd8jnjsb', '11/21')}
 # morceau : (génération, de, à (s), accélération, texte)
 MORCEAUX = {
     'k1a': ('k0', 0.00, 1.72, 1.15, 'A temple for your eyes,'),
@@ -216,6 +217,35 @@ MORCEAUX = {
     'm7b': ('m0', 33.05, 35.15, 1.1, 'This red button takes you to my shop!'),
     'm8a': ('m0', 35.25, 36.50, 1.0, 'Go say hi to him.'),
     'm8b': ('m0', 36.52, 37.68, 1.0, 'Link in bio!'),
+    # La fête de la neige d'Iiyama (2026-11-21) : une génération de 54,3 s (0,096 $), dix lignes ; ses 27 passages de parole (plus de 0,12 s
+    # sous −40 dB entre eux) collent un à un aux phrases du texte, par leur nombre et leurs durées (« and at night, » et « At night, » font
+    # chacun un passage à part). « Eeyama » : écrit ainsi pour qu'elle dise Iiyama comme il faut ; le texte à l'écran dit « Iiyama ».
+    'n1a': ('n0', 0.00, 2.34, 1.15, 'A whole town carves the snow...'),
+    'n1b': ('n0', 2.50, 3.44, 1.1, 'and at night,'),
+    'n1c': ('n0', 3.44, 7.77, 1.15, 'a giant tengu dances with a torch over two metres long!'),
+    'n2a': ('n0', 7.77, 9.63, 1.1, 'The Eeyama Snow Festival...'),
+    'n2b': ('n0', 9.63, 11.90, 1.1, 'is now in my 3D game!'),
+    'n3a': ('n0', 11.90, 14.13, 1.1, 'Arrive under the falling snow,'),
+    'n3b': ('n0', 14.13, 16.54, 1.1, 'stroll the arcades and the food stalls,'),
+    'n3c': ('n0', 16.54, 18.76, 1.1, 'see a twenty-metre snow dragon,'),
+    'n3d': ('n0', 18.76, 20.42, 1.1, 'and the six Jizo.'),
+    'n4a': ('n0', 20.42, 22.73, 1.1, 'Help finish a daruma with your shovel,'),
+    'n4b': ('n0', 22.73, 24.65, 1.1, 'make your own snow lantern,'),
+    'n4c': ('n0', 24.65, 26.02, 1.1, 'ride the snow slide,'),
+    'n4d': ('n0', 26.02, 28.03, 1.1, 'and race down on a snow tube...'),
+    'n4e': ('n0', 28.03, 29.02, 1.0, 'for a medal!'),
+    'n5a': ('n0', 29.02, 31.79, 1.1, 'Then take the shuttle to the kamakura village,'),
+    'n5b': ('n0', 31.79, 34.11, 1.1, 'eat a hot pot inside a snow hut,'),
+    'n5c': ('n0', 34.11, 36.57, 1.1, 'and pray at a shrine made of snow.'),
+    'n6a': ('n0', 36.57, 39.52, 1.1, 'At night, every kamakura glows...'),
+    'n6b': ('n0', 39.52, 42.40, 1.1, 'and the great tengu dances with his torch!'),
+    'n7a': ('n0', 42.40, 44.11, 1.1, 'Get all five stamps...'),
+    'n7b': ('n0', 44.11, 45.69, 1.1, 'and wear his mask!'),
+    'n8': ('n0', 45.69, 48.70, 1.1, 'But his flame must reach the top of the castle...'),
+    'n9': ('n0', 48.70, 50.20, 1.0, 'Can you find out why?'),
+    'n10a': ('n0', 50.20, 52.07, 1.0, 'The Eeyama Snow Festival,'),
+    'n10b': ('n0', 52.07, 53.17, 1.0, 'in 3D.'),
+    'n10c': ('n0', 53.17, 54.32, 1.0, 'Link in bio.'),
 }
 
 

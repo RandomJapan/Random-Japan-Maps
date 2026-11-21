@@ -84,6 +84,18 @@ REELS = {
     'ts-place': ('Tsubosaka-dera.mp4', 36.2, 1.5, 1.0, {'zoom': 1.3, 'cy': 0.59}),
     'ts-hortensias': ('Tsubosaka-dera.mp4', 46.0, 1.4, 1.0, {'zoom': 1.3, 'cy': 0.59}),
     'ts-ombrelles': ('Tsubosaka-dera.mp4', 30.5, 1.4, 1.0, {'zoom': 1.3, 'cy': 0.59}),
+    # la fête de la neige d'Iiyama (vidéo 12, 2026-11-21) : l'accroche, la grande sculpture que deux habitants taillent au crépuscule (ralentie) et
+    # le grand tengu de Narazawa qui fait tournoyer sa torche ; le vieil homme au chapeau de paille, les six Jizō, la marmite qu'on découvre, le
+    # sanctuaire de neige sous son torii (un plan très court : ralenti, les images intermédiaires calculées), un kamakura allumé la nuit, et le
+    # tengu encore, en écho. Son titre (« Iiyama Snow Festival · 飯山雪まつり ») n'est incrusté que de 3 à 7 s : tous ces plans viennent d'après.
+    'iy-sculpteurs': ('Iiyama Snow Festival.mp4', 34.36, 1.62, 0.8, {'lisse': True}),  # (la coupe depuis le feu tombe à 34,33 s)
+    'iy-tengu': ('Iiyama Snow Festival.mp4', 27.36, 5.0),
+    'iy-vieux': ('Iiyama Snow Festival.mp4', 40.35, 2.2),
+    'iy-jizo': ('Iiyama Snow Festival.mp4', 45.0, 1.25),
+    'iy-nabe': ('Iiyama Snow Festival.mp4', 23.95, 2.0),
+    'iy-jinja': ('Iiyama Snow Festival.mp4', 26.56, 0.72, 0.5, {'lisse': True}),
+    'iy-kamakura': ('Iiyama Snow Festival.mp4', 16.6, 1.8),
+    'iy-feu': ('Iiyama Snow Festival.mp4', 30.95, 1.6),
 }
 SFX = {
     'promo30': ['whoosh-fast', 'swoosh-quick', 'air-whoosh-powerful', 'zoom-air-fast', 'transition-snap', 'impact-deep-whoosh',
