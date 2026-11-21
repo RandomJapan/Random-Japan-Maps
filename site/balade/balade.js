@@ -78,8 +78,9 @@ import * as iiyama from './iiyama.js';
 // 2026-10-30, et Yakushima, en essai depuis le 2026-10-31, sortis le 2026-11-02 : « tu peux mettre en ligne Udo et Yakushima »)
 // (les dunes de Tottori, en essai depuis le 2026-11-02, sorties le 2026-11-04 : « Tu peux mettre en ligne Tottori »)
 // (Tsubosaka-dera, en essai depuis le 2026-11-05, sorti le 2026-11-12 : « Tu peux mettre en ligne pour tout le monde »)
-// (la fête de la neige d'Iiyama, en essai depuis le 2026-11-20 : « Ok maintenant tu peux commencer à faire Iiyama Snow Festival en Balade »)
-const EN_ESSAI = ['iiyama'];
+// (la fête de la neige d'Iiyama, en essai depuis le 2026-11-20 : « Ok maintenant tu peux commencer à faire Iiyama Snow Festival en Balade » ;
+// sortie le 2026-11-21 : « Tu peux mettre en ligne pour tout le monde »)
+const EN_ESSAI = [];
 // Sumi, le peintre d'Inkami, et ses tableaux (inkami.js) : en essai le 2026-11-19, en mode développeur seulement, comme le lien de la boutique posé
 // le même jour sur la carte (la boutique inkami.art était encore fermée par son mot de passe) ; sorti le soir même pour tout le monde, la boutique
 // ouverte et le peintre refait à l'image du propriétaire : « Ok, et dès que tu mettras en ligne, du coup, tu pourras mettre en ligne pour tout le
