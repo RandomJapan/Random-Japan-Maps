@@ -26,6 +26,7 @@ const DUREE_MANCHE = 30; // secondes pour poser son épingle ; ensuite, l'éping
 const ATTENTE_IMAGE = 5000; // ms : le chrono part quand la photo s'affiche, au plus tard au bout de ce temps
 const PART_INDICES = [1, 0.75, 0.5]; // part des points gardée : sans indice, après la région, après la préfecture
 const MEMO_RECORDS = 'jeuRecords'; // localStorage : { parties, meilleurs: [{ score, date }] } (les 10 meilleurs)
+const MEMO_RECORDS_NOEL = 'jeuRecordsNoel'; // les mêmes, pour la manche de Noël (case 8 du calendrier de l'Avent)
 const NB_RECORDS = 10;
 const RECORDS_MONTRES = 5;
 const ROUGE = '#a8321f';
@@ -192,12 +193,15 @@ export function brancherJeu(map, maplibregl, outils) {
   amis?.surChange(() => { if (etat) { afficherBoutonAmis(); afficherJoueurs(); } });
 
   // ---- La partie
-  async function lancer() {
+  // options.noel : la manche de Noël (case 8 du calendrier de l'Avent, noel.js) : seulement des lieux d'hiver
+  async function lancer(options = {}) {
+    const noel = !!options.noel;
     arreter(false);
     avant();
     const credits = await photosLibres;
-    const liste = choisirLieux(credits);
-    etat = { liste, credits, i: -1, phase: 'accueil', choix: null, points: [], images: liste.map(() => null), montres: new Set(), indices: 0 };
+    const liste = choisirLieux(credits, noel);
+    etat = { liste, credits, noel, i: -1, phase: 'accueil', choix: null, points: [], images: liste.map(() => null), montres: new Set(), indices: 0 };
+    carte.classList.toggle('noel', noel);
     preparerImage(0);
     if (liste.length) prefecture(liste[0]).catch(() => {}); // les contours des préfectures, pour les indices
     document.body.classList.add('en-jeu');
@@ -218,9 +222,12 @@ export function brancherJeu(map, maplibregl, outils) {
     return c ? { src: `photos/jeu/${video(l)}.jpg`, credit: c.maVideo ? null : c } : null; // une image de ses vidéos : rien à créditer
   }
 
-  /** Cinq lieux au hasard, bien éloignés les uns des autres, qui ont une photo. */
-  function choisirLieux(credits) {
-    const melange = lieux().filter((l) => imageDe(l, credits)).sort(() => Math.random() - 0.5);
+  /** Cinq lieux au hasard, bien éloignés les uns des autres, qui ont une photo ; pour la manche de Noël, des lieux d'hiver
+   * (la saison « hiver » de la colonne Saisons du tableau : neige, glace, illuminations…), complétés au besoin par les autres. */
+  function choisirLieux(credits, noel = etat?.noel) {
+    const avecPhoto = lieux().filter((l) => imageDe(l, credits)).sort(() => Math.random() - 0.5);
+    const hiver = noel ? avecPhoto.filter((l) => l.saisons?.periodes?.some((p) => p.sorte === 'hiver')) : [];
+    const melange = [...hiver, ...avecPhoto.filter((l) => !hiver.includes(l))];
     const choix = [];
     for (const l of melange) {
       if (choix.every((c) => km(c, l) >= ECART_MIN_KM)) choix.push(l);
@@ -763,7 +770,7 @@ export function brancherJeu(map, maplibregl, outils) {
   // ---- Les meilleurs scores (dans ce navigateur)
   function lireRecords() {
     try {
-      const r = JSON.parse(localStorage.getItem(MEMO_RECORDS));
+      const r = JSON.parse(localStorage.getItem(etat?.noel ? MEMO_RECORDS_NOEL : MEMO_RECORDS));
       if (r && Array.isArray(r.meilleurs)) return { parties: r.parties || r.meilleurs.length, meilleurs: r.meilleurs };
     } catch { /* rien de lisible : on repart de zéro */ }
     return { parties: 0, meilleurs: [] };
@@ -777,7 +784,7 @@ export function brancherJeu(map, maplibregl, outils) {
     records.meilleurs.push(partie);
     records.meilleurs.sort((a, b) => b.score - a.score || a.date - b.date);
     records.meilleurs = records.meilleurs.slice(0, NB_RECORDS);
-    try { localStorage.setItem(MEMO_RECORDS, JSON.stringify(records)); } catch { /* navigation privée : tant pis */ }
+    try { localStorage.setItem(etat?.noel ? MEMO_RECORDS_NOEL : MEMO_RECORDS, JSON.stringify(records)); } catch { /* navigation privée : tant pis */ }
     return { partie, rang: records.meilleurs.indexOf(partie), records };
   }
 
@@ -796,7 +803,7 @@ export function brancherJeu(map, maplibregl, outils) {
     if (phase !== 'devine') carte.classList.remove('presse', 'urgent', 'decompte');
     $('.jeu-manche').textContent = phase === 'devine' || phase === 'revele' ? t('jeuManche', etat.i + 1, etat.liste.length) : '';
     $('.jeu-score').textContent = phase === 'devine' || phase === 'revele' ? t('jeuPoints', nombre(total)) : '';
-    $('.jeu-titre').textContent = phase === 'accueil' ? t('jeu') : phase === 'amis' ? t('amisTitre') : phase === 'salon' ? t('jeuSalonTitre')
+    $('.jeu-titre').textContent = phase === 'accueil' ? t(etat.noel ? 'jeuNoel' : 'jeu') : phase === 'amis' ? t('amisTitre') : phase === 'salon' ? t('jeuSalonTitre')
       : phase === 'fin' ? (m ? t('jeuClassement') : t('jeuFin')) : '';
     $('.jeu-quitter').title = t('jeuQuitter');
     $('.jeu-quitter').setAttribute('aria-label', t('jeuQuitter'));
@@ -823,7 +830,7 @@ export function brancherJeu(map, maplibregl, outils) {
     action.disabled = false;
     action.hidden = false;
     if (phase === 'accueil') {
-      texte.textContent = t('jeuRegles', MANCHES, DUREE_MANCHE);
+      texte.textContent = t(etat.noel ? 'jeuReglesNoel' : 'jeuRegles', MANCHES, DUREE_MANCHE);
       action.textContent = aPlusieurs ? t('jeuJouerSeul') : t('jeuJouer');
     } else if (phase === 'amis') {
       texte.textContent = '';
@@ -1097,7 +1104,7 @@ export function brancherJeu(map, maplibregl, outils) {
     const moi = moiDans(s);
     const texte = s
       ? t('jeuPartageMulti', 1 + s.joueurs.filter((j) => j.total > (moi?.total || 0)).length, s.joueurs.length, moi?.total || 0, `https://${adresse}/?jeu`)
-      : t('jeuPartageMessage', etat.points.reduce((a, b) => a + b, 0), POINTS_MAX * etat.liste.length, `https://${adresse}/?jeu`);
+      : t(etat.noel ? 'jeuPartageNoel' : 'jeuPartageMessage', etat.points.reduce((a, b) => a + b, 0), POINTS_MAX * etat.liste.length, `https://${adresse}/?jeu`);
     partagerTexte(texte, t('jeuCopie'));
   }
 

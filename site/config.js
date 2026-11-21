@@ -74,7 +74,9 @@ export const CONFIG = {
   // Du jour « debut » jusqu'à minuit la veille du jour « fin » (à l'heure du visiteur).
   // public: false → seulement en mode développeur (qui le voit aussi avant « debut », pour le préparer) ;
   // true → pour tous les visiteurs.
-  noel: { debut: '2026-12-01', fin: '2026-12-26', public: false },
+  // kanji : le kanji de l'année 2026, annoncé le 12 décembre au Kiyomizu-dera (case 14 : il s'affiche au-dessus de
+  // Kyoto à partir du 14) ; tant qu'il est vide, la carte montre celui de 2025, 熊 (l'ours).
+  noel: { debut: '2026-12-01', fin: '2026-12-26', public: false, kanji: '' },
 
   // --- Badge « Nouveau » -----------------------------------------------
   // Un lieu dont la vidéo TikTok a moins de ce nombre de jours porte l'étiquette « Nouveau ».
@@ -420,6 +422,9 @@ export const TEXTES = {
     jeuRejouer: 'Play again',
     jeuPartager: 'Share my score',
     jeuPartageMessage: (n, max, lien) => `I scored ${n}/${max} at “Guess the place” on the 3D map of Japan 🗾 ${lien}`,
+    jeuNoel: 'The Christmas round',
+    jeuReglesNoel: (n, s) => `${n} winter places from my videos: snow, ice and lights. ${s} seconds each: look at the photo, then tap the map where you think it is. The closer you are, the more points you get.`,
+    jeuPartageNoel: (n, max, lien) => `I scored ${n}/${max} in the Christmas round of “Guess the place” on the 3D map of Japan 🎄 ${lien}`,
     jeuCopie: 'Score copied',
     jeuQuitter: 'Leave the game',
     jeuAgrandir: 'Enlarge the photo',
@@ -911,6 +916,9 @@ export const TEXTES = {
     jeuRejouer: 'Rejouer',
     jeuPartager: 'Partager mon score',
     jeuPartageMessage: (n, max, lien) => `J'ai fait ${n}/${max} à « Devine le lieu » sur la carte 3D du Japon 🗾 ${lien}`,
+    jeuNoel: 'La manche de Noël',
+    jeuReglesNoel: (n, s) => `${n} lieux d'hiver de mes vidéos : la neige, la glace et les lumières. ${s} secondes pour chacun : regarde la photo, puis touche la carte là où tu penses que c'est. Plus tu es près, plus tu marques de points.`,
+    jeuPartageNoel: (n, max, lien) => `J'ai fait ${n}/${max} à la manche de Noël de « Devine le lieu » sur la carte 3D du Japon 🎄 ${lien}`,
     jeuCopie: 'Score copié',
     jeuQuitter: 'Quitter le jeu',
     jeuAgrandir: 'Agrandir la photo',
@@ -1402,6 +1410,9 @@ export const TEXTES = {
     jeuRejouer: 'もう一度',
     jeuPartager: 'スコアをシェア',
     jeuPartageMessage: (n, max, lien) => `日本の3Dマップの「場所当てクイズ」で${n}/${max}点！🗾 ${lien}`,
+    jeuNoel: 'クリスマス編',
+    jeuReglesNoel: (n, s) => `動画に出てくる冬の場所${n}つ。雪、氷、イルミネーション。1問${s}秒。写真を見て、その場所だと思うところを地図でタップしてね。近いほど高得点！`,
+    jeuPartageNoel: (n, max, lien) => `日本の3Dマップの「場所当てクイズ」クリスマス編で${n}/${max}点！🎄 ${lien}`,
     jeuCopie: 'スコアをコピーしました',
     jeuQuitter: 'ゲームをやめる',
     jeuAgrandir: '写真を拡大',

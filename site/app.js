@@ -1305,6 +1305,8 @@ function majNoel() {
       langue: () => langue, afficherMessage, lieux: () => lieux, allerAuLieu, enLangue,
       fermerPanneau: () => ouvrirNoel(false), estDev: () => document.body.classList.contains('mode-dev'), config: CONFIG.noel,
       musique, // la case du 2 décembre débloque le style « Noël » du lecteur et le joue
+      jouerNoel: () => lancerJeu({ noel: true }).catch((e) => console.warn('Jeu indisponible', e)), // la case du 8 décembre
+      map, maplibregl, reperes, // les cadeaux posés sur la carte (noel-carte.js : cases 12, 14, 22 et 24)
     }))
     .catch((e) => { console.warn('Noël indisponible', e); noel = null; });
   noel.then((n) => {
@@ -1950,7 +1952,7 @@ async function lancerJeu(quoi = {}) {
   }
   if (quoi.partie) jeu.ouvrirPartie(quoi.partie);
   else if (quoi.ami) jeu.ouvrirAmis(quoi.ami);
-  else jeu.lancer();
+  else jeu.lancer({ noel: !!quoi.noel });
 }
 
 /**

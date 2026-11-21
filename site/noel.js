@@ -6,6 +6,7 @@
 // Maquette choisie par le propriétaire : l'artifact « Calendrier de l'Avent de la carte ».
 import { echapper, typoFr, partagerFichier, telecharger, tactile } from './commun.js';
 import { chargerImage, adresseGrain } from './bravo-image.js';
+import { DESSINS } from './legendes-dessins.js';
 
 const MEMOIRE = 'calendrierOuvert'; // les cases ouvertes (numéros des jours)
 const MEMOIRE_ESSAI = 'calendrierOuvertEssai'; // les mêmes, quand le mode développeur simule un jour
@@ -57,6 +58,27 @@ const TEXTES = {
     copie: 'Code copied',
     boutiqueAller: 'Go to the Inkami shop',
     ecouter: 'Listen',
+    jouerNoel: 'Play the Christmas round',
+    evenementNoel: 'Christmas special',
+    kanjiAria: (a) => `The kanji of the year ${a}`,
+    kanjiTitre: (a) => `the kanji of the year ${a}`,
+    kanjiTexte: (k, a) => `Every December 12, “Kanji Day”, the head priest of Kiyomizu-dera writes with a giant brush the kanji the Japanese voted for to sum up the year. For ${a}: ${k}.`,
+    yuzuAria: 'A yuzu floating in the hot spring',
+    yuzuTitre: 'A yuzu for Tōji',
+    yuzuTexte: () => `On Tōji, the winter solstice, the Japanese float yuzu in their bath: the scent warms you up and is said to keep colds away all winter. Find the yuzu of every hot spring on the map to win a koban for Bunbuku’s shop in the 3D walk.`,
+    yuzuTrouve: (n, t) => `Yuzu ${n}/${t}!`,
+    yuzuKoban: 'All the yuzu! A koban is waiting for you in Bunbuku’s shop, in the 3D walk.',
+    yuzuKobanEssai: 'All the yuzu! (Simulated day: no real koban.)',
+    yuzuProgres: (n, t) => `Yuzu found: ${n}/${t}`,
+    jizoAria: 'Six Jizō statues under the snow',
+    jizoTitre: 'The six Jizō',
+    jizoTexte: 'Six stone Jizō stand in the snow. Tap each one to give it a straw hat, as the old man does in the tale “Kasa Jizō”.',
+    jizoMerci: 'The six Jizō thank you! As in the tale, they bring a gift in the night: the Santa hat, for your traveller in the 3D walk.',
+    jizoChapeau: (n) => `A straw hat: ${n}/6`,
+    jizoBonnet: 'The Santa hat is yours! Find it in the wardrobe of the 3D walk.',
+    jizoProgres: (n) => `Straw hats given: ${n}/6`,
+    voirYukionna: 'See where she hides',
+    voirKanji: 'See it over Kyoto',
     pause: 'Pause',
     musiqueLecteur: 'It now plays in the map’s music player too (the ♪ button), style « Christmas ».',
     enPreparation: 'Being made: this gift will be ready before December (developer mode only).',
@@ -97,6 +119,27 @@ const TEXTES = {
     copie: 'Code copié',
     boutiqueAller: 'Aller à la boutique Inkami',
     ecouter: 'Écouter',
+    jouerNoel: 'Jouer la manche de Noël',
+    evenementNoel: 'Spécial Noël',
+    kanjiAria: (a) => `Le kanji de l’année ${a}`,
+    kanjiTitre: (a) => `le kanji de l’année ${a}`,
+    kanjiTexte: (k, a) => `Chaque 12 décembre, « jour du kanji », le grand prêtre du Kiyomizu-dera écrit au pinceau géant le kanji choisi par les votes des Japonais pour résumer l’année. Pour ${a} : ${k}.`,
+    yuzuAria: 'Un yuzu qui flotte dans l’onsen',
+    yuzuTitre: 'Un yuzu pour Tōji',
+    yuzuTexte: () => `Le jour de Tōji, le solstice d’hiver, les Japonais font flotter des yuzus dans leur bain : leur parfum réchauffe, et on dit qu’il éloigne les rhumes tout l’hiver. Trouve le yuzu de chaque onsen de la carte pour gagner un koban pour la boutique de Bunbuku, dans la balade 3D.`,
+    yuzuTrouve: (n, t) => `Yuzu ${n}/${t} !`,
+    yuzuKoban: 'Tous les yuzus ! Un koban t’attend dans la boutique de Bunbuku, dans la balade 3D.',
+    yuzuKobanEssai: 'Tous les yuzus ! (Jour simulé : pas de vrai koban.)',
+    yuzuProgres: (n, t) => `Yuzus trouvés : ${n}/${t}`,
+    jizoAria: 'Six statues Jizō sous la neige',
+    jizoTitre: 'Les six Jizō',
+    jizoTexte: 'Six Jizō de pierre attendent dans la neige. Touche chacun pour lui poser un chapeau de paille, comme le vieil homme du conte « Kasa Jizō ».',
+    jizoMerci: 'Les six Jizō te remercient ! Comme dans le conte, ils apportent un cadeau dans la nuit : le bonnet de Père Noël, pour ton voyageur de la balade 3D.',
+    jizoChapeau: (n) => `Un chapeau de paille : ${n}/6`,
+    jizoBonnet: 'Le bonnet de Père Noël est à toi ! Il t’attend dans la garde-robe de la balade 3D.',
+    jizoProgres: (n) => `Chapeaux posés : ${n}/6`,
+    voirYukionna: 'Voir où elle se cache',
+    voirKanji: 'Le voir au-dessus de Kyoto',
     pause: 'Pause',
     musiqueLecteur: 'Elle est aussi dans le lecteur de musique de la carte (le bouton ♪), style « Noël ».',
     enPreparation: 'En préparation : ce cadeau sera prêt avant décembre (visible seulement en mode développeur).',
@@ -137,6 +180,27 @@ const TEXTES = {
     copie: 'コピーしました',
     boutiqueAller: 'Inkamiのショップへ',
     ecouter: '聴く',
+    jouerNoel: 'クリスマス編で遊ぶ',
+    evenementNoel: 'クリスマス限定',
+    kanjiAria: (a) => `${a}年の今年の漢字`,
+    kanjiTitre: (a) => `${a}年の漢字`,
+    kanjiTexte: (k, a) => `毎年12月12日の「漢字の日」、清水寺の貫主が、投票で選ばれたその年の漢字を大きな筆で書きます。${a}年は「${k}」。`,
+    yuzuAria: '温泉に浮かぶゆず',
+    yuzuTitre: '冬至のゆず',
+    yuzuTexte: () => `冬至にゆず湯に入ると、冬のあいだかぜをひかないといわれます。地図の温泉のゆずを全部見つけると、3D散歩のぶんぶくの店で使える小判がもらえます。`,
+    yuzuTrouve: (n, t) => `ゆず ${n}/${t}！`,
+    yuzuKoban: 'ゆずを全部見つけた！3D散歩のぶんぶくの店で小判が待っています。',
+    yuzuKobanEssai: 'ゆずを全部見つけた！（日付の試し：本物の小判はなし）',
+    yuzuProgres: (n, t) => `見つけたゆず：${n}/${t}`,
+    jizoAria: '雪の中の六地蔵',
+    jizoTitre: '六地蔵',
+    jizoTexte: '雪の中に六体のお地蔵さま。昔話「笠地蔵」のおじいさんのように、一体ずつタップして笠をかぶせてあげよう。',
+    jizoMerci: 'お地蔵さまからのお礼！昔話のように、夜のうちに贈り物が届きます。3D散歩の旅人のサンタ帽です。',
+    jizoChapeau: (n) => `笠 ${n}/6`,
+    jizoBonnet: 'サンタ帽をもらった！3D散歩の着せ替えで使えます。',
+    jizoProgres: (n) => `かぶせた笠：${n}/6`,
+    voirYukionna: '隠れ場所を見る',
+    voirKanji: '京都の上で見る',
     pause: '一時停止',
     musiqueLecteur: 'マップの音楽プレーヤー（♪ボタン）の「クリスマス」でも聴けます。',
     enPreparation: '準備中（開発者モードのみ表示）',
@@ -146,6 +210,24 @@ const TEXTES = {
     devNote: '開発者モード：シミュレーション中に開けた窓は別に保存されます。',
     fermer: '閉じる',
   },
+};
+
+// Le conte de Yuki-onna (case 12), d'après « Yuki-Onna », dans Kwaidan de Lafcadio Hearn (1904), raconté avec nos mots.
+const CONTE_YUKIONNA = {
+  en: [
+    'One winter evening in the province of Musashi, two woodcutters, old Mosaku and young Minokichi, are caught by a snowstorm. They take shelter in the ferryman’s hut, on the other side of the river.',
+    'In the night, Minokichi wakes up: a woman all in white is bending over Mosaku and breathing on him a freezing breath. The old man will never wake again.',
+    'She bends over Minokichi, then spares him, because he is young. “But if you ever tell anyone what you have seen tonight, I will kill you.”',
+    'The next winter, Minokichi meets a young woman, O-Yuki (yuki means “snow”). They marry and have ten children, and she never seems to grow older.',
+    'One evening, by the lamp, he tells her about the night of the storm. O-Yuki stands up: “It was I.” She spares him once more, for their children, and melts into a white mist that rises through the smoke-hole. She was never seen again.',
+  ],
+  fr: [
+    'Un soir d’hiver, dans la province de Musashi, deux bûcherons, le vieux Mosaku et le jeune Minokichi, sont surpris par une tempête de neige. Ils s’abritent dans la cabane du passeur, de l’autre côté de la rivière.',
+    'Dans la nuit, Minokichi se réveille : une femme toute blanche est penchée sur Mosaku et souffle sur lui un souffle glacé. Le vieil homme ne se réveillera plus.',
+    'Elle se penche sur Minokichi, puis l’épargne, parce qu’il est jeune. « Mais si tu racontes un jour à quelqu’un ce que tu as vu cette nuit, je te tuerai. »',
+    'L’hiver suivant, Minokichi rencontre une jeune femme, O-Yuki (yuki veut dire « neige »). Ils se marient et ont dix enfants, et elle ne semble jamais vieillir.',
+    'Un soir, à la lueur de la lampe, il lui raconte la nuit de la tempête. O-Yuki se lève : « C’était moi. » Elle l’épargne encore, pour leurs enfants, et se change en une brume blanche qui s’en va par le trou de la fumée. On ne la revit jamais.',
+  ],
 };
 
 // Les 24 cases. lieu : l'identifiant du lieu sur la carte (son nom anglais en minuscules, comme dans ?voyage=).
@@ -205,9 +287,10 @@ const CASES = [
       fr: '24 mots japonais de l’hiver, de Noël et du Nouvel An, un pour chaque jour de l’Avent, avec leur traduction en anglais et en français et une petite explication. En PDF, à imprimer ou à garder sur ton téléphone.' },
     deco: { en: 'Christmas trees light up in the big cities.', fr: 'Des sapins s’allument dans les grandes villes.' },
     savais: { en: 'In January and February, clear blocks of ice wash up on the beach and shine like jewels at sunrise.', fr: 'En janvier et février, des blocs de glace transparents s’échouent sur la plage et brillent comme des bijoux au lever du soleil.' } },
-  { j: 8, k: 'carte', lieu: 'lake-kussharo', pret: false,
+  { j: 8, k: 'carte', lieu: 'lake-kussharo', pret: true, special: 'jeu',
     cadeau: { en: 'Guess the place: the Christmas round', fr: 'Devine le lieu : la manche de Noël', ja: '場所当て：クリスマス編' },
-    texte: { en: 'A special round of the game with winter places only, to play alone or with friends.', fr: 'Une partie spéciale du jeu, avec seulement des lieux d’hiver, à jouer seul ou avec des amis.' },
+    texte: { en: 'A special round of “Guess the place” with winter places only: snow, ice and lights. Play alone or with friends.',
+      fr: 'Une partie spéciale de « Devine le lieu », avec seulement des lieux d’hiver : la neige, la glace et les lumières. À jouer seul ou avec des amis.' },
     deco: { en: 'Swans land on the northern lakes.', fr: 'Des cygnes se posent sur les lacs du nord.' },
     savais: { en: 'Whooper swans spend the winter by the lake, where hot springs keep it from freezing.', fr: 'Des cygnes chanteurs passent l’hiver au bord du lac, là où des sources chaudes l’empêchent de geler.' } },
   { j: 9, k: 'telecharger', lieu: 'kegon-falls', pret: true,
@@ -227,10 +310,12 @@ const CASES = [
     texte: { en: 'Snowflake-shaped glasses for the traveller of the 3D walk.', fr: 'Des lunettes en forme de flocons de neige pour le voyageur de la balade 3D.' },
     deco: { en: 'Drift ice arrives along the Sea of Okhotsk.', fr: 'La banquise arrive le long de la mer d’Okhotsk.' },
     savais: { en: 'From late January to March, ice from Russia drifts to the coast of Abashiri: the ryūhyō.', fr: 'De fin janvier à mars, de la glace venue de Russie dérive jusqu’aux côtes d’Abashiri : c’est le ryūhyō.' } },
-  { j: 12, k: 'carte', lieu: 'togakushi-shrine', pret: false,
-    cadeau: { en: 'The legend of Yuki-onna', fr: 'La légende de Yuki-onna', ja: '雪女の伝説' },
-    texte: { en: 'A new legend hidden on the map: the snow woman, somewhere in the snowy mountains.', fr: 'Une nouvelle légende cachée sur la carte : la femme des neiges, quelque part dans les montagnes enneigées.' },
-    deco: { en: 'Sometimes a white figure passes in the storm…', fr: 'Parfois, une silhouette blanche passe dans la tempête…' },
+  // Yuki-onna est une légende cachée de la carte depuis octobre (legendes.js) : la case la réveille (noel-carte.js)
+  { j: 12, k: 'carte', lieu: 'togakushi-shrine', pret: true, special: 'conte',
+    cadeau: { en: 'The tale of Yuki-onna', fr: 'Le conte de Yuki-onna', ja: '雪女の物語' },
+    texte: { en: 'Yuki-onna, the snow woman, wakes up: a snowstorm now swirls around her, hidden in the mountains of the map. Here is her tale, as Lafcadio Hearn told it in 1904.',
+      fr: 'Yuki-onna, la femme des neiges, se réveille : une tempête tourne maintenant autour d’elle, cachée dans les montagnes de la carte. Voici son conte, tel que Lafcadio Hearn l’a raconté en 1904.' },
+    deco: { en: 'A snowstorm swirls around Yuki-onna.', fr: 'Une tempête de neige tourne autour de Yuki-onna.' },
     savais: { en: 'The path to the shrine is lined with cedars planted about 400 years ago.', fr: 'L’allée qui mène au sanctuaire est bordée de cèdres plantés il y a environ 400 ans.' } },
   { j: 13, k: 'telecharger', lieu: 'gokayama', pret: true,
     fichier: { apercu: 'noel/fond-gokayama-neige-apercu.jpg', url: 'noel/fond-gokayama-neige.jpg', nom: 'gokayama-sous-la-neige.jpg', forme: 'telephone', bouton: 'fond',
@@ -239,10 +324,10 @@ const CASES = [
     texte: { en: 'The real Gokayama: the thatched farmhouses of Suganuma village under deep snow, for your phone.', fr: 'Gokayama en vrai : les fermes aux toits de chaume du village de Suganuma sous la neige, pour ton téléphone.' },
     deco: { en: 'The farmhouse windows light up at night.', fr: 'Les fenêtres des fermes s’allument la nuit.' },
     savais: { en: 'On December 13, Japan starts preparing the New Year, with the big end-of-year cleaning (susuharai).', fr: 'Le 13 décembre, le Japon commence à préparer le Nouvel An, avec le grand ménage de fin d’année (susuharai).' } },
-  { j: 14, k: 'carte', lieu: 'kinkaku-ji', pret: false,
+  { j: 14, k: 'carte', lieu: 'kinkaku-ji', pret: true, special: 'kanji',
     cadeau: { en: 'The kanji of the year', fr: 'Le kanji de l’année', ja: '今年の漢字' },
     texte: { en: 'Each December in Kyoto, the head priest of Kiyomizu-dera writes with a giant brush the kanji that sums up the year. The map shows it over Kyoto.',
-      fr: 'Chaque mois de décembre à Kyoto, le grand prêtre du temple Kiyomizu-dera écrit au pinceau géant le kanji qui résume l’année. La carte l’affiche au-dessus de Kyoto.' },
+      fr: 'Chaque mois de décembre à Kyoto, le grand prêtre du temple Kiyomizu-dera écrit au pinceau géant le kanji qui résume l’année. La carte le pose en grand sur Kyoto.' },
     deco: { en: 'The kanji of the year appears over Kyoto.', fr: 'Le kanji de l’année s’écrit au-dessus de Kyoto.' },
     savais: { en: 'The kanji of 2025 was 熊, the bear, after a year of many bear encounters.', fr: 'Le kanji de 2025 était 熊, l’ours, après une année de nombreuses rencontres avec des ours.' } },
   { j: 15, k: 'telecharger', lieu: 'izumo-taisha', pret: true,
@@ -291,7 +376,7 @@ const CASES = [
     deco: { en: 'Two cranes dance over the bridge.', fr: 'Deux grues dansent au-dessus du pont.' },
     savais: { en: 'Its name means « the dance of the cranes ». In Japan the crane, which keeps the same mate all its life, brings luck to couples.',
       fr: 'Son nom veut dire « la danse des grues ». Au Japon, la grue, qui garde le même compagnon toute sa vie, porte bonheur aux couples.' } },
-  { j: 22, k: 'carte', lieu: 'the-hells-of-beppu', pret: false,
+  { j: 22, k: 'carte', lieu: 'the-hells-of-beppu', pret: true, special: 'yuzu',
     cadeau: { en: 'The yuzu bath', fr: 'Le bain de yuzu', ja: 'ゆず湯' },
     texte: { en: 'It is Tōji, the shortest day of the year in Japan. Yuzu float in the map’s hot springs: find them all to win a koban for Bunbuku’s shop.',
       fr: 'C’est Tōji, le jour le plus court de l’année au Japon. Des yuzus flottent dans les onsens de la carte : trouve-les tous pour gagner un koban pour la boutique de Bunbuku.' },
@@ -304,7 +389,7 @@ const CASES = [
     texte: { en: 'Japan’s Christmas cake, a sponge with whipped cream and strawberries, as a card to print.', fr: 'Le gâteau de Noël du Japon, une génoise avec de la crème fouettée et des fraises, en fiche à imprimer.' },
     deco: { en: 'The sleigh gets ready in Nara.', fr: 'Le traîneau se prépare à Nara.' },
     savais: { en: 'On the evening of the 24th, many Japanese families eat fried chicken: a habit born from a 1974 advert.', fr: 'Le soir du 24, beaucoup de familles japonaises mangent du poulet frit : une habitude née d’une publicité de 1974.' } },
-  { j: 24, k: 'carte', lieu: 'muro-ji', pret: false, grande: true,
+  { j: 24, k: 'carte', lieu: 'muro-ji', pret: true, grande: true, special: 'jizo',
     cadeau: { en: 'Christmas night', fr: 'La nuit de Noël', ja: 'クリスマスの夜' },
     texte: { en: 'Santa’s sleigh, pulled by Nara deer, crosses the sky of the map. Six Jizō statues wait under the snow: give them a straw hat, as in the tale, and they bring you the last gift, the Santa hat that completes the winter outfit of the walk.',
       fr: 'Le traîneau du Père Noël, tiré par des cerfs de Nara, traverse le ciel de la carte. Six statues Jizō attendent sous la neige : pose-leur un chapeau de paille, comme dans le conte, et elles t’apportent le dernier cadeau, le bonnet de Père Noël qui complète la tenue d’hiver de la balade.' },
@@ -359,7 +444,7 @@ const creer = (balise, classe, texte) => {
  * calendrier), estDev(), config (CONFIG.noel) }. Renvoie { allumer(), eteindre(), majLangue(), remplirPanneau() }.
  */
 export function brancherNoel(outils) {
-  const { langue, afficherMessage, lieux, allerAuLieu, enLangue, fermerPanneau, estDev, config, musique } = outils;
+  const { langue, afficherMessage, lieux, allerAuLieu, enLangue, fermerPanneau, estDev, config, musique, jouerNoel, map, maplibregl, reperes } = outils;
   const typo = (s) => (langue() === 'fr' ? typoFr(s) : s);
   const tx = (cle, ...args) => {
     const v = TEXTES[langue()]?.[cle] ?? TEXTES.en[cle];
@@ -373,6 +458,7 @@ export function brancherNoel(outils) {
   let simule = null; // mode développeur : le jour simulé (1 à 24), sinon null
   let choisie = null; // la case montrée sous les portes
   let prenom = lire(MEMOIRE_PRENOM, '') || '';
+  let surCarte = null; // les cadeaux posés sur la carte (noel-carte.js)
 
   /** Le jour du calendrier chez le visiteur : 0 avant le 1er décembre, 1 à 24, 25 ensuite (tout est ouvert). */
   function jourReel() {
@@ -385,8 +471,10 @@ export function brancherNoel(outils) {
   /** En mode développeur avant le 1er décembre, le calendrier se voit comme le 24 (tout s'ouvre) ; sinon le vrai jour. */
   function jour() {
     if (estDev() && simule) return simule;
+    if (estDev() && jourReel() === 0) return 24; // avant décembre, le propriétaire voit tout, la carte aussi
     return jourReel();
   }
+  const estSimule = () => estDev() && (!!simule || jourReel() === 0);
   const cleMemoire = () => (estDev() && simule ? MEMOIRE_ESSAI : MEMOIRE);
   const ouvertes = () => new Set(lire(cleMemoire(), []).filter((j) => j >= 1 && j <= 24));
   function marquerOuverte(j) {
@@ -399,6 +487,7 @@ export function brancherNoel(outils) {
   /** Le point rouge du bouton : la case du jour n'est pas encore ouverte. */
   function majPoint() {
     const j = jour();
+    surCarte?.maj(j); // les cadeaux de la carte suivent le jour (minuit, jour simulé)
     bouton.classList.toggle('a-ouvrir', j >= 1 && j <= 24 && !ouvertes().has(j));
   }
 
@@ -489,6 +578,10 @@ export function brancherNoel(outils) {
       <p>${echapper(enL(c.texte))}</p>`;
     if (c.special === 'prenom') s.append(blocPrenom());
     if (c.special === 'musique' && musique) s.append(blocMusique());
+    if (c.special === 'jeu' && jouerNoel) s.append(blocJeu());
+    if (c.special === 'conte') s.append(blocConte());
+    if (c.special === 'kanji') s.append(blocKanji());
+    if (c.special === 'yuzu' || c.special === 'jizo') s.append(blocProgres(c.special));
     if (c.fichier) s.append(blocFichier(c.fichier));
     if (c.code) s.append(blocCode(c));
     if (!c.pret && estDev()) s.append(creer('p', 'noel-preparation', tx('enPreparation')));
@@ -509,6 +602,44 @@ export function brancherNoel(outils) {
     f.append(creer('span', 'noel-etiquette', tx('savais')), creer('span', null, enL(c.savais)));
     s.append(d, f);
     return s;
+  }
+
+  // ---- Case 12 : le conte de Yuki-onna, et sa cachette sur la carte (la tempête tourne autour d'elle)
+  function blocConte() {
+    const div = creer('div', 'noel-conte');
+    div.innerHTML = `<div class="noel-conte-dessin" aria-hidden="true">${DESSINS.yukionna}</div>`;
+    for (const p of CONTE_YUKIONNA[langue()] || CONTE_YUKIONNA.en) div.append(creer('p', null, typo(p)));
+    const b = creer('button', 'btn-secondaire noel-voir', tx('voirYukionna'));
+    b.type = 'button';
+    b.addEventListener('click', () => { fermerPanneau(); surCarte?.allerYukionna(); });
+    div.append(b);
+    return div;
+  }
+  // ---- Case 14 : le kanji de l'année, et la feuille au-dessus de Kyoto
+  function blocKanji() {
+    const div = creer('div', 'noel-kanji-case');
+    const { k, annee } = surCarte?.etat().kanji || { k: '熊', annee: 2025 };
+    div.innerHTML = `<span class="nz-feuille"><span class="nz-titre-kanji">今年の漢字</span><b class="nz-kanji">${echapper(k)}</b><i class="nz-annee">${annee}</i></span>`;
+    const b = creer('button', 'btn-secondaire noel-voir', tx('voirKanji'));
+    b.type = 'button';
+    b.addEventListener('click', () => { fermerPanneau(); surCarte?.allerKanji(); });
+    div.append(b);
+    return div;
+  }
+  // ---- Cases 22 et 24 : où en est la chasse (les yuzus des onsens, les chapeaux des Jizō)
+  function blocProgres(quoi) {
+    const e = surCarte?.etat();
+    const p = creer('p', 'noel-progres');
+    if (e) p.textContent = quoi === 'yuzu' ? tx('yuzuProgres', e.yuzus, e.onsens) : tx('jizoProgres', e.chapeaux);
+    return p;
+  }
+
+  // ---- Case 8 : la manche de Noël du jeu « Devine le lieu » (jeu.js, lancer({ noel: true }))
+  function blocJeu() {
+    const b = creer('button', 'btn-lancer noel-jouer', tx('jouerNoel'));
+    b.type = 'button';
+    b.addEventListener('click', () => { fermerPanneau(); jouerNoel(); });
+    return b;
   }
 
   // ---- Case 1 : le prénom en japonais, sur un fond d'écran
@@ -696,6 +827,13 @@ export function brancherNoel(outils) {
     document.body.classList.add('noel');
     bouton.hidden = false;
     majLangue();
+    if (map && !surCarte) {
+      import('./noel-carte.js').then(({ brancherNoelCarte }) => {
+        if (!allume || surCarte) return;
+        surCarte = brancherNoelCarte(map, maplibregl, { reperes, tx, enL, langue, afficherMessage, lieux, estSimule, config });
+        surCarte.maj(jour());
+      }).catch((e) => console.warn('Noël sur la carte indisponible', e));
+    }
   }
 
   function eteindre() {
@@ -705,6 +843,8 @@ export function brancherNoel(outils) {
     fermerPanneau();
     bouton.hidden = true;
     simule = null;
+    surCarte?.eteindre();
+    surCarte = null;
   }
 
   function majLangue() {

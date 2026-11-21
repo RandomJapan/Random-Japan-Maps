@@ -149,3 +149,94 @@ body.noel #carte.loin .repere-tete::after { width: auto; height: auto; backgroun
   content: ""; position: absolute; top: 6px; right: 8px; width: 10px; height: 10px; border-radius: 50%;
   background: var(--rouge); box-shadow: 0 0 0 2px var(--papier);
 }
+
+/* ================================================================
+   Les cadeaux posés sur la carte (noel-carte.js) : cases 8 (le bouton de la manche de Noël), 12, 14, 22 et 24.
+   Les repères sont des .legende (legendes.css) : cachés de loin, posés sous les épingles. Les petits mouvements
+   ne jouent que pour ceux qui sont à l'écran (.anime), en transform.
+   ================================================================ */
+.noel-jouer, .noel-voir { width: 100%; }
+
+/* les bulles : « Spécial Noël » en tête, un filet vert sapin */
+.bulle-noel .maplibregl-popup-content { border-top: 3px solid var(--k-musique); }
+.bulle-noel .bulle-evenement {
+  display: flex; align-items: center; gap: 6px; margin: -2px 26px 8px 0; padding-bottom: 6px;
+  border-bottom: 1px dashed color-mix(in srgb, var(--k-musique) 50%, transparent);
+  font: 600 11.5px/1.25 var(--police); letter-spacing: .07em; text-transform: uppercase; color: var(--k-musique);
+}
+html:lang(ja) .bulle-noel .bulle-evenement { text-transform: none; letter-spacing: .04em; font-size: 12px; }
+.bulle-noel .bulle-evenement .houx { width: 22px; height: 19px; flex: none; color: var(--encre); }
+.bulle-noel .bulle-compte {
+  margin-left: auto; padding: 2px 7px; border-radius: 999px; background: var(--k-musique); color: #f6f1e4;
+  font-weight: 600; font-size: 11.5px; letter-spacing: .02em; text-transform: none; white-space: nowrap;
+}
+
+/* le 12 : une tempête de neige tourne autour de Yuki-onna (sa légende, legendes.js) */
+body.noel-tempete .legende[data-legende="yukionna"]::before {
+  content: ""; position: absolute; left: -64px; bottom: -34px; width: 128px; height: 118px; border-radius: 50%;
+  pointer-events: none;
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, .95) 0 1.3px, transparent 1.8px) 0 0 / 15px 13px,
+    radial-gradient(circle, rgba(232, 240, 248, .85) 0 1px, transparent 1.5px) 6px 4px / 11px 12px,
+    radial-gradient(circle, rgba(220, 232, 244, .35), transparent 70%);
+  -webkit-mask: radial-gradient(closest-side, #000 42%, transparent);
+  mask: radial-gradient(closest-side, #000 42%, transparent);
+}
+body.noel-tempete .legende.anime[data-legende="yukionna"]::before { animation: nz-tempete 6s linear infinite; }
+@keyframes nz-tempete { to { transform: rotate(-360deg); } }
+
+/* le 12, dans la case : le conte */
+.noel-conte { display: grid; gap: 8px; }
+.noel-conte p { margin: 0; font-size: 13.5px; line-height: 1.55; }
+.noel-conte-dessin { justify-self: center; width: 96px; height: 90px; }
+.noel-conte-dessin svg { width: 100%; height: 100%; display: block; }
+
+/* le 14 : le kanji de l'année, sur une grande feuille au pinceau (dans la case ; sur la carte, c'est une image
+   posée sur Kyoto, noel-carte.js) */
+.nz-feuille {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; width: 62px; padding: 5px 4px 6px;
+  background: #fbf7ec; border: 1px solid #b9a17e; box-shadow: 0 2px 6px rgba(52, 36, 18, .35);
+}
+.nz-titre-kanji { font: 9px/1 "Yuji Boku", var(--police-titre); letter-spacing: .12em; color: #6b5440; white-space: nowrap; }
+.nz-kanji { font: 400 42px/1.05 "Yuji Boku", "Zen Antique", serif; color: #1c140d; }
+.nz-annee { font: 600 9px/1 var(--police); font-style: normal; color: #fbf7ec; background: #b8402c; padding: 2px 4px; border-radius: 2px; }
+.noel-kanji-case { display: grid; justify-items: center; gap: 10px; }
+.noel-kanji-case .nz-feuille { width: 120px; padding: 10px 8px 12px; }
+.noel-kanji-case .nz-titre-kanji { font-size: 15px; }
+.noel-kanji-case .nz-kanji { font-size: 84px; }
+.noel-kanji-case .nz-annee { font-size: 12px; padding: 3px 6px; }
+
+/* le 22 : un yuzu qui flotte près de chaque onsen */
+.noel-yuzu svg { left: -27px; bottom: -9px; width: 54px; height: 50px; }
+.nz-onde { fill: none; stroke: #8fbab2; stroke-width: 1.2; }
+.noel-yuzu.anime .nz-yuzu { animation: nz-flotte 3.4s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 85%; }
+.noel-yuzu.anime .nz-onde2 { animation: nz-onde 3.4s ease-out infinite; transform-box: fill-box; transform-origin: 50% 50%; }
+@keyframes nz-flotte { 0%, 100% { transform: translateY(0) rotate(-5deg); } 50% { transform: translateY(1.6px) rotate(5deg); } }
+@keyframes nz-onde { from { transform: scale(.6); opacity: .9; } to { transform: scale(1.6); opacity: 0; } }
+.noel-yuzu.trouve svg { opacity: .6; }
+
+/* le 24 : six Jizō sous la neige ; un chapeau de paille sur ceux qu'on a touchés */
+.noel-jizo .nz-jizos { position: absolute; left: -98px; bottom: -4px; display: flex; gap: 2px; filter: drop-shadow(0 1px 1.5px rgba(52, 36, 18, .35)); }
+.noel-jizo .nz-jizo { display: block; width: 31px; height: 44px; }
+.noel-jizo .nz-jizo svg { position: static; width: 100%; height: 100%; filter: none; transform-origin: 50% 100%; }
+.noel-jizo .nz-kasa { opacity: 0; transition: opacity .4s, transform .4s var(--ease); transform: translateY(-7px); }
+.noel-jizo .coiffe .nz-kasa { opacity: 1; transform: none; }
+.noel-jizo .coiffe .nz-neige { opacity: 0; }
+.noel-jizo:hover svg { transform: none; }
+.noel-jizo .nz-jizo:hover svg { transform: scale(1.08); }
+.noel-progres { margin: 0; font-weight: 600; color: var(--k-carte); }
+
+/* le 24, la nuit : le traîneau du Père Noël, tiré par deux cerfs de Nara, traverse le ciel */
+.noel-traineau { position: fixed; inset: 0; z-index: 2; pointer-events: none; overflow: hidden; }
+.noel-traineau .nz-vol { position: absolute; top: var(--haut, 16%); left: 0; width: 190px; opacity: 0; }
+.noel-traineau.vole .nz-vol { animation: nz-traineau 16s linear forwards; }
+.noel-traineau svg { display: block; width: 100%; height: auto; }
+.noel-traineau.vole .nz-cerf { animation: nz-bond .45s ease-in-out infinite alternate; animation-delay: var(--r); }
+@keyframes nz-traineau {
+  0% { transform: translate(-220px, 34px); opacity: 0; }
+  5% { opacity: 1; }
+  50% { transform: translate(calc(50vw - 95px), -8px); }
+  95% { opacity: 1; }
+  100% { transform: translate(calc(100vw + 30px), 26px); opacity: 0; }
+}
+@keyframes nz-bond { to { transform: translateY(-2.5px); } }
