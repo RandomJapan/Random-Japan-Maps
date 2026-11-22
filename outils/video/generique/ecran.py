@@ -1,0 +1,343 @@
+# -*- coding: utf-8 -*-
+"""Met la vraie carte dans l'écran du téléphone du héros animé (sources/anime-flux.mp4 → public/clips/anime-flux.mp4).
+    python outils/video/generique/ecran.py [--essai]
+
+Le propriétaire (2026-11-22), après la première version : « quand le personnage il montre son téléphone avec la carte, faudrait que
+ce soit vraiment la carte qu'il montre, parce que là, avec le fond bleu et tout, c'est un peu nul ». FLUX avait dessiné un Japon
+turquoise sur un écran turquoise. Ici :
+- l'écran est repéré à sa couleur (le turquoise de FLUX, les trous de son dessin bouchés), image par image, à 24 images/s ;
+- ses quatre côtés sont des droites ajustées sur le bord de l'écran (sans les coins arrondis ni l'encoche) : leurs croisements sont
+  les quatre coins, et la vraie prise de la carte (`rushes/tn-japon.mp4`, celle qui suit dans le montage, au même instant) y est
+  posée en perspective, sous le cadre noir dessiné du téléphone ;
+- quand le téléphone sort du cadre (la caméra plonge dedans, images 63 → 70), les coins glissent en douceur jusqu'au cadrage exact
+  du plan de la carte à l'image T.carte (son zoom 1,3 → 1 à cet instant, fois le 1,06 de tous les plans) : la plongée atterrit sur
+  le plan suivant, sans raccord visible ;
+- dans sa main, avant qu'il le tende (images 27 → 31), le petit écran vu de biais et flou est trop petit pour y poser la carte
+  (essayé : des morceaux de terre orange sur sa main) : son turquoise prend seulement la couleur de la mer de la carte (le motif
+  turquoise du lit, derrière, n'est pas touché).
+--essai écrit les images avec les coins trouvés dans videos/carte/generique/brouillons/ecran/.
+"""
+import subprocess
+import sys
+from pathlib import Path
+
+import cv2
+import numpy as np
+
+ICI = Path(__file__).resolve().parent
+GENERIQUE = ICI.parents[2] / 'videos' / 'carte' / 'generique'
+SOURCE = GENERIQUE / 'sources' / 'anime-flux.mp4'
+CARTE = GENERIQUE / 'public' / 'rushes' / 'tn-japon.mp4'
+SORTIE = GENERIQUE / 'public' / 'clips' / 'anime-flux.mp4'
+ESSAIS = GENERIQUE / 'brouillons' / 'ecran'
+L, H = 1080, 1920
+COULEUR = ['-color_range', 'tv', '-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709']
+
+# Le montage (theme.ts, temps.ts, Generique.tsx) : l'animé commence à T.anime ; le plan de la carte (tn-japon, t0 2,1 s, zoom
+# [1,3 ; 1]) va de T.carte - 10 à T.takeda, et tous les plans sont agrandis de 1,06.
+FPS, V0, T0, TEMPS = 60, 122, 0.007, 60 / 165
+
+
+def b(n):
+    return V0 + round((T0 + n * TEMPS) * FPS)
+
+
+ANIME, CARTE_T, TAKEDA = b(0), b(8), b(16)
+PLAN_DE, PLAN_T0, PLAN_ZOOM = CARTE_T - 10, 2.1, (1.3, 1.0)
+# les images de FLUX (24/s) où l'écran est entier, celle d'où part la plongée, celle où elle atterrit (= T.carte)
+NETTES = range(42, 63)
+DEPART, ARRIVEE = 62, round((CARTE_T - ANIME) / 2.5)
+DANS_LA_MAIN = range(27, 32)
+
+
+def ffmpeg():
+    try:
+        return __import__('imageio_ffmpeg').get_ffmpeg_exe()
+    except ImportError:
+        return 'ffmpeg'
+
+
+def lire(f, filtre):
+    """Les images d'une vidéo en BGR (matrice bt709, comme le montage les lit)."""
+    p = subprocess.Popen([ffmpeg(), '-v', 'quiet', '-i', str(f), '-vf', f'{filtre}scale=in_color_matrix=bt709:in_range=tv,format=bgr24',
+                          '-f', 'rawvideo', '-'], stdout=subprocess.PIPE)
+    try:
+        while True:
+            brut = p.stdout.read(L * H * 3)
+            if len(brut) < L * H * 3:
+                break
+            yield np.frombuffer(brut, np.uint8).reshape(H, L, 3)
+    finally:
+        p.kill()
+        p.wait()
+
+
+# ---------------------------------------------------------------- repérer l'écran
+
+def turquoise(im):
+    hsv = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
+    h, s, v = hsv[..., 0], hsv[..., 1], hsv[..., 2]
+    return ((h >= 76) & (h <= 100) & (s >= 60) & (v >= 110)).astype(np.uint8)
+
+
+def plein(m):
+    """La plus grande tache, trous bouchés (le Japon et les épingles dessinés sur l'écran)."""
+    n, lab, st, _ = cv2.connectedComponentsWithStats(m, 8)
+    if n <= 1:
+        return None
+    i = 1 + int(np.argmax(st[1:, cv2.CC_STAT_AREA]))
+    tache = (lab == i).astype(np.uint8)
+    cs, _ = cv2.findContours(tache, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    out = np.zeros_like(tache)
+    cv2.drawContours(out, cs, -1, 1, -1)
+    return out, max(cs, key=cv2.contourArea)
+
+
+def ordonner(q):
+    """Haut-gauche, haut-droite, bas-droite, bas-gauche."""
+    q = np.asarray(q, float)
+    s, d = q.sum(1), q[:, 1] - q[:, 0]
+    return np.array([q[np.argmin(s)], q[np.argmin(d)], q[np.argmax(s)], q[np.argmax(d)]])
+
+
+def droite(p):
+    vx, vy, x0, y0 = cv2.fitLine(p.astype(np.float32), cv2.DIST_L2, 0, 0.01, 0.01).ravel()
+    return np.array([x0, y0]), np.array([vx, vy])
+
+
+def croise(a, b_):
+    (p, u), (q, v) = a, b_
+    m = np.array([u, -v]).T
+    t = np.linalg.solve(m, q - p)
+    return p + t[0] * u
+
+
+def cotes(contour):
+    """Les quatre côtés de l'écran : les points du bord attribués au côté le plus proche du rectangle englobant (sans les coins
+    arrondis), puis une droite ajustée en gardant les points les plus à l'extérieur (l'encoche et les coins rentrent)."""
+    pts = contour.reshape(-1, 2).astype(float)
+    dedans = (pts[:, 0] > 2) & (pts[:, 0] < L - 3) & (pts[:, 1] > 2) & (pts[:, 1] < H - 3)
+    boite = ordonner(cv2.boxPoints(cv2.minAreaRect(contour)))
+    centre = boite.mean(0)
+    res = []
+    for i in range(4):
+        a, z = boite[i], boite[(i + 1) % 4]
+        u = (z - a) / np.linalg.norm(z - a)
+        n = np.array([u[1], -u[0]])
+        if np.dot(n, a - centre) < 0:
+            n = -n
+        t = (pts - a) @ u / np.linalg.norm(z - a)
+        d = (pts - a) @ n
+        res.append((a, u, n, t, d))
+    dist = np.stack([np.abs(r[4]) for r in res], 1)
+    proche = np.argmin(dist, 1)
+    lignes = []
+    for i, (a, u, n, t, d) in enumerate(res):
+        sel = (proche == i) & dedans & (t > 0.14) & (t < 0.86)
+        if sel.sum() < 40:
+            lignes.append(None)
+            continue
+        p = pts[sel]
+        ligne = droite(p)
+        for _ in range(4):
+            o, v = ligne
+            nn = np.array([v[1], -v[0]])
+            if np.dot(nn, o - centre) < 0:
+                nn = -nn
+            dd = (p - o) @ nn
+            garde = dd > np.median(dd) - 3
+            if garde.sum() < 30:
+                break
+            ligne = droite(p[garde])
+        lignes.append(ligne)
+    return lignes
+
+
+def coins(lignes):
+    if any(x is None for x in lignes):
+        return None
+    return np.array([croise(lignes[(i + 3) % 4], lignes[i]) for i in range(4)])
+
+
+# ---------------------------------------------------------------- la carte posée dans l'écran
+
+def zoom_plan(e):
+    """Le zoom du plan de la carte à l'image e du montage (Commun.tsx, Image_), fois le 1,06 de LePlan."""
+    duree = TAKEDA - PLAN_DE
+    u = min(1, max(0, (e - PLAN_DE) / duree))
+    expo = 1 if u >= 1 else 1 - 2 ** (-10 * u)
+    z0, z1 = PLAN_ZOOM
+    return 1.06 * (z0 + (z1 - z0) * (u * 0.6 + expo * 0.4))
+
+
+def image_carte(e):
+    """L'image de tn-japon que le plan montre à l'image e du montage (trimBefore = round(t0 × 60))."""
+    return round(PLAN_T0 * FPS) + e - PLAN_DE
+
+
+def cadrage(z):
+    """Le cadre entier, vu par le plan au zoom z (autour du centre) : la plongée atterrit là."""
+    c = np.array([L / 2, H / 2])
+    return np.array([c + z * (np.array(p) - c) for p in [(0, 0), (L, 0), (L, H), (0, H)]])
+
+
+def poser(fond, carte, rect, quad, masque, reflet=0.0):
+    """La carte (son rectangle `rect` de l'image source) posée sur le quadrilatère `quad`, à travers le masque de l'écran."""
+    hm = cv2.getPerspectiveTransform(rect.astype(np.float32), quad.astype(np.float32))
+    # réduite d'abord si l'écran est petit (sinon les épingles crénelent)
+    ech = np.sqrt(abs(np.linalg.det(hm[:2, :2] / hm[2, 2])))
+    f = min(1.0, 1.4 * ech)
+    src = carte
+    if f < 0.95:
+        src = cv2.resize(carte, None, fx=f, fy=f, interpolation=cv2.INTER_AREA)
+        hm = hm @ np.diag([1 / f, 1 / f, 1])
+    pose = cv2.warpPerspective(src, hm, (L, H), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REFLECT)
+    if reflet > 0:
+        # un reflet en biais sur la vitre, très léger
+        yy, xx = np.mgrid[0:H, 0:L].astype(np.float32)
+        q = quad.mean(0)
+        bande = np.exp(-(((xx - q[0]) * 0.55 + (yy - q[1]) * 0.83 + 0.18 * np.linalg.norm(quad[2] - quad[0])) / 60) ** 2)
+        pose = np.clip(pose + (reflet * 255 * bande)[..., None], 0, 255).astype(np.uint8)
+    a = masque[..., None].astype(np.float32)
+    return (fond * (1 - a) + pose * a).astype(np.uint8)
+
+
+# la mer de la carte (tn-japon, en HSV d'OpenCV) : teinte 81, saturation 55, valeur 180 ; le turquoise de FLUX : 87, ~190, ~220
+MER_TEINTE, MER_SAT, MER_VAL = 81, 0.3, 0.82
+
+
+def teinter(im, a):
+    """Le turquoise de FLUX passé à la couleur de la mer de la carte, à travers le masque doux `a`."""
+    hsv = cv2.cvtColor(im, cv2.COLOR_BGR2HSV).astype(np.float32)
+    hsv[..., 0] = MER_TEINTE
+    hsv[..., 1] *= MER_SAT
+    hsv[..., 2] *= MER_VAL
+    mer = cv2.cvtColor(np.clip(hsv, 0, 255).astype(np.uint8), cv2.COLOR_HSV2BGR)
+    a = a[..., None]
+    return (im * (1 - a) + mer * a).astype(np.uint8)
+
+
+def masque_doux(m, elargir=3):
+    m = cv2.dilate(m, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * elargir + 1, 2 * elargir + 1)))
+    return cv2.GaussianBlur(m.astype(np.float32), (0, 0), 1.2)
+
+
+def fabriquer(essai=False):
+    filtre = 'scale=1080:1920:flags=lanczos,unsharp=5:5:0.6,'
+    images = list(lire(SOURCE, filtre))
+    K = len(images)
+    masques, quads, teintes = {}, {}, {}
+    for k, im in enumerate(images):
+        m = turquoise(im)
+        if k in DANS_LA_MAIN:
+            # le téléphone dans sa main : le turquoise vif (le motif du lit, derrière, est plus sombre et moins saturé : valeur
+            # 115 → 150, saturation 60 → 120), et le turquoise un peu moins vif tout autour (le flou du geste)
+            hsv = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
+            vif = (m * (hsv[..., 1] >= 120) * (hsv[..., 2] >= 158)).astype(np.uint8)
+            r = plein(vif)
+            if r is not None and r[0].sum() > 300:
+                autour = cv2.dilate(r[0], np.ones((21, 21), np.uint8)) * m * (hsv[..., 1] >= 90) * (hsv[..., 2] >= 140)
+                teintes[k] = cv2.GaussianBlur(np.maximum(autour, r[0]).astype(np.float32), (0, 0), 2.0)
+            continue
+        if k < 39:
+            continue
+        r = plein(m)
+        if r is None:
+            continue
+        masques[k], contour = r
+        if k <= DEPART:
+            quads[k] = coins(cotes(contour)) if k in NETTES else None
+            quads[k] = quads[k] if quads[k] is not None else cotes(contour)
+
+    # l'écran entier : ses proportions (la largeur sur la hauteur), pour le rectangle de la carte à y poser
+    prop = np.median([np.linalg.norm(quads[k][1] - quads[k][0]) / np.linalg.norm(quads[k][3] - quads[k][0]) for k in NETTES])
+    print(f'proportions de l\'écran : {prop:.3f}')
+
+    # quand il entre par la droite (39 → 41), le côté droit manque : celui de l'image 42 déplacé par la similitude qui amène
+    # ses deux coins de gauche sur les nouveaux
+    for k in (41, 40, 39):
+        lignes = quads.get(k)
+        if not isinstance(lignes, list):
+            continue
+        g, h_, bas = lignes[3], lignes[0], lignes[2]
+        ref = quads[k + 1]
+        if g is not None and h_ is not None and bas is not None:
+            hg, bg = croise(g, h_), croise(bas, g)
+        else:
+            # trop peu de bord visible : le mouvement des deux images suivantes, prolongé
+            hg, bg = 2 * quads[k + 1][0] - quads[k + 2][0], 2 * quads[k + 1][3] - quads[k + 2][3]
+        a0, a1 = ref[0], ref[3]
+        za, zb = complex(*(a1 - a0)), complex(*(bg - hg))
+        s = zb / za
+        quads[k] = np.array([[(complex(*(p - a0)) * s).real, (complex(*(p - a0)) * s).imag] for p in ref]) + hg
+
+    # le rectangle de tn-japon montré dans l'écran : toute sa hauteur, sa bande du milieu aux proportions de l'écran
+    lh = H * prop
+    rect_ecran =np.array([[(L - lh) / 2, 0], [(L + lh) / 2, 0], [(L + lh) / 2, H], [(L - lh) / 2, H]])
+
+    if essai:
+        ESSAIS.mkdir(parents=True, exist_ok=True)
+        for k in sorted(quads):
+            im = images[k].copy()
+            if k in masques:
+                im[masques[k] > 0] = (im[masques[k] > 0] * 0.5 + np.array([0, 0, 255]) * 0.5).astype(np.uint8)
+            cv2.polylines(im, [quads[k].astype(np.int32)], True, (0, 255, 0), 3)
+            cv2.imwrite(str(ESSAIS / f'coins-{k:02d}.jpg'), cv2.resize(im, (540, 960)))
+        print('essais →', ESSAIS)
+        return
+
+    # la plongée : de l'image DEPART à ARRIVEE, chaque coin glisse en ligne droite vers le cadrage du plan à T.carte, d'abord à
+    # la vitesse où FLUX approchait le téléphone (la hauteur de l'écran entre 61 et 62), puis de plus en plus lentement
+    fin = cadrage(zoom_plan(CARTE_T))
+    # le rectangle de la carte pour le cadrage du plan : le cadre entier (le plan montre tn-japon en plein écran)
+    rect_plein = np.array([[0, 0], [L, 0], [L, H], [0, H]], float)
+    # pendant la plongée on passe du rectangle de l'écran (au milieu de tn-japon) au cadre entier ; on garde rect_ecran et on
+    # prolonge le quadrilatère d'arrivée en conséquence : le cadrage `fin` vu à travers rect_ecran
+    hm_fin = cv2.getPerspectiveTransform(rect_plein.astype(np.float32), fin.astype(np.float32))
+    fin_ecran = cv2.perspectiveTransform(rect_ecran.reshape(-1, 1, 2).astype(np.float32), hm_fin).reshape(-1, 2)
+    h0 = np.linalg.norm(quads[DEPART][3] - quads[DEPART][0])
+    v0 = h0 - np.linalg.norm(quads[DEPART - 1][3] - quads[DEPART - 1][0])
+    h1 = np.linalg.norm(fin_ecran[3] - fin_ecran[0])
+    p = max(1.2, min(4.0, v0 * (ARRIVEE - DEPART) / max(1.0, h1 - h0)))
+    print(f'plongée : écran {h0:.0f} → {h1:.0f} px de haut en {ARRIVEE - DEPART} images, départ {v0:.0f} px/image (p = {p:.2f})')
+    for k in range(DEPART + 1, ARRIVEE + 1):
+        tau = (k - DEPART) / (ARRIVEE - DEPART)
+        s = 1 - (1 - tau) ** p
+        quads[k] = quads[DEPART] + s * (fin_ecran - quads[DEPART])
+    for k in range(DEPART + 1, K):
+        if k not in quads:
+            quads[k] = fin_ecran
+        m = turquoise(images[k])
+        r = plein(m)
+        masques[k] = r[0] if r is not None else np.ones((H, L), np.uint8)
+
+    # les images de la carte, lues au fil de l'eau (le montage montre l'image e du plan à l'image e)
+    sortie = subprocess.Popen([ffmpeg(), '-hide_banner', '-loglevel', 'error', '-y', '-f', 'rawvideo', '-pix_fmt', 'bgr24', '-s', f'{L}x{H}',
+                               '-r', str(FPS), '-i', '-', '-vf', 'scale=out_color_matrix=bt709:out_range=tv,format=yuv420p',
+                               '-c:v', 'libx264', '-preset', 'slow', '-crf', '15', '-g', '6', *COULEUR, str(SORTIE)], stdin=subprocess.PIPE)
+    cartes = lire(CARTE, '')
+    i_carte, carte = -1, None
+    N = int(K * 2.5)
+    doux = {k: masque_doux(m) for k, m in masques.items()}
+    for n in range(N):
+        k = min(K - 1, int(n / 2.5 + 1e-6))
+        e = ANIME + n
+        voulue = max(0, image_carte(e))
+        while i_carte < voulue:
+            carte = next(cartes)
+            i_carte += 1
+        im = images[k]
+        if k in quads and k in doux:
+            reflet = 0.05 * (1 - min(1, max(0, (k - DEPART) / 3))) if k >= 42 else 0
+            im = poser(im, carte, rect_ecran, quads[k], doux[k], reflet)
+        if k in teintes:
+            im = teinter(im, teintes[k])
+        sortie.stdin.write(im.tobytes())
+    cartes.close()
+    sortie.stdin.close()
+    sortie.wait()
+    print('ok →', SORTIE)
+
+
+if __name__ == '__main__':
+    fabriquer('--essai' in sys.argv)

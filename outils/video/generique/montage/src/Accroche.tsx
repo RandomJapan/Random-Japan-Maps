@@ -1,7 +1,8 @@
 // Le hook (image 0 → temps 8) : le vrai garçon au chapeau de paille dégaine son katana et tranche vers l'objectif (rush 4 du
 // propriétaire, avant la chanson, dans le bruit de sa chambre) ; la lame passe devant l'objectif : l'image se fend en deux le long
 // de la lame, la chanson démarre, et de l'autre côté il est devenu un héros d'animé (son rush 2 redessiné par FLUX), qui se
-// retourne, sourit et tend son téléphone ; la caméra entre dans l'écran, et la vraie carte s'ouvre sur « 地図を広げて ».
+// retourne, sourit et tend son téléphone, la vraie carte dessus (posée image par image dans l'écran par ecran.py) ; la caméra entre
+// dans l'écran, et la carte s'ouvre en grand sur « 地図を広げて ».
 import React from "react";
 import { AbsoluteFill, Freeze, OffthreadVideo, Sequence, staticFile, useCurrentFrame } from "remotion";
 import { C, entre, expoEntree, expoSortie, FPS, POLICE, rebond } from "./theme";
@@ -70,15 +71,15 @@ const Fente: React.FC = () => {
   );
 };
 
-/** Le passage dans l'écran du téléphone : l'animé grandit vers l'écran (turquoise) et s'efface pendant que la vraie carte arrive
- *  (Generique.tsx la montre dessous, à partir de T.carte - 10). */
+/** Le passage dans l'écran du téléphone : la plongée est dans le plan animé lui-même (ecran.py fait atterrir la carte de l'écran
+ *  sur le cadrage exact du plan de la carte à T.carte) ; Generique.tsx montre ce plan dessous à partir de T.carte - 10, et l'animé
+ *  s'efface sur les trois dernières images. */
 export const AVANT_CARTE = 10;
 
 export const Accroche: React.FC = () => {
   const f = useCurrentFrame();
   if (f >= T.carte + 2) return null;
-  // l'animé : de T.anime jusqu'à la carte, à la vitesse du rush ; il grandit vers l'écran du téléphone à la fin
-  const passe = expoEntree(entre(f, T.carte - AVANT_CARTE, T.carte));
+  // l'animé : de T.anime jusqu'à la carte, à la vitesse du rush
   const coupe = f >= T.coupe ? 1 - rebond(f, T.coupe, 320, 20) : 0;
   return (
     <AbsoluteFill style={{ zIndex: 100 }}>
@@ -92,7 +93,7 @@ export const Accroche: React.FC = () => {
       {/* l'animé */}
       {f >= T.anime && (
         <Sequence from={T.anime} layout="none">
-          <AbsoluteFill style={{ transform: `scale(${(1 + 0.9 * passe).toFixed(4)})`, transformOrigin: "62% 46%", opacity: 1 - entre(f, T.carte - 5, T.carte + 1) }}>
+          <AbsoluteFill style={{ opacity: 1 - entre(f, T.carte - 3, T.carte) }}>
             <Video src="clips/anime-flux.mp4" />
           </AbsoluteFill>
         </Sequence>

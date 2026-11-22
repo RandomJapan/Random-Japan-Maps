@@ -6,7 +6,8 @@ git), le dossier public du montage Remotion (outils/video/generique/montage).
   l'objectif), passés dans sa LUT DJI (D-Log M vers Rec.709).
 - Les plans animés : son rush 2 (il se retourne et montre la carte sur son téléphone, 3,5 → 6,6 s) et deux passages du rush 4
   (il tranche vers l'objectif, 4,8 → 7,1 s ; il dégaine, 0,6 → 3,5 s) redessinés en animé par FLUX 3 Video Edit sur Flora
-  (sources/anime-flux.mp4, anime-coupe.mp4, anime-tire.mp4 ; 0,10 à 0,11 $ chacun), agrandis en 1080 × 1920. Kling O1 Edit a
+  (sources/anime-flux.mp4, anime-coupe.mp4, anime-tire.mp4 ; 0,10 à 0,11 $ chacun), agrandis en 1080 × 1920 ; dans le rush 2, la
+  vraie carte est posée dans l'écran du téléphone par ecran.py (FLUX y avait dessiné un Japon turquoise). Kling O1 Edit a
   aussi fait le rush 2 (anime-kling.mp4, 0,46 $) : un autre visage, le ruban rouge du chapeau, une carte qui n'est pas le Japon ;
   pas utilisé.
 - Ses vrais plans des lieux (REELS : le fichier dans D:\\Montage\\Vidéo lieux random japon, la seconde, la durée, et parfois un
@@ -20,6 +21,8 @@ import subprocess
 from pathlib import Path
 
 import numpy as np
+
+import ecran
 
 ICI = Path(__file__).resolve().parent
 RACINE = ICI.parents[2]
@@ -95,11 +98,15 @@ def vrais():
 
 def animes():
     """Les plans animés de Flora (704 × 1248, 24 images/s) : agrandis (lanczos et un peu de netteté sur les traits), chaque image
-    répétée pour 60 images/s (l'animé garde son pas)."""
+    répétée pour 60 images/s (l'animé garde son pas). Le rush 2 (anime-flux) passe par ecran.py, qui pose la vraie carte
+    (rushes/tn-japon.mp4, copiée avant) dans l'écran du téléphone."""
     for nom in ('anime-flux', 'anime-coupe', 'anime-tire'):
         src, dest = SOURCES / f'{nom}.mp4', PUBLIC / 'clips' / f'{nom}.mp4'
         if src.exists() and (not dest.exists() or dest.stat().st_mtime < src.stat().st_mtime):
-            encoder(src, dest, 'scale=1080:1920:flags=lanczos,unsharp=5:5:0.6,fps=60,format=yuv420p')
+            if nom == 'anime-flux':
+                ecran.fabriquer()
+            else:
+                encoder(src, dest, 'scale=1080:1920:flags=lanczos,unsharp=5:5:0.6,fps=60,format=yuv420p')
 
 
 def reels():
@@ -170,10 +177,10 @@ def chanson():
 
 def main():
     vrais()
-    animes()
-    reels()
     for p in PRISES:
         copier(p, PUBLIC / 'rushes' / p.name)
+    animes()
+    reels()
     for s in SFX:
         copier(s, PUBLIC / 'sfx' / s.name)
     katana()
