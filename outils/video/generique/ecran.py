@@ -44,13 +44,16 @@ class Video:
     avant) et où ce plan finit ; son t0 et son zoom (Generique.tsx, Fille.tsx), tous les plans étant agrandis de 1,06."""
 
     def __init__(self, nom, v0, t0, anime, carte, fin_plan, plan_t0=2.1, plan_zoom=(1.3, 1.0), affiches=False, bpm=165,
-                 nettes=range(42, 63), depart=62, main=range(27, 32), entree=(41, 40, 39), debut=39):
+                 nettes=range(42, 63), depart=62, main=range(27, 32), entree=(41, 40, 39), debut=39, bouge=False):
         self.source = GENERIQUE / 'sources' / f'{nom}.mp4'
         self.sortie = GENERIQUE / 'public' / 'clips' / f'{nom}.mp4'
         self.v0, self.t0, self.temps = v0, t0, 60 / bpm
         # les images de FLUX (24/s) : l'écran entier, le départ de la plongée, le téléphone petit dans la main (seulement teinté),
         # celles où il entre par la droite (le côté droit manque), la première où on le cherche
         self.nettes, self.depart, self.main, self.entree, self.debut = nettes, depart, main, entree, debut
+        # `bouge` : le téléphone filé par FLUX quand il bouge vite (la vidéo 4) ; la carte y est filée de même, et le halo turquoise
+        # du flou, autour de l'écran, prend la couleur de la mer de la carte
+        self.bouge = bouge
         self.anime, self.carte, self.fin_plan = self.b(anime), self.b(carte), self.b(fin_plan)
         self.plan_de, self.plan_t0, self.plan_zoom, self.affiches = self.carte - 10, plan_t0, plan_zoom, affiches
         # l'image de FLUX (24/s) où la plongée atterrit (= T.carte)
@@ -71,10 +74,12 @@ VIDEOS = {
     'heros-pop': Video('heros-pop', v0=-5335, t0=0.2151, bpm=167.073, anime=247, carte=253, fin_plan=261,
                        nettes=range(16, 50), depart=49, main=range(10, 12), entree=(15, 14, 13, 12), debut=10),
     # la vidéo 4 (l'héroïne, la chanson n° 4, f4/temps.ts : 165,004 battements par minute depuis 0,2610 s) : l'animé dès l'image
-    # 0 (son temps 93), la carte sur le refrain (temps 100), la route d'Yushun au temps 108. Le téléphone petit dans sa main (11 →
-    # 26), l'écran entier de 27 à 56
+    # 0 (son temps 93), la carte sur le refrain (temps 100), la route d'Yushun au temps 108. Le téléphone caché à moitié par sa
+    # hanche (11, 12 : seulement teinté), puis l'écran entier dans sa main, face à nous, de 13 à 56 (le propriétaire, 2026-11-22 :
+    # « au début, la carte ne suit pas bien le téléphone » : l'écran restait turquoise dans sa main, la carte arrivait d'un coup à
+    # l'image 27, nette dans un téléphone filé, avec un halo turquoise autour)
     'fille-tourne': Video('fille-tourne', v0=-2045, t0=0.2610, bpm=165.004, anime=93, carte=100, fin_plan=108,
-                          nettes=range(27, 57), depart=56, main=range(11, 27), entree=(), debut=27),
+                          nettes=range(13, 57), depart=56, main=range(11, 13), entree=(), debut=13, bouge=True),
 }
 
 
@@ -187,6 +192,13 @@ def coins(lignes):
     return np.array([croise(lignes[(i + 3) % 4], lignes[i]) for i in range(4)])
 
 
+def tourner(q, ref):
+    """Les coins de q pris dans l'ordre (haut-gauche, haut-droite, bas-droite, bas-gauche du téléphone) qui va le mieux avec ceux
+    de l'image voisine `ref` : quand le téléphone est penché à 45° (vidéo 4, dans sa main), `ordonner` peut prendre son long côté
+    pour le haut, et la carte serait posée de travers, écrasée."""
+    return min((np.roll(q, -r, 0) for r in range(4)), key=lambda p: np.linalg.norm((p - p.mean(0)) - (ref - ref.mean(0))))
+
+
 # ---------------------------------------------------------------- la carte posée dans l'écran
 
 def zoom_plan(v, e):
@@ -268,17 +280,40 @@ def cadrage(z):
     return np.array([c + z * (np.array(p) - c) for p in [(0, 0), (L, 0), (L, H), (0, H)]])
 
 
-def poser(fond, carte, rect, quad, masque, reflet=0.0):
-    """La carte (son rectangle `rect` de l'image source) posée sur le quadrilatère `quad`, à travers le masque de l'écran."""
+def poser(fond, carte, rect, quad, masque, reflet=0.0, file=None, forme=None):
+    """La carte (son rectangle `rect` de l'image source) posée sur le quadrilatère `quad`, à travers le masque de l'écran ; `file` :
+    le déplacement de ses coins pendant la pose (le flou de bougé de FLUX), la carte est alors la moyenne de ses positions ;
+    `forme` : la forme de l'écran dans l'image source (posée comme la carte, elle borde le masque d'un trait net qui suit les
+    coins)."""
     hm = cv2.getPerspectiveTransform(rect.astype(np.float32), quad.astype(np.float32))
     # réduite d'abord si l'écran est petit (sinon les épingles crénelent)
     ech = np.sqrt(abs(np.linalg.det(hm[:2, :2] / hm[2, 2])))
     f = min(1.0, 1.4 * ech)
-    src = carte
+    src, fsrc = carte, forme
     if f < 0.95:
         src = cv2.resize(carte, None, fx=f, fy=f, interpolation=cv2.INTER_AREA)
-        hm = hm @ np.diag([1 / f, 1 / f, 1])
-    pose = cv2.warpPerspective(src, hm, (L, H), flags=cv2.INTER_CUBIC, borderMode=cv2.BORDER_REFLECT)
+        if forme is not None:
+            fsrc = cv2.resize(forme, None, fx=f, fy=f, interpolation=cv2.INTER_AREA)
+
+    def plaque(q, im, bord):
+        h_ = cv2.getPerspectiveTransform(rect.astype(np.float32), q.astype(np.float32))
+        if f < 0.95:
+            h_ = h_ @ np.diag([1 / f, 1 / f, 1])
+        return cv2.warpPerspective(im, h_, (L, H), flags=cv2.INTER_CUBIC if bord == cv2.BORDER_REFLECT else cv2.INTER_LINEAR,
+                                   borderMode=bord)
+
+    positions = [quad]
+    if file is not None and np.abs(file).max() > 5:
+        positions = [quad + t * file for t in np.linspace(-0.5, 0.5, int(np.clip(np.abs(file).max() / 3, 3, 21)))]
+    if len(positions) > 1:
+        somme = np.zeros((H, L, 3), np.float32)
+        for q in positions:
+            somme += plaque(q, src, cv2.BORDER_REFLECT)
+        pose = np.clip(somme / len(positions) + 0.5, 0, 255).astype(np.uint8)
+    else:
+        pose = plaque(quad, src, cv2.BORDER_REFLECT)
+    if fsrc is not None:
+        masque = masque * sum(plaque(q, fsrc, cv2.BORDER_CONSTANT) for q in positions) / len(positions)
     if reflet > 0:
         # un reflet en biais sur la vitre, très léger
         yy, xx = np.mgrid[0:H, 0:L].astype(np.float32)
@@ -307,6 +342,39 @@ def teinter(im, a):
 def masque_doux(m, elargir=3):
     m = cv2.dilate(m, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * elargir + 1, 2 * elargir + 1)))
     return cv2.GaussianBlur(m.astype(np.float32), (0, 0), 1.2)
+
+
+def forme_ecran(rect):
+    """L'écran dans l'image de la carte : le rectangle `rect` aux coins arrondis (un dixième de sa largeur), rentré d'un centième."""
+    f = np.zeros((H, L), np.float32)
+    (x0, y0), (x1, y1) = rect[0], rect[2]
+    w = x1 - x0
+    m, r = 0.01 * w, 0.1 * w
+    x0, y0, x1, y1 = x0 + m, y0 + m, x1 - m, y1 - m
+    cv2.rectangle(f, (int(x0 + r), int(y0)), (int(x1 - r), int(y1)), 1, -1)
+    cv2.rectangle(f, (int(x0), int(y0 + r)), (int(x1), int(y1 - r)), 1, -1)
+    for cx, cy in ((x0 + r, y0 + r), (x1 - r, y0 + r), (x1 - r, y1 - r), (x0 + r, y1 - r)):
+        cv2.circle(f, (int(cx), int(cy)), int(r), 1, -1, cv2.LINE_AA)
+    return cv2.GaussianBlur(f, (0, 0), 1.5)
+
+
+def ecran_seul(im):
+    """Ce qui est l'écran dans le dessin de FLUX (son turquoise, même filé ou un peu sombre ; pas les doigts devant), en masque doux :
+    avec `forme_ecran`, les doigts qui passent devant restent devant."""
+    hsv = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
+    h, s, v = hsv[..., 0], hsv[..., 1], hsv[..., 2]
+    m = ((h >= 70) & (h <= 105) & (s >= 60) & (v >= 70)).astype(np.uint8)
+    return masque_doux(m, 4)
+
+
+def halo(im, m):
+    """Le turquoise autour de l'écran (le flou de bougé de FLUX, le liseré de son cadre), à 40 px au plus : un masque doux, plus fort
+    où il est plus saturé, pour `teinter`."""
+    hsv = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
+    h, s = hsv[..., 0], hsv[..., 1].astype(np.float32)
+    pres = cv2.dilate(m, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (81, 81))) > 0
+    a = ((h >= 70) & (h <= 105) & pres) * np.clip((s - 30) / 50, 0, 1)
+    return cv2.GaussianBlur(a.astype(np.float32), (0, 0), 1.5)
 
 
 def fabriquer(nom='anime-flux', essai=False):
@@ -338,6 +406,11 @@ def fabriquer(nom='anime-flux', essai=False):
         if k <= v.depart:
             quads[k] = coins(cotes(contour)) if k in v.nettes else None
             quads[k] = quads[k] if quads[k] is not None else cotes(contour)
+
+    # les coins dans le même ordre d'une image à l'autre, en remontant depuis le départ de la plongée (le téléphone y est droit)
+    for k in range(v.depart - 1, v.debut - 1, -1):
+        if isinstance(quads.get(k), np.ndarray) and isinstance(quads.get(k + 1), np.ndarray):
+            quads[k] = tourner(quads[k], quads[k + 1])
 
     # l'écran entier : ses proportions (la largeur sur la hauteur), pour le rectangle de la carte à y poser
     prop = np.median([np.linalg.norm(quads[k][1] - quads[k][0]) / np.linalg.norm(quads[k][3] - quads[k][0]) for k in v.nettes])
@@ -372,6 +445,7 @@ def fabriquer(nom='anime-flux', essai=False):
             if k in masques:
                 im[masques[k] > 0] = (im[masques[k] > 0] * 0.5 + np.array([0, 0, 255]) * 0.5).astype(np.uint8)
             cv2.polylines(im, [quads[k].astype(np.int32)], True, (0, 255, 0), 3)
+            cv2.circle(im, tuple(int(x) for x in quads[k][0]), 9, (255, 0, 255), -1)  # le coin haut-gauche du téléphone
             cv2.imwrite(str(ESSAIS / f'coins-{k:02d}.jpg'), cv2.resize(im, (540, 960)))
         print('essais →', ESSAIS)
         return
@@ -410,6 +484,19 @@ def fabriquer(nom='anime-flux', essai=False):
     i_carte, carte = -1, None
     N = int(K * 2.5)
     doux = {k: masque_doux(m) for k, m in masques.items()}
+    # le téléphone filé (vidéo 4) : FLUX le file peu (un dixième de son déplacement d'une image à la suivante, mesuré sur son bord
+    # quand elle le tend, images 28 → 31) ; la carte est filée de même, et le halo turquoise du flou passe à la couleur de la mer
+    files, halos, forme = {}, {}, None
+    if v.bouge:
+        # le bord de l'écran : la forme de l'écran posée sur ses coins (un trait net qui les suit), plutôt que le bord du turquoise
+        # de FLUX, déchiqueté quand il est filé ; les doigts devant restent devant (ecran_seul)
+        forme = forme_ecran(rect_ecran)
+        for k in range(v.nettes[0], DEPART + 1):
+            if k in quads and k in masques:
+                a, z = quads.get(k - 1, quads[k]), quads.get(k + 1, quads[k])
+                files[k] = 0.12 * (z - a) / (2 if k - 1 in quads and k + 1 in quads else 1)
+                halos[k] = halo(images[k], masques[k])
+                doux[k] = ecran_seul(images[k])
     for n in range(N):
         k = min(K - 1, int(n / 2.5 + 1e-6))
         e = v.anime + n
@@ -420,7 +507,9 @@ def fabriquer(nom='anime-flux', essai=False):
         im = images[k]
         if k in quads and k in doux:
             reflet = 0.05 * (1 - min(1, max(0, (k - DEPART) / 3))) if k >= v.nettes[0] else 0
-            im = poser(im, carte, rect_ecran, quads[k], doux[k], reflet)
+            if k in halos:
+                im = teinter(im, halos[k])
+            im = poser(im, carte, rect_ecran, quads[k], doux[k], reflet, files.get(k), forme if k in halos else None)
         if k in teintes:
             im = teinter(im, teintes[k])
         sortie.stdin.write(im.tobytes())
