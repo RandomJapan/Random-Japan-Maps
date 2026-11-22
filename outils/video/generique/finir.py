@@ -4,6 +4,8 @@ chanson et sans (les bruitages et le son du hook restent : pour y mettre un son 
     python outils/video/generique/finir.py avec       # seulement celle avec la chanson
     python outils/video/generique/finir.py --lent     # deux onglets et 5 minutes par image (si le rendu s'arrête en route)
     python outils/video/generique/finir.py --fille    # la vidéo 2 (la chanson n° 2, l'héroïne) : carte-japon-generique-anime-2
+    python outils/video/generique/finir.py --3        # la vidéo 3 (la chanson n° 3, le héros) : carte-japon-generique-anime-3
+    python outils/video/generique/finir.py --4        # la vidéo 4 (la chanson n° 4, l'héroïne) : carte-japon-generique-anime-4
 
 Il faut d'abord preparer.py, et le dossier node_modules de montage/ (un lien vers celui de la vidéo « sceau »).
 Après Remotion : le son à −14 LUFS (le niveau de TikTok), le même gain pour la version sans chanson ; l'image en BT.709 plage TV,
@@ -20,9 +22,14 @@ ICI = Path(__file__).resolve().parent
 MONTAGE = ICI / 'montage'
 SORTIE = ICI.parents[2] / 'videos' / 'carte' / 'generique'
 LENT = '--lent' in sys.argv
-FILLE = '--fille' in sys.argv
-# la composition, sa miniature et le nom des fichiers : la vidéo 1 ou la vidéo 2
-COMPO, MINI, NOM = ('GeneriqueFille', 'MiniatureFille', 'carte-japon-generique-anime-2') if FILLE else ('Generique', 'Miniature', 'carte-japon-generique-anime')
+VIDEO = '2' if '--fille' in sys.argv else '3' if '--3' in sys.argv else '4' if '--4' in sys.argv else '1'
+# la composition, sa miniature et le nom des fichiers de chaque vidéo
+COMPO, MINI, NOM = {
+    '1': ('Generique', 'Miniature', 'carte-japon-generique-anime'),
+    '2': ('GeneriqueFille', 'MiniatureFille', 'carte-japon-generique-anime-2'),
+    '3': ('GeneriqueHeros3', 'MiniatureHeros3', 'carte-japon-generique-anime-3'),
+    '4': ('GeneriqueFille4', 'MiniatureFille4', 'carte-japon-generique-anime-4'),
+}[VIDEO]
 
 
 def ffmpeg():

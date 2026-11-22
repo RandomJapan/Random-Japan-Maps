@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Mesure le son de la vidéo « générique d'animé » finie : la chanson (avec − sans), les bruitages (sans), le hook avant la chanson.
-    python outils/video/generique/mesure_son.py [--fille]     (--fille : la vidéo 2, dont la chanson joue dès l'image 0)
+    python outils/video/generique/mesure_son.py [--fille|--3|--4]     (les vidéos 2, 3 et 4 : la chanson joue dès l'image 0)
 Par fenêtre de 0,5 s après le début de la chanson : le niveau de la chanson et celui des bruitages, et leur écart (les bruitages
 doivent rester dessous) ; puis le hook (le bruit de la chambre et le katana) contre la chanson ; le volume intégré et le pic."""
 import json
@@ -12,8 +12,10 @@ import numpy as np
 
 ICI = Path(__file__).resolve().parent
 SORTIE = ICI.parents[2] / 'videos' / 'carte' / 'generique'
-FILLE = __import__('sys').argv[1:] == ['--fille']
-NOM = 'carte-japon-generique-anime-2' if FILLE else 'carte-japon-generique-anime'
+ARGS = __import__('sys').argv[1:]
+SUITE = {'--fille': '-2', '--3': '-3', '--4': '-4'}.get(ARGS[0] if ARGS else '', '')
+FILLE = bool(SUITE)
+NOM = 'carte-japon-generique-anime' + SUITE
 FF =r'C:\Users\Lucas\AppData\Roaming\Python\Python312\site-packages\imageio_ffmpeg\binaries\ffmpeg-win-x86_64-v7.1.exe'
 SR = 48000
 V0 = 0 if FILLE else 122 / 60  # la chanson démarre (theme.ts ; la vidéo 2 : dès l'image 0)

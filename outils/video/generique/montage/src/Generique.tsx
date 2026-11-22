@@ -51,7 +51,8 @@ const DUREE_PERSO = b(35) - b(33);
 
 /** Un lieu présenté comme un personnage d'opening : son vrai plan qui arrive en biais et ralentit presque à l'arrêt, un aplat de sa
  *  couleur en biais tramé, son nom japonais à la verticale, en grand, à droite, et son nom anglais dans un cartouche noir. */
-export const Personnage: React.FC<{ p: Perso; de: number; a: number; i: number }> = ({ p, de, a, i }) => {
+/** (y : le haut du nom japonais ; les vidéos 3 et 4 le descendent, les mots anglais du refrain étant au-dessus) */
+export const Personnage: React.FC<{ p: Perso; de: number; a: number; i: number; y?: number }> = ({ p, de, a, i, y = 250 }) => {
   const f = useCurrentFrame();
   if (f < de || f >= a) return null;
   const g = f - de;
@@ -77,7 +78,7 @@ export const Personnage: React.FC<{ p: Perso; de: number; a: number; i: number }
       </div>
       {/* le nom japonais, vertical */}
       <div style={{
-        position: "absolute", right: 46, top: 250, zIndex: 3, writingMode: "vertical-rl", fontFamily: TITRE, fontSize: p.jp.length > 3 ? 128 : 170,
+        position: "absolute", right: 46, top: y, zIndex: 3, writingMode: "vertical-rl", fontFamily: TITRE, fontSize: p.jp.length > 3 ? 128 : 170,
         lineHeight: 1, color: "#fff", WebkitTextStroke: `14px ${C.encre}`, paintOrder: "stroke fill", textShadow: `10px 12px 0 ${C.encre}`,
         transform: `translateY(${(-240 * (1 - v)).toFixed(1)}px) scale(${(1.3 - 0.3 * v).toFixed(3)})`, opacity: Math.min(1, g / 3),
       }}>{p.jp}</div>

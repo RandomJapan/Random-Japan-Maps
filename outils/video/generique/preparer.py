@@ -60,6 +60,34 @@ REELS = {
     'okama': ('Okama.mov', 15.8, 1.0, None),                        # le lac vert du cratère, vu d'en haut
     'keya': ('Keya no Ohto.mp4', 19.2, 1.0, None),                  # la grotte de colonnes de basalte, en bateau
     'akagi': ('Akagi Nanmen Senbonzakura.mp4', 34.2, 1.6, None),    # la route sous les cerisiers et le colza
+    # la vidéo 3 (la chanson n° 3, le héros) : le refrain anglais et le pont instrumental
+    'okuoi': ('Okuoi Rainbow Bridge.mp4', 12.4, 3.2, None),         # le petit train rouge sur le pont au-dessus du lac, sa cabine, vu d'en haut
+    'yotei': ('Mount Yōtei.mp4', 21.0, 3.2, None),                  # la route droite vers le Yōtei enneigé
+    'onaruto': ('Onaruto Bridge.mov', 31.5, 3.2, None),             # les tourbillons et le bateau sous le pont
+    'nachi': ('Kumano Nachi-taisha.mp4', 10.4, 1.0, None),          # la pagode rouge et la cascade
+    'izumo': ('Izumo Taisha.mp4', 34.9, 1.0, None),                 # le grand sanctuaire et sa corde
+    'nikko': ('Nikkō Tōshō-gū.mp4', 28.0, 1.0, None),               # la porte dorée
+    'utsunoya': ('Meiji Utsunoya Tunnel.mp4', 16.2, 1.0, None),     # le tunnel de briques et ses lampes
+    'iya': ('Iya Valley Vine Bridge.mov', 12.0, 1.0, None),         # le pont de lianes
+    'yushun-nuit': ('Yushun Sakura Road.mp4', 24.9, 1.0, None),     # la route sous les cerisiers illuminés
+    'sakurajima': ('SAKURAJIMA.mp4', 12.5, 1.0, None),              # le volcan qui fume
+    'nachi-chute': ('Kumano Nachi-taisha.mp4', 23.6, 1.0, None),    # la cascade de Nachi
+    'jigoku': ('Hell Valley.mp4', 41.0, 1.0, None),                 # l'étang qui fume de la vallée
+    'himeji': ('Himeji Castle.mp4', 20.8, 1.6, None),               # le château blanc vu du ciel
+    'kiyomizu': ('Kiyomizu-dera.mp4', 7.2, 1.6, None),              # la pagode rouge au-dessus de Kyōto
+    'takaya-soir': ('Takaya Shrine.mp4', 17.0, 1.6, None),          # le soleil couchant sur la mer
+    # la vidéo 4 (la chanson n° 4, l'héroïne)
+    'yushun': ('Yushun Sakura Road.mp4', 20.3, 1.6, None),          # la route sous les cerisiers, en voiture
+    'hirosaki': ('Hirosaki Castle.mp4', 26.0, 1.6, None),           # le château dans les cerisiers en fleurs
+    'iiyama': ('Iiyama Snow Festival.mp4', 7.3, 3.2, None),         # les kamakura et leurs bougies dans la neige
+    'uradome': ('Uradome Coast.mp4', 44.8, 3.2, None),              # l'eau turquoise et les îlots de pins
+    'yutoku': ('Yūtoku Inari-jinja.mov', 30.5, 1.0, None),          # le sanctuaire rouge sur ses pilotis
+    'kotohira': ('Kotohira Shrine.mp4', 24.6, 1.0, None),           # le passage couvert de fleurs
+    'togakushi': ('Togakushi-jinja.mp4', 9.1, 1.0, None),           # l'escalier sous les cèdres
+    'oyamazumi': ('Ōyamazumi-jinja.mov', 17.3, 1.0, None),          # la grande porte
+    'tsumago': ('Tsumago-juku.mp4', 21.95, 1.6, None),               # la rue du relais au pied des montagnes
+    'fukuura': ('Fukuurajima.mov', 19.0, 1.6, None),                # le long pont rouge vers l'île
+    'tsuru': ('Tsuru no Maihashi Bridge.mp4', 45.0, 2.4, None),     # le pont de bois au soleil couchant
 }
 # Les prises de la carte et de la balade, tournées pour les vidéos d'avant
 PRISES = [VIDEOS / 'carte/tunnel/public/rushes' / f'{n}.mp4' for n in ('tn-japon', 'tn-filtres', 'tn-aogashima')] + [
@@ -110,11 +138,15 @@ def animes():
     """Les plans animés de Flora (704 × 1248, 24 images/s) : agrandis (lanczos et un peu de netteté sur les traits), chaque image
     répétée pour 60 images/s (l'animé garde son pas). Le rush 2 (anime-flux, fille-flux) passe par ecran.py, qui pose la vraie
     carte (rushes/tn-japon.mp4, copiée avant) dans l'écran du téléphone. Les fille-* : l'héroïne de la vidéo 2 (les mêmes trois
-    passages des rushes du propriétaire, redessinés par FLUX en une jeune femme ; 0,08 à 0,11 $ chacun)."""
-    for nom in ('anime-flux', 'anime-coupe', 'anime-tire', 'fille-flux', 'fille-coupe', 'fille-tire'):
+    passages des rushes du propriétaire, redessinés par FLUX en une jeune femme ; 0,08 à 0,11 $ chacun). Les vidéos 3 et 4 : le
+    rush 3 (il surgit dans le cadre avec le téléphone : heros-pop ; il dégaine et fait tournoyer le sabre : heros-sabre, fille-sabre)
+    et le rush 1 (elle se retourne et tend le téléphone : fille-tourne), 0,09 à 0,15 $ chacun ; heros-pop et fille-tourne passent par
+    ecran.py."""
+    for nom in ('anime-flux', 'anime-coupe', 'anime-tire', 'fille-flux', 'fille-coupe', 'fille-tire',
+                'heros-pop', 'heros-sabre', 'fille-tourne', 'fille-sabre'):
         src, dest = SOURCES / f'{nom}.mp4', PUBLIC / 'clips' / f'{nom}.mp4'
         if src.exists() and (not dest.exists() or dest.stat().st_mtime < src.stat().st_mtime):
-            if nom.endswith('-flux'):
+            if nom in ecran.VIDEOS:
                 ecran.fabriquer(nom)
             else:
                 encoder(src, dest, 'scale=1080:1920:flags=lanczos,unsharp=5:5:0.6,fps=60,format=yuv420p')
@@ -180,8 +212,10 @@ def ecrire_wav(f, x, sr):
 
 
 def chanson():
-    """La chanson n° 1 (vidéo 1, chantée par un jeune homme) et la n° 2 (vidéo 2, par une jeune femme)."""
-    for source, nom in (('el-homme.mp3', 'chanson.wav'), ('chanson-2-fille.mp3', 'chanson-fille.wav')):
+    """La chanson n° 1 (vidéo 1, chantée par un jeune homme), la n° 2 (vidéo 2, par une jeune femme), et les deux longues de Lyria :
+    la n° 3 (vidéo 3, un jeune homme, 2 min 04) et la n° 4 (vidéo 4, une jeune femme, 1 min 05)."""
+    for source, nom in (('el-homme.mp3', 'chanson.wav'), ('chanson-2-fille.mp3', 'chanson-fille.wav'),
+                        ('chanson-3-garcon-longue.mp3', 'chanson-3.wav'), ('chanson-4-fille-longue.mp3', 'chanson-4.wav')):
         dest = PUBLIC / 'musique' / nom
         dest.parent.mkdir(parents=True, exist_ok=True)
         subprocess.run([ffmpeg(), '-hide_banner', '-loglevel', 'error', '-y', '-i', str(VIDEOS / 'carte/generique/musique' / source),

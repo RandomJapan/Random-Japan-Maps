@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 """Met la vraie carte dans l'écran du téléphone du plan animé (sources/<nom>.mp4 → public/clips/<nom>.mp4) : le héros de la vidéo 1
-(anime-flux) ou l'héroïne de la vidéo 2 (fille-flux), tous deux le rush 2 du propriétaire redessiné par FLUX (le même geste).
-    python outils/video/generique/ecran.py [anime-flux|fille-flux] [--essai]
+(anime-flux) ou l'héroïne de la vidéo 2 (fille-flux), tous deux le rush 2 du propriétaire redessiné par FLUX (le même geste) ; le
+héros de la vidéo 3 (heros-pop : il surgit dans le cadre, rush 3) et l'héroïne de la vidéo 4 (fille-tourne : elle se retourne, rush 1).
+    python outils/video/generique/ecran.py [anime-flux|fille-flux|heros-pop|fille-tourne] [--essai]
 
 Le propriétaire (2026-11-22), après la première version : « quand le personnage il montre son téléphone avec la carte, faudrait que
 ce soit vraiment la carte qu'il montre, parce que là, avec le fond bleu et tout, c'est un peu nul ». FLUX avait dessiné un Japon
@@ -34,7 +35,7 @@ ESSAIS = GENERIQUE / 'brouillons' / 'ecran'
 L, H = 1080, 1920
 COULEUR = ['-color_range', 'tv', '-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709']
 
-FPS, TEMPS = 60, 60 / 165  # les deux chansons sont à 165 battements par minute
+FPS = 60
 
 
 class Video:
@@ -42,17 +43,21 @@ class Video:
     où le plan commence (`anime`), où la plongée atterrit sur le plan de la carte (`carte` ; ce plan, tn-japon, commence 10 images
     avant) et où ce plan finit ; son t0 et son zoom (Generique.tsx, Fille.tsx), tous les plans étant agrandis de 1,06."""
 
-    def __init__(self, nom, v0, t0, anime, carte, fin_plan, plan_t0=2.1, plan_zoom=(1.3, 1.0), affiches=False):
+    def __init__(self, nom, v0, t0, anime, carte, fin_plan, plan_t0=2.1, plan_zoom=(1.3, 1.0), affiches=False, bpm=165,
+                 nettes=range(42, 63), depart=62, main=range(27, 32), entree=(41, 40, 39), debut=39):
         self.source = GENERIQUE / 'sources' / f'{nom}.mp4'
         self.sortie = GENERIQUE / 'public' / 'clips' / f'{nom}.mp4'
-        self.v0, self.t0 = v0, t0
+        self.v0, self.t0, self.temps = v0, t0, 60 / bpm
+        # les images de FLUX (24/s) : l'écran entier, le départ de la plongée, le téléphone petit dans la main (seulement teinté),
+        # celles où il entre par la droite (le côté droit manque), la première où on le cherche
+        self.nettes, self.depart, self.main, self.entree, self.debut = nettes, depart, main, entree, debut
         self.anime, self.carte, self.fin_plan = self.b(anime), self.b(carte), self.b(fin_plan)
         self.plan_de, self.plan_t0, self.plan_zoom, self.affiches = self.carte - 10, plan_t0, plan_zoom, affiches
         # l'image de FLUX (24/s) où la plongée atterrit (= T.carte)
         self.arrivee = round((self.carte - self.anime) / 2.5)
 
     def b(self, n):
-        return self.v0 + round((self.t0 + n * TEMPS) * FPS)
+        return self.v0 + round((self.t0 + n * self.temps) * FPS)
 
 
 VIDEOS = {
@@ -60,11 +65,17 @@ VIDEOS = {
     'anime-flux': Video('anime-flux', v0=122, t0=0.007, anime=0, carte=8, fin_plan=16),
     # la vidéo 2 (l'héroïne, la chanson n° 2, fille/temps.ts) : la coupe au temps 10, la carte au temps 18, Daisen au temps 25
     'fille-flux': Video('fille-flux', v0=-132, t0=0.0173, anime=10, carte=18, fin_plan=25, affiches=True),
+    # la vidéo 3 (le héros, la chanson n° 3, h3/temps.ts : 167,073 battements par minute, ses temps comptés depuis 0,2151 s) :
+    # l'animé dès l'image 0 (son temps 247), la carte sur la reprise du refrain (temps 253), Okuoi au temps 261. Il surgit par la
+    # droite, le téléphone entre en tournant (images 12 → 15), l'écran entier de 16 à 49, le cadre plein à 54
+    'heros-pop': Video('heros-pop', v0=-5335, t0=0.2151, bpm=167.073, anime=247, carte=253, fin_plan=261,
+                       nettes=range(16, 50), depart=49, main=range(10, 12), entree=(15, 14, 13, 12), debut=10),
+    # la vidéo 4 (l'héroïne, la chanson n° 4, f4/temps.ts : 165,004 battements par minute depuis 0,2610 s) : l'animé dès l'image
+    # 0 (son temps 93), la carte sur le refrain (temps 100), la route d'Yushun au temps 108. Le téléphone petit dans sa main (11 →
+    # 26), l'écran entier de 27 à 56
+    'fille-tourne': Video('fille-tourne', v0=-2045, t0=0.2610, bpm=165.004, anime=93, carte=100, fin_plan=108,
+                          nettes=range(27, 57), depart=56, main=range(11, 27), entree=(), debut=27),
 }
-# les images de FLUX (le même geste dans les deux) : l'écran entier, le départ de la plongée, le téléphone dans la main
-NETTES = range(42, 63)
-DEPART = 62
-DANS_LA_MAIN = range(27, 32)
 
 
 def ffmpeg():
@@ -308,7 +319,7 @@ def fabriquer(nom='anime-flux', essai=False):
     masques, quads, teintes = {}, {}, {}
     for k, im in enumerate(images):
         m = turquoise(im)
-        if k in DANS_LA_MAIN:
+        if k in v.main:
             # le téléphone dans sa main : le turquoise vif (le motif du lit, derrière, est plus sombre et moins saturé : valeur
             # 115 → 150, saturation 60 → 120), et le turquoise un peu moins vif tout autour (le flou du geste)
             hsv = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
@@ -318,23 +329,23 @@ def fabriquer(nom='anime-flux', essai=False):
                 autour = cv2.dilate(r[0], np.ones((21, 21), np.uint8)) * m * (hsv[..., 1] >= 90) * (hsv[..., 2] >= 140)
                 teintes[k] = cv2.GaussianBlur(np.maximum(autour, r[0]).astype(np.float32), (0, 0), 2.0)
             continue
-        if k < 39:
+        if k < v.debut:
             continue
         r = plein(m)
         if r is None:
             continue
         masques[k], contour = r
-        if k <= DEPART:
-            quads[k] = coins(cotes(contour)) if k in NETTES else None
+        if k <= v.depart:
+            quads[k] = coins(cotes(contour)) if k in v.nettes else None
             quads[k] = quads[k] if quads[k] is not None else cotes(contour)
 
     # l'écran entier : ses proportions (la largeur sur la hauteur), pour le rectangle de la carte à y poser
-    prop = np.median([np.linalg.norm(quads[k][1] - quads[k][0]) / np.linalg.norm(quads[k][3] - quads[k][0]) for k in NETTES])
+    prop = np.median([np.linalg.norm(quads[k][1] - quads[k][0]) / np.linalg.norm(quads[k][3] - quads[k][0]) for k in v.nettes])
     print(f'proportions de l\'écran : {prop:.3f}')
 
     # quand il entre par la droite (39 → 41), le côté droit manque : celui de l'image 42 déplacé par la similitude qui amène
     # ses deux coins de gauche sur les nouveaux
-    for k in (41, 40, 39):
+    for k in v.entree:
         lignes = quads.get(k)
         if not isinstance(lignes, list):
             continue
@@ -374,6 +385,7 @@ def fabriquer(nom='anime-flux', essai=False):
     # prolonge le quadrilatère d'arrivée en conséquence : le cadrage `fin` vu à travers rect_ecran
     hm_fin = cv2.getPerspectiveTransform(rect_plein.astype(np.float32), fin.astype(np.float32))
     fin_ecran = cv2.perspectiveTransform(rect_ecran.reshape(-1, 1, 2).astype(np.float32), hm_fin).reshape(-1, 2)
+    DEPART = v.depart
     h0 = np.linalg.norm(quads[DEPART][3] - quads[DEPART][0])
     v0 = h0 - np.linalg.norm(quads[DEPART - 1][3] - quads[DEPART - 1][0])
     h1 = np.linalg.norm(fin_ecran[3] - fin_ecran[0])
@@ -407,7 +419,7 @@ def fabriquer(nom='anime-flux', essai=False):
             i_carte += 1
         im = images[k]
         if k in quads and k in doux:
-            reflet = 0.05 * (1 - min(1, max(0, (k - DEPART) / 3))) if k >= 42 else 0
+            reflet = 0.05 * (1 - min(1, max(0, (k - DEPART) / 3))) if k >= v.nettes[0] else 0
             im = poser(im, carte, rect_ecran, quads[k], doux[k], reflet)
         if k in teintes:
             im = teinter(im, teintes[k])
