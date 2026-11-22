@@ -8,7 +8,7 @@ import { loadFont as tiktok } from "@remotion/google-fonts/TikTokSans";
 // ---------------------------------------------------------------- les polices
 // Les polices japonaises de Google viennent en ~120 tranches : on ne charge que celles des caractères de la vidéo (les clés « [n] »
 // sont acceptées par loadFont, mais pas par ses types).
-export const TEXTE_DELA = "ランダム・ジャパン青ヶ島名頃白金青い池天空の村かかしの里北海道徳島県東京都美瑛町";
+export const TEXTE_DELA = "ランダム・ジャパン青ヶ島名頃白金青い池天空の村かかしの里北海道徳島県東京都美瑛町蔵王御釜芥屋大門福岡宮城";
 export const TEXTE_MINCHO = "地図を広げて走り出せ雲越えて富士の向こうへ千鳥居くぐり抜けまだ知らない日本原作監督舞台音楽ランダム・ジャパン・プレイス以上ヶ所";
 
 type Info = { unicodeRanges: Record<string, string> };

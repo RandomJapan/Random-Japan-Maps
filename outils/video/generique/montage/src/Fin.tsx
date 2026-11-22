@@ -6,9 +6,9 @@ import { Vitesse } from "./Commun";
 import { C, entre, expoSortie, POLICE, rebond, s, TITRE } from "./theme";
 import { T } from "./temps";
 
-export const Fin: React.FC = () => {
+/** de : le carton arrive ; de2 : « FREE · LINK IN BIO » (sur « Let's go! ») ; la vidéo 2 donne les siens, et sa couleur d'ombre. */
+export const Fin: React.FC<{ de?: number; de2?: number; ombre?: string }> = ({ de = T.fin, de2 = T.allons, ombre = C.rouge }) => {
   const f = useCurrentFrame();
-  const de = T.fin, de2 = T.allons;
   if (f < de) return null;
   const g = f - de;
   const vTitre = rebond(f, de, 320, 17), vLogo = rebond(f, de + 8, 300, 16), vTexte = rebond(f, de + 14), vBouton = rebond(f, de2, 420, 20), vAdr = rebond(f, de2 + 8);
@@ -16,7 +16,7 @@ export const Fin: React.FC = () => {
   const ligne = (texte: string, k: number) => (
     <div style={{
       fontFamily: TITRE, fontSize: 132, lineHeight: 1, color: "#fff", WebkitTextStroke: `12px ${C.encre}`, paintOrder: "stroke fill", whiteSpace: "nowrap",
-      textShadow: `9px 11px 0 ${C.rouge}, 14px 17px 0 ${C.encre}`, transform: `translateX(${((k ? 1 : -1) * 400 * (1 - vTitre)).toFixed(1)}px)`,
+      textShadow: `9px 11px 0 ${ombre}, 14px 17px 0 ${C.encre}`, transform: `translateX(${((k ? 1 : -1) * 400 * (1 - vTitre)).toFixed(1)}px)`,
     }}>{texte}</div>
   );
   return (
@@ -44,7 +44,7 @@ export const Fin: React.FC = () => {
         </div>
         <div style={{
           marginTop: 40, fontFamily: POLICE, fontWeight: 900, fontSize: 88, lineHeight: 1.02, textAlign: "center", color: "#fff", padding: "0 60px",
-          WebkitTextStroke: `13px ${C.encre}`, paintOrder: "stroke fill", textShadow: `6px 8px 0 ${C.rouge}`,
+          WebkitTextStroke: `13px ${C.encre}`, paintOrder: "stroke fill", textShadow: `6px 8px 0 ${ombre}`,
           opacity: f >= de + 14 ? 1 : 0, transform: `translateY(${(60 * (1 - vTexte)).toFixed(1)}px) scale(${(0.7 + 0.3 * vTexte).toFixed(4)}) skewX(-6deg)`,
         }}>EXPLORE JAPAN<br />IN 3D</div>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20, marginTop: 34, opacity: f >= de2 ? 1 : 0 }}>

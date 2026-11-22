@@ -41,7 +41,8 @@ const FLOU: [number, number][] = [[T.carte - AVANT_CARTE, T.carte + 6], ...COUPE
 const CARTE: [number, number][] = [[T.carte - 2, T.takeda], [T.refrain, T.tottori], [T.neige, T.heros]];
 
 // ---------------------------------------------------------------- les lieux en personnages
-const PERSOS = [
+export type Perso = { src: string; jp: string; en: string; ou: string; couleur: string };
+const PERSOS: Perso[] = [
   { src: "reels/aogashima.mp4", jp: "青ヶ島", en: "AOGASHIMA", ou: "TOKYO", couleur: C.mer },
   { src: "reels/nagoro.mp4", jp: "名頃", en: "NAGORO", ou: "TOKUSHIMA", couleur: C.rouge },
   { src: "reels/shirogane.mp4", jp: "白金青い池", en: "SHIROGANE BLUE POND", ou: "HOKKAIDO", couleur: C.or },
@@ -50,7 +51,7 @@ const DUREE_PERSO = b(35) - b(33);
 
 /** Un lieu présenté comme un personnage d'opening : son vrai plan qui arrive en biais et ralentit presque à l'arrêt, un aplat de sa
  *  couleur en biais tramé, son nom japonais à la verticale, en grand, à droite, et son nom anglais dans un cartouche noir. */
-const Personnage: React.FC<{ p: (typeof PERSOS)[number]; de: number; a: number; i: number }> = ({ p, de, a, i }) => {
+export const Personnage: React.FC<{ p: Perso; de: number; a: number; i: number }> = ({ p, de, a, i }) => {
   const f = useCurrentFrame();
   if (f < de || f >= a) return null;
   const g = f - de;
@@ -94,10 +95,9 @@ const Personnage: React.FC<{ p: (typeof PERSOS)[number]; de: number; a: number; 
 };
 
 // ---------------------------------------------------------------- le titre du « générique »
-/** ランダム・ジャパン : il tombe sur la carte quand elle s'ouvre (temps 8), en grand, et repart au temps 14. */
-const Titre: React.FC = () => {
+/** ランダム・ジャパン : il tombe sur la carte quand elle s'ouvre (temps 8), en grand, et repart au temps 14 (la vidéo 2 donne les siens). */
+export const Titre: React.FC<{ de?: number; a?: number; ombre?: string }> = ({ de = T.carte, a = b(14), ombre = C.rouge }) => {
   const f = useCurrentFrame();
-  const de = T.carte, a = b(14);
   if (f < de || f >= a + 10) return null;
   const v = rebond(f, de, 360, 18);
   const sortie = expoEntree(entre(f, a, a + 10));
@@ -105,7 +105,7 @@ const Titre: React.FC = () => {
   const ligne = (texte: string, k: number) => (
     <div style={{
       fontFamily: TITRE, fontSize: 196, lineHeight: 0.98, color: "#fff", WebkitTextStroke: `16px ${C.encre}`, paintOrder: "stroke fill", whiteSpace: "nowrap",
-      textShadow: `${(-rgb).toFixed(1)}px 0 rgba(0,230,255,.75), ${rgb.toFixed(1)}px 0 rgba(255,40,60,.75), 12px 14px 0 ${C.rouge}, 18px 22px 0 ${C.encre}`,
+      textShadow: `${(-rgb).toFixed(1)}px 0 rgba(0,230,255,.75), ${rgb.toFixed(1)}px 0 rgba(255,40,60,.75), 12px 14px 0 ${ombre}, 18px 22px 0 ${C.encre}`,
       transform: `translateX(${((k ? 1 : -1) * 500 * (1 - v)).toFixed(1)}px)`,
     }}>{texte}</div>
   );

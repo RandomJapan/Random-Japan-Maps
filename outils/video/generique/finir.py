@@ -3,6 +3,7 @@ chanson et sans (les bruitages et le son du hook restent : pour y mettre un son 
     python outils/video/generique/finir.py            # les deux versions
     python outils/video/generique/finir.py avec       # seulement celle avec la chanson
     python outils/video/generique/finir.py --lent     # deux onglets et 5 minutes par image (si le rendu s'arrête en route)
+    python outils/video/generique/finir.py --fille    # la vidéo 2 (la chanson n° 2, l'héroïne) : carte-japon-generique-anime-2
 
 Il faut d'abord preparer.py, et le dossier node_modules de montage/ (un lien vers celui de la vidéo « sceau »).
 Après Remotion : le son à −14 LUFS (le niveau de TikTok), le même gain pour la version sans chanson ; l'image en BT.709 plage TV,
@@ -18,8 +19,10 @@ from pathlib import Path
 ICI = Path(__file__).resolve().parent
 MONTAGE = ICI / 'montage'
 SORTIE = ICI.parents[2] / 'videos' / 'carte' / 'generique'
-NOM = 'carte-japon-generique-anime'
 LENT = '--lent' in sys.argv
+FILLE = '--fille' in sys.argv
+# la composition, sa miniature et le nom des fichiers : la vidéo 1 ou la vidéo 2
+COMPO, MINI, NOM = ('GeneriqueFille', 'MiniatureFille', 'carte-japon-generique-anime-2') if FILLE else ('Generique', 'Miniature', 'carte-japon-generique-anime')
 
 
 def ffmpeg():
@@ -38,7 +41,7 @@ def rendre(bgm, f, codec='h264'):
     props.write_text(json.dumps({'bgm': bgm}), encoding='utf-8')
     npx = shutil.which('npx') or 'npx'
     qualite = ['--crf=12'] if codec == 'h264' else []
-    subprocess.run([npx, 'remotion', 'render', 'Generique', str(f), f'--codec={codec}', *qualite, '--log=error', f'--props={props}', *options()],
+    subprocess.run([npx, 'remotion', 'render', COMPO, str(f), f'--codec={codec}', *qualite, '--log=error', f'--props={props}', *options()],
                    cwd=MONTAGE, check=True, shell=sys.platform == 'win32')
 
 
@@ -75,7 +78,7 @@ def main():
     if 'sans' in versions:
         finir(sans, SORTIE / f'{NOM}-sans-musique.mp4', gain)
     npx = shutil.which('npx') or 'npx'
-    subprocess.run([npx, 'remotion', 'still', 'Miniature', str(SORTIE / f'{NOM}-miniature.jpg'), '--image-format=jpeg', '--jpeg-quality=92', '--log=error'],
+    subprocess.run([npx, 'remotion', 'still', MINI, str(SORTIE / f'{NOM}-miniature.jpg'), '--image-format=jpeg', '--jpeg-quality=92', '--log=error'],
                    cwd=MONTAGE, check=True, shell=sys.platform == 'win32')
     print('->', SORTIE / f'{NOM}.mp4', f'(gain {gain:+.1f} dB)', flush=True)
 

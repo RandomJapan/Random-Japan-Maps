@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-"""Met la vraie carte dans l'écran du téléphone du héros animé (sources/anime-flux.mp4 → public/clips/anime-flux.mp4).
-    python outils/video/generique/ecran.py [--essai]
+"""Met la vraie carte dans l'écran du téléphone du plan animé (sources/<nom>.mp4 → public/clips/<nom>.mp4) : le héros de la vidéo 1
+(anime-flux) ou l'héroïne de la vidéo 2 (fille-flux), tous deux le rush 2 du propriétaire redessiné par FLUX (le même geste).
+    python outils/video/generique/ecran.py [anime-flux|fille-flux] [--essai]
 
 Le propriétaire (2026-11-22), après la première version : « quand le personnage il montre son téléphone avec la carte, faudrait que
 ce soit vraiment la carte qu'il montre, parce que là, avec le fond bleu et tout, c'est un peu nul ». FLUX avait dessiné un Japon
@@ -14,7 +15,9 @@ turquoise sur un écran turquoise. Ici :
   le plan suivant, sans raccord visible ;
 - dans sa main, avant qu'il le tende (images 27 → 31), le petit écran vu de biais et flou est trop petit pour y poser la carte
   (essayé : des morceaux de terre orange sur sa main) : son turquoise prend seulement la couleur de la mer de la carte (le motif
-  turquoise du lit, derrière, n'est pas touché).
+  turquoise du lit, derrière, n'est pas touché) ;
+- vidéo 2 : FLUX a dessiné au mur de droite deux affiches « WANTED » (celles de la chambre du propriétaire, de One Piece, qu'on ne
+  montre pas) : repérées à leur papier fauve, bouchées (leur texte), sans la main ni l'écran, et remplies du dégradé du mur autour.
 --essai écrit les images avec les coins trouvés dans videos/carte/generique/brouillons/ecran/.
 """
 import subprocess
@@ -26,27 +29,41 @@ import numpy as np
 
 ICI = Path(__file__).resolve().parent
 GENERIQUE = ICI.parents[2] / 'videos' / 'carte' / 'generique'
-SOURCE = GENERIQUE / 'sources' / 'anime-flux.mp4'
 CARTE = GENERIQUE / 'public' / 'rushes' / 'tn-japon.mp4'
-SORTIE = GENERIQUE / 'public' / 'clips' / 'anime-flux.mp4'
 ESSAIS = GENERIQUE / 'brouillons' / 'ecran'
 L, H = 1080, 1920
 COULEUR = ['-color_range', 'tv', '-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709']
 
-# Le montage (theme.ts, temps.ts, Generique.tsx) : l'animé commence à T.anime ; le plan de la carte (tn-japon, t0 2,1 s, zoom
-# [1,3 ; 1]) va de T.carte - 10 à T.takeda, et tous les plans sont agrandis de 1,06.
-FPS, V0, T0, TEMPS = 60, 122, 0.007, 60 / 165
+FPS, TEMPS = 60, 60 / 165  # les deux chansons sont à 165 battements par minute
 
 
-def b(n):
-    return V0 + round((T0 + n * TEMPS) * FPS)
+class Video:
+    """Un plan animé du téléphone et sa place dans son montage (theme.ts / temps.ts de la vidéo) : V0 et T0 de sa chanson ; les temps
+    où le plan commence (`anime`), où la plongée atterrit sur le plan de la carte (`carte` ; ce plan, tn-japon, commence 10 images
+    avant) et où ce plan finit ; son t0 et son zoom (Generique.tsx, Fille.tsx), tous les plans étant agrandis de 1,06."""
+
+    def __init__(self, nom, v0, t0, anime, carte, fin_plan, plan_t0=2.1, plan_zoom=(1.3, 1.0), affiches=False):
+        self.source = GENERIQUE / 'sources' / f'{nom}.mp4'
+        self.sortie = GENERIQUE / 'public' / 'clips' / f'{nom}.mp4'
+        self.v0, self.t0 = v0, t0
+        self.anime, self.carte, self.fin_plan = self.b(anime), self.b(carte), self.b(fin_plan)
+        self.plan_de, self.plan_t0, self.plan_zoom, self.affiches = self.carte - 10, plan_t0, plan_zoom, affiches
+        # l'image de FLUX (24/s) où la plongée atterrit (= T.carte)
+        self.arrivee = round((self.carte - self.anime) / 2.5)
+
+    def b(self, n):
+        return self.v0 + round((self.t0 + n * TEMPS) * FPS)
 
 
-ANIME, CARTE_T, TAKEDA = b(0), b(8), b(16)
-PLAN_DE, PLAN_T0, PLAN_ZOOM = CARTE_T - 10, 2.1, (1.3, 1.0)
-# les images de FLUX (24/s) où l'écran est entier, celle d'où part la plongée, celle où elle atterrit (= T.carte)
+VIDEOS = {
+    # la vidéo 1 (le héros, la chanson n° 1, theme.ts) : l'animé au temps 0, la carte au temps 8, Takeda au temps 16
+    'anime-flux': Video('anime-flux', v0=122, t0=0.007, anime=0, carte=8, fin_plan=16),
+    # la vidéo 2 (l'héroïne, la chanson n° 2, fille/temps.ts) : la coupe au temps 10, la carte au temps 18, Daisen au temps 25
+    'fille-flux': Video('fille-flux', v0=-132, t0=0.0173, anime=10, carte=18, fin_plan=25, affiches=True),
+}
+# les images de FLUX (le même geste dans les deux) : l'écran entier, le départ de la plongée, le téléphone dans la main
 NETTES = range(42, 63)
-DEPART, ARRIVEE = 62, round((CARTE_T - ANIME) / 2.5)
+DEPART = 62
 DANS_LA_MAIN = range(27, 32)
 
 
@@ -161,18 +178,77 @@ def coins(lignes):
 
 # ---------------------------------------------------------------- la carte posée dans l'écran
 
-def zoom_plan(e):
+def zoom_plan(v, e):
     """Le zoom du plan de la carte à l'image e du montage (Commun.tsx, Image_), fois le 1,06 de LePlan."""
-    duree = TAKEDA - PLAN_DE
-    u = min(1, max(0, (e - PLAN_DE) / duree))
+    duree = v.fin_plan - v.plan_de
+    u = min(1, max(0, (e - v.plan_de) / duree))
     expo = 1 if u >= 1 else 1 - 2 ** (-10 * u)
-    z0, z1 = PLAN_ZOOM
+    z0, z1 = v.plan_zoom
     return 1.06 * (z0 + (z1 - z0) * (u * 0.6 + expo * 0.4))
 
 
-def image_carte(e):
+def image_carte(v, e):
     """L'image de tn-japon que le plan montre à l'image e du montage (trimBefore = round(t0 × 60))."""
-    return round(PLAN_T0 * FPS) + e - PLAN_DE
+    return round(v.plan_t0 * FPS) + e - v.plan_de
+
+
+def effacer_affiches(im):
+    """Les affiches du mur de droite (vidéo 2) : leur papier fauve (teinte 11 → 22, saturation ≥ 95 ; le mur : saturation ~70), en
+    taches assez grandes (les liserés des doigts disparaissent à l'ouverture), bouchées (leur texte sombre), sans la peau claire de la
+    main ni l'écran turquoise ; puis remplies du dégradé du mur autour."""
+    hsv = cv2.cvtColor(im, cv2.COLOR_BGR2HSV)
+    h, s, v = (hsv[..., i].astype(np.int16) for i in range(3))
+    m = ((h >= 11) & (h <= 22) & (s >= 95) & (v >= 90)).astype(np.uint8)
+    zone = np.zeros_like(m)
+    zone[300:1390, 820:] = 1
+    m = cv2.morphologyEx(m * zone, cv2.MORPH_OPEN, np.ones((5, 5), np.uint8))
+    n, lab, st, _ = cv2.connectedComponentsWithStats(m, 8)
+    garde = [i for i in range(1, n) if st[i, cv2.CC_STAT_AREA] >= 350]
+    if not garde:
+        return im
+    papier = np.isin(lab, garde).astype(np.uint8)
+    # chaque affiche : son rectangle (le papier fauve n'en couvre qu'une partie : le dessin et le blanc du papier, à gauche, n'y sont
+    # pas), élargi d'un tiers en largeur et d'un huitième en hauteur, jusqu'à son bord sombre et son ombre sur le mur
+    m = np.zeros_like(m)
+    for i in garde:
+        ys, xs = np.nonzero(lab == i)
+        (cx, cy), (w, h_), a = cv2.minAreaRect(np.stack([xs, ys], 1).astype(np.float32))
+        if w < h_:
+            w, h_ = w * 1.35 + 24, h_ * 1.12 + 24
+        else:
+            w, h_ = w * 1.12 + 24, h_ * 1.35 + 24
+        cv2.fillConvexPoly(m, cv2.boxPoints(((cx, cy), (w, h_), a)).astype(np.int32), 1)
+    m = cv2.dilate(m, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))) * zone
+    # la main qui passe devant : sa peau (valeur ~240, saturation 50 → 75), en une grande tache (les reflets blancs du papier des
+    # affiches sont petits), et son trait, autour, restent ; l'écran aussi
+    peau = ((v >= 225) & (s >= 35) & (s <= 95) & (h <= 22)).astype(np.uint8)
+    n, lab, st, _ = cv2.connectedComponentsWithStats(peau, 8)
+    peau = np.isin(lab, [i for i in range(1, n) if st[i, cv2.CC_STAT_AREA] >= 3000]).astype(np.uint8)
+    main = cv2.dilate(peau, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (25, 25)))
+    garde_ = main | turquoise(im)
+    if (m & main).any():
+        # la main passe devant les affiches (la fin du geste) : seulement le papier fauve qui dépasse encore entre les doigts (le
+        # rectangle prendrait les ongles et le trait des doigts)
+        m = cv2.dilate(cv2.morphologyEx(papier, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (33, 33))),
+                       cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (23, 23))) * zone
+    m[garde_ > 0] = 0
+    # le mur, lisse, autour des affiches : un dégradé (polynôme du second degré par couleur) ajusté sur ses pixels (ni peau, ni
+    # trait sombre, ni écran) dans un anneau de 40 px, qui remplit les affiches
+    anneau = (cv2.dilate(m, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (81, 81))) > 0) & (m == 0) & (garde_ == 0) & (zone > 0)
+    anneau &= (v >= 90) & (v <= 222) & (s <= 95)
+    ys, xs = np.nonzero(anneau)
+    if len(xs) < 200:
+        return im
+    X = lambda x, y: np.stack([np.ones_like(x), x, y, x * x, x * y, y * y], 1)
+    cx, cy = xs.mean(), ys.mean()
+    A = X((xs - cx) / 300.0, (ys - cy) / 300.0)
+    coef = np.linalg.lstsq(A, im[ys, xs].astype(np.float64), rcond=None)[0]
+    yy, xx = np.nonzero(m)
+    fond = np.clip(X((xx - cx) / 300.0, (yy - cy) / 300.0) @ coef, 0, 255)
+    remplie = im.astype(np.float32).copy()
+    remplie[yy, xx] = fond
+    a = cv2.GaussianBlur(m.astype(np.float32), (0, 0), 3) * (1 - garde_.astype(np.float32))
+    return (im * (1 - a[..., None]) + remplie * a[..., None]).astype(np.uint8)
 
 
 def cadrage(z):
@@ -222,10 +298,13 @@ def masque_doux(m, elargir=3):
     return cv2.GaussianBlur(m.astype(np.float32), (0, 0), 1.2)
 
 
-def fabriquer(essai=False):
+def fabriquer(nom='anime-flux', essai=False):
+    v = VIDEOS[nom]
     filtre = 'scale=1080:1920:flags=lanczos,unsharp=5:5:0.6,'
-    images = list(lire(SOURCE, filtre))
+    images = list(lire(v.source, filtre))
     K = len(images)
+    if v.affiches:
+        images = [effacer_affiches(im) if k <= v.arrivee else im for k, im in enumerate(images)]
     masques, quads, teintes = {}, {}, {}
     for k, im in enumerate(images):
         m = turquoise(im)
@@ -288,7 +367,7 @@ def fabriquer(essai=False):
 
     # la plongée : de l'image DEPART à ARRIVEE, chaque coin glisse en ligne droite vers le cadrage du plan à T.carte, d'abord à
     # la vitesse où FLUX approchait le téléphone (la hauteur de l'écran entre 61 et 62), puis de plus en plus lentement
-    fin = cadrage(zoom_plan(CARTE_T))
+    fin = cadrage(zoom_plan(v, v.carte))
     # le rectangle de la carte pour le cadrage du plan : le cadre entier (le plan montre tn-japon en plein écran)
     rect_plein = np.array([[0, 0], [L, 0], [L, H], [0, H]], float)
     # pendant la plongée on passe du rectangle de l'écran (au milieu de tn-japon) au cadre entier ; on garde rect_ecran et on
@@ -298,10 +377,10 @@ def fabriquer(essai=False):
     h0 = np.linalg.norm(quads[DEPART][3] - quads[DEPART][0])
     v0 = h0 - np.linalg.norm(quads[DEPART - 1][3] - quads[DEPART - 1][0])
     h1 = np.linalg.norm(fin_ecran[3] - fin_ecran[0])
-    p = max(1.2, min(4.0, v0 * (ARRIVEE - DEPART) / max(1.0, h1 - h0)))
-    print(f'plongée : écran {h0:.0f} → {h1:.0f} px de haut en {ARRIVEE - DEPART} images, départ {v0:.0f} px/image (p = {p:.2f})')
-    for k in range(DEPART + 1, ARRIVEE + 1):
-        tau = (k - DEPART) / (ARRIVEE - DEPART)
+    p = max(1.2, min(4.0, v0 * (v.arrivee - DEPART) / max(1.0, h1 - h0)))
+    print(f'plongée : écran {h0:.0f} → {h1:.0f} px de haut en {v.arrivee - DEPART} images, départ {v0:.0f} px/image (p = {p:.2f})')
+    for k in range(DEPART + 1, v.arrivee + 1):
+        tau = (k - DEPART) / (v.arrivee - DEPART)
         s = 1 - (1 - tau) ** p
         quads[k] = quads[DEPART] + s * (fin_ecran - quads[DEPART])
     for k in range(DEPART + 1, K):
@@ -314,15 +393,15 @@ def fabriquer(essai=False):
     # les images de la carte, lues au fil de l'eau (le montage montre l'image e du plan à l'image e)
     sortie = subprocess.Popen([ffmpeg(), '-hide_banner', '-loglevel', 'error', '-y', '-f', 'rawvideo', '-pix_fmt', 'bgr24', '-s', f'{L}x{H}',
                                '-r', str(FPS), '-i', '-', '-vf', 'scale=out_color_matrix=bt709:out_range=tv,format=yuv420p',
-                               '-c:v', 'libx264', '-preset', 'slow', '-crf', '15', '-g', '6', *COULEUR, str(SORTIE)], stdin=subprocess.PIPE)
+                               '-c:v', 'libx264', '-preset', 'slow', '-crf', '15', '-g', '6', *COULEUR, str(v.sortie)], stdin=subprocess.PIPE)
     cartes = lire(CARTE, '')
     i_carte, carte = -1, None
     N = int(K * 2.5)
     doux = {k: masque_doux(m) for k, m in masques.items()}
     for n in range(N):
         k = min(K - 1, int(n / 2.5 + 1e-6))
-        e = ANIME + n
-        voulue = max(0, image_carte(e))
+        e = v.anime + n
+        voulue = max(0, image_carte(v, e))
         while i_carte < voulue:
             carte = next(cartes)
             i_carte += 1
@@ -336,8 +415,9 @@ def fabriquer(essai=False):
     cartes.close()
     sortie.stdin.close()
     sortie.wait()
-    print('ok →', SORTIE)
+    print('ok →', v.sortie)
 
 
 if __name__ == '__main__':
-    fabriquer('--essai' in sys.argv)
+    noms = [a for a in sys.argv[1:] if not a.startswith('--')]
+    fabriquer(noms[0] if noms else 'anime-flux', '--essai' in sys.argv)

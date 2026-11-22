@@ -51,12 +51,22 @@ REELS = {
     'nagoro': ('Nagoro Scarecrow Village.mp4', 13.0, 1.4, None),    # les épouvantails dans le champ
     'shirogane': ('Shirogane Blue Pond.mp4', 25.8, 1.4, None),      # l'étang bleu
     'tottori': ('Tottori Sand Dunes.mp4', 7.2, 2.2, None),          # le mur de sable au-dessus des vagues
+    # la vidéo 2 (la chanson n° 2, l'héroïne) : d'autres lieux pour les mêmes paroles
+    'daisen': ('Daisen.mp4', 8.6, 1.4, None),                       # la crête du Daisen vue du ciel, dans les nuages
+    'hakone': ('Hakone-jinja.mp4', 9.2, 1.4, None),                 # le Fuji au couchant derrière le torii rouge du lac
+    'inariyama': ('Inariyama Shrine.mp4', 30.0, 0.9, None),         # le tunnel de torii rouges dans les bambous
+    'kabushima': ('Kabushima jinja Shrine.mp4', 18.6, 0.9, None),   # le grand torii rouge et les mouettes
+    'futamigaura': ('Sakurai Futamigaura.mp4', 38.8, 1.2, None),    # le torii blanc dans la mer, au couchant
+    'okama': ('Okama.mov', 15.8, 1.0, None),                        # le lac vert du cratère, vu d'en haut
+    'keya': ('Keya no Ohto.mp4', 19.2, 1.0, None),                  # la grotte de colonnes de basalte, en bateau
+    'akagi': ('Akagi Nanmen Senbonzakura.mp4', 34.2, 1.6, None),    # la route sous les cerisiers et le colza
 }
 # Les prises de la carte et de la balade, tournées pour les vidéos d'avant
 PRISES = [VIDEOS / 'carte/tunnel/public/rushes' / f'{n}.mp4' for n in ('tn-japon', 'tn-filtres', 'tn-aogashima')] + [
     VIDEOS / 'carte/sceau/public/rushes' / f'{n}.mp4' for n in ('sc-plongee', 'sc-jour', 'sc-nuit')] + [
     VIDEOS / 'carte/jarre/public/rushes' / f'{n}.mp4' for n in ('ja-mer', 'ja-route', 'p-hiver')] + [
-    VIDEOS / 'balade/public/rushes' / f'{n}.mp4' for n in ('kk-feux', 'tt-escalier')]
+    VIDEOS / 'balade/public/rushes' / f'{n}.mp4' for n in ('kk-feux', 'tt-escalier', 'it-feux')] + [
+    VIDEOS / 'carte/eclat/public/rushes' / f'{n}.mp4' for n in ('p-plongee', 'p-mer')]
 SFX = [VIDEOS / 'carte/tunnel/public/sfx' / n for n in ('whoosh-fast.mp3', 'swoosh-quick.mp3', 'bass-hit-short.mp3', 'air-whoosh-powerful.mp3',
                                                         'transition-snap.mp3', 'shimmer-sparkle-sweep.mp3', 'zoom-air-fast.mp3', 'pops.mp3')] + [
     VIDEOS / 'carte/promo30/public/sfx' / n for n in ('impact-deep-whoosh.mp3', 'hit-fast-exciting.mp3')] + [
@@ -98,13 +108,14 @@ def vrais():
 
 def animes():
     """Les plans animés de Flora (704 × 1248, 24 images/s) : agrandis (lanczos et un peu de netteté sur les traits), chaque image
-    répétée pour 60 images/s (l'animé garde son pas). Le rush 2 (anime-flux) passe par ecran.py, qui pose la vraie carte
-    (rushes/tn-japon.mp4, copiée avant) dans l'écran du téléphone."""
-    for nom in ('anime-flux', 'anime-coupe', 'anime-tire'):
+    répétée pour 60 images/s (l'animé garde son pas). Le rush 2 (anime-flux, fille-flux) passe par ecran.py, qui pose la vraie
+    carte (rushes/tn-japon.mp4, copiée avant) dans l'écran du téléphone. Les fille-* : l'héroïne de la vidéo 2 (les mêmes trois
+    passages des rushes du propriétaire, redessinés par FLUX en une jeune femme ; 0,08 à 0,11 $ chacun)."""
+    for nom in ('anime-flux', 'anime-coupe', 'anime-tire', 'fille-flux', 'fille-coupe', 'fille-tire'):
         src, dest = SOURCES / f'{nom}.mp4', PUBLIC / 'clips' / f'{nom}.mp4'
         if src.exists() and (not dest.exists() or dest.stat().st_mtime < src.stat().st_mtime):
-            if nom == 'anime-flux':
-                ecran.fabriquer()
+            if nom.endswith('-flux'):
+                ecran.fabriquer(nom)
             else:
                 encoder(src, dest, 'scale=1080:1920:flags=lanczos,unsharp=5:5:0.6,fps=60,format=yuv420p')
 
@@ -169,10 +180,12 @@ def ecrire_wav(f, x, sr):
 
 
 def chanson():
-    dest = PUBLIC / 'musique' / 'chanson.wav'
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    subprocess.run([ffmpeg(), '-hide_banner', '-loglevel', 'error', '-y', '-i', str(VIDEOS / 'carte/generique/musique/el-homme.mp3'),
-                    '-ar', '48000', '-ac', '2', str(dest)], check=True)
+    """La chanson n° 1 (vidéo 1, chantée par un jeune homme) et la n° 2 (vidéo 2, par une jeune femme)."""
+    for source, nom in (('el-homme.mp3', 'chanson.wav'), ('chanson-2-fille.mp3', 'chanson-fille.wav')):
+        dest = PUBLIC / 'musique' / nom
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        subprocess.run([ffmpeg(), '-hide_banner', '-loglevel', 'error', '-y', '-i', str(VIDEOS / 'carte/generique/musique' / source),
+                        '-ar', '48000', '-ac', '2', str(dest)], check=True)
 
 
 def main():
