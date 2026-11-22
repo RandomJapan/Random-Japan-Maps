@@ -5,7 +5,7 @@
 // Les cadeaux pas encore faits (pret: false) montrent « En préparation » en mode développeur.
 // Maquette choisie par le propriétaire : l'artifact « Calendrier de l'Avent de la carte ».
 import { echapper, typoFr, partagerFichier, telecharger, tactile } from './commun.js';
-import { chargerImage, adresseGrain } from './bravo-image.js';
+import { chargerImage } from './bravo-image.js';
 import { DESSINS } from './legendes-dessins.js';
 
 const MEMOIRE = 'calendrierOuvert'; // les cases ouvertes (numéros des jours)
@@ -706,26 +706,17 @@ export function brancherNoel(outils) {
     return div;
   }
 
-  /** Le fond d'écran du prénom : 1170 × 2532 (un téléphone), papier de journal, katakana au pinceau, sceau Inkami. */
+  /** Le fond d'écran du prénom : 1170 × 2532 (un téléphone), papier washi (noel/washi.jpg), katakana au pinceau, sceau Inkami. */
   async function fondPrenom(nom) {
     const k = enKatakana(nom) || 'エマ';
     const L = FOND_L, H = FOND_H;
     await document.fonts.load(`200px ${POLICE_PINCEAU}`, k);
-    const [grain, sceau] = await Promise.all([chargerImage(adresseGrain()), chargerImage('noel/sceau-inkami.png')]);
+    const [washi, sceau] = await Promise.all([chargerImage('noel/washi.jpg'), chargerImage('noel/sceau-inkami.png')]);
     const can = document.createElement('canvas');
     can.width = L; can.height = H;
     const c = can.getContext('2d');
-    c.fillStyle = '#ece0d0';
-    c.fillRect(0, 0, L, H);
-    const motif = c.createPattern(grain, 'repeat');
-    motif.setTransform(new DOMMatrix().scale(3));
-    c.fillStyle = motif;
-    c.fillRect(0, 0, L, H);
-    const v = c.createRadialGradient(L / 2, H / 2, H * 0.25, L / 2, H / 2, H * 0.62);
-    v.addColorStop(0, 'rgba(120, 90, 50, 0)');
-    v.addColorStop(1, 'rgba(120, 90, 50, 0.22)');
-    c.fillStyle = v;
-    c.fillRect(0, 0, L, H);
+    // le papier washi (fibres de kōzo, bords un peu plus sombres), fabriqué à la taille de l'image
+    c.drawImage(washi, 0, 0, L, H);
 
     // les katakana, en colonne, dans le bas des deux tiers (le haut reste à l'heure de l'écran verrouillé)
     const signes = [...k];
