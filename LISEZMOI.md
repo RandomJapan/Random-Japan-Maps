@@ -470,6 +470,16 @@ Le bouton **Au hasard** tire un lieu au sort. On peut choisir une région ou une
 
 **Tu n'as rien à remplir pour ça.** La carte trouve toute seule la préfecture de chaque lieu grâce à ses coordonnées GPS. Un nouveau lieu ajouté dans le tableau apparaît donc directement dans le bon choix de région.
 
+## Le robot YouTube (Shorts, novembre 2026)
+
+Un petit robot publie tes vidéos de lieux sur ta chaîne YouTube, en Shorts, pour rattraper les lieux déjà sortis sur TikTok, puis chaque nouveau lieu.
+- **Les vidéos :** il prend celle du lieu dans `D:\Montage\Vidéo lieux random japon` (le même nom que dans « Nom (EN) »). Quand le fichier porte un autre nom, écris une ligne « Nom du lieu = fichier.mp4 » dans `D:\Montage\Robot YouTube\Correspondances.txt`.
+- **59 secondes au plus :** YouTube bloque partout un Short de plus d'une minute qui a une musique protégée (c'est ce qui est arrivé à Ōyamazumi-jinja et au mont Nantai). En dessous d'une minute, le Short reste en ligne ; l'argent qu'il rapporte va au label de la chanson, et ce n'est pas un avertissement pour ta chaîne.
+- **La musique :** une chanson de ta banque (`C:\Users\Lucas\Videos\noTube`), à son passage le plus fort, jamais la même que les 3 Shorts d'avant. Pour qu'une chanson commence ailleurs, écris « nom du fichier.mp3 = 1:05 » dans `D:\Montage\Robot YouTube\Musiques.txt` ; « nom du fichier.mp3 = non » pour ne plus l'utiliser. Si YouTube bloque quand même un Short à cause de sa chanson, le robot ne l'utilise plus et te prévient : supprime ce Short dans YouTube Studio, il le republiera avec une autre chanson.
+- **Le rythme :** 4 Shorts par jour (8 h, 12 h, 17 h et 21 h), programmés jusqu'à 2 semaines d'avance : YouTube les publie tout seul, même PC éteint.
+- **Le titre :** « Nom du lieu | préfecture 📍 #japan #shorts #japantravel #travel #calm ». La description et les tags sont toujours les mêmes (avec le lien de la carte).
+- **Un lieu déjà sur ta chaîne** n'est pas republié. Un Short que tu supprimes sera republié.
+
 ## Le dossier des vidéos
 
 Toutes les vidéos fabriquées sont dans le dossier `videos/`. Il n'est pas sur GitHub : garde ailleurs une copie de celles que tu publies.
