@@ -494,6 +494,7 @@ Un petit robot publie tes vidéos de lieux sur ta chaîne YouTube, en Shorts, po
 - **Le rythme :** 4 Shorts par jour (8 h, 12 h, 17 h et 21 h), programmés jusqu'à 2 semaines d'avance : YouTube les publie tout seul, même PC éteint.
 - **Le titre :** « Nom du lieu | préfecture 📍 #japan #shorts #japantravel #travel #calm ». La description et les tags sont toujours les mêmes (avec le lien de la carte).
 - **Un lieu déjà sur ta chaîne** n'est pas republié. Un Short que tu supprimes sera republié.
+- **Tout seul :** ton PC lance le robot chaque jour à 13 h (ou dès qu'il s'allume, s'il était éteint), et une notification dit combien de Shorts il a programmés. Pour l'arrêter : dans le Planificateur de tâches de Windows, désactive la tâche « Robot YouTube Random Japan Place ».
 
 ## Le dossier des vidéos
 
