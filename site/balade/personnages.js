@@ -198,48 +198,94 @@ export function echarpeNoel(THREE, a, { avant = 0.014, rayon = (y) => 0.15 + 0.0
 
 /**
  * Le sac de cadeaux du Père Noël (case du 16 décembre) : un gros sac de toile sur le dos, à la place du sac à dos, penché vers
- * l'épaule gauche ; son col froncé, serré d'une cordelette rouge et blanche, s'ouvre derrière l'épaule, et trois paquets en
- * dépassent, à côté de la tête (on les voit de face). Dans le repère du corps ; les bretelles, selon le buste : sanglesHotte.
- * Renvoie { sac, ouverture } : deux ateliers. Le sac, et son col jusqu'à la cordelette, fermé dessus ; l'ouverture : le col qui
- * s'évase au-dessus d'elle, et les paquets (le voyageur la cache sous le casque de samouraï, dont le couvre-nuque descend jusqu'à
- * 0,92 m, à 47 cm autour de la tête : les paquets le traversaient ; seul, le sac paraît noué).
+ * l'épaule gauche et un peu en arrière ; il est ouvert en haut (le propriétaire, 2026-11-22 : « un peu ouverte en haut et qu'on
+ * voie les cadeaux qui sont à l'intérieur ») : son col froncé, sa cordelette rouge et blanche desserrée, dont les deux bouts
+ * pendent dans le dos du sac, son bord roulé, plissé ; dedans, dans l'ombre, quatre paquets dont on voit le haut. (D'abord un col
+ * noué, d'où trois paquets sortaient à côté de la tête.) Dans le repère du corps ; les bretelles, selon le buste : sanglesHotte.
+ * Tout reste sous 0,92 m, où descend le couvre-nuque du casque de samouraï (à 47 cm autour de la tête : il reste ouvert dessous ;
+ * l'ancien col noué, plus haut, le traversait). Renvoie { sac, paquets } : deux ateliers.
  */
 export function hotteNoel(THREE, atelier) {
-  const PI = Math.PI, TOILE = '#c8a066', TOILE2 = '#b9925a', V = (x, y, z) => new THREE.Vector3(x, y, z), a = atelier(), b = atelier();
-  // le sac : une boule de toile un peu aplatie contre le dos, bosselée par ce qu'il y a dedans, penchée vers la gauche
-  a.piece(new THREE.SphereGeometry(0.24, 18, 13), TOILE, {
-    x: 0.05, y: 0.6, z: -0.355, sx: 0.98, sz: 0.72, rz: -0.22,
-    deformer: (x, y, z) => { const t = Math.atan2(x, z), k = 1 + 0.07 * Math.sin(t * 3 + y * 9) + 0.045 * Math.sin(t * 5 - y * 14) + (y > 0.13 ? 0.1 * Math.sin(t * 9) * ((y - 0.13) / 0.11) : 0); return [x * k, y, z * k]; },
-    teinte: (x, y, z) => (Math.floor((x * 0.6 + y) * 38) % 2 ? TOILE : TOILE2),
+  const TOILE = '#c8a066', TOILE2 = '#b9925a', ROUGE = '#e2402e', BLANC = '#f6f1e6', V = (x, y, z) => new THREE.Vector3(x, y, z), a = atelier(), b = atelier();
+  // le repère du sac : son axe (y) penché vers l'épaule gauche et en arrière, aplati contre le dos (z)
+  const POS = V(0.05, 0.6, -0.37), ROT = new THREE.Euler(-0.28, 0, -0.2), AP = 0.74;
+  const Q = new THREE.Quaternion().setFromEuler(ROT), M = new THREE.Matrix4().compose(POS, Q, V(1, 1, AP)), Mi = M.clone().invert();
+  const place = { x: POS.x, y: POS.y, z: POS.z, rx: ROT.x, ry: ROT.y, rz: ROT.z, sz: AP };
+  // le profil du sac (y, rayon) : le fond, la panse, le col froncé (la cordelette en y = 0,2), le bord, un peu évasé
+  const PROFIL = [[-0.25, 0], [-0.238, 0.085], [-0.2, 0.16], [-0.13, 0.212], [-0.05, 0.238], [0.03, 0.236], [0.1, 0.208], [0.155, 0.165], [0.195, 0.138], [0.222, 0.142], [0.25, 0.154]];
+  const rayon = (y) => {
+    for (let i = 1; i < PROFIL.length; i++) if (y <= PROFIL[i][0]) { const [y0, r0] = PROFIL[i - 1], [y1, r1] = PROFIL[i]; return r0 + ((r1 - r0) * (y - y0)) / (y1 - y0); }
+    return PROFIL[PROFIL.length - 1][1];
+  };
+  const borne = (v) => Math.min(1, Math.max(0, v));
+  // la toile : bosselée par ce qu'il y a dedans sous le col ; au-dessus de la cordelette, des plis, et le bord qui ondule
+  const forme = (x, y, z) => {
+    const t = Math.atan2(x, z);
+    const bosse = (0.065 * Math.sin(t * 3 + y * 9) + 0.04 * Math.sin(t * 5 - y * 14)) * borne((0.17 - y) / 0.05);
+    const k = 1 + bosse + 0.075 * Math.sin(t * 8 + 0.6) * borne((y - 0.19) / 0.06);
+    return [x * k, y + 0.016 * Math.sin(t * 5 + 1.3) * borne((y - 0.2) / 0.05), z * k];
+  };
+  const local = (x, y, z) => V(x, y, z).applyMatrix4(Mi);
+  a.piece(new THREE.LatheGeometry(PROFIL.map(([y, r]) => new THREE.Vector2(r, y)), 28), TOILE, {
+    ...place, deformer: forme,
+    teinte: (x, y, z) => {
+      const l = local(x, y, z), t = Math.atan2(l.x, l.z);
+      // (froncée sous la cordelette : des plis qui montent vers elle ; le bord, ses plis ; ailleurs, le grain de la toile)
+      if (l.y > 0.12 && l.y < 0.2) return Math.floor(t * 4.5 + 20) % 2 ? TOILE : TOILE2;
+      if (l.y >= 0.2) return Math.sin(t * 8 + 0.6) < -0.35 ? TOILE2 : TOILE;
+      return Math.floor((x * 0.6 + y) * 38 + 100) % 2 ? TOILE : TOILE2;
+    },
   });
-  // le col froncé : du haut du sac vers l'épaule gauche, serré, puis qui s'évase (des plis tout autour)
-  const N = [V(0.1, 0.78, -0.345), V(0.15, 0.82, -0.34), V(0.19, 0.85, -0.335), V(0.225, 0.89, -0.33), V(0.255, 0.93, -0.33)], R = [0.11, 0.075, 0.052, 0.07, 0.098];
-  const plis = { teinte: (x, y, z) => (Math.floor(Math.atan2(x - 0.2, z + 0.33) * 4.5 + 20) % 2 ? TOILE : TOILE2) };
-  a.tronc(N.slice(0, 3).map((p) => p.toArray()), R.slice(0, 3), TOILE, 14, plis)
-    .ovale(0.05, TOILE2, { x: N[2].x, y: N[2].y + 0.008, z: N[2].z, sy: 0.7 }, 10);
-  b.tronc(N.slice(2).map((p) => p.toArray()), R.slice(2), TOILE, 14, plis);
-  // (l'ourlet de l'ouverture, et le fond du col, sombre : vu d'en haut, l'intérieur)
-  const axe = N[4].clone().sub(N[3]).normalize(), q = new THREE.Quaternion().setFromUnitVectors(V(0, 1, 0), axe), e = new THREE.Euler().setFromQuaternion(q);
-  b.piece(new THREE.CircleGeometry(0.094, 14).rotateX(-PI / 2), '#5a4430', { x: N[4].x - axe.x * 0.004, y: N[4].y - axe.y * 0.004, z: N[4].z - axe.z * 0.004, rx: e.x, ry: e.y, rz: e.z, trait: false });
-  // la cordelette, rouge et blanche, et son nœud
-  const qt = new THREE.Quaternion().setFromUnitVectors(V(0, 0, 1), N[3].clone().sub(N[1]).normalize()), et = new THREE.Euler().setFromQuaternion(qt);
-  a.piece(new THREE.TorusGeometry(0.056, 0.013, 6, 18), '#e2402e', { x: N[2].x, y: N[2].y, z: N[2].z, rx: et.x, ry: et.y, rz: et.z, teinte: (x, y, z) => (Math.floor(Math.atan2(y - N[2].y, x - N[2].x) * 3.2 + 30) % 2 ? '#e2402e' : '#f6f1e6') });
-  for (const s of [-1, 1]) a.ovale(0.024, '#e2402e', { x: N[2].x + 0.02 + s * 0.02, y: N[2].y - 0.01, z: N[2].z + 0.055, sx: 1.3, sy: 0.7, sz: 0.5, rz: s * 0.4 }, 8);
-  // les paquets : une boîte, deux rubans en croix (un peu plus larges qu'elle), un nœud dessus
-  const paquet = (c, ruban, l, h, p, o, rx, ry, rz) => {
-    const pl = { x: o.x, y: o.y, z: o.z, rx, ry, rz };
-    b.boite(l, h, p, c, pl).boite(l + 0.004, h + 0.004, 0.022, ruban, pl).boite(0.022, h + 0.004, p + 0.004, ruban, pl);
-    const haut = V(0, h / 2 + 0.012, 0).applyEuler(new THREE.Euler(rx, ry, rz)).add(o);
+  // le dedans : la toile vue de l'intérieur (le profil pris de haut en bas : ses faces tournées vers l'axe), de plus en plus sombre,
+  // et le fond de l'ombre, sous les paquets, qui le ferme (bien en dedans de la toile : plus bas, ses bosses le faisaient ressortir)
+  const DEDANS = [[0.247, 0.146], [0.222, 0.132], [0.195, 0.126], [0.16, 0.142], [0.12, 0.162]];
+  a.piece(new THREE.LatheGeometry(DEDANS.map(([y, r]) => new THREE.Vector2(r, y)), 28), '#8a6a44', {
+    ...place, deformer: forme, trait: false,
+    teinte: (x, y, z) => { const ly = local(x, y, z).y; return ly > 0.205 ? '#8a6a44' : ly > 0.16 ? '#6e5236' : '#4f3b27'; },
+  })
+    .piece(new THREE.CircleGeometry(0.162, 28).rotateX(-Math.PI / 2).translate(0, 0.12, 0), '#3f2f20', { ...place, deformer: forme, trait: false });
+  // le bord, roulé : un boudin le long du haut de la toile
+  const bord = [];
+  for (let k = 0; k < 28; k++) { const t = (k / 28) * 2 * Math.PI, r = rayon(0.248) - 0.002; bord.push(V(...forme(Math.sin(t) * r, 0.248, Math.cos(t) * r))); }
+  a.piece(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(bord, true), 56, 0.011, 6, true), TOILE, { ...place, sz: AP });
+  // la cordelette desserrée, rouge et blanche, autour du col ; un nœud lâche, et ses deux bouts qui pendent dans le dos du sac,
+  // un petit nœud au bout de chacun
+  const torsade = (x, y, z) => (Math.floor((x + y + z) * 55 + 100) % 2 ? ROUGE : BLANC);
+  const surToile = (t, y, ecart) => { const r = rayon(y) + ecart; return V(...forme(Math.sin(t) * r, y, Math.cos(t) * r)); };
+  const tour = [];
+  for (let k = 0; k < 24; k++) tour.push(surToile((k / 24) * 2 * Math.PI, 0.2, 0.006));
+  a.piece(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(tour, true), 48, 0.011, 6, true), ROUGE, { ...place, teinte: torsade });
+  const TN = Math.PI - 0.55, monde = (p) => p.clone().applyMatrix4(M);
+  const noeud = monde(surToile(TN, 0.2, 0.016));
+  a.ovale(0.02, ROUGE, { x: noeud.x, y: noeud.y, z: noeud.z, sx: 1.2, sy: 0.9, sz: 0.8 }, 8);
+  for (const [dt, bas, balance] of [[-0.07, -0.02, -0.012], [0.08, 0.035, 0.01]]) {
+    const pts = [];
+    for (let k = 0; k <= 6; k++) {
+      const y = 0.2 - ((0.2 - bas) * k) / 6;
+      pts.push(monde(surToile(TN + dt * (k / 6) ** 0.7, y, 0.014 + 0.006 * (k / 6))).add(V(balance * (k / 6) ** 2, 0, 0)).toArray());
+    }
+    a.tube(pts, 0.0085, ROUGE, { cotes: 6, pas: 20, teinte: torsade });
+    const [x, y, z] = pts[pts.length - 1];
+    a.ovale(0.016, ROUGE, { x, y: y - 0.006, z }, 7);
+  }
+  // les paquets, dans le sac : une boîte, deux rubans en croix (un peu plus larges qu'elle), un nœud dessus ; placés dans le repère du
+  // sac (leur centre suit son aplatissement, eux non)
+  const paquet = (c, ruban, l, h, p, centre, rx, ry, rz, rond = false) => {
+    const q = Q.clone().multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(rx, ry, rz))), e = new THREE.Euler().setFromQuaternion(q);
+    const o = centre.clone().applyMatrix4(M), pl = { x: o.x, y: o.y, z: o.z, rx: e.x, ry: e.y, rz: e.z };
+    if (rond) b.cylindre(l / 2, l / 2, h, 14, c, pl).cylindre(l / 2 + 0.003, l / 2 + 0.003, 0.02, 14, ruban, pl).boite(0.02, h + 0.004, l + 0.004, ruban, pl);
+    else b.boite(l, h, p, c, pl).boite(l + 0.004, h + 0.004, 0.022, ruban, pl).boite(0.022, h + 0.004, p + 0.004, ruban, pl);
+    const haut = V(0, h / 2 + 0.01, 0).applyQuaternion(q).add(o);
     for (const s of [-1, 1]) {
-      const n = V(s * 0.018, 0, 0).applyEuler(new THREE.Euler(rx, ry, rz)).add(haut);
-      b.ovale(0.017, ruban, { x: n.x, y: n.y, z: n.z, rx, ry, rz: rz + s * 0.5, sx: 1.4, sy: 0.75, sz: 0.55 }, 8);
+      const n = V(s * 0.017, 0, 0).applyQuaternion(q).add(haut), en = new THREE.Euler().setFromQuaternion(q.clone().multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, s * 0.5))));
+      b.ovale(0.016, ruban, { x: n.x, y: n.y, z: n.z, rx: en.x, ry: en.y, rz: en.z, sx: 1.4, sy: 0.75, sz: 0.55 }, 8);
     }
   };
-  const O = N[4];
-  paquet('#3f9a64', '#d8302c', 0.1, 0.1, 0.1, V(O.x - 0.025, O.y + 0.05, O.z + 0.015), 0.25, 0.5, 0.18);
-  paquet('#3f6fc4', '#f2c443', 0.085, 0.11, 0.08, V(O.x + 0.045, O.y + 0.035, O.z - 0.03), -0.2, 0.9, -0.35);
-  paquet('#d8302c', '#f6f1e6', 0.07, 0.065, 0.07, V(O.x + 0.005, O.y + 0.03, O.z - 0.06), 0.4, 0.2, 0.1);
-  return { sac: a, ouverture: b };
+  paquet('#3f9a64', '#d8302c', 0.1, 0.1, 0.1, V(-0.04, 0.228, 0.025), 0.15, 0.5, 0.22);
+  paquet('#3f6fc4', '#f2c443', 0.085, 0.12, 0.08, V(0.058, 0.225, -0.01), -0.12, 0.9, -0.28);
+  paquet('#d8302c', '#f6f1e6', 0.07, 0.07, 0.07, V(0.0, 0.215, -0.07), 0.3, 0.2, 0.08);
+  paquet('#8a4fb0', '#f2c443', 0.085, 0.06, 0, V(-0.075, 0.2, -0.045), -0.25, 0.3, 0.35, true);
+  return { sac: a, paquets: b };
 }
 /** Les bretelles du sac de cadeaux : deux cordes du haut du sac, par-dessus les épaules, qui descendent sur la poitrine (sur le buste de la tenue). */
 export function sanglesHotte(THREE, a, { avant = 0.014, rayon = (y) => 0.15 + 0.022 * Math.min(1, Math.max(0, (0.8 - y) / 0.25)), aplati = 0.9 } = {}) {
@@ -1470,7 +1516,7 @@ export function creerHeros(ctx, sorte = 'garcon') {
     // d'un flocon de neige, longues et fines, chacune avec deux petites branches en V et une pointe en losange ; le pont, les branches
     // jusqu'aux oreilles. (D'abord des branches courtes et épaisses : de près, des roues dentées.)
     flocons() {
-      const a = atelier(), BL = '#f2fbff', VERRE = '#8fc8ea';
+      const a = atelier(), BL = '#f2fbff', VERRE = '#8fc8ea', pont = [];
       const anneau = new THREE.Shape().absarc(0, 0, 0.05, 0, 2 * PI, false);
       anneau.holes.push(new THREE.Path().absarc(0, 0, 0.04, 0, 2 * PI, true));
       for (const s of [-1, 1]) {
@@ -1494,12 +1540,17 @@ export function creerHeros(ctx, sorte = 'garcon') {
             a.boite(0.0055, 0.022, 0.007, BL, { x: b.x, y: b.y, z: b.z, rx: q.rx, ry: q.ry, rz: tb - PI / 2 });
           }
         }
-        // la branche des lunettes : du bord du verre à l'oreille, en contournant la tête
-        a.baton([s * 0.152, CY - 0.008, q.z - 0.036], [s * 0.292, CY + 0.004, 0.17], 0.008, BL, 5)
-          .baton([s * 0.292, CY + 0.004, 0.17], [s * 0.322, CY + 0.012, 0.02], 0.008, BL, 5);
+        // la branche des lunettes, d'un seul tenant : du cercle (elle part de son épaisseur, côté oreille) à l'oreille, en contournant
+        // la tête (le propriétaire, 2026-11-22 : les branches et le milieu « tout attachés » ; elles flottaient à côté des cercles)
+        const E = dans(s * 0.046, 0.004, 0.006), E2 = dans(s * 0.068, 0.005, -0.004);
+        a.tube([E.toArray(), E2.toArray(), [s * 0.25, CY - 0.006, 0.226], [s * 0.298, CY + 0.004, 0.15], [s * 0.322, CY + 0.012, 0.02]], 0.0075, BL, { cotes: 6, pas: 20 })
+          .ovale(0.0085, BL, { x: s * 0.322, y: CY + 0.012, z: 0.02 }, 6);
+        // (le pont part du bord du cercle côté nez)
+        pont.push(dans(-s * 0.046, 0.006, 0.006));
       }
-      const g = surVisage(0, -0.005, 0.02);
-      return a.baton([-0.05, g.y, g.z - 0.004], [0.05, g.y, g.z - 0.004], 0.008, BL, 5);
+      // le pont, en arc au-dessus du nez, d'un cercle à l'autre
+      const g = surVisage(0, 0, 0.022);
+      return a.tube([pont[0].toArray(), [0, g.y + 0.004, g.z], pont[1].toArray()], 0.0075, BL, { cotes: 6, pas: 12 });
     },
     // le casque de samouraï (kabuto) : le bol de fer à côtes et son bouton, la visière, le couvre-nuque en trois lames
     // laquées de rouge, ses deux ailerons retournés, les cornes dorées (kuwagata) et le soleil du cimier
@@ -1914,8 +1965,6 @@ export function creerHeros(ctx, sorte = 'garcon') {
     if (capeL) { capeL.dos.visible = portee && !levee; capeL.tete.visible = !!levee; }
     if (dessus) dessus.visible = teteId !== 'defaut' && teteId !== 'kabuto' && teteId !== 'heron' && teteId !== 'bonnetNoel' && !levee;
     if (couettes) couettes.visible = !levee;
-    // (sous le casque de samouraï, le sac de cadeaux reste noué : ses paquets traversaient le couvre-nuque)
-    if (pieces.hotteOuverture) pieces.hotteOuverture.visible = teteId !== 'kabuto';
   };
   // (les bretelles du sac de cadeaux : sur le buste de ce qu'on porte, comme le collier ; une par buste, faite la première fois)
   const sangles = {};
@@ -2217,8 +2266,7 @@ export function creerHeros(ctx, sorte = 'garcon') {
           if (!pieces.hotte) {
             const h = hotteNoel(THREE, atelier);
             pieces.hotte = new THREE.Group();
-            pieces.hotteOuverture = maillage(h.ouverture.fin(0, false));
-            pieces.hotte.add(maillage(h.sac.fin(0, false)), pieces.hotteOuverture);
+            pieces.hotte.add(maillage(h.sac.fin(0, false)), maillage(h.paquets.fin(0, false)));
             corps.add(pieces.hotte);
           }
           pieces.hotte.visible = true;
