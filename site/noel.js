@@ -823,7 +823,17 @@ export function brancherNoel(outils) {
     const en = (s) => s.replace('{l}', l);
     const div = creer('div', `noel-fichier forme-${f.forme}`);
     div.innerHTML = `<img src="${en(f.apercu)}" alt="" loading="lazy">`;
-    const b = creer('button', 'btn-lancer', tx(f.bouton === 'fond' ? 'fondTelecharger' : f.bouton === 'image' ? 'imageTelecharger' : 'pdfTelecharger'));
+    if (f.bouton === 'pdf') {
+      // un PDF : un vrai lien de téléchargement, que le navigateur prend en charge lui-même (le 2026-11-22, le calendrier en
+      // photos, 11 Mo, ne se téléchargeait plus : il fallait le charger en entier avant le menu de partage du téléphone,
+      // et le téléphone refusait ce menu après un chargement trop long)
+      const a = creer('a', 'btn-lancer', tx('pdfTelecharger'));
+      a.href = en(f.url);
+      a.download = f.nom;
+      div.append(a);
+      return div;
+    }
+    const b = creer('button', 'btn-lancer', tx(f.bouton === 'fond' ? 'fondTelecharger' : 'imageTelecharger'));
     b.type = 'button';
     b.addEventListener('click', async () => {
       b.disabled = true;
