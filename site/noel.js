@@ -7,12 +7,12 @@
 import { echapper, typoFr, partagerFichier, telecharger, tactile } from './commun.js';
 import { chargerImage } from './bravo-image.js';
 import { DESSINS } from './legendes-dessins.js';
+import { CONFIG } from './config.js';
 
 const MEMOIRE = 'calendrierOuvert'; // les cases ouvertes (numéros des jours)
 const MEMOIRE_ESSAI = 'calendrierOuvertEssai'; // les mêmes, quand le mode développeur simule un jour
 const MEMOIRE_PRENOM = 'calendrierPrenom';
 const MEMOIRE_TENUE = 'noelTenue'; // les pièces d'hiver de la balade 3D données par le calendrier (le bonnet : noel-carte.js)
-const BOUTIQUE = 'https://inkami.art/?utm_source=map&utm_medium=calendrier&utm_campaign=noel2026';
 const POLICE_PINCEAU = '"Inkami Pinceau"'; // noel.css : noel/inkami-pinceau.woff2 (Yuji Boku, katakana seulement, OFL)
 
 const ICONES = {
@@ -87,7 +87,7 @@ const TEXTES = {
     pause: 'Pause',
     musiqueLecteur: 'It now plays in the map’s music player too (the ♪ button), style « Christmas ».',
     enPreparation: 'Being made: this gift will be ready before December (developer mode only).',
-    codeAFaire: 'Code to create in Shopify before December (developer mode only).',
+    codeAFaire: 'The code will be created in Shopify with the two-face option (developer mode only).',
     devJour: 'Simulated day',
     devRefermer: 'Close every box',
     devNote: 'Developer mode: boxes opened while simulating are kept apart from the real calendar.',
@@ -152,7 +152,7 @@ const TEXTES = {
     pause: 'Pause',
     musiqueLecteur: 'Elle est aussi dans le lecteur de musique de la carte (le bouton ♪), style « Noël ».',
     enPreparation: 'En préparation : ce cadeau sera prêt avant décembre (visible seulement en mode développeur).',
-    codeAFaire: 'Code à créer dans Shopify avant décembre (visible seulement en mode développeur).',
+    codeAFaire: 'Le code sera créé dans Shopify avec l’option « deux visages » (visible seulement en mode développeur).',
     devJour: 'Jour simulé',
     devRefermer: 'Refermer toutes les cases',
     devNote: 'Mode développeur : les cases ouvertes en simulant un jour sont gardées à part du vrai calendrier.',
@@ -217,7 +217,7 @@ const TEXTES = {
     pause: '一時停止',
     musiqueLecteur: 'マップの音楽プレーヤー（♪ボタン）の「クリスマス」でも聴けます。',
     enPreparation: '準備中（開発者モードのみ表示）',
-    codeAFaire: 'Shopifyでコードを作成（開発者モードのみ表示）',
+    codeAFaire: '「2人の顔」オプションと一緒にShopifyでコードを作成（開発者モードのみ表示）',
     devJour: '日付のシミュレーション',
     devRefermer: 'すべて閉じる',
     devNote: '開発者モード：シミュレーション中に開けた窓は別に保存されます。',
@@ -270,10 +270,11 @@ const CASES = [
       fr: '12 mois, 12 lieux de la carte, chacun à sa saison : la neige en janvier, les cerisiers en avril, les érables rouges en novembre, avec les jours fériés du Japon. En PDF, format A4 à l’italienne.' },
     deco: { en: 'A garland hangs on the map’s title.', fr: 'Une guirlande s’accroche au titre de la carte.' },
     savais: { en: 'On winter mornings, mist rises from the lake, warmed by hot springs.', fr: 'Les matins d’hiver, une brume monte du lac, réchauffé par des sources chaudes.' } },
-  { j: 4, k: 'boutique', lieu: 'fukuroda-falls', pret: false, code: 'CALENDRIER4',
-    cadeau: { en: 'Free express delivery', fr: 'La livraison Express offerte', ja: '速達配送無料' },
-    texte: { en: 'A code to get an Inkami portrait faster, in time for Christmas. For the first 10 orders.',
-      fr: 'Un code pour recevoir son tableau Inkami plus vite, à temps pour Noël. Pour les 10 premières commandes.' },
+  { j: 4, k: 'boutique', lieu: 'fukuroda-falls', pret: true, code: 'CALENDRIER4', page: 'products/ink-portrait-japanese-newspaper',
+    cadeau: { en: 'Free home delivery', fr: 'La livraison à domicile offerte', ja: '自宅配送無料' },
+    texte: { en: 'A code to get your Inkami portrait delivered to your door for free, in France and Europe. It works together with the code NOEL10 (−10%). For the first 10 orders, until January 31. Ordered today, it arrives well before Christmas in France.',
+      fr: 'Un code pour recevoir ton tableau Inkami chez toi sans frais de livraison, en France et en Europe. Il se cumule avec le code NOEL10 (−10 %). Pour les 10 premières commandes, jusqu’au 31 janvier. Commandé aujourd’hui, il arrive bien avant Noël en France.',
+      ja: 'インカミの作品を自宅まで送料無料で届けるコードです（フランスとヨーロッパ）。NOEL10（10%オフ）と一緒に使えます。先着10名、1月31日まで。' },
     deco: { en: 'The waterfalls on the map freeze.', fr: 'Les cascades de la carte gèlent.' },
     savais: { en: 'In a hard frost the waterfall freezes: the Japanese call it hyōbaku, the « ice waterfall ».', fr: 'Par grand froid, la cascade gèle : les Japonais l’appellent hyōbaku, la « cascade de glace ».' } },
   { j: 5, k: 'balade', lieu: 'tsumago-juku', pret: true, tenue: 'echarpe',
@@ -312,10 +313,11 @@ const CASES = [
     texte: { en: 'Two square sheets to print in the map’s colours (waves and hemp leaves), and how to fold the crane in 12 steps.', fr: 'Deux feuilles carrées à imprimer aux couleurs de la carte (les vagues et les feuilles de chanvre), et le pliage de la grue en 12 étapes.' },
     deco: { en: 'Paper cranes fly over the map.', fr: 'Des grues en papier volent au-dessus de la carte.' },
     savais: { en: 'In Japan, people fold a thousand cranes (senbazuru) to make a wish: healing, happiness or peace.', fr: 'Au Japon, on plie mille grues (senbazuru) pour faire un vœu : guérison, bonheur ou paix.' } },
-  { j: 10, k: 'boutique', lieu: 'hirosaki-castle', pret: false, code: 'CALENDRIER10',
+  { j: 10, k: 'boutique', lieu: 'hirosaki-castle', pret: true, code: 'CALENDRIER10', page: 'products/ink-portrait-japanese-newspaper',
     cadeau: { en: 'Last day for a portrait by Christmas', fr: 'Dernier jour pour un tableau à Noël', ja: 'クリスマスに間に合う最終日' },
-    texte: { en: 'After today, a portrait may arrive after Christmas. −15% today only, for the first 10 orders.',
-      fr: 'Après aujourd’hui, un tableau risque d’arriver après Noël. −15 % aujourd’hui seulement, pour les 10 premières commandes.' },
+    texte: { en: 'Ordered today, your portrait arrives in time for Christmas with home delivery in France; after today, it may come too late. −15% today only (until midnight, Paris time), for the first 10 orders.',
+      fr: 'Commandé aujourd’hui, ton tableau arrive à temps pour Noël en livraison à domicile en France ; après, il risque d’arriver trop tard. −15 % aujourd’hui seulement (jusqu’à minuit, heure de Paris), pour les 10 premières commandes.',
+      ja: '今日注文すれば、フランス国内の自宅配送でクリスマスに間に合います。本日限り（パリ時間の深夜0時まで）15%オフ、先着10名。' },
     deco: { en: 'Snow lanterns light up around the castle.', fr: 'Des lanternes de neige s’allument autour du château.' },
     savais: { en: 'In February, the castle park glows with lanterns made of snow.', fr: 'En février, le parc du château s’illumine de lanternes faites en neige.' } },
   { j: 11, k: 'balade', lieu: 'cape-notoro-misaki', pret: true, tenue: 'lunettes',
@@ -356,10 +358,12 @@ const CASES = [
     texte: { en: 'Santa’s sack, worn on the back instead of the backpack.', fr: 'Le sac du Père Noël, à porter sur le dos à la place du sac à dos.' },
     deco: { en: 'Snow monkeys take a hot bath.', fr: 'Des singes des neiges prennent un bain chaud.' },
     savais: { en: 'In Noboribetsu, statues of oni (demons) guard the hot springs. Here, the demons protect the town.', fr: 'À Noboribetsu, des statues de démons (oni) gardent les sources chaudes. Ici, les démons protègent la ville.' } },
-  { j: 17, k: 'boutique', lieu: 'lake-tazawa', pret: false, code: 'CALENDRIER17',
-    cadeau: { en: 'The Inkami gift card', fr: 'Le bon cadeau Inkami', ja: 'Inkamiギフトカード' },
-    texte: { en: 'Too late for delivery? A gift card to print and put under the tree: the person picks a style and sends a photo after Christmas. −10% on the card.',
-      fr: 'Trop tard pour la livraison ? Un bon cadeau à imprimer et à mettre sous le sapin : la personne choisit son style et envoie sa photo après Noël. −10 % sur le bon.' },
+  { j: 17, k: 'boutique', lieu: 'lake-tazawa', pret: true, page: 'products/inkami-gift-card',
+    fichier: { apercu: 'noel/bon-cadeau-{l}-apercu.jpg', url: 'noel/bon-cadeau-{l}.pdf', nom: 'bon-cadeau-inkami.pdf', forme: 'page', bouton: 'pdf' },
+    cadeau: { en: 'The Inkami gift card', fr: 'Le bon cadeau Inkami', ja: 'インカミのギフト券' },
+    texte: { en: 'Too late for delivery? Give an Inkami gift card (€25, €50 or €69): its code arrives by email straight away. Print this card, write the code on it and slip it under the tree. After Christmas, the person picks samurai or geisha and sends a photo.',
+      fr: 'Trop tard pour la livraison ? Offre un bon cadeau Inkami (25 €, 50 € ou 69 €) : son code arrive tout de suite par e-mail. Imprime cette carte, écris le code dessus et glisse-la sous le sapin. Après Noël, la personne choisit samouraï ou geisha et envoie sa photo.',
+      ja: '配送に間に合わない？インカミのギフト券（25・50・69ユーロ）を贈りましょう。コードはすぐにメールで届きます。このカードを印刷してコードを書き、ツリーの下へ。クリスマスのあと、相手が侍か芸者を選んで写真を送ります。' },
     deco: { en: 'Snow huts (kamakura) light up in the north.', fr: 'Des huttes de neige (kamakura) s’allument dans le nord.' },
     savais: { en: 'On the evening of December 31, on the Oga peninsula (Akita), masked demons, the Namahage, visit homes to scold lazy children.',
       fr: 'Le soir du 31 décembre, dans la péninsule d’Oga (Akita), des démons masqués, les Namahage, passent dans les maisons pour gronder les enfants paresseux.' } },
@@ -383,7 +387,7 @@ const CASES = [
       fr: 'Tout le Japon la nuit de Noël, fait avec la carte : la neige au nord, les villes illuminées, une guirlande lumineuse et des flocons qui tombent.' },
     deco: { en: 'All of Japan shines at night.', fr: 'Tout le Japon brille la nuit.' },
     savais: { en: 'In winter the lake freezes, and you can walk on the ice to the old bridge.', fr: 'L’hiver, le lac gèle, et l’on peut marcher sur la glace jusqu’au vieux pont.' } },
-  { j: 21, k: 'boutique', lieu: 'tsuru-no-maihashi-bridge', pret: false, code: 'CALENDRIER21',
+  { j: 21, k: 'boutique', lieu: 'tsuru-no-maihashi-bridge', pret: false, code: 'CALENDRIER21', page: 'products/ink-portrait-japanese-newspaper',
     cadeau: { en: 'Valentine’s Day in advance', fr: 'La Saint-Valentin en avance', ja: 'ひと足早いバレンタイン' },
     texte: { en: 'A code for a second face on the same portrait, free. From January 1 to February 14, for the first 10 orders.',
       fr: 'Un code pour un deuxième visage offert sur le même tableau. Du 1er janvier au 14 février, pour les 10 premières commandes.' },
@@ -601,7 +605,7 @@ export function brancherNoel(outils) {
     if (c.special === 'yuzu' || c.special === 'jizo') s.append(blocProgres(c.special));
     if (c.tenue) s.append(blocBalade(c));
     if (c.fichier) s.append(blocFichier(c.fichier));
-    if (c.code) s.append(blocCode(c));
+    if (c.code || c.page) s.append(blocBoutique(c));
     if (!c.pret && estDev()) s.append(creer('p', 'noel-preparation', tx('enPreparation')));
 
     const l = lieux().find((x) => x.id === c.lieu);
@@ -849,23 +853,33 @@ export function brancherNoel(outils) {
     return p;
   }
 
-  // ---- Les cases de la boutique Inkami : le code et le lien
-  function blocCode(c) {
+  // ---- Les cases de la boutique Inkami : le code (s'il y en a un) et le lien vers la page de la boutique (c.page), dans la langue
+  //      du visiteur quand la boutique la publie (CONFIG.boutique, comme le lien « Mes tableaux »)
+  function lienBoutique(c) {
+    const b = CONFIG.boutique, l = langue();
+    const url = new URL(`${b.langues?.includes(l) ? `${l}/` : ''}${c.page || ''}`, b.adresse);
+    url.search = new URLSearchParams({ utm_source: 'map', utm_medium: 'calendrier', utm_campaign: 'noel2026', utm_content: `case${c.j}` });
+    return url.href;
+  }
+  function blocBoutique(c) {
     const div = creer('div', 'noel-code');
-    const code = creer('span', 'noel-code-texte', c.code);
-    const copier = creer('button', 'btn-secondaire', tx('copier'));
-    copier.type = 'button';
-    copier.addEventListener('click', () => {
-      navigator.clipboard?.writeText(c.code).then(() => afficherMessage(tx('copie')), () => {});
-    });
-    const p = creer('p', 'noel-code-ligne');
-    p.append(creer('span', 'noel-etiquette', tx('code')), code, copier);
+    if (c.code) {
+      const code = creer('span', 'noel-code-texte', c.code);
+      const copier = creer('button', 'btn-secondaire', tx('copier'));
+      copier.type = 'button';
+      copier.addEventListener('click', () => {
+        navigator.clipboard?.writeText(c.code).then(() => afficherMessage(tx('copie')), () => {});
+      });
+      const p = creer('p', 'noel-code-ligne');
+      p.append(creer('span', 'noel-etiquette', tx('code')), code, copier);
+      div.append(p);
+    }
     const lien = creer('a', 'btn-lancer noel-boutique', tx('boutiqueAller'));
-    lien.href = `${BOUTIQUE}&utm_content=case${c.j}`;
+    lien.href = lienBoutique(c);
     lien.target = '_blank';
     lien.rel = 'noopener';
-    div.append(p, lien);
-    if (estDev()) div.append(creer('p', 'noel-preparation', tx('codeAFaire')));
+    div.append(lien);
+    if (c.code && !c.pret && estDev()) div.append(creer('p', 'noel-preparation', tx('codeAFaire')));
     return div;
   }
 
