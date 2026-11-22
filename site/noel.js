@@ -79,6 +79,7 @@ const TEXTES = {
     jizoProgres: (n) => `Straw hats given: ${n}/6`,
     voirYukionna: 'See where she hides',
     voirKanji: 'See it over Kyoto',
+    voirJizo: 'See the six Jizō',
     pause: 'Pause',
     musiqueLecteur: 'It now plays in the map’s music player too (the ♪ button), style « Christmas ».',
     enPreparation: 'Being made: this gift will be ready before December (developer mode only).',
@@ -140,6 +141,7 @@ const TEXTES = {
     jizoProgres: (n) => `Chapeaux posés : ${n}/6`,
     voirYukionna: 'Voir où elle se cache',
     voirKanji: 'Le voir au-dessus de Kyoto',
+    voirJizo: 'Voir les six Jizō',
     pause: 'Pause',
     musiqueLecteur: 'Elle est aussi dans le lecteur de musique de la carte (le bouton ♪), style « Noël ».',
     enPreparation: 'En préparation : ce cadeau sera prêt avant décembre (visible seulement en mode développeur).',
@@ -201,6 +203,7 @@ const TEXTES = {
     jizoProgres: (n) => `かぶせた笠：${n}/6`,
     voirYukionna: '隠れ場所を見る',
     voirKanji: '京都の上で見る',
+    voirJizo: '六地蔵を見る',
     pause: '一時停止',
     musiqueLecteur: 'マップの音楽プレーヤー（♪ボタン）の「クリスマス」でも聴けます。',
     enPreparation: '準備中（開発者モードのみ表示）',
@@ -387,12 +390,12 @@ const CASES = [
     fichier: { apercu: 'noel/recette-{l}-apercu.jpg', url: 'noel/recette-{l}.pdf', nom: 'gateau-de-noel-japonais.pdf', forme: 'page', bouton: 'pdf' },
     cadeau: { en: 'The Japanese Christmas cake recipe', fr: 'La recette du gâteau de Noël japonais', ja: 'クリスマスケーキのレシピ' },
     texte: { en: 'Japan’s Christmas cake, a sponge with whipped cream and strawberries, as a card to print.', fr: 'Le gâteau de Noël du Japon, une génoise avec de la crème fouettée et des fraises, en fiche à imprimer.' },
-    deco: { en: 'The sleigh gets ready in Nara.', fr: 'Le traîneau se prépare à Nara.' },
+    deco: { en: 'The reindeer get ready for the big night.', fr: 'Les rennes se préparent pour la grande nuit.' },
     savais: { en: 'On the evening of the 24th, many Japanese families eat fried chicken: a habit born from a 1974 advert.', fr: 'Le soir du 24, beaucoup de familles japonaises mangent du poulet frit : une habitude née d’une publicité de 1974.' } },
   { j: 24, k: 'carte', lieu: 'muro-ji', pret: true, grande: true, special: 'jizo',
     cadeau: { en: 'Christmas night', fr: 'La nuit de Noël', ja: 'クリスマスの夜' },
-    texte: { en: 'Santa’s sleigh, pulled by Nara deer, crosses the sky of the map. Six Jizō statues wait under the snow: give them a straw hat, as in the tale, and they bring you the last gift, the Santa hat that completes the winter outfit of the walk.',
-      fr: 'Le traîneau du Père Noël, tiré par des cerfs de Nara, traverse le ciel de la carte. Six statues Jizō attendent sous la neige : pose-leur un chapeau de paille, comme dans le conte, et elles t’apportent le dernier cadeau, le bonnet de Père Noël qui complète la tenue d’hiver de la balade.' },
+    texte: { en: 'At night, Santa’s sleigh and his reindeer cross the sky of the map, dropping gifts on the way. Six Jizō statues wait under the snow: give them a straw hat, as in the tale, and they bring you the last gift, the Santa hat that completes the winter outfit of the walk.',
+      fr: 'La nuit, le traîneau du Père Noël et ses rennes traversent le ciel de la carte en lâchant des cadeaux. Six statues Jizō attendent sous la neige : pose-leur un chapeau de paille, comme dans le conte, et elles t’apportent le dernier cadeau, le bonnet de Père Noël qui complète la tenue d’hiver de la balade.' },
     deco: { en: 'The sleigh crosses the sky of the map.', fr: 'Le traîneau traverse le ciel de la carte.' },
     savais: { en: 'In the tale « Kasa Jizō », a poor old man covers six snowy statues with his straw hats. At night, they bring him what he needs to celebrate the New Year.',
       fr: 'Dans le conte « Kasa Jizō », un vieil homme pauvre couvre six statues enneigées avec ses chapeaux de paille. La nuit, elles viennent lui apporter de quoi fêter le Nouvel An.' } },
@@ -424,6 +427,9 @@ export function enKatakana(brut) {
 }
 const PETITES = new Set('ァィゥェォャュョッヮ');
 const taillePinceau = (k, max, place) => Math.min(max, Math.floor(place / Math.max(1, [...k].length)));
+// le fond d'écran du prénom (1170 × 2532) : la colonne de katakana tient dans 1300 px, centrée à 58 % de la hauteur
+const FOND_L = 1170, FOND_H = 2532, FOND_COLONNE = 1300, FOND_CENTRE = 0.58;
+const tailleFond = (k) => taillePinceau(k, 300, FOND_COLONNE);
 
 // ---------------------------------------------------------------- La mémoire
 function lire(cle, defaut) {
@@ -444,7 +450,7 @@ const creer = (balise, classe, texte) => {
  * calendrier), estDev(), config (CONFIG.noel) }. Renvoie { allumer(), eteindre(), majLangue(), remplirPanneau() }.
  */
 export function brancherNoel(outils) {
-  const { langue, afficherMessage, lieux, allerAuLieu, enLangue, fermerPanneau, estDev, config, musique, jouerNoel, map, maplibregl, reperes } = outils;
+  const { langue, afficherMessage, lieux, allerAuLieu, enLangue, fermerPanneau, estDev, config, musique, jouerNoel, map, maplibregl, reperes, modeles3d } = outils;
   const typo = (s) => (langue() === 'fr' ? typoFr(s) : s);
   const tx = (cle, ...args) => {
     const v = TEXTES[langue()]?.[cle] ?? TEXTES.en[cle];
@@ -626,12 +632,18 @@ export function brancherNoel(outils) {
     div.append(b);
     return div;
   }
-  // ---- Cases 22 et 24 : où en est la chasse (les yuzus des onsens, les chapeaux des Jizō)
+  // ---- Cases 22 et 24 : où en est la chasse (les yuzus des onsens, les chapeaux des Jizō) ; le 24, « Voir les six Jizō »
   function blocProgres(quoi) {
     const e = surCarte?.etat();
     const p = creer('p', 'noel-progres');
     if (e) p.textContent = quoi === 'yuzu' ? tx('yuzuProgres', e.yuzus, e.onsens) : tx('jizoProgres', e.chapeaux);
-    return p;
+    if (quoi !== 'jizo' || !surCarte) return p;
+    const div = creer('div', 'noel-jizo-case');
+    const b = creer('button', 'btn-secondaire noel-voir', tx('voirJizo'));
+    b.type = 'button';
+    b.addEventListener('click', () => { fermerPanneau(); surCarte?.allerJizo(); });
+    div.append(p, b);
+    return div;
   }
 
   // ---- Case 8 : la manche de Noël du jeu « Devine le lieu » (jeu.js, lancer({ noel: true }))
@@ -650,18 +662,32 @@ export function brancherNoel(outils) {
         <input id="noel-prenom" type="text" maxlength="14" autocomplete="off" spellcheck="false" value="${echapper(prenom)}" placeholder="Emma">
         <small>${echapper(tx('prenomAide'))}</small></div>
       <div class="noel-telephone" aria-hidden="true"><div class="noel-papier">
-        <span class="noel-kata" style="font-size:${taillePinceau(k, 46, 190)}px">${echapper(k)}</span>
+        <span class="noel-kata">${echapper(k)}</span>
         <span class="noel-latin">${echapper(prenom.trim() || 'Emma')}</span>
         <img class="noel-sceau" src="noel/sceau-inkami.png" alt=""><span class="noel-adresse">INKAMI.ART</span></div></div>`;
+    // l'aperçu est le fond d'écran en petit : mêmes tailles et mêmes places, en proportion (rien ne déborde)
+    const placer = (kk) => {
+      const n = [...kk].length, t = tailleFond(kk), kata = div.querySelector('.noel-kata');
+      kata.style.fontSize = `${(t * 100) / FOND_L}cqw`;
+      kata.style.top = `${((FOND_H * FOND_CENTRE - (n * t) / 2) * 100) / FOND_H}%`;
+      const latin = div.querySelector('.noel-latin');
+      latin.style.top = `${((FOND_H * FOND_CENTRE + ((n + 1) * t) / 2 + 40) * 100) / FOND_H}%`;
+      // un très long nom se resserre, comme sur l'image (une mesure à chaque lettre tapée, pas à chaque image)
+      requestAnimationFrame(() => {
+        latin.style.transform = 'translateY(-50%)';
+        const r = latin.clientWidth / (latin.scrollWidth || 1);
+        if (r < 1) latin.style.transform += ` scaleX(${r.toFixed(3)})`;
+      });
+    };
+    placer(k);
     const champ = div.querySelector('input');
     champ.addEventListener('input', () => {
       prenom = champ.value;
       garder(MEMOIRE_PRENOM, prenom);
       const kk = enKatakana(prenom) || 'エマ';
-      const kata = div.querySelector('.noel-kata');
-      kata.textContent = kk;
-      kata.style.fontSize = `${taillePinceau(kk, 46, 190)}px`;
+      div.querySelector('.noel-kata').textContent = kk;
       div.querySelector('.noel-latin').textContent = prenom.trim() || 'Emma';
+      placer(kk);
       fichier = null;
     });
     let fichier = null;
@@ -683,7 +709,7 @@ export function brancherNoel(outils) {
   /** Le fond d'écran du prénom : 1170 × 2532 (un téléphone), papier de journal, katakana au pinceau, sceau Inkami. */
   async function fondPrenom(nom) {
     const k = enKatakana(nom) || 'エマ';
-    const L = 1170, H = 2532;
+    const L = FOND_L, H = FOND_H;
     await document.fonts.load(`200px ${POLICE_PINCEAU}`, k);
     const [grain, sceau] = await Promise.all([chargerImage(adresseGrain()), chargerImage('noel/sceau-inkami.png')]);
     const can = document.createElement('canvas');
@@ -703,12 +729,12 @@ export function brancherNoel(outils) {
 
     // les katakana, en colonne, dans le bas des deux tiers (le haut reste à l'heure de l'écran verrouillé)
     const signes = [...k];
-    const t = taillePinceau(k, 300, 1300);
+    const t = tailleFond(k);
     c.fillStyle = '#15100e';
     c.font = `${t}px ${POLICE_PINCEAU}`;
     c.textAlign = 'center';
     c.textBaseline = 'middle';
-    const y0 = H * 0.58 - ((signes.length - 1) * t) / 2;
+    const y0 = H * FOND_CENTRE - ((signes.length - 1) * t) / 2;
     signes.forEach((s, i) => {
       c.save();
       c.translate(L / 2, y0 + i * t);
@@ -720,7 +746,12 @@ export function brancherNoel(outils) {
     // le prénom en lettres, le sceau, l'adresse
     c.font = '600 44px "Noto Sans", sans-serif';
     if ('letterSpacing' in c) c.letterSpacing = '14px';
-    c.fillText(nom.toUpperCase(), L / 2, y0 + signes.length * t + 40);
+    const lettres = nom.toUpperCase(), large = c.measureText(lettres).width; // un très long prénom se resserre
+    c.save();
+    c.translate(L / 2, y0 + signes.length * t + 40);
+    if (large > L - 240) c.scale((L - 240) / large, 1);
+    c.fillText(lettres, 0, 0);
+    c.restore();
     if ('letterSpacing' in c) c.letterSpacing = '5px';
     c.font = '600 26px "Noto Sans", sans-serif';
     c.globalAlpha = 0.6;
@@ -830,7 +861,7 @@ export function brancherNoel(outils) {
     if (map && !surCarte) {
       import('./noel-carte.js').then(({ brancherNoelCarte }) => {
         if (!allume || surCarte) return;
-        surCarte = brancherNoelCarte(map, maplibregl, { reperes, tx, enL, langue, afficherMessage, lieux, estSimule, config });
+        surCarte = brancherNoelCarte(map, maplibregl, { reperes, tx, enL, langue, afficherMessage, lieux, estSimule, config, modeles3d });
         surCarte.maj(jour());
       }).catch((e) => console.warn('Noël sur la carte indisponible', e));
     }

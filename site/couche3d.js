@@ -19,6 +19,7 @@ const ZOOM_DEBUT = 8.6; // en dessous : pas de modèles
 const ZOOM_PLEIN = 9.6; // entre les deux, les modèles sortent de terre
 const TRAIT = 1.4; // épaisseur du trait d'encre autour des modèles, en pixels à l'écran
 const RESERVE = 2; // places en plus dans chaque tampon, pour les lieux provisoires (plongeon sur un nouveau lieu)
+const DECORS_DEBUT = 10.2; // les objets posés près d'un lieu (decors) sortent de terre entre ce zoom et 0,6 plus près
 
 /** Hauteur à l'écran (en pixels) d'un modèle de taille 1 : il grandit doucement quand on s'approche. */
 const taillePx = (z) => Math.min(170, 62 * 2 ** ((z - 10.5) * 0.5));
@@ -61,7 +62,10 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
   let leveeActuelle = null;
   let filtre = null; // si posé, seuls les lieux pour lesquels filtre(lieu) est vrai ont leur modèle (jeu.js)
   let provisoires = []; // lieux qui ne sont pas (encore) dans le tableau : le plongeon sur un nouveau lieu
-  let outils3d = null; // { modeles, modelePour, matiere } une fois three.js chargé
+  let outils3d = null; // { modeles, modelePour, matiere, ateliers } une fois three.js chargé
+  // des objets posés près du modèle d'un lieu, à son échelle et chacun sur son sol (noel-carte.js : les six Jizō du
+  // Murō-ji) : { liste, fabriquer, auClic, formes, vus } ; voir decors() plus bas
+  let decors = null;
   let chauffer = false; // compiler les shaders des modèles à la prochaine image (avant un plongeon)
   const m4 = {};
 
@@ -112,9 +116,9 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
   }
 
   /** Range les lieux par modèle ; un seul « tampon » (InstancedMesh) par modèle, donc très peu de dessins. */
-  function preparerTypes(lieux, modeles, modelePour, matiereContour, matiereSaisons, matieresLueur) {
+  function preparerTypes(lieux, modeles, modelePour, matiereContour, matiereSaisons, matieresLueur, ateliers) {
     saisons = matiereSaisons(THREE);
-    outils3d = { modeles, modelePour, matiere: saisons.matiere };
+    outils3d = { modeles, modelePour, matiere: saisons.matiere, ateliers };
     contour = matiereContour(THREE);
     lueurs = creerLueurs(lieux.length + RESERVE * 2, matieresLueur);
     const parModele = new Map();
@@ -166,6 +170,7 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
       soleil = new THREE.DirectionalLight(0xfff0d8, 2.2);
       scene.add(ciel, soleil);
       m4.instance = new THREE.Matrix4();
+      m4.rot = new THREE.Matrix4();
       m4.centre = new THREE.Matrix4();
       m4.pos = new THREE.Vector3();
       // modèle (x, y = haut, z = devant) → carte (x = est, y = sud, z = haut) : le devant regarde le sud.
@@ -223,6 +228,7 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
         if (saison) t.etat.needsUpdate = true;
         nb += n;
       }
+      if (decors?.formes) dessinerDecors(z, k, centre, saison);
       // la nuit, la lueur des lieux
       lueurs.halo.count = lueurs.flaque.count = lueur > 0.01 ? Math.min(nb, lueurs.n) : 0;
       if (lueurs.halo.count) {
@@ -242,6 +248,92 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
     },
     onRemove() { renderer?.dispose(); },
   };
+
+  /**
+   * Les objets posés près d'un lieu : seulement quand le modèle du lieu est dessiné (dessines), à la même échelle que
+   * lui (k), décalés de (x, z) unités du modèle (x vers l'est, z vers le sud : le devant des modèles), chacun posé sur
+   * le relief à sa propre place (son altitude, gardée par cran de zoom), tourné de ry. Ils sortent de terre entre
+   * DECORS_DEBUT et 0,6 plus près. La neige : celle du lieu, au moins `neige`.
+   */
+  function dessinerDecors(z, k, centre, saison) {
+    const d = decors, apparait = lisser((z - DECORS_DEBUT) / 0.6);
+    for (const f of Object.values(d.formes)) f.n = 0;
+    d.vus = [];
+    if (apparait > 0) {
+      const cle = `${Math.round(z * 8)}|${versionRelief}|${map.terrain?.exaggeration}`;
+      for (const [i, o] of d.liste.entries()) {
+        const f = d.formes[o.forme];
+        const l = f && dessines.find((x) => x.id === o.lieu);
+        if (!l) continue;
+        const mc = maplibregl.MercatorCoordinate.fromLngLat([l.lng, l.lat]);
+        const mx = mc.x + o.x * k, my = mc.y + o.z * k;
+        if (o.alt?.cle !== cle) {
+          const lngLat = new maplibregl.MercatorCoordinate(mx, my, 0).toLngLat();
+          o.alt = { cle, lngLat, v: map.queryTerrainElevation(lngLat) || 0 };
+        }
+        const ks = k * (o.s ?? 1) * apparait;
+        m4.pos.set(mx - centre.x, my - centre.y, maplibregl.MercatorCoordinate.fromLngLat(o.alt.lngLat, o.alt.v).z);
+        m4.instance.makeScale(ks, ks, ks).multiply(m4.base).multiply(m4.rot.makeRotationY(o.ry || 0)).setPosition(m4.pos);
+        if (saison) {
+          const e = etatLieu(l);
+          f.etat.array.set([Math.max(e[0], o.neige || 0), e[1], e[2], e[3]], f.n * 4);
+        }
+        f.mesh.setMatrixAt(f.n++, m4.instance);
+        d.vus.push({ i, lngLat: o.alt.lngLat, hPx: f.hauteur * (o.s ?? 1) * apparait * echelleDessin });
+      }
+    }
+    for (const f of Object.values(d.formes)) {
+      f.mesh.count = f.trait.count = f.n;
+      f.mesh.instanceMatrix.needsUpdate = true;
+      if (saison) f.etat.needsUpdate = true;
+    }
+  }
+
+  /** Fabrique les formes des objets (une fois three.js prêt) : un tampon et son trait d'encre par forme. */
+  function installerDecors() {
+    if (!decors || decors.formes || etat !== 'pret') return;
+    const faites = decors.fabriquer(THREE, outils3d.ateliers(THREE)); // { forme: { geometrie, hauteur } }
+    decors.formes = {};
+    for (const [nom, m] of Object.entries(faites)) {
+      const n = Math.max(1, decors.liste.filter((o) => o.forme === nom).length);
+      const geo = m.geometrie;
+      const etatSaison = new THREE.InstancedBufferAttribute(new Float32Array(n * 4).fill(1), 4);
+      etatSaison.setUsage(THREE.DynamicDrawUsage);
+      geo.setAttribute('etatSaison', etatSaison);
+      const mesh = new THREE.InstancedMesh(geo, outils3d.matiere, n);
+      const trait = new THREE.InstancedMesh(geo, contour.matiere, n);
+      for (const x of [mesh, trait]) { x.frustumCulled = false; x.count = 0; }
+      mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      trait.instanceMatrix = mesh.instanceMatrix;
+      scene.add(mesh, trait);
+      decors.formes[nom] = { mesh, trait, etat: etatSaison, hauteur: m.hauteur, n: 0 };
+    }
+    map.triggerRepaint();
+  }
+  function retirerDecors() {
+    for (const f of Object.values(decors?.formes || {})) {
+      scene.remove(f.mesh, f.trait);
+      f.mesh.geometry.dispose();
+      f.mesh.dispose();
+    }
+    decors = null;
+  }
+
+  /** L'objet posé sous ce point de l'écran (son rang dans la liste), ou −1 : une boîte autour de sa place, assez grande
+   *  pour le doigt même quand il est petit. */
+  function decorSous(point) {
+    if (!decors?.vus?.length) return -1;
+    const sinus = Math.max(0.35, Math.sin((map.getPitch() * Math.PI) / 180));
+    let meilleur = -1, distance = Infinity;
+    for (const v of decors.vus) {
+      const p = map.project(v.lngLat);
+      const h = Math.max(16, v.hPx * sinus), w = Math.max(11, v.hPx * 0.42);
+      if (point.x < p.x - w || point.x > p.x + w || point.y < p.y - h - 4 || point.y > p.y + 7) continue;
+      const d = Math.hypot(point.x - p.x, point.y - (p.y - h / 2));
+      if (d < distance) { distance = d; meilleur = v.i; }
+    }
+    return meilleur;
+  }
 
   /**
    * Monte chaque repère juste au-dessus de son modèle : la hauteur à l'écran d'un modèle de taille 1
@@ -266,15 +358,16 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
     etat = 'chargement';
     try {
       THREE = await import(URL_THREE);
-      const { fabriquerPeuAPeu, modelePour, matiereContour, matiereSaisons, matieresLueur } = await import('./modeles3d.js');
+      const { fabriquerPeuAPeu, modelePour, matiereContour, matiereSaisons, matieresLueur, ateliers } = await import('./modeles3d.js');
       const modeles = await sansFiger(fabriquerPeuAPeu(THREE));
       map.addLayer(couche);
       const installer = () => {
         const lieux = obtenirLieux();
         if (!lieux.length) return false;
-        preparerTypes(lieux, modeles, modelePour, matiereContour, matiereSaisons, matieresLueur);
+        preparerTypes(lieux, modeles, modelePour, matiereContour, matiereSaisons, matieresLueur, ateliers);
         etat = 'pret';
         if (provisoires.length) installerProvisoires();
+        installerDecors();
         majLevee();
         map.triggerRepaint();
         return true;
@@ -327,8 +420,23 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
       filtre = f;
       map.triggerRepaint();
     },
-    /** Le lieu dont le modèle est sous ce point de l'écran (pour ouvrir sa fiche d'un appui sur le modèle). */
+    /**
+     * Des objets 3D posés près du modèle d'un lieu (noel-carte.js : les six Jizō du Murō-ji), [] pour les retirer.
+     * liste : [{ forme, lieu (id du lieu), x, z (unités du modèle : est, sud), ry, s (taille), neige (0–1, au moins) }] ;
+     * fabriquer(THREE, atelier) → { forme: { geometrie, hauteur } } (atelier de modeles3d.js) ; auClic(rang) : un appui
+     * sur l'un d'eux (passe avant l'appui sur le modèle du lieu, voir lieuSous).
+     */
+    decors(liste, fabriquer, auClic) {
+      retirerDecors();
+      if (liste?.length) decors = { liste: liste.map((o) => ({ ...o })), fabriquer, auClic, formes: null, vus: [] };
+      installerDecors();
+      map.triggerRepaint();
+    },
+    /** Le lieu dont le modèle est sous ce point de l'écran (pour ouvrir sa fiche d'un appui sur le modèle). Un objet
+     *  posé près d'un lieu (decors) passe avant : son auClic est appelé, et aucun lieu ne s'ouvre. */
     lieuSous(point) {
+      const d = decorSous(point);
+      if (d >= 0) { decors.auClic?.(d); return null; }
       if (!dessines.length) return null;
       const sinus = Math.sin((map.getPitch() * Math.PI) / 180);
       let meilleur = null, distance = Infinity;

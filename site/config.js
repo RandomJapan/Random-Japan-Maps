@@ -75,7 +75,9 @@ export const CONFIG = {
   // public: false → seulement en mode développeur (qui le voit aussi avant « debut », pour le préparer) ;
   // true → pour tous les visiteurs.
   // kanji : le kanji de l'année 2026, annoncé le 12 décembre au Kiyomizu-dera (case 14 : il s'affiche au-dessus de
-  // Kyoto à partir du 14) ; tant qu'il est vide, la carte montre celui de 2025, 熊 (l'ours).
+  // Kyoto à partir du 14). Il se met à jour tout seul : le robot (outils/kanji_annee.py) le lit le 12 décembre sur le
+  // site officiel ou Wikipédia et l'écrit dans data/kanji-annee.json. À n'écrire ici que pour corriger le robot (ce
+  // kanji-ci passe avant). Tant que rien n'est connu, la carte montre celui de 2025, 熊 (l'ours).
   noel: { debut: '2026-12-01', fin: '2026-12-26', public: false, kanji: '' },
 
   // --- Badge « Nouveau » -----------------------------------------------
