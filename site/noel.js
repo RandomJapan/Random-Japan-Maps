@@ -313,7 +313,7 @@ const CASES = [
   { j: 9, k: 'telecharger', lieu: 'kegon-falls', pret: true,
     fichier: { apercu: 'noel/origami-{l}-apercu.jpg', url: 'noel/origami-{l}.pdf', nom: 'origami-grue.pdf', forme: 'page', bouton: 'pdf' },
     cadeau: { en: 'The map’s origami paper', fr: 'Le papier origami de la carte', ja: 'マップ柄の折り紙' },
-    texte: { en: 'Two square sheets to print in the map’s colours (waves and hemp leaves), and how to fold the crane in 12 steps.', fr: 'Deux feuilles carrées à imprimer aux couleurs de la carte (les vagues et les feuilles de chanvre), et le pliage de la grue en 12 étapes.' },
+    texte: { en: 'Two square sheets to print in the map’s colours (waves and hemp leaves), and how to fold the crane in 12 steps, the hardest one shown step by step.', fr: 'Deux feuilles carrées à imprimer aux couleurs de la carte (les vagues et les feuilles de chanvre), et le pliage de la grue en 12 étapes, avec la plus difficile expliquée pas à pas.' },
     deco: { en: 'Paper cranes fly over the map.', fr: 'Des grues en papier volent au-dessus de la carte.' },
     savais: { en: 'In Japan, people fold a thousand cranes (senbazuru) to make a wish: healing, happiness or peace.', fr: 'Au Japon, on plie mille grues (senbazuru) pour faire un vœu : guérison, bonheur ou paix.' } },
   { j: 10, k: 'boutique', lieu: 'hirosaki-castle', pret: true, code: 'CALENDRIER10', page: 'products/ink-portrait-japanese-newspaper',
