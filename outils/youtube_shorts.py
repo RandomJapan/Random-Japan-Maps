@@ -103,6 +103,55 @@ TAGS = ["japan", "japan travel", "travel japan", "japan vibes", "explore japan",
 assert sum(len(t) + (2 if " " in t else 0) for t in TAGS) + len(TAGS) - 1 <= 480, "trop de tags pour YouTube"
 CATEGORIE = "19"  # Voyages et événements
 
+# Les vidéos promo de la carte et de la balade (demandé par le propriétaire le 2026-11-23 : « publier les vidéos
+# promotionnelles qu'on a faites pour la carte de temps en temps ») : une tous les 2 jours, à la place du Short de 17 h,
+# telles quelles (leur musique est libre : composée, faite par IA, ou CC BY, créditée alors dans la description).
+# Pas celles d'Halloween (fini), ni promo30 (elle annonce Halloween), ni les versions 16:9 ou sans musique.
+# ia : faite avec des images ou des vidéos d'IA -> l'étiquette « contenu modifié ou synthétique » de YouTube.
+PROMOS_VIDEOS = Path(os.environ.get("PROMOS_YOUTUBE", r"D:\Business\Claude Code\Maps Japon\videos"))
+PROMO_HEURE, PROMO_TOUS_LES = "17:00", 2  # le créneau de 17 h, un jour sur deux
+PERITUNE = "Music: {} by PeriTune (CC BY 4.0) {}"
+PROMOS = [
+    {"f": "carte/generique/carte-japon-generique-anime.mp4", "titre": "If my Japan map had an anime opening ⚔️", "ia": True},
+    {"f": "carte/jeu/carte-japon-jeu-versus.mp4", "titre": "Noob vs pro: who knows Japan best? 🎮"},
+    {"f": "balade/balade-3d-les-5-lieux.mp4", "titre": "I turned places in Japan into a 3D game you can walk in ⛩️"},
+    {"f": "carte/jarre/carte-japon-jarre.mp4", "titre": "Japan was hidden inside this jar 🏺", "ia": True},
+    {"f": "carte/films-octobre/film-voyage.mp4", "titre": "All of Japan, north to south, in one flight ✈️",
+     "musique": PERITUNE.format("Ametsuchi", "https://peritune.com/blog/2018/10/01/ametsuchi/")},
+    {"f": "carte/jeu/carte-japon-devine-le-lieu.mp4", "titre": "Can you guess this place in Japan? 🎯"},
+    {"f": "balade/balade-3d-takachiho.mp4", "titre": "Takachiho Gorge, but you can walk it in 3D 🚣"},
+    {"f": "carte/sceau/carte-japon-sceau.mp4", "titre": "I sealed my Japan map with wax 🔴", "ia": True},
+    {"f": "carte/generique/carte-japon-generique-anime-2.mp4", "titre": "If my Japan map had an anime opening 2 🌸", "ia": True},
+    {"f": "balade/balade-3d-secrets.mp4", "titre": "My 3D Japan game hides secrets 🤫"},
+    {"f": "carte/fleche/carte-japon-flechette.mp4", "titre": "I threw a dart at my Japan map 🎯", "ia": True},
+    {"f": "carte/jeu/carte-japon-defi-du-jour.mp4", "titre": "A new place in Japan to guess every day 📍"},
+    {"f": "balade/balade-3d-kinkakuji.mp4", "titre": "The Golden Pavilion, walkable in 3D ✨"},
+    {"f": "carte/films-octobre/promo-carte.mp4", "titre": "My interactive 3D map of Japan 🗾",
+     "musique": PERITUNE.format("Michikusa", "https://peritune.com/blog/2015/11/23/michikusa/")},
+    {"f": "balade/balade-3d-beppu.mp4", "titre": "The Hells of Beppu in my 3D game ♨️"},
+    {"f": "carte/puzzle/carte-japon-puzzle.mp4", "titre": "The last piece of my Japan map puzzle 🧩", "ia": True},
+    {"f": "carte/generique/carte-japon-generique-anime-3.mp4", "titre": "If my Japan map had an anime opening 3 ⚔️", "ia": True},
+    {"f": "balade/balade-3d-motonosumi.mp4", "titre": "Red torii gates by the sea, in 3D ⛩️"},
+    {"f": "carte/jeu/carte-japon-jeu-createur.mp4", "titre": "I made a game to guess places in Japan 🎮"},
+    {"f": "carte/films-octobre/film-zoom.mp4", "titre": "From one place to the whole of Japan 🗾",
+     "musique": PERITUNE.format("Awayuki", "https://peritune.com/blog/2023/01/07/awayuki/")},
+    {"f": "balade/balade-3d-trente-bouddhas.mp4", "titre": "The Thirty Buddhas, now in my 3D game 🙏"},
+    {"f": "carte/eclat/carte-japon-eclat.mp4", "titre": "I smashed my Japan map 💥", "ia": True},
+    {"f": "balade/balade-3d-udo-yakushima.mp4", "titre": "A secret island you reach only by boat 🔒"},
+    {"f": "tournage/promo-carte-tournage.mp4", "titre": "Every place from my videos, on one 3D map of Japan 📍",
+     "musique": "Music: 12345 by 魔王魂 (Maou Damashii, CC BY 4.0) https://maou.audio/19_12345/"},
+    {"f": "balade/balade-3d-tottori.mp4", "titre": "The Tottori Sand Dunes, in a 3D game 🐪"},
+    {"f": "carte/films-octobre/film-pov.mp4", "titre": "POV: you plan your Japan trip on a 3D map",
+     "musique": "Music: Avenue Cafe by 魔王魂 (Maou Damashii, CC BY 4.0) https://maou.audio/bgm_acoustic38/"},
+    {"f": "balade/balade-3d-tsubosaka.mp4", "titre": "A Japanese temple with giant statues carved in India 🐘"},
+    {"f": "carte/generique/carte-japon-generique-anime-4.mp4", "titre": "If my Japan map had an anime opening 4 🌸", "ia": True},
+    {"f": "balade/balade-3d-sumi.mp4", "titre": "I put myself in my own game 🎨"},
+    {"f": "balade/balade-3d-iiyama.mp4", "titre": "A snow festival you can walk in 3D ❄️"},
+    {"f": "carte/tunnel/carte-japon-tunnel-tiktok.mp4", "titre": "From one TikTok to the whole map 📍",
+     "musique": PERITUNE.format("Amenoshita3", "https://peritune.com/blog/2020/08/13/amenoshita3/")},
+    {"f": "balade/balade-3d-en-vrai.mp4", "titre": "My 3D game vs the real places in Japan", "ia": True},
+]
+
 
 # ---------------------------------------------------------------------------------------------------- les lieux
 def lire_tableau():
@@ -258,6 +307,13 @@ def titre(lieu):
     return t[:100]
 
 
+def titre_promo(promo):
+    t = promo["titre"] + " #japan #shorts #japantravel"
+    while len(t) > 100 and "#" in t:
+        t = t.rsplit(" #", 1)[0]
+    return t[:100]
+
+
 # ---------------------------------------------------------------------------------------------------- YouTube
 def youtube(autoriser=False):
     from google.auth.transport.requests import Request
@@ -307,8 +363,8 @@ def videos_de_la_chaine(yt):
     return chaine["snippet"]["title"], out
 
 
-def prochaine_sortie(chaine, maintenant):
-    """Le premier créneau libre (8 h, 12 h, 17 h, 21 h, heure de Paris) après le dernier Short programmé."""
+def creneaux(chaine, maintenant):
+    """Les créneaux libres (8 h, 12 h, 17 h, 21 h, heure de Paris), dans l'ordre, après le dernier Short programmé."""
     programmes = [datetime.fromisoformat(v["programme"].replace("Z", "+00:00")) for v in chaine if v["programme"]]
     apres = max([maintenant + timedelta(hours=1)] + programmes)
     jour = apres.astimezone(PARIS).date()
@@ -316,17 +372,23 @@ def prochaine_sortie(chaine, maintenant):
         for h in HEURES:
             creneau = datetime.combine(jour, datetime.strptime(h, "%H:%M").time(), PARIS)
             if creneau > apres:
-                return creneau
+                yield creneau
         jour += timedelta(days=1)
 
 
-def envoyer(yt, chemin, lieu, quand):
+def creneau_promo(quand):
+    """Le créneau d'une vidéo promo : 17 h, un jour sur deux."""
+    local = quand.astimezone(PARIS)
+    return local.strftime("%H:%M") == PROMO_HEURE and local.date().toordinal() % PROMO_TOUS_LES == 0
+
+
+def envoyer(yt, chemin, titre_video, quand, description=DESCRIPTION, ia=False):
     from googleapiclient.http import MediaFileUpload
 
-    corps = {"snippet": {"title": titre(lieu), "description": DESCRIPTION, "tags": TAGS, "categoryId": CATEGORIE,
+    corps = {"snippet": {"title": titre_video, "description": description, "tags": TAGS, "categoryId": CATEGORIE,
                          "defaultLanguage": "en"},
              "status": {"privacyStatus": "private", "publishAt": quand.astimezone(timezone.utc).isoformat().replace("+00:00", "Z"),
-                        "selfDeclaredMadeForKids": False, "embeddable": True, "containsSyntheticMedia": False}}
+                        "selfDeclaredMadeForKids": False, "embeddable": True, "containsSyntheticMedia": ia}}
     media = MediaFileUpload(str(chemin), mimetype="video/mp4", chunksize=8 * 1024 * 1024, resumable=True)
     requete = yt.videos().insert(part="snippet,status", body=corps, media_body=media)
     reponse = None
@@ -385,35 +447,52 @@ def passage(envois_max, essai=None, tout_seul=False):
     alertes = []
     for e in journal["envois"]:
         v = par_id.get(e.get("video"))
-        if v and v["bloque"] >= PAYS_BLOQUES and e["musique"] not in journal["musiques_bloquees"]:
+        if v and v["bloque"] >= PAYS_BLOQUES and e.get("promo") and not e.get("signale"):
+            e["signale"] = True
+            alertes.append(f"La vidéo promo « {e['titre']} » est bloquée par YouTube : regarde dans YouTube Studio pourquoi.")
+        if v and v["bloque"] >= PAYS_BLOQUES and e.get("musique") and e["musique"] not in journal["musiques_bloquees"]:
             journal["musiques_bloquees"][e["musique"]] = f"{datetime.now():%Y-%m-%d} {e['nom']}"
             alertes.append(f"{e['nom']} est bloqué par YouTube à cause de sa musique ({e['musique']}). "
                            "Supprime ce Short dans YouTube Studio : le robot le republiera avec une autre musique.")
     for a in alertes:
         dire(a)
     deja = {cle(v["titre"].split("|")[0]) for v in chaine}
+    titres = {cle(v["titre"]) for v in chaine}
     restants = a_publier(tous, trouves, deja)
+    promos = [p for p in PROMOS if cle(titre_promo(p)) not in titres and (PROMOS_VIDEOS / p["f"]).exists()]
     maintenant = datetime.now(timezone.utc)
-    envoyes = []
-    for lieu in restants[:envois_max]:
-        quand = prochaine_sortie(chaine, maintenant)
-        if quand > maintenant + AVANCE:
+    envoyes, reste = [], len(restants)
+    for quand in creneaux(chaine, maintenant):
+        if len(envoyes) >= envois_max or quand > maintenant + AVANCE or not (restants or promos):
             break
-        chemin, musique, debut, longueur = preparer(lieu, trouves[lieu["id"]], journal)
-        video_id = envoyer(yt, chemin, lieu, quand)
-        chaine.append({"id": video_id, "titre": titre(lieu), "statut": "private",
+        if creneau_promo(quand) and promos:  # une vidéo promo, telle quelle
+            promo = promos.pop(0)
+            description = DESCRIPTION + (f"\n\n{promo['musique']}" if promo.get("musique") else "")
+            video_id = envoyer(yt, PROMOS_VIDEOS / promo["f"], titre_promo(promo), quand, description, promo.get("ia", False))
+            journal["envois"].append({"promo": promo["f"], "titre": titre_promo(promo), "video": video_id,
+                                      "sortie": quand.isoformat(), "envoye": datetime.now(PARIS).isoformat(timespec="seconds")})
+            envoyes.append(promo["titre"])
+            dire(f"Envoyé : la vidéo promo « {promo['titre']} » (sortie le {quand:%d/%m à %H:%M}) https://youtube.com/shorts/{video_id}")
+        elif restants:  # le Short d'un lieu
+            lieu = restants.pop(0)
+            chemin, musique, debut, longueur = preparer(lieu, trouves[lieu["id"]], journal)
+            video_id = envoyer(yt, chemin, titre(lieu), quand)
+            journal["envois"].append({"lieu": lieu["id"], "nom": lieu["nom"], "fichier": trouves[lieu["id"]].name,
+                                      "musique": musique, "debut": debut, "duree": round(longueur, 1), "video": video_id,
+                                      "sortie": quand.isoformat(), "envoye": datetime.now(PARIS).isoformat(timespec="seconds")})
+            chemin.unlink(missing_ok=True)
+            envoyes.append(lieu["nom"])
+            reste -= 1
+            dire(f"Envoyé : {lieu['nom']} (sortie le {quand:%d/%m à %H:%M}, musique {musique} à {debut:.0f} s) "
+                 f"https://youtube.com/shorts/{video_id}")
+        else:  # plus de lieux : ce créneau reste libre, on attend celui d'une promo
+            continue
+        chaine.append({"id": video_id, "titre": "", "statut": "private",
                        "programme": quand.astimezone(timezone.utc).isoformat(), "publie": None, "bloque": 0})
-        journal["envois"].append({"lieu": lieu["id"], "nom": lieu["nom"], "fichier": trouves[lieu["id"]].name,
-                                  "musique": musique, "debut": debut, "duree": round(longueur, 1), "video": video_id,
-                                  "sortie": quand.isoformat(), "envoye": datetime.now(PARIS).isoformat(timespec="seconds")})
         ecrire_journal(journal)
-        chemin.unlink(missing_ok=True)
-        envoyes.append(lieu["nom"])
-        dire(f"Envoyé : {lieu['nom']} (sortie le {quand:%d/%m à %H:%M}, musique {musique} à {debut:.0f} s) "
-             f"https://youtube.com/shorts/{video_id}")
     ecrire_journal(journal)
-    reste = len(restants) - len(envoyes)
-    dire(f"Passage fini ({nom_chaine}) : {len(envoyes)} Short(s) programmé(s), {reste} lieu(x) encore à publier")
+    dire(f"Passage fini ({nom_chaine}) : {len(envoyes)} Short(s) programmé(s), {reste} lieu(x) et {len(promos)} vidéo(s) promo "
+         "encore à publier")
     if tout_seul and (envoyes or alertes):
         prevenir("Robot YouTube", " ".join(alertes) or f"{len(envoyes)} Short(s) programmé(s) sur YouTube. Encore {reste} lieu(x) à publier.")
     return 0
@@ -430,6 +509,11 @@ def liste():
     print(f"\nVidéos du montage qui ne vont à aucun lieu ({len(orphelins)}) :")
     for f in orphelins:
         print("  -", f)
+    manquent = [p["f"] for p in PROMOS if not (PROMOS_VIDEOS / p["f"]).exists()]
+    print(f"\n{len(PROMOS)} vidéos promo, une tous les {PROMO_TOUS_LES} jours à {PROMO_HEURE}" +
+          (f" ; introuvables : {', '.join(manquent)}" if manquent else ""))
+    for p in PROMOS:
+        print("  -", titre_promo(p), "(IA)" if p.get("ia") else "", "·", p.get("musique", ""))
     ordre = a_publier(tous, trouves, set())
     print(f"\nOrdre de publication (du plus ancien sur TikTok), les 10 premiers :")
     for l in ordre[:10]:
