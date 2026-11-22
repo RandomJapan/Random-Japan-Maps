@@ -403,13 +403,21 @@
   "avantTableau": true
  },
  "7673932250395725059": {
-  "fichier": "File:Miyako irabu ohashi 2014 1.jpg",
-  "auteur": "Paipateroma",
-  "licence": "CC BY-SA 4.0",
-  "lien": "https://commons.wikimedia.org/wiki/File:Miyako_irabu_ohashi_2014_1.jpg"
+  "fichier": "Vidéo Irabu Bridge.mp4 à 11.5 s",
+  "maVideo": true
+ },
+ "7673951778127334678": {
+  "fichier": "Vidéo Saidouji Temple.mp4 à 26.5 s",
+  "maVideo": true,
+  "avantTableau": true
  },
  "7674375149931547907": {
   "fichier": "Vidéo Motonosumi Shrine.mp4 à 24.5 s",
+  "maVideo": true,
+  "avantTableau": true
+ },
+ "7674375890414882070": {
+  "fichier": "Vidéo Tenkai Inari Shrine.mp4 à 24.5 s",
   "maVideo": true,
   "avantTableau": true
  },
@@ -428,10 +436,8 @@
   "maVideo": true
  },
  "7678793863124847894": {
-  "fichier": "File:紅葉の華厳の滝.jpg",
-  "auteur": "くろふね",
-  "licence": "CC BY-SA 4.0",
-  "lien": "https://commons.wikimedia.org/wiki/File:%E7%B4%85%E8%91%89%E3%81%AE%E8%8F%AF%E5%8E%B3%E3%81%AE%E6%BB%9D.jpg"
+  "fichier": "Vidéo Kegon Falls.mp4 à 9.5 s",
+  "maVideo": true
  },
  "7679462211068218646": {
   "fichier": "Vidéo Oushiko Shrine.mov à 36.0 s",
