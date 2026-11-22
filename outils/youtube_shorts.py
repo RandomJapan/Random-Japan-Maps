@@ -93,8 +93,14 @@ https://map.randomjapanplace.com/
 More places on TikTok: @random_japan_place
 
 #japan #shorts #japantravel #travel #japanvibes #explorejapan #randomjapanplace"""
+# les tags : toujours les mêmes ; plus nombreux le 2026-11-22 (le propriétaire : « rajouter quelques tags en plus »).
+# YouTube en accepte 500 caractères en tout, en comptant les virgules et les guillemets autour d'un tag à espaces.
 TAGS = ["japan", "japan travel", "travel japan", "japan vibes", "explore japan", "visit japan", "japan trip",
-        "japanese culture", "japan nature", "hidden gems japan", "random japan place", "travel", "shorts"]
+        "japanese culture", "japan nature", "hidden gems japan", "random japan place", "travel", "shorts",
+        "japan shorts", "beautiful japan", "japan scenery", "japan aesthetic", "places to visit in japan",
+        "japan travel guide", "japan travel tips", "japan bucket list", "underrated japan", "japan countryside",
+        "japanese shrine", "japanese temple", "japan 3d map", "travel shorts", "nihon", "日本", "japon", "voyage japon"]
+assert sum(len(t) + (2 if " " in t else 0) for t in TAGS) + len(TAGS) - 1 <= 480, "trop de tags pour YouTube"
 CATEGORIE = "19"  # Voyages et événements
 
 
