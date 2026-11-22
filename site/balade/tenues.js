@@ -7,6 +7,9 @@
 //  d'autre à garder), ce que chaque voyageur porte
 //  (localStorage.baladeTenue) et les récompenses déjà annoncées (localStorage.baladeTenuesVues), et dessine leurs
 //  icônes. Leurs formes en 3D : personnages.js (creerHeros, porter).
+//  (2026-11-22) Les pièces d'hiver du calendrier de l'Avent de la carte (noel.js, noel-carte.js) : l'écharpe rouge, les
+//  lunettes flocons, le sac de cadeaux, la lanterne, le bonnet de Père Noël. La carte les écrit dans localStorage.noelTenue
+//  quand on ouvre leur case (le bonnet : les six Jizō du 24) ; ici, on les lit. En mode développeur, on les a toutes.
 // ================================================================
 import { lireTampons } from './carnet.js';
 import { aAchete } from './tresors.js';
@@ -30,11 +33,14 @@ export const PIECES = [
   { id: 'cornes', place: 'tete', lieu: 'beppu' },
   { id: 'renard', place: 'tete', lieu: 'motonosumi' },
   { id: 'kabuto', place: 'tete', achat: 'armure' },
+  // (noel : le nom de la pièce dans noelTenue, la liste des pièces d'hiver que donne le calendrier de l'Avent de la carte)
+  { id: 'bonnetNoel', place: 'tete', noel: 'bonnet' },
   { id: 'aucune', place: 'yeux' },
   { id: 'etoiles', place: 'yeux', lieu: 'aogashima' },
   { id: 'masque', place: 'yeux', achat: 'masque' },
   // (le masque du grand tengu de Narazawa : les cinq tampons de la fête de la neige d'Iiyama, 2026-11-20)
   { id: 'tengu', place: 'yeux', lieu: 'iiyama' },
+  { id: 'flocons', place: 'yeux', noel: 'lunettes' },
   { id: 'habit-defaut', place: 'habit' },
   { id: 'happi', place: 'habit', achat: 'happi' },
   { id: 'yukata', place: 'habit', achat: 'yukata' },
@@ -46,12 +52,15 @@ export const PIECES = [
   { id: 'cormoran', place: 'dos', lieu: 'udo' },
   // (avec : la capuche ne se lève que sans chapeau ni masque : la mettre enlève le chapeau, qu'on peut remettre ; la capuche retombe alors dans le dos)
   { id: 'loup', place: 'dos', lieu: 'yakushima', avec: ['nue'] },
+  { id: 'hotte', place: 'dos', noel: 'sac' },
   { id: 'main-rien', place: 'main' },
   { id: 'ombrelle', place: 'main', lieu: 'tottori' },
   { id: 'shamisen', place: 'main', lieu: 'tsubosaka' },
+  { id: 'lanterne', place: 'main', noel: 'lanterne' },
   { id: 'cou-rien', place: 'cou' },
   { id: 'magatama', place: 'cou', lieu: 'takachiho' },
   { id: 'yamabushi', place: 'cou', lieu: 'sanjubutsu' },
+  { id: 'echarpe', place: 'cou', noel: 'echarpe' },
   { id: 'trace-aucune', place: 'pas' },
   { id: 'trace-petales', place: 'pas', achat: 'traces' },
   { id: 'trace-etoiles', place: 'pas', achat: 'traces' },
@@ -70,9 +79,14 @@ const ecrire = (cle, v) => { try { localStorage.setItem(cle, JSON.stringify(v));
 export const piece = (id) => PIECES.find((p) => p.id === id);
 /** La récompense des tampons du lieu (ou null). */
 export const recompense = (lieu) => PIECES.find((p) => p.lieu === lieu) || null;
+/** Une pièce d'hiver donnée par le calendrier de l'Avent de la carte (noelTenue), pour de vrai (pas en mode développeur). */
+export const offerte = (p) => !!p.noel && lire('noelTenue', []).includes(p.noel);
+const enDev = () => { try { return localStorage.getItem('modeDev') === 'oui'; } catch { return false; } };
 /** total(lieu) : le nombre de tampons du lieu. Une pièce est gagnée quand tous les tampons de son lieu sont dans le carnet. */
 export function gagnee(p, total) {
   if (p.achat) return aAchete(p.achat);
+  // (une pièce d'hiver : donnée par le calendrier ; en mode développeur (la clé de la carte), toutes, pour les essayer)
+  if (p.noel) return offerte(p) || enDev();
   if (!p.lieu) return true;
   const n = (lireTampons()[p.lieu] || []).length, t = total(p.lieu);
   return t > 0 && n >= t;
@@ -93,8 +107,9 @@ export function ecrireTenue(sorte, tenue) {
   ecrire(CLE, tout);
 }
 
-/** Les pièces gagnées dont on n'a pas encore annoncé la récompense. */
-export const nouvelles = (total) => PIECES.filter((p) => p.lieu && gagnee(p, total) && !lire(CLE_VUES, []).includes(p.id));
+/** Les pièces gagnées dont on n'a pas encore annoncé la récompense (une pièce d'hiver : seulement si le calendrier l'a
+ *  vraiment donnée ; en mode développeur, elles sont dans la garde-robe sans être annoncées). */
+export const nouvelles = (total) => PIECES.filter((p) => ((p.lieu && gagnee(p, total)) || offerte(p)) && !lire(CLE_VUES, []).includes(p.id));
 export function marquerVue(id) {
   const v = lire(CLE_VUES, []);
   if (!v.includes(id)) { v.push(id); ecrire(CLE_VUES, v); }
@@ -139,6 +154,46 @@ const DESSINS = {
     <ellipse cx="10.5" cy="27" rx="6" ry="3" transform="rotate(-28 10.5 27)" fill="#b98250" stroke="${ENCRE}" stroke-width="1.8"/>
     <ellipse cx="37.5" cy="27" rx="6" ry="3" transform="rotate(28 37.5 27)" fill="#b98250" stroke="${ENCRE}" stroke-width="1.8"/>
     ${trait(BOIS_D, '#e2c596', 3)}<g transform="translate(48 0) scale(-1 1)">${trait(BOIS_D, '#e2c596', 3)}</g>`,
+  // (2026-11-22) les pièces d'hiver du calendrier de l'Avent de la carte. Le bonnet de Père Noël : rouge, la pointe qui
+  // retombe sur le côté, son pompon, son bord de fourrure blanche
+  bonnetNoel: `<path d="M9 33 Q11 15 26 9 Q36 6 40.5 14 Q42.5 18.5 41.5 22.5 Q37.5 16.5 32 17.5 Q37.5 25 39.5 33 Z" fill="#d8302c" stroke="${ENCRE}" stroke-width="2.2" stroke-linejoin="round"/>
+    <path d="M15.5 29.5 Q17.5 19 26 13.5" fill="none" stroke="#a82422" stroke-width="1.8" stroke-linecap="round"/>
+    <path d="M5.5 35.5 Q5.5 30.5 10.5 30.5 H37.5 Q42.5 30.5 42.5 35.5 Q42.5 40.5 37.5 40.5 H10.5 Q5.5 40.5 5.5 35.5 Z" fill="#fbf8f2" stroke="${ENCRE}" stroke-width="2.2" stroke-linejoin="round"/>
+    <path d="M10 35.5 Q11.5 33.5 13 35.5 M18 36 Q19.5 34 21 36 M27 35.5 Q28.5 33.5 30 35.5 M35 36 Q36.5 34 38 36" fill="none" stroke="#d9d3c7" stroke-width="1.4" stroke-linecap="round"/>
+    <path d="${festons(41.2, 24.6, 6.6, 8)}" fill="#fbf8f2" stroke="${ENCRE}" stroke-width="1.9" stroke-linejoin="round"/>`,
+  // les lunettes flocons : deux verres bleu glacier ronds, cerclés de blanc, d'où partent les six branches d'un flocon
+  flocons: `${[13, 35].map((cx) => [0, 1, 2, 3, 4, 5].map((k) => { const a = (k * Math.PI) / 3 + Math.PI / 6, c = Math.cos(a), s = Math.sin(a), p = (r) => `${(cx + c * r).toFixed(1)} ${(25 + s * r).toFixed(1)}`, q = (r, d) => `${(cx + c * r - s * d).toFixed(1)} ${(25 + s * r + c * d).toFixed(1)}`; return trait(`M${p(8.4)} L${p(13.2)} M${p(11)} L${q(12.6, 2.4)} M${p(11)} L${q(12.6, -2.4)}`, '#f2fbff', 1.5); }).join('')).join('')}
+    ${trait('M21.4 24.2 Q24 22 26.6 24.2', '#f2fbff', 2)}
+    <circle cx="13" cy="25" r="8.4" fill="#9fd2ef" stroke="${ENCRE}" stroke-width="4.4"/><circle cx="13" cy="25" r="8.4" fill="none" stroke="#f2fbff" stroke-width="2"/>
+    <circle cx="35" cy="25" r="8.4" fill="#9fd2ef" stroke="${ENCRE}" stroke-width="4.4"/><circle cx="35" cy="25" r="8.4" fill="none" stroke="#f2fbff" stroke-width="2"/>
+    <path d="M9 23.5 L12 20.5 M31 23.5 L34 20.5" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>`,
+  // l'écharpe rouge : tricotée, le tour du cou, ses deux pans qui pendent, rayés de blanc, leurs franges
+  echarpe: `<path d="M8 13.5 Q24 23 40 13.5 Q42.5 19 38 22.5 Q24 31 10 22.5 Q5.5 19 8 13.5 Z" fill="#d33a2c" stroke="${ENCRE}" stroke-width="2.2" stroke-linejoin="round"/>
+    <path d="M12 17.6 l1 3.4 M17 19.8 l0.6 3.6 M22 21 l0.2 3.6 M27 20.8 l-0.2 3.6 M32 19.6 l-0.6 3.6 M36.6 17.4 l-1 3.4" stroke="#a82422" stroke-width="1.3" stroke-linecap="round"/>
+    <path d="M16.5 24 L23.5 25 L21.5 39 L14 38 Z" fill="#d33a2c" stroke="${ENCRE}" stroke-width="2.1" stroke-linejoin="round"/>
+    <path d="M24.5 24.5 L31.5 23.5 L34.5 42 L27 43 Z" fill="#d33a2c" stroke="${ENCRE}" stroke-width="2.1" stroke-linejoin="round"/>
+    <path d="M15.3 31 L22.6 32 M14.8 34.4 L22.1 35.4 M26 34 L33.2 33 M26.6 37.6 L33.8 36.6" stroke="#fbf6ea" stroke-width="2" stroke-linecap="butt"/>
+    <path d="M15 38.5 l-0.6 3.4 M17.8 38.9 l-0.3 3.4 M20.6 39.3 l0 3.4 M28 43.2 l0.2 3.4 M30.8 42.8 l0.5 3.4 M33.6 42.4 l0.8 3.3" stroke="#d33a2c" stroke-width="1.6" stroke-linecap="round"/>`,
+  // le sac de cadeaux du Père Noël : un sac de toile, son col serré d'une cordelette rouge et blanche, des paquets qui dépassent
+  hotte: `<rect x="11" y="6.5" width="11" height="10" rx="1" transform="rotate(-14 16.5 11.5)" fill="#3f9a64" stroke="${ENCRE}" stroke-width="1.9"/>
+    <path d="M16.5 6.4 L16.5 16.6 M11 11.5 H22" transform="rotate(-14 16.5 11.5)" stroke="#d8302c" stroke-width="2"/>
+    <rect x="25" y="5" width="10.5" height="11" rx="1" transform="rotate(10 30.2 10.5)" fill="#3f6fc4" stroke="${ENCRE}" stroke-width="1.9"/>
+    <path d="M30.2 5 V16 M25 10.5 H35.5" transform="rotate(10 30.2 10.5)" stroke="#f2c443" stroke-width="2"/>
+    <path d="M10.5 23 Q4.5 35 11 42.5 Q24 47.5 37 42.5 Q43.5 35 37.5 23 Q31 26 24 26 Q17 26 10.5 23 Z" fill="#c8a066" stroke="${ENCRE}" stroke-width="2.2" stroke-linejoin="round"/>
+    <path d="M14.5 15.5 Q24 19.5 33.5 15.5 L31 24 Q24 26.5 17 24 Z" fill="#d6b27a" stroke="${ENCRE}" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M16.6 21.6 Q24 24.6 31.4 21.6" fill="none" stroke="${ENCRE}" stroke-width="4"/><path d="M16.6 21.6 Q24 24.6 31.4 21.6" fill="none" stroke="#e84a3a" stroke-width="2.2" stroke-dasharray="2.4 2.4"/>
+    <path d="M14 30 Q16 37 14.5 41 M24 29 Q25 36 23.5 43 M33.5 30 Q32 36 34 40.5" fill="none" stroke="#a9844e" stroke-width="1.6" stroke-linecap="round"/>`,
+  // la lanterne de papier (chōchin) allumée, au bout de sa perche de bambou : le papier crème qui luit, ses côtes, deux bandes
+  // rouges, les couvercles noirs, le gland rouge
+  lanterne: `<circle cx="31" cy="27" r="14" fill="#ffd36a" opacity=".35"/>
+    ${trait('M5 13.5 L36 6.5', '#c8a860', 2.4)}
+    <path d="M31 7.6 V12.4" stroke="${ENCRE}" stroke-width="1.6"/>
+    <rect x="25" y="12" width="12" height="3.6" rx="1" fill="#2a2420" stroke="${ENCRE}" stroke-width="1.4"/>
+    <ellipse cx="31" cy="26" rx="9.6" ry="10.6" fill="#fbe5b0" stroke="${ENCRE}" stroke-width="2.2"/>
+    <path d="M22 21 Q31 23 40 21 M21.6 26 Q31 28 40.4 26 M22 31 Q31 33 40 31" fill="none" stroke="#e8c27a" stroke-width="1.2"/>
+    <path d="M23.2 18.6 Q31 21 38.8 18.6" fill="none" stroke="#d8302c" stroke-width="2.4"/><path d="M23.2 33.4 Q31 35.8 38.8 33.4" fill="none" stroke="#d8302c" stroke-width="2.4"/>
+    <rect x="26" y="36" width="10" height="3.4" rx="1" fill="#2a2420" stroke="${ENCRE}" stroke-width="1.4"/>
+    <path d="M31 39.4 V45.5" stroke="#d8302c" stroke-width="2.6" stroke-linecap="round"/>`,
   // à la main : rien (une main ouverte, quatre doigts ronds et un pouce)
   'main-rien': `<path d="M16 44 Q10 36 8.6 28 Q7.8 24.4 10.6 24 Q13 23.8 14 27 L15.6 31 L15 13 Q15 10 17.6 10 Q20 10 20.2 13 L20.8 24 L21.4 9.4 Q21.6 6.6 24.2 6.6 Q26.8 6.8 26.8 9.6 L26.6 24 L28 11.4 Q28.4 8.8 30.8 9 Q33.2 9.4 32.8 12 L31.4 25 L34.2 16.4 Q35 14 37.2 14.8 Q39.2 15.6 38.6 18 L35 33 Q34 39 31.6 44 Z" fill="#ffdcbc" stroke="${ENCRE}" stroke-width="2.3" stroke-linejoin="round"/>`,
   // l'ombrelle de Shan-shan (Tottori) : la toile rouge et or, ses baleines, ses grelots tout autour, le manche de bambou

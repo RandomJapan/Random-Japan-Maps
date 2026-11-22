@@ -219,6 +219,10 @@ body.noel-tempete .legende.anime[data-legende="yukionna"]::before { animation: n
 /* le 24 : six Jizō sous la neige ; un chapeau de paille sur ceux qu'on a touchés */
 .noel-progres { margin: 0; font-weight: 600; color: var(--k-carte); }
 .noel-jizo-case { display: grid; gap: 8px; justify-items: start; }
+/* les cases de la balade : le bouton vers la balade 3D (un lien), la note */
+.noel-balade { display: grid; gap: 6px; }
+.noel-balade a.btn-lancer { text-decoration: none; box-sizing: border-box; }
+.noel-balade .noel-note { margin: 0; font-size: 13px; opacity: .8; }
 
 /* le 24, la nuit : le traîneau du Père Noël, tiré par quatre rennes (Rudolph devant), traverse le ciel. Au-dessus de
    la carte et de ses boutons (z-index 7 : sous la fiche d'un lieu et les panneaux), à une hauteur mesurée par

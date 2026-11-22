@@ -11,6 +11,7 @@ import { DESSINS } from './legendes-dessins.js';
 const MEMOIRE = 'calendrierOuvert'; // les cases ouvertes (numéros des jours)
 const MEMOIRE_ESSAI = 'calendrierOuvertEssai'; // les mêmes, quand le mode développeur simule un jour
 const MEMOIRE_PRENOM = 'calendrierPrenom';
+const MEMOIRE_TENUE = 'noelTenue'; // les pièces d'hiver de la balade 3D données par le calendrier (le bonnet : noel-carte.js)
 const BOUTIQUE = 'https://inkami.art/?utm_source=map&utm_medium=calendrier&utm_campaign=noel2026';
 const POLICE_PINCEAU = '"Inkami Pinceau"'; // noel.css : noel/inkami-pinceau.woff2 (Yuji Boku, katakana seulement, OFL)
 
@@ -76,6 +77,9 @@ const TEXTES = {
     jizoMerci: 'The six Jizō thank you! As in the tale, they bring a gift in the night: the Santa hat, for your traveller in the 3D walk.',
     jizoChapeau: (n) => `A straw hat: ${n}/6`,
     jizoBonnet: 'The Santa hat is yours! Find it in the wardrobe of the 3D walk.',
+    baladeEssayer: 'Wear it in the 3D walk',
+    baladeDonnee: 'Your gift waits for you in the wardrobe of the 3D walk, in every place: Menu → Wardrobe.',
+    baladeSimule: 'Simulated day: nothing is given for real. In developer mode, the walk’s wardrobe has every winter piece.',
     jizoProgres: (n) => `Straw hats given: ${n}/6`,
     voirYukionna: 'See where she hides',
     voirKanji: 'See it over Kyoto',
@@ -138,6 +142,9 @@ const TEXTES = {
     jizoMerci: 'Les six Jizō te remercient ! Comme dans le conte, ils apportent un cadeau dans la nuit : le bonnet de Père Noël, pour ton voyageur de la balade 3D.',
     jizoChapeau: (n) => `Un chapeau de paille : ${n}/6`,
     jizoBonnet: 'Le bonnet de Père Noël est à toi ! Il t’attend dans la garde-robe de la balade 3D.',
+    baladeEssayer: 'L’essayer dans la balade 3D',
+    baladeDonnee: 'Ton cadeau t’attend dans la garde-robe de la balade 3D, dans tous ses lieux : Menu → Garde-robe.',
+    baladeSimule: 'Jour simulé : rien n’est vraiment donné. En mode développeur, la garde-robe de la balade a toutes les pièces d’hiver.',
     jizoProgres: (n) => `Chapeaux posés : ${n}/6`,
     voirYukionna: 'Voir où elle se cache',
     voirKanji: 'Le voir au-dessus de Kyoto',
@@ -200,6 +207,9 @@ const TEXTES = {
     jizoMerci: 'お地蔵さまからのお礼！昔話のように、夜のうちに贈り物が届きます。3D散歩の旅人のサンタ帽です。',
     jizoChapeau: (n) => `笠 ${n}/6`,
     jizoBonnet: 'サンタ帽をもらった！3D散歩の着せ替えで使えます。',
+    baladeEssayer: '3D散歩で着てみる',
+    baladeDonnee: 'プレゼントは3D散歩の着せ替えにあります（メニュー → きせかえ）。どの場所でも使えます。',
+    baladeSimule: '日付のシミュレーション中：本当にはもらえません。開発者モードでは、散歩の着せ替えに冬のアイテムがすべてあります。',
     jizoProgres: (n) => `かぶせた笠：${n}/6`,
     voirYukionna: '隠れ場所を見る',
     voirKanji: '京都の上で見る',
@@ -266,7 +276,7 @@ const CASES = [
       fr: 'Un code pour recevoir son tableau Inkami plus vite, à temps pour Noël. Pour les 10 premières commandes.' },
     deco: { en: 'The waterfalls on the map freeze.', fr: 'Les cascades de la carte gèlent.' },
     savais: { en: 'In a hard frost the waterfall freezes: the Japanese call it hyōbaku, the « ice waterfall ».', fr: 'Par grand froid, la cascade gèle : les Japonais l’appellent hyōbaku, la « cascade de glace ».' } },
-  { j: 5, k: 'balade', lieu: 'tsumago-juku', pret: false,
+  { j: 5, k: 'balade', lieu: 'tsumago-juku', pret: true, tenue: 'echarpe',
     cadeau: { en: 'The red scarf', fr: 'L’écharpe rouge', ja: '赤いマフラー' },
     texte: { en: 'A knitted scarf for the traveller of the 3D walk. The first piece of the winter outfit.',
       fr: 'Une écharpe tricotée pour le voyageur de la balade 3D. La première pièce de la tenue d’hiver.' },
@@ -308,7 +318,7 @@ const CASES = [
       fr: 'Après aujourd’hui, un tableau risque d’arriver après Noël. −15 % aujourd’hui seulement, pour les 10 premières commandes.' },
     deco: { en: 'Snow lanterns light up around the castle.', fr: 'Des lanternes de neige s’allument autour du château.' },
     savais: { en: 'In February, the castle park glows with lanterns made of snow.', fr: 'En février, le parc du château s’illumine de lanternes faites en neige.' } },
-  { j: 11, k: 'balade', lieu: 'cape-notoro-misaki', pret: false,
+  { j: 11, k: 'balade', lieu: 'cape-notoro-misaki', pret: true, tenue: 'lunettes',
     cadeau: { en: 'Snowflake glasses', fr: 'Les lunettes flocons', ja: '雪の結晶メガネ' },
     texte: { en: 'Snowflake-shaped glasses for the traveller of the 3D walk.', fr: 'Des lunettes en forme de flocons de neige pour le voyageur de la balade 3D.' },
     deco: { en: 'Drift ice arrives along the Sea of Okhotsk.', fr: 'La banquise arrive le long de la mer d’Okhotsk.' },
@@ -341,7 +351,7 @@ const CASES = [
     deco: { en: 'New Year cards fly toward the cities.', fr: 'Des cartes de vœux volent vers les villes.' },
     savais: { en: 'From December 15, the Japanese post takes New Year cards. Posted before the 25th, they all arrive on the morning of January 1.',
       fr: 'Dès le 15 décembre, la poste japonaise prend les cartes de vœux. Postées avant le 25, elles arrivent toutes le matin du 1er janvier.' } },
-  { j: 16, k: 'balade', lieu: 'noboribetsu-hell-valley', pret: false,
+  { j: 16, k: 'balade', lieu: 'noboribetsu-hell-valley', pret: true, tenue: 'sac',
     cadeau: { en: 'The sack of gifts', fr: 'Le sac de cadeaux', ja: 'プレゼント袋' },
     texte: { en: 'Santa’s sack, worn on the back instead of the backpack.', fr: 'Le sac du Père Noël, à porter sur le dos à la place du sac à dos.' },
     deco: { en: 'Snow monkeys take a hot bath.', fr: 'Des singes des neiges prennent un bain chaud.' },
@@ -360,9 +370,10 @@ const CASES = [
       fr: 'Huit étiquettes à imprimer pour tes cadeaux, avec les personnages des légendes de la carte (le tanuki, le renard, Yuki-onna…), et comment emballer un cadeau dans un tissu, à la japonaise.' },
     deco: { en: 'Gifts pile up under the Christmas trees.', fr: 'Des cadeaux s’empilent au pied des sapins.' },
     savais: { en: 'In Japan, a gift is often wrapped in a knotted cloth, the furoshiki, which is used again.', fr: 'Au Japon, on emballe souvent un cadeau dans un tissu noué, le furoshiki, qui se réutilise.' } },
-  { j: 19, k: 'balade', lieu: 'hirayu-waterfall', pret: false,
+  { j: 19, k: 'balade', lieu: 'hirayu-waterfall', pret: true, tenue: 'lanterne',
     cadeau: { en: 'The lantern', fr: 'La lanterne', ja: 'ちょうちん' },
-    texte: { en: 'A lit paper lantern to hold in the hand, like the Tottori parasol.', fr: 'Une lanterne en papier allumée, à tenir à la main, comme l’ombrelle de Tottori.' },
+    texte: { en: 'A lit paper lantern on a bamboo pole, to hold in the hand like the Tottori umbrella. At night, it lights up everything around you.',
+      fr: 'Une lanterne en papier allumée au bout d’une perche de bambou, à tenir à la main comme l’ombrelle de Tottori. La nuit, elle éclaire tout autour de toi.' },
     deco: { en: 'The frozen waterfalls light up at night.', fr: 'Les cascades gelées s’illuminent la nuit.' },
     savais: { en: 'In February, the great frozen Hirayu waterfall is lit up at night for its festival.', fr: 'En février, la grande cascade gelée de Hirayu est illuminée la nuit, pendant sa fête.' } },
   { j: 20, k: 'telecharger', lieu: 'ghost-bridge', pret: true,
@@ -588,6 +599,7 @@ export function brancherNoel(outils) {
     if (c.special === 'conte') s.append(blocConte());
     if (c.special === 'kanji') s.append(blocKanji());
     if (c.special === 'yuzu' || c.special === 'jizo') s.append(blocProgres(c.special));
+    if (c.tenue) s.append(blocBalade(c));
     if (c.fichier) s.append(blocFichier(c.fichier));
     if (c.code) s.append(blocCode(c));
     if (!c.pret && estDev()) s.append(creer('p', 'noel-preparation', tx('enPreparation')));
@@ -643,6 +655,23 @@ export function brancherNoel(outils) {
     b.type = 'button';
     b.addEventListener('click', () => { fermerPanneau(); surCarte?.allerJizo(); });
     div.append(p, b);
+    return div;
+  }
+
+  // ---- Les cases de la balade (5, 11, 16, 19) : la pièce d'hiver du voyageur de la balade 3D. Ouvrir la case la donne
+  //      (localStorage.noelTenue, lu par la balade : tenues.js) ; pas un jour simulé (mode développeur : la balade les a toutes).
+  //      Le bouton mène à la fête de la neige d'Iiyama, toujours en hiver ; la balade annonce la pièce à l'arrivée.
+  function blocBalade(c) {
+    const simule = estSimule();
+    if (!simule) {
+      const t = new Set(lire(MEMOIRE_TENUE, []));
+      if (!t.has(c.tenue)) { t.add(c.tenue); garder(MEMOIRE_TENUE, [...t]); }
+    }
+    const div = creer('div', 'noel-balade');
+    const a = creer('a', 'btn-lancer');
+    a.href = `balade/?lieu=iiyama&langue=${langue()}`;
+    a.innerHTML = `${svg(ICONES.balade)}<span>${echapper(tx('baladeEssayer'))}</span>`;
+    div.append(a, creer('p', 'noel-note', tx(simule ? 'baladeSimule' : 'baladeDonnee')));
     return div;
   }
 

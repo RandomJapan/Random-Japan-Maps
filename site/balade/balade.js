@@ -99,8 +99,12 @@ const PHOTO = params.get('photo');
 const DEMO = params.has('demo');
 const ARRIVEE = params.get('arrivee') === 'bateau';
 const LIEU = LIEUX[params.get('lieu')] ? params.get('lieu') : 'itsukushima';
-/** Les pièces de tenue qu'on voit : sans celles des lieux en essai, pour un visiteur. */
-const PIECES_VUES = PIECES.filter((p) => !p.lieu || LIEUX[p.lieu]);
+/** Les pièces de tenue qu'on voit : sans celles des lieux en essai, pour un visiteur ; les pièces d'hiver du calendrier de l'Avent de
+ *  la carte (tenues.js, noel), seulement celles qu'il a ouvertes (toutes en mode développeur) : rien à chercher ici, ni après Noël. */
+const PIECES_VUES = PIECES.filter((p) => (!p.lieu || LIEUX[p.lieu]) && (!p.noel || gagnee(p)));
+// la lumière de la lanterne du calendrier, qui suit le voyageur qui la tient (lueurs.js : une lampe mobile, sans halo ; rangée sous le
+// sol, y −500, quand on ne la tient pas ; sol : sa portée, 4,4 m, se calcule une fois, depuis là)
+const LAMPE_LANTERNE = { x: 0, y: -500, z: 0, halo: 0, sol: -500.6, r: 4.2, c: '#ffb45e', mobile: true }, vLanterne = new THREE.Vector3();
 const MARCHE = 3.4, COURSE = 6.6; // m/s
 // au-delà, un passant n'a plus son trait d'encre (un ou deux pixels à cette distance) : six appels de dessin de moins
 // chacun, ce qui compte quand on voit tout un village d'en haut (le belvédère de Gokayama)
@@ -396,7 +400,7 @@ function construire() {
     barque = { objet, rames, x: B.quai.x, z: B.quai.z, cap: B.quai.cap, v: 0, w: 0, phase: 0, rame: 0, actif: false, arrose: 0, cascade: false };
   }
   // les halos et les flaques de lumière des lanternes, la nuit
-  const lueurs = creerLueurs(THREE, lieu.lumieres || [], mats.lampes);
+  const lueurs = creerLueurs(THREE, [...(lieu.lumieres || []), LAMPE_LANTERNE], mats.lampes);
   groupe.add(lueurs.groupe);
   // ce que le lieu anime (son secret : les corbeaux, la porte de bambous, la boîte enterrée)
   for (const a of lieu.animes || []) groupe.add(a.objet);
@@ -2474,7 +2478,8 @@ async function offrirRecompenses() {
     el.hidden = false;
     son.cadeau();
     await attendre(900);
-    await dialogue.dire(T.gain(phraseDe(LIEUX[p.lieu].infos), nom));
+    // (une pièce d'hiver : un cadeau du calendrier de l'Avent de la carte)
+    await dialogue.dire(p.noel ? T.gainNoel(nom) : T.gain(phraseDe(LIEUX[p.lieu].infos), nom));
     el.hidden = true;
     if ((await dialogue.choisir([T.porter], [T.porterOui, T.porterNon])) !== 0) await dialogue.dire(T.plusTard);
     else {
@@ -2490,7 +2495,7 @@ async function offrirRecompenses() {
       if (deFace) { M.cadre = null; etat.cap = cap; camera.userData.place = false; }
     }
     // (le lieu cache encore un secret : le carnet le dit)
-    if (SECRETS[p.lieu] && !secretTrouve(SECRETS[p.lieu])) await dialogue.dire(t('tresors').secretReste);
+    if (p.lieu && SECRETS[p.lieu] && !secretTrouve(SECRETS[p.lieu])) await dialogue.dire(t('tresors').secretReste);
   }
 }
 
@@ -4278,6 +4283,8 @@ function dessiner(dt, temps) {
     N.v += Math.sign(N.cible - N.v) * Math.min(Math.abs(N.cible - N.v), dt * 0.75);
     appliquerNuit(N.v);
   }
+  if (M.joueur?.lanterneMonde(vLanterne)) Object.assign(LAMPE_LANTERNE, { x: vLanterne.x, y: vLanterne.y, z: vLanterne.z });
+  else LAMPE_LANTERNE.y = -500;
   M.lueurs.maj(N.v, toile.height / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2)), camera);
   // (les tableaux d'Inkami : la nuit, la lueur du lampion sur la toile)
   M.toiles?.nuit(N.v);

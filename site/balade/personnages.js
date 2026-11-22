@@ -158,6 +158,131 @@ export function ombrelleShanshan(THREE, atelier) {
 }
 
 /**
+ * Les pièces d'hiver du calendrier de l'Avent de la carte (2026-11-22 ; tenues.js, noelTenue) : l'écharpe, le sac de cadeaux, la
+ * lanterne (le bonnet de Père Noël et les lunettes flocons sont dans creerHeros, FORMES).
+ *
+ * L'écharpe rouge (case du 5 décembre) : tricotée à côtes, un gros tour de cou sous le menton (la grosse tête cache le cou, comme
+ * pour le collier de magatama), et ses deux pans qui pendent sur la poitrine, à gauche, rayés de blanc près du bas, frangés. Autour
+ * d'un buste (comme le collier : rayon(y), aplati, avant) ; large : le tour plus large de tant (posé sur le col d'une cape).
+ */
+export function echarpeNoel(THREE, a, { avant = 0.014, rayon = (y) => 0.15 + 0.022 * Math.min(1, Math.max(0, (0.8 - y) / 0.25)), aplati = 0.9 } = {}, large = 0) {
+  const PI = Math.PI, R1 = '#d23a2e', R2 = '#b93027', BLANC = '#f6f1e6';
+  const Y = 0.797 + large * 0.25, rb = rayon(0.8), rx = rb + 0.026 + large, rz = rb * aplati + 0.03 + large, tr = 0.043;
+  // le tour du cou : un anneau couché, un peu plus bas devant ; des côtes (une maille sur deux plus sombre, autour)
+  const pts = [];
+  for (let k = 0; k < 24; k++) { const t = (k / 24) * 2 * PI; pts.push(new THREE.Vector3(Math.sin(t) * rx, Y - 0.014 * Math.cos(t), Math.cos(t) * rz)); }
+  a.piece(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, true), 48, tr, 10, true), R1, { teinte: (x, y, z) => (Math.floor(((Math.atan2(x, z) + PI) / (2 * PI)) * 56) % 2 ? R1 : R2) });
+  // le devant du buste en (x, y)
+  const buste = (x, y) => { const r = rayon(y); return aplati * r * Math.sqrt(Math.max(0, 1 - (x / r) ** 2)) + avant; };
+  // un pan : une bande de laine large l, épaisse e, du haut (x0, y0) au bas (x1, y1), couchée sur le buste (dz : un peu devant) ;
+  // deux rayures blanches près du bas, des rangs de mailles, la frange
+  const pan = (x0, y0, x1, y1, l, e, dz) => {
+    const g = new THREE.BoxGeometry(l, 1, e, 2, 12, 1), p = g.attributes.position;
+    for (let i = 0; i < p.count; i++) {
+      const s = 0.5 - p.getY(i), x = x0 + (x1 - x0) * s + p.getX(i), y = y0 + (y1 - y0) * s;
+      p.setXYZ(i, x, y, buste(x, y) + e / 2 + 0.004 + dz + p.getZ(i));
+    }
+    const h = y0 - y1;
+    a.piece(g, R1, { teinte: (x, y) => { const v = (y - y1) / h; return (v > 0.09 && v < 0.16) || (v > 0.22 && v < 0.29) ? BLANC : Math.floor(y * 90) % 2 ? R1 : R2; } });
+    for (let k = 0; k < 5; k++) {
+      const x = x1 + (-0.5 + (k + 0.5) / 5) * l * 0.9, z = buste(x, y1) + e / 2 + 0.004 + dz;
+      a.baton([x, y1 + 0.006, z], [x + (x1 - x0) * 0.1, y1 - 0.028, z + 0.004], 0.0045, R1, 4, { trait: false });
+    }
+  };
+  pan(0.072, Y - 0.03, 0.094, 0.5, 0.07, 0.02, 0.006);
+  pan(0.112, Y - 0.035, 0.13, 0.6, 0.056, 0.018, 0);
+  // le nœud, d'où sortent les pans, contre le tour du cou
+  a.ovale(0.036, R1, { x: 0.1, y: Y - 0.05, z: buste(0.1, Y - 0.05) + 0.03, sx: 1.15, sy: 0.85, sz: 0.7 }, 10);
+  return a;
+}
+
+/**
+ * Le sac de cadeaux du Père Noël (case du 16 décembre) : un gros sac de toile sur le dos, à la place du sac à dos, penché vers
+ * l'épaule gauche ; son col froncé, serré d'une cordelette rouge et blanche, s'ouvre derrière l'épaule, et trois paquets en
+ * dépassent, à côté de la tête (on les voit de face). Dans le repère du corps ; les bretelles, selon le buste : sanglesHotte.
+ * Renvoie { sac, ouverture } : deux ateliers. Le sac, et son col jusqu'à la cordelette, fermé dessus ; l'ouverture : le col qui
+ * s'évase au-dessus d'elle, et les paquets (le voyageur la cache sous le casque de samouraï, dont le couvre-nuque descend jusqu'à
+ * 0,92 m, à 47 cm autour de la tête : les paquets le traversaient ; seul, le sac paraît noué).
+ */
+export function hotteNoel(THREE, atelier) {
+  const PI = Math.PI, TOILE = '#c8a066', TOILE2 = '#b9925a', V = (x, y, z) => new THREE.Vector3(x, y, z), a = atelier(), b = atelier();
+  // le sac : une boule de toile un peu aplatie contre le dos, bosselée par ce qu'il y a dedans, penchée vers la gauche
+  a.piece(new THREE.SphereGeometry(0.24, 18, 13), TOILE, {
+    x: 0.05, y: 0.6, z: -0.355, sx: 0.98, sz: 0.72, rz: -0.22,
+    deformer: (x, y, z) => { const t = Math.atan2(x, z), k = 1 + 0.07 * Math.sin(t * 3 + y * 9) + 0.045 * Math.sin(t * 5 - y * 14) + (y > 0.13 ? 0.1 * Math.sin(t * 9) * ((y - 0.13) / 0.11) : 0); return [x * k, y, z * k]; },
+    teinte: (x, y, z) => (Math.floor((x * 0.6 + y) * 38) % 2 ? TOILE : TOILE2),
+  });
+  // le col froncé : du haut du sac vers l'épaule gauche, serré, puis qui s'évase (des plis tout autour)
+  const N = [V(0.1, 0.78, -0.345), V(0.15, 0.82, -0.34), V(0.19, 0.85, -0.335), V(0.225, 0.89, -0.33), V(0.255, 0.93, -0.33)], R = [0.11, 0.075, 0.052, 0.07, 0.098];
+  const plis = { teinte: (x, y, z) => (Math.floor(Math.atan2(x - 0.2, z + 0.33) * 4.5 + 20) % 2 ? TOILE : TOILE2) };
+  a.tronc(N.slice(0, 3).map((p) => p.toArray()), R.slice(0, 3), TOILE, 14, plis)
+    .ovale(0.05, TOILE2, { x: N[2].x, y: N[2].y + 0.008, z: N[2].z, sy: 0.7 }, 10);
+  b.tronc(N.slice(2).map((p) => p.toArray()), R.slice(2), TOILE, 14, plis);
+  // (l'ourlet de l'ouverture, et le fond du col, sombre : vu d'en haut, l'intérieur)
+  const axe = N[4].clone().sub(N[3]).normalize(), q = new THREE.Quaternion().setFromUnitVectors(V(0, 1, 0), axe), e = new THREE.Euler().setFromQuaternion(q);
+  b.piece(new THREE.CircleGeometry(0.094, 14).rotateX(-PI / 2), '#5a4430', { x: N[4].x - axe.x * 0.004, y: N[4].y - axe.y * 0.004, z: N[4].z - axe.z * 0.004, rx: e.x, ry: e.y, rz: e.z, trait: false });
+  // la cordelette, rouge et blanche, et son nœud
+  const qt = new THREE.Quaternion().setFromUnitVectors(V(0, 0, 1), N[3].clone().sub(N[1]).normalize()), et = new THREE.Euler().setFromQuaternion(qt);
+  a.piece(new THREE.TorusGeometry(0.056, 0.013, 6, 18), '#e2402e', { x: N[2].x, y: N[2].y, z: N[2].z, rx: et.x, ry: et.y, rz: et.z, teinte: (x, y, z) => (Math.floor(Math.atan2(y - N[2].y, x - N[2].x) * 3.2 + 30) % 2 ? '#e2402e' : '#f6f1e6') });
+  for (const s of [-1, 1]) a.ovale(0.024, '#e2402e', { x: N[2].x + 0.02 + s * 0.02, y: N[2].y - 0.01, z: N[2].z + 0.055, sx: 1.3, sy: 0.7, sz: 0.5, rz: s * 0.4 }, 8);
+  // les paquets : une boîte, deux rubans en croix (un peu plus larges qu'elle), un nœud dessus
+  const paquet = (c, ruban, l, h, p, o, rx, ry, rz) => {
+    const pl = { x: o.x, y: o.y, z: o.z, rx, ry, rz };
+    b.boite(l, h, p, c, pl).boite(l + 0.004, h + 0.004, 0.022, ruban, pl).boite(0.022, h + 0.004, p + 0.004, ruban, pl);
+    const haut = V(0, h / 2 + 0.012, 0).applyEuler(new THREE.Euler(rx, ry, rz)).add(o);
+    for (const s of [-1, 1]) {
+      const n = V(s * 0.018, 0, 0).applyEuler(new THREE.Euler(rx, ry, rz)).add(haut);
+      b.ovale(0.017, ruban, { x: n.x, y: n.y, z: n.z, rx, ry, rz: rz + s * 0.5, sx: 1.4, sy: 0.75, sz: 0.55 }, 8);
+    }
+  };
+  const O = N[4];
+  paquet('#3f9a64', '#d8302c', 0.1, 0.1, 0.1, V(O.x - 0.025, O.y + 0.05, O.z + 0.015), 0.25, 0.5, 0.18);
+  paquet('#3f6fc4', '#f2c443', 0.085, 0.11, 0.08, V(O.x + 0.045, O.y + 0.035, O.z - 0.03), -0.2, 0.9, -0.35);
+  paquet('#d8302c', '#f6f1e6', 0.07, 0.065, 0.07, V(O.x + 0.005, O.y + 0.03, O.z - 0.06), 0.4, 0.2, 0.1);
+  return { sac: a, ouverture: b };
+}
+/** Les bretelles du sac de cadeaux : deux cordes du haut du sac, par-dessus les épaules, qui descendent sur la poitrine (sur le buste de la tenue). */
+export function sanglesHotte(THREE, a, { avant = 0.014, rayon = (y) => 0.15 + 0.022 * Math.min(1, Math.max(0, (0.8 - y) / 0.25)), aplati = 0.9 } = {}) {
+  const devant = (x, y) => { const r = rayon(y); return aplati * r * Math.sqrt(Math.max(0, 1 - (x / r) ** 2)) + avant + 0.012; };
+  const rb = rayon(0.8), epaule = 0.795 + 0.42 * rb * Math.sqrt(Math.max(0, 1 - (0.105 / rb) ** 2)) + 0.01;
+  for (const s of [-1, 1]) {
+    a.tube([[s * 0.09, 0.79, -0.2], [s * 0.104, epaule - 0.004, -0.09], [s * 0.106, epaule, 0], [s * 0.104, 0.78, devant(0.104, 0.78)], [s * 0.1, 0.7, devant(0.1, 0.7)], [s * 0.097, 0.62, devant(0.097, 0.62)]], 0.011, '#8a5a3a', { cotes: 6, pas: 30 });
+  }
+  return a;
+}
+
+/**
+ * La lanterne de papier (chōchin, 提灯 ; case du 19 décembre) : tenue au bout d'une courte perche de bambou, devant soi, comme pour
+ * éclairer le chemin ; le papier crème sur ses côtes de bambou, deux bandes rouges, les couvercles laqués noirs, le gland rouge. Le
+ * papier luit la nuit (sorte 'lumiere') ; sa lumière tombe autour (balade.js : une lampe qui suit la lanterne). Renvoie { perche,
+ * lanterne } : la perche le long de y depuis la main (y = 0) ; la lanterne pendue sous y = 0 (son crochet), son milieu en y = LANTERNE.y.
+ */
+export const LANTERNE = { perche: 0.42, y: -0.185 };
+export function lanterneChochin(THREE, atelier) {
+  const perche = atelier(), lanterne = atelier(), BAMBOU = '#c8a860', NOIR = '#2a2420', PAPIER = '#f8e7bb', COTE = '#ecd39a', ROUGE = '#d8302c', L = LANTERNE.perche;
+  perche.cylindre(0.011, 0.012, L + 0.08, 8, BAMBOU, { y: (L + 0.08) / 2 - 0.08 })
+    .cylindre(0.015, 0.015, 0.11, 8, '#5a3a26', { y: -0.01, trait: false });
+  for (const y of [0.16, 0.32]) perche.cylindre(0.014, 0.014, 0.012, 8, '#a88a48', { y, trait: false });
+  // (le bout recourbé, où pend la lanterne)
+  perche.baton([0, L - 0.004, 0], [0, L + 0.012, -0.03], 0.006, NOIR, 5);
+  // la cordelette, le couvercle du haut et son anneau
+  lanterne.baton([0, 0, 0], [0, -0.05, 0], 0.003, NOIR, 4, { trait: false })
+    .cylindre(0.052, 0.056, 0.026, 14, NOIR, { y: -0.062 })
+    .piece(new THREE.TorusGeometry(0.012, 0.003, 4, 10), NOIR, { y: -0.046, trait: false });
+  // le papier : un tonneau sur ses côtes ; rouge près des couvercles ; il luit
+  const Ym = LANTERNE.y, R = 0.098, H = 0.21;
+  lanterne.piece(new THREE.SphereGeometry(R, 18, 14), PAPIER, {
+    y: Ym, sy: H / (2 * R) * 1.02, sorte: 'lumiere', trait: true,
+    deformer: (x, y, z) => { const f = Math.min(1, 0.82 + 0.18 * Math.cos((y / R) * 1.4)); return [x * f, y, z * f]; },
+    teinte: (x, y) => { const v = (y - Ym) / (H / 2); return Math.abs(Math.abs(v) - 0.72) < 0.07 ? ROUGE : Math.floor((v + 1) * 7.5) % 2 ? PAPIER : COTE; },
+  });
+  lanterne.cylindre(0.05, 0.046, 0.022, 14, NOIR, { y: Ym - H / 2 - 0.006 })
+    .cylindre(0.008, 0.008, 0.012, 6, NOIR, { y: Ym - H / 2 - 0.022, trait: false })
+    .cylindre(0.012, 0.006, 0.06, 6, ROUGE, { y: Ym - H / 2 - 0.058 });
+  return { perche, lanterne };
+}
+
+/**
  * Le shamisen de Sawaichi (Tsubosaka-dera, 2026-11-05 : la récompense de ses tampons, choisie par le propriétaire) : le luth à trois cordes que
  * jouait Sawaichi, le mari aveugle du 壺坂霊験記. Le corps carré (胴) aux côtés un peu bombés, tendu de peau blanche devant et derrière, son
  * cadre de bois sombre ; le long manche (棹) sans frettes ; la tête (天神) recourbée en arrière, ses trois chevilles d'ivoire (糸巻) ; le
@@ -1313,6 +1438,69 @@ export function creerHeros(ctx, sorte = 'garcon') {
       const g = surVisage(0, -0.005, 0.02);
       return a.baton([-0.045, g.y, g.z - 0.004], [0.045, g.y, g.z - 0.004], 0.009, '#f4c12e', 5);
     },
+    // (2026-11-22, le calendrier de l'Avent de la carte) le bonnet de Père Noël (la case du 24, les six Jizō) : rouge, son bord de
+    // fourrure blanche bouclée sur le front, sa pointe qui retombe en arrière et sur le côté, son pompon ; un peu penché en arrière,
+    // comme la casquette (dans son repère : y vers le haut, le bord en y = 0)
+    bonnetNoel() {
+      const a = atelier(), ROUGE = '#c8302c', BL = '#fbf8f2', BL2 = '#e9e4da', R0 = 0.312;
+      // la fourrure : un anneau bosselé
+      a.piece(new THREE.TorusGeometry(R0, 0.058, 9, 36), BL, {
+        rx: PI / 2,
+        deformer: (x, y, z) => {
+          const f = Math.atan2(y, x), cx = R0 * Math.cos(f), cy = R0 * Math.sin(f), ox = x - cx, oy = y - cy, ps = Math.atan2(z, ox * Math.cos(f) + oy * Math.sin(f));
+          const k = 1 + 0.12 * Math.sin(f * 11 + ps * 3) * Math.cos(f * 7 - ps * 2);
+          return [cx + ox * k, cy + oy * k, z * k];
+        },
+        teinte: (x, y, z) => (Math.sin(x * 61 + z * 47) * Math.sin(y * 70 + x * 13) > 0.2 ? BL2 : BL),
+      });
+      // le bonnet : un tronc rouge qui s'affine et se courbe, de la fourrure à la pointe
+      const P = [[0, 0, 0], [0, 0.12, -0.012], [0, 0.235, -0.045], [0.012, 0.33, -0.105], [0.05, 0.385, -0.19], [0.105, 0.37, -0.265], [0.145, 0.315, -0.31]];
+      a.tronc(P, [0.29, 0.252, 0.195, 0.135, 0.085, 0.052, 0.032], ROUGE, 18, { teinte: (x, y, z) => (z < -0.13 && y < 0.3 ? '#b42a26' : ROUGE) });
+      // le pompon, bouclé
+      const [px, py, pz] = P[P.length - 1];
+      a.piece(new THREE.IcosahedronGeometry(0.066, 2), BL, {
+        x: px + 0.012, y: py - 0.03, z: pz - 0.012,
+        deformer: (x, y, z) => { const l = Math.hypot(x, y, z) || 1, k = 1 + 0.14 * Math.sin((x / l) * 9 + (z / l) * 5) * Math.cos((y / l) * 8); return [x * k, y * k, z * k]; },
+        teinte: (x, y, z) => (Math.sin(x * 90 + y * 70) > 0.3 ? BL2 : BL),
+      });
+      const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(-0.2, 0, 0));
+      return { a, p: [0, CY + 0.125, -0.012], q: [q.x, q.y, q.z, q.w] };
+    },
+    // les lunettes flocons (la case du 11) : deux verres ronds bleu glacier, cerclés de blanc, et autour de chacun les six branches
+    // d'un flocon de neige, longues et fines, chacune avec deux petites branches en V et une pointe en losange ; le pont, les branches
+    // jusqu'aux oreilles. (D'abord des branches courtes et épaisses : de près, des roues dentées.)
+    flocons() {
+      const a = atelier(), BL = '#f2fbff', VERRE = '#8fc8ea';
+      const anneau = new THREE.Shape().absarc(0, 0, 0.05, 0, 2 * PI, false);
+      anneau.holes.push(new THREE.Path().absarc(0, 0, 0.04, 0, 2 * PI, true));
+      for (const s of [-1, 1]) {
+        const q = surVisage(s * 0.106, -0.018, 0.02), place = { x: q.x, y: q.y, z: q.z, rx: q.rx, ry: q.ry };
+        const plan = new THREE.Euler(q.rx, q.ry, 0), C = new THREE.Vector3(q.x, q.y, q.z);
+        // (un point du plan du verre : u à droite, v en haut, w devant)
+        const dans = (u, v, w = 0) => new THREE.Vector3(u, v, w).applyEuler(plan).add(C);
+        a.piece(new THREE.ExtrudeGeometry(anneau, { depth: 0.012, bevelEnabled: false, curveSegments: 18 }), BL, place)
+          .piece(new THREE.CircleGeometry(0.041, 20), VERRE, { ...place, z: q.z + 0.006, trait: false });
+        const h = dans(-s * 0.004 - 0.016, 0.013, 0.0075);
+        a.boite(0.008, 0.03, 0.002, '#ffffff', { x: h.x, y: h.y, z: h.z, rx: q.rx, ry: q.ry, rz: -0.6, trait: false });
+        for (let k = 0; k < 6; k++) {
+          const t = (k * PI) / 3 + PI / 6, cu = Math.cos(t), sv = Math.sin(t);
+          // la branche, de l'anneau vers le dehors ; ses deux petites branches en V
+          const m = dans(cu * 0.071, sv * 0.071, 0.006), bout = dans(cu * 0.097, sv * 0.097, 0.006);
+          a.boite(0.0075, 0.046, 0.008, BL, { x: m.x, y: m.y, z: m.z, rx: q.rx, ry: q.ry, rz: t - PI / 2 })
+            .boite(0.011, 0.011, 0.008, BL, { x: bout.x, y: bout.y, z: bout.z, rx: q.rx, ry: q.ry, rz: t + PI / 4 });
+          // (les petites branches : du milieu de la branche, vers le dehors, à 43° d'elle)
+          for (const e of [-1, 1]) {
+            const tb = t + e * 0.75, b = dans(cu * 0.073 + Math.cos(tb) * 0.011, sv * 0.073 + Math.sin(tb) * 0.011, 0.006);
+            a.boite(0.0055, 0.022, 0.007, BL, { x: b.x, y: b.y, z: b.z, rx: q.rx, ry: q.ry, rz: tb - PI / 2 });
+          }
+        }
+        // la branche des lunettes : du bord du verre à l'oreille, en contournant la tête
+        a.baton([s * 0.152, CY - 0.008, q.z - 0.036], [s * 0.292, CY + 0.004, 0.17], 0.008, BL, 5)
+          .baton([s * 0.292, CY + 0.004, 0.17], [s * 0.322, CY + 0.012, 0.02], 0.008, BL, 5);
+      }
+      const g = surVisage(0, -0.005, 0.02);
+      return a.baton([-0.05, g.y, g.z - 0.004], [0.05, g.y, g.z - 0.004], 0.008, BL, 5);
+    },
     // le casque de samouraï (kabuto) : le bol de fer à côtes et son bouton, la visière, le couvre-nuque en trois lames
     // laquées de rouge, ses deux ailerons retournés, les cornes dorées (kuwagata) et le soleil du cimier
     kabuto() {
@@ -1429,6 +1617,8 @@ export function creerHeros(ctx, sorte = 'garcon') {
   // côtés, et qui battent chacun à son tour (la phase avance à chaque image)
   // (la cape du loup, Yakushima : pareil ; capeL, sa capuche à part : capuche, couchée dans le dos ou levée sur la tête)
   let cape = null, capeL = null, ecartCape = 0, phaseCape = 0, leveQueue = 0, ombrelle = null, ombrellePortee = false, ombrelleRangee = false, aCheval = false;
+  // (la lanterne du calendrier de l'Avent de la carte, 2026-11-22 : tenue comme l'ombrelle, rangée comme elle ; voir porter et animer)
+  let lanterne = null, lanternePortee = false;
   // (le shamisen de Sawaichi, Tsubosaka : tenu devant soi, en travers du corps, en marchant aussi ; à l'arrêt, au bout de 2,2 s, on en joue : un air
   // à nous, dans la gamme in ; permis : seulement quand on joue (pas pendant un dialogue) ; noteCompte : à chaque coup de plectre, la note)
   let shamisen = null, shamisenPorte = false, shamisenPermis = false, jeuShamisen = 0, immobile = 0, noteCompte = 0, noteIdx = 0, tempsNote = 0, coupPlectre = 0, iNote = 0;
@@ -1436,6 +1626,8 @@ export function creerHeros(ctx, sorte = 'garcon') {
   const AIR_SHAMISEN = [[3, 1], [4, 1], [3, 1], [2, 2], [3, 1], [0, 1], [1, 1], [2, 2], [2, 1], [4, 1], [5, 1], [4, 1], [3, 2], [2, 1], [1, 1], [0, 3]];
   // (le bras qui tient l'ombrelle : presque à l'horizontale, le poing devant l'épaule)
   const BRAS_OMBRELLE = -1.32;
+  // (le bras qui tient la perche de la lanterne : tendu devant, baissé de 34° (la perche, le long de son z, monte alors de 34° devant soi))
+  const BRAS_LANTERNE = -0.6;
   const animerCape = (dt, vitesse, fete) => {
     const C = cape?.objet.visible ? cape : capeL?.objet.visible ? capeL : null;
     if (!C) return;
@@ -1471,8 +1663,8 @@ export function creerHeros(ctx, sorte = 'garcon') {
   };
   const animerQueue = (dt, vitesse) => {
     if (!queue || teteId !== 'renard') return;
-    // (assis, elle passerait à travers le dossier : comme celle du loup)
-    queue.visible = !assis;
+    // (assis, elle passerait à travers le dossier : comme celle du loup ; et à travers le sac de cadeaux du calendrier de l'Avent, sur le dos)
+    queue.visible = !assis && !(pieces.hotte && dosPorte === pieces.hotte);
     const allure = Math.min(1, vitesse / 4);
     phaseQueue += dt * (1.5 + 2.5 * allure);
     queue.rotation.set(-0.15 * allure, Math.sin(phaseQueue) * (0.12 + 0.22 * allure), Math.sin(phaseQueue * 0.5) * 0.05, 'YXZ');
@@ -1693,7 +1885,9 @@ export function creerHeros(ctx, sorte = 'garcon') {
     // mino, dont le col de corde et ses cordons passent devant la poitrine, ou le haut de la cape de plumes de cormoran et son
     // col : l'étole se pose dessus)
     const surDos = auCou !== 'yamabushi' || !dosPorte ? null : dosPorte === pieces.mino ? ['mino', pieces.mino] : cape && dosPorte === cape.objet ? ['cormoran', cape.haut] : capeL && dosPorte === capeL.objet ? ['loup', capeL.haut] : null;
-    const k = auCou === 'yamabushi' || BUSTES[habitCourant] ? habitCourant : 'habit-defaut', cle = `${auCou}:${k}${surDos ? ':' + surDos[0] : ''}`;
+    // (l'écharpe : sur le col du mino ou d'une cape, son tour de cou s'élargit)
+    const surCape = auCou === 'echarpe' && !!dosPorte && (dosPorte === pieces.mino || dosPorte === cape?.objet || dosPorte === capeL?.objet);
+    const k = auCou === 'yamabushi' || BUSTES[habitCourant] ? habitCourant : 'habit-defaut', cle = `${auCou}:${k}${surDos ? ':' + surDos[0] : ''}${surCape ? ':cape' : ''}`;
     if (!colliers[cle]) {
       if (auCou === 'yamabushi') {
         const h = habits[k], geos = [...(h ? [h.meshes[0], ...(h.garde.includes('bas') ? [mBas] : [])] : [mHaut, mBas]), ...(surDos ? [surDos[1]] : [])].map((m) => m.children[0].geometry);
@@ -1701,7 +1895,8 @@ export function creerHeros(ctx, sorte = 'garcon') {
         etoleYamabushi(THREE, a, { devant: reliefBuste(geos, 1), dos: arriere ? reliefBuste(geos, -1) : null, arriere });
         colliers[cle] = maillage(a.fin(0, false));
         if (arriere) { dosEtoles[cle] = maillage(arriere.fin(0, false)); corps.add(dosEtoles[cle]); }
-      } else colliers[cle] = maillage(collierMagatama(THREE, atelier(), BUSTES[k]).fin(0, false));
+      } else if (auCou === 'echarpe') colliers[cle] = maillage(echarpeNoel(THREE, atelier(), BUSTES[k], surCape ? 0.05 : 0).fin(0, false));
+      else colliers[cle] = maillage(collierMagatama(THREE, atelier(), BUSTES[k]).fin(0, false));
       corps.add(colliers[cle]);
     }
     colliers[cle].visible = true;
@@ -1717,12 +1912,23 @@ export function creerHeros(ctx, sorte = 'garcon') {
   const majCapuche = () => {
     const portee = capeL && dosPorte === capeL.objet, levee = portee && teteId === 'nue' && yeuxId !== 'masque' && yeuxId !== 'tengu';
     if (capeL) { capeL.dos.visible = portee && !levee; capeL.tete.visible = !!levee; }
-    if (dessus) dessus.visible = teteId !== 'defaut' && teteId !== 'kabuto' && teteId !== 'heron' && !levee;
+    if (dessus) dessus.visible = teteId !== 'defaut' && teteId !== 'kabuto' && teteId !== 'heron' && teteId !== 'bonnetNoel' && !levee;
     if (couettes) couettes.visible = !levee;
+    // (sous le casque de samouraï, le sac de cadeaux reste noué : ses paquets traversaient le couvre-nuque)
+    if (pieces.hotteOuverture) pieces.hotteOuverture.visible = teteId !== 'kabuto';
   };
-  const majSac = () => { mSac.visible = sacGarde && !dosPorte; majCollier(); };
+  // (les bretelles du sac de cadeaux : sur le buste de ce qu'on porte, comme le collier ; une par buste, faite la première fois)
+  const sangles = {};
+  const majSangles = () => {
+    for (const m of Object.values(sangles)) m.visible = false;
+    if (!pieces.hotte || dosPorte !== pieces.hotte) return;
+    const k = BUSTES[habitCourant] ? habitCourant : 'habit-defaut';
+    if (!sangles[k]) { sangles[k] = maillage(sanglesHotte(THREE, atelier(), BUSTES[k]).fin(0, false)); corps.add(sangles[k]); }
+    sangles[k].visible = true;
+  };
+  const majSac = () => { mSac.visible = sacGarde && !dosPorte; majSangles(); majCollier(); };
   // les épaulières de l'armure : sous le mino ou une cape, elles ressortaient à travers (2026-11-02) ; les ailes, elles, ne les couvrent pas
-  const majEpaulieres = () => { for (const m of habitPorte?.epaulieres ?? []) m.visible = !dosPorte || dosPorte === ailes?.objet; };
+  const majEpaulieres = () => { for (const m of habitPorte?.epaulieres ?? []) m.visible = !dosPorte || dosPorte === ailes?.objet || dosPorte === pieces.hotte; };
   /** Mettre la tenue id (HABITS ; 'habit-defaut' ou inconnue : les habits de tous les jours). */
   function habiller(id) {
     if (habitPorte) for (const m of [...habitPorte.meshes, ...habitPorte.retrousses]) m.visible = false;
@@ -1898,6 +2104,8 @@ export function creerHeros(ctx, sorte = 'garcon') {
     objet: racine,
     /** Porte-t-il l'ombrelle de Shan-shan ? (ses grelots, à chaque pas : balade.js, unPas) */
     get aOmbrelle() { return !!ombrelle?.objet.visible; },
+    /** Tient-il la lanterne du calendrier de l'Avent ? Si oui, v reçoit la position de son papier dans le monde (sa lumière : balade.js). */
+    lanterneMonde(v) { if (!lanterne?.objet.visible || !racine.visible) return false; lanterne.centre.getWorldPosition(v); return true; },
     /** Tient-il le shamisen de Sawaichi ? Où en est son air (compte : un de plus à chaque coup de plectre ; note : 0 à 5, de la plus grave) ? */
     get aShamisen() { return shamisenPorte; },
     get noteShamisen() { return { compte: noteCompte, note: noteIdx }; },
@@ -1938,6 +2146,22 @@ export function creerHeros(ctx, sorte = 'garcon') {
       if (place === 'main') {
         ombrellePortee = id === 'ombrelle';
         shamisenPorte = id === 'shamisen';
+        lanternePortee = id === 'lanterne';
+        // (la lanterne : la perche part du poing, le long du z du bras (un peu vers le dehors et le haut) ; la lanterne pend à son bout,
+        // sur un pivot fixé au bras, qui défait la pente du bras et du buste à chaque image (animer) : elle pend droit)
+        if (lanternePortee && !lanterne) {
+          const o = lanterneChochin(THREE, atelier), objet = new THREE.Group(), perche = maillage(o.perche.fin(0, false)), pivotL = new THREE.Group(), centre = new THREE.Object3D();
+          const dir = new THREE.Vector3(-0.08, 0.05, 1).normalize(), main = new THREE.Vector3(0, -0.312, 0);
+          perche.position.copy(main);
+          perche.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+          pivotL.position.copy(main).addScaledVector(dir, LANTERNE.perche).add(new THREE.Vector3(0, 0.012, -0.03).applyQuaternion(perche.quaternion));
+          pivotL.add(maillage(o.lanterne.fin(0, false)), centre);
+          centre.position.y = LANTERNE.y;
+          objet.add(perche, pivotL);
+          bras[0].add(objet);
+          lanterne = { objet, pivot: pivotL, centre };
+        }
+        if (lanterne) lanterne.objet.visible = lanternePortee;
         if (shamisenPorte && !shamisen) {
           // (l'instrument et le plectre : dans le repère du corps, placés à chaque image)
           const o = shamisenSawaichi(THREE, atelier), objet = maillage(o.instrument.fin(0, false)), plectre = maillage(o.plectre.fin(0, false));
@@ -1988,6 +2212,18 @@ export function creerHeros(ctx, sorte = 'garcon') {
           pieces.mino.visible = true;
           dosPorte = pieces.mino;
         }
+        // le sac de cadeaux du Père Noël (le calendrier de l'Avent de la carte) ; ses bretelles : majSangles
+        if (id === 'hotte') {
+          if (!pieces.hotte) {
+            const h = hotteNoel(THREE, atelier);
+            pieces.hotte = new THREE.Group();
+            pieces.hotteOuverture = maillage(h.ouverture.fin(0, false));
+            pieces.hotte.add(maillage(h.sac.fin(0, false)), pieces.hotteOuverture);
+            corps.add(pieces.hotte);
+          }
+          pieces.hotte.visible = true;
+          dosPorte = pieces.hotte;
+        }
         // les ailes du phénix (le Pavillon d'or) : deux pivots entre les omoplates
         if (id === 'ailes') {
           if (!ailes) {
@@ -2036,7 +2272,7 @@ export function creerHeros(ctx, sorte = 'garcon') {
       }
       // au cou : rien ('cou-rien'), le collier de magatama (Takachiho), l'étole et la conque du yamabushi (les Trente Bouddhas)
       if (place === 'cou') {
-        auCou = id === 'magatama' || id === 'yamabushi' ? id : false;
+        auCou = id === 'magatama' || id === 'yamabushi' || id === 'echarpe' ? id : false;
         majCollier();
         majFoulard();
         return;
@@ -2047,7 +2283,7 @@ export function creerHeros(ctx, sorte = 'garcon') {
         teteId = id;
         majCapuche();
         if (id === 'renard' && !queue) { queue = queueRenard(); corps.add(queue); }
-        if (queue) queue.visible = id === 'renard';
+        if (queue) queue.visible = id === 'renard' && !(pieces.hotte && dosPorte === pieces.hotte);
       } else {
         yeuxId = id;
         majCapuche();
@@ -2164,6 +2400,18 @@ export function creerHeros(ctx, sorte = 'garcon') {
         tete.rotation.x += jeuShamisen * (0.04 + 0.03 * coupPlectre);
         tete.rotation.y = tete.rotation.y * (1 - jeuShamisen) - 0.08 * jeuShamisen;
       }
+      // (la lanterne : le bras droit tendu devant, baissé, la perche qui monte devant soi ; la lanterne pend droit (son pivot défait la
+      // pente du bras, puis celle du buste : ordre ZXY) et se balance un peu à chaque pas, et doucement à l'arrêt. Rangée comme l'ombrelle :
+      // pendant un geste, la danse, les rames, sur un siège de télésiège, avec la torche du tengu ou ce qu'on tient dans la main)
+      const lanterneEnMain = lanternePortee && !ombrelleRangee && !danse && !geste && rame === null && !enMain;
+      if (lanterne) lanterne.objet.visible = lanterneEnMain;
+      const tenirLanterne = () => {
+        bras[0].rotation.x = BRAS_LANTERNE + Math.sin(phase * 2) * 0.025 * marche;
+        bras[0].rotation.z = -0.1;
+        lanterne.pivot.rotation.set(-(bras[0].rotation.x + corps.rotation.x) + Math.sin(phase) * 0.14 * marche + Math.sin(temps * 1.3) * 0.03 * (1 - marche), 0,
+          -bras[0].rotation.z + Math.cos(phase) * 0.05 * marche, 'ZXY');
+      };
+      if (lanterneEnMain) tenirLanterne();
       if (assis) {
         jambes[0].rotation.x = jambes[1].rotation.x = -1.3;
         bras[0].rotation.x = bras[1].rotation.x = -0.55;
@@ -2176,6 +2424,7 @@ export function creerHeros(ctx, sorte = 'garcon') {
           bras[0].rotation.z = 0.2; bras[1].rotation.z = -0.2;
         }
         if (ombrelleEnMain) leverOmbrelle();
+        if (lanterneEnMain) tenirLanterne();
         if (rame !== null) {
           // (o = −1 : l'attaque, les pelles du côté de la proue ; o = 1 : la fin du coup, du côté de la poupe — balade.js, piloter)
           // à l'attaque, penché vers la poupe, les bras tendus, les genoux pliés ; puis il tire : les poignées vers la

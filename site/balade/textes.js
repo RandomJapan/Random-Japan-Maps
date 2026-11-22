@@ -92,6 +92,7 @@ export const TEXTES = {
     tenue: {
       titre: 'Wardrobe', titreJa: 'きせかえ', tete: 'On your head', yeux: 'On your face', habit: 'Outfit', dos: 'On your back', main: 'In your hand', cou: 'Around your neck', pas: 'Under your feet', compagnon: 'Your companion',
       noms: {
+        bonnetNoel: 'Santa hat', flocons: 'Snowflake glasses', echarpe: 'Red scarf', hotte: 'Sack of gifts', lanterne: 'Paper lantern',
         defautGarcon: 'Cap', defautFille: 'Straw hat', nue: 'No hat', bois: 'Deer antlers', heron: 'White heron headdress', cornes: 'Oni horns', renard: 'Fox ears and tail', kabuto: 'Samurai helmet', aucune: 'Nothing', etoiles: 'Star glasses', masque: 'Fox mask',
         sacGarcon: 'Backpack', sacFille: 'Backpack', mino: 'Straw cape (mino)', ailes: 'Phoenix wings', cormoran: 'Cormorant feather cape', ombrelle: 'Shan-shan umbrella', tengu: 'Great tengu mask', shamisen: 'Sawaichi’s shamisen', loup: 'Wolf cape', 'main-rien': 'Nothing', 'cou-rien': 'Nothing', magatama: 'Magatama necklace', yamabushi: 'Yamabushi’s stole and conch',
         habitGarcon: 'Red jacket', habitFille: 'Pink blouse', happi: 'Festival coat', yukata: 'Yukata', kimonoOr: 'Golden kimono', armure: 'Samurai armour',
@@ -99,6 +100,12 @@ export const TEXTES = {
         'cp-defaut': 'Nothing extra', 'cp-bandana': 'Bandana', 'cp-chapeau': 'Little straw hat', 'cp-grelot': 'Golden bell',
       },
       descriptions: {
+        // (2026-11-22) les pièces d'hiver du calendrier de l'Avent de la carte
+        bonnetNoel: 'Santa’s red hat with its white pompom: the six Jizō of Murō-ji gave it to you, as in the tale of the Kasa Jizō.',
+        flocons: 'Glasses shaped like snowflakes, with icy blue lenses. A gift from the map’s Advent calendar.',
+        echarpe: 'A knitted red scarf with white stripes, nice and warm for winter. A gift from the map’s Advent calendar.',
+        hotte: 'Santa’s sack full of gifts, worn on your back instead of your backpack. A gift from the map’s Advent calendar.',
+        lanterne: 'A paper lantern (chōchin) on a bamboo pole. At night, it lights up everything around you! A gift from the map’s Advent calendar.',
         defautGarcon: 'Your cap, with Mount Fuji on the front.', defautFille: 'Your straw hat, with its red ribbon and its flower.',
         nue: 'Feel the wind in your hair!', bois: 'A headband with deer ears and antlers, like the deer of Miyajima.', heron: 'A little white heron perched on your head, with its long plumes: the White Heron of Himeji Castle!', cornes: 'Two little red oni horns on a tiger-skin headband, like the demons of the hells of Beppu. Rawr!', renard: 'White fox ears, red inside, and a fluffy white tail with a golden tip that sways as you walk: like the fox from the dream that founded Motonosumi Shrine.', aucune: 'Nothing on your face.',
         etoiles: 'Star-shaped sunglasses, for the starry sky of Aogashima.',
@@ -122,6 +129,7 @@ export const TEXTES = {
       aide: 'Find every stamp of a place to win a new piece! Others can be bought with koban.', tourner: 'Drag to turn around',
       recompense: (nom) => `Reward for every stamp: ${nom}`, recompenseGagnee: (nom) => `Reward won: ${nom}`,
       gain: (lieu, nom) => [`Every stamp of ${lieu}! Here is your reward…`, `You get: ${nom}!`],
+      gainNoel: (nom) => ['A gift from the map’s Advent calendar…', `You get: ${nom}!`],
       porter: 'Put it on now?', porterOui: 'Yes!', porterNon: 'Later',
       porte: ['It suits you so well!', 'You can change your outfit anytime: Menu → Wardrobe.'],
       plusTard: ['You can put it on anytime: Menu → Wardrobe.'],
@@ -235,6 +243,7 @@ export const TEXTES = {
     tenue: {
       titre: 'Garde-robe', titreJa: 'きせかえ', tete: 'Sur la tête', yeux: 'Sur le visage', habit: 'Tenue', dos: 'Sur le dos', main: 'À la main', cou: 'Au cou', pas: 'Sous tes pas', compagnon: 'Ton compagnon',
       noms: {
+        bonnetNoel: 'Bonnet de Père Noël', flocons: 'Lunettes flocons', echarpe: 'Écharpe rouge', hotte: 'Sac de cadeaux', lanterne: 'Lanterne de papier',
         defautGarcon: 'Casquette', defautFille: 'Chapeau de paille', nue: 'Tête nue', bois: 'Bois de daim', heron: 'Coiffe du héron blanc', cornes: 'Cornes d’oni', renard: 'Oreilles et queue de renard', kabuto: 'Casque de samouraï', aucune: 'Rien', etoiles: 'Lunettes étoiles', masque: 'Masque de renard',
         sacGarcon: 'Sac à dos', sacFille: 'Sac à dos', mino: 'Cape de paille (mino)', ailes: 'Ailes du phénix', cormoran: 'Cape en plumes de cormoran', ombrelle: 'Ombrelle de Shan-shan', tengu: 'Masque du grand tengu', shamisen: 'Shamisen de Sawaichi', loup: 'Cape du loup', 'main-rien': 'Rien', 'cou-rien': 'Rien', magatama: 'Collier de magatama', yamabushi: 'Étole et conque du yamabushi',
         habitGarcon: 'Veste rouge', habitFille: 'Chemisier rose', happi: 'Veste de fête', yukata: 'Yukata', kimonoOr: 'Kimono d’or', armure: 'Armure de samouraï',
@@ -242,6 +251,11 @@ export const TEXTES = {
         'cp-defaut': 'Rien de plus', 'cp-bandana': 'Foulard à pois', 'cp-chapeau': 'Petit chapeau de paille', 'cp-grelot': 'Grelot doré',
       },
       descriptions: {
+        bonnetNoel: 'Le bonnet rouge du Père Noël et son pompon blanc : les six Jizō du Murō-ji te l’ont offert, comme dans le conte des Kasa Jizō.',
+        flocons: 'Des lunettes en forme de flocons de neige, aux verres bleu glacier. Un cadeau du calendrier de l’Avent de la carte.',
+        echarpe: 'Une écharpe rouge tricotée, rayée de blanc, bien chaude pour l’hiver. Un cadeau du calendrier de l’Avent de la carte.',
+        hotte: 'Le sac du Père Noël, plein de cadeaux, à porter sur le dos à la place du sac à dos. Un cadeau du calendrier de l’Avent de la carte.',
+        lanterne: 'Une lanterne de papier (chōchin) au bout d’une perche de bambou. La nuit, elle éclaire tout autour de toi ! Un cadeau du calendrier de l’Avent de la carte.',
         defautGarcon: 'Ta casquette, avec le mont Fuji devant.', defautFille: 'Ton chapeau de paille, avec son ruban rouge et sa fleur.',
         nue: 'Le vent dans les cheveux !', bois: 'Un serre-tête avec des oreilles et des bois de daim, comme les daims de Miyajima.', heron: 'Un petit héron blanc perché sur ta tête, avec ses longues plumes : le Héron blanc du château de Himeji !', cornes: 'Deux petites cornes d’oni rouges sur un serre-tête en peau de tigre, comme les démons des enfers de Beppu. Grrr !', renard: 'Des oreilles de renard blanc, rouges dedans, et une queue blanche touffue au bout doré qui se balance quand tu marches : comme le renard du rêve qui a fait naître le sanctuaire Motonosumi.', aucune: 'Rien sur le visage.',
         etoiles: 'Des lunettes de soleil en étoiles, pour le ciel étoilé d’Aogashima.',
@@ -265,6 +279,7 @@ export const TEXTES = {
       aide: 'Trouve tous les tampons d’un lieu pour gagner une nouvelle pièce ! D’autres s’achètent avec des koban.', tourner: 'Glisse pour le faire tourner',
       recompense: (nom) => `Récompense de tous les tampons : ${nom}`, recompenseGagnee: (nom) => `Récompense gagnée : ${nom}`,
       gain: (lieu, nom) => [`Tous les tampons ${deLieu(lieu)} ! Voici ta récompense…`, `Tu gagnes : ${nom} !`],
+      gainNoel: (nom) => ['Un cadeau du calendrier de l’Avent de la carte…', `Tu gagnes : ${nom} !`],
       porter: 'Tu veux l’essayer tout de suite ?', porterOui: 'Oui !', porterNon: 'Plus tard',
       porte: ['Ça te va très bien !', 'Tu peux changer de tenue quand tu veux : Menu → Garde-robe.'],
       plusTard: ['Tu pourras l’essayer quand tu veux : Menu → Garde-robe.'],
@@ -378,6 +393,7 @@ export const TEXTES = {
     tenue: {
       titre: 'きせかえ', titreJa: '', tete: 'あたま', yeux: 'かお', habit: 'ふく', dos: 'せなか', main: 'て', cou: 'くび', pas: 'あしもと', compagnon: 'なかま',
       noms: {
+        bonnetNoel: 'サンタの　ぼうし', flocons: '雪の結晶メガネ', echarpe: '赤い　マフラー', hotte: 'プレゼントの　ふくろ', lanterne: 'ちょうちん',
         defautGarcon: 'ぼうし', defautFille: 'むぎわらぼうし', nue: 'なし', bois: 'シカのツノ', heron: 'しらさぎの　ぼうし', cornes: 'おにの　ツノ', renard: 'キツネの　みみと　しっぽ', kabuto: 'かぶと', aucune: 'なし', etoiles: 'ほしのメガネ', masque: 'キツネのおめん',
         sacGarcon: 'リュック', sacFille: 'リュック', mino: 'みの', ailes: '鳳凰の　つばさ', cormoran: '鵜の　はねの　マント', ombrelle: 'しゃんしゃん傘', tengu: '大天狗の　めん', shamisen: '沢市の　三味線', loup: 'オオカミの　マント', 'main-rien': 'なし', 'cou-rien': 'なし', magatama: 'まがたまの　くびかざり', yamabushi: '山伏の　ゆいげさと　ほらがい',
         habitGarcon: 'あかい　ジャケット', habitFille: 'ピンクの　ブラウス', happi: 'はっぴ', yukata: 'ゆかた', kimonoOr: '金の　きもの', armure: 'よろい',
@@ -385,6 +401,11 @@ export const TEXTES = {
         'cp-defaut': 'なし', 'cp-bandana': 'みずたまの　バンダナ', 'cp-chapeau': 'すげがさ', 'cp-grelot': '金の　すず',
       },
       descriptions: {
+        bonnetNoel: '白い　ぽんぽんの　ついた、サンタクロースの　赤い　ぼうし。かさじぞうの　お話のように、室生寺の　六地蔵が　くれたよ。',
+        flocons: '雪の　結晶の　かたちの　メガネ。レンズは　氷のような　水色。マップの　アドベントカレンダーの　プレゼント。',
+        echarpe: '白い　しまの　ある、赤い　毛糸の　マフラー。冬も　あったかい。マップの　アドベントカレンダーの　プレゼント。',
+        hotte: 'プレゼントが　いっぱいの、サンタクロースの　ふくろ。リュックの　かわりに　せおうよ。マップの　アドベントカレンダーの　プレゼント。',
+        lanterne: '竹の　さおに　さげた、紙の　ちょうちん。夜は　まわりを　あかるく　てらして　くれるよ！　マップの　アドベントカレンダーの　プレゼント。',
         defautGarcon: 'いつもの　ぼうし。まえに　ふじさんの　マーク。', defautFille: 'いつもの　むぎわらぼうし。あかい　リボンと　はなつき。',
         nue: 'かぜが　きもちいい！', bois: 'シカの　みみと　ツノの　カチューシャ。宮島の　シカみたい！', heron: 'ながい　はねの　白い　サギが　あたまに　ちょこん。姫路城の　「白鷺」だよ！', cornes: 'トラもようの　カチューシャに、赤い　おにの　ツノ　ふたつ。別府の　地獄の　鬼みたい。ガオー！', renard: '白い　キツネの　みみ（なかは　赤）と、さきが　金色の　ふさふさ　しっぽ。あるくと　ゆれるよ。元乃隅神社を　うんだ　ゆめの　キツネみたい！', aucune: 'かおには　なにも　つけない。',
         etoiles: 'ほしの　かたちの　サングラス。青ヶ島の　ほしぞらに　ぴったり！',
@@ -408,6 +429,7 @@ export const TEXTES = {
       aide: 'ひとつの　ばしょの　スタンプを　ぜんぶ　あつめると、あたらしい　アイテムが　もらえるよ！　小判で　かえる　ものも　あるよ。', tourner: 'スライドで　くるっと　まわせるよ',
       recompense: (nom) => `ぜんぶ　あつめると：${nom}`, recompenseGagnee: (nom) => `ごほうび　ゲット：${nom}`,
       gain: (lieu, nom) => [`${lieu}の　スタンプ　ぜんぶ！　ごほうびだよ……`, `「${nom}」を　てにいれた！`],
+      gainNoel: (nom) => ['マップの　アドベントカレンダーから　プレゼントだよ……', `「${nom}」を　てにいれた！`],
       porter: 'さっそく　つけてみる？', porterOui: 'つける！', porterNon: 'あとで',
       porte: ['とっても　にあってる！', 'メニューの　「きせかえ」で　いつでも　かえられるよ。'],
       plusTard: ['メニューの　「きせかえ」で　いつでも　つけられるよ。'],
