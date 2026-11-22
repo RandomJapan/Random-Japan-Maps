@@ -381,6 +381,21 @@ Un **lieu mystère par jour, le même pour tout le monde**, comme le jeu Wordle.
 - Les lieux du défi sont ceux qui ont une photo (comme le jeu). Un lieu tout juste ajouté attend 3 jours avant d'y entrer.
 - Le lien partagé (…/?defi) ouvre directement le défi.
 
+## Le live TikTok « Devine le lieu » (novembre 2026)
+
+Un live qui **tourne tout seul**, sans ta tête et sans parler : tu le lances, tu le laisses 1 h ou 1 h 30, puis tu l'arrêtes. Ce sont les spectateurs qui jouent dans le chat. (Un live qui passe une vidéo en boucle serait « non recommandé » par TikTok ; celui-ci réagit à chaque commentaire.)
+- **Ce qu'on voit :** la photo floue d'un lieu, de plus en plus nette pendant 30 secondes. Les spectateurs écrivent une **préfecture** dans le chat (un seul essai chacun ; en anglais, en japonais ou avec accents, ça marche). Chaque essai colore sa préfecture sur la carte, de froid (bleu) à brûlant (rouge), et passe dans la liste à droite. À 15 secondes de la fin, la région s'affiche. Puis la carte vole jusqu'au lieu : son nom, qui a trouvé (10, 8 et 6 points pour les trois premiers, 4 ensuite) et le classement du live.
+- **Toutes les 5 manches, une pause voyage :** le chat vote pour une préfecture, la carte s'y envole et montre un de tes lieux.
+- **Les mercis :** un abonnement, un cadeau ou un partage affiche un merci à l'écran. Un cadeau pendant une manche donne l'indice tout de suite (« grâce à … »).
+- La musique est celle du lecteur de la carte (musique libre, créditée en haut), avec de petits sons pour le chrono et les bonnes réponses.
+- **Ce qu'il faut :**
+  1. **TikFinity** (gratuit, l'application pour Windows), qui lit les commentaires du live et les donne à la page. Il doit tourner sur le même PC pendant le live.
+  2. Dans **TikTok LIVE Studio**, en affichage vertical : « Ajouter une source », puis la source **Lien** (ou navigateur), avec l'adresse **https://map.randomjapanplace.com/?live** et la taille **1080 × 1920**.
+  3. Passer en LIVE, puis dans TikFinity cliquer **« Connect to TikTok LIVE »**. En bas à droite de la page, un petit point vert « chat connected » dit que les commentaires arrivent (il est caché par les boutons de TikTok pour les spectateurs).
+- **Pour essayer sans être en live :** https://map.randomjapanplace.com/?live&essai fait jouer de faux spectateurs.
+- **En français :** …/?live=fr (en japonais : …/?live=ja). Sans rien, c'est en anglais, comme tes vidéos.
+- Le classement du jour reste dans le navigateur qui fait le live : si la page se recharge, il n'est pas perdu. Il repart à zéro le lendemain.
+
 ## La balade 3D (pour tout le monde depuis le 26 octobre 2026)
 
 Visiter un lieu en 3D avec un personnage, comme dans un jeu Pokémon : **Itsukushima**, **Aogashima**, **Gokayama**, le **château de Himeji**, les **gorges de Takachiho**, le **Pavillon d'or (Kinkaku-ji)**, les **Enfers de Beppu**, le **sanctuaire Motonosumi**, les **Trente Bouddhas**, le **sanctuaire Udo Inari**, l'**île de Yakushima**, les **dunes de Tottori**, le **Tsubosaka-dera** et la **fête de la neige d'Iiyama**. La fiche de ces lieux (et celle du sanctuaire d'Amanoiwato, pour Takachiho) a un bouton **« Visiter en 3D »**, sous « Voir sur TikTok » ; sur téléphone, il passe à la ligne sous les deux autres boutons. Celui de Yakushima n'apparaît qu'une fois qu'on a pris le bateau à Udo.

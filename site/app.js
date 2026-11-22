@@ -63,6 +63,14 @@ const ZOOM_POINTS = 6.2;
 // ---------------------------------------------------------------- Langue
 const LANGUES = ['en', 'fr', 'ja'];
 let langue = choisirLangue();
+// Le live TikTok « Devine le lieu » (live.js, 2026-11-22) : …/?live (en anglais, la langue des vidéos), ?live=fr, ?live=ja.
+// La carte sans ses boutons ; ?live&essai : de faux spectateurs. L'adresse garde ?live : la page se recharge telle quelle.
+const PARAMS_LIVE = new URLSearchParams(location.search);
+const enLive = PARAMS_LIVE.has('live');
+if (enLive) {
+  langue = LANGUES.includes(PARAMS_LIVE.get('live')) ? PARAMS_LIVE.get('live') : 'en';
+  document.body.classList.add('mode-live');
+}
 
 function choisirLangue() {
   try {
@@ -562,7 +570,8 @@ function montrerSources(oui) {
   sources.classList.toggle('maplibregl-compact-show', oui);
   sources.toggleAttribute('open', oui);
 }
-const replierSources = () => { if (!document.body.classList.contains('en-visite')) montrerSources(false); };
+// (pendant un live aussi, elles restent ouvertes : live.js les ouvre)
+const replierSources = () => { if (!document.body.classList.contains('en-visite') && !enLive) montrerSources(false); };
 map.getCanvasContainer().addEventListener('pointerdown', replierSources);
 map.on('movestart', (e) => { if (e.originalEvent) replierSources(); });
 let sourcesEnVisite = false;
@@ -965,7 +974,7 @@ function majSelonZoom() {
 map.on('zoom', majSelonZoom);
 
 // Rotation douce au démarrage (comme une maquette sur un plateau tournant)
-let rotation = cam.tourneToutSeul && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+let rotation = cam.tourneToutSeul && !enLive && !matchMedia('(prefers-reduced-motion: reduce)').matches;
 let tempsPrecedent = 0;
 function tourner(temps) {
   if (!rotation) return;
@@ -2007,6 +2016,28 @@ async function lancerDefi() {
   defi.lancer();
 }
 
+// ---------------------------------------------------------------- Le live TikTok (live.js, …/?live)
+// Les commentaires du live arrivent par TikFinity (ws://localhost:21213 ; ?chat=… pour une autre adresse).
+function lancerLive() {
+  import('./live.js').then(({ brancherLive }) => {
+    window.live = brancherLive(map, maplibregl, {
+      t, enLangue, langue: () => langue, lieux: () => lieux, infos: infosLieu,
+      photo: (l) => (l.photo ? photoAllegee(l.photo) : ''),
+      video: (l) => idVideo(l.tiktok),
+      prefectures: preparerPrefectures,
+      preparerVol: (depart, arrivee) => {
+        ambianceCarte?.preparerTapis(arrivee.center);
+        return prechargerVol(depart, arrivee, null);
+      },
+      adresse: CONFIG.adresse, logo: CONFIG.logo, orientation: CONFIG.camera.telephone.orientation,
+      essai: PARAMS_LIVE.has('essai'), chat: PARAMS_LIVE.get('chat') || 'ws://localhost:21213/',
+      musique: PARAMS_LIVE.get('musique') !== 'non', sources: montrerSources,
+      montrerLieux: (oui) => { for (const l of lieux) reperes.montrer(l.epingle, oui && l.cat.visible); },
+      manchesParVoyage: Number(PARAMS_LIVE.get('voyage')) || 0, // (pour les essais)
+    });
+  }).catch((e) => console.error('Live indisponible', e));
+}
+
 // ---------------------------------------------------------------- Les nouvelles fonctions (étiquette « Nouveau »)
 // Le bouton d'une fonction de CONFIG.nouveautes (et sa case du menu du téléphone) porte l'étiquette « Nouveau »
 // jusqu'à ce que ce visiteur l'ouvre, au plus tard jusqu'au jour dit. Sur téléphone, le bouton Menu la porte tant
@@ -2804,7 +2835,7 @@ function brancherBoutons() {
 let compteur = null; // compteur de visites (compteur.js), s'il y a un code GoatCounter dans config.js
 
 async function demarrer() {
-  if (CONFIG.goatcounter) {
+  if (CONFIG.goatcounter && !enLive) { // (le live n'est pas une visite)
     compteur = brancherCompteur({ code: CONFIG.goatcounter, afficher: !estTelephone(), t, langue: () => langue });
   }
   brancherBoutons();
@@ -2840,6 +2871,16 @@ async function demarrer() {
     $('chargement').classList.add('fini');
     // une fois effacé, l'écran de chargement sort de la page : son logo animé aurait tourné pour rien à chaque image
     setTimeout(() => { $('chargement').style.display = 'none'; }, 900);
+    if (enLive) {
+      // le live : ni conseils, ni liens, ni grandes villes ; les légendes, Halloween et Noël restent sur la carte
+      setTimeout(chargerLegendes, 1500);
+      setTimeout(majHalloween, 1700);
+      setInterval(majHalloween, 60000);
+      setTimeout(majNoel, 1800);
+      setInterval(majNoel, 60000);
+      lancerLive();
+      return;
+    }
     setTimeout(replierSources, 5000);
     setTimeout(montrerConseilNavigateur, 1200);
     if (location.hash.length > 1) ouvrirDepuisAdresse();

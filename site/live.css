@@ -1,0 +1,175 @@
+/* ================================================================
+   Le live TikTok « Devine le lieu » (live.js, …/?live) : la carte sans ses boutons, et par-dessus une colonne 9:16
+   (tout l'écran dans TikTok LIVE Studio) en unités de --u = 1/1080 de sa largeur.
+   TikTok couvre le haut (le compte, les spectateurs : jusqu'à ~250) et le bas à gauche (le chat : à partir de ~1350) :
+   ce qui compte tient entre les deux.
+   ================================================================ */
+body.mode-live > :not(#carte):not(.live):not(#chargement):not(script) { display: none !important; }
+body.mode-live { cursor: none; }
+body.mode-live .repere-nom { display: none !important; }
+
+.live { position: fixed; inset: 0; z-index: 20; pointer-events: none; color: var(--encre); font-family: var(--police); }
+.live-boite { position: absolute; left: var(--x); top: var(--y); width: calc(1080 * var(--u)); height: calc(1920 * var(--u)); }
+.live :is(p, h2, ol) { margin: 0; }
+
+/* Une plaque de parchemin à double filet, comme les cartouches de la carte */
+.live-tete, .live-cadre, .live-consigne, .live-vote, .live-lieu, .live-fil li, .live-merci, .live-indice {
+  background: var(--grain) 0 0 / calc(240 * var(--u)) calc(240 * var(--u)), var(--papier);
+  border: calc(1.5 * var(--u)) solid var(--trait); border-radius: calc(4 * var(--u));
+  box-shadow: inset 0 0 0 calc(4 * var(--u)) var(--papier), inset 0 0 0 calc(5.5 * var(--u)) rgba(138, 107, 69, 0.5),
+    0 calc(10 * var(--u)) calc(34 * var(--u)) rgba(52, 36, 18, 0.42);
+}
+
+/* ---- En haut : le titre et l'adresse de la carte */
+.live-tete {
+  position: absolute; top: calc(254 * var(--u)); left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: calc(18 * var(--u)); white-space: nowrap;
+  padding: calc(12 * var(--u)) calc(34 * var(--u)) calc(12 * var(--u)) calc(14 * var(--u));
+}
+.live-logo { width: calc(74 * var(--u)); height: calc(74 * var(--u)); border-radius: 50%; border: calc(3 * var(--u)) solid var(--encre); }
+.live-tete-textes { display: flex; flex-direction: column; }
+.live-titre { font: 400 calc(48 * var(--u))/1.05 var(--police-titre); letter-spacing: .05em; color: var(--rouge); }
+.live-adresse { font-size: calc(24 * var(--u)); font-weight: 600; color: var(--encre-2); margin-top: calc(4 * var(--u)); }
+.live-musique { margin-top: calc(3 * var(--u)); font-size: calc(17 * var(--u)); color: var(--encre-3); }
+.live-musique:empty { display: none; }
+
+/* Les grandes cartes du milieu entrent et sortent selon la phase */
+.live-devine, .live-vote, .live-lieu {
+  opacity: 0; transform: translate(-50%, calc(-24 * var(--u))) scale(.97);
+  transition: opacity .55s var(--ease), transform .7s var(--ease);
+}
+.live[data-phase="devine"] .live-devine, .live[data-phase="vote"] .live-vote,
+.live[data-phase="revele"] .live-lieu, .live[data-phase="voyage"] .live-lieu { opacity: 1; transform: translate(-50%, 0); }
+
+/* ---- Une manche : la photo, le temps, la consigne, l'indice */
+.live-devine {
+  position: absolute; top: calc(414 * var(--u)); left: 50%; width: calc(640 * var(--u));
+  display: flex; flex-direction: column; align-items: center;
+}
+.live-cadre { position: relative; width: calc(640 * var(--u)); height: calc(510 * var(--u)); padding: calc(10 * var(--u)); }
+.live-cadre > img { position: absolute; inset: calc(10 * var(--u)); width: calc(100% - 20 * var(--u)); height: calc(100% - 20 * var(--u)); }
+.live-fond { object-fit: cover; filter: blur(calc(26 * var(--u))) brightness(.62) saturate(.85); }
+.live-photo { object-fit: contain; transition: filter .25s linear; }
+.live-cadre.photo-pleine .live-photo { object-fit: cover; }
+.live-cadre > img { clip-path: inset(0); }
+.live-manche {
+  position: absolute; top: calc(-16 * var(--u)); left: calc(-16 * var(--u)); z-index: 1;
+  padding: calc(6 * var(--u)) calc(18 * var(--u)); background: var(--rouge); color: var(--papier-clair);
+  border: calc(3 * var(--u)) solid var(--papier-clair); border-radius: calc(4 * var(--u));
+  font: 400 calc(30 * var(--u))/1.1 var(--police-titre); box-shadow: 0 calc(4 * var(--u)) calc(12 * var(--u)) rgba(52, 36, 18, .45);
+}
+.live-credit {
+  position: absolute; left: calc(18 * var(--u)); bottom: calc(16 * var(--u)); z-index: 1;
+  padding: calc(2 * var(--u)) calc(8 * var(--u)); border-radius: calc(3 * var(--u));
+  background: rgba(30, 20, 12, .6); color: var(--papier-clair); font-size: calc(15 * var(--u));
+}
+.live-chrono {
+  position: absolute; top: calc(-26 * var(--u)); right: calc(-26 * var(--u)); z-index: 1;
+  width: calc(124 * var(--u)); height: calc(124 * var(--u)); display: grid; place-items: center;
+  border-radius: 50%; background: var(--papier-clair); box-shadow: 0 calc(6 * var(--u)) calc(16 * var(--u)) rgba(52, 36, 18, .5);
+}
+.live-chrono svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.live-chrono circle { fill: none; stroke-width: 8; }
+.live-chrono-fond { stroke: var(--papier-fonce); }
+.live-chrono-arc { stroke: var(--sarcelle); stroke-dasharray: 100; stroke-linecap: round; transition: stroke-dashoffset .2s linear, stroke .3s; }
+.live-chrono b { position: relative; font: 700 calc(50 * var(--u))/1 var(--police); font-variant-numeric: tabular-nums; }
+.presse .live-chrono-arc { stroke: var(--rouge); }
+.presse .live-chrono b { color: var(--rouge); }
+.urgent .live-chrono { animation: live-battement 1s ease-in-out infinite; }
+@keyframes live-battement { 0%, 100% { scale: 1; } 15% { scale: 1.12; } }
+
+.live-consigne {
+  margin-top: calc(18 * var(--u)); padding: calc(12 * var(--u)) calc(28 * var(--u));
+  font-size: calc(36 * var(--u)); font-weight: 600; text-align: center; white-space: nowrap;
+}
+.live-consigne b, .live-vote-consigne b { color: var(--rouge); text-transform: uppercase; letter-spacing: .03em; }
+.live-indice {
+  margin-top: calc(14 * var(--u)); padding: calc(8 * var(--u)) calc(24 * var(--u));
+  font-size: calc(30 * var(--u)); font-weight: 600; color: var(--rouge); white-space: nowrap;
+  opacity: 0; transform: scale(.8); transition: opacity .4s, transform .5s var(--ease);
+}
+.live-indice.visible { opacity: 1; transform: none; }
+
+/* ---- Le fil des essais : à droite, au-dessus de la mer */
+.live-fil {
+  position: absolute; top: calc(1085 * var(--u)); right: calc(28 * var(--u)); width: calc(470 * var(--u));
+  list-style: none; padding: 0; display: flex; flex-direction: column; align-items: flex-end; gap: calc(10 * var(--u));
+  transition: opacity .4s;
+}
+.live:not([data-phase="devine"]):not([data-phase="vote"]) .live-fil { opacity: 0; }
+.live-fil li {
+  max-width: 100%; padding: calc(8 * var(--u)) calc(16 * var(--u)) calc(8 * var(--u)) calc(14 * var(--u));
+  border-left: calc(9 * var(--u)) solid var(--c); font-size: calc(25 * var(--u)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  animation: live-arrivee .45s var(--ease);
+}
+.live-fil li:nth-child(4) { opacity: .7; }
+.live-fil li:nth-child(5) { opacity: .4; }
+.live-fil li b { font-weight: 700; }
+.live-fil li span { color: var(--c); font-weight: 700; }
+.live-fil li i { color: var(--c); font-style: normal; font-weight: 700; }
+@keyframes live-arrivee { from { opacity: 0; transform: translateX(calc(60 * var(--u))); } }
+
+/* ---- La pause voyage : le vote */
+.live-vote {
+  position: absolute; top: calc(414 * var(--u)); left: 50%; width: calc(860 * var(--u));
+  padding: calc(30 * var(--u)) calc(40 * var(--u)) calc(34 * var(--u)); text-align: center;
+}
+.live-vote .live-chrono { top: calc(-30 * var(--u)); right: calc(-30 * var(--u)); }
+.live-vote-titre { font: 400 calc(58 * var(--u))/1.1 var(--police-titre); color: var(--rouge); letter-spacing: .04em; }
+.live-vote-consigne { margin-top: calc(10 * var(--u)) !important; font-size: calc(32 * var(--u)); font-weight: 600; }
+.live-votes { list-style: none; padding: 0; margin-top: calc(22 * var(--u)) !important; display: grid; gap: calc(10 * var(--u)); }
+.live-votes:empty { display: none; }
+.live-votes li {
+  position: relative; display: flex; justify-content: space-between; align-items: center;
+  padding: calc(8 * var(--u)) calc(18 * var(--u)); font-size: calc(30 * var(--u)); border-radius: calc(3 * var(--u));
+  background: linear-gradient(90deg, rgba(168, 50, 31, .28) calc(var(--part) * 100%), rgba(138, 107, 69, .12) 0);
+}
+.live-votes li:first-child { font-weight: 700; }
+.live-votes span { font-family: var(--police-titre); }
+
+/* ---- Le lieu révélé (ou celui de la pause voyage) */
+.live-lieu {
+  position: absolute; top: calc(414 * var(--u)); left: 50%; width: calc(960 * var(--u));
+  padding: calc(22 * var(--u)) calc(26 * var(--u)) calc(20 * var(--u));
+}
+.live-lieu-avant { font: 400 calc(34 * var(--u))/1.2 var(--police-titre); color: var(--rouge); text-align: center; margin-bottom: calc(14 * var(--u)) !important; }
+.live-lieu-avant:empty { display: none; }
+.live-lieu-haut { display: flex; align-items: stretch; gap: calc(18 * var(--u)); }
+.live-lieu-photo { flex: none; width: calc(250 * var(--u)); height: calc(200 * var(--u)); object-fit: cover; border: calc(2 * var(--u)) solid var(--encre); }
+.live-lieu-ja {
+  /* un long nom passe sur une deuxième colonne, comme sur un vrai cartouche */
+  flex: none; writing-mode: vertical-rl; text-orientation: upright; overflow: hidden; height: calc(200 * var(--u));
+  padding: calc(12 * var(--u)) calc(8 * var(--u)); background: var(--papier-clair);
+  outline: calc(1.5 * var(--u)) solid var(--encre); outline-offset: calc(-4 * var(--u));
+  font: 400 calc(30 * var(--u))/1.15 var(--police-titre); letter-spacing: .1em;
+}
+.live-lieu-ja.latin { writing-mode: horizontal-tb; align-self: center; height: auto; max-width: calc(220 * var(--u)); font-size: calc(24 * var(--u)); }
+.live-lieu-textes { display: flex; flex-direction: column; justify-content: center; min-width: 0; }
+.live-lieu-nom { font: 400 calc(52 * var(--u))/1.1 var(--police-titre); text-wrap: balance; }
+.live-lieu-infos { margin-top: calc(8 * var(--u)); font: italic calc(30 * var(--u))/1.3 var(--police-carte); color: var(--encre-2); }
+.live-trouveurs, .live-top, .live-suite { text-align: center; }
+.live-trouveurs { margin-top: calc(18 * var(--u)) !important; font-size: calc(30 * var(--u)); font-weight: 600; }
+.live-trouveurs:empty { display: none; }
+.live-trouveurs span, .live-top span { display: inline-block; margin: 0 calc(8 * var(--u)); white-space: nowrap; }
+.live-trouveurs i, .live-top i { font-style: normal; color: var(--sarcelle); font-weight: 700; }
+.live-top { margin-top: calc(12 * var(--u)) !important; padding-top: calc(12 * var(--u)); border-top: calc(1.5 * var(--u)) solid rgba(138, 107, 69, .5); font-size: calc(25 * var(--u)); }
+.live-top b { display: block; margin-bottom: calc(4 * var(--u)); font: 400 calc(28 * var(--u))/1.2 var(--police-titre); color: var(--rouge); }
+.live-suite { margin-top: calc(12 * var(--u)) !important; font-size: calc(24 * var(--u)); color: var(--encre-3); font-weight: 600; }
+.live-lieu-credit { display: block; margin-top: calc(6 * var(--u)); text-align: center; font-size: calc(15 * var(--u)); color: var(--encre-3); }
+.live-lieu-credit:empty { display: none; }
+
+/* ---- Merci (abonnement, cadeau, partage) : à droite, au-dessus des boutons de TikTok */
+.live-merci {
+  position: absolute; top: calc(1425 * var(--u)); right: calc(28 * var(--u)); max-width: calc(620 * var(--u));
+  padding: calc(12 * var(--u)) calc(22 * var(--u)); font-size: calc(28 * var(--u)); font-weight: 600;
+  opacity: 0; transform: translateY(calc(20 * var(--u))); transition: opacity .4s, transform .5s var(--ease);
+}
+.live-merci.visible { opacity: 1; transform: none; }
+
+/* ---- Pour le propriétaire seulement (sous les boutons de TikTok) : le chat est-il branché ? */
+.live-etat {
+  position: absolute; right: calc(14 * var(--u)); bottom: calc(10 * var(--u));
+  font-size: calc(16 * var(--u)); color: var(--papier-clair); text-shadow: 0 0 calc(4 * var(--u)) #000;
+}
+.live-etat::before { content: "● "; color: #c0392b; }
+.live-etat.ok::before { color: #3fbf6f; }
