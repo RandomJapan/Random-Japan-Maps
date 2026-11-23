@@ -312,16 +312,16 @@ body.noel-cadeaux.nuit .ville::after { background-image: url("data:image/svg+xml
 body.noel-sapins #carte.loin .ville::after { left: 13px; bottom: 4px; width: 11px; height: 15px; }
 body.noel-cadeaux #carte.loin .ville::after { width: 18px; }
 
-/* 3 : la guirlande sur le titre de la carte (en bas à gauche) ; sur téléphone, le titre est caché : sous le logo */
+/* 3 : la guirlande sur le titre de la carte (en bas à gauche) ; sur téléphone, le titre est caché : autour du bas du logo */
 .noel-guirlande { position: absolute; pointer-events: none; }
 .noel-guirlande svg { display: block; width: 100%; height: auto; overflow: visible; }
-.noel-guirlande.nz-titre { left: 0; right: 0; top: -7px; }
+.noel-guirlande.nz-titre { left: -6px; top: -8px; width: 252px; } /* la boite de GUIRLANDE_TITRE */
 .noel-guirlande.nz-logo { display: none; }
 .noel-guirlande .nz-g1, .noel-guirlande .nz-g2, .noel-guirlande .nz-g3 { animation: nz-scintille 2.1s steps(1) infinite; }
 .noel-guirlande .nz-g2 { animation-delay: -.7s; }
 .noel-guirlande .nz-g3 { animation-delay: -1.4s; }
 @keyframes nz-scintille { 0% { opacity: 1; } 66% { opacity: .45; } }
-@media (max-width: 720px) { .noel-guirlande.nz-logo { display: block; left: -8px; right: -8px; bottom: -9px; } }
+@media (max-width: 720px) { .noel-guirlande.nz-logo { display: block; left: -8px; top: 14px; width: 64px; } } /* GUIRLANDE_LOGO : un arc sous le médaillon */
 
 /* 9 : les grues en papier (oiseaux.js, choisirOiseaux) : rouges, sarcelle ou or, comme le papier origami de la case du 9 */
 .grue-papier .gp-face { fill: #c33a2b; } .grue-papier .gp-loin { fill: #8f2a20; } .grue-papier .gp-corps { fill: #d4513f; }

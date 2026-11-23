@@ -236,30 +236,147 @@ const CARTE_VOEUX = `<svg viewBox="0 0 36 26" aria-hidden="true">
   <path d="M4 21.6C8 20 12 20.6 15 22.4M7 20.4 6 18.6M10 20.2 9.6 18.2M12.6 20.8 13.4 19" fill="none" stroke="#3f6b46" stroke-width="1.1" stroke-linecap="round"/>
   <circle cx="29.2" cy="19.8" r="2.4" fill="none" stroke="#c33a2b" stroke-width=".7"/></svg>`;
 
-// 3 : la guirlande du titre (un bandeau de 240 de large) : du sapin en deux festons, des boules de couleur qui scintillent
-// en trois groupes (.nz-g1, .nz-g2, .nz-g3), des nœuds rouges aux attaches
-function guirlande(l, festons, creux) {
-  const pas = l / festons;
-  let d = 'M2 4';
-  const boules = [];
-  const couleurs = ['#d8443a', '#e8c13a', '#3f8fc4', '#5aa86a'];
-  for (let i = 0; i < festons; i++) {
-    const x0 = 2 + i * pas, x1 = 2 + (i + 1) * pas;
-    d += `Q${(x0 + x1) / 2} ${4 + 2 * creux} ${x1} 4`;
-    for (let k = 1; k <= 4; k++) {
-      const t = k / 5, x = x0 + (x1 - x0) * t, y = 4 + 2 * creux * t * (1 - t);
-      boules.push(`<circle class="nz-g${1 + ((i * 4 + k) % 3)}" cx="${x.toFixed(1)}" cy="${(y + 3.4).toFixed(1)}" r="2.2" fill="${couleurs[(i * 4 + k) % 4]}" stroke="#35251a" stroke-width=".6"/>`);
+/** Un hasard qui donne toujours la même suite (la guirlande est la même à chaque visite). */
+function suiteFixe(graine) {
+  let a = graine >>> 0;
+  return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+const f1 = (n) => n.toFixed(1);
+
+// 3 : la guirlande du titre : une branche de sapin touffue (des centaines d'aiguilles en trois verts, un peu de neige
+// dessus), de petites lumières qui scintillent en trois groupes (.nz-g1…3), des boules de Noël (suspendues à un fil ou
+// nichées dans le sapin) et des nœuds de ruban rouge aux attaches. Les coordonnées sont celles de l'élément décoré
+// (le rouleau du titre : 240 × 72) ; boite : [x, y, largeur, hauteur] de ce que montre le dessin.
+// chemin : les attaches [x, y] (une courbe qui pend de « creux » entre deux attaches) ou { arc: [cx, cy, r, de, a] }
+// (un arc de cercle, en degrés : le bas du médaillon du logo sur téléphone).
+// boules : { t (0–1 le long de la guirlande), fil (0 : nichée), r, c (rouge, or, bleu, argent) } ; noeuds : les t des nœuds.
+function guirlande({ boite, chemin, creux = 0, boules = [], noeuds = [], echelle = 1, graine = 3, id = 'g' }) {
+  const h = suiteFixe(graine);
+  // la courbe : des points serrés (x, y), puis leur direction
+  const pts = [];
+  if (chemin.arc) {
+    const [cx, cy, r, de, a] = chemin.arc;
+    for (let i = 0; i <= 120; i++) { const ang = ((de + (a - de) * i / 120) * Math.PI) / 180; pts.push([cx + r * Math.cos(ang), cy + r * Math.sin(ang)]); }
+  } else {
+    for (let s = 0; s < chemin.length - 1; s++) {
+      const [ax, ay] = chemin[s], [bx, by] = chemin[s + 1];
+      const qx = (ax + bx) / 2, qy = (ay + by) / 2 + 2 * creux;
+      for (let i = s ? 1 : 0; i <= 60; i++) {
+        const t = i / 60, u = 1 - t;
+        pts.push([u * u * ax + 2 * u * t * qx + t * t * bx, u * u * ay + 2 * u * t * qy + t * t * by]);
+      }
     }
   }
-  const noeuds = Array.from({ length: festons + 1 }, (_, i) => {
-    const x = 2 + i * pas;
-    return `<path d="M${x} 4.4C${x - 5} 0 ${x - 6} 6 ${x} 4.4C${x + 6} 6 ${x + 5} 0 ${x} 4.4ZM${x} 4.6L${x - 2.4} 10M${x} 4.6L${x + 2.6} 9.6" fill="#c33a2b" stroke="#35251a" stroke-width=".7" stroke-linejoin="round"/>`;
+  const long = [0];
+  for (let i = 1; i < pts.length; i++) long.push(long[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+  const total = long[long.length - 1];
+  /** Le point à la fraction t de la longueur : [x, y, tangente x, tangente y]. */
+  function point(t) {
+    const L = Math.max(0, Math.min(1, t)) * total;
+    let i = long.findIndex((l) => l >= L);
+    if (i < 1) i = 1;
+    const [x0, y0] = pts[i - 1], [x1, y1] = pts[i];
+    const k = (L - long[i - 1]) / Math.max(1e-6, long[i] - long[i - 1]);
+    const d = Math.hypot(x1 - x0, y1 - y0) || 1;
+    return [x0 + (x1 - x0) * k, y0 + (y1 - y0) * k, (x1 - x0) / d, (y1 - y0) / d];
+  }
+  const e = echelle;
+  const ligne = pts.map(([x, y], i) => `${i ? 'L' : 'M'}${f1(x)} ${f1(y)}`).join('');
+  // les aiguilles : trois verts, du plus sombre (dessous) au plus clair (dessus, plus courtes)
+  const aiguilles = ['', '', ''];
+  const neige = [];
+  const pas = 0.9 * e;
+  for (let L = 0; L <= total; L += pas) {
+    const [x, y, tx, ty] = point(L / total);
+    const nx = -ty, ny = tx; // la normale (vers le bas quand la guirlande va de gauche à droite)
+    for (let k = 0; k < 4; k++) {
+      const ton = k < 2 ? 0 : k === 2 ? 1 : 2;
+      const cote = h() < 0.5 ? -1 : 1;
+      const ouvre = (0.35 + 0.65 * h()) * cote; // de combien l'aiguille s'écarte de la branche
+      const penche = 0.55 + 0.5 * h(); // les aiguilles poussent vers l'avant, comme sur une vraie branche
+      let dx = nx * ouvre + tx * penche, dy = ny * ouvre + ty * penche;
+      const dl = Math.hypot(dx, dy); dx /= dl; dy /= dl;
+      const lg = (ton === 2 ? 2.2 + 1.6 * h() : 3.2 + 2.2 * h()) * e;
+      const d0 = (h() - 0.5) * 2.2 * e;
+      const sx = x + nx * d0, sy = y + ny * d0;
+      aiguilles[ton] += `M${f1(sx)} ${f1(sy)}l${f1(dx * lg)} ${f1(dy * lg)}`;
+    }
+    // un peu de neige posée sur le dessus
+    if (h() < 0.32) {
+      const haut = ny > 0 ? -1 : 1; // le dessus : le côté de la normale qui monte
+      const o = (2.4 + 1.2 * h()) * e;
+      neige.push(`M${f1(x + nx * o * haut)} ${f1(y + ny * o * haut)}l${f1(tx * 1.6 * e)} ${f1(ty * 1.6 * e)}`);
+    }
+  }
+  // les petites lumières : régulières, d'un côté puis de l'autre, en trois groupes qui scintillent tour à tour
+  const COULEURS_LUMIERE = ['#ffe9a8', '#ffb08a', '#fff6d8', '#ffd36b'];
+  const lumieres = [[], [], []];
+  const nLum = Math.max(3, Math.round(total / (8.5 * e)));
+  for (let i = 0; i < nLum; i++) {
+    const [x, y, tx, ty] = point((i + 0.5) / nLum);
+    const o = (i % 2 ? 1.6 : -1.4) * e;
+    const lx = x - ty * o, ly = y + tx * o;
+    lumieres[i % 3].push(`<circle cx="${f1(lx)}" cy="${f1(ly)}" r="${f1(2.6 * e)}" fill="url(#${id}-halo)"/><circle cx="${f1(lx)}" cy="${f1(ly)}" r="${f1(0.95 * e)}" fill="${COULEURS_LUMIERE[i % 4]}"/>`);
+  }
+  // les boules
+  const COUL = { rouge: ['#ff8d7e', '#c8302a', '#6d1410'], or: ['#fff0b0', '#d9a53a', '#7a5413'], bleu: ['#a8d4ff', '#2f63a8', '#13284d'], argent: ['#ffffff', '#c9cfd6', '#6b7580'] };
+  const degrades = Object.entries(COUL).map(([n, [a, b, c]]) =>
+    `<radialGradient id="${id}-${n}" cx=".36" cy=".32" r=".78"><stop offset="0" stop-color="${a}"/><stop offset=".45" stop-color="${b}"/><stop offset="1" stop-color="${c}"/></radialGradient>`).join('');
+  const derriere = [], devant = [];
+  for (const b of boules) {
+    const [x, y] = point(b.t);
+    const r = b.r * e;
+    if (b.fil) {
+      const by = y + b.fil * e + r;
+      derriere.push(`<path d="M${f1(x)} ${f1(y)}V${f1(by - r - 1.2 * e)}" stroke="#b8963c" stroke-width="${f1(0.5 * e)}"/>`
+        + `<rect x="${f1(x - 1.1 * e)}" y="${f1(by - r - 1.6 * e)}" width="${f1(2.2 * e)}" height="${f1(1.7 * e)}" rx="${f1(0.4 * e)}" fill="#e2c56a" stroke="#6b5420" stroke-width="${f1(0.35 * e)}"/>`
+        + `<circle cx="${f1(x)}" cy="${f1(by)}" r="${f1(r)}" fill="url(#${id}-${b.c})" stroke="#2a1c12" stroke-width="${f1(0.45 * e)}"/>`
+        + `<ellipse cx="${f1(x - r * 0.38)}" cy="${f1(by - r * 0.42)}" rx="${f1(r * 0.26)}" ry="${f1(r * 0.16)}" transform="rotate(-35 ${f1(x - r * 0.38)} ${f1(by - r * 0.42)})" fill="#fff" opacity=".85"/>`);
+    } else {
+      const dx = (h() - 0.5) * 1.6 * e, dy = (h() - 0.5) * 1.6 * e;
+      devant.push(`<circle cx="${f1(x + dx)}" cy="${f1(y + dy)}" r="${f1(r)}" fill="url(#${id}-${b.c})" stroke="#2a1c12" stroke-width="${f1(0.4 * e)}"/>`
+        + `<circle cx="${f1(x + dx - r * 0.35)}" cy="${f1(y + dy - r * 0.38)}" r="${f1(r * 0.24)}" fill="#fff" opacity=".8"/>`);
+    }
+  }
+  // les nœuds de ruban : deux boucles, le nœud, deux pans coupés en V
+  const ruban = noeuds.map((t) => {
+    const [x, y] = point(t);
+    const s = e;
+    const P = (px, py) => `${f1(x + px * s)} ${f1(y + py * s)}`;
+    return `<g stroke="#5c120e" stroke-width="${f1(0.55 * s)}" stroke-linejoin="round">`
+      + `<path d="M${P(-1, 2)}L${P(-4.6, 11.5)}L${P(-2.9, 10.2)}L${P(-2.2, 12.4)}L${P(0.4, 2.6)}Z" fill="#b3261f"/>`
+      + `<path d="M${P(1, 2)}L${P(5, 10.8)}L${P(3.1, 9.9)}L${P(2.6, 12)}L${P(-0.2, 2.6)}Z" fill="#a1211b"/>`
+      + `<path d="M${P(-1.2, 0)}C${P(-4, -5.2)} ${P(-9.4, -4.4)} ${P(-8.6, -0.4)}C${P(-8, 2.6)} ${P(-3.6, 2.4)} ${P(-1.2, 1)}Z" fill="#d23a2e"/>`
+      + `<path d="M${P(1.2, 0)}C${P(4, -5.2)} ${P(9.4, -4.4)} ${P(8.6, -0.4)}C${P(8, 2.6)} ${P(3.6, 2.4)} ${P(1.2, 1)}Z" fill="#c8322a"/>`
+      + `<path d="M${P(-2.4, -0.4)}C${P(-4.4, -2.6)} ${P(-6.6, -2.4)} ${P(-6.6, -0.8)}M${P(2.4, -0.4)}C${P(4.4, -2.6)} ${P(6.6, -2.4)} ${P(6.6, -0.8)}" fill="none" stroke="#7d1812" stroke-width="${f1(0.6 * s)}"/>`
+      + `<path d="M${P(-3.4, -2.6)}C${P(-5.4, -3.8)} ${P(-7.4, -3.2)} ${P(-7.8, -1.6)}M${P(3.4, -2.6)}C${P(5.4, -3.8)} ${P(7.4, -3.2)} ${P(7.8, -1.6)}" fill="none" stroke="#ff8a76" stroke-width="${f1(0.5 * s)}" stroke-linecap="round" opacity=".9"/>`
+      + `<rect x="${f1(x - 1.9 * s)}" y="${f1(y - 1.9 * s)}" width="${f1(3.8 * s)}" height="${f1(3.6 * s)}" rx="${f1(1.2 * s)}" fill="#e04537"/></g>`;
   }).join('');
-  return `<svg viewBox="0 0 ${l + 4} ${2 * creux + 12}" aria-hidden="true">
-    <path d="${d}" fill="none" stroke="#2f5537" stroke-width="5.4" stroke-linecap="round"/>
-    <path d="${d}" fill="none" stroke="#4f7f52" stroke-width="3.6" stroke-linecap="round" stroke-dasharray="1.4 1.6"/>
-    ${boules.join('')}${noeuds}</svg>`;
+  const [bx, by, bw, bh] = boite;
+  return `<svg viewBox="${bx} ${by} ${bw} ${bh}" aria-hidden="true"><defs>${degrades}`
+    + `<radialGradient id="${id}-halo"><stop offset="0" stop-color="#fff1b8" stop-opacity=".85"/><stop offset="1" stop-color="#ffd36b" stop-opacity="0"/></radialGradient></defs>`
+    + `<g fill="none" stroke-linecap="round">${derriere.join('')}`
+    + `<path d="${ligne}" stroke="#173521" stroke-width="${f1(6.4 * e)}"/>`
+    + `<path d="${aiguilles[0]}" stroke="#1f4a2a" stroke-width="${f1(0.95 * e)}"/>`
+    + `<path d="${aiguilles[1]}" stroke="#2f6a3a" stroke-width="${f1(0.9 * e)}"/>`
+    + `<path d="${aiguilles[2]}" stroke="#4f8f4d" stroke-width="${f1(0.8 * e)}"/>`
+    + `<path d="${neige.join('')}" stroke="#f6f3ea" stroke-width="${f1(1.15 * e)}" opacity=".85"/></g>`
+    + `${devant.join('')}${lumieres.map((l, i) => `<g class="nz-g${i + 1}">${l.join('')}</g>`).join('')}${ruban}</svg>`;
 }
+
+/** Les réglages des deux guirlandes : le rouleau du titre (240 × 72) et, sur téléphone, le médaillon du logo (48 × 48). */
+const GUIRLANDE_TITRE = {
+  boite: [-6, -8, 252, 50], chemin: [[18, 9], [120, 11], [222, 9]], creux: 7.5, echelle: 1.15, noeuds: [0, 0.5, 1], graine: 3, id: 'gt',
+  boules: [
+    { t: 0.0, fil: 11, r: 3.4, c: 'rouge' }, { t: 1, fil: 11, r: 3.4, c: 'rouge' },
+    { t: 0.12, r: 2.1, c: 'or' }, { t: 0.24, r: 1.9, c: 'rouge' }, { t: 0.34, r: 2.1, c: 'or' },
+    { t: 0.66, r: 2.1, c: 'or' }, { t: 0.76, r: 1.9, c: 'rouge' }, { t: 0.88, r: 2.1, c: 'or' },
+  ],
+};
+const GUIRLANDE_LOGO = {
+  boite: [-8, 14, 64, 46], chemin: { arc: [24, 24, 24.5, 165, 15] }, echelle: 0.62, noeuds: [0.5], graine: 5, id: 'gl',
+  boules: [{ t: 0.22, r: 2.3, c: 'or' }, { t: 0.36, r: 2.1, c: 'rouge' }, { t: 0.64, r: 2.1, c: 'rouge' }, { t: 0.78, r: 2.3, c: 'or' }],
+};
 
 // ---------------------------------------------------------------- Où sont les décorations
 // des lacs où les cygnes chanteurs passent vraiment l'hiver, parmi ceux que la carte dessine (eaux-japon.geojson : Utonai
@@ -335,7 +452,7 @@ const TEXTES = {
 
 /** Les dessins des repères (pour la planche d'essai des dessins). */
 export const DESSINS_NOEL = { lanternes: dessinLanternes(), cygnes: CYGNES, yukidoro: dessinYukidoro(), fermes: FERME, singes: SINGES,
-  kamakura: KAMAKURA, danse: GRUES_DANSE, rennes: RENNES, papier: GRUE_PAPIER, carte: CARTE_VOEUX, guirlande: guirlande(236, 2, 7) };
+  kamakura: KAMAKURA, danse: GRUES_DANSE, rennes: RENNES, papier: GRUE_PAPIER, carte: CARTE_VOEUX, guirlande: guirlande(GUIRLANDE_TITRE) };
 
 /**
  * outils (de noel-carte.js) : { reperes, poser(lngLat, html, classe, aria, appui, zoomMin), ouvrirBulle(lngLat, contenu,
@@ -420,13 +537,13 @@ export function brancherDecors(map, outils) {
       const entete = document.querySelector('.entete');
       if (bandeau) {
         const g = creer('div', 'noel-guirlande nz-titre');
-        g.innerHTML = guirlande(236, 2, 7);
+        g.innerHTML = guirlande(GUIRLANDE_TITRE);
         bandeau.append(g);
         guirlandes.push(g);
       }
       if (entete) {
         const g = creer('div', 'noel-guirlande nz-logo');
-        g.innerHTML = guirlande(60, 1, 6);
+        g.innerHTML = guirlande(GUIRLANDE_LOGO);
         entete.append(g);
         guirlandes.push(g);
       }
