@@ -1,0 +1,64 @@
+<!doctype html>
+<!--
+  Le relais du live YouTube (2026-11-23). À ouvrir dans OBS : source « Navigateur », case « Fichier local » cochée,
+  ce fichier, 1080 × 1920, « Contrôler l'audio via OBS » cochée.
+
+  Pourquoi un fichier sur le PC : les navigateurs récents (Local Network Access, Chromium 142 et plus, dont celui
+  d'OBS 33) refusent qu'une page internet (https://map.randomjapanplace.com) se branche sur un logiciel du PC
+  (Streamer.bot, ws://127.0.0.1:8080). Un fichier du PC le peut. Il montre donc la page du live dans un cadre,
+  écoute Streamer.bot (le chat YouTube) et passe chaque message à la page (postMessage ; la page, ouverte avec
+  ?relais, n'ouvre alors pas de WebSocket elle-même). Voir site/live.js, brancherChat.
+
+  Pour les essais : ?page=<adresse de la page> et ?sb=<adresse de Streamer.bot> remplacent celles d'origine.
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Live YouTube · Random Japan Place</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #000; }
+  iframe { display: block; width: 100%; height: 100%; border: 0; }
+</style>
+</head>
+<body>
+<iframe id="cadre" allow="autoplay; fullscreen" title="Devine le lieu"></iframe>
+<script>
+  const reglages = new URLSearchParams(location.search);
+  const PAGE = reglages.get('page') || 'https://map.randomjapanplace.com/?live&youtube&relais';
+  const STREAMERBOT = reglages.get('sb') || 'ws://127.0.0.1:8080/';
+  // les événements YouTube que la page sait lire (comme EVENEMENTS_YOUTUBE dans site/live.js)
+  const EVENEMENTS = ['Message', 'SuperChat', 'SuperSticker', 'NewSponsor', 'MembershipGift', 'NewSubscriber'];
+
+  const cadre = document.getElementById('cadre');
+  const origine = new URL(PAGE).origin;
+  let branche = false, charge = false; // charge : la page est arrivée dans le cadre (avant, il ne contient qu'une page vide)
+  cadre.addEventListener('load', () => { charge = true; });
+  cadre.src = PAGE;
+  const dire = (message) => { if (charge) cadre.contentWindow.postMessage(message, origine); };
+
+  // la page dit « prête » une fois le jeu lancé : on lui redit si Streamer.bot est branché
+  addEventListener('message', (e) => {
+    if (e.source === cadre.contentWindow && e.data?.relais === 'pret') dire({ relais: 'etat', ok: branche });
+  });
+
+  let essais = 0;
+  function ouvrir() {
+    let ws;
+    try { ws = new WebSocket(STREAMERBOT); } catch { setTimeout(ouvrir, 5000); return; }
+    ws.onopen = () => {
+      essais = 0;
+      branche = true;
+      ws.send(JSON.stringify({ request: 'Subscribe', id: 'live', events: { YouTube: EVENEMENTS } }));
+      dire({ relais: 'etat', ok: true });
+    };
+    ws.onmessage = (m) => dire({ relais: 'message', texte: String(m.data) });
+    ws.onclose = () => {
+      branche = false;
+      dire({ relais: 'etat', ok: false });
+      setTimeout(ouvrir, Math.min(10000, 1500 * ++essais)); // Streamer.bot fermé : on réessaie
+    };
+  }
+  ouvrir();
+</script>
+</body>
+</html>

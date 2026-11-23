@@ -575,7 +575,29 @@ export function brancherLive(map, maplibregl, outils) {
     else if (type === 'NewSponsor' || type === 'MembershipGift') evenement('membre', p);
   }
 
+  /** Un message de TikFinity ou de Streamer.bot (texte JSON). */
+  function recu(texte) {
+    let o;
+    try { o = JSON.parse(texte); } catch { return; }
+    try {
+      if (!youtube) evenement(o.event, o.data || {});
+      else if (o.event?.source === 'YouTube' && o.data) evenementYouTube(o.event.type, o.data);
+    } catch (e) { console.warn('Live :', e); }
+  }
+
   function brancherChat() {
+    // Le relais (?relais) : les Chrome récents (Local Network Access, Chromium 142 et plus, dont le navigateur d'OBS 33)
+    // refusent qu'une page https ouvre ws://127.0.0.1. Un fichier du PC (outils/live/live-youtube.html, ouvert comme
+    // « fichier local » dans OBS) le peut : il montre cette page dans un cadre et lui passe les messages de Streamer.bot.
+    if (parametres.has('relais') && window.parent !== window) {
+      addEventListener('message', (e) => {
+        if (e.source !== window.parent || typeof e.data !== 'object' || !e.data) return;
+        if (e.data.relais === 'etat') etatChat(!!e.data.ok);
+        else if (e.data.relais === 'message') recu(e.data.texte);
+      });
+      window.parent.postMessage({ relais: 'pret' }, '*'); // le relais redit alors s'il est branché
+      return;
+    }
     let essais = 0;
     function ouvrir() {
       let ws;
@@ -586,14 +608,7 @@ export function brancherLive(map, maplibregl, outils) {
         if (youtube) ws.send(JSON.stringify({ request: 'Subscribe', id: 'live', events: { YouTube: EVENEMENTS_YOUTUBE } }));
         etatChat(true);
       };
-      ws.onmessage = (m) => {
-        let o;
-        try { o = JSON.parse(m.data); } catch { return; }
-        try {
-          if (!youtube) evenement(o.event, o.data || {});
-          else if (o.event?.source === 'YouTube' && o.data) evenementYouTube(o.event.type, o.data);
-        } catch (e) { console.warn('Live :', e); }
-      };
+      ws.onmessage = (m) => recu(m.data);
       ws.onclose = () => { etatChat(false); setTimeout(ouvrir, Math.min(10000, 1500 * ++essais)); };
     }
     ouvrir();

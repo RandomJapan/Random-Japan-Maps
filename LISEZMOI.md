@@ -412,7 +412,7 @@ Le même jeu, avec la même image verticale : sur téléphone, il peut apparaît
    - « Paramètres », puis « Vidéo » : mets **1080 × 1920** en résolution de base et en résolution de sortie, et 30 images par seconde.
    - « Paramètres », puis « Stream » : choisis le service **YouTube - RTMPS** et clique sur « Connecter le compte ».
    - Dans les sources (en bas), clique sur **+**, puis **Navigateur** :
-     - l'adresse **https://map.randomjapanplace.com/?live&youtube** ;
+     - coche **« Fichier local »** et choisis le fichier **D:\Business\Claude Code\Maps Japon\outils\live\live-youtube.html** (pas l'adresse internet de la carte : le navigateur d'OBS empêche un site internet de parler à Streamer.bot, alors que ce fichier du PC en a le droit ; il affiche la carte du live et lui passe le chat) ;
      - largeur **1080**, hauteur **1920** ;
      - coche **« Contrôler l'audio via OBS »**, pour que la musique passe dans le live.
 
