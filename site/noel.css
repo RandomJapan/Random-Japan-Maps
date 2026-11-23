@@ -108,7 +108,7 @@ body.noel #carte.loin .repere-tete::after { width: auto; height: auto; backgroun
 .noel-preparation { margin: 0; padding: 7px 10px; font-size: 12.5px; background: color-mix(in srgb, var(--rouge) 8%, transparent); border: 1px dashed color-mix(in srgb, var(--rouge) 45%, transparent); border-radius: 2px; }
 
 /* case 1 : le prénom en japonais */
-.noel-prenom { display: grid; grid-template-columns: minmax(0, 1fr) 104px; gap: 8px 12px; align-items: start; }
+.noel-prenom { display: grid; grid-template-columns: minmax(0, 1fr) 112px; /* le téléphone : 104 px et sa marge de 4 px */ gap: 8px 12px; align-items: start; }
 .noel-prenom > .btn-lancer { grid-column: 1 / -1; }
 .noel-champ { display: grid; gap: 4px; }
 .noel-champ label { font-size: 13px; font-weight: 600; }
@@ -135,6 +135,7 @@ body.noel #carte.loin .repere-tete::after { width: auto; height: auto; backgroun
 
 /* les cases de la boutique Inkami */
 .noel-code { display: grid; gap: 8px; }
+.noel-code-fini { margin: 0; padding: 7px 10px; font-size: 12.5px; background: color-mix(in srgb, var(--encre) 7%, transparent); border-radius: 2px; }
 .noel-code-ligne { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0; }
 .noel-code-texte { font: 700 15px/1 ui-monospace, Consolas, monospace; letter-spacing: .08em; color: var(--rouge); padding: 7px 10px; border: 2px dashed color-mix(in srgb, var(--rouge) 65%, transparent); border-radius: 2px; }
 .noel-boutique { text-decoration: none; text-align: center; }
@@ -262,3 +263,103 @@ body.noel-tempete .legende.anime[data-legende="yukionna"]::before { animation: n
 }
 body.qualite-tres-legere .noel-traineau svg * { animation: none !important; }
 @media (max-width: 720px) { .noel-traineau { --large: 270px; } }
+
+/* ---------- Les décorations de chaque jour (noel-decors.js), à partir du jour de leur case ; voir l'en-tête du module)
+   Les repères (des boutons « légende », cachés de loin) : leurs tailles ; la nuit, leurs lumières (.nz-halo, les
+   fenêtres, les niches, les flammes) ; leurs petits mouvements, seulement à l'écran (.anime). */
+.nz-lanternes svg { left: -32px; bottom: -6px; width: 64px; height: 40px; }
+.nz-cygnes svg { left: -36px; bottom: -8px; width: 72px; height: 40px; }
+.nz-yukidoro svg { left: -32px; bottom: -6px; width: 64px; height: 40px; }
+.nz-fermes svg { left: -28px; bottom: -6px; width: 56px; height: 52px; }
+.nz-singes svg { left: -32px; bottom: -6px; width: 64px; height: 48px; }
+.nz-kamakura svg { left: -24px; bottom: -5px; width: 48px; height: 40px; }
+.nz-danse svg { left: -44px; bottom: -6px; width: 88px; height: 60px; }
+.nz-rennes svg { left: -52px; bottom: -6px; width: 104px; height: 60px; }
+.noel-deco .nz-halo, .noel-deco .nz-flamme { opacity: 0; transition: opacity .8s; }
+body.nuit .noel-deco .nz-halo, body.nuit .noel-deco .nz-flamme { opacity: 1; }
+body.nuit .noel-deco .nz-chochin { fill: #ffb05a; }
+body.nuit .noel-deco .nz-fenetre { fill: #ffd27a; }
+body.nuit .noel-deco .nz-niche, body.nuit .noel-deco .nz-entree { fill: #f2a545; }
+.nz-cygnes.anime .nz-cygne1, .nz-cygnes.anime .nz-cygne2 { animation: nz-flotte 3.8s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 90%; }
+.nz-cygnes.anime .nz-cygne2 { animation-delay: -1.7s; }
+.nz-cygnes.anime .nz-onde2 { animation: nz-onde 3.8s ease-out infinite; transform-box: fill-box; transform-origin: 50% 50%; }
+.nz-singes.anime .nz-vapeur { animation: nz-vapeur 3.6s ease-in infinite; }
+.nz-singes.anime .nz-v2 { animation-delay: -1.2s; }
+.nz-singes.anime .nz-v3 { animation-delay: -2.4s; }
+@keyframes nz-vapeur { 0% { transform: translateY(5px); opacity: 0; } 35% { opacity: .75; } 100% { transform: translateY(-7px); opacity: 0; } }
+.nz-danse.anime .nz-danse1, .nz-danse.anime .nz-danse2 { animation: nz-saut 1.9s ease-in-out infinite; }
+.nz-danse.anime .nz-danse2 { animation-delay: -.95s; }
+.nz-danse.anime .nz-aile-pres { animation: nz-aile 1.9s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: 50% 100%; }
+@keyframes nz-saut { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-4px); } }
+@keyframes nz-aile { from { transform: rotate(-7deg); } to { transform: rotate(6deg); } }
+.nz-rennes.anime .nz-nez-lueur { animation: nz-lueur 1.3s ease-in-out infinite alternate; }
+body.noel-rennes-partis .nz-rennes { display: none; } /* partis pour la grande nuit (le traîneau du 24) */
+
+/* 2 : la nuit, les grandes villes s'illuminent (un halo doré, des ampoules de couleur autour du pin) */
+body.noel-illuminations.nuit .ville::before {
+  content: ""; position: absolute; left: -30px; bottom: -4px; width: 60px; height: 48px; pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 48'%3E%3Ccircle cx='56.0' cy='24.0' r='3.4' fill='%23ff6f5e' opacity='.35'/%3E%3Ccircle cx='56.0' cy='24.0' r='1.5' fill='%23ff6f5e'/%3E%3Ccircle cx='54.0' cy='30.5' r='3.4' fill='%23ffe6a6' opacity='.35'/%3E%3Ccircle cx='54.0' cy='30.5' r='1.5' fill='%23ffe6a6'/%3E%3Ccircle cx='48.4' cy='36.0' r='3.4' fill='%2386e7a2' opacity='.35'/%3E%3Ccircle cx='48.4' cy='36.0' r='1.5' fill='%2386e7a2'/%3E%3Ccircle cx='39.9' cy='39.7' r='3.4' fill='%238fd0ff' opacity='.35'/%3E%3Ccircle cx='39.9' cy='39.7' r='1.5' fill='%238fd0ff'/%3E%3Ccircle cx='30.0' cy='41.0' r='3.4' fill='%23ff6f5e' opacity='.35'/%3E%3Ccircle cx='30.0' cy='41.0' r='1.5' fill='%23ff6f5e'/%3E%3Ccircle cx='20.1' cy='39.7' r='3.4' fill='%23ffe6a6' opacity='.35'/%3E%3Ccircle cx='20.1' cy='39.7' r='1.5' fill='%23ffe6a6'/%3E%3Ccircle cx='11.6' cy='36.0' r='3.4' fill='%2386e7a2' opacity='.35'/%3E%3Ccircle cx='11.6' cy='36.0' r='1.5' fill='%2386e7a2'/%3E%3Ccircle cx='6.0' cy='30.5' r='3.4' fill='%238fd0ff' opacity='.35'/%3E%3Ccircle cx='6.0' cy='30.5' r='1.5' fill='%238fd0ff'/%3E%3Ccircle cx='4.0' cy='24.0' r='3.4' fill='%23ff6f5e' opacity='.35'/%3E%3Ccircle cx='4.0' cy='24.0' r='1.5' fill='%23ff6f5e'/%3E%3Ccircle cx='6.0' cy='17.5' r='3.4' fill='%23ffe6a6' opacity='.35'/%3E%3Ccircle cx='6.0' cy='17.5' r='1.5' fill='%23ffe6a6'/%3E%3Ccircle cx='11.6' cy='12.0' r='3.4' fill='%2386e7a2' opacity='.35'/%3E%3Ccircle cx='11.6' cy='12.0' r='1.5' fill='%2386e7a2'/%3E%3Ccircle cx='20.1' cy='8.3' r='3.4' fill='%238fd0ff' opacity='.35'/%3E%3Ccircle cx='20.1' cy='8.3' r='1.5' fill='%238fd0ff'/%3E%3Ccircle cx='30.0' cy='7.0' r='3.4' fill='%23ff6f5e' opacity='.35'/%3E%3Ccircle cx='30.0' cy='7.0' r='1.5' fill='%23ff6f5e'/%3E%3Ccircle cx='39.9' cy='8.3' r='3.4' fill='%23ffe6a6' opacity='.35'/%3E%3Ccircle cx='39.9' cy='8.3' r='1.5' fill='%23ffe6a6'/%3E%3Ccircle cx='48.4' cy='12.0' r='3.4' fill='%2386e7a2' opacity='.35'/%3E%3Ccircle cx='48.4' cy='12.0' r='1.5' fill='%2386e7a2'/%3E%3Ccircle cx='54.0' cy='17.5' r='3.4' fill='%238fd0ff' opacity='.35'/%3E%3Ccircle cx='54.0' cy='17.5' r='1.5' fill='%238fd0ff'/%3E%3C/svg%3E") center / contain no-repeat, radial-gradient(closest-side, rgba(255, 214, 120, .55), rgba(255, 170, 60, .2) 60%, transparent);
+}
+body.noel-illuminations.nuit #carte.loin .ville::before { left: -22px; bottom: -2px; width: 44px; height: 36px; }
+/* 7 : un sapin à côté de chaque grande ville, ses boules allumées la nuit ; 18 : des cadeaux à son pied */
+body.noel-sapins .ville::after {
+  content: ""; position: absolute; left: 17px; bottom: 5px; width: 15px; height: 21px; pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 42'%3E%3Cpath d='M13 33.6h4v6.4h-4z' fill='%236e4a2b' stroke='%2335251a' stroke-width='1.3'/%3E%3Cpath d='M15 5.6 24.6 17.4H20L27.6 27H22.4L29 35.4H1L7.6 27H2.4L10 17.4H5.4Z' fill='%233f6b46' stroke='%2335251a' stroke-width='1.5' stroke-linejoin='round'/%3E%3Cpath d='M8 26.4C12 24.6 19 24.4 23 22.6M6 34C11 31.6 20 31.4 25 29' fill='none' stroke='%23e8c13a' stroke-width='.8' opacity='.8'/%3E%3Ccircle cx='12' cy='14' r='1.7' fill='%23d8443a' stroke='%2335251a' stroke-width='.6'/%3E%3Ccircle cx='18' cy='21' r='1.7' fill='%23e8c13a' stroke='%2335251a' stroke-width='.6'/%3E%3Ccircle cx='10' cy='25' r='1.7' fill='%233f8fc4' stroke='%2335251a' stroke-width='.6'/%3E%3Ccircle cx='20' cy='30' r='1.7' fill='%23d8443a' stroke='%2335251a' stroke-width='.6'/%3E%3Ccircle cx='13' cy='31' r='1.7' fill='%23e8c13a' stroke='%2335251a' stroke-width='.6'/%3E%3Ccircle cx='16' cy='16.6' r='1.7' fill='%233f8fc4' stroke='%2335251a' stroke-width='.6'/%3E%3Cpath d='M15 .6 16.5 3.9 20.1 4.3 17.4 6.6 18.2 10.2 15 8.4 11.8 10.2 12.6 6.6 9.9 4.3 13.5 3.9Z' fill='%23e8c13a' stroke='%2335251a' stroke-width='.9' stroke-linejoin='round'/%3E%3C/svg%3E") left bottom / contain no-repeat;
+}
+body.noel-sapins.nuit .ville::after { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 42'%3E%3Cdefs%3E%3CradialGradient id='h'%3E%3Cstop offset='0' stop-color='%23ffd98a' stop-opacity='.75'/%3E%3Cstop offset='1' stop-color='%23ffb04a' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cellipse cx='15' cy='22' rx='15' ry='20' fill='url(%23h)'/%3E%3Cpath d='M13 33.6h4v6.4h-4z' fill='%236e4a2b' stroke='%2335251a' stroke-width='1.3'/%3E%3Cpath d='M15 5.6 24.6 17.4H20L27.6 27H22.4L29 35.4H1L7.6 27H2.4L10 17.4H5.4Z' fill='%233f6b46' stroke='%2335251a' stroke-width='1.5' stroke-linejoin='round'/%3E%3Cpath d='M8 26.4C12 24.6 19 24.4 23 22.6M6 34C11 31.6 20 31.4 25 29' fill='none' stroke='%23e8c13a' stroke-width='.8' opacity='.8'/%3E%3Ccircle cx='12' cy='14' r='3' fill='%23ffb3a0' opacity='.55'/%3E%3Ccircle cx='12' cy='14' r='1.7' fill='%23ffb3a0' stroke='%2335251a' stroke-width='.6'/%3E%3Ccircle cx='18' cy='21' r='3' fill='%23fff2a8' opacity='.55'/%3E%3Ccircle cx='18' cy='21' r='1.7' fill='%23fff2a8' stroke='%2335251a' stroke-width='.6'/%3E%3Ccircle cx='10' cy='25' r='3' fill='%23bfe4ff' opacity='.55'/%3E%3Ccircle cx='10' cy='25' r='1.7' fill='%23bfe4ff' stroke='%2335251a' stroke-width='.6'/%3E%3Ccircle cx='20' cy='30' r='3' fill='%23ffb3a0' opacity='.55'/%3E%3Ccircle cx='20' cy='30' r='1.7' fill='%23ffb3a0' stroke='%2335251a' stroke-width='.6'/%3E%3Ccircle cx='13' cy='31' r='3' fill='%23fff2a8' opacity='.55'/%3E%3Ccircle cx='13' cy='31' r='1.7' fill='%23fff2a8' stroke='%2335251a' stroke-width='.6'/%3E%3Ccircle cx='16' cy='16.6' r='3' fill='%23bfe4ff' opacity='.55'/%3E%3Ccircle cx='16' cy='16.6' r='1.7' fill='%23bfe4ff' stroke='%2335251a' stroke-width='.6'/%3E%3Cpath d='M15 .6 16.5 3.9 20.1 4.3 17.4 6.6 18.2 10.2 15 8.4 11.8 10.2 12.6 6.6 9.9 4.3 13.5 3.9Z' fill='%23fff2a8' stroke='%2335251a' stroke-width='.9' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+body.noel-cadeaux .ville::after { width: 25px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 42'%3E%3Cpath d='M13 33.6h4v6.4h-4z' fill='%236e4a2b' stroke='%2335251a' stroke-width='1.3'/%3E%3Cpath d='M15 5.6 24.6 17.4H20L27.6 27H22.4L29 35.4H1L7.6 27H2.4L10 17.4H5.4Z' fill='%233f6b46' stroke='%2335251a' stroke-width='1.5' stroke-linejoin='round'/%3E%3Cpath d='M8 26.4C12 24.6 19 24.4 23 22.6M6 34C11 31.6 20 31.4 25 29' fill='none' stroke='%23e8c13a' stroke-width='.8' opacity='.8'/%3E%3Ccircle cx='12' cy='14' r='1.7' fill='%23d8443a' stroke='%2335251a' stroke-width='.6'/%3E%3Ccircle cx='18' cy='21' r='1.7' fill='%23e8c13a' stroke='%2335251a' stroke-width='.6'/%3E%3Ccircle cx='10' cy='25' r='1.7' fill='%233f8fc4' stroke='%2335251a' stroke-width='.6'/%3E%3Ccircle cx='20' cy='30' r='1.7' fill='%23d8443a' stroke='%2335251a' stroke-width='.6'/%3E%3Ccircle cx='13' cy='31' r='1.7' fill='%23e8c13a' stroke='%2335251a' stroke-width='.6'/%3E%3Ccircle cx='16' cy='16.6' r='1.7' fill='%233f8fc4' stroke='%2335251a' stroke-width='.6'/%3E%3Crect x='28' y='31' width='10' height='9' rx='.8' fill='%23c33a2b' stroke='%2335251a' stroke-width='1.2'/%3E%3Cpath d='M33 31v9M28 35.5h10' stroke='%23e8c13a' stroke-width='1.6'/%3E%3Crect x='37.5' y='34' width='11' height='6' rx='.8' fill='%233f8fc4' stroke='%2335251a' stroke-width='1.2'/%3E%3Cpath d='M43 34v6M37.5 37h11' stroke='%23f4ead8' stroke-width='1.5'/%3E%3Crect x='31' y='25' width='7.5' height='6.2' rx='.8' fill='%233f7a52' stroke='%2335251a' stroke-width='1.1'/%3E%3Cpath d='M34.75 25v6.2M31 28.1h7.5' stroke='%23e8c13a' stroke-width='1.3'/%3E%3Cpath d='M34.75 25c-2-2.6-4-1.6-3 0M34.75 25c2-2.6 4-1.6 3 0' fill='none' stroke='%23e8c13a' stroke-width='1'/%3E%3Cpath d='M15 .6 16.5 3.9 20.1 4.3 17.4 6.6 18.2 10.2 15 8.4 11.8 10.2 12.6 6.6 9.9 4.3 13.5 3.9Z' fill='%23e8c13a' stroke='%2335251a' stroke-width='.9' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+body.noel-cadeaux.nuit .ville::after { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 42'%3E%3Cdefs%3E%3CradialGradient id='h'%3E%3Cstop offset='0' stop-color='%23ffd98a' stop-opacity='.75'/%3E%3Cstop offset='1' stop-color='%23ffb04a' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cellipse cx='15' cy='22' rx='15' ry='20' fill='url(%23h)'/%3E%3Cpath d='M13 33.6h4v6.4h-4z' fill='%236e4a2b' stroke='%2335251a' stroke-width='1.3'/%3E%3Cpath d='M15 5.6 24.6 17.4H20L27.6 27H22.4L29 35.4H1L7.6 27H2.4L10 17.4H5.4Z' fill='%233f6b46' stroke='%2335251a' stroke-width='1.5' stroke-linejoin='round'/%3E%3Cpath d='M8 26.4C12 24.6 19 24.4 23 22.6M6 34C11 31.6 20 31.4 25 29' fill='none' stroke='%23e8c13a' stroke-width='.8' opacity='.8'/%3E%3Ccircle cx='12' cy='14' r='3' fill='%23ffb3a0' opacity='.55'/%3E%3Ccircle cx='12' cy='14' r='1.7' fill='%23ffb3a0' stroke='%2335251a' stroke-width='.6'/%3E%3Ccircle cx='18' cy='21' r='3' fill='%23fff2a8' opacity='.55'/%3E%3Ccircle cx='18' cy='21' r='1.7' fill='%23fff2a8' stroke='%2335251a' stroke-width='.6'/%3E%3Ccircle cx='10' cy='25' r='3' fill='%23bfe4ff' opacity='.55'/%3E%3Ccircle cx='10' cy='25' r='1.7' fill='%23bfe4ff' stroke='%2335251a' stroke-width='.6'/%3E%3Ccircle cx='20' cy='30' r='3' fill='%23ffb3a0' opacity='.55'/%3E%3Ccircle cx='20' cy='30' r='1.7' fill='%23ffb3a0' stroke='%2335251a' stroke-width='.6'/%3E%3Ccircle cx='13' cy='31' r='3' fill='%23fff2a8' opacity='.55'/%3E%3Ccircle cx='13' cy='31' r='1.7' fill='%23fff2a8' stroke='%2335251a' stroke-width='.6'/%3E%3Ccircle cx='16' cy='16.6' r='3' fill='%23bfe4ff' opacity='.55'/%3E%3Ccircle cx='16' cy='16.6' r='1.7' fill='%23bfe4ff' stroke='%2335251a' stroke-width='.6'/%3E%3Crect x='28' y='31' width='10' height='9' rx='.8' fill='%23c33a2b' stroke='%2335251a' stroke-width='1.2'/%3E%3Cpath d='M33 31v9M28 35.5h10' stroke='%23e8c13a' stroke-width='1.6'/%3E%3Crect x='37.5' y='34' width='11' height='6' rx='.8' fill='%233f8fc4' stroke='%2335251a' stroke-width='1.2'/%3E%3Cpath d='M43 34v6M37.5 37h11' stroke='%23f4ead8' stroke-width='1.5'/%3E%3Crect x='31' y='25' width='7.5' height='6.2' rx='.8' fill='%233f7a52' stroke='%2335251a' stroke-width='1.1'/%3E%3Cpath d='M34.75 25v6.2M31 28.1h7.5' stroke='%23e8c13a' stroke-width='1.3'/%3E%3Cpath d='M34.75 25c-2-2.6-4-1.6-3 0M34.75 25c2-2.6 4-1.6 3 0' fill='none' stroke='%23e8c13a' stroke-width='1'/%3E%3Cpath d='M15 .6 16.5 3.9 20.1 4.3 17.4 6.6 18.2 10.2 15 8.4 11.8 10.2 12.6 6.6 9.9 4.3 13.5 3.9Z' fill='%23fff2a8' stroke='%2335251a' stroke-width='.9' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+body.noel-sapins #carte.loin .ville::after { left: 13px; bottom: 4px; width: 11px; height: 15px; }
+body.noel-cadeaux #carte.loin .ville::after { width: 18px; }
+
+/* 3 : la guirlande sur le titre de la carte (en bas à gauche) ; sur téléphone, le titre est caché : sous le logo */
+.noel-guirlande { position: absolute; pointer-events: none; }
+.noel-guirlande svg { display: block; width: 100%; height: auto; overflow: visible; }
+.noel-guirlande.nz-titre { left: 0; right: 0; top: -7px; }
+.noel-guirlande.nz-logo { display: none; }
+.noel-guirlande .nz-g1, .noel-guirlande .nz-g2, .noel-guirlande .nz-g3 { animation: nz-scintille 2.1s steps(1) infinite; }
+.noel-guirlande .nz-g2 { animation-delay: -.7s; }
+.noel-guirlande .nz-g3 { animation-delay: -1.4s; }
+@keyframes nz-scintille { 0% { opacity: 1; } 66% { opacity: .45; } }
+@media (max-width: 720px) { .noel-guirlande.nz-logo { display: block; left: -8px; right: -8px; bottom: -9px; } }
+
+/* 9 : les grues en papier (oiseaux.js, choisirOiseaux) : rouges, sarcelle ou or, comme le papier origami de la case du 9 */
+.grue-papier .gp-face { fill: #c33a2b; } .grue-papier .gp-loin { fill: #8f2a20; } .grue-papier .gp-corps { fill: #d4513f; }
+.grue-papier .gp-ventre { fill: #a8352a; } .grue-papier .gp-pli { stroke: #f4c9b8; }
+.grue-papier.z2 .gp-face { fill: #2e7670; } .grue-papier.z2 .gp-loin { fill: #1d5652; } .grue-papier.z2 .gp-corps { fill: #3f8a82; }
+.grue-papier.z2 .gp-ventre { fill: #24605a; } .grue-papier.z2 .gp-pli { stroke: #cfe6e0; }
+.grue-papier.z3 .gp-face { fill: #e8c45a; } .grue-papier.z3 .gp-loin { fill: #b8932f; } .grue-papier.z3 .gp-corps { fill: #efd27a; }
+.grue-papier.z3 .gp-ventre { fill: #c9a23e; } .grue-papier.z3 .gp-pli { stroke: #fff3c4; }
+.grue-papier .gp-aile { transform-origin: 40px 22px; animation: gp-battre .95s ease-in-out infinite alternate; animation-delay: var(--d); }
+@keyframes gp-battre { from { transform: scaleY(1); } to { transform: scaleY(-.4); } }
+.grues-air .grue-papier svg { animation: gp-plane 2.6s ease-in-out infinite alternate; animation-delay: calc(var(--d) * 3); }
+@keyframes gp-plane { from { transform: translateY(-2px) rotate(-3deg); } to { transform: translateY(3px) rotate(3deg); } }
+.ombre-grue.grue-papier .gp-aile { animation: none; }
+
+/* 15 : des cartes de vœux traversent l'écran de temps en temps (comme le traîneau : au-dessus de la carte, sous la
+   rangée du haut, la fiche d'un lieu et les panneaux) */
+.noel-cartes { position: fixed; inset: 0; z-index: 7; pointer-events: none; overflow: hidden; }
+.noel-cartes .nz-carte { position: absolute; left: 0; top: var(--haut, 140px); width: 46px; opacity: 0; will-change: transform; }
+.noel-cartes .nz-c1 { top: calc(var(--haut, 140px) + 48px); width: 40px; }
+.noel-cartes .nz-c2 { top: calc(var(--haut, 140px) + 18px); width: 50px; }
+.noel-cartes svg { display: block; width: 100%; height: auto; filter: drop-shadow(0 3px 4px rgba(40, 26, 12, .35)); }
+.noel-cartes.vole .nz-c0 { animation: nz-carte 15s linear forwards; }
+.noel-cartes.vole .nz-c1 { animation: nz-carte 16s linear 1.4s forwards; }
+.noel-cartes.vole .nz-c2 { animation: nz-carte 14s linear 2.6s forwards; }
+.noel-cartes.vole svg { animation: nz-volette .8s ease-in-out infinite alternate; }
+@keyframes nz-carte {
+  0% { transform: translate(-70px, 30px) rotate(-14deg); opacity: 0; }
+  5% { opacity: 1; }
+  25% { transform: translate(25vw, -10px) rotate(10deg); }
+  50% { transform: translate(50vw, 22px) rotate(-12deg); }
+  75% { transform: translate(75vw, -6px) rotate(8deg); }
+  95% { opacity: 1; }
+  100% { transform: translate(calc(100vw + 40px), 16px) rotate(-6deg); opacity: 0; }
+}
+@keyframes nz-volette { from { transform: scaleY(1); } to { transform: scaleY(.72); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .noel-deco *, .noel-guirlande *, .grue-papier * { animation: none !important; }
+}
+body.qualite-tres-legere .noel-deco *, body.qualite-tres-legere .noel-guirlande *, body.qualite-tres-legere .noel-cartes svg { animation: none !important; }
+/* ---------- fin des décorations */

@@ -19,7 +19,7 @@
 //  prépare pendant qu'on s'approche (et dès le départ d'un plongeon) : il est là quand on arrive.
 // ================================================================
 
-import { lisse, md, ecart, floraison, enFleurs, picAutomne, neigeAuSol } from './phenologie.js';
+import { lisse, md, ecart, floraison, enFleurs, picAutomne, neigeAuSol, HIVER_NOEL } from './phenologie.js';
 import { atlasSol } from './particules.js';
 
 // ---------------------------------------------------------------- Les lieux célèbres
@@ -337,7 +337,9 @@ function neigesDuJour(j) {
   }).filter(([, v]) => v >= 0.1); // en dessous, elle ne se voit pas : la couche (et ses 120 Ko de contours) attend
 }
 const lacsGeles = (j) => Object.entries(LACS_GELES).filter(([, [du, au]]) => entre(j, du, au) > 0.5).map(([nom]) => nom);
-const forceBanquise = (j) => Math.round(lisse(22, 46, j) * (1 - lisse(69, 91, j)) * 10) / 10;
+const banquiseDuJour = (j) => Math.round(lisse(22, 46, j) * (1 - lisse(69, 91, j)) * 10) / 10;
+// Noël (case du 11 décembre du calendrier de l'Avent) : la banquise arrive avant sa date (phenologie.js, HIVER_NOEL)
+const forceBanquise = (j) => Math.max(banquiseDuJour(j), HIVER_NOEL.jourBanquise ? banquiseDuJour(HIVER_NOEL.jourBanquise) : 0);
 function banquise(force) {
   if (!plaques) preparerBanquise();
   return { type: 'FeatureCollection', features: plaques.filter(([, d, tirage]) => tirage < force * Math.exp(-d / 24) * 1.15).map(([geometry]) => ({ type: 'Feature', geometry, properties: {} })) };

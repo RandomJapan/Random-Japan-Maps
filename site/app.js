@@ -22,6 +22,7 @@ import { coucheHorizon } from './horizon.js';
 import { brancherTexturesRelief } from './textures-relief.js';
 import { gererReperes } from './reperes.js';
 import { preparerAmbiance } from './ambiance.js';
+import { reglerHiverNoel } from './phenologie.js';
 import { niveauDeDepart, brancherQualite } from './qualite.js';
 import { lireSaisons, blocFiche, contenuPanneau, lieuxDuMois, nomMois, iconeDuMois } from './saisons.js';
 import { echapper, envoyer, retirerParametres, tactile, jourDuDefi, croixPanneau, typoFr } from './commun.js';
@@ -314,6 +315,9 @@ const TUILES_RELIEF = {
   maxzoom: 12,
   encoding: 'terrarium',
 };
+// Noël : la neige de plein hiver (case du 6 décembre du calendrier de l'Avent) et la banquise (du 11) sont dans le style
+// de départ (phenologie.js, HIVER_NOEL) : posées par noel.js deux secondes plus tard, tout le relief se redessinait.
+reglerHiverNoel(jourDeNoelAuDepart());
 // Les couleurs du moment au Japon (ambiance.js) : jour, coucher du soleil, nuit, et la saison. La carte part avec elles ;
 // ambiance.js les change ensuite par paliers.
 const ambiance = preparerAmbiance();
@@ -1306,6 +1310,24 @@ function noelVoulu() {
   return n.public && maintenant >= new Date(`${n.debut}T00:00`).getTime();
 }
 
+/**
+ * Le jour du calendrier de l'Avent à l'ouverture de la carte (1 à 25), 0 sans Noël : comme noelVoulu et noel.js (jour),
+ * mais lu avant que la carte existe (le mode développeur d'après localStorage ; avant décembre, il voit le 24).
+ */
+function jourDeNoelAuDepart() {
+  const n = CONFIG.noel;
+  if (!n || /[?&]ambiance=non\b/.test(location.search)) return 0;
+  let dev = false;
+  try { dev = localStorage.getItem('modeDev') === 'oui'; } catch { /* navigation privée */ }
+  const maintenant = new Date();
+  if (maintenant >= new Date(`${n.fin}T00:00`)) return 0;
+  const [a, m, j] = n.debut.split('-').map(Number);
+  const aujourdhui = new Date(maintenant.getFullYear(), maintenant.getMonth(), maintenant.getDate());
+  const jour = Math.round((aujourdhui - new Date(a, m - 1, j)) / 86400000) + 1;
+  if (jour < 1) return dev ? 24 : 0;
+  return n.public || dev ? Math.min(25, jour) : 0;
+}
+
 function majNoel() {
   const voulu = noelVoulu();
   if (!voulu && !noel) return;
@@ -1316,6 +1338,7 @@ function majNoel() {
       musique, // la case du 2 décembre débloque le style « Noël » du lecteur et le joue
       jouerNoel: () => lancerJeu({ noel: true }).catch((e) => console.warn('Jeu indisponible', e)), // la case du 8 décembre
       map, maplibregl, reperes, modeles3d, // les cadeaux posés sur la carte (noel-carte.js : cases 12, 14, 22 et 24)
+      ambiance: () => ambianceCarte, choisirOiseaux, // les décorations de chaque jour (noel-decors.js : neige, grues en papier…)
     }))
     .catch((e) => { console.warn('Noël indisponible', e); noel = null; });
   noel.then((n) => {

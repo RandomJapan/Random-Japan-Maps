@@ -19,7 +19,7 @@
 
 import { CONFIG } from './config.js';
 import { TEINTES } from './teintes.js';
-import { MOIS, jourDeLAn, dateDuJour } from './phenologie.js';
+import { MOIS, jourDeLAn, dateDuJour, HIVER_NOEL, ligneNeige, reglerHiverNoel } from './phenologie.js';
 import { creerParticules, animerParticules } from './particules.js';
 import { brancherDetailsSaison, styleSaison } from './saisons-carte.js';
 import { croixPanneau } from './commun.js';
@@ -118,6 +118,8 @@ export function moment(date) {
   const voisin = ((j.mois + (avant ? -2 : 0) + 12) % 12) + 1;
   const f = avant ? (15 - j.jour) / 30 : (j.jour - 15) / 30;
   const saison = mel(MOIS[j.mois], MOIS[voisin], f);
+  // Noël (cases du 6 décembre et suivantes) : la neige de plein hiver sur le relief
+  if (HIVER_NOEL.jourNeige) saison[3] = Math.min(saison[3], ligneNeige(HIVER_NOEL.jourNeige));
   const md = j.mois * 100 + j.jour;
   const particules = md >= 322 && md <= 506 ? 'petales'
     : md >= 601 && md <= 710 ? 'lucioles'
@@ -229,7 +231,7 @@ export function preparerAmbiance() {
    */
   function brancher(map, deps) {
     const rien = () => {};
-    if (reglage.classique) return { majLangue: rien, majLieux: rien, jourPourImage: () => rien, reel: rien, preparerTapis: rien, remplacerParticules: rien };
+    if (reglage.classique) return { majLangue: rien, majLieux: rien, jourPourImage: () => rien, reel: rien, preparerTapis: rien, remplacerParticules: rien, hiverNoel: rien };
     const sansMouvement = matchMedia('(prefers-reduced-motion: reduce)').matches;
     let reel = m0; // le moment au Japon (ou celui fixé par l'adresse ou le réglage)
     let m = m0; // le moment montré : le réel, ou le jour ou la nuit choisis avec l'interrupteur
@@ -470,6 +472,16 @@ export function preparerAmbiance() {
         remplacement = fn;
         particules = '?'; // les refaire, même si c'est la même sorte
         majParticules();
+      },
+      /**
+       * Noël (noel-decors.js) : la neige de plein hiver (à partir de la case du 6 décembre) et la banquise (du 11), d'après
+       * le jour du calendrier de l'Avent (0 : la vraie saison). Les couleurs et les détails de saison se refont aussitôt
+       * (une fois : le relief se redessine comme à un palier du coucher du soleil).
+       */
+      hiverNoel(jour) {
+        if (!reglerHiverNoel(jour)) return;
+        cle = 'noel';
+        verifier();
       },
       /** Revient au vrai moment (en quittant le mode développeur). */
       reel() {

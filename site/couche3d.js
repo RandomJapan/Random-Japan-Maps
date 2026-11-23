@@ -9,7 +9,7 @@
 //  bateaux de mer.js) ou au premier zoom rapproché : la carte démarre aussi vite.
 // ================================================================
 import { TEINTES } from './teintes.js';
-import { etatNature } from './phenologie.js';
+import { etatNature, HIVER_NOEL } from './phenologie.js';
 import { tailleCarte } from './commun.js';
 
 export const URL_THREE = 'https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.min.js';
@@ -66,6 +66,8 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
   // des objets posés près du modèle d'un lieu, à son échelle et chacun sur son sol (noel-carte.js : les six Jizō du
   // Murō-ji) : { liste, fabriquer, auClic, formes, vus } ; voir decors() plus bas
   let decors = null;
+  // Noël (noel-decors.js) : forceSaison(lieu) → { neige (au moins), glaceNuit } ou null ; versionForce la fait relire
+  let forceSaison = null, versionForce = 0;
   let chauffer = false; // compiler les shaders des modèles à la prochaine image (avant un plongeon)
   const m4 = {};
 
@@ -84,8 +86,14 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
    */
   function etatLieu(l) {
     const alt = Math.max(0, altitude(l) / (map.terrain?.exaggeration || 1));
-    const cle = `${TEINTES.jour}|${Math.round(alt / 40)}`;
-    if (l.etat3d?.cle !== cle) l.etat3d = { cle, valeur: etatNature(l.lat, l.lng, alt, TEINTES.jour) };
+    const cle = `${TEINTES.jour}|${Math.round(alt / 40)}|${HIVER_NOEL.jourNeige}|${versionForce}`;
+    if (l.etat3d?.cle !== cle) {
+      const v = etatNature(l.lat, l.lng, alt, TEINTES.jour);
+      const f = forceSaison?.(l);
+      // au-dessus de 1,5, la neige dit aussi « la glace luit la nuit » (matiereSaisons, modeles3d.js)
+      if (f) v[0] = Math.max(v[0], f.neige || 0) + (f.glaceNuit ? 2 : 0);
+      l.etat3d = { cle, valeur: v };
+    }
     return l.etat3d.valeur;
   }
 
@@ -276,7 +284,7 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
         m4.instance.makeScale(ks, ks, ks).multiply(m4.base).multiply(m4.rot.makeRotationY(o.ry || 0)).setPosition(m4.pos);
         if (saison) {
           const e = etatLieu(l);
-          f.etat.array.set([Math.max(e[0], o.neige || 0), e[1], e[2], e[3]], f.n * 4);
+          f.etat.array.set([Math.max(e[0] > 1.5 ? e[0] - 2 : e[0], o.neige || 0), e[1], e[2], e[3]], f.n * 4);
         }
         f.mesh.setMatrixAt(f.n++, m4.instance);
         d.vus.push({ i, lngLat: o.alt.lngLat, hPx: f.hauteur * (o.s ?? 1) * apparait * echelleDessin });
@@ -430,6 +438,15 @@ export function brancherModeles(map, maplibregl, obtenirLieux) {
       retirerDecors();
       if (liste?.length) decors = { liste: liste.map((o) => ({ ...o })), fabriquer, auClic, formes: null, vus: [] };
       installerDecors();
+      map.triggerRepaint();
+    },
+    /**
+     * Une saison forcée pour certains lieux (noel-decors.js : les cascades gelées du calendrier de l'Avent) :
+     * f(lieu) → { neige (au moins, 0–1), glaceNuit (l'eau gelée luit la nuit) } ou null ; f = null : la vraie saison.
+     */
+    forcerSaison(f) {
+      forceSaison = f;
+      versionForce++;
       map.triggerRepaint();
     },
     /** Le lieu dont le modèle est sous ce point de l'écran (pour ouvrir sa fiche d'un appui sur le modèle). Un objet

@@ -91,7 +91,7 @@ export function matiereSaisons(THREE) {
   const uniformes = {
     actif: { value: 0 }, nuit: { value: 0 },
     cJeune: c('#a7c466'), cEte: c(C.feuillage), cNu: c('#7a6656'), cRoux1: c('#dba43c'), cRoux2: c('#c4482a'),
-    cSec: c('#b9a774'), cHerbe: c(C.herbe), cGlace: c('#dbe8ea'), cNeige: c('#f6f4ef'), cLanterne: c('#ffb447'), cChaud: c('#ff9a3c'),
+    cSec: c('#b9a774'), cHerbe: c(C.herbe), cGlace: c('#dbe8ea'), cNeige: c('#f6f4ef'), cLanterne: c('#ffb447'), cChaud: c('#ff9a3c'), cGlaceNuit: c('#8fd0ff'),
   };
   const matiere = new THREE.MeshLambertMaterial({ vertexColors: true });
   matiere.onBeforeCompile = (shader) => {
@@ -103,12 +103,15 @@ attribute vec4 etatSaison;
 uniform float actif;
 uniform vec3 cJeune, cEte, cNu, cRoux1, cRoux2, cSec, cHerbe, cGlace, cNeige;
 varying float vLumiere;
-varying float vBas;`)
+varying float vBas;
+varying float vGlace;`)
       .replace('#include <color_vertex>', `#include <color_vertex>
 {
   float classe = floor(saison.x + 0.5);
   float p = saison.y, h = saison.z;
-  float neige = etatSaison.x, automne = etatSaison.y, fleurs = etatSaison.w;
+  // au-dessus de 1,5 : la glace luit la nuit (les cascades gelées de Noël, couche3d.js forcerSaison)
+  float illumine = step(1.5, etatSaison.x);
+  float neige = etatSaison.x - 2.0 * illumine, automne = etatSaison.y, fleurs = etatSaison.w;
   float presence = clamp(etatSaison.z, 0.0, 1.0), maturite = clamp(etatSaison.z - 1.0, 0.0, 1.0);
   vec3 c = vColor.rgb, s = vColor.rgb;
   vec3 jeune = cJeune * p, ete = cEte * p, nu = cNu * p, sec = cSec * p;
@@ -128,16 +131,18 @@ varying float vBas;`)
   s = mix(s, cNeige * (0.94 + 0.06 * h), couvre);
   vColor.rgb = mix(c, s, actif);
   vLumiere = classe == 8.0 ? 1.0 : 0.0;
+  vGlace = classe == 7.0 ? illumine * smoothstep(0.7, 1.0, neige) : 0.0;
   vBas = 1.0 - smoothstep(0.0, 0.4, position.y);
 }`);
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', `#include <common>
 uniform float nuit;
-uniform vec3 cLanterne, cChaud;
+uniform vec3 cLanterne, cChaud, cGlaceNuit;
 varying float vLumiere;
-varying float vBas;`)
+varying float vBas;
+varying float vGlace;`)
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
-totalEmissiveRadiance += nuit * (cLanterne * vLumiere * 1.3 + cChaud * vBas * 0.09);`);
+totalEmissiveRadiance += nuit * (cLanterne * vLumiere * 1.3 + cChaud * vBas * 0.09 + cGlaceNuit * vGlace * 0.8);`);
   };
   return { matiere, uniformes };
 }

@@ -19,6 +19,7 @@
 import { DESSINS } from './legendes-dessins.js';
 import { LEGENDES, ouvrirLegende } from './legendes.js';
 import { echapper } from './commun.js';
+import { brancherDecors } from './noel-decors.js';
 
 const JOUR_TEMPETE = 12, JOUR_KANJI = 14, JOUR_YUZU = 22, JOUR_JIZO = 24;
 const ZOOM_YUZU = 6.5; // comme les légendes : de plus loin, on ne les voit pas
@@ -126,7 +127,7 @@ export function brancherNoelCarte(map, maplibregl, outils) {
     reperes.suivre(marqueur, { voulu: false, placer });
     return { el, marqueur, lngLat, zoomMin, montre: null };
   }
-  const tous = () => [...(yuzus || [])];
+  const tous = () => [...(yuzus || []), ...(decors?.reperes() || [])];
   function majZoom() {
     const z = map.getZoom();
     const vue = map.getBounds();
@@ -139,6 +140,10 @@ export function brancherNoelCarte(map, maplibregl, outils) {
   map.on('zoom', majZoom);
   map.on('moveend', majZoom);
   function retirer(r) { if (r) reperes.oublier(r.marqueur); }
+
+  // ---- Les décorations de chaque jour (noel-decors.js : neige, illuminations, cygnes, grues en papier…)
+  const decors = brancherDecors(map, { poser, ouvrirBulle, contenu, retirer, enL, tx, lieux, ambiance: outils.ambiance,
+    choisirOiseaux: outils.choisirOiseaux, modeles3d, sansMouvement, basDesBandeaux });
 
   // ---- Le 12 : la tempête autour de Yuki-onna (noel.css : body.noel-tempete .legende[data-legende="yukionna"])
   function allerYukionna() {
@@ -388,6 +393,7 @@ export function brancherNoelCarte(map, maplibregl, outils) {
     if (j < JOUR_YUZU && yuzus) { yuzus.forEach(retirer); yuzus = null; }
     if (j >= JOUR_JIZO && !jizo) { poserJizo(); poserTraineau(); }
     if (j < JOUR_JIZO && jizo) { retirerJizo(); retirerTraineau(); }
+    decors.maj(j);
     majZoom();
   }
   function retirerTraineau() {
@@ -397,6 +403,7 @@ export function brancherNoelCarte(map, maplibregl, outils) {
   }
   function eteindre() {
     bulle?.remove();
+    decors.eteindre();
     document.body.classList.remove('noel-tempete');
     retirerKanji();
     yuzus?.forEach(retirer); yuzus = null;

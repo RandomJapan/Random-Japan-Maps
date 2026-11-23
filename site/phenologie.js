@@ -60,9 +60,29 @@ export function ligneNeige(j) {
   return MOIS[avant + 1][3] + (MOIS[apres + 1][3] - MOIS[avant + 1][3]) * f;
 }
 
+/**
+ * L'hiver de Noël (2026-11-23, les décorations du calendrier de l'Avent : noel-decors.js) : à partir de la case du
+ * 6 décembre, la neige descend comme en plein hiver ; à partir de celle du 11, la banquise arrive sur la mer d'Okhotsk.
+ * jourNeige, jourBanquise : le jour de l'année dont on prend la neige ou la banquise quand il y en a plus que la vraie
+ * saison (null : la vraie saison). Lu par neigeAuSol (la neige au sol et celle des modèles 3D), ambiance.js (la ligne de
+ * neige du relief), saisons-carte.js (la banquise) et couche3d.js.
+ */
+export const HIVER_NOEL = { jourNeige: null, jourBanquise: null };
+const JOUR_NEIGE_NOEL = 6, JOUR_BANQUISE_NOEL = 11; // les cases du calendrier
+const NEIGE_NOEL = 25, BANQUISE_NOEL = 40; // la neige du 25 janvier, la banquise du 9 février
+/** Règle l'hiver de Noël d'après le jour du calendrier de l'Avent (0 : pas de Noël). Vrai si quelque chose change. */
+export function reglerHiverNoel(jour) {
+  const n = jour >= JOUR_NEIGE_NOEL ? NEIGE_NOEL : null, b = jour >= JOUR_BANQUISE_NOEL ? BANQUISE_NOEL : null;
+  if (n === HIVER_NOEL.jourNeige && b === HIVER_NOEL.jourBanquise) return false;
+  HIVER_NOEL.jourNeige = n;
+  HIVER_NOEL.jourBanquise = b;
+  return true;
+}
+
 /** La neige au sol (0 à 1) en ce point ce jour-là : la ligne de neige descend de 220 m par degré vers le nord. */
 export function neigeAuSol(lat, alt, j) {
-  const ligne = ligneNeige(j) - 100 - 220 * (lat - 36);
+  const noel = HIVER_NOEL.jourNeige ? ligneNeige(HIVER_NOEL.jourNeige) : Infinity;
+  const ligne = Math.min(ligneNeige(j), noel) - 100 - 220 * (lat - 36);
   return lisse(ligne - 250, ligne + 250, alt);
 }
 
