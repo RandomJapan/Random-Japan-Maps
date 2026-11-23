@@ -6,8 +6,8 @@ TikTok), dans videos/carte/calendrier/, avec leurs miniatures.
     python outils/video/calendrier/finir.py son Grue        # seulement le son (sur les images déjà rendues)
 
 Il faut d'abord preparer.py, rushes.py et diagrammes.py, et le node_modules de montage/ (une jonction vers celui du jeu).
-Après Remotion : le son à −17 LUFS (la musique 3 dB sous le niveau de TikTok, à la demande du propriétaire le 2026-11-23 :
-« baisse un peu la musique » ; les bruitages gardent leur niveau), le même gain pour la version sans musique ; l'image en BT.709 plage TV.
+Après Remotion : le son à −20 LUFS (la musique 6 dB sous le niveau de TikTok, à la demande du propriétaire le 2026-11-23 :
+« baisse un peu la musique », puis « baisse encore » ; les bruitages gardent leur niveau), le même gain pour la version sans musique ; l'image en BT.709 plage TV.
 Les fichiers temporaires vont sur D: (TMP) : C: est presque plein.
 """
 import json
@@ -23,7 +23,7 @@ MONTAGE = ICI / 'montage'
 SORTIE = ICI.parents[2] / 'videos' / 'carte' / 'calendrier'
 VIDEOS = {'Cadeaux': ('carte-japon-calendrier-avent', 'MiniatureCadeaux'),
           'Grue': ('carte-japon-tuto-grue-origami', 'MiniatureGrue')}
-CIBLE = -17  # LUFS
+CIBLE = -20  # LUFS
 OPTIONS = ['--concurrency=4', '--timeout=120000', '--offthreadvideo-cache-size-in-bytes=2000000000', '--log=error']
 
 
