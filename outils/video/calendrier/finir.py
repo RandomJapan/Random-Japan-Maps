@@ -1,8 +1,8 @@
 """Fabrique les vidéos du calendrier de l'Avent finies (9:16, 60 images/s) depuis le montage Remotion (montage/) : la promo
 « les cadeaux sont vrais » et le tutoriel de la grue, chacune avec la musique et sans (les bruitages restent : pour y mettre un son
 TikTok), dans videos/carte/calendrier/, avec leurs miniatures.
-    python outils/video/calendrier/finir.py                 # les deux
-    python outils/video/calendrier/finir.py Grue            # une seule
+    python outils/video/calendrier/finir.py                 # toutes
+    python outils/video/calendrier/finir.py Grue            # une seule (Cadeaux, Grue, Jours, Traditions, Cases)
     python outils/video/calendrier/finir.py son Grue        # seulement le son (sur les images déjà rendues)
 
 Il faut d'abord preparer.py, rushes.py et diagrammes.py, et le node_modules de montage/ (une jonction vers celui du jeu).
@@ -22,7 +22,11 @@ ICI = Path(__file__).resolve().parent
 MONTAGE = ICI / 'montage'
 SORTIE = ICI.parents[2] / 'videos' / 'carte' / 'calendrier'
 VIDEOS = {'Cadeaux': ('carte-japon-calendrier-avent', 'MiniatureCadeaux'),
-          'Grue': ('carte-japon-tuto-grue-origami', 'MiniatureGrue')}
+          'Grue': ('carte-japon-tuto-grue-origami', 'MiniatureGrue'),
+          # les trois de Noël (plan-noel.md)
+          'Jours': ('carte-japon-noel-chaque-jour', 'MiniatureJours'),
+          'Traditions': ('carte-japon-noel-traditions', 'MiniatureTraditions'),
+          'Cases': ('carte-japon-noel-24-cadeaux', 'MiniatureCases')}
 CIBLE = -20  # LUFS
 OPTIONS = ['--concurrency=4', '--timeout=120000', '--offthreadvideo-cache-size-in-bytes=2000000000', '--log=error']
 
@@ -33,7 +37,15 @@ def ffmpeg():
 
 def npx(*args):
     env = {**os.environ, 'TMP': str(SORTIE / 'tmp'), 'TEMP': str(SORTIE / 'tmp')}
-    subprocess.run([shutil.which('npx') or 'npx', 'remotion', *args], cwd=MONTAGE, check=True, shell=sys.platform == 'win32', env=env)
+    commande = [shutil.which('npx') or 'npx', 'remotion', *args]
+    try:
+        subprocess.run(commande, cwd=MONTAGE, check=True, shell=sys.platform == 'win32', env=env)
+    except subprocess.CalledProcessError:
+        # un rendu peut s'arrêter sur « waitForFunction » (une image trop lente à préparer) : une seconde fois, moins d'onglets
+        # à la fois et plus de patience (le tuto, puis « Traditions », s'y sont arrêtés à 4 onglets et 120 s)
+        print('… nouvel essai : --concurrency=2 --timeout=300000', flush=True)
+        commande = [a.replace('--concurrency=4', '--concurrency=2').replace('--timeout=120000', '--timeout=300000') for a in commande]
+        subprocess.run(commande, cwd=MONTAGE, check=True, shell=sys.platform == 'win32', env=env)
 
 
 def props(bgm):

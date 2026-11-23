@@ -53,11 +53,12 @@ const AVANCE = 2; // l'AAC du MP4 retarde le son d'autant
 /** [seconde, fichier de sfx/, volume, durée (s) : coupé et fondu au bout] */
 export type Effet = [number, string, number, number?];
 
-export const Son: React.FC<{ bgm: boolean; musique: string; volume: number | ((f: number) => number); effets: Effet[] }> = ({ bgm, musique, volume, effets }) => {
+/** debut : la seconde du morceau à l'image 0 (les vidéos de Noël prennent chacune un passage de « Yuki akari »). */
+export const Son: React.FC<{ bgm: boolean; musique: string; volume: number | ((f: number) => number); effets: Effet[]; debut?: number }> = ({ bgm, musique, volume, effets, debut = 0 }) => {
   const { durationInFrames: duree } = useVideoConfig();
   return (
     <>
-      {bgm && <Audio src={staticFile(musique)} volume={volume} />}
+      {bgm && <Audio src={staticFile(musique)} volume={volume} trimBefore={Math.round(debut * FPS)} />}
       {effets.map(([a, nom, v, d], i) => (
         <Sequence key={i} from={Math.max(0, s(a) - AVANCE)} durationInFrames={Math.min(s(d ?? 3), duree)} layout="none">
           <Audio src={staticFile(`sfx/${nom}`)} volume={d === undefined ? v : (f) => v * interpolate(f, [s(d) - 12, s(d)], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })} />

@@ -140,6 +140,36 @@ def musique():
                         '-af', 'afade=t=out:st=20.3:d=1.1', str(refrain)], check=True)
 
 
+# Les clochettes des vidéos de Noël (2026-11-23) : une boîte à musique en ré majeur, comme dans « Yuki akari ». Chaque note
+# a ses partiels de lame (1, 3,93, 9,54 : une lame encastrée), une attaque de 2 ms et une décroissance plus rapide pour les aigus.
+GAMME = {'re5': 587.33, 'mi5': 659.26, 'fad5': 739.99, 'la5': 880.0, 'si5': 987.77, 're6': 1174.66, 'mi6': 1318.51,
+         'fad6': 1479.98, 'la6': 1760.0, 'si6': 1975.53, 're7': 2349.32, 'mi7': 2637.02, 'fad7': 2959.96}
+
+
+def clochettes():
+    import wave
+
+    import numpy as np
+    sr = 48000
+    for nom, f0 in GAMME.items():
+        f = PUBLIC / 'sfx' / f'clochette-{nom}.wav'
+        if f.exists():
+            continue
+        t = np.arange(int(sr * 1.6)) / sr
+        x = np.zeros_like(t)
+        for k, a, d in ((1, 1.0, 0.55), (3.93, 0.32, 0.16), (9.54, 0.12, 0.05)):
+            if f0 * k < sr / 2.2:
+                x += a * np.sin(2 * np.pi * f0 * k * t) * np.exp(-t / (d * (880 / f0) ** 0.35))
+        x *= np.minimum(1, t / 0.002)
+        x = 0.5 * x / np.abs(x).max()
+        y = (np.stack([x, x], 1) * 32767).astype('<i2')
+        with wave.open(str(f), 'wb') as w:
+            w.setnchannels(2)
+            w.setsampwidth(2)
+            w.setframerate(sr)
+            w.writeframes(y.tobytes())
+
+
 def main():
     durees = {}
     for sous, plans in (('clips', PROMO), ('tuto', TUTO)):
@@ -168,6 +198,7 @@ def main():
     for dossier, nom in (('carte/jeu', 'cr-appui.wav'), ('carte/jeu', 'cr-reponse.wav'), ('carte/jeu', 'paper-slide.mp3'),
                          ('carte/promo30', 'paper-move-quick.mp3'), ('carte/jeu', 'shimmer-sparkle-sweep.mp3')):
         shutil.copy(RACINE / 'videos' / dossier / 'public' / 'sfx' / nom, sfx / nom)
+    clochettes()
     print('→', PUBLIC)
 
 

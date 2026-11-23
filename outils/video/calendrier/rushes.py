@@ -24,17 +24,31 @@ JOUR = '2026-12-15T10:30:00'
 OUVERTES = [1, 2, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14]
 COMMUN = {'scripts': ['calendrier/plans.js'], 'halloween': False, 'heure': '10:30', 'date': '2026-12-15', 'page': (432, 768),
           'echelle': 2.5, 'stockage': {'calendrierOuvert': json.dumps(OUVERTES), 'langue': 'en'}}
-PLANS = {'cv-cases': {}}
+# cv-jours (les vidéos de Noël, plan-noel.md) : la nuit, du 1er au 24 décembre dans la même prise (__jourSuivant)
+NUIT_NOEL = {'heure': '21:30', 'jour': '2026-12-01T10:30:00', 'stockage': {'langue': 'en'}}
+PLANS = {'cv-cases': {}, 'cv-jours': NUIT_NOEL, 'cv-papier': NUIT_NOEL}
 
-# Avant tout autre script de la page (donc avant ralenti.js, qui lit Date.now) : l'horloge au jour voulu
+# Avant tout autre script de la page (donc avant ralenti.js, qui lit Date.now) : l'horloge au jour voulu. La prise peut changer
+# de jour (__jourSuivant(j) : new Date() passe au j décembre, puis la carte refait ce qu'elle fait chaque minute, dont
+# majNoel : le calendrier et ses décorations suivent le jour, comme à minuit chez un visiteur). Le saut de jours passe par le
+# constructeur, pas par Date.now : ralenti.js remplace Date.now par son horloge ralentie, partie de la valeur du moment.
 DATE = """(() => {
-  const D = Date, decalage = new D('%s').getTime() - D.now();
+  const D = Date, depart = '%s';
+  const decalage = new D(depart).getTime() - D.now();
+  let plus = 0; // les jours passés depuis le départ (__jourSuivant) : seulement pour new Date(), que lit le calendrier (noel.js)
   class Jour extends D {
-    constructor(...a) { if (a.length) super(...a); else super(Jour.now()); }
+    constructor(...a) { if (a.length) super(...a); else super(Jour.now() + plus); }
     static now() { return D.now() + decalage; }
   }
   window.Date = Jour;
-})();""" % JOUR
+  const si = window.setInterval;
+  const chaqueMinute = [];
+  window.setInterval = function (f, d, ...a) { if (d >= 60000 && typeof f === 'function') chaqueMinute.push(f); return si.call(this, f, d, ...a); };
+  window.__jourSuivant = (j) => {
+    plus = new D(`2026-12-${String(j).padStart(2, '0')}${depart.slice(10)}`).getTime() - new D(depart).getTime();
+    chaqueMinute.forEach((f) => { try { f(); } catch (e) { console.warn(e); } });
+  };
+})();"""
 
 
 class Contexte:
@@ -57,10 +71,11 @@ class Navigateur:
 
     def __init__(self, nav):
         self.nav = nav
+        self.jour = JOUR
 
     def new_context(self, **options):
         ctx = self.nav.new_context(**options)
-        ctx.add_init_script(DATE)
+        ctx.add_init_script(DATE % self.jour)
         return Contexte(ctx)
 
 
@@ -74,6 +89,7 @@ def main():
         n = Navigateur(nav)
         for nom in noms:
             reglages = {**COMMUN, **PLANS[nom], 'sortie': sortie}
+            n.jour = reglages.get('jour', JOUR)
             if brouillon:
                 tourner(n, nom, reglages, vertical=True, facteur=0.4, ips=15)
                 subprocess.run([ffmpeg(), '-hide_banner', '-loglevel', 'error', '-y', '-i', str(sortie / f'{nom}.mp4'),
