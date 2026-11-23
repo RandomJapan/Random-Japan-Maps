@@ -85,7 +85,9 @@ const dateJapon = (annee, mois, jour, heure, minute) => new Date(Date.UTC(annee,
 /** Le moment fixé par l'adresse pour les essais (?heure=21:30, ?date=2026-04-05, ?mois=4), sinon maintenant. */
 function lireMoment() {
   const p = new URLSearchParams(location.search);
-  const heure = p.get('heure')?.match(/^(\d{1,2})[:h.]?(\d{2})?$/);
+  // Le live (…/?live, live.js) est toujours en plein jour, midi au Japon : on voit mieux la carte (le propriétaire,
+  // 2026-11-23). La saison et les décorations du jour restent.
+  const heure = (p.get('heure') || (p.has('live') ? '12:00' : null))?.match(/^(\d{1,2})[:h.]?(\d{2})?$/);
   const date = p.get('date')?.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   const mois = Number(p.get('mois'));
   return {

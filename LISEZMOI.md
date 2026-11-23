@@ -396,6 +396,7 @@ Un live où **ce sont les spectateurs qui jouent** dans le chat. Il marche sur T
   3. Passer en LIVE, puis dans TikFinity cliquer **« Connect to TikTok LIVE »**. En bas à droite de la page, un petit point vert « chat connected » dit que les commentaires arrivent (il est caché par les boutons de TikTok pour les spectateurs).
 - **Pour essayer sans être en live :** https://map.randomjapanplace.com/?live&essai fait jouer de faux spectateurs (…/?live&youtube&essai pour l'écran YouTube).
 - **En français :** …/?live=fr (en japonais : …/?live=ja). Sans rien, c'est en anglais, comme tes vidéos.
+- La carte du live est **toujours en plein jour** (midi au Japon), même la nuit là-bas : on la voit mieux. La saison et les décorations du jour restent.
 - Le classement du jour reste dans le navigateur qui fait le live : si la page se recharge, il n'est pas perdu. Il repart à zéro le lendemain.
 
 ### Le live YouTube (tout seul)
