@@ -23,9 +23,12 @@
 
 // --- Réglages ---------------------------------------------------------
 const ID_TABLEAU = '1stIWJ2Vi8nV8wHAv4RDGdY3-xiTiNVLprGIPFA9g-mo'; // « Random Japan Place - Lieux de la carte »
-// Modèles essayés dans l'ordre (si le quota gratuit du 1er est épuisé, on passe au suivant)
-const MODELES_IDENTIFIER = ['gemini-3.5-flash-lite', 'gemini-3.8-flash']; // 1re question : quel lieu ?
-const MODELES_REDIGER = ['gemini-3.8-flash', 'gemini-3.5-flash-lite']; // 2e question : écrire la fiche
+// Modèles essayés dans l'ordre (si le 1er est débordé ou sans quota gratuit, on passe au suivant). Tous gratuits
+// (ai.google.dev/gemini-api/docs/pricing, 2026-11-23). Les quatre derniers sont des secours : le 2026-11-23, les deux
+// premiers ont répondu 503 « high demand » pendant plus de 2 heures (Shirahige Waterfall et Kōdōkan restés vides).
+const SECOURS = ['gemini-4-hydrogen', 'gemini-3.6-flash', 'gemini-3.1-flash-lite', 'gemini-3-flash-preview'];
+const MODELES_IDENTIFIER = ['gemini-3.5-flash-lite', 'gemini-3.8-flash', ...SECOURS]; // 1re question : quel lieu ?
+const MODELES_REDIGER = ['gemini-3.8-flash', 'gemini-3.5-flash-lite', ...SECOURS]; // 2e question : écrire la fiche
 const AGENT = 'RandomJapanPlaceRobot/1.0 (https://randomjapan.github.io/Random-Japan-Maps/)';
 const LIGNES_PAR_PASSAGE = 3;
 const ESSAIS_MAX = 2;
@@ -864,6 +867,7 @@ function messageErreur_(err, essai) {
   if (err && err.reessayer && essai < (deborde ? ESSAIS_DEBORDE : ESSAIS_MAX)) {
     return `⏳ ${deborde ? DEBORDE : 'Petit souci'} (${texte}). Nouvel essai dans 10 minutes… (essai ${essai})`;
   }
+  if (deborde) return `❌ ${DEBORDE} depuis 2 heures (${texte}). Efface ce message pour réessayer plus tard.`;
   return `❌ ${texte} Efface ce message pour réessayer.`;
 }
 
