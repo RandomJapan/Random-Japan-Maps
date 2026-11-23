@@ -1,0 +1,417 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="/atelier/commun.css">
+<style>
+@page { size: A4; margin: 0; }
+.feuille { width: 210mm; height: 297mm; background-image: url(grain.jpg); background-size: 240px; } /* le grain en carreau : bien plus léger dans le PDF que le filtre SVG */
+.entete { position: absolute; top: 12mm; left: 15mm; right: 15mm; display: flex; justify-content: space-between; align-items: baseline; gap: 6mm; }
+.entete .titre { font-size: 17pt; }
+.entete .italique { font-size: 11pt; color: var(--encre-douce); text-align: right; }
+/* le carré à découper : 180 mm, les traits de coupe aux coins */
+.carre { position: absolute; top: 27mm; left: 15mm; width: 180mm; height: 180mm; }
+.carre svg { display: block; width: 180mm; height: 180mm; }
+.coupe { position: absolute; top: 27mm; left: 15mm; width: 180mm; height: 180mm; pointer-events: none; }
+.coupe i { position: absolute; background: var(--encre-douce); }
+.sous { position: absolute; top: 213mm; left: 15mm; right: 15mm; display: grid; gap: 4mm; }
+.sous .consigne { font-size: 10.5pt; line-height: 1.5; margin: 0; }
+.sous .motif { font-size: 10.5pt; line-height: 1.55; margin: 0; padding: 4mm 5mm; background: rgba(239, 228, 200, .7); box-shadow: inset 1mm 0 0 rgba(138, 107, 69, .6); }
+.sous .motif b { font-family: var(--police-titre); font-weight: 400; color: var(--rouge); font-size: 12pt; }
+.pied { position: absolute; bottom: 10mm; left: 15mm; right: 15mm; display: flex; justify-content: space-between; align-items: center; font-size: 8pt; color: var(--encre-douce); }
+/* la page du pliage */
+.pliage { position: absolute; inset: 13mm 14mm 18mm; display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: 3.5mm; }
+.pliage .titre { font-size: 20pt; }
+.pliage .intro { font-size: 10pt; line-height: 1.5; margin: 0; }
+.etapes { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(4, minmax(0, 1fr)); gap: 3mm 4mm; } /* minmax : sinon les dessins gardent leur hauteur et la 4e rangée sort de la page */
+.etape { display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 1.6mm; min-height: 0; }
+.etape svg { width: 100%; height: 100%; min-height: 0; background: #fbf6ea; border: .3mm solid rgba(138, 107, 69, .45); }
+.etape p { margin: 0; font-size: 8.6pt; line-height: 1.38; }
+.etape b { font-family: var(--police-titre); font-weight: 400; color: var(--rouge); font-size: 12pt; margin-right: 1.6mm; }
+.legende { display: flex; gap: 7mm; font-size: 8pt; color: var(--encre-douce); align-items: center; }
+.legende svg { width: 14mm; height: 3mm; vertical-align: middle; margin-right: 1.5mm; }
+/* la page 4 : l'étape 9 pas à pas (six grands dessins) */
+.detail { grid-template-rows: auto auto minmax(0, 1fr) auto; }
+.detail .titre { font-size: 18pt; }
+.detail .etapes { grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 5mm 5mm; }
+.detail .etape { gap: 2mm; }
+.detail .etape p { font-size: 9.4pt; line-height: 1.42; }
+.detail .etape b { font-size: 13pt; }
+.detail svg text { font-family: var(--police); }
+.astuce { font-size: 10pt; line-height: 1.5; margin: 0; padding: 3.5mm 5mm; background: rgba(239, 228, 200, .7); box-shadow: inset 1mm 0 0 rgba(168, 50, 31, .55); }
+.astuce b { color: var(--rouge); }
+</style></head>
+<body>
+<section class="feuille" id="f1"></section>
+<section class="feuille" id="f2"></section>
+<section class="feuille"><div class="filet"></div>
+  <div class="pliage">
+    <h1 class="titre" id="p-titre"></h1>
+    <div><p class="intro" id="p-intro"></p><div class="legende" id="legende"></div></div>
+    <div class="etapes" id="etapes"></div>
+  </div>
+  <div class="pied"><span></span><span class="marque"><img src="/img/logo.jpg" alt="">map.randomjapanplace.com</span></div>
+</section>
+<section class="feuille"><div class="filet"></div>
+  <div class="pliage detail">
+    <h1 class="titre" id="d-titre"></h1>
+    <p class="intro" id="d-intro"></p>
+    <div class="etapes" id="d-etapes"></div>
+    <p class="astuce" id="d-astuce"></p>
+  </div>
+  <div class="pied"><span></span><span class="marque"><img src="/img/logo.jpg" alt="">map.randomjapanplace.com</span></div>
+</section>
+<script type="module">
+const L = new URLSearchParams(location.search).get('lang') || 'fr';
+const T = {
+  fr: {
+    titre: 'Le papier origami de la carte', feuille: (n) => `Feuille ${n} sur 2`,
+    noms: ['Les vagues · seigaiha 青海波', 'Les feuilles de chanvre · asanoha 麻の葉'],
+    consigne: '✂ Découpe le carré le long du trait. Imprime en taille réelle (100 %), sur du papier fin : il se plie mieux. Le côté imprimé sera l’extérieur de la grue (le pliage est aux pages 3 et 4).',
+    motifs: ['<b>Seigaiha</b> veut dire « les vagues de la mer bleue ». Ces vagues sans fin sont un vœu : une vie calme et heureuse, qui continue.',
+      '<b>Asanoha</b>, c’est la feuille de chanvre. Le chanvre pousse vite et droit : on mettait ce motif sur les habits des bébés pour qu’ils grandissent en bonne santé.'],
+    pTitre: 'Plier une grue en papier (orizuru 折り鶴)',
+    pIntro: 'La grue est le pliage le plus célèbre du Japon. Au Japon, on plie mille grues (senbazuru) pour faire un vœu. Marque bien chaque pli avec l’ongle.',
+    vallee: 'pli vallée (vers toi)', montagne: 'pli montagne (vers l’arrière)', retourner: 'retourner',
+    etapes: [
+      'Côté motif dessus. Plie en deux en triangle, puis déplie. Pareil dans l’autre sens.',
+      'Retourne (côté blanc dessus). Plie en deux en rectangle, puis déplie. Pareil dans l’autre sens.',
+      'Avec ces plis, ramène les coins du haut, de gauche et de droite sur celui du bas. Aplatis.',
+      'Un petit carré, les pointes libres en bas. Plie les deux bords du dessus sur le milieu.',
+      'Rabats le triangle du haut par-dessus. Puis déplie les plis des étapes 4 et 5.',
+      'Soulève la pointe du bas (une seule épaisseur) vers le haut, le long du pli. Les côtés rentrent au milieu. Aplatis.',
+      'Retourne, et refais les étapes 4 à 6 de l’autre côté : c’est la « base de l’oiseau ».',
+      'Plie les bords du bas (épaisseur du dessus) sur le milieu. Retourne, et refais-le.',
+      'Replie chaque pointe du bas vers le haut, à l’intérieur, entre les deux épaisseurs : le cou et la queue. Pas à pas page 4.',
+      'Replie le bout du cou de la même façon, vers le bas : c’est la tête.',
+      'Rabats les deux ailes vers le bas : une devant, une derrière.',
+      'Écarte doucement les ailes pour gonfler le dos. Ta grue est prête !',
+    ],
+    // la page 4 : l'étape 9 pas à pas (le propriétaire, 2026-11-22, à sa première grue : « j'ai galéré à faire l'étape 9 »)
+    dTitre: 'L’étape 9 pas à pas : le cou et la queue',
+    dIntro: 'C’est le pli le plus difficile de la grue (le « pli inversé ») : la pointe remonte à l’intérieur, entre deux épaisseurs. On marque d’abord le pli par-dessus, puis on le fait pour de vrai. Prends ton temps.',
+    cou: 'cou', queue: 'queue',
+    details: [
+      'En bas, il y a en fait <em>deux</em> pointes fines, collées de chaque côté du trait du milieu. On peut les écarter un peu. Celle de gauche sera le cou, celle de droite la queue.',
+      'Plie la pointe de gauche vers le haut, par-dessus, en biais : son bout monte presque jusqu’en haut, à gauche. Appuie fort sur le pli, puis déplie. Fais pareil par-derrière, puis déplie.',
+      'Écarte un peu la pointe de gauche de celle de droite. Puis ouvre-la par en dessous : ses deux épaisseurs (devant, derrière) s’écartent, on voit le blanc à l’intérieur.',
+      'Avec un doigt, pousse le bout vers le haut, entre ces deux épaisseurs, en suivant le pli marqué. Le pli se retourne tout seul : la pointe remonte à l’intérieur.',
+      'Referme et aplatis bien. Le cou sort entre le devant et le derrière de la grue : il ne passe ni par-dessus, ni par-dessous.',
+      'Refais 9b à 9e avec la pointe de droite : c’est la queue. Puis passe à l’étape 10 : la tête, c’est le même pli, en plus petit.',
+    ],
+    astuce: '<b>Ça résiste ?</b> Ne force pas : déplie, marque encore mieux le pli de l’étape 9b, et recommence doucement. Le papier fin aide beaucoup.',
+  },
+  en: {
+    titre: 'The map’s origami paper', feuille: (n) => `Sheet ${n} of 2`,
+    noms: ['Waves · seigaiha 青海波', 'Hemp leaves · asanoha 麻の葉'],
+    consigne: '✂ Cut out the square along the line. Print at actual size (100 %), on thin paper: it folds better. The printed side will be the outside of the crane (the folding is on pages 3 and 4).',
+    motifs: ['<b>Seigaiha</b> means « waves of the blue sea ». These endless waves are a wish: a calm and happy life that goes on.',
+      '<b>Asanoha</b> is the hemp leaf. Hemp grows fast and straight: this pattern was put on babies’ clothes so they would grow up healthy.'],
+    pTitre: 'Fold a paper crane (orizuru 折り鶴)',
+    pIntro: 'The crane is Japan’s most famous fold. In Japan, people fold a thousand cranes (senbazuru) to make a wish. Press each fold well with a fingernail.',
+    vallee: 'valley fold (towards you)', montagne: 'mountain fold (away from you)', retourner: 'turn over',
+    etapes: [
+      'Pattern side up. Fold in half into a triangle, then unfold. The same the other way.',
+      'Turn over (white side up). Fold in half into a rectangle, then unfold. The same the other way.',
+      'Using the creases, bring the top, left and right corners down to the bottom one. Flatten.',
+      'A small square, its open points at the bottom. Fold the two top edges to the middle.',
+      'Fold the top triangle down over them. Then unfold the folds of steps 4 and 5.',
+      'Lift the bottom point (one layer only) up along the crease. The sides go to the middle. Flatten.',
+      'Turn over and repeat steps 4 to 6 on the other side: this is the « bird base ».',
+      'Fold the lower edges (top layer) to the middle. Turn over and do it again.',
+      'Fold each bottom point up, inside, between the two layers: the neck and the tail. Step by step on page 4.',
+      'Fold the tip of the neck the same way, down: this is the head.',
+      'Fold both wings down: one in front, one behind.',
+      'Gently spread the wings to puff up the back. Your crane is ready!',
+    ],
+    dTitre: 'Step 9, step by step: the neck and the tail',
+    dIntro: 'This is the hardest fold of the crane (the « reverse fold »): the point goes up inside, between two layers. First crease the fold on the outside, then do it for real. Take your time.',
+    cou: 'neck', queue: 'tail',
+    details: [
+      'At the bottom there are actually <em>two</em> thin points, pressed together on each side of the middle line. You can pull them a little apart. The left one will be the neck, the right one the tail.',
+      'Fold the left point up, in front, at a slant: its tip goes almost to the top, on the left. Press the fold hard, then unfold. Do the same behind, then unfold.',
+      'Pull the left point a little away from the right one. Then open it from below: its two layers (front and back) come apart, and you can see the white inside.',
+      'With a finger, push the tip up between these two layers, along the crease. The fold turns inside out by itself: the point goes up inside.',
+      'Close it and flatten it well. The neck comes out between the front and the back of the crane: it goes neither over nor under.',
+      'Repeat 9b to 9e with the right point: this is the tail. Then go on to step 10: the head is the same fold, smaller.',
+    ],
+    astuce: '<b>Is it stuck?</b> Don’t force it: unfold, crease the fold of step 9b even better, and try again gently. Thin paper helps a lot.',
+  },
+  ja: {
+    titre: 'マップの折り紙', feuille: (n) => `${n}枚目（全2枚）`,
+    noms: ['波 · 青海波（せいがいは）', '麻の葉（あさのは）'],
+    consigne: '✂ 線にそって正方形を切り取ってください。実際のサイズ（100%）で、うすい紙に印刷すると折りやすくなります。印刷した面が鶴の外側になります（折り方は3・4ページ目）。',
+    motifs: ['<b>青海波</b>は、どこまでも続く穏やかな波。おだやかで幸せな暮らしがずっと続くようにという願いがこめられています。',
+      '<b>麻の葉</b>の模様。麻はまっすぐ早く育つので、赤ちゃんが元気に育つようにと、産着によく使われました。'],
+    pTitre: '折り鶴の折り方',
+    pIntro: '鶴は日本でいちばん有名な折り紙です。願いをこめて千羽鶴を折ることもあります。折り目は爪でしっかりつけましょう。',
+    vallee: '谷折り（手前に）', montagne: '山折り（向こうに）', retourner: '裏返す',
+    etapes: [
+      '柄の面を上に。三角に半分に折って開きます。反対の向きも同じように。',
+      '裏返して（白い面を上に）、長方形に半分に折って開きます。反対の向きも同じように。',
+      '折り目にそって、上・左・右の角を下の角に集め、たたみます。',
+      '正方基本形（開いている方が下）。上の一枚のふちを中心線に合わせて折ります。',
+      '上の三角を折り下げます。そのあと、4と5の折り目を開きます。',
+      '上の一枚の下の角を、折り目にそって上へ持ち上げ、両わきを中心に寄せてたたみます。',
+      '裏返して、4〜6を同じように。これが「鶴の基本形」です。',
+      '下のふち（上の一枚）を中心線に合わせて折ります。裏も同じように。',
+      '下の二つの先を、あいだに折りこむように上へ（中割り折り）：首としっぽです。くわしくは4ページ。',
+      '首の先も同じように中割り折りで下へ：頭です。',
+      '両方の羽を下に折ります（表と裏）。',
+      '羽をそっと広げて、背中をふくらませれば、できあがり！',
+    ],
+    dTitre: '9の折り方をくわしく：首としっぽ',
+    dIntro: '鶴でいちばん難しいところです（中割り折り）。先を2枚のあいだに入れて、上へ折り上げます。まず外側に折って折り目をつけ、それから本番です。ゆっくりで大丈夫。',
+    cou: '首', queue: 'しっぽ',
+    details: [
+      '下のとがった部分は、じつは細い先が<em>2つ</em>。まん中の線の左右にぴったり並んでいて、少し離すことができます。左が首、右がしっぽになります。',
+      '左の先を、手前に、ななめ上へ折ります。先が左上、鶴の上のほうまで来るように。爪でしっかり折り目をつけて開きます。うしろ側にも同じように折って開きます。',
+      '左の先を右の先から少し離します。下から開くと、手前と向こうの2枚が離れて、内側の白い面が見えます。',
+      '指で先を、2枚のあいだに押し上げます。つけた折り目にそって。折り目が自然に裏返り、先が内側を通って上がります。',
+      '閉じて、しっかり押さえます。首は鶴の手前と向こうのあいだから出ます。外側には重なりません。',
+      '右の先も9b〜9eと同じように：これがしっぽです。そのあと10へ。頭も同じ折り方を小さくするだけです。',
+    ],
+    astuce: '<b>かたくて入らないときは？</b> 無理をしないで。開いて9bの折り目をもう一度しっかりつけ、ゆっくりやり直します。うすい紙だと折りやすいです。',
+  },
+}[L];
+const $ = (id) => document.getElementById(id);
+
+// ---------------------------------------------------------------- les deux feuilles à découper
+const S = 180; // mm
+function seigaiha() {
+  const R = 11, out = [];
+  for (let j = -1; j <= Math.ceil(S / (R / 2)) + 2; j++) {
+    const cy = j * R / 2, dx = j % 2 ? R : 0;
+    for (let i = -1; i <= S / (2 * R) + 1; i++) {
+      const cx = i * 2 * R + dx;
+      out.push(`<circle cx="${cx}" cy="${cy}" r="${R}" fill="#1d5652" stroke="#9cc7bd" stroke-width=".7"/>`);
+      for (const [k, f] of [[0.8, '#1d5652'], [0.6, '#245f5a'], [0.4, '#1d5652'], [0.2, '#8fbab2']])
+        out.push(`<circle cx="${cx}" cy="${cy}" r="${R * k}" fill="${f}" stroke="#9cc7bd" stroke-width=".6"/>`);
+    }
+  }
+  return `<rect width="${S}" height="${S}" fill="#1d5652"/>${out.join('')}`;
+}
+function asanoha() {
+  const s = 20, hh = s * Math.sqrt(3) / 2, lignes = [];
+  const v = (i, r) => [i * s + (r % 2 ? s / 2 : 0), r * hh];
+  const tri = (a, b, c) => {
+    const g = [(a[0] + b[0] + c[0]) / 3, (a[1] + b[1] + c[1]) / 3];
+    for (const [p, q] of [[a, b], [b, c], [c, a]]) lignes.push(`M${p[0].toFixed(2)} ${p[1].toFixed(2)}L${q[0].toFixed(2)} ${q[1].toFixed(2)}`);
+    for (const p of [a, b, c]) lignes.push(`M${p[0].toFixed(2)} ${p[1].toFixed(2)}L${g[0].toFixed(2)} ${g[1].toFixed(2)}`);
+  };
+  for (let r = -1; r <= S / hh + 1; r++) for (let i = -1; i <= S / s + 1; i++) {
+    const a = v(i, r), b = v(i + 1, r), c = r % 2 ? v(i + 1, r + 1) : v(i, r + 1), d = r % 2 ? v(i, r + 1) : v(i - 1, r + 1);
+    tri(a, b, c); tri(a, c, d);
+  }
+  return `<rect width="${S}" height="${S}" fill="#a8321f"/><path d="${lignes.join('')}" stroke="#f0dcae" stroke-width=".55" fill="none" stroke-linecap="round"/>`;
+}
+function feuille(el, n, dessin) {
+  const marques = [];
+  for (const [x, y] of [[0, 0], [S, 0], [0, S], [S, S]]) {
+    const ox = x ? 1 : -1, oy = y ? 1 : -1;
+    marques.push(`<i style="left:${x + (ox > 0 ? 1.5 : -7.5)}mm;top:${y - .15}mm;width:6mm;height:.3mm"></i><i style="left:${x - .15}mm;top:${y + (oy > 0 ? 1.5 : -7.5)}mm;width:.3mm;height:6mm"></i>`);
+  }
+  el.innerHTML = `<div class="entete"><h1 class="titre">${T.titre}</h1><span class="italique">${T.feuille(n)} · ${T.noms[n - 1]}</span></div>
+    <div class="carre"><svg viewBox="0 0 ${S} ${S}"><defs><clipPath id="c${n}"><rect width="${S}" height="${S}"/></clipPath></defs><g clip-path="url(#c${n})">${dessin}</g><rect x=".1" y=".1" width="${S - .2}" height="${S - .2}" fill="none" stroke="#35251a" stroke-width=".25"/></svg></div>
+    <div class="coupe">${marques.join('')}</div>
+    <div class="sous"><p class="consigne">${T.consigne}</p><p class="motif">${T.motifs[n - 1]}</p></div>
+    <div class="pied"><span></span><span class="marque"><img src="/img/logo.jpg" alt="">map.randomjapanplace.com</span></div>`;
+}
+feuille($('f1'), 1, seigaiha());
+feuille($('f2'), 2, asanoha());
+
+// ---------------------------------------------------------------- le pliage de la grue : la géométrie, calculée
+// (le carré de côté 2, posé en losange ; y vers le bas)
+const r2 = Math.SQRT2, h = Math.SQRT1_2;
+const add = (a, b) => [a[0] + b[0], a[1] + b[1]], sub = (a, b) => [a[0] - b[0], a[1] - b[1]], mul = (a, k) => [a[0] * k, a[1] * k];
+const dot = (a, b) => a[0] * b[0] + a[1] * b[1], norm = (a) => mul(a, 1 / Math.hypot(...a)), croix = (a, b) => a[0] * b[1] - a[1] * b[0];
+const sym = ([x, y]) => [-x, y];
+/** Le reflet de p par rapport à la droite (a, b). */
+function reflet(p, a, b) { const u = norm(sub(b, a)), d = sub(p, a); return add(a, sub(mul(u, 2 * dot(d, u)), d)); }
+/** L'intersection des droites (a, b) et (c, d). */
+function inter(a, b, c, d) { const r = sub(b, a), s = sub(d, c), t = croix(sub(c, a), s) / croix(r, s); return add(a, mul(r, t)); }
+/** Le polygone coupé par la droite (a, b) : on garde le côté gauche (croix ≥ 0). */
+function couper(poly, a, b) {
+  const out = [], cote = (p) => croix(sub(b, a), sub(p, a));
+  poly.forEach((p, i) => {
+    const q = poly[(i + 1) % poly.length], cp = cote(p), cq = cote(q);
+    if (cp >= 0) out.push(p);
+    if ((cp >= 0) !== (cq >= 0)) out.push(inter(p, q, a, b));
+  });
+  return out;
+}
+const DIAM = [[0, -r2], [r2, 0], [0, r2], [-r2, 0]];
+// la base carrée : T le centre de la feuille (en haut), B les quatre coins (en bas)
+const Tb = [0, -h], Lb = [-h, 0], Bb = [0, h], Rb = [h, 0];
+const PL = [-(r2 - 1), h - 1], PR = sym(PL), Lp = [0, h - 1];        // les plis du cerf-volant (étape 4)
+const Bh = [0, 2 * (h - 1) - h];                                     // la pointe soulevée (étape 6)
+const OISEAU = [Bh, PL, Bb, PR];                                     // la base de l'oiseau
+// étape 8 : les bords du bas sur le milieu (la bissectrice depuis B)
+const QL = inter(Bb, add(Bb, add(norm(sub(PL, Bb)), [0, -1])), PL, Bh), QR = sym(QL);
+const PLr = reflet(PL, Bb, QL);
+const FIN = [Bh, QL, Bb, QR];                                        // la base affinée
+// étape 9 : le cou (à gauche) et la queue (à droite), pliés vers le haut à l'intérieur, à 65° de l'horizontale
+const yC = -0.22, dCou = [-Math.cos(65 * Math.PI / 180), -Math.sin(65 * Math.PI / 180)];
+const uPli = norm(add([0, 1], dCou)), C0 = [0, yC], C1 = add(C0, uPli);
+const EL = inter(C0, C1, QL, Bb), ER = sym(EL);
+// la jambe gauche (sous le pli, à gauche du milieu) est le triangle EL, B, C0 : son reflet est le cou
+const pointe = reflet(Bb, C0, EL);
+const COU = [EL, pointe, C0], QUEUE = COU.map(sym);
+const CORPS = [Bh, QL, EL, C0, ER, QR];
+// étape 10 : la tête, le bout du cou replié vers le bas (le pli est la bissectrice entre le cou et la tête)
+const axe = norm(sub(pointe, mul(add(C0, EL), 0.5)));
+const dTete = norm([-0.95, 0.32]), uTete = norm(add(axe, dTete));
+const H0 = sub(pointe, mul(axe, 0.24)), H1 = add(H0, uTete);
+const X1 = inter(H0, H1, pointe, EL), X2 = inter(H0, H1, pointe, C0);
+const Ha = add(X1, mul(sub(X1, X2), 0.6)), Hb = add(X2, mul(sub(X2, X1), 0.6));
+const COU2 = { cou: [EL, X1, X2, C0], tete: [X1, reflet(pointe, X1, X2), X2] };
+
+// ---------------------------------------------------------------- le dessin des étapes (en pixels : 200 × 160)
+const W = 200, H = 160, COUL = '#8fbab2', BLANC = '#fbf6ea', ENCRE = '#35251a', FLECHE = '#a8321f';
+// le signe « retourner » des diagrammes d'origami : une flèche qui fait une boucle, la pointe à droite (centrée sur 0, 0 ;
+// le propriétaire, 2026-11-22 : l'ancien, un arc et un crochet, était « mal fait »)
+const BOUCLE = `<path d="M-14 4C-6 4 2 0 2-5C2-10-6-10-6-5C-6 0 2 4 9.5 4" fill="none" stroke="${FLECHE}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><polygon points="15,4 8.5,0.6 8.5,7.4" fill="${FLECHE}" stroke="${FLECHE}" stroke-width="1" stroke-linejoin="round"/>`;
+function vue(bornes, LW = W, LH = H, marge = [24, 20]) {
+  const [x0, y0, x1, y1] = bornes, k = Math.min((LW - marge[0]) / (x1 - x0), (LH - marge[1]) / (y1 - y0));
+  const ox = (LW - (x1 - x0) * k) / 2 - x0 * k, oy = (LH - (y1 - y0) * k) / 2 - y0 * k;
+  const P = (p) => [(p[0] * k + ox).toFixed(1), (p[1] * k + oy).toFixed(1)];
+  const s = [];
+  const api = {
+    poly(pts, fill = COUL, o = {}) { s.push(`<polygon points="${pts.map((p) => P(p).join(',')).join(' ')}" fill="${fill}" ${o.w === 0 ? 'stroke="none"' : `stroke="${ENCRE}" stroke-width="${o.w ?? 1.1}"`} stroke-linejoin="round"/>`); return api; },
+    /** Un contour seul (redessiné par-dessus des aplats sans trait). */
+    contour(pts, ferme = true) { s.push(`<polyline points="${pts.map((p) => P(p).join(',')).join(' ')}${ferme ? ' ' + P(pts[0]).join(',') : ''}" fill="none" stroke="${ENCRE}" stroke-width="1.1" stroke-linejoin="round"/>`); return api; },
+    /** Le contour en tirets d'une partie cachée ou d'une position d'avant. */
+    fantome(pts) { s.push(`<polygon points="${pts.map((p) => P(p).join(',')).join(' ')}" fill="none" stroke="${ENCRE}" stroke-width=".8" stroke-dasharray="2.2 2.2" opacity=".6" stroke-linejoin="round"/>`); return api; },
+    /** Un petit mot (cou, queue) avec son trait vers la partie qu'il nomme. */
+    mot(p, vers, t, ancre = 'middle') {
+      const [x, y] = P(p);
+      s.push(`<path d="M${P(vers)}L${x} ${(+y - 3).toFixed(1)}" stroke="${FLECHE}" stroke-width=".7" fill="none"/>`);
+      s.push(`<text x="${x}" y="${(+y - 5).toFixed(1)}" font-size="9" fill="${FLECHE}" text-anchor="${ancre}">${t}</text>`);
+      return api;
+    },
+    ligne(a, b, o = {}) { s.push(`<path d="M${P(a)}L${P(b)}" stroke="${o.c ?? ENCRE}" stroke-width="${o.w ?? 0.7}" ${o.dash ? `stroke-dasharray="${o.dash}"` : ''} opacity="${o.op ?? 1}" fill="none" stroke-linecap="round"/>`); return api; },
+    vallee(a, b) { return api.ligne(a, b, { w: 1.2, dash: '5 3', c: ENCRE }); },
+    montagne(a, b) { return api.ligne(a, b, { w: 1.2, dash: '7 2.5 1.2 2.5', c: ENCRE }); },
+    pli(a, b) { return api.ligne(a, b, { w: 0.6, op: 0.55 }); },
+    /** Une flèche courbe de a à b (courbe : sa flèche, en unités de la feuille, à gauche du trajet si positive). */
+    fleche(a, b, courbe = 0.3, o = {}) {
+      const m = mul(add(a, b), 0.5), n = norm([-(b[1] - a[1]), b[0] - a[0]]), c = add(m, mul(n, courbe));
+      const [ax, ay] = P(a).map(Number), [bx, by] = P(b).map(Number), [cx, cy] = P(c).map(Number);
+      const t = norm([bx - cx, by - cy]), nn = [-t[1], t[0]], L = 7;
+      const p1 = [bx - t[0] * L + nn[0] * 3.6, by - t[1] * L + nn[1] * 3.6], p2 = [bx - t[0] * L - nn[0] * 3.6, by - t[1] * L - nn[1] * 3.6];
+      const ex = bx - t[0] * 5, ey = by - t[1] * 5;
+      s.push(`<path d="M${ax} ${ay}Q${cx} ${cy} ${ex.toFixed(1)} ${ey.toFixed(1)}" stroke="${FLECHE}" stroke-width="1.5" fill="none" stroke-linecap="round"/>`);
+      s.push(`<polygon points="${bx},${by} ${p1.map((v) => v.toFixed(1))} ${p2.map((v) => v.toFixed(1))}" fill="${o.creuse ? '#fbf6ea' : FLECHE}" stroke="${FLECHE}" stroke-width="1.1" stroke-linejoin="round"/>`);
+      return api;
+    },
+    /** Retourner : la boucle fléchée, dans un coin de l'image. */
+    retourner(x = W - 30, y = 22) {
+      s.push(`<g transform="translate(${x} ${y})">${BOUCLE}</g>`);
+      return api;
+    },
+    brut(t) { s.push(t); return api; },
+    svg() { return s.join(''); },
+  };
+  return api;
+}
+const d = [];
+// 1 : côté motif, les deux diagonales
+d.push(vue([-1.45, -1.45, 1.45, 1.45]).poly(DIAM).vallee([0, -r2], [0, r2]).vallee([-r2, 0], [r2, 0])
+  .fleche([0.12, 1.2], [0.12, -1.2], -0.75).fleche([-1.2, -0.12], [1.2, -0.12], -0.55).svg());
+// 2 : retournée, côté blanc, les deux médianes
+d.push(vue([-1.45, -1.45, 1.45, 1.45]).poly(DIAM, BLANC).vallee([h, -h], [-h, h]).vallee([-h, -h], [h, h])
+  .fleche([0.95, -0.25], [-0.25, 0.95], 0.55).retourner(30, 22).svg());
+// 3 : la base carrée qui se forme : les plis, les trois coins vers le bas
+d.push(vue([-1.45, -1.45, 1.45, 1.45]).poly(DIAM, BLANC).vallee([h, -h], [-h, h]).vallee([-h, -h], [h, h]).montagne([0, -r2], [0, r2]).montagne([-r2, 0], [r2, 0])
+  .fleche([0, -1.3], [0.08, 1.18], -0.75).fleche([-1.3, 0.05], [-0.18, 1.18], 0.35).fleche([1.3, 0.05], [0.18, 1.18], -0.35).svg());
+// 4 : la base carrée, les plis du cerf-volant
+d.push(vue([-0.82, -0.82, 0.82, 0.82]).poly([Tb, Rb, Bb, Lb]).pli(Tb, Bb).vallee(Bb, PL).vallee(Bb, PR)
+  .fleche(add(Lb, [0.06, 0.04]), add(Lp, [-0.04, 0.12]), -0.18).fleche(add(Rb, [-0.06, 0.04]), add(Lp, [0.04, 0.12]), 0.18).svg());
+// 5 : le cerf-volant, le triangle du haut à rabattre
+d.push(vue([-0.82, -0.82, 0.82, 0.82]).poly([Tb, Rb, Bb, Lb]).poly([Bb, PL, Tb, PR]).poly([Bb, PL, Lp]).poly([Bb, PR, Lp])
+  .vallee(add(PL, [-0.05, 0]), add(PR, [0.05, 0])).fleche([0.04, -0.62], [0.04, -0.02], -0.28).svg());
+// 6 : le pli pétale : la pointe du dessus monte, les côtés rentrent
+d.push(vue([-0.82, -1.36, 0.82, 0.82]).poly([Tb, Rb, Bb, Lb]).pli(Tb, Bb).pli(Bb, PL).pli(Bb, PR).vallee(add(PL, [-0.04, 0]), add(PR, [0.04, 0]))
+  .fleche([0.03, 0.6], [0.03, -1.28], -0.42).fleche(add(Lb, [-0.14, 0.04]), add(Lb, [0.14, 0.04]), 0.06).fleche(add(Rb, [0.14, 0.04]), add(Rb, [-0.14, 0.04]), -0.06).svg());
+// 7 : la base de l'oiseau
+d.push(vue([-0.82, -1.36, 0.82, 0.82]).poly(OISEAU).pli(Bh, Lp).pli(PL, PR).pli(Lp, Bb).retourner().svg());
+// 8 : les bords du bas sur le milieu
+d.push(vue([-0.82, -1.36, 0.82, 0.82]).poly(OISEAU).pli(Bh, Lp).pli(PL, PR).pli(Lp, Bb).vallee(Bb, QL).vallee(Bb, QR)
+  .fleche(add(PL, [0.03, 0.08]), add(PLr, [-0.03, 0.12]), -0.12).fleche(add(PR, [-0.03, 0.08]), add(PLr, [0.03, 0.12]), 0.12).retourner().svg());
+// 9 : le cou et la queue, pliés vers le haut à l'intérieur
+const bornesFin = [-0.82, -1.36, 0.82, 0.82];
+d.push(vue(bornesFin).poly(FIN).pli(Bh, PLr).pli(QL, PLr).pli(QR, PLr).pli(PLr, Bb)
+  .vallee(add(C0, mul(sub(C0, EL), 0.25)), add(EL, mul(sub(EL, C0), 0.35))).vallee(add(C0, mul(sub(C0, ER), 0.25)), add(ER, mul(sub(ER, C0), 0.35)))
+  .fleche([-0.06, 0.55], add(pointe, [0.02, 0.05]), -0.32).fleche([0.06, 0.55], sym(add(pointe, [0.02, 0.05])), 0.32).svg());
+// 10 : la tête
+d.push(vue(bornesFin).poly(COU).poly(QUEUE).poly(CORPS).pli(Bh, PLr).pli(QL, PLr).pli(QR, PLr)
+  .vallee(Ha, Hb).fleche(add(pointe, [0.04, -0.04]), add(COU2.tete.reduce((a, p) => (p[0] < a[0] ? p : a)), [-0.02, 0.06]), 0.16).svg());
+// 11 : les ailes
+d.push(vue(bornesFin).poly(COU2.cou).poly(COU2.tete).poly(QUEUE).poly(CORPS).pli(Bh, PLr)
+  .vallee(add(QL, [-0.05, 0]), add(QR, [0.05, 0])).fleche([0.04, -1.2], [0.04, -0.15], -0.36).svg());
+// 12 : la grue finie (dessinée à la main, de trois quarts)
+d.push(`<g stroke="${ENCRE}" stroke-width="1.1" stroke-linejoin="round">
+  <polygon points="104,96 150,22 126,92" fill="#6f9e95"/>
+  <polygon points="118,96 128,92 178,40" fill="${COUL}"/>
+  <polygon points="80,96 90,91 42,42" fill="${COUL}"/>
+  <polygon points="42,42 30,56 50,50" fill="#6f9e95"/>
+  <polygon points="78,97 101,86 128,97 101,112" fill="${COUL}"/>
+  <polygon points="88,92 112,92 64,20" fill="#a9cbc4"/>
+  <path d="M101 86L101 112" stroke-width=".6" opacity=".55"/>
+</g>`);
+const legende = `<span><svg viewBox="0 0 40 8"><path d="M2 4H38" stroke="${ENCRE}" stroke-width="1.6" stroke-dasharray="5 3"/></svg>${T.vallee}</span>
+  <span><svg viewBox="0 0 40 8"><path d="M2 4H38" stroke="${ENCRE}" stroke-width="1.6" stroke-dasharray="7 2.5 1.2 2.5"/></svg>${T.montagne}</span>
+  <span><svg viewBox="-16 -12 33 21" style="width:9mm;height:5.7mm">${BOUCLE}</svg>${T.retourner}</span>`;
+$('p-titre').textContent = T.pTitre; $('p-intro').textContent = T.pIntro; $('legende').innerHTML = legende;
+$('etapes').innerHTML = T.etapes.map((t, i) => `<div class="etape"><svg viewBox="0 0 ${W} ${H}">${d[i]}</svg><p><b>${i + 1}</b>${t}</p></div>`).join('');
+
+// ---------------------------------------------------------------- page 4 : l'étape 9 pas à pas, en six grands dessins
+// (le propriétaire, 2026-11-22, à sa première grue : « j'ai galéré à faire l'étape 9 »). La pointe qui bouge est
+// plus foncée d'un dessin à l'autre, pour que l'œil la suive.
+const W4 = 150, H4 = 200, FONCE = '#6f9e95';
+const TOUT = [-0.6, -1.36, 0.6, 0.84];  // toute la grue, le cou et la queue compris
+/** Le point p tourné de a degrés autour de c (y vers le bas : a > 0 emmène le bas vers la gauche). */
+const tourne = (p, c, a) => { const r = a * Math.PI / 180, v = sub(p, c); return add(c, [v[0] * Math.cos(r) - v[1] * Math.sin(r), v[0] * Math.sin(r) + v[1] * Math.cos(r)]); };
+// les deux pointes sous leurs plis, un peu écartées l'une de l'autre (tournées autour du haut de la fente)
+const JG = [EL, Bb, C0], JD = [C0, Bb, ER];
+const ecartG = (a) => JG.map((p) => tourne(p, C0, a)), ecartD = (a) => JD.map((p) => tourne(p, C0, -a));
+/** Le corps et la pointe de droite d'un seul contour (pas de trait entre eux : le papier y est d'un seul tenant). */
+const corpsEtDroite = (dr) => [Bh, QL, EL, C0, dr[1], dr[2], QR];
+const lignesCorps = (v) => v.pli(Bh, PLr).pli(QL, PLr).pli(QR, PLr).pli(PLr, C0);
+const v4 = (b) => vue(b, W4, H4, [14, 14]);
+const d4 = [];
+// 9a : les deux pointes, un peu écartées, plus foncées sous le futur pli, et leurs noms
+{
+  const g = ecartG(4), dr = ecartD(4), tout = [Bh, QL, g[0], g[1], C0, dr[1], dr[2], QR];
+  d4.push(lignesCorps(v4(TOUT).poly(tout).poly(g, FONCE, { w: 0 }).poly(dr, FONCE, { w: 0 }).contour(tout).contour([g[1], C0, dr[1]], false))
+    .pli(g[0], C0).pli(C0, dr[2])
+    .mot([-0.38, 0.2], mul(add(g[0], g[1]), 0.5), T.cou).mot([0.38, 0.2], mul(add(dr[2], dr[1]), 0.5), T.queue).svg());
+}
+// 9b : la pointe de gauche pliée par-dessus pour marquer le pli (sa place d'avant en tirets)
+d4.push(lignesCorps(v4(TOUT).poly(corpsEtDroite(JD)).fantome(JG)).poly(COU, FONCE)
+  .vallee(add(C0, mul(sub(C0, EL), 0.45)), add(EL, mul(sub(EL, C0), 0.9)))
+  .fleche(add(Bb, [-0.05, -0.08]), add(pointe, [0.03, 0.06]), -0.42).svg());
+// 9c : la pointe de gauche écartée, puis ouverte par en dessous : la couche de devant s'en va vers la gauche, on voit le
+// blanc de l'intérieur (la couche de derrière)
+// blanc de l'intérieur (la couche de derrière), dans l'ombre au fond de la poche : pas le blanc du fond de l'image
+const g9 = ecartG(6), bout = add(g9[1], [-0.17, -0.03]), devant = [g9[0], bout, C0], dr9 = ecartD(3);
+const ouverte = (v, id) => lignesCorps(v.poly(corpsEtDroite(dr9)))
+  .brut(`<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cbbd9e"/><stop offset="1" stop-color="#f4eddd"/></linearGradient></defs>`)
+  .poly(g9, `url(#${id})`).poly(devant, FONCE);
+d4.push(ouverte(v4(TOUT), 'poche-c')
+  .fleche(add(bout, [0.01, 0.06]), add(bout, [-0.24, -0.02]), -0.08).fleche(add(dr9[1], [0.02, 0.06]), add(dr9[1], [0.22, -0.02]), 0.08).svg());
+// 9d : on pousse le bout vers le haut entre les deux épaisseurs ; le pli se retourne (pli montagne), la pointe passe
+// par l'intérieur de la poche (la flèche passe sur le papier, pas à côté) et va à la place du cou (en tirets)
+const fond9 = mul(add(bout, g9[1]), 0.5);
+d4.push(ouverte(v4(TOUT), 'poche-d').fantome(COU)
+  .montagne(add(C0, mul(sub(C0, g9[0]), 0.35)), add(g9[0], mul(sub(g9[0], C0), 0.8)))
+  .fleche(add(fond9, [0, 0.21]), add(fond9, [0, 0.04]), 0, { creuse: true })
+  .fleche(add(fond9, [0.0, -0.05]), add(pointe, [0.03, 0.08]), 0.2).svg());
+// 9e : le cou est monté entre les deux épaisseurs (sa partie cachée en tirets)
+d4.push(lignesCorps(v4(TOUT).poly(COU, FONCE).poly(corpsEtDroite(JD))).fantome(COU).svg());
+// 9f : la queue aussi : on est au début de l'étape 10
+d4.push(lignesCorps(v4(TOUT).poly(COU, FONCE).poly(QUEUE, FONCE).poly(CORPS)).fantome(COU).fantome(QUEUE).svg());
+$('d-titre').textContent = T.dTitre; $('d-intro').textContent = T.dIntro; $('d-astuce').innerHTML = T.astuce;
+$('d-etapes').innerHTML = T.details.map((t, i) => `<div class="etape"><svg viewBox="0 0 ${W4} ${H4}">${d4[i]}</svg><p><b>9${'abcdef'[i]}</b>${t}</p></div>`).join('');
+await document.fonts.ready;
+document.body.dataset.pret = '1';
+</script>
+</body></html>
