@@ -381,20 +381,46 @@ Un **lieu mystère par jour, le même pour tout le monde**, comme le jeu Wordle.
 - Les lieux du défi sont ceux qui ont une photo (comme le jeu). Un lieu tout juste ajouté attend 3 jours avant d'y entrer.
 - Le lien partagé (…/?defi) ouvre directement le défi.
 
-## Le live TikTok « Devine le lieu » (novembre 2026)
+## Les lives « Devine le lieu » (TikTok et YouTube, novembre 2026)
 
-Un live qui **tourne tout seul**, sans ta tête et sans parler : tu le lances, tu le laisses 1 h ou 1 h 30, puis tu l'arrêtes. Ce sont les spectateurs qui jouent dans le chat. (Un live qui passe une vidéo en boucle serait « non recommandé » par TikTok ; celui-ci réagit à chaque commentaire.)
+Un live où **ce sont les spectateurs qui jouent** dans le chat. Il marche sur TikTok et sur YouTube.
+- **Sur TikTok, il faut que tu sois là.** Le premier essai sans personne, le 23 novembre 2026, a été restreint au bout de quelques minutes pour « contenu reproduit ». Les règles de TikTok demandent un animateur présent : un live qui tourne seul est pris pour un enregistrement. Ta voix suffit, sans ta tête. Quelques phrases d'anglais simple suffisent : « Welcome! », « Cold… hot! », « Well done! », « Next round! ». Ne relance pas de live TikTok sans personne : chaque restriction allonge la suivante.
+- **Sur YouTube, il peut tourner tout seul** (voir plus bas), sans ta tête et sans parler.
 - **Ce qu'on voit :** la photo floue d'un lieu, de plus en plus nette pendant 30 secondes. Les spectateurs écrivent une **préfecture** dans le chat (un seul essai chacun ; en anglais, en japonais ou avec accents, ça marche). Chaque essai colore sa préfecture sur la carte, de froid (bleu) à brûlant (rouge), et passe dans la liste à droite. À 15 secondes de la fin, la région s'affiche. Puis la carte vole jusqu'au lieu : son nom, qui a trouvé (10, 8 et 6 points pour les trois premiers, 4 ensuite) et le classement du live.
 - **Toutes les 5 manches, une pause voyage :** le chat vote pour une préfecture, la carte s'y envole et montre un de tes lieux.
 - **Les mercis :** un abonnement, un cadeau ou un partage affiche un merci à l'écran. Un cadeau pendant une manche donne l'indice tout de suite (« grâce à … »).
 - La musique est celle du lecteur de la carte (musique libre, créditée en haut), avec de petits sons pour le chrono et les bonnes réponses.
-- **Ce qu'il faut :**
+- **Ce qu'il faut pour TikTok :**
   1. **TikFinity** (gratuit, l'application pour Windows), qui lit les commentaires du live et les donne à la page. Il doit tourner sur le même PC pendant le live.
   2. Dans **TikTok LIVE Studio**, en affichage vertical : « Ajouter une source », puis la source **Lien** (ou navigateur), avec l'adresse **https://map.randomjapanplace.com/?live** et la taille **1080 × 1920**.
   3. Passer en LIVE, puis dans TikFinity cliquer **« Connect to TikTok LIVE »**. En bas à droite de la page, un petit point vert « chat connected » dit que les commentaires arrivent (il est caché par les boutons de TikTok pour les spectateurs).
-- **Pour essayer sans être en live :** https://map.randomjapanplace.com/?live&essai fait jouer de faux spectateurs.
+- **Pour essayer sans être en live :** https://map.randomjapanplace.com/?live&essai fait jouer de faux spectateurs (…/?live&youtube&essai pour l'écran YouTube).
 - **En français :** …/?live=fr (en japonais : …/?live=ja). Sans rien, c'est en anglais, comme tes vidéos.
 - Le classement du jour reste dans le navigateur qui fait le live : si la page se recharge, il n'est pas perdu. Il repart à zéro le lendemain.
+
+### Le live YouTube (tout seul)
+
+Le même jeu, avec la même image verticale : sur téléphone, il peut apparaître dans le fil des Shorts. Les textes disent « lien en description » au lieu de « lien en bio », et « merci pour l'abonnement ». Un **Super Chat** ou un nouveau **membre** reçoit un merci et donne l'indice tout de suite.
+
+**Une seule fois, pour préparer :**
+1. **Active le direct sur ta chaîne YouTube.** Dans YouTube Studio, « Créer », puis « Passer au direct ». YouTube demande de vérifier ton numéro de téléphone, puis il faut attendre **jusqu'à 24 h** la première fois.
+2. **Installe deux logiciels gratuits** depuis leurs sites officiels : **OBS Studio** (obsproject.com), qui envoie l'image à YouTube, et **Streamer.bot** (streamer.bot), qui lit le chat YouTube et le donne à la page.
+3. **Dans Streamer.bot :**
+   - Va dans « Platforms », puis « YouTube », et clique sur « Connect » : tu te connectes avec ton compte Google.
+   - Puis va dans « Servers/Clients », puis « WebSocket Server ». Vérifie que « Auto Start » est coché et que le serveur est démarré, avec l'adresse 127.0.0.1 et le port 8080. Laisse « Authentication » décoché.
+4. **Dans OBS :**
+   - « Paramètres », puis « Vidéo » : mets **1080 × 1920** en résolution de base et en résolution de sortie, et 30 images par seconde.
+   - « Paramètres », puis « Stream » : choisis le service **YouTube - RTMPS** et clique sur « Connecter le compte ».
+   - Dans les sources (en bas), clique sur **+**, puis **Navigateur** :
+     - l'adresse **https://map.randomjapanplace.com/?live&youtube** ;
+     - largeur **1080**, hauteur **1920** ;
+     - coche **« Contrôler l'audio via OBS »**, pour que la musique passe dans le live.
+
+**Chaque jour :**
+1. Ouvre **Streamer.bot**, puis **OBS**.
+2. Dans OBS, clique sur « Gérer la diffusion ». Donne un titre (en anglais, par exemple *Guess the place in Japan 🇯🇵 3D map quiz*). Dans la description, mets le lien de la carte et les crédits de la musique : *Music: PeriTune and Maou Damashii (CC BY 4.0)*. Puis lance la diffusion.
+3. En bas à droite de l'image, le petit point doit être **vert** (« chat connected »). Écris « Kyoto » dans le chat de ton live pendant une manche : ta réponse doit apparaître dans la liste à droite.
+4. Laisse tourner aussi longtemps que tu veux, puis « Arrêter le streaming » dans OBS. Le PC doit rester allumé pendant tout ce temps.
 
 ## La balade 3D (pour tout le monde depuis le 26 octobre 2026)
 

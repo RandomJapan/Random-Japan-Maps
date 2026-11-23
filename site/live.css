@@ -162,6 +162,7 @@ body.mode-live .repere-nom { display: none !important; }
 .live-merci {
   position: absolute; top: calc(1425 * var(--u)); right: calc(28 * var(--u)); max-width: calc(620 * var(--u));
   padding: calc(12 * var(--u)) calc(22 * var(--u)); font-size: calc(28 * var(--u)); font-weight: 600;
+  text-wrap: balance; /* deux lignes égales, pas un cœur tout seul sur la seconde */
   opacity: 0; transform: translateY(calc(20 * var(--u))); transition: opacity .4s, transform .5s var(--ease);
 }
 .live-merci.visible { opacity: 1; transform: none; }

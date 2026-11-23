@@ -18,6 +18,14 @@
 //  de TikTok-Live-Connector. ?live&essai : de faux spectateurs, pour essayer sans être en live.
 //  Langue de l'écran : ?live (anglais, la langue des vidéos), ?live=fr, ?live=ja. Le chat peut répondre en anglais,
 //  en japonais ou avec les noms à accents (Hokkaidō).
+//
+//  Le live YouTube (2026-11-23) : ?live&youtube. Le premier live TikTok sans personne a été restreint en quelques
+//  minutes (« contenu reproduit » : TikTok veut un animateur présent) ; YouTube accepte les lives qui tournent seuls.
+//  Même jeu, même écran vertical (le fil des Shorts sur téléphone), filmé par OBS (source « Navigateur »). Le chat
+//  YouTube arrive par Streamer.bot (gratuit, sur le même PC, compte YouTube branché) : sa WebSocket
+//  ws://127.0.0.1:8080/ n'envoie rien avant une demande « Subscribe », puis des messages
+//  { timeStamp, event: { source: 'YouTube', type: 'Message' | 'SuperChat' | … }, data }. Les textes propres à TikTok
+//  (« lien en bio », « abonnement », TikFinity) ont leur variante …YT dans config.js.
 // ================================================================
 import { echapper, kmEntre } from './commun.js';
 import { PREFECTURES, regionDe } from './regions.js';
@@ -44,6 +52,10 @@ const JAPON = [[122.9, 24.0], [146.0, 45.6]];
 const BOUTS = [[145.3, 44.35], [141.94, 45.52], [145.82, 43.38], [143.25, 41.93], [140.9, 41.5], [140.87, 35.7], [138.85, 34.6],
   [137.3, 37.5], [135.76, 33.43], [130.66, 30.99], [129.3, 34.6], [128.7, 32.6], [130.5, 30.35], [127.68, 26.1]];
 const MEDAILLES = ['🥇', '🥈', '🥉'];
+const STREAMERBOT = 'ws://127.0.0.1:8080/'; // la WebSocket de Streamer.bot, réglages d'origine (le chat YouTube)
+const EVENEMENTS_YOUTUBE = ['Message', 'SuperChat', 'SuperSticker', 'NewSponsor', 'MembershipGift', 'NewSubscriber'];
+// Les textes qui ont une variante YouTube (clé + 'YT' dans config.js)
+const TEXTES_YOUTUBE = new Set(['liveAdresse', 'liveVoyageFin', 'liveMerciAbonne', 'liveChatAttente']);
 // Ce que le chat écrit souvent autrement (les accents et les tirets sont déjà enlevés)
 const VARIANTES = { 1: ['hokaido'], 13: ['tokio'], 26: ['kioto'], 28: ['hiogo'], 39: ['kouchi'], 44: ['ooita'] };
 // Les faux spectateurs du mode essai (?live&essai)
@@ -82,7 +94,12 @@ const raccourcir = (s, n = 18) => (s.length > n ? `${s.slice(0, n - 1)}…` : s)
  *   montrerLieux(oui) (les points des lieux sur la carte), manchesParVoyage (pour les essais : ?voyage=1, une pause voyage après chaque manche) }
  */
 export function brancherLive(map, maplibregl, outils) {
-  const { t, enLangue, lieux, infos, photo, video, prefectures, preparerVol, adresse, logo, orientation, essai } = outils;
+  const { enLangue, lieux, infos, photo, video, prefectures, preparerVol, adresse, logo, orientation, essai } = outils;
+  const parametres = new URLSearchParams(location.search);
+  const youtube = parametres.has('youtube');
+  // en live YouTube, les textes propres à TikTok prennent leur variante YouTube
+  const t = (cle, ...args) => outils.t(youtube && TEXTES_YOUTUBE.has(cle) ? `${cle}YT` : cle, ...args);
+  const adresseChat = youtube && !parametres.get('chat') ? STREAMERBOT : outils.chat;
   const lien = document.createElement('link');
   lien.rel = 'stylesheet';
   lien.href = 'live.css';
@@ -541,19 +558,41 @@ export function brancherLive(map, maplibregl, outils) {
       const nomCadeau = d.giftName || g.giftName || d.extendedGiftInfo?.name || '🎁';
       remercier(t('liveMerciCadeau', raccourcir(nom), n > 1 ? `${nomCadeau} ×${n}` : nomCadeau));
       if (etat?.phase === 'devine') montrerIndice(raccourcir(nom));
+    } else if (sorte === 'membre') { // YouTube : un nouveau membre de la chaîne (ou des adhésions offertes)
+      remercier(t('liveMerciMembreYT', raccourcir(nom)));
+      if (etat?.phase === 'devine') montrerIndice(raccourcir(nom));
     }
   }
 
-  function brancherChat(adresseChat) {
+  /** Un événement YouTube de Streamer.bot, traduit dans les mots de TikFinity (Message → chat, Super Chat → cadeau…). */
+  function evenementYouTube(type, d) {
+    const u = d.user || {};
+    const nom = String(u.name || d.userName || d.displayName || '?');
+    const p = { uniqueId: String(u.id || d.userId || nom), nickname: nom };
+    if (type === 'Message') evenement('chat', { ...p, comment: d.message ?? d.text ?? '' });
+    else if (type === 'NewSubscriber') evenement('follow', p);
+    else if (type === 'SuperChat' || type === 'SuperSticker') evenement('gift', { ...p, giftName: String(d.amount || d.amountDisplayString || 'Super Chat') });
+    else if (type === 'NewSponsor' || type === 'MembershipGift') evenement('membre', p);
+  }
+
+  function brancherChat() {
     let essais = 0;
     function ouvrir() {
       let ws;
       try { ws = new WebSocket(adresseChat); } catch { etatChat(false); setTimeout(ouvrir, 5000); return; }
-      ws.onopen = () => { essais = 0; etatChat(true); };
+      ws.onopen = () => {
+        essais = 0;
+        // Streamer.bot n'envoie que les événements demandés
+        if (youtube) ws.send(JSON.stringify({ request: 'Subscribe', id: 'live', events: { YouTube: EVENEMENTS_YOUTUBE } }));
+        etatChat(true);
+      };
       ws.onmessage = (m) => {
         let o;
         try { o = JSON.parse(m.data); } catch { return; }
-        try { evenement(o.event, o.data || {}); } catch (e) { console.warn('Live :', e); }
+        try {
+          if (!youtube) evenement(o.event, o.data || {});
+          else if (o.event?.source === 'YouTube' && o.data) evenementYouTube(o.event.type, o.data);
+        } catch (e) { console.warn('Live :', e); }
       };
       ws.onclose = () => { etatChat(false); setTimeout(ouvrir, Math.min(10000, 1500 * ++essais)); };
     }
@@ -652,7 +691,7 @@ export function brancherLive(map, maplibregl, outils) {
     calculerVue();
     map.jumpTo(vue);
     if (essai) fauxSpectateurs();
-    else brancherChat(outils.chat);
+    else brancherChat();
     for (let n = 1; ; n++) {
       try { await manche(n); } catch (e) { console.warn('Live, manche :', e); await attendre(3); }
       if (n % (outils.manchesParVoyage || MANCHES_PAR_VOYAGE) === 0) {

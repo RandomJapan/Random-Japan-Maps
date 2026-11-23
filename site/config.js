@@ -660,6 +660,12 @@ export const TEXTES = {
     liveChatOk: 'chat connected',
     liveChatAttente: 'waiting for TikFinity…',
     liveEssai: 'test mode: fake viewers',
+    // le live YouTube (?live&youtube) : ce qui change par rapport à TikTok
+    liveAdresseYT: (a) => `${a} · link in the description`,
+    liveVoyageFinYT: 'All my places are on the free 3D map: link in the description!',
+    liveMerciAbonneYT: (n) => `Thanks for subscribing, ${n}! ❤️`,
+    liveMerciMembreYT: (n) => `Thanks for becoming a member, ${n}! ⭐`,
+    liveChatAttenteYT: 'waiting for Streamer.bot…',
   },
   fr: {
     langue: 'Français',
@@ -1185,6 +1191,11 @@ export const TEXTES = {
     liveChatOk: 'chat branché',
     liveChatAttente: 'en attente de TikFinity…',
     liveEssai: 'mode essai : faux spectateurs',
+    liveAdresseYT: (a) => `${a} · lien en description`,
+    liveVoyageFinYT: 'Tous mes lieux sont sur la carte 3D gratuite : lien en description !',
+    liveMerciAbonneYT: (n) => `Merci pour l'abonnement, ${n} ! ❤️`,
+    liveMerciMembreYT: (n) => `Merci de devenir membre, ${n} ! ⭐`,
+    liveChatAttenteYT: 'en attente de Streamer.bot…',
   },
   ja: {
     langue: '日本語',
@@ -1710,5 +1721,10 @@ export const TEXTES = {
     liveChatOk: 'チャット接続中',
     liveChatAttente: 'TikFinityを待っています…',
     liveEssai: 'テストモード：ダミーの視聴者',
+    liveAdresseYT: (a) => `${a}・リンクは概要欄から`,
+    liveVoyageFinYT: 'すべての場所は無料の3Dマップで：リンクは概要欄から！',
+    liveMerciAbonneYT: (n) => `${n}さん、チャンネル登録ありがとう！❤️`,
+    liveMerciMembreYT: (n) => `${n}さん、メンバー加入ありがとう！⭐`,
+    liveChatAttenteYT: 'Streamer.botを待っています…',
   },
 };
