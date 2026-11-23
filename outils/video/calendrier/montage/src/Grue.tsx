@@ -179,7 +179,7 @@ export const Grue: React.FC<{ bgm: boolean }> = ({ bgm }) => {
           borderRadius: 999, padding: "10px 44px", boxShadow: `0 7px 0 ${C.rougeFonce}` }}>link in bio</div>
         <div style={{ ...petit, fontSize: 34, marginTop: 20 }}>map.randomjapanplace.com</div>
       </Cartouche>
-      <Son bgm={bgm} musique="musique/yuki-akari.wav" volume={(i) => 0.9 * (1 - entre(i, DUREE_GRUE - 50, DUREE_GRUE))} effets={EFFETS} />
+      <Son bgm={bgm} musique="musique/yuki-akari.wav" volume={(i) => 0.64 * (1 - entre(i, DUREE_GRUE - 50, DUREE_GRUE))} effets={EFFETS} />
     </AbsoluteFill>
   );
 };

@@ -66,7 +66,7 @@ export const Cadeaux: React.FC<{ bgm: boolean }> = ({ bgm }) => (
   <AbsoluteFill style={{ backgroundColor: "#000" }}>
     <Plans plans={PLANS} />
     {TEXTES.map((t, i) => <Bulle key={i} {...t} />)}
-    <Son bgm={bgm} musique="musique/refrain.wav" volume={1} effets={EFFETS} />
+    <Son bgm={bgm} musique="musique/refrain.wav" volume={0.71} effets={EFFETS} />
   </AbsoluteFill>
 );
 

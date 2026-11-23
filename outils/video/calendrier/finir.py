@@ -6,7 +6,8 @@ TikTok), dans videos/carte/calendrier/, avec leurs miniatures.
     python outils/video/calendrier/finir.py son Grue        # seulement le son (sur les images déjà rendues)
 
 Il faut d'abord preparer.py, rushes.py et diagrammes.py, et le node_modules de montage/ (une jonction vers celui du jeu).
-Après Remotion : le son à −14 LUFS (le niveau de TikTok), le même gain pour la version sans musique ; l'image en BT.709 plage TV.
+Après Remotion : le son à −17 LUFS (la musique 3 dB sous le niveau de TikTok, à la demande du propriétaire le 2026-11-23 :
+« baisse un peu la musique » ; les bruitages gardent leur niveau), le même gain pour la version sans musique ; l'image en BT.709 plage TV.
 Les fichiers temporaires vont sur D: (TMP) : C: est presque plein.
 """
 import json
@@ -22,6 +23,7 @@ MONTAGE = ICI / 'montage'
 SORTIE = ICI.parents[2] / 'videos' / 'carte' / 'calendrier'
 VIDEOS = {'Cadeaux': ('carte-japon-calendrier-avent', 'MiniatureCadeaux'),
           'Grue': ('carte-japon-tuto-grue-origami', 'MiniatureGrue')}
+CIBLE = -17  # LUFS
 OPTIONS = ['--concurrency=4', '--timeout=120000', '--offthreadvideo-cache-size-in-bytes=2000000000', '--log=error']
 
 
@@ -70,13 +72,13 @@ def main():
             son_avec, son_sans = MONTAGE / 'out' / f'{nom}.wav', MONTAGE / 'out' / f'{nom}-sans.wav'
             npx('render', comp, str(son_avec), '--codec=wav', f'--props={props(True)}', *OPTIONS)
             npx('render', comp, str(son_sans), '--codec=wav', f'--props={props(False)}', *OPTIONS)
-            gain = -14 - volume(son_avec)
+            gain = CIBLE - volume(son_avec)
             finir(avec, SORTIE / f'{nom}.mp4', gain, son_avec)
             finir(sans, SORTIE / f'{nom}-sans-musique.mp4', gain, son_sans)
         else:
             npx('render', comp, str(avec), '--codec=h264', '--crf=12', f'--props={props(True)}', *OPTIONS)
             npx('render', comp, str(sans), '--codec=h264', '--crf=12', f'--props={props(False)}', *OPTIONS)
-            gain = -14 - volume(avec)  # la version avec musique fixe le gain ; la version sans prend le même
+            gain = CIBLE - volume(avec)  # la version avec musique fixe le gain ; la version sans prend le même
             finir(avec, SORTIE / f'{nom}.mp4', gain)
             finir(sans, SORTIE / f'{nom}-sans-musique.mp4', gain)
             npx('still', mini, str(SORTIE / f'{nom}-miniature.jpg'), '--image-format=jpeg', '--jpeg-quality=92', '--log=error')
