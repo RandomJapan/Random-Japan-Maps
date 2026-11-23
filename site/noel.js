@@ -390,7 +390,7 @@ const CASES = [
       fr: 'Tout le Japon la nuit de Noël, fait avec la carte : la neige au nord, les villes illuminées, une guirlande lumineuse et des flocons qui tombent.' },
     deco: { en: 'All of Japan shines at night.', fr: 'Tout le Japon brille la nuit.' },
     savais: { en: 'In winter the lake freezes, and you can walk on the ice to the old bridge.', fr: 'L’hiver, le lac gèle, et l’on peut marcher sur la glace jusqu’au vieux pont.' } },
-  { j: 21, k: 'boutique', lieu: 'tsuru-no-maihashi-bridge', pret: false, code: 'CALENDRIER21', page: 'products/ink-portrait-japanese-newspaper',
+  { j: 21, k: 'boutique', lieu: 'tsuru-no-maihashi-bridge', pret: true, code: 'CALENDRIER21', page: 'products/ink-portrait-japanese-newspaper',
     cadeau: { en: 'Valentine’s Day in advance', fr: 'La Saint-Valentin en avance', ja: 'ひと足早いバレンタイン' },
     texte: { en: 'A code for a second face on the same portrait, free. From January 1 to February 14, for the first 10 orders.',
       fr: 'Un code pour un deuxième visage offert sur le même tableau. Du 1er janvier au 14 février, pour les 10 premières commandes.' },
