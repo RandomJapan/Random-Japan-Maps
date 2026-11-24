@@ -1,0 +1,327 @@
+<!doctype html>
+<!--
+  Les carrousels TikTok « 6 reasons… » (2026-11-24, le propriétaire : « fais-moi le même type de carrousel adapté à la carte
+  Random Japan Place », d'après un carrousel « 6 raisons de jouer à … » vu sur TikTok). Trois carrousels de 8 images 1080 × 1440
+  (3:4, entières à l'écran sous la légende de TikTok) : la carte, la balade 3D, le jeu « Guess the place ». Le format de
+  l'exemple (une couverture sombre, puis une raison par image, sombre et clair en alternance, un quadrillage, le numéro en haut
+  et en bas, un titre dans un bandeau collé au bord gauche avec des mots en couleur, des personnages en autocollants), aux
+  couleurs de la carte (DESIGN.md : le papier, l'encre sépia, le rouge du cartographe, Zen Antique) ; la balade a ses bandeaux
+  à elle (la boîte de dialogue du jeu : papier crème, trait d'encre, filet rouge, M PLUS Rounded 1c).
+  Une image : carrousels.html?c=carte&n=0 (rendre.py les photographie toutes).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Carrousels</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Antique&family=Noto+Sans:wght@700;800;900&family=M+PLUS+Rounded+1c:wght@800;900&display=block" rel="stylesheet">
+<style>
+  :root {
+    --papier: #f3e8cf; --nuit: #221912; --encre: #35251a; --rouge: #a8321f; --vif: #ec6342; --trait: #8a6b45; --creme: #fbf6ea;
+    --sans: 'Noto Sans', sans-serif; --titre: 'Zen Antique', serif; --rond: 'M PLUS Rounded 1c', sans-serif;
+  }
+  html, body { margin: 0; background: #000; }
+  .image { width: 1080px; height: 1440px; position: relative; overflow: hidden; font-family: var(--sans); }
+  .clair { background: var(--papier); color: var(--encre); }
+  .sombre { background: var(--nuit); color: var(--creme); }
+  .grille { position: absolute; inset: 0; background-image: linear-gradient(to right, var(--g) 2px, transparent 2px), linear-gradient(to bottom, var(--g) 2px, transparent 2px); background-size: 135px 135px; background-position: 66px 44px; }
+  .clair .grille { --g: rgba(138, 107, 69, 0.27); }
+  .sombre .grille { --g: rgba(205, 170, 120, 0.15); }
+  .grain { position: absolute; inset: 0; background: url(../../../videos/carte/carrousels/images/grain.jpg) center / cover; mix-blend-mode: multiply; opacity: 0.32; }
+  .sombre .grain { mix-blend-mode: screen; opacity: 0.05; }
+  .halo { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 55%, rgba(0,0,0,0) 55%, rgba(0,0,0,0.35) 100%); }
+  .clair .halo { background: radial-gradient(ellipse at 50% 50%, rgba(0,0,0,0) 60%, rgba(90,60,20,0.16) 100%); }
+
+  .num { position: absolute; left: 0; right: 0; text-align: center; font-family: var(--titre); font-size: 64px; line-height: 1; color: #b0905f; }
+  .sombre .num { color: #8f7550; }
+  .num.haut { top: 30px; } .num.bas { bottom: 30px; }
+
+  /* le bandeau du titre, collé au bord gauche */
+  .titre { position: absolute; left: 0; top: 128px; padding: 32px 54px 38px 66px; max-width: 800px; box-sizing: border-box; font-weight: 800; font-size: 63px; line-height: 1.13; letter-spacing: -0.6px; z-index: 5; }
+  .clair .titre { background: rgba(229, 212, 173, 0.95); }
+  .sombre .titre { background: rgba(10, 6, 4, 0.7); }
+  .titre em { font-style: normal; color: var(--rouge); }
+  .sombre .titre em { color: var(--vif); }
+  /* la balade : la boîte de dialogue du jeu */
+  .balade .titre { font-size: 58px; font-family: var(--rond); font-weight: 800; letter-spacing: -0.3px; background: var(--creme) !important; color: var(--encre); border: 5px solid var(--encre); border-left: none; border-radius: 0 26px 26px 0; box-shadow: inset 0 0 0 7px var(--creme), inset 0 0 0 10px #c0392b, 0 16px 34px rgba(0,0,0,0.3); }
+  .balade .titre em { color: #c0392b; }
+
+  /* les tirages : une image de la carte, du jeu ou de la balade, dans un cadre crème */
+  .tirage { position: absolute; background: var(--creme); padding: 12px; border-radius: 10px; box-shadow: 0 24px 46px rgba(25, 14, 6, 0.4), 0 3px 8px rgba(25, 14, 6, 0.25); box-sizing: border-box; }
+  .tirage .im { width: 100%; height: 100%; background-size: cover; border-radius: 4px; }
+  .tirage.polaroid { padding: 14px 14px 64px; }
+  .tirage .legende { position: absolute; left: 0; right: 0; bottom: 10px; text-align: center; font-family: var(--titre); font-size: 34px; color: var(--encre); }
+  .etiquette { position: absolute; font-weight: 900; font-size: 27px; letter-spacing: 1.5px; color: #fff; background: var(--rouge); padding: 7px 16px 8px; border-radius: 8px; box-shadow: 0 6px 14px rgba(0,0,0,0.3); white-space: nowrap; }
+  .etiquette.encre { background: var(--encre); }
+  .decoupe { position: absolute; filter: drop-shadow(0 20px 22px rgba(20, 12, 5, 0.38)); }
+  .rond { position: absolute; border-radius: 50%; background-size: cover; background-position: center; border: 8px solid var(--creme); box-shadow: 0 12px 26px rgba(0,0,0,0.45); box-sizing: border-box; }
+  .texte { position: absolute; }
+  .fleche { position: absolute; font-family: var(--sans); font-weight: 900; color: var(--vif); line-height: 1; }
+
+  /* la couverture */
+  .raisons { position: absolute; left: 0; right: 0; top: 118px; text-align: center; white-space: nowrap; font-family: var(--titre); font-size: 146px; line-height: 1; color: #e0532f; -webkit-text-stroke: 18px var(--creme); paint-order: stroke fill; filter: drop-shadow(0 10px 0 #0e0906); letter-spacing: 2px; }
+  .raisons b { font-weight: 400; font-size: 205px; vertical-align: -12px; margin-right: 10px; }
+  .sous { position: absolute; left: 0; right: 0; text-align: center; font-weight: 800; font-size: 60px; color: var(--creme); line-height: 1.12; }
+  .sous em { font-style: normal; color: var(--vif); }
+  .balade .sous { font-family: var(--rond); }
+
+  .sceau { position: absolute; display: grid; place-items: center; text-align: center; background: var(--rouge); color: var(--creme); font-family: var(--titre); border-radius: 18px; box-shadow: inset 0 0 0 6px var(--rouge), inset 0 0 0 9px var(--creme), 0 12px 24px rgba(0,0,0,0.3); line-height: 1; }
+  .ruban { position: absolute; left: 50%; transform: translateX(-50%); white-space: nowrap; background: var(--rouge); color: var(--creme); font-weight: 800; padding: 14px 44px 16px; border-radius: 8px; box-shadow: 0 10px 22px rgba(0,0,0,0.3); }
+  .koban { position: absolute; width: 150px; height: 230px; border-radius: 50%; background: repeating-linear-gradient(0deg, rgba(150,100,10,0.16) 0 3px, rgba(255,240,170,0) 3px 15px), radial-gradient(ellipse at 36% 28%, #fff6c4 0%, #f2cc4e 34%, #d4a22c 70%, #a8781a 100%); box-shadow: inset 0 0 0 6px #c08d26, inset 0 0 0 9px #f5d872, 0 14px 26px rgba(0,0,0,0.4); display: grid; place-items: center; }
+  .koban span { font-family: var(--titre); font-size: 52px; color: #3a2508; writing-mode: vertical-rl; letter-spacing: 6px; }
+  .bulle { position: absolute; background: var(--creme); color: var(--encre); border-radius: 26px; padding: 22px 30px 24px; font-weight: 800; font-size: 44px; line-height: 1.15; box-shadow: 0 14px 30px rgba(0,0,0,0.3); text-align: center; }
+  .bulle em { font-style: normal; color: var(--rouge); }
+</style>
+</head>
+<body>
+<div id="image" class="image"></div>
+<script>
+const I = (p) => `../../../videos/carte/carrousels/images/${p}`;
+const px = (v) => (typeof v === 'number' ? `${v}px` : v);
+const mots = (s) => s.replace(/\*([^*]+)\*/g, '<em>$1</em>').replace(/\n/g, '<br>');
+
+// ---------------------------------------------------------------- les pièces
+const pose = (e, { x, y, w, h, r = 0, z }) => {
+  Object.assign(e.style, { left: px(x), top: px(y) });
+  if (w != null) e.style.width = px(w);
+  if (h != null) e.style.height = px(h);
+  if (r) e.style.transform = `rotate(${r}deg)`;
+  if (z != null) e.style.zIndex = z;
+  return e;
+};
+const el = (cls, html = '') => { const e = document.createElement('div'); e.className = cls; e.innerHTML = html; return e; };
+
+/** Un tirage : src (images/…), x, y, w, h, r ; pos (background-position) ; polaroid + legende ; etiquette [texte, x, y, classe]. */
+function tirage(o) {
+  const e = pose(el(`tirage${o.legende != null ? ' polaroid' : ''}`), o);
+  const im = el('im');
+  im.style.backgroundImage = `url(${I(o.src)})`;
+  im.style.backgroundPosition = o.pos || 'center';
+  if (o.taille) im.style.backgroundSize = o.taille;
+  e.append(im);
+  if (o.legende != null) e.append(el('legende', o.legende));
+  if (o.etiquette) {
+    const [t, ex, ey, c] = o.etiquette;
+    const g = el(`etiquette ${c || ''}`, t);
+    Object.assign(g.style, { left: px(ex), top: px(ey) });
+    e.append(g);
+  }
+  return e;
+}
+function decoupe(o) {
+  const e = document.createElement('img');
+  e.className = 'decoupe';
+  e.src = I(`decoupes/${o.src}.png`);
+  pose(e, o);
+  if (o.w == null) e.style.width = 'auto';
+  if (o.h == null) e.style.height = 'auto';
+  if (o.flip) e.style.transform = `${e.style.transform || ''} scaleX(-1)`;
+  return e;
+}
+function rond(o) {
+  const e = pose(el('rond'), { ...o, x: o.cx - o.d / 2, y: o.cy - o.d / 2, w: o.d, h: o.d });
+  e.style.backgroundImage = `url(${I(o.src)})`;
+  if (o.pos) e.style.backgroundPosition = o.pos;
+  return e;
+}
+/** Une couronne de médaillons autour de (cx, cy). */
+const couronne = (srcs, cx, cy, rayon, d, depart = -90) => srcs.map((src, i) => {
+  const a = (depart + (360 * i) / srcs.length) * Math.PI / 180;
+  return { t: 'rond', src, cx: cx + rayon * Math.cos(a), cy: cy + rayon * Math.sin(a), d, pos: src.startsWith('plans/') ? 'center 60%' : 'center' };
+});
+const texte = (o) => { const e = pose(el(`texte ${o.cls || ''}`, mots(o.html)), o); if (o.style) Object.assign(e.style, o.style); return e; };
+
+// ---------------------------------------------------------------- les trois carrousels
+const P = (n) => `photos/p-${n}.jpg`, F = (n) => `plans/${n}.jpg`;
+const fleche = { t: 'texte', cls: 'fleche', html: '→', x: 455, y: 1272, style: { fontSize: '150px' } };
+
+const CARROUSELS = {
+  // ======================================================== la carte
+  carte: [
+    { fond: 'sombre', couverture: true, elements: [
+      { t: 'html', html: '<div class="raisons"><b>6</b> REASONS</div>' },
+      { t: 'html', html: '<div class="sous" style="top:372px">to explore my <em>Japan map</em></div>' },
+      ...couronne(['kinkakuji', 'shirogane', 'motonosumi', 'fuji', 'takachiho', 'nachi', 'shirahige', 'hirosaki', 'itsukushima', 'tazawa'].map(P), 540, 865, 342, 140, -90),
+      { t: 'rond', src: 'logo.jpg', cx: 540, cy: 850, d: 460 },
+      { t: 'html', html: '<div class="ruban" style="top:982px;font-family:var(--titre);font-weight:400;font-size:42px;padding:10px 32px 12px">Random Japan Place</div>' },
+      fleche,
+    ] },
+    { fond: 'clair', titre: '*170+ places* from my\nTikToks, on *one map*', elements: [
+      { t: 'tirage', src: F('c-reperes'), x: 480, y: 450, w: 540, h: 810, r: 3, pos: 'center 40%' },
+      { t: 'tirage', src: P('kinkakuji'), x: 45, y: 470, w: 420, h: 380, r: -5, legende: 'Kinkaku-ji' },
+      { t: 'tirage', src: P('shirogane'), x: 95, y: 880, w: 420, h: 380, r: 4, legende: 'Shirogane Blue Pond' },
+    ] },
+    { fond: 'sombre', titre: 'Japan in *3D relief*,\nevery mountain', elements: [
+      { t: 'tirage', src: F('c-himeji3d'), x: 60, y: 450, w: 560, h: 800, r: -3, pos: 'center 55%', etiquette: ['HIMEJI CASTLE', 22, 22] },
+      { t: 'tirage', src: F('c-aogashima'), x: 600, y: 600, w: 420, h: 620, r: 4, pos: 'center 48%', etiquette: ['AOGASHIMA', 22, 22] },
+    ] },
+    { fond: 'clair', titre: 'Tap a place: *its video*,\n*photos*, *when to go*', elements: [
+      { t: 'decoupe', src: 'fiche-himeji', x: 150, y: 430, h: 850, r: -2 },
+    ] },
+    { fond: 'sombre', titre: 'Plan your trip:\n*favorites* and *route*', elements: [
+      { t: 'tirage', src: F('c-route'), x: 560, y: 380, w: 460, h: 818, r: 4 },
+      { t: 'decoupe', src: 'favoris', x: 60, y: 470, h: 740, r: -3 },
+      { t: 'decoupe', src: 'itineraire', x: 260, y: 1170, w: 640, r: -1 },
+    ] },
+    { fond: 'clair', titre: '*4 seasons*, *legends*\nand a *living sea*', elements: [
+      { t: 'tirage', src: F('c-printemps'), x: 70, y: 455, w: 300, h: 380, r: -4, pos: 'center 45%', etiquette: ['SPRING', 18, 18] },
+      { t: 'tirage', src: F('c-ete'), x: 385, y: 470, w: 300, h: 380, r: 3, pos: 'center 45%', etiquette: ['SUMMER', 18, 18] },
+      { t: 'tirage', src: F('c-automne'), x: 80, y: 865, w: 300, h: 380, r: 3, pos: 'center 45%', etiquette: ['AUTUMN', 18, 18] },
+      { t: 'tirage', src: F('c-hiver'), x: 395, y: 855, w: 300, h: 380, r: -3, pos: 'center 40%', etiquette: ['WINTER', 18, 18] },
+      { t: 'decoupe', src: 'orochi', x: 690, y: 420, w: 370, r: 4 },
+      { t: 'tirage', src: F('c-mer'), x: 720, y: 830, w: 310, h: 420, r: 4, pos: '85% 30%', taille: '260%' },
+    ] },
+    { fond: 'sombre', titre: 'Two games: *guess\nthe place*, *walk in 3D*', elements: [
+      { t: 'tirage', src: F('j-kinkaku'), x: 55, y: 450, w: 450, h: 800, r: -4, pos: 'center 30%' },
+      { t: 'tirage', src: F('b-torii'), x: 575, y: 470, w: 450, h: 800, r: 4, pos: 'center 50%' },
+      { t: 'decoupe', src: 'fille', x: 430, y: 930, h: 330, z: 3 },
+    ] },
+    { fond: 'clair', fin: true, titre: 'It\'s *free*: no app,\nno sign-up', elements: [
+      { t: 'rond', src: 'logo.jpg', cx: 540, cy: 720, d: 520 },
+      { t: 'html', html: '<div class="ruban" style="top:1000px;font-family:var(--titre);font-weight:400;font-size:46px">map.randomjapanplace.com</div>' },
+      { t: 'html', html: '<div class="sous" style="top:1110px;color:var(--encre);font-size:46px">English · Français · 日本語</div>' },
+      { t: 'html', html: '<div class="ruban" style="top:1190px;background:var(--encre);font-size:50px">link in bio</div>' },
+    ] },
+  ],
+
+  // ======================================================== la balade 3D
+  balade: [
+    { fond: 'sombre', couverture: true, elements: [
+      { t: 'html', html: '<div class="raisons"><b>6</b> REASONS</div>' },
+      { t: 'html', html: '<div class="sous" style="top:372px">to play my <em>3D walk</em> in Japan</div>' },
+      ...couronne(['itsukushima', 'aogashima', 'gokayama', 'himeji', 'takachiho', 'kinkakuji', 'beppu', 'motonosumi', 'sanjubutsu', 'udo', 'yakushima', 'tottori', 'tsubosaka', 'iiyama'].map((n) => F(`b-${n}`)), 540, 862, 360, 124, -90 + 360 / 28),
+      { t: 'decoupe', src: 'garcon', x: 318, y: 640, h: 450 },
+      { t: 'decoupe', src: 'fille', x: 470, y: 630, h: 470 },
+      { t: 'decoupe', src: 'kon', x: 430, y: 860, h: 270, z: 2 },
+      fleche,
+    ] },
+    { fond: 'clair', titre: 'My *real places*,\nrebuilt in *3D*', elements: [
+      { t: 'html', html: '<div class="sceau" style="left:850px;top:160px;width:180px;height:180px;font-size:64px;transform:rotate(7deg)">14<br><span style="font-size:32px">places</span></div>' },
+      { t: 'tirage', src: P('kinkakuji'), x: 50, y: 470, w: 440, h: 352, r: -3, etiquette: ['REAL', 20, 20, 'encre'] },
+      { t: 'tirage', src: F('b-kinkakuji'), x: 580, y: 470, w: 440, h: 352, r: 3, pos: 'center 52%', etiquette: ['IN MY GAME', 20, 20] },
+      { t: 'texte', cls: 'fleche', html: '→', x: 490, y: 560, style: { fontSize: '110px', color: 'var(--rouge)' } },
+      { t: 'tirage', src: P('takachiho'), x: 50, y: 880, w: 440, h: 352, r: 2, etiquette: ['REAL', 20, 20, 'encre'] },
+      { t: 'tirage', src: F('b-takachiho'), x: 580, y: 880, w: 440, h: 352, r: -3, pos: 'center 62%', etiquette: ['IN MY GAME', 20, 20] },
+      { t: 'texte', cls: 'fleche', html: '→', x: 490, y: 970, style: { fontSize: '110px', color: 'var(--rouge)' } },
+    ] },
+    { fond: 'sombre', titre: 'A *secret* hidden\nin every place', elements: [
+      { t: 'tirage', src: F('b-tresor'), x: 55, y: 450, w: 450, h: 800, r: -4, pos: 'center 60%' },
+      { t: 'tirage', src: F('b-okiku'), x: 580, y: 480, w: 440, h: 760, r: 4, pos: 'center 30%' },
+      { t: 'html', html: '<div class="koban" style="left:452px;top:930px;transform:rotate(-12deg);z-index:4"><span>壱両</span></div>' },
+      { t: 'html', html: '<div class="etiquette" style="left:430px;top:1175px;font-size:32px;z-index:4;transform:rotate(-4deg)">+1 KOBAN</div>' },
+    ] },
+    { fond: 'clair', titre: '*Mini-games*: camels,\nnoodles, sandboards…', elements: [
+      { t: 'tirage', src: F('b-tottori'), x: 40, y: 470, w: 330, h: 560, r: -5, pos: 'center 52%' },
+      { t: 'tirage', src: F('b-somen'), x: 375, y: 560, w: 330, h: 560, r: 2, pos: 'center 60%' },
+      { t: 'tirage', src: F('b-planche'), x: 710, y: 480, w: 330, h: 560, r: 5, pos: 'center 45%' },
+    ] },
+    { fond: 'sombre', titre: 'Collect *stamps*,\nunlock *outfits*', elements: [
+      { t: 'html', html: '<div style="position:absolute;left:600px;top:420px;width:440px;height:250px;background:var(--creme);border-radius:16px;transform:rotate(3deg);box-shadow:0 14px 30px rgba(0,0,0,.4)"></div>' },
+      { t: 'decoupe', src: 'tampon-ema', x: 625, y: 435, w: 215, r: -6, z: 2 },
+      { t: 'decoupe', src: 'tampon-usagi', x: 815, y: 445, w: 215, r: 7, z: 2 },
+      { t: 'decoupe', src: 'samourai', x: 0, y: 700, h: 530 },
+      { t: 'decoupe', src: 'tengu', x: 250, y: 710, h: 520 },
+      { t: 'decoupe', src: 'kimono', x: 515, y: 700, h: 530 },
+      { t: 'decoupe', src: 'renarde', x: 790, y: 710, h: 520 },
+    ] },
+    { fond: 'clair', titre: 'Spend your koban at\n*Bunbuku\'s shop*', elements: [
+      { t: 'tirage', src: F('b-bunbuku'), x: 55, y: 450, w: 450, h: 800, r: -4, pos: 'center 62%' },
+      { t: 'decoupe', src: 'bunbuku', x: 560, y: 470, h: 760 },
+      { t: 'html', html: '<div class="koban" style="left:480px;top:1010px;transform:rotate(14deg) scale(0.85);z-index:4"><span>壱両</span></div>' },
+    ] },
+    { fond: 'sombre', titre: 'Pick a *companion*…\nor buy a *secret* one', elements: [
+      { t: 'decoupe', src: 'gao', x: 70, y: 470, h: 330 },
+      { t: 'decoupe', src: 'fuwa', x: 640, y: 480, w: 400 },
+      { t: 'html', html: '<div class="etiquette" style="left:120px;top:800px">SECRET</div><div class="etiquette" style="left:760px;top:760px">SECRET</div>' },
+      { t: 'decoupe', src: 'pon', x: 40, y: 860, h: 400 },
+      { t: 'decoupe', src: 'kon', x: 360, y: 700, h: 560, z: 2 },
+      { t: 'decoupe', src: 'chapu', x: 650, y: 1000, w: 400 },
+      { t: 'html', html: '<div class="etiquette encre" style="left:120px;top:1230px;z-index:6">PON</div><div class="etiquette encre" style="left:470px;top:1230px;z-index:6">KON</div><div class="etiquette encre" style="left:790px;top:1230px;z-index:6">CHAPU</div>' },
+    ] },
+    { fond: 'clair', fin: true, titre: '*Free*, in your browser.\nNo download.', elements: [
+      { t: 'decoupe', src: 'fille', x: 270, y: 440, h: 540 },
+      { t: 'decoupe', src: 'kon', x: 560, y: 680, h: 320 },
+      { t: 'html', html: '<div class="sous" style="top:1000px;color:var(--encre);font-family:var(--rond);font-size:44px">On my Japan map, tap a place:</div>' },
+      { t: 'decoupe', src: 'bouton-3d', x: 300, y: 1070, w: 480 },
+      { t: 'html', html: '<div class="ruban" style="top:1250px;background:var(--encre);font-size:44px;font-family:var(--rond)">link in bio</div>' },
+    ] },
+  ],
+
+  // ======================================================== le jeu « Guess the place »
+  jeu: [
+    { fond: 'sombre', couverture: true, elements: [
+      { t: 'html', html: '<div class="raisons"><b>6</b> REASONS</div>' },
+      { t: 'html', html: '<div class="sous" style="top:372px">to play <em>Guess the place</em></div>' },
+      ...couronne(['shirahige', 'nachi', 'aogashima', 'sengen', 'shuri', 'gokayama', 'oshinkoshin', 'sakurajima', 'tazawa', 'hirosaki'].map(P), 540, 865, 342, 140, -72),
+      { t: 'html', html: '<div class="rond" style="left:310px;top:630px;width:460px;height:460px;overflow:hidden;background:#000"><div style="position:absolute;inset:-30px;background:url(' + I(P('shirogane')) + ') center/cover;filter:blur(18px) saturate(1.1)"></div><div style="position:absolute;inset:0;display:grid;place-items:center;font-family:var(--titre);font-size:300px;color:var(--creme);text-shadow:0 10px 30px rgba(0,0,0,.5)">?</div></div>' },
+      fleche,
+    ] },
+    { fond: 'clair', titre: '*Real photos* from\nmy trips to Japan', elements: [
+      { t: 'tirage', src: P('shirahige'), x: 55, y: 470, w: 430, h: 404, r: -6, legende: '?' },
+      { t: 'tirage', src: P('nachi'), x: 575, y: 500, w: 430, h: 404, r: 5, legende: '?' },
+      { t: 'tirage', src: P('oshinkoshin'), x: 95, y: 880, w: 430, h: 404, r: 3, legende: '?' },
+      { t: 'tirage', src: P('fuji'), x: 560, y: 905, w: 430, h: 404, r: -4, legende: '?' },
+    ] },
+    { fond: 'sombre', titre: 'Drop your pin\non a *3D map*', elements: [
+      { t: 'tirage', src: F('j-photo'), x: 55, y: 450, w: 450, h: 800, r: -4, pos: 'center 30%' },
+      { t: 'tirage', src: F('j-fuji'), x: 575, y: 470, w: 450, h: 800, r: 4, pos: 'center 30%' },
+    ] },
+    { fond: 'clair', titre: 'The closer you are,\nthe *more points*', elements: [
+      { t: 'tirage', src: F('j-kinkaku'), x: 55, y: 450, w: 450, h: 800, r: -4, pos: 'center 30%' },
+      { t: 'tirage', src: F('j-motonosumi'), x: 575, y: 470, w: 450, h: 800, r: 4, pos: 'center 30%' },
+      { t: 'html', html: '<div class="sceau" style="left:395px;top:1040px;width:290px;height:150px;font-size:76px;transform:rotate(-7deg);z-index:6">+974</div>' },
+    ] },
+    { fond: 'sombre', titre: 'A *daily challenge*:\nsame place for all', elements: [
+      { t: 'tirage', src: F('j-essais'), x: 55, y: 450, w: 450, h: 800, r: -4, pos: 'center 30%' },
+      { t: 'tirage', src: F('j-trouve'), x: 575, y: 470, w: 450, h: 800, r: 4, pos: 'center 30%' },
+    ] },
+    { fond: 'clair', titre: 'Play *with friends*:\none code, one room', elements: [
+      { t: 'tirage', src: F('j-salon'), x: 55, y: 460, w: 500, h: 760, r: -4, pos: 'center 8%', taille: '100% auto' },
+      { t: 'tirage', src: F('j-menu'), x: 590, y: 500, w: 440, h: 700, r: 4, pos: 'center 0%', taille: '100% auto' },
+    ] },
+    { fond: 'sombre', titre: 'Can you beat\nmy *4,361* points?', elements: [
+      { t: 'tirage', src: F('j-score'), x: 55, y: 460, w: 520, h: 760, r: -4, pos: 'center 4%', taille: '100% auto' },
+      { t: 'html', html: '<div class="bulle" style="left:620px;top:640px;width:380px;transform:rotate(4deg)">Comment<br>your <em>score</em></div>' },
+      { t: 'decoupe', src: 'fille', x: 700, y: 860, h: 400 },
+    ] },
+    { fond: 'clair', fin: true, titre: 'It\'s *free*, on my\nJapan map', elements: [
+      { t: 'rond', src: 'logo.jpg', cx: 540, cy: 700, d: 480 },
+      { t: 'html', html: '<div class="sous" style="top:975px;color:var(--encre);font-size:48px">Menu → <em style="color:var(--rouge)">Guess the place</em></div>' },
+      { t: 'html', html: '<div class="ruban" style="top:1070px;font-family:var(--titre);font-weight:400;font-size:46px">map.randomjapanplace.com</div>' },
+      { t: 'html', html: '<div class="ruban" style="top:1180px;background:var(--encre);font-size:50px">link in bio</div>' },
+    ] },
+  ],
+};
+
+// ---------------------------------------------------------------- dessiner une image
+const q = new URLSearchParams(location.search);
+const nom = q.get('c') || 'carte', n = Number(q.get('n') || 0);
+const def = CARROUSELS[nom][n];
+const racine = document.getElementById('image');
+racine.className = `image ${def.fond} ${nom}`;
+racine.append(el('grille'), el('grain'), el('halo'));
+if (!def.couverture && !def.fin) {
+  racine.append(el('num haut', String(n)), el('num bas', String(n)));
+}
+if (def.titre) racine.append(el('titre', mots(def.titre)));
+for (const o of def.elements) {
+  if (o.t === 'tirage') racine.append(tirage(o));
+  else if (o.t === 'decoupe') racine.append(decoupe(o));
+  else if (o.t === 'rond') racine.append(rond(o));
+  else if (o.t === 'texte') racine.append(texte(o));
+  else if (o.t === 'html') racine.insertAdjacentHTML('beforeend', o.html);
+}
+window.__nombre = Object.fromEntries(Object.entries(CARROUSELS).map(([k, v]) => [k, v.length]));
+// prêt quand les polices et toutes les images (y compris les fonds CSS) sont chargées
+const urls = new Set();
+for (const e of racine.querySelectorAll('*')) {
+  const b = getComputedStyle(e).backgroundImage;
+  for (const m of b.matchAll(/url\("?([^")]+)"?\)/g)) urls.add(m[1]);
+  if (e.tagName === 'IMG') urls.add(e.src);
+}
+Promise.all([document.fonts.ready, ...[...urls].map((u) => new Promise((ok) => { const im = new Image(); im.onload = im.onerror = ok; im.src = u; }))])
+  .then(() => document.fonts.ready).then(() => { window.__pret = true; });
+</script>
+</body>
+</html>
