@@ -41,6 +41,7 @@ const POINTS = [10, 8, 6]; // le premier à trouver, le deuxième, le troisième
 const POINTS_SUITE = 4;
 const FLOU_MAX = 18; // px (sur 1080) de flou au début d'une manche ; nette à la fin
 const FIL = 5; // essais montrés à la fois
+const RETARD_YOUTUBE = 6, RETARD_TIKTOK = 2; // s de grâce après la fin d'une manche ou d'un vote (voir retard)
 const MEMO = 'liveScores'; // localStorage : { jour, joueurs: { id: { nom, points, trouves } } }, le classement du jour
 const SOURCE = 'live-prefectures';
 const PENTE = 35; // inclinaison de la vue du Japon
@@ -82,6 +83,36 @@ export function prefectureDans(texte) {
   return m ? JAPONAIS.find(([n]) => n === m[0])[1] : null;
 }
 
+/** Deux mots à une faute de frappe près : une lettre changée, ajoutée, enlevée, ou deux lettres voisines inversées. */
+export function proches(a, b) {
+  if (a === b) return true;
+  if (Math.abs(a.length - b.length) > 1) return false;
+  let i = 0;
+  while (i < a.length && i < b.length && a[i] === b[i]) i++;
+  if (a.length === b.length) {
+    return a.slice(i + 1) === b.slice(i + 1) || (a[i] === b[i + 1] && a[i + 1] === b[i] && a.slice(i + 2) === b.slice(i + 2));
+  }
+  const [long, court] = a.length > b.length ? [a, b] : [b, a];
+  return long.slice(i + 1) === court.slice(i);
+}
+
+/** Une préfecture mal écrite (« kagosima », « hiroshma », « fukoka ») : un mot d'au moins 6 lettres à une faute près
+    (pas plus court : « china » n'est pas « chiba »). */
+export function prefectureApprochee(texte) {
+  const mots = sansAccents(String(texte || '').normalize('NFKC')).split(/[^a-z]+/).filter((m) => m.length >= 6);
+  for (const m of mots) for (const [nom, code] of LATIN) if (nom.length >= 6 && proches(m, nom)) return code;
+  return null;
+}
+
+// Les mots trop communs des noms de lieux, qui ne désignent pas un lieu à eux seuls (on reconnaît « Gokayama », « Izanagi »,
+// « Kinkakuji », pas « shrine » ni « falls »)
+const GENERIQUES = new Set(('shrine shrines temple temples castle falls waterfall waterfalls lake bridge park island islands gorge mount mountain '
+  + 'jinja jingu taisha onsen pond beach coast valley garden gardens station tower street village festival spring springs cape river cave '
+  + 'caves great buddha statue statues hills forest sanctuary ruins house museum market highland highlands plateau observatory point rocks '
+  + 'dunes flower flowers field fields white golden giant ancient sacred hidden little nature national scenic palace peninsula harbor '
+  + 'harbour canal tunnel lighthouse trees cherry blossom blossoms autumn winter summer night light lights lantern lanterns crater volcano '
+  + 'canyon japan japanese hotel tower torii gates inari').split(' '));
+
 const attendre = (s) => new Promise((ok) => setTimeout(ok, s * 1000));
 const hasard = (liste) => liste[Math.floor(Math.random() * liste.length)];
 const raccourcir = (s, n = 18) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
@@ -100,6 +131,9 @@ export function brancherLive(map, maplibregl, outils) {
   // en live YouTube, les textes propres à TikTok prennent leur variante YouTube
   const t = (cle, ...args) => outils.t(youtube && TEXTES_YOUTUBE.has(cle) ? `${cle}YT` : cle, ...args);
   const adresseChat = youtube && !parametres.get('chat') ? STREAMERBOT : outils.chat;
+  // Après la fin du compte à rebours, le jeu écoute encore le chat quelques secondes : le spectateur voit le direct en retard,
+  // et son message met lui aussi du temps à arriver (le premier live YouTube, 2026-11-24 : « ehime » est arrivé après la fin)
+  const retard = youtube ? RETARD_YOUTUBE : RETARD_TIKTOK;
   const lien = document.createElement('link');
   lien.rel = 'stylesheet';
   lien.href = 'live.css';
@@ -316,13 +350,49 @@ export function brancherLive(map, maplibregl, outils) {
   const nomPref = (code) => enLangue(PREFECTURES[code]);
 
   // ---- Le fil des essais et les mercis
-  function ajouterAuFil(html, couleur) {
+  // (bavardage : un message du chat qui n'est ni un essai ni un vote ; quand le fil est plein, ces lignes partent les premières)
+  function ajouterAuFil(html, couleur, bavardage = false) {
     const li = document.createElement('li');
     li.innerHTML = html;
     li.style.setProperty('--c', couleur);
+    li.classList.toggle('bavardage', bavardage);
     el.fil.prepend(li);
-    while (el.fil.children.length > FIL) el.fil.lastElementChild.remove();
+    while (el.fil.children.length > FIL) {
+      const vieux = [...el.fil.querySelectorAll('li.bavardage')].pop();
+      (vieux && vieux !== li ? vieux : el.fil.lastElementChild).remove();
+    }
   }
+  /** Tous les messages du chat se voient (le premier vrai live YouTube, 2026-11-24 : un spectateur a écrit « gokoyama »,
+      « ehime », « nantosi shrine », et rien ne s'affichait : il ne savait pas si le jeu le lisait). */
+  function bavarder(nom, texte) {
+    const s = String(texte || '').replace(/\s+/g, ' ').trim();
+    if (s) ajouterAuFil(`<b>${echapper(raccourcir(nom))}</b> <q>${echapper(raccourcir(s, 30))}</q>`, '#b9a37e', true);
+  }
+
+  // ---- Reconnaître une réponse : une préfecture, sinon un lieu de la carte (« Gokayama » → Toyama), sinon une préfecture
+  // mal écrite. Les lieux : les mots distinctifs de leur nom anglais (au moins 5 lettres), et le nom entier collé
+  // (« kinkakuji », « izanagishrine »), seulement ceux qui ne désignent qu'une préfecture ; à une faute près dès 6 lettres.
+  let indexLieux = null;
+  function lieuDans(texte) {
+    if (!indexLieux) {
+      const compte = new Map();
+      for (const l of lieux()) {
+        const nom = sansAccents(l.nom?.en || '');
+        if (!l.prefecture || !nom) continue;
+        const cles = nom.split(/[^a-z]+/).filter((m) => m.length >= 5 && !GENERIQUES.has(m));
+        cles.push(nom.replace(/[^a-z]/g, ''));
+        for (const k of cles) if (k.length >= 5) { if (!compte.has(k)) compte.set(k, new Set()); compte.get(k).add(l.prefecture); }
+      }
+      indexLieux = new Map([...compte].filter(([, p]) => p.size === 1).map(([k, p]) => [k, [...p][0]]));
+    }
+    const s = sansAccents(String(texte || '').normalize('NFKC'));
+    const mots = s.split(/[^a-z]+/).filter((m) => m.length >= 5);
+    mots.push(s.replace(/[^a-z]/g, ''));
+    for (const m of mots) if (indexLieux.has(m)) return indexLieux.get(m);
+    for (const m of mots) if (m.length >= 6) for (const [k, code] of indexLieux) if (k.length >= 6 && proches(m, k)) return code;
+    return null;
+  }
+  const trouverPrefecture = (texte) => prefectureDans(texte) ?? lieuDans(texte) ?? prefectureApprochee(texte);
   const mercis = [];
   let merciEnCours = false;
   function remercier(texte) {
@@ -369,7 +439,7 @@ export function brancherLive(map, maplibregl, outils) {
     outils.montrerLieux?.(false); // les couleurs des essais se voient mieux sans les points des lieux
     allerAuJapon(2600);
     preparerVol?.({ ...vue }, arrivee(l)).catch(() => {});
-    await attendre(ENTREE + MANCHE);
+    await attendre(ENTREE + MANCHE + retard);
 
     etat.phase = 'revele';
     effacerCarte();
@@ -405,7 +475,7 @@ export function brancherLive(map, maplibregl, outils) {
     montrer('vote');
     outils.montrerLieux?.(false);
     allerAuJapon(2600);
-    await attendre(VOTE);
+    await attendre(VOTE + retard);
 
     let code = null, max = 0;
     for (const [c, n] of etat.compte) if (n > max) { max = n; code = c; } // à égalité, la première arrivée
@@ -460,7 +530,7 @@ export function brancherLive(map, maplibregl, outils) {
       const reste = Math.max(0, Math.min(duree, (etat.fin - maintenant) / 1000));
       const s = Math.ceil(reste);
       const boite = etat.phase === 'devine' ? el.devine : el.vote;
-      boite.querySelector('.live-chrono b').textContent = s;
+      boite.querySelector('.live-chrono b').textContent = s > 0 ? s : '⏳'; // (le temps de grâce : les derniers messages arrivent)
       boite.querySelector('.live-chrono-arc').style.strokeDashoffset = 100 - (reste / duree) * 100;
       boite.classList.toggle('presse', reste <= 10);
       boite.classList.toggle('urgent', reste <= 5 && reste > 0);
@@ -493,15 +563,16 @@ export function brancherLive(map, maplibregl, outils) {
   // ---- Le chat
   function surChat(id, nom, texte) {
     if (!etat) return;
-    if (etat.phase === 'devine' && performance.now() > etat.debut - 800) deviner(id, nom, texte);
-    else if (etat.phase === 'vote') voter(id, nom, texte);
+    if (etat.phase === 'devine' && performance.now() > etat.debut - 800) { if (deviner(id, nom, texte)) return; }
+    else if (etat.phase === 'vote' && voter(id, nom, texte)) return;
+    bavarder(nom, texte);
   }
 
-  /** Un essai : le premier message de chacun qui nomme une préfecture (un seul par manche). */
+  /** Un essai : le premier message de chacun qui nomme une préfecture (un seul par manche). Vrai s'il a compté. */
   function deviner(id, nom, texte) {
-    if (etat.essais.has(id)) return;
-    const code = prefectureDans(texte);
-    if (!code) return;
+    if (etat.essais.has(id)) return false;
+    const code = trouverPrefecture(texte);
+    if (!code) return false;
     const l = etat.lieu;
     if (code === l.prefecture) {
       const points = POINTS[etat.trouveurs.length] ?? POINTS_SUITE;
@@ -510,7 +581,7 @@ export function brancherLive(map, maplibregl, outils) {
       ajouterPoints(id, nom, points);
       ajouterAuFil(`<b>${echapper(raccourcir(nom))}</b> ${echapper(t('liveTrouve'))} <i>+${points}</i>`, VERT);
       son('trouve');
-      return;
+      return true;
     }
     const km = centres[code] ? kmEntre(centres[code], l) : 9999;
     const i = TEMPERATURES.findIndex(([d]) => km > d);
@@ -519,13 +590,14 @@ export function brancherLive(map, maplibregl, outils) {
     if (map.getSource(SOURCE)) map.setFeatureState({ source: SOURCE, id: code }, { temp: i });
     ajouterAuFil(`<b>${echapper(raccourcir(nom))}</b> ${echapper(nomPref(code))} <span>${emoji} ${echapper(t(cle))}</span>`, couleur);
     son('essai', i);
+    return true;
   }
 
-  /** Un vote de la pause voyage : une préfecture par personne (son premier message qui en nomme une). */
+  /** Un vote de la pause voyage : une préfecture par personne (son premier message qui en nomme une). Vrai s'il a compté. */
   function voter(id, nom, texte) {
-    if (etat.votes.has(id)) return;
-    const code = prefectureDans(texte);
-    if (!code) return;
+    if (etat.votes.has(id)) return false;
+    const code = trouverPrefecture(texte);
+    if (!code) return false;
     etat.votes.set(id, code);
     const n = (etat.compte.get(code) || 0) + 1;
     etat.compte.set(code, n);
@@ -534,6 +606,7 @@ export function brancherLive(map, maplibregl, outils) {
     el.votes.innerHTML = tri.map(([c, k]) => `<li style="--part:${k / tri[0][1]}"><span>${echapper(nomPref(c))}</span><b>${echapper(t('liveVoix', k))}</b></li>`).join('');
     ajouterAuFil(`<b>${echapper(raccourcir(nom))}</b> ✈️ ${echapper(nomPref(code))}`, '#a8321f');
     son('essai', 2);
+    return true;
   }
 
   // ---- Les événements de TikFinity (au format de TikTok-Live-Connector, ancien ou nouveau)

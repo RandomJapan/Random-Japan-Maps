@@ -96,7 +96,7 @@ body.mode-live .repere-nom { display: none !important; }
   list-style: none; padding: 0; display: flex; flex-direction: column; align-items: flex-end; gap: calc(10 * var(--u));
   transition: opacity .4s;
 }
-.live:not([data-phase="devine"]):not([data-phase="vote"]) .live-fil { opacity: 0; }
+/* (le fil reste visible entre les manches : les messages du chat s'y affichent toujours) */
 /* (une ligne en flex : quand elle est trop longue, c'est le pseudo qui se coupe (…), jamais la préfecture ni « froid/chaud » ;
    le premier vrai live YouTube, 2026-11-24 : « random_japan_place Kyoto 🥶 w… ») */
 .live-fil li {
@@ -109,6 +109,8 @@ body.mode-live .repere-nom { display: none !important; }
 .live-fil li:nth-child(5) { opacity: .4; }
 .live-fil li b { font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .live-fil li > :not(b) { flex: none; }
+.live-fil li q { quotes: none; min-width: 0; overflow: hidden; text-overflow: ellipsis; flex: 0 1 auto; color: var(--encre-2); }
+.live-fil li.bavardage { opacity: .92; }
 .live-fil li span { color: var(--c); font-weight: 700; }
 .live-fil li i { color: var(--c); font-style: normal; font-weight: 700; }
 @keyframes live-arrivee { from { opacity: 0; transform: translateX(calc(60 * var(--u))); } }
