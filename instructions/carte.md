@@ -645,6 +645,10 @@ The owner wants daily lives of 1 to 1.5 h that run by themselves, without showin
     - The owner's « Kyoto » typed in the YouTube chat reached the game's feed.
     - **Streamer.bot does not reconnect YouTube on startup by itself.** After a restart, `GetBroadcaster` listed youtube under `disconnected`, and the log had no « Connecting to YouTube ». The owner must click Connect, or tick « Auto Connect on Startup » in Platforms → YouTube.
     - **OBS logged a 403 on `videos?part=snippet`** while creating the broadcast. Check the title and description in YouTube Studio.
+    - **« L'image est floue » on the owner's phone.** OBS sent 1080 × 1920 at 6,000 kbps CBR (AMD AMF), and YouTube offered every rendition up to `hd1080`. The player's automatic choice was `large` (480 × 854) in a small window. A frame of the forced 1080p rendition, grabbed with headless Edge (`setPlaybackQualityRange('hd1080', 'hd1080')`, then the video drawn on a canvas), was sharp. So the blur comes from the viewer's automatic quality, not from the stream. Advice given:
+      - choose 1080p in the player;
+      - try « Faible latence » instead of « Ultra-faible », whose small buffer may keep phones on low renditions (not yet compared).
+      - The photo's own blur is the game, clearing over the 30 s.
     - **The feed cut the temperature word with long names** (« random_japan_place Kyoto 🥶 w… »). Each line is now a flex row in which only the name shrinks to an ellipsis.
 
 ### 3D walk (`site/balade/`, public since 2026-10-26)
