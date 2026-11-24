@@ -97,14 +97,18 @@ body.mode-live .repere-nom { display: none !important; }
   transition: opacity .4s;
 }
 .live:not([data-phase="devine"]):not([data-phase="vote"]) .live-fil { opacity: 0; }
+/* (une ligne en flex : quand elle est trop longue, c'est le pseudo qui se coupe (…), jamais la préfecture ni « froid/chaud » ;
+   le premier vrai live YouTube, 2026-11-24 : « random_japan_place Kyoto 🥶 w… ») */
 .live-fil li {
+  display: flex; gap: calc(8 * var(--u)); box-sizing: border-box;
   max-width: 100%; padding: calc(8 * var(--u)) calc(16 * var(--u)) calc(8 * var(--u)) calc(14 * var(--u));
-  border-left: calc(9 * var(--u)) solid var(--c); font-size: calc(25 * var(--u)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  border-left: calc(9 * var(--u)) solid var(--c); font-size: calc(25 * var(--u)); white-space: nowrap; overflow: hidden;
   animation: live-arrivee .45s var(--ease);
 }
 .live-fil li:nth-child(4) { opacity: .7; }
 .live-fil li:nth-child(5) { opacity: .4; }
-.live-fil li b { font-weight: 700; }
+.live-fil li b { font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.live-fil li > :not(b) { flex: none; }
 .live-fil li span { color: var(--c); font-weight: 700; }
 .live-fil li i { color: var(--c); font-style: normal; font-weight: 700; }
 @keyframes live-arrivee { from { opacity: 0; transform: translateX(calc(60 * var(--u))); } }
