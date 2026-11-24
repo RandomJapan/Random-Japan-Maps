@@ -407,7 +407,7 @@ Le même jeu, avec la même image verticale : sur téléphone, il peut apparaît
 1. **Active le direct sur ta chaîne YouTube.** Dans YouTube Studio, « Créer », puis « Passer au direct ». YouTube demande de vérifier ton numéro de téléphone, puis il faut attendre **jusqu'à 24 h** la première fois.
 2. **Installe deux logiciels gratuits** depuis leurs sites officiels : **OBS Studio** (obsproject.com), qui envoie l'image à YouTube, et **Streamer.bot** (streamer.bot), qui lit le chat YouTube et le donne à la page.
 3. **Dans Streamer.bot :**
-   - Va dans « Platforms », puis « YouTube », et clique sur « Connect » : tu te connectes avec ton compte Google.
+   - Va dans « Platforms », puis « YouTube », et clique sur « Connect » : tu te connectes avec ton compte Google. Coche aussi **« Auto Connect on Startup »** : sinon, à chaque ouverture de Streamer.bot, il faut recliquer sur « Connect » (le chat n'arrive pas, même si le point de la carte est vert).
    - Puis va dans « Servers/Clients », puis « WebSocket Server ». Vérifie que « Auto Start » est coché et que le serveur est démarré, avec l'adresse 127.0.0.1 et le port 8080. Laisse « Authentication » décoché.
 4. **Dans OBS :**
    - « Paramètres », puis « Vidéo » : mets **1080 × 1920** en résolution de base et en résolution de sortie, et 30 images par seconde.

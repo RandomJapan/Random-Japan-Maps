@@ -639,6 +639,13 @@ The owner wants daily lives of 1 to 1.5 h that run by themselves, without showin
   - **Settings.** `youtube` is read in `live.js` from `location.search`, so `app.js` is untouched; `?chat=` still overrides the address. The texts that name TikTok have a `…YT` variant in `TEXTES` (en/fr/ja), picked by the `t` wrapper through `TEXTES_YOUTUBE`: « link in the description », « Thanks for subscribing », « waiting for Streamer.bot… », plus `liveMerciMembreYT`.
   - **Music:** PeriTune and 魔王魂, both CC BY 4.0 and both allowing YouTube use with a credit. Credit them in the live's description too.
   - **Checked** with `faux_streamerbot.py` (scratchpad): it says Hello, reads the masked Subscribe frame, then sends only the requested YouTube events plus an ignored Twitch one. Guesses, colours, « Thanks for subscribing », « Super Fan sent €2.00 » with the early hint, and « chat connected » all came, with no console error. TikTok mode was re-checked with `faux_tikfinity.py`. A 20-minute run (`longue_duree.py`, about 30 rounds and pauses) showed no build-up: the JS heap swung between 300 and 500 MB with garbage collection and did not trend up, the DOM stayed near 1,720 elements, and there was no console error. The relay was checked in headless Edge 158, opened as a `file://` page: with `faux_streamerbot.py`, guesses flowed and the dot turned green, with no console warning; against the owner's real Streamer.bot, the dot turned green. `sonder_streamerbot.mjs` (scratchpad) got the real Hello (Streamer.bot 1.0.7), `GetBroadcaster` (`connected: ['youtube']`, the channel « Random Japan Place ») and an ok to the Subscribe. Not yet tried on a real YouTube live, nor inside OBS itself.
+  - **The first real YouTube live (2026-11-24, unlisted test).** It works end to end:
+    - OBS streamed over RTMPS from the « Random Japan Place » profile, using its account connection (« Gérer la diffusion »).
+    - The relay's page rendered in OBS's browser source, with the green dot.
+    - The owner's « Kyoto » typed in the YouTube chat reached the game's feed.
+    - **Streamer.bot does not reconnect YouTube on startup by itself.** After a restart, `GetBroadcaster` listed youtube under `disconnected`, and the log had no « Connecting to YouTube ». The owner must click Connect, or tick « Auto Connect on Startup » in Platforms → YouTube.
+    - **OBS logged a 403 on `videos?part=snippet`** while creating the broadcast. Check the title and description in YouTube Studio.
+    - **The feed cut the temperature word with long names** (« random_japan_place Kyoto 🥶 w… »). Each line is now a flex row in which only the name shrinks to an ellipsis.
 
 ### 3D walk (`site/balade/`, public since 2026-10-26)
 
