@@ -36,7 +36,6 @@ const MAISONS = [
   ['g9', 50, -6, 7.5, 11, 'ouest'], ['k1', -6, -36, 4.4, 5.6, 'est'], ['k2', 44, 46, 4.4, 5.6, 'ouest'],
 ];
 const MUSEE = MAISONS.find((m) => m[0] === 'musee');
-const MINSHUKU = MAISONS.find((m) => m[0] === 'minshuku');
 // les rizières en terrasses : [x0, x1, z0, z1] (chacune à son niveau, une diguette d'herbe autour)
 const RIZIERES = [[-8, 6, -58, -46], [-32, -18, -24, -15], [8, 22, -6, 3], [-34, -22, 4, 13], [-30, -16, 48, 60], [-8, 0, 29, 39], [34, 48, 24, 36], [36, 50, -36, -22], [12, 24, 26, 36]];
 // (deux rizières viennent d'être plantées : de l'eau, et de tout petits plants ; le riz des autres est haut et vert)
