@@ -263,10 +263,12 @@ def choisir_musique(journal, lieu_id):
               and reglages.get(cle(f.stem), "").lower() != "non" and f.name not in journal["musiques_bloquees"]]
     if not toutes:
         raise RuntimeError(f"Aucune musique utilisable dans {MUSIQUES}")
+    # les vidéos promo gardent leur propre musique : elles n'ont pas de « musique » de la banque dans le journal
+    deja = [e["musique"] for e in journal["envois"] if e.get("musique")]
     usages = {}
-    for e in journal["envois"]:
-        usages[e["musique"]] = usages.get(e["musique"], 0) + 1
-    recentes = [e["musique"] for e in journal["envois"][-3:]]
+    for m in deja:
+        usages[m] = usages.get(m, 0) + 1
+    recentes = deja[-3:]
     possibles = [f for f in toutes if f.name not in recentes] or toutes
     mini = min(usages.get(f.name, 0) for f in possibles)
     possibles = [f for f in possibles if usages.get(f.name, 0) == mini]
