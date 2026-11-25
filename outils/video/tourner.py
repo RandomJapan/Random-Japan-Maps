@@ -42,7 +42,7 @@ FAVORIS = ['kinkaku-ji', 'sanjusangen-do', 'echizen-daibutsu', 'itsukushima-jinj
 # Les vidéos des lieux : celles du propriétaire, telles qu'il les a montées pour TikTok (pas dans le dépôt). Le
 # lecteur TikTok ne marche pas dans un navigateur piloté (TikTok le bloque) : les films voyage et pov montrent donc
 # un extrait du fichier de chaque lieu, préparé dans videos/carte/films-octobre/extraits/ (720 × 1280, sans le son).
-VIDEOS_LIEUX = Path(os.environ.get('VIDEOS_LIEUX', r'D:\Montage\Vidéo lieux random japon'))
+VIDEOS_LIEUX = Path(os.environ.get('VIDEOS_LIEUX', r'D:\Vidéos\Tik Tok\Vidéo lieux random japon'))
 DUREE_EXTRAIT = 4.0
 # id de la vidéo TikTok du lieu (colonne « Lien TikTok » du tableau) : (fichier dans VIDEOS_LIEUX, début de l'extrait
 # en s), choisis sur des planches-contact : un beau plan, sans le titre incrusté du début des vidéos

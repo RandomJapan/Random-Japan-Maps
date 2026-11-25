@@ -15,7 +15,7 @@ ICI = Path(__file__).resolve().parent
 RACINE = ICI.parents[2]
 PUBLIC = RACINE / 'videos' / 'carte' / 'promo30' / 'public'
 HALLOWEEN = RACINE / 'videos' / 'carte' / 'halloween' / 'public'
-VIDEOS_LIEUX = Path(os.environ.get('VIDEOS_LIEUX', r'D:\Montage\Vidéo lieux random japon'))
+VIDEOS_LIEUX = Path(os.environ.get('VIDEOS_LIEUX', r'D:\Vidéos\Tik Tok\Vidéo lieux random japon'))
 SFX = Path.home() / '.claude' / 'skills' / 'video-shotcraft' / 'assets' / 'audio' / 'sfx'
 # nom : (fichier, début en s, durée en s) — choisis sur des planches-contact
 EXTRAITS = {

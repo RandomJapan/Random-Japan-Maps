@@ -1,7 +1,7 @@
 """Les images et les sons des vidéos de la balade 3D qui ne sont pas filmés dans la balade, dans videos/balade/public
 (le dossier « public » du montage, pas dans git) :
 - reels/<lieu>.mp4 : un passage de la vidéo du propriétaire de chaque lieu (le vrai lieu, que le montage fait glisser
-  sur sa version du jeu), pris dans D:\\Montage\\Vidéo lieux random japon, sans titre incrusté, en H.264 60 images/s,
+  sur sa version du jeu), pris dans D:\\Vidéos\\Tik Tok\\Vidéo lieux random japon, sans titre incrusté, en H.264 60 images/s,
   couleurs notées (BT.709, plage TV) et une image clé toutes les 15 : le décodeur de Remotion le veut ainsi ;
 - sfx/ : les bruitages repris des vidéos d'avant (ceux de video-shotcraft dont la source Mixkit est notée, et ceux faits
   avec Flora pour la promo de 30 s et la vidéo « tunnel ») ; les bruitages du jeu lui-même sont faits par sons.py ;
@@ -20,7 +20,7 @@ from PIL import Image
 ICI = Path(__file__).resolve().parent
 RACINE = ICI.parents[2]
 PUBLIC = RACINE / 'videos' / 'balade' / 'public'
-VIDEOS_LIEUX = Path(r'D:\Montage\Vidéo lieux random japon')
+VIDEOS_LIEUX = Path(r'D:\Vidéos\Tik Tok\Vidéo lieux random japon')
 SR = 48000
 # le lieu : (fichier du propriétaire, début (s), durée (s)[, vitesse : moins de 1, ralenti]) : choisis sur des planches à
 # une image par seconde

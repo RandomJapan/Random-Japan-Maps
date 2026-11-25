@@ -1,5 +1,5 @@
 r"""Le robot YouTube : publie sur la chaîne Random Japan Place un Short par lieu de la carte, fait de la vidéo du montage
-(D:\Montage\Vidéo lieux random japon, une vidéo muette par lieu, comme pour couvertures_montage.py) et d'une musique de
+(D:\Vidéos\Tik Tok\Vidéo lieux random japon, une vidéo muette par lieu, comme pour couvertures_montage.py) et d'une musique de
 la banque du propriétaire (C:\Users\Lucas\Videos\noTube).
 
 Demandé par le propriétaire le 2026-11-22 : 170 lieux sur TikTok, 3 Shorts sur YouTube, dont 2 bloqués pour leur musique

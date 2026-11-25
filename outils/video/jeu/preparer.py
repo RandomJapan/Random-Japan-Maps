@@ -15,7 +15,7 @@ ICI = Path(__file__).resolve().parent
 RACINE = ICI.parents[2]
 VIDEOS = RACINE / 'videos'
 PUBLIC = VIDEOS / 'carte' / 'jeu' / 'public'
-VIDEOS_LIEUX = Path(r'D:\Montage\Vidéo lieux random japon')
+VIDEOS_LIEUX = Path(r'D:\Vidéos\Tik Tok\Vidéo lieux random japon')
 
 # nom : (fichier du propriétaire, seconde de début, durée) : des plans sans le titre incrusté de ses vidéos
 REELS = {

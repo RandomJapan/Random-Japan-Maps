@@ -12,7 +12,7 @@ from pathlib import Path
 ICI = Path(__file__).resolve().parent
 RACINE = ICI.parent.parent.parent
 PUBLIC = RACINE / 'videos' / 'carte' / 'halloween' / 'public'
-VIDEOS_LIEUX = Path(os.environ.get('VIDEOS_LIEUX', r'D:\Montage\Vidéo lieux random japon'))
+VIDEOS_LIEUX = Path(os.environ.get('VIDEOS_LIEUX', r'D:\Vidéos\Tik Tok\Vidéo lieux random japon'))
 SFX = Path.home() / '.claude' / 'skills' / 'video-shotcraft' / 'assets' / 'audio' / 'sfx'
 # nom : (fichier, début en s, durée en s[, images/s]) — choisis sur des planches-contact (un plan fort, sans le titre incrusté)
 EXTRAITS = {

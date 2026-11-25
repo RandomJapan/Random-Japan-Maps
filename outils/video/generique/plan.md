@@ -40,7 +40,7 @@ Avant elle, 2 s sans musique : le vrai son de la chambre et du sabre.
 | 26,1 → 28,2 | 24,1 → 26,2 | Refrain 4 : jour → nuit, la balade en 3D | « JAPAN, WAIT FOR ME! » |
 | 28,2 → 31 | 26,2 → 29 | Le final : tout le Japon allumé, le logo, « FREE · LINK IN BIO », l'adresse ; « Let's go! » | |
 
-## Les vrais plans du propriétaire (`D:\Montage\Vidéo lieux random japon`)
+## Les vrais plans du propriétaire (`D:\Vidéos\Tik Tok\Vidéo lieux random japon`)
 
 Takeda Castle (son titre incrusté en haut à gauche après 4 s : recadré), Fuji Shibazakura, Takayama Inari (le tunnel de torii, 9 à 14 s), Motonosumi, Itsukushima, Shirahige, Aogashima, Nagoro (le champ d'épouvantails, 13 s ; jamais le personnage de mascotte vers 32 s), Shirogane Blue Pond. Aucun drapeau, logo ni personnage d'une œuvre existante (le drapeau pirate de sa chambre, à la fin du rush 1, n'est pas utilisé).
 

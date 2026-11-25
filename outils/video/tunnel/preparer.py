@@ -25,7 +25,7 @@ ICI = Path(__file__).resolve().parent
 RACINE = ICI.parents[2]
 PUBLIC = RACINE / 'videos' / 'carte' / 'tunnel' / 'public'
 SOURCES = RACINE / 'videos' / 'carte' / 'tunnel' / 'sources'
-VIDEOS_LIEUX = Path(r'D:\Montage\Vidéo lieux random japon')
+VIDEOS_LIEUX = Path(r'D:\Vidéos\Tik Tok\Vidéo lieux random japon')
 # la grille de la capture : trois colonnes, des rangées de 408 px (la troisième coupée par le bas de l'écran)
 COLONNES = [(0, 305), (309, 614), (618, 923)]
 RANGEES = [(968, 1376), (1379, 1786), (1789, 1960)]

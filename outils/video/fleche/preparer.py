@@ -22,7 +22,7 @@ RACINE = ICI.parents[2]
 VIDEOS = RACINE / 'videos'
 PUBLIC = VIDEOS / 'carte' / 'fleche' / 'public'
 SOURCES = VIDEOS / 'higgsfield' / 'videos'
-VIDEOS_LIEUX = Path(r'D:\Montage\Vidéo lieux random japon')
+VIDEOS_LIEUX = Path(r'D:\Vidéos\Tik Tok\Vidéo lieux random japon')
 
 PRISES = {
     'rushes': [VIDEOS / 'carte/jarre/public/rushes' / f'{n}.mp4' for n in ('ja-vol', 'ja-mer', 'ja-legende', 'ja-route', 'p-printemps', 'p-ete', 'p-automne', 'p-hiver')]

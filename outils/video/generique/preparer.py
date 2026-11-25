@@ -10,7 +10,7 @@ git), le dossier public du montage Remotion (outils/video/generique/montage).
   vraie carte est posée dans l'écran du téléphone par ecran.py (FLUX y avait dessiné un Japon turquoise). Kling O1 Edit a
   aussi fait le rush 2 (anime-kling.mp4, 0,46 $) : un autre visage, le ruban rouge du chapeau, une carte qui n'est pas le Japon ;
   pas utilisé.
-- Ses vrais plans des lieux (REELS : le fichier dans D:\\Montage\\Vidéo lieux random japon, la seconde, la durée, et parfois un
+- Ses vrais plans des lieux (REELS : le fichier dans D:\\Vidéos\\Tik Tok\\Vidéo lieux random japon, la seconde, la durée, et parfois un
   recadrage qui écarte le titre incrusté de sa vidéo).
 - Les prises de la carte déjà tournées pour les vidéos d'avant (tunnel, sceau, jarre) et deux de la balade.
 - La chanson (la n° 1 des quatre faites sur Flora, choisie par le propriétaire), les bruitages, le logo ; le bruit d'un katana qu'on
@@ -31,7 +31,7 @@ PUBLIC = VIDEOS / 'carte' / 'generique' / 'public'
 SOURCES = VIDEOS / 'carte' / 'generique' / 'sources'
 RUSHES_DJI = VIDEOS / 'tournage' / 'Oppening animé carte'
 LUT = VIDEOS / 'Tik Tok' / 'DJI OSMO Pocket 4 D-Log to Rec.709 vivid V1.0.cube'
-VIDEOS_LIEUX = Path(r'D:\Montage\Vidéo lieux random japon')
+VIDEOS_LIEUX = Path(r'D:\Vidéos\Tik Tok\Vidéo lieux random japon')
 SHOTCRAFT = Path.home() / '.claude' / 'skills' / 'video-shotcraft' / 'assets' / 'audio' / 'sfx'
 
 # Le hook : (nom, rush, début, fin) en secondes du rush (lus image par image sur une planche à 30 images/s)

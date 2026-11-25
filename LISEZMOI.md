@@ -36,7 +36,7 @@ Le lieu apparaît sur la carte dès que le robot a fini, en environ 5 minutes.
 
 Depuis le 20 octobre 2026, TikTok ne donne plus l'image de couverture de tes vidéos. Les anciens lieux gardent la leur : elle avait été copiée dans la carte avant. Pour les nouveaux, la vignette est fabriquée **toute seule** à partir de ton fichier vidéo, comme le fait TikTok : une belle image de ta vidéo, avec ton cartouche du titre, recadrée pareil.
 
-- **Ce qu'il faut :** ta vidéo finale dans `D:\Montage\Vidéo lieux random japon`, avec **le même nom que dans Nom (EN)** (par exemple `Lake Kagami.mp4`). C'est déjà ce que tu fais.
+- **Ce qu'il faut :** ta vidéo finale dans `D:\Vidéos\Tik Tok\Vidéo lieux random japon`, avec **le même nom que dans Nom (EN)** (par exemple `Lake Kagami.mp4`). C'est déjà ce que tu fais.
 - **Quand :** ton PC vérifie toutes les 30 minutes, tant qu'il est allumé (et à chaque démarrage). Dès qu'un lieu du tableau n'a pas de vignette et que sa vidéo est là, il la fabrique et la met en ligne. Une notification Windows te le dit (« Carte du Japon : vignette ajoutée »).
 - **Si le nom ne correspond pas :** une notification te prévient (« vignette en attente »). Renomme la vidéo comme dans Nom (EN), ou écris le nom du fichier dans `Vignettes.txt` (voir juste en dessous).
 - **Changer l'image choisie :** ouvre `Vignettes.txt` dans le même dossier, ajoute une ligne avec le nom du lieu et la seconde de la vidéo que tu veux, par exemple `Lake Kagami = 12`, et enregistre. La vignette change dans la demi-heure. Tu peux aussi simplement me le dire.
@@ -515,7 +515,7 @@ Le bouton **Au hasard** tire un lieu au sort. On peut choisir une région ou une
 ## Le robot YouTube (Shorts, novembre 2026)
 
 Un petit robot publie tes vidéos de lieux sur ta chaîne YouTube, en Shorts, pour rattraper les lieux déjà sortis sur TikTok, puis chaque nouveau lieu.
-- **Les vidéos :** il prend celle du lieu dans `D:\Montage\Vidéo lieux random japon` (le même nom que dans « Nom (EN) »). Quand le fichier porte un autre nom, écris une ligne « Nom du lieu = fichier.mp4 » dans `D:\Montage\Robot YouTube\Correspondances.txt`.
+- **Les vidéos :** il prend celle du lieu dans `D:\Vidéos\Tik Tok\Vidéo lieux random japon` (le même nom que dans « Nom (EN) »). Quand le fichier porte un autre nom, écris une ligne « Nom du lieu = fichier.mp4 » dans `D:\Montage\Robot YouTube\Correspondances.txt`.
 - **59 secondes au plus :** YouTube bloque partout un Short de plus d'une minute qui a une musique protégée (c'est ce qui est arrivé à Ōyamazumi-jinja et au mont Nantai). En dessous d'une minute, le Short reste en ligne ; l'argent qu'il rapporte va au label de la chanson, et ce n'est pas un avertissement pour ta chaîne.
 - **La musique :** une chanson de ta banque (`C:\Users\Lucas\Videos\noTube`), à son passage le plus fort, jamais la même que les 3 Shorts d'avant. Pour qu'une chanson commence ailleurs, écris « nom du fichier.mp3 = 1:05 » dans `D:\Montage\Robot YouTube\Musiques.txt` ; « nom du fichier.mp3 = non » pour ne plus l'utiliser. Si YouTube bloque quand même un Short à cause de sa chanson, le robot ne l'utilise plus et te prévient : supprime ce Short dans YouTube Studio, il le republiera avec une autre chanson.
 - **Le rythme :** 4 Shorts par jour (8 h, 12 h, 17 h et 21 h), programmés jusqu'à 2 semaines d'avance : YouTube les publie tout seul, même PC éteint.
