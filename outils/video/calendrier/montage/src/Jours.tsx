@@ -37,7 +37,8 @@ const PLANS: Plan[] = [
     const p = prise(j.nom);
     return {
       de: j.coupe, a: k < LISTE.length - 1 ? LISTE[k + 1].coupe : DUREE_JOURS, src: p.src,
-      t0: p.t0 + (p.voir ? APPARITION - CROCHE : j.nom === "papier" ? 1.7 : 0.3), v: j.nom === "traineau" ? 1.4 : 1, zoom: zoom(j.nom),
+      // le traîneau : ×1,36 (à ×1,4, ses 7,9 s de prise finissaient 9 images avant la vidéo, qui montrait alors le plan suivant de la prise, le yuzu)
+      t0: p.t0 + (p.voir ? APPARITION - CROCHE : j.nom === "papier" ? 1.7 : 0.3), v: j.nom === "traineau" ? 1.36 : 1, zoom: zoom(j.nom),
     };
   }),
 ];
@@ -86,7 +87,7 @@ const Porte: React.FC = () => {
 };
 
 // ---------------------------------------------------------------- les cartouches du début et de la fin (le papier de la carte)
-const Cartouche: React.FC<{ lignes: string[]; taille: number; de: number; a: number; top: number; ruban?: string }> = ({ lignes, taille, de, a, top, ruban }) => {
+const Cartouche: React.FC<{ lignes: string[]; taille: number; de: number; a: number; top: number; ruban?: string; adresse?: string }> = ({ lignes, taille, de, a, top, ruban, adresse }) => {
   const f = useCurrentFrame();
   if (f < de || f >= a) return null;
   const u = de === 0 ? 1 : rebond(f, de);
@@ -106,6 +107,12 @@ const Cartouche: React.FC<{ lignes: string[]; taille: number; de: number; a: num
           <div style={{ fontFamily: POLICE, fontWeight: 800, fontSize: 50, color: "#fff", background: C.rouge, padding: "10px 40px", borderRadius: 6, boxShadow: "0 8px 20px rgba(0,0,0,0.4)" }}>{ruban}</div>
         </div>
       )}
+      {adresse && (
+        // plus bas que le ruban : le traîneau passe juste sous lui (y ≈ 670 → 780)
+        <div style={{ position: "absolute", left: -70, right: -70, top: 1250 - top, display: "flex", justifyContent: "center" }}>
+          <div style={{ fontFamily: POLICE, fontWeight: 800, fontSize: 48, color: C.encre, background: "#fff", padding: "10px 36px", borderRadius: 999, boxShadow: "0 8px 20px rgba(0,0,0,0.45)" }}>{adresse}</div>
+        </div>
+      )}
     </div>
   );
 };
@@ -119,7 +126,7 @@ export const Jours: React.FC<{ bgm: boolean }> = ({ bgm }) => {
       {voile}
       <Cartouche lignes={["My Japan map", "changes every day", "until Christmas 🎄"]} taille={76} de={0} a={b(180)} top={230} />
       <Porte />
-      <Cartouche lignes={["24 days ·", "24 free gifts 🎁", "on my Japan map"]} taille={74} de={b(206)} a={DUREE_JOURS + 1} top={250} ruban="link in bio" />
+      <Cartouche lignes={["24 days ·", "24 free gifts 🎁", "on my Japan map"]} taille={74} de={b(206)} a={DUREE_JOURS + 1} top={250} ruban="link in bio" adresse="map.randomjapanplace.com" />
       <Son bgm={bgm} musique="musique/yuki-akari.wav" debut={debut}
         volume={(i) => 0.5 * (1 - interpolate(i, [DUREE_JOURS - s(0.8), DUREE_JOURS], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }))} effets={EFFETS} />
     </AbsoluteFill>

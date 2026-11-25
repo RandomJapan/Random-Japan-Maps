@@ -77,7 +77,7 @@ const Fin: React.FC = () => {
   return (
     <AbsoluteFill>
       <Papier />
-      <Img src={staticFile("cases/portes-ouvertes.png")} style={{ position: "absolute", left: 90, top: 640, width: 900, transform: `scale(${(0.85 + 0.15 * u).toFixed(3)})`, opacity: Math.min(1, u * 1.4) }} />
+      <Img src={staticFile("cases/portes-ouvertes.png")} style={{ position: "absolute", left: 140, top: 735, width: 800, transform: `scale(${(0.85 + 0.15 * u).toFixed(3)})`, opacity: Math.min(1, u * 1.4) }} />
     </AbsoluteFill>
   );
 };
@@ -104,6 +104,10 @@ export const Traditions: React.FC<{ bgm: boolean }> = ({ bgm }) => {
           <Mots texte={"One a day in the\n*Advent calendar*\nof my Japan map 🎁"} taille={66} />
           <div style={{ display: "flex", justifyContent: "center", marginTop: 26 }}>
             <div style={{ fontFamily: POLICE, fontWeight: 900, fontSize: 52, color: "#fff", background: C.rouge, padding: "10px 36px", borderRadius: 40 }}>free · link in bio</div>
+          </div>
+          {/* l'adresse écrite (le marketing, 2026-11-25 : les liens ne sont pas cliquables dans les Shorts YouTube) */}
+          <div style={{ display: "flex", justifyContent: "center", marginTop: 16 }}>
+            <div style={{ fontFamily: POLICE, fontWeight: 800, fontSize: 44, color: "#fff", background: C.encre, padding: "10px 34px", borderRadius: 40 }}>map.randomjapanplace.com</div>
           </div>
         </div>
       )}

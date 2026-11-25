@@ -86,17 +86,23 @@ const EFFETS: Effet[] = [
 
 export const Cases: React.FC<{ bgm: boolean }> = ({ bgm }) => {
   const f = useCurrentFrame();
+  // la fin : la grille se resserre un peu vers le bas (autour de son bord inférieur) pour laisser la place à l'adresse écrite
+  // sous « link in bio » (le marketing, 2026-11-25 : les liens ne sont pas cliquables dans les Shorts YouTube)
+  const serre = f >= FIN + s(0.6) ? 1 - 0.12 * rebond(f, FIN + s(0.6)) : 1;
   return (
     <AbsoluteFill>
       <Papier />
-      <Img src={staticFile("cases/portes-fermees.png")} style={{ position: "absolute", left: GX, top: GY, width: GL, filter: "drop-shadow(0 10px 18px rgba(60,40,20,.25))" }} />
-      {CADEAUX.map((_, i) => <Porte key={i} j={i + 1} />)}
+      <div style={{ position: "absolute", inset: 0, transform: `scale(${serre.toFixed(4)})`, transformOrigin: `540px ${GY + GL}px` }}>
+        <Img src={staticFile("cases/portes-fermees.png")} style={{ position: "absolute", left: GX, top: GY, width: GL, filter: "drop-shadow(0 10px 18px rgba(60,40,20,.25))" }} />
+        {CADEAUX.map((_, i) => <Porte key={i} j={i + 1} />)}
+      </div>
       <Cadeau />
       <Bulle texte={"I hid 24 gifts\nin my Japan map 🎁"} de={0} a={ouverture(1)} y={170} />
       <Bulle texte={"24 free gifts 🎁\nDecember 1 → 24"} de={FIN} a={DUREE_CASES + 1} y={GY + GL + 40} taille={64} />
       {f >= FIN + s(0.6) && (
-        <div style={{ position: "absolute", left: 0, right: 0, top: 200, display: "flex", justifyContent: "center", transform: `scale(${rebond(f, FIN + s(0.6)).toFixed(3)})` }}>
+        <div style={{ position: "absolute", left: 0, right: 0, top: 200, display: "flex", flexDirection: "column", alignItems: "center", gap: 14, transform: `scale(${rebond(f, FIN + s(0.6)).toFixed(3)})`, transformOrigin: "50% 0" }}>
           <div style={{ fontFamily: POLICE, fontWeight: 800, fontSize: 52, color: "#fff", background: C.rouge, padding: "10px 38px", borderRadius: 40, boxShadow: "0 8px 20px rgba(0,0,0,.25)" }}>on my Japan map · link in bio</div>
+          <div style={{ fontFamily: POLICE, fontWeight: 800, fontSize: 46, color: "#fff", background: C.encre, padding: "8px 34px", borderRadius: 40, boxShadow: "0 8px 20px rgba(0,0,0,.25)" }}>map.randomjapanplace.com</div>
         </div>
       )}
       <Son bgm={bgm} musique="musique/yuki-akari.wav" debut={debut}

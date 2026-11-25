@@ -49,6 +49,9 @@ const TEXTES: { texte: string; de: number; a: number; y: number; taille?: number
   { texte: "day 15: a Japanese\nNew Year card 🎍", de: b(19.25), a: b(26.5), y: 300 },
   { texte: "24 free gifts\nfrom December 1st 🎁", de: b(26.5), a: b(29.5), y: 300 },
   { texte: "on my Japan map 🗺️\nlink in bio", de: b(29.5), a: DUREE_CADEAUX, y: 300 },
+  // l'adresse écrite (le marketing, 2026-11-25 : les liens ne sont pas cliquables dans les Shorts YouTube) : sous le visage,
+  // au-dessus de la légende de TikTok (y < 1420)
+  { texte: "map.randomjapanplace.com", de: b(29.5), a: DUREE_CADEAUX, y: 1250, taille: 54 },
 ];
 
 // ---------------------------------------------------------------- le son : les appuis de la prise, une petite réponse quand une case s'ouvre
