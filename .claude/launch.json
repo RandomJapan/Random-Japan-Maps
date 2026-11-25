@@ -6,6 +6,13 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "8123", "--directory", "site"],
       "port": 8123
+    },
+    {
+      "name": "carte-video",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8125", "--directory", "site"],
+      "port": 8125,
+      "autoPort": false
     }
   ]
 }

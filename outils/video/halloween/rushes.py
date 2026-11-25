@@ -14,6 +14,7 @@ le même à chaque tournage (le chemin du défilé, les chauves-souris, les hito
 """
 import base64
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -29,6 +30,8 @@ RACINE = VIDEO.parent.parent
 SORTIE = RACINE / 'videos' / 'carte' / 'halloween' / 'public' / 'rushes'
 SORTIE_V = SORTIE.parent / 'rushes-v'
 ATTENDRE = "window.carte && document.getElementById('chargement').classList.contains('fini')"
+# le site local ; SITE_LOCAL=http://localhost:8124 quand le port 8123 est pris par le serveur d'une autre session
+SITE = os.environ.get('SITE_LOCAL', 'http://localhost:8123').rstrip('/')
 NUIT, JOUR = '21:30', '10:30'
 # Les plans : taille de la page (px CSS) et facteur d'échelle (la vidéo fait largeur × échelle), heure au Japon,
 # Halloween allumé ou non, yōkai déjà trouvés. 1280 × 720 × 1,5 = 1920 × 1080 ; les plans « de près » sont tournés
@@ -92,7 +95,7 @@ def tourner(nav, nom, reglages, vertical=False, facteur=0.1, ips=30):
     erreurs = []
     p.on('pageerror', lambda e: erreurs.append(str(e)))
     date = f"&date={reglages['date']}" if 'date' in reglages else ''
-    p.goto(f"http://localhost:8123/?heure={reglages.get('heure', NUIT)}{date}&points=non")  # (lieux en repères HTML : site/points.js)
+    p.goto(f"{SITE}/?heure={reglages.get('heure', NUIT)}{date}&points=non")  # (lieux en repères HTML : site/points.js)
     p.wait_for_function(ATTENDRE, timeout=120000)
     if reglages.get('halloween', True):
         p.wait_for_function("document.body.classList.contains('halloween')", timeout=30000)
