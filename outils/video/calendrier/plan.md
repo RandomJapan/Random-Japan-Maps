@@ -42,15 +42,17 @@ papier qu'on fournit […] on pourra mettre le lien du tutoriel directement dans
 | 28 → 29,5 | l'écran : les 24 cases | (la même) |
 | 29,5 → fin | le propriétaire, pouce levé (ralenti, images calculées) | « on my Japan map 🗺️ / link in bio » |
 
-## Vidéo 2 : le tutoriel de la grue (`Grue`, 2 min 59 s)
+## Vidéo 2 : le tutoriel de la grue (`Grue`, 2 min 19 s)
 
-- Sous les 3 minutes d'un Short YouTube. Sur « Yuki akari » entier, du début à son accord final.
+- Sur « Yuki akari » sans deux de ses parties (`yuki-akari-court.wav` : sans A1, temps 16 → 48, ni le second refrain B2,
+  112 → 144), jusqu'à son accord final. La première version (2 min 59, le morceau entier) était trop longue : le 2026-11-25,
+  le propriétaire voulait « entre 2 minutes et 2 minutes 30 », et sans le moment de l'étape 9 où il cherche comment faire.
 - En haut (1080 × 1010) : les mains du propriétaire, accélérées pour remplir l'étape (la vitesse est écrite : « ⏩ ×4 ») ; le
   numéro de l'étape dans un disque rouge. En bas, sur le papier de la carte : le dessin de l'étape, le même que dans le PDF
   (`diagrammes.py` le photographie dans `origami/origami.html`, la page qui a fait le PDF), et sa consigne (celle du PDF ; 9a–9f
   raccourcies). Sous la légende de TikTok (vu sur YouTube) : les signes des plis et d'où vient le papier.
-- Chaque étape commence sur un temps : le titre (0 → 8), le papier à imprimer et découper (8 → 20), les étapes 1 à 8 (20 → 140),
-  9a à 9f (140 → 208), 10 à 12 (208 → 256), puis la fin en plein écran pendant le ralenti final de la musique : « Your crane is
+- Chaque étape commence sur un temps (de la musique courte) : le titre (0 → 8), le papier à imprimer et découper (8 → 18), les
+  étapes 1 à 8 (18 → 112, 12 temps chacune, 10 pour la 7), 9a à 9f (112 → 162), 10 à 12 (162 → 192), puis la fin en plein écran pendant le ralenti final de la musique : « Your crane is
   ready! », « In Japan, people fold 1,000 cranes to make a wish » (senbazuru), « Free paper + all the steps: day 9 of my Japan
   map's Advent calendar · link in bio ».
 

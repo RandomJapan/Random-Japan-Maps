@@ -62,16 +62,19 @@ TUTO = {
     't-7': ('0001', 372.0, 404.0, 3.7, 1.3, (0.55, 0.38), T),
     't-8a': ('0001', 404.0, 440.0, 7.2, 1.3, (0.55, 0.38), T),
     't-8b': ('0001', 508.0, 536.0, 5.6, 1.3, (0.6, 0.36), T),
-    't-9a': ('0001', 556.0, 568.0, 2.4, 1.3, (0.62, 0.36), T),
-    't-9b': ('0001', 536.0, 556.0, 2.0, 1.3, (0.65, 0.36), T),
-    't-9c': ('0001', 568.0, 582.0, 2.0, 1.3, (0.6, 0.38), T),
-    't-9d': ('0001', 582.0, 594.0, 1.9, 1.3, (0.65, 0.36), T),
-    't-9e': ('0001', 594.0, 602.0, 1.6, 1.3, (0.62, 0.34), T),
-    't-9f': ('0001', 600.0, 626.0, 3.2, 1.3, (0.55, 0.34), T),
+    # l'étape 9, raccourcie le 2026-11-25 (le propriétaire : « à partir de l'étape 9 […] j'ai galère un petit peu, j'ai du mal à
+    # trouver comment faire ») : sans les mains qui cachent tout (536 → 544,5, 549,5 → 558), ni la grue sortie du cadre (600 → 602)
+    't-9a': ('0001', 558.0, 568.0, 1.6, 1.3, (0.62, 0.36), T),
+    't-9b': ('0001', 544.5, 549.5, 1, 1.3, (0.65, 0.36), T),
+    't-9c': ('0001', 568.0, 580.0, 2.4, 1.3, (0.6, 0.38), T),
+    't-9d': ('0001', 583.0, 589.5, 1.3, 1.3, (0.65, 0.36), T),
+    't-9e': ('0001', 589.5, 599.5, 2.0, 1.3, (0.62, 0.34), T),
+    't-9f': ('0001', 602.0, 614.0, 3.2, 1.3, (0.55, 0.34), T),
     't-10a': ('0001', 626.0, 644.0, 3.2, 1.3, (0.55, 0.34), T),
     't-10b': ('0001', 714.0, 724.0, 3.2, 1.3, (0.6, 0.34), T),
     't-11': ('0001', 724.0, 750.0, 3.0, 1.3, (0.6, 0.36), T),
-    't-12': ('0001', 760.0, 810.0, 3.6, 1.3, (0.5, 0.36), T),
+    # cadré plus haut et à gauche (2026-11-25) : la grue au lieu de l'avant-bras ; sans 760 → 770 (la main cache la grue)
+    't-12': ('0001', 770.0, 810.0, 5.3, 1.3, (0.42, 0.28), T),
     # le début et la fin, en plein écran : la grue dans la main, la grue au-dessus de la page des étapes
     'o-grue-vol': ('0002', 0.0, 5.2, 1, 1.1, (0.5, 0.42), {}),
     'o-grue-main': ('0001', 812.0, 822.0, 1, 1.3, (0.5, 0.38), {'gamma': GAMMA_PIECE}),
@@ -127,12 +130,25 @@ def couper(nom, plan, dossier):
 def musique():
     """« Yuki akari » (la musique de Noël de la carte, case 2 du calendrier), rendue note à note par composer_noel.mjs : en ré,
     96 à la noire, le temps 0 sur l'échantillon 0. La promo prend le second refrain (temps 112 à 144, 70 → 90 s), qui finit sur
-    l'accord de ré ; le tutoriel, le morceau entier."""
+    l'accord de ré ; le tutoriel, le morceau sans deux de ses parties (yuki-akari-court.wav)."""
     d = PUBLIC / 'musique'
     d.mkdir(parents=True, exist_ok=True)
     entier = d / 'yuki-akari.wav'
     if not entier.exists():
         subprocess.run(['node', str(RACINE / 'outils' / 'composer_noel.mjs'), str(entier)], check=True, cwd=RACINE)
+    court = d / 'yuki-akari-court.wav'
+    if not court.exists():
+        # le tutoriel en 2 min 19 (2026-11-25, le propriétaire : « 3 minutes, c'est un peu long […] entre 2 minutes et 2 minutes 30 ») :
+        # sans A1 (temps 16 → 48) ni le second refrain B2 (112 → 144), deux fois 20 s ; l'intro mène à A2 comme à A1 (la7sus4 →
+        # ré), B1 finit sur la7 et le pont part de si mineur (une cadence rompue). Chaque raccord est un fondu de 60 ms qui finit
+        # sur le premier temps : l'attaque d'après reste entière.
+        sr, f = 48000, 2880
+        coupes = [(0, 10 * sr), (30 * sr - f, 70 * sr), (90 * sr - f, None)]
+        morceaux = ';'.join(f"[0]atrim=start_sample={a}{f':end_sample={b}' if b else ''},asetpts=PTS-STARTPTS[m{i}]"
+                            for i, (a, b) in enumerate(coupes))
+        subprocess.run([ffmpeg(), '-hide_banner', '-loglevel', 'error', '-y', '-i', str(entier), '-filter_complex',
+                        f'{morceaux};[m0][m1]acrossfade=ns={f}:c1=qsin:c2=qsin[m01];[m01][m2]acrossfade=ns={f}:c1=qsin:c2=qsin',
+                        '-c:a', 'pcm_s24le', str(court)], check=True)
     refrain = d / 'refrain.wav'
     if not refrain.exists():
         # du temps 112 (70 s) : 32 temps (20 s), puis la résonance du dernier accord, fondue sur 0,9 s
