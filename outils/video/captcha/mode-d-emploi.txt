@@ -42,7 +42,9 @@ plus avec l'écran de fin). Il faut Internet (les polices et la carte). À la fi
 ------------------------------------------------------------
   - « … - intro.mp4 » : l'intro avec les sons (les clics, « Verified »).
   - « … - intro sans son.mp4 » : la même, sans son.
-  - « … - nom (transparent).mov » : le nom du lieu et sa préfecture sur fond transparent (3 s).
+  - « … - nom (transparent).mov » : le nom du lieu et sa préfecture sur fond transparent (3 s), en style
+    japonais : le nom en japonais (colonne « Nom (日本語) » du Google Sheet), le nom anglais sur un coup
+    de pinceau rouge, et un sceau rouge avec les kanji de la préfecture.
   - « … - nom (transparent).png » : la même chose en image fixe, pour la garder plus longtemps.
   - « … - fin.mp4 » : l'écran de fin (la carte, l'épingle du lieu, l'adresse), 2 s.
   - « … - aperçu.mp4 » : pour regarder le résultat d'un coup : l'intro, ton plan avec le nom, la fin.

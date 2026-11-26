@@ -51,7 +51,7 @@ LISTE = TRAVAIL / 'lieux.txt'
 LIEUX = RACINE / 'site' / 'data' / 'secours-lieux.csv'
 # les dossiers du propriétaire où l'outil n'écrit jamais rien
 PROTEGES = [Path(r'D:\Vidéos\Tik Tok\Vidéo lieux random japon'), Path(r'D:\Montage')]
-VERSION = 1  # à changer quand l'allure des intros change : tout se refait
+VERSION = 2  # à changer quand l'allure des intros change : tout se refait (2 : le nom en style japonais, 26/11/2026)
 IMAGES = {'.jpg', '.jpeg', '.png', '.webp', '.bmp', '.tif', '.tiff'}
 VIDEOS = {'.mp4', '.mov', '.m4v', '.mkv', '.avi', '.mts'}
 CADENCES = [Fraction(24000, 1001), Fraction(24), Fraction(25), Fraction(30000, 1001), Fraction(30), Fraction(50),
@@ -68,6 +68,13 @@ sys.path.insert(0, str(ICI))
 sys.path.insert(0, str(ICI.parent / 'daily'))
 import sons  # noqa: E402
 from preparer import PREFECTURES, prefecture  # noqa: E402  (la préfecture d'un point, par les contours de la carte)
+
+# les kanji de chaque préfecture (sans 県, 府, 都), pour le sceau rouge du nom ; mêmes numéros que PREFECTURES
+KANJI = {1: '北海道', 2: '青森', 3: '岩手', 4: '宮城', 5: '秋田', 6: '山形', 7: '福島', 8: '茨城', 9: '栃木', 10: '群馬', 11: '埼玉',
+         12: '千葉', 13: '東京', 14: '神奈川', 15: '新潟', 16: '富山', 17: '石川', 18: '福井', 19: '山梨', 20: '長野', 21: '岐阜',
+         22: '静岡', 23: '愛知', 24: '三重', 25: '滋賀', 26: '京都', 27: '大阪', 28: '兵庫', 29: '奈良', 30: '和歌山', 31: '鳥取',
+         32: '島根', 33: '岡山', 34: '広島', 35: '山口', 36: '徳島', 37: '香川', 38: '愛媛', 39: '高知', 40: '福岡', 41: '佐賀',
+         42: '長崎', 43: '熊本', 44: '大分', 45: '宮崎', 46: '鹿児島', 47: '沖縄'}
 
 # ---------------------------------------------------------------- les accroches proposées
 # la catégorie du Sheet → (grille : « Select all squares with … », puzzle : « Rebuild this … in Japan ») ; None : l'accroche générale
@@ -531,11 +538,18 @@ def completer(lieu, reglages, sheet):
     lieu['nom'] = lieu['nom'] or re.sub(r'\s*\(\d+\)$', '', plan.stem).strip()
     f = fiche(sheet, lieu['nom'])
     lieu['categorie'] = f['Catégorie'].strip() if f else ''
+    # le nom japonais du Sheet (sans ce qui le distingue d'un homonyme : « 稲荷神社（日置市） » → « 稲荷神社 »)
+    lieu['nom_jp'] = lieu.get('nom_jp') or re.sub(r'\s*[（(][^）)]*[）)]\s*', '', (f.get('Nom (日本語)') or '') if f else '').strip()
+    lieu['prefecture_jp'] = ''
     if f:
         lat, lng = (float(v) for v in f['Coordonnées GPS'].split(','))
         lieu['lat'], lieu['lng'] = lat, lng
         if not lieu['prefecture']:
-            lieu['prefecture'] = PREFECTURES[prefecture(lng, lat)]
+            code = prefecture(lng, lat)
+            lieu['prefecture'], lieu['prefecture_jp'] = PREFECTURES[code], KANJI[code]
+    if lieu['prefecture'] and not lieu['prefecture_jp']:  # écrite à la main : ses kanji d'après son nom anglais
+        code = next((c for c, n in PREFECTURES.items() if normal(n) == normal(lieu['prefecture'])), None)
+        lieu['prefecture_jp'] = KANJI.get(code, '')
     lieu['graine'] = int(hashlib.sha1(normal(lieu['nom']).encode()).hexdigest()[:8], 16)
     style = lieu['style']
     if style.startswith(('gri', 'grid', 'cas', 'squ')):
@@ -632,7 +646,8 @@ def main():
         sons.mixer(evenements, props['duree'], l['atelier'] / 'sons.wav')
         fps = float(l['fps'])
         travaux.append({'composition': 'Intro', 'props': props, 'dossier': str(l['atelier'] / 'images-intro')})
-        nom = {'fps': fps, 'duree': round(DUREE_NOM * fps) / fps, 'nom': l['nom'], 'prefecture': l['prefecture'], 'anime': True}
+        nom = {'fps': fps, 'duree': round(DUREE_NOM * fps) / fps, 'nom': l['nom'], 'prefecture': l['prefecture'], 'nomJp': l['nom_jp'],
+               'prefectureJp': l['prefecture_jp'], 'anime': True}
         travaux.append({'composition': 'Nom', 'props': nom, 'dossier': str(l['atelier'] / 'images-nom')})
         print(f"  {l['nom']} ({l['prefecture'] or 'préfecture inconnue'}) : {l['style']}, « {l['accroche']} »"
               f"{' (proposée)' if l['proposee'] else ''}, {texte_cadence(l['fps'])} images/s", flush=True)
@@ -686,7 +701,8 @@ def main():
         elif fichiers['fin'].exists():
             fichiers['fin'].unlink()
         apercu(l, fichiers)
-        infos = [f"Lieu : {l['nom']}", f"Préfecture : {l['prefecture'] or '(inconnue : écris-la dans lieux.txt)'}",
+        infos = [f"Lieu : {l['nom']}", f"Nom japonais : {l['nom_jp'] or '(aucun : écris-le dans la colonne « Nom (日本語) » du Google Sheet)'}",
+                 f"Préfecture : {l['prefecture'] or '(inconnue : écris-la dans lieux.txt)'}" + (f" ({l['prefecture_jp']})" if l['prefecture_jp'] else ''),
                  f"Plan : {l['plan']}" + (f" (à partir de {l['debut']:g} s)" if l['debut'] else ''),
                  f"Style : {l['style']}", f"Accroche : {l['accroche']}" + (' (proposée par l\'outil)' if l['proposee'] else ''),
                  f"Cadence : {texte_cadence(l['fps'])} images/s", f"Écran de fin : {'oui' if l['fin'] else 'non'}", *l.get('note', [])]

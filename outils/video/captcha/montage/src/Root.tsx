@@ -17,7 +17,7 @@ export const RemotionRoot: React.FC = () => (
     <Composition id="Intro" component={Intro} width={W} height={H} fps={30} durationInFrames={54}
       defaultProps={EXEMPLE as unknown as PropsIntro} calculateMetadata={duree<PropsIntro>()} />
     <Composition id="Nom" component={Nom} width={W} height={H} fps={30} durationInFrames={90}
-      defaultProps={{ fps: 30, duree: 3, nom: "Takaya Shrine", prefecture: "Kagawa", anime: true } as PropsNom} calculateMetadata={duree<PropsNom>()} />
+      defaultProps={{ fps: 30, duree: 3, nom: "Takaya Shrine", prefecture: "Kagawa", nomJp: "高屋神社", prefectureJp: "香川", anime: true } as PropsNom} calculateMetadata={duree<PropsNom>()} />
     <Composition id="Fin" component={Fin} width={W} height={H} fps={30} durationInFrames={60}
       defaultProps={{ fps: 30, duree: 2, video: "exemple/fin-carte.mp4", nom: "Takaya Shrine" } as PropsFin} calculateMetadata={duree<PropsFin>()} />
   </>
