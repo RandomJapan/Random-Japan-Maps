@@ -78,6 +78,17 @@ KANJI = {1: '北海道', 2: '青森', 3: '岩手', 4: '宮城', 5: '秋田', 6: 
          32: '島根', 33: '岡山', 34: '広島', 35: '山口', 36: '徳島', 37: '香川', 38: '愛媛', 39: '高知', 40: '福岡', 41: '佐賀',
          42: '長崎', 43: '熊本', 44: '大分', 45: '宮崎', 46: '鹿児島', 47: '沖縄'}
 
+
+def code_prefecture(texte):
+    """Le numéro d'une préfecture écrite à la main : « Yamaguchi », « Yamaguchi Prefecture », « Tokyo-to », « Hokkaidō », « 山口 »
+    ou « 山口県 ». None si on ne la reconnaît pas (elle s'affiche alors telle quelle, sans sceau)."""
+    t = texte.strip()
+    for c, k in KANJI.items():
+        if t == k or (t[:-1] == k and t[-1:] in '県府都'):  # 京都 et 京都府, 東京 et 東京都
+            return c
+    t = re.sub(r'(?i)[\s-]+(prefecture|pref\.?|ken|to|fu)$', '', t)
+    return next((c for c, n in PREFECTURES.items() if normal(n) == normal(t)), None)
+
 # ---------------------------------------------------------------- les accroches proposées
 # la catégorie du Sheet → (grille : « Select all squares with … », puzzle : « Rebuild this … in Japan ») ; None : l'accroche générale
 OBJETS = {
@@ -87,14 +98,15 @@ OBJETS = {
     'Flowers': ('flowers', None), 'Gardens': ('a garden', 'garden'), 'Onsen': ('a hot spring', 'hot spring'),
     'Coast & Beaches': ('the sea', 'coast'), 'Islands': ('an island', 'island'), 'Viewpoints': (None, 'view'),
     'Trains & Railways': ('a train', 'station'), 'Capes & Lighthouses': ('a lighthouse', 'cape'), 'Churches': ('a church', 'church'),
-    'Festivals': (None, 'festival'),
+    'Festivals': (None, 'festival'), 'Caves': ('a cave', 'cave'),
 }
 # les mots du nom, plus précis que la catégorie (Aogashima est « Mountains » dans le Sheet, mais c'est une île)
 MOTS = [(r'shrine|jinja|jing[uū]|taisha|inari|\bg[uū]\b', 'Shrines'), (r'temple|dera\b|-ji\b|\bji\b', 'Temples'),
         (r'falls|waterfall|\btaki\b', 'Waterfalls'), (r'castle', 'Castles'), (r'lake|pond', 'Lakes & Ponds'),
         (r'bridge|hashi\b', 'Bridges'), (r'onsen', 'Onsen'), (r'island|shima\b|jima\b', 'Islands'), (r'church', 'Churches'),
         (r'village|juku\b', 'Villages'), (r'coast|beach', 'Coast & Beaches'), (r'garden', 'Gardens'),
-        (r'station|railway', 'Trains & Railways'), (r'\bmount|yama\b|dake\b', 'Mountains')]
+        (r'station|railway', 'Trains & Railways'), (r'\bcaves?\b|cavern|grotto', 'Caves'),
+        (r'\bmount|yama\b|dake\b', 'Mountains')]
 GENERALE = 'Rebuild this place in Japan'
 
 
@@ -549,9 +561,10 @@ def completer(lieu, reglages, sheet):
         if not lieu['prefecture']:
             code = prefecture(lng, lat)
             lieu['prefecture'], lieu['prefecture_jp'] = PREFECTURES[code], KANJI[code]
-    if lieu['prefecture'] and not lieu['prefecture_jp']:  # écrite à la main : ses kanji d'après son nom anglais
-        code = next((c for c, n in PREFECTURES.items() if normal(n) == normal(lieu['prefecture'])), None)
-        lieu['prefecture_jp'] = KANJI.get(code, '')
+    if lieu['prefecture'] and not lieu['prefecture_jp']:  # écrite à la main : en anglais ou en kanji
+        code = code_prefecture(lieu['prefecture'])
+        if code:
+            lieu['prefecture'], lieu['prefecture_jp'] = PREFECTURES[code], KANJI[code]
     lieu['graine'] = int(hashlib.sha1(normal(lieu['nom']).encode()).hexdigest()[:8], 16)
     style = lieu['style']
     if style.startswith(('gri', 'grid', 'cas', 'squ')):
@@ -597,13 +610,16 @@ def installer():
 
 def demandes(fichier):
     """Les lieux demandés par un autre outil (l'Outil Prépa TikTok du propriétaire, qui choisit le plan d'une vidéo qu'il vient
-    de préparer) : une liste JSON de {plan (chemin), debut, nom, sortie (le dossier où écrire), style, accroche, cadrage, fin,
-    note (des lignes de plus pour infos.txt)}."""
+    de préparer) : une liste JSON de {plan (chemin), debut, nom, nom_jp, prefecture (écrits par le propriétaire dans sa liste :
+    ils passent avant le Sheet), sortie (le dossier où écrire), style, accroche, cadrage, fin, note (des lignes de plus pour
+    infos.txt)}."""
     reglages, liste = {'cadence': Fraction(30), 'fin': True}, []
     for k, d in enumerate(json.loads(Path(fichier).read_text(encoding='utf-8')), 1):
-        liste.append({'ligne': k, 'texte': json.dumps({c: d.get(c) for c in ('plan', 'debut', 'nom', 'style', 'accroche', 'cadrage', 'fin')},
+        liste.append({'ligne': k, 'texte': json.dumps({c: d.get(c) for c in ('plan', 'debut', 'nom', 'nom_jp', 'prefecture', 'style', 'accroche',
+                                                                          'cadrage', 'fin')},
                                                       ensure_ascii=False, sort_keys=True),
                       'plan': Path(d['plan']), 'debut': float(d.get('debut') or 0), 'nom': d.get('nom') or '',
+                      'nom_jp': d.get('nom_jp') or '',
                       'prefecture': d.get('prefecture') or '', 'accroche': d.get('accroche') or '', 'style': (d.get('style') or '').lower(),
                       'cadrage': (d.get('cadrage') or '').lower(), 'sortie': d.get('sortie'), 'fin': d.get('fin', True),
                       'note': d.get('note') or []})
@@ -710,8 +726,8 @@ def main():
         elif fichiers['fin'].exists():
             fichiers['fin'].unlink()
         apercu(l, fichiers)
-        infos = [f"Lieu : {l['nom']}", f"Nom japonais : {l['nom_jp'] or '(aucun : écris-le dans la colonne « Nom (日本語) » du Google Sheet)'}",
-                 f"Préfecture : {l['prefecture'] or '(inconnue : écris-la dans lieux.txt)'}" + (f" ({l['prefecture_jp']})" if l['prefecture_jp'] else ''),
+        infos = [f"Lieu : {l['nom']}", f"Nom japonais : {l['nom_jp'] or '(aucun : écris-le dans ta liste, « Nom - 日本語 - Préfecture », ou dans le Google Sheet)'}",
+                 f"Préfecture : {l['prefecture'] or '(inconnue : écris-la dans ta liste)'}" + (f" ({l['prefecture_jp']})" if l['prefecture_jp'] else ''),
                  f"Plan : {l['plan']}" + (f" (à partir de {l['debut']:g} s)" if l['debut'] else ''),
                  f"Style : {l['style']}", f"Accroche : {l['accroche']}" + (' (proposée par l\'outil)' if l['proposee'] else ''),
                  f"Cadence : {texte_cadence(l['fps'])} images/s", f"Écran de fin : {'oui' if l['fin'] else 'non'}", *l.get('note', [])]
