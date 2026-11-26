@@ -37,10 +37,11 @@ export type PropsIntro = {
   fps: number;
   duree: number;
   image: string; // l'image 0 du plan, 1080 × 1920 (dans le dossier public)
-  style: "grille" | "puzzle";
+  style: "grille" | "puzzle" | "rond";
   accroche: string;
   fenetre: Rect;
   zone: Rect; // l'image dans la fenêtre (à l'écran)
+  bloc?: Rect; // la place de l'image dans la fenêtre sombre (le rond est plus petit que sa place : la zone est son carré)
   recadrage: Rect; // la même partie de l'image 0 (en pixels de l'image 0)
   geste: Geste;
   temps: Temps;
@@ -52,6 +53,8 @@ export type PropsIntro = {
   pieces?: Piece[];
   curseur?: Rect;
   code?: string;
+  // le rond : le milieu tourné de angle0 degrés, de diamètre interieur × celui du rond ; le curseur avance de course px en tout
+  rond?: { angle0: number; interieur: number; course: number; etapes: { t0: number; t1: number; de: number; a: number }[] };
 };
 
 export const borne = (x: number) => Math.min(1, Math.max(0, x));

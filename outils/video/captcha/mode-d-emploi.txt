@@ -7,7 +7,8 @@ Pour chaque lieu, il fabrique le début de ta vidéo (1,8 seconde) : un captcha 
 reconstruit en une seconde, puis « Verified ✓ » en vert, puis l'image qui grandit jusqu'au plein
 écran. La dernière image de l'intro est exactement la première image de ton plan : tu colles ton
 plan juste après, sans saut.
-Deux styles : la grille (« Select all squares with… ») et le puzzle (pièces à glisser).
+Trois styles : la grille (« Select all squares with… »), le puzzle (des pièces à glisser) et le
+rond (le milieu de l'image est tourné : on le remet droit avec le curseur).
 
 1. Mets tes plans dans le dossier « plans »
 ------------------------------------------
@@ -26,7 +27,7 @@ Le plus court (le plan seul) :
     propose une accroche d'après la catégorie du lieu et tire le style au hasard.
 
   - accroche : la phrase en haut du captcha, en anglais.
-  - style : grille ou puzzle. Vide : au hasard.
+  - style : grille, puzzle ou rond. Vide : au hasard.
   - cadrage : la partie de ton image qu'on voit dans le captcha : haut, milieu ou bas.
     Vide : milieu. Exemple : « haut » pour qu'on voie le haut d'un torii.
   - Si ton plan commence plus loin dans ta vidéo : « Kegon Falls.mp4 @ 12.5 » (en secondes).

@@ -1,6 +1,6 @@
 # ─── Intros captcha : une ligne par lieu ─────────────────────────────────────────────
 #
-#   plan ; nom du lieu ; préfecture ; accroche ; style
+#   plan ; nom du lieu ; préfecture ; accroche ; style ; cadrage
 #
 # • plan : le fichier de ton premier plan (une image ou un court plan vidéo) que tu as mis
 #   dans le dossier « plans ». L'intro finit exactement sur la première image de ce plan.
@@ -8,7 +8,8 @@
 # • nom du lieu et préfecture : vides, l'outil prend le nom du fichier et trouve la préfecture
 #   dans le Google Sheet.
 # • accroche : la phrase en haut du captcha (en anglais). Vide, l'outil en propose une.
-# • style : grille ou puzzle. Vide, au hasard.
+# • style : grille, puzzle ou rond (le milieu de l'image tourné). Vide, au hasard.
+# • cadrage : la partie de ton image qu'on voit dans le captcha : haut, milieu ou bas. Vide, milieu.
 #
 # Seul le plan est obligatoire. Les lignes qui commencent par # ne comptent pas.
 # Un lieu déjà fait n'est pas refait : supprime son dossier dans « intros » pour le refaire.

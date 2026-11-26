@@ -7,6 +7,7 @@ import React from "react";
 import { AbsoluteFill, Img, staticFile, useCurrentFrame } from "remotion";
 import { Grille } from "./Grille";
 import { Puzzle } from "./Puzzle";
+import { Rond } from "./Rond";
 import { borne, doigt, grandir, H, lerp, PropsIntro, Rect, W } from "./theme";
 
 /** L'image 0 entière, à l'échelle k, son coin en (x, y). */
@@ -58,7 +59,8 @@ export const Intro: React.FC<PropsIntro> = (p) => {
   const cx0 = z.x + (W / 2 - p.recadrage.x) * k, cy0 = z.y + (H / 2 - p.recadrage.y) * k;
   const cx = lerp(cx0, W / 2, e), cy = lerp(cy0, H / 2, e);
   const masque: Rect = { x: lerp(z.x, 0, e), y: lerp(z.y, 0, e), w: lerp(z.w, W, e), h: lerp(z.h, H, e) };
-  const rayon = lerp(p.style === "grille" ? 0 : 14, 0, e);
+  // les coins : droits pour la grille, arrondis pour le puzzle, le rond s'ouvre d'un cercle à un rectangle
+  const rayon = lerp(p.style === "grille" ? 0 : p.style === "rond" ? z.w / 2 : 14, 0, e);
   return (
     <AbsoluteFill style={{ backgroundColor: "#000", overflow: "hidden" }}>
       {/* derrière la fenêtre : le lieu flou et sombre (une fenêtre qui s'ouvre sur une page) */}
@@ -66,7 +68,7 @@ export const Intro: React.FC<PropsIntro> = (p) => {
         filter: "blur(28px) brightness(0.5) saturate(1.15)" }} />
       <AbsoluteFill style={{ background: "radial-gradient(120% 80% at 50% 45%, rgba(0,0,0,0) 40%, rgba(0,0,0,0.35) 100%)" }} />
       <AbsoluteFill style={{ opacity: 1 - borne(e / 0.18), transform: `scale(${1 + 0.05 * e})`, transformOrigin: `${z.x + z.w / 2}px ${z.y + z.h / 2}px` }}>
-        {p.style === "grille" ? <Grille p={p} t={t} /> : <Puzzle p={p} t={t} />}
+        {p.style === "grille" ? <Grille p={p} t={t} /> : p.style === "rond" ? <Rond p={p} t={t} /> : <Puzzle p={p} t={t} />}
       </AbsoluteFill>
       {t >= g0 && (
         <div style={{ position: "absolute", left: masque.x, top: masque.y, width: masque.w, height: masque.h, overflow: "hidden",

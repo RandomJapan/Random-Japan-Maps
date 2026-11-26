@@ -346,11 +346,34 @@ def disposition_puzzle(rng, gestes):
     return {'fenetre': fen, 'zone': zone, 'curseur': curseur, 'cote': s, 'pieces': pieces, 'code': code}, points
 
 
+def disposition_rond(rng, gestes):
+    """Le rond (comme « Drag the slider to fit the puzzle ») : l'image dans un rond de 720 px au milieu de la place de l'image, son
+    milieu (62 % du diamètre) tourné de 110 à 230° dans le sens inverse des aiguilles d'une montre ; le curseur le remet droit
+    (tout le curseur = un tour). Le doigt le tire en trois fois : à 52 %, trop loin (112 %), puis il corrige (100 %)."""
+    fen = {'x': 48, 'y': 210, 'w': 924, 'h': 1198}
+    bloc = {'x': 84, 'y': 422, 'w': 852, 'h': 760}
+    d = 720
+    zone = {'x': bloc['x'] + (bloc['w'] - d) / 2, 'y': bloc['y'] + (bloc['h'] - d) / 2, 'w': d, 'h': d}
+    curseur = {'x': bloc['x'], 'y': bloc['y'] + bloc['h'] + 26, 'w': bloc['w'], 'h': 96}
+    angle0 = -rng.uniform(110, 230)
+    course = abs(angle0) / 360 * (curseur['w'] - 150)
+    reperes = [0, 0.52, 1.12, 1.0]
+    etapes = [{'t0': g[1], 't1': g[2], 'de': reperes[i], 'a': reperes[i + 1]} for i, g in enumerate(gestes)]
+    x = lambda q: curseur['x'] + 75 + course * q
+    y = curseur['y'] + curseur['h'] / 2
+    points = [((x(e['de']), y), (x(e['a']), y)) for e in etapes]
+    code = ''.join(rng.choice('0123456789ABCDEF') for _ in range(32))
+    return {'fenetre': fen, 'bloc': bloc, 'zone': zone, 'curseur': curseur, 'code': code,
+            'rond': {'angle0': angle0, 'interieur': 0.62, 'course': course, 'etapes': etapes}}, points
+
+
 def props_intro(lieu, fps, image):
     rng = random.Random(lieu['graine'])
     gestes = calendrier()
     if lieu['style'] == 'grille':
         d, points = disposition_grille(rng, gestes)
+    elif lieu['style'] == 'rond':
+        d, points = disposition_rond(rng, gestes)
     else:
         d, points = disposition_puzzle(rng, gestes)
     images = round(DUREE * float(fps))
@@ -500,12 +523,16 @@ def completer(lieu, reglages, sheet):
         style = 'grille'
     elif style.startswith(('puz', 'pi')):
         style = 'puzzle'
+    elif style.startswith(('ron', 'rou', 'cer', 'cir', 'rot', 'tou')):
+        style = 'rond'
     elif lieu['accroche'].lower().startswith('select all'):
         style = 'grille'
+    elif lieu['accroche'].lower().startswith(('drag the slider', 'rotate', 'turn')):
+        style = 'rond'
     elif lieu['accroche'].lower().startswith('drag'):
         style = 'puzzle'
     else:
-        style = random.Random(lieu['graine'] + 7).choice(['grille', 'puzzle'])
+        style = random.Random(lieu['graine'] + 7).choice(['grille', 'puzzle', 'rond'])
     lieu['style'] = style
     lieu['proposee'] = not lieu['accroche']
     lieu['accroche'] = lieu['accroche'] or accroche_proposee(style, lieu['categorie'], lieu['nom'])
