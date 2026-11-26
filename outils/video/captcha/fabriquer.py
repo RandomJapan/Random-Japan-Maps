@@ -5,7 +5,9 @@ et qui s'affiche ensuite en grand ; il les pose lui-même au début de ses monta
     python outils/video/captcha/fabriquer.py             # tous les lieux de videos/intros captcha/lieux.txt
     python outils/video/captcha/fabriquer.py --refaire   # même ceux qui sont déjà faits
     (ou un double-clic sur « Fabriquer les intros.bat », dans ce dossier)
-    python outils/video/captcha/fabriquer.py --lieux demandes.json   # appelé par l'Outil Prépa TikTok (voir demandes())
+    python outils/video/captcha/fabriquer.py --lieux demandes.json --atelier <dossier>
+        # appelé par l'Outil Prépa TikTok (voir demandes()) : c'est le seul usage depuis le 26/11/2026, le propriétaire a fait
+        # supprimer videos/intros captcha (la liste ci-dessous ne le recrée que si on la relance)
 
 Le dossier de travail (videos/intros captcha, hors de git) : lieux.txt (une ligne par lieu : plan ; nom ; préfecture ; accroche ;
 style), plans/ (les images ou les courts plans du propriétaire), intros/ (ce que l'outil fabrique, un dossier par lieu), _atelier/
@@ -609,12 +611,19 @@ def demandes(fichier):
 
 
 def main():
+    global ATELIER, PUBLIC
     refaire = '--refaire' in sys.argv
-    installer()
     if '--lieux' in sys.argv:
+        # appelé par un autre outil : ses fichiers de travail là où il le dit (--atelier), et rien dans videos/intros captcha
+        # (le propriétaire a fait supprimer ce dossier le 26/11/2026 : tout passe par son Outil Prépa TikTok)
+        if '--atelier' in sys.argv:
+            ATELIER = Path(sys.argv[sys.argv.index('--atelier') + 1])
+            PUBLIC = ATELIER / 'public'
+        verifier_sortie(ATELIER).mkdir(parents=True, exist_ok=True)
         reglages, liste = demandes(sys.argv[sys.argv.index('--lieux') + 1])
         origine = 'la demande'
     else:
+        installer()
         reglages, liste = lire_liste()
         origine = 'lieux.txt'
     if not liste:
