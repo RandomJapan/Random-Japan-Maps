@@ -1,0 +1,67 @@
+INTROS CAPTCHA : MODE D'EMPLOI
+==============================
+
+Ce que fait l'outil
+-------------------
+Pour chaque lieu, il fabrique le début de ta vidéo (1,8 seconde) : un captcha du lieu, qu'un doigt
+reconstruit en une seconde, puis « Verified ✓ » en vert, puis l'image qui grandit jusqu'au plein
+écran. La dernière image de l'intro est exactement la première image de ton plan : tu colles ton
+plan juste après, sans saut.
+Deux styles : la grille (« Select all squares with… ») et le puzzle (pièces à glisser).
+
+1. Mets tes plans dans le dossier « plans »
+------------------------------------------
+Une photo (jpg, png) ou un court plan vidéo (mp4, mov) par lieu : celui par lequel ta vidéo
+commencera.
+
+2. Écris une ligne par lieu dans « lieux.txt »
+---------------------------------------------
+    plan ; nom du lieu ; préfecture ; accroche ; style ; cadrage
+
+Exemple complet :
+    Kegon Falls.mp4 ; Kegon Falls ; Tochigi ; Select all squares with a waterfall ; grille
+Le plus court (le plan seul) :
+    Kegon Falls.mp4
+  → l'outil prend le nom du fichier comme nom du lieu, trouve la préfecture dans le Google Sheet,
+    propose une accroche d'après la catégorie du lieu et tire le style au hasard.
+
+  - accroche : la phrase en haut du captcha, en anglais.
+  - style : grille ou puzzle. Vide : au hasard.
+  - cadrage : la partie de ton image qu'on voit dans le captcha : haut, milieu ou bas.
+    Vide : milieu. Exemple : « haut » pour qu'on voie le haut d'un torii.
+  - Si ton plan commence plus loin dans ta vidéo : « Kegon Falls.mp4 @ 12.5 » (en secondes).
+
+3. Double-clique sur « Fabriquer les intros.bat »
+------------------------------------------------
+Une fenêtre noire s'ouvre et écrit ce qu'elle fait. Compte une à deux minutes par lieu (un peu
+plus avec l'écran de fin). Il faut Internet (les polices et la carte). À la fin, le dossier
+« intros » s'ouvre tout seul.
+
+4. Ce que tu récupères, dans « intros », un dossier par lieu
+------------------------------------------------------------
+  - « … - intro.mp4 » : l'intro avec les sons (les clics, « Verified »).
+  - « … - intro sans son.mp4 » : la même, sans son.
+  - « … - nom (transparent).mov » : le nom du lieu et sa préfecture sur fond transparent (3 s).
+  - « … - nom (transparent).png » : la même chose en image fixe, pour la garder plus longtemps.
+  - « … - fin.mp4 » : l'écran de fin (la carte, l'épingle du lieu, l'adresse), 2 s.
+  - « … - aperçu.mp4 » : pour regarder le résultat d'un coup : l'intro, ton plan avec le nom, la fin.
+  - « infos.txt » : l'accroche, le style et la cadence utilisés.
+
+Dans DaVinci Resolve
+--------------------
+  - Mets « intro.mp4 » tout au début, puis ton plan juste après, collé.
+  - Pose « nom (transparent).mov » sur la piste du dessus, au début de ton plan.
+  - L'intro a la même cadence que ton plan (30 ou 60 images par seconde). Pour une photo, elle est
+    à 30 : si ton montage est à 60, écris « cadence pour les photos : 60 » dans lieux.txt.
+  - Si ton plan n'est pas vertical, l'intro finit sur ton image qui remplit l'écran (rognée sur les
+    côtés). Dans DaVinci, mets ce plan en « Remplir » (Inspecteur, Mise à l'échelle).
+
+Refaire un lieu
+---------------
+Un lieu déjà fait n'est pas refait. Pour le refaire (une autre accroche, un autre style…), change
+sa ligne dans lieux.txt : l'outil voit le changement et le refait. Ou supprime son dossier dans
+« intros ».
+L'écran de fin : « écran de fin : non » dans lieux.txt pour ne plus le faire.
+
+Ne touche pas au dossier « _atelier » : ce sont les fichiers de travail de l'outil.
+L'outil n'écrit jamais dans ton dossier de montages.
