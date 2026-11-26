@@ -72,6 +72,9 @@ Plus besoin de rien écrire ici pour tes nouveaux lieux : l'Outil Prépa TikTok 
 l'intro tout seul après avoir préparé les vidéos d'un lieu. Il choisit le début d'une vidéo sans
 texte, et range l'intro dans « Videos preparees\<Lieu>\Intro captcha ». Voir son LISEZMOI.txt
 (partie « 2 BIS »). Cette liste-ci reste utile pour un plan à toi (une photo, un plan filmé).
+Un lieu pas encore dans le Google Sheet (tu l'y ajoutes une fois la vidéo publiée) : écris ses
+coordonnées GPS sur sa ligne dans la liste de l'Outil Prépa (« Akiyoshido Cave - 秋芳洞 - 34.2276,
+131.3027 ») : l'écran de fin se fait quand même, et l'outil dessine l'épingle du lieu sur la carte.
 
 Ne touche pas au dossier « _atelier » : ce sont les fichiers de travail de l'outil.
 L'outil n'écrit jamais dans ton dossier de montages.

@@ -120,6 +120,21 @@ def accroche_proposee(style, categorie, nom):
     return f'Rebuild this {puzzle} in Japan' if puzzle else GENERALE
 
 
+def epingle_proposee(nom):
+    """L'allure de l'épingle d'un lieu pas encore dans le Sheet ({couleur, icone} d'une catégorie de la carte), d'après les mots
+    de son nom ; sinon un appareil photo vermillon."""
+    cat = next((c for motif, c in MOTS if re.search(motif, nom, re.I)), None)
+    cat = {'Caves': 'Nature & Caves'}.get(cat, cat)
+    try:
+        with open(RACINE / 'site' / 'data' / 'secours-categories.csv', encoding='utf-8-sig') as f:
+            for l in csv.DictReader(f):
+                if cat and l['Catégorie'].strip() == cat:
+                    return {'couleur': l['Couleur'].strip(), 'icone': l['Icône'].strip()}
+    except OSError:
+        pass
+    return {'couleur': '#C63A23', 'icone': 'camera'}
+
+
 # ---------------------------------------------------------------- petits outils
 def ffmpeg():
     return shutil.which('ffmpeg') or __import__('imageio_ffmpeg').get_ffmpeg_exe()
@@ -462,7 +477,8 @@ def filmer_fins(lieux):
             nav = pw.chromium.launch(channel='msedge', headless=True,
                                      args=['--enable-gpu', '--use-angle=d3d11', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'])
             for l in lieux:
-                cap = {'plan': 'fin-carte', 'lng': l['lng'], 'lat': l['lat'], 'duree': DUREE_FIN}
+                cap = {'plan': 'fin-carte', 'lng': l['lng'], 'lat': l['lat'], 'duree': DUREE_FIN,
+                       **({'epingle': l['epingle']} if l.get('epingle') else {})}
                 ips = max(30, round(float(l['fps'])))
                 # la même prise sert tant que le lieu, la cadence et fin.js ne changent pas (refaire une intro ne la refilme pas)
                 marque = json.dumps([cap, ips, hashlib.sha1((ICI / 'fin.js').read_bytes()).hexdigest()])
@@ -555,12 +571,15 @@ def completer(lieu, reglages, sheet):
     # le nom japonais du Sheet (sans ce qui le distingue d'un homonyme : « 稲荷神社（日置市） » → « 稲荷神社 »)
     lieu['nom_jp'] = lieu.get('nom_jp') or re.sub(r'\s*[（(][^）)]*[）)]\s*', '', (f.get('Nom (日本語)') or '') if f else '').strip()
     lieu['prefecture_jp'] = ''
-    if f:
-        lat, lng = (float(v) for v in f['Coordonnées GPS'].split(','))
-        lieu['lat'], lieu['lng'] = lat, lng
-        if not lieu['prefecture']:
-            code = prefecture(lng, lat)
-            lieu['prefecture'], lieu['prefecture_jp'] = PREFECTURES[code], KANJI[code]
+    if f and 'lat' not in lieu:
+        lieu['lat'], lieu['lng'] = (float(v) for v in f['Coordonnées GPS'].split(','))
+    if not f and 'lat' in lieu:
+        # pas encore dans le Sheet (le propriétaire l'y ajoute une fois la vidéo publiée, avec son lien TikTok) : ses
+        # coordonnées viennent de sa liste, et la carte n'a pas encore son épingle : l'écran de fin la dessine (fin.js)
+        lieu['epingle'] = epingle_proposee(lieu['nom'])
+    if 'lat' in lieu and not lieu['prefecture']:
+        code = prefecture(lieu['lng'], lieu['lat'])
+        lieu['prefecture'], lieu['prefecture_jp'] = PREFECTURES[code], KANJI[code]
     if lieu['prefecture'] and not lieu['prefecture_jp']:  # écrite à la main : en anglais ou en kanji
         code = code_prefecture(lieu['prefecture'])
         if code:
@@ -610,19 +629,20 @@ def installer():
 
 def demandes(fichier):
     """Les lieux demandés par un autre outil (l'Outil Prépa TikTok du propriétaire, qui choisit le plan d'une vidéo qu'il vient
-    de préparer) : une liste JSON de {plan (chemin), debut, nom, nom_jp, prefecture (écrits par le propriétaire dans sa liste :
-    ils passent avant le Sheet), sortie (le dossier où écrire), style, accroche, cadrage, fin, note (des lignes de plus pour
-    infos.txt)}."""
+    de préparer) : une liste JSON de {plan (chemin), debut, nom, nom_jp, prefecture, lat, lng (écrits par le propriétaire dans
+    sa liste : ils passent avant le Sheet ; les coordonnées donnent l'écran de fin d'un lieu pas encore dans le Sheet), sortie
+    (le dossier où écrire), style, accroche, cadrage, fin, note (des lignes de plus pour infos.txt)}."""
     reglages, liste = {'cadence': Fraction(30), 'fin': True}, []
     for k, d in enumerate(json.loads(Path(fichier).read_text(encoding='utf-8')), 1):
-        liste.append({'ligne': k, 'texte': json.dumps({c: d.get(c) for c in ('plan', 'debut', 'nom', 'nom_jp', 'prefecture', 'style', 'accroche',
-                                                                          'cadrage', 'fin')},
+        liste.append({'ligne': k, 'texte': json.dumps({c: d.get(c) for c in ('plan', 'debut', 'nom', 'nom_jp', 'prefecture', 'lat', 'lng',
+                                                                          'style', 'accroche', 'cadrage', 'fin')},
                                                       ensure_ascii=False, sort_keys=True),
                       'plan': Path(d['plan']), 'debut': float(d.get('debut') or 0), 'nom': d.get('nom') or '',
                       'nom_jp': d.get('nom_jp') or '',
                       'prefecture': d.get('prefecture') or '', 'accroche': d.get('accroche') or '', 'style': (d.get('style') or '').lower(),
                       'cadrage': (d.get('cadrage') or '').lower(), 'sortie': d.get('sortie'), 'fin': d.get('fin', True),
-                      'note': d.get('note') or []})
+                      'note': d.get('note') or [],
+                      **({'lat': float(d['lat']), 'lng': float(d['lng'])} if d.get('lat') and d.get('lng') else {})})
     return reglages, liste
 
 
@@ -730,7 +750,11 @@ def main():
                  f"Préfecture : {l['prefecture'] or '(inconnue : écris-la dans ta liste)'}" + (f" ({l['prefecture_jp']})" if l['prefecture_jp'] else ''),
                  f"Plan : {l['plan']}" + (f" (à partir de {l['debut']:g} s)" if l['debut'] else ''),
                  f"Style : {l['style']}", f"Accroche : {l['accroche']}" + (' (proposée par l\'outil)' if l['proposee'] else ''),
-                 f"Cadence : {texte_cadence(l['fps'])} images/s", f"Écran de fin : {'oui' if l['fin'] else 'non'}", *l.get('note', [])]
+                 f"Cadence : {texte_cadence(l['fps'])} images/s",
+                 "Écran de fin : " + ('oui' if l['fin'] else "non" if 'lat' in l else
+                                      "non (le lieu n'est pas encore dans le Google Sheet : ajoute ses coordonnées GPS à sa ligne "
+                                      "dans ta liste, « Nom - 日本語 - Préfecture - 34.2275, 131.3036 »)"),
+                 *l.get('note', [])]
         (d / 'infos.txt').write_text('\n'.join(infos) + '\n', encoding='utf-8')
         (d / '.empreinte').write_text(l['empreinte'])
         for sous in ('images-intro', 'images-nom', 'images-fin'):
