@@ -135,12 +135,15 @@ export const Nom: React.FC<PropsNom> = ({ fps, nom, prefecture, nomJp = "", pref
   return (
     <div style={{ position: "absolute", left: 0, right: 0, top: 250, display: "flex", flexDirection: "column", alignItems: "center",
       textAlign: "center" }}>
+      {/* un lavis d'encre très doux derrière tout le bloc : le nom reste lisible même sur une image chargée (des plaques écrites…) */}
+      <div style={{ position: "absolute", left: 30, right: 30, top: -70, bottom: -80, opacity: borne(t / 0.3),
+        background: "radial-gradient(ellipse at 50% 50%, rgba(14,9,6,0.5) 0%, rgba(14,9,6,0.32) 42%, rgba(14,9,6,0) 72%)" }} />
       {jp.length > 0 && (
         <div style={{ display: "flex", fontFamily: SYUKU, fontSize: tJp, lineHeight: 1.12, letterSpacing: tJp * 0.04, marginBottom: 34 }}>
           {jp.map((c, k) => {
             const a = borne((t - 0.02 - k * 0.055) / 0.2); // chaque caractère « écrit » de haut en bas
             return (
-              <span key={k} style={{ ...encre(tJp * 0.085), display: "inline-block", clipPath: `inset(0 0 ${(1 - a) * 100}% 0)`,
+              <span key={k} style={{ ...encre(tJp * 0.1), display: "inline-block", clipPath: `inset(0 0 ${(1 - a) * 100}% 0)`,
                 transform: `translateY(${(1 - a) * -10}px)`, opacity: borne(a * 3) }}>{c}</span>
             );
           })}
