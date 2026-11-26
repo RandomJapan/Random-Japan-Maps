@@ -5,6 +5,7 @@ et qui s'affiche ensuite en grand ; il les pose lui-même au début de ses monta
     python outils/video/captcha/fabriquer.py             # tous les lieux de videos/intros captcha/lieux.txt
     python outils/video/captcha/fabriquer.py --refaire   # même ceux qui sont déjà faits
     (ou un double-clic sur « Fabriquer les intros.bat », dans ce dossier)
+    python outils/video/captcha/fabriquer.py --lieux demandes.json   # appelé par l'Outil Prépa TikTok (voir demandes())
 
 Le dossier de travail (videos/intros captcha, hors de git) : lieux.txt (une ligne par lieu : plan ; nom ; préfecture ; accroche ;
 style), plans/ (les images ou les courts plans du propriétaire), intros/ (ce que l'outil fabrique, un dossier par lieu), _atelier/
@@ -24,6 +25,7 @@ import csv
 import functools
 import hashlib
 import http.server
+import io
 import json
 import os
 import random
@@ -33,6 +35,7 @@ import subprocess
 import sys
 import threading
 import unicodedata
+import urllib.request
 from fractions import Fraction
 from pathlib import Path
 
@@ -178,11 +181,24 @@ def trouver_plan(texte):
 
 
 def fiches():
+    """Les lignes du Sheet par nom : le lien publié (à jour : un lieu ajouté le jour même, juste avant de préparer ses vidéos),
+    par-dessus la copie de secours du dépôt (qui ne se met à jour qu'au « git pull »)."""
+    textes = [LIEUX.read_text(encoding='utf-8-sig')]
+    try:
+        url = re.search(r"lieux:\s*'([^']+)'", (RACINE / 'site' / 'config.js').read_text(encoding='utf-8')).group(1)
+        with urllib.request.urlopen(url, timeout=20) as r:
+            texte = r.read().decode('utf-8-sig')
+        if 'Nom (EN)' not in texte.splitlines()[0]:
+            raise ValueError('contenu inattendu')
+        textes.append(texte)
+    except Exception as ex:  # noqa: BLE001
+        print(f'  (le Sheet en ligne ne répond pas : {ex} ; je prends sa copie de secours)')
     sheet = {}
-    for l in csv.DictReader(open(LIEUX, encoding='utf-8')):
-        nom = l['Nom (EN)'].strip()
-        if nom and l['Coordonnées GPS'].strip():
-            sheet[normal(nom)] = l
+    for texte in textes:
+        for l in csv.DictReader(io.StringIO(texte)):
+            nom = (l.get('Nom (EN)') or '').strip()
+            if nom and (l.get('Coordonnées GPS') or '').strip():
+                sheet[normal(nom)] = l
     return sheet
 
 
@@ -497,7 +513,10 @@ def apercu(l, fichiers):
 # ---------------------------------------------------------------- tout
 def completer(lieu, reglages, sheet):
     """Complète un lieu de la liste : son plan, sa cadence, son nom, sa préfecture, son accroche, son style. None : on le saute."""
-    plan, debut = trouver_plan(lieu['plan'])
+    if isinstance(lieu['plan'], Path):  # une demande d'un autre outil (--lieux) : le chemin du plan et son début, déjà connus
+        plan, debut = (lieu['plan'], lieu.get('debut', 0.0)) if lieu['plan'].is_file() else (None, 0.0)
+    else:
+        plan, debut = trouver_plan(lieu['plan'])
     if not plan:
         print(f"  ligne {lieu['ligne']} : je ne trouve pas « {lieu['plan']} » (ni dans plans\\, ni ailleurs) : sauté.")
         return None
@@ -536,11 +555,11 @@ def completer(lieu, reglages, sheet):
     lieu['style'] = style
     lieu['proposee'] = not lieu['accroche']
     lieu['accroche'] = lieu['accroche'] or accroche_proposee(style, lieu['categorie'], lieu['nom'])
-    lieu['fin'] = reglages['fin'] and 'lng' in lieu
+    lieu['fin'] = reglages['fin'] and lieu.get('fin', True) and 'lng' in lieu
     ident = re.sub(r'[^a-z0-9]+', '-', normal(lieu['nom']) or 'lieu')
     lieu['ident'] = ident
     lieu['atelier'] = verifier_sortie(ATELIER / 'lieux' / ident)
-    lieu['dossier'] = verifier_sortie(SORTIE / propre(lieu['nom']))
+    lieu['dossier'] = verifier_sortie(Path(lieu['sortie']) if lieu.get('sortie') else SORTIE / propre(lieu['nom']))
     st = plan.stat()
     lieu['empreinte'] = hashlib.sha1(json.dumps([VERSION, lieu['texte'], str(plan), st.st_size, st.st_mtime_ns, str(lieu['fps']),
                                                  lieu['fin']]).encode()).hexdigest()
@@ -560,23 +579,43 @@ def installer():
     (TRAVAIL / 'Fabriquer les intros.bat').write_bytes(bat.encode('utf-8'))
 
 
+def demandes(fichier):
+    """Les lieux demandés par un autre outil (l'Outil Prépa TikTok du propriétaire, qui choisit le plan d'une vidéo qu'il vient
+    de préparer) : une liste JSON de {plan (chemin), debut, nom, sortie (le dossier où écrire), style, accroche, cadrage, fin,
+    note (des lignes de plus pour infos.txt)}."""
+    reglages, liste = {'cadence': Fraction(30), 'fin': True}, []
+    for k, d in enumerate(json.loads(Path(fichier).read_text(encoding='utf-8')), 1):
+        liste.append({'ligne': k, 'texte': json.dumps({c: d.get(c) for c in ('plan', 'debut', 'nom', 'style', 'accroche', 'cadrage', 'fin')},
+                                                      ensure_ascii=False, sort_keys=True),
+                      'plan': Path(d['plan']), 'debut': float(d.get('debut') or 0), 'nom': d.get('nom') or '',
+                      'prefecture': d.get('prefecture') or '', 'accroche': d.get('accroche') or '', 'style': (d.get('style') or '').lower(),
+                      'cadrage': (d.get('cadrage') or '').lower(), 'sortie': d.get('sortie'), 'fin': d.get('fin', True),
+                      'note': d.get('note') or []})
+    return reglages, liste
+
+
 def main():
     refaire = '--refaire' in sys.argv
     installer()
-    reglages, liste = lire_liste()
+    if '--lieux' in sys.argv:
+        reglages, liste = demandes(sys.argv[sys.argv.index('--lieux') + 1])
+        origine = 'la demande'
+    else:
+        reglages, liste = lire_liste()
+        origine = 'lieux.txt'
     if not liste:
         print(f"Aucun lieu dans {LISTE} : écris une ligne par lieu (voir « Mode d'emploi.txt »).")
         return
     sheet = fiches()
     lieux = []
-    print(f'{len(liste)} lieu(x) dans lieux.txt', flush=True)
+    print(f'{len(liste)} lieu(x) dans {origine}', flush=True)
     for brut in liste:
         l = completer(brut, reglages, sheet)
         if not l:
             continue
         deja = l['dossier'] / '.empreinte'
         if not refaire and deja.exists() and deja.read_text() == l['empreinte']:
-            print(f"  {l['nom']} : déjà fait (supprime son dossier dans intros\\ pour le refaire)")
+            print(f"  {l['nom']} : déjà fait (supprime le dossier « {l['dossier']} » pour le refaire)")
             continue
         lieux.append(l)
     if not lieux:
@@ -650,7 +689,7 @@ def main():
         infos = [f"Lieu : {l['nom']}", f"Préfecture : {l['prefecture'] or '(inconnue : écris-la dans lieux.txt)'}",
                  f"Plan : {l['plan']}" + (f" (à partir de {l['debut']:g} s)" if l['debut'] else ''),
                  f"Style : {l['style']}", f"Accroche : {l['accroche']}" + (' (proposée par l\'outil)' if l['proposee'] else ''),
-                 f"Cadence : {texte_cadence(l['fps'])} images/s", f"Écran de fin : {'oui' if l['fin'] else 'non'}"]
+                 f"Cadence : {texte_cadence(l['fps'])} images/s", f"Écran de fin : {'oui' if l['fin'] else 'non'}", *l.get('note', [])]
         (d / 'infos.txt').write_text('\n'.join(infos) + '\n', encoding='utf-8')
         (d / '.empreinte').write_text(l['empreinte'])
         for sous in ('images-intro', 'images-nom', 'images-fin'):

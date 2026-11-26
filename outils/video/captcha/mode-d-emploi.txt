@@ -64,5 +64,12 @@ sa ligne dans lieux.txt : l'outil voit le changement et le refait. Ou supprime s
 « intros ».
 L'écran de fin : « écran de fin : non » dans lieux.txt pour ne plus le faire.
 
+Avec l'Outil Prépa TikTok
+------------------------
+Plus besoin de rien écrire ici pour tes nouveaux lieux : l'Outil Prépa TikTok (preparer.bat) fait
+l'intro tout seul après avoir préparé les vidéos d'un lieu. Il choisit le début d'une vidéo sans
+texte, et range l'intro dans « Videos preparees\<Lieu>\Intro captcha ». Voir son LISEZMOI.txt
+(partie « 2 BIS »). Cette liste-ci reste utile pour un plan à toi (une photo, un plan filmé).
+
 Ne touche pas au dossier « _atelier » : ce sont les fichiers de travail de l'outil.
 L'outil n'écrit jamais dans ton dossier de montages.
